@@ -1,184 +1,229 @@
+using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
+using System.Text;
+using System.Threading;
+using Styx.Database;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
+using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
+using Styx.Logic.Combat;
+using Styx.Logic.BehaviorTree;
+using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    /// <summary>
-    /// CastSpellOn by Nesox
-    /// Allows you to cast a spell on an object.
-    /// ##Syntax##
-    /// QuestId: Id of the quest.
-    /// SpellId: Id of the spell to use.
-    /// NpcId: If of the Npc to cast said spell on.
-    /// NumOfTimes: Number of times to cast spell.
-    /// MinRange: the distance from the unit before attempting to cast the spell.
-    /// X,Y,Z: The precise location where this object can be found
-    /// </summary>
     public class CastSpellOn : CustomForcedBehavior
     {
+
+        /// <summary>
+        /// CastSpellOn by Natfoth
+        /// Allows you to use a Specific Spell on a Target, useful for Dummies and Starting Quests.
+        /// ##Syntax##
+        /// QuestId: Id of the quest.
+        /// SpellId: Spell you wish to cast on the Target
+        /// NumOfTimes: How many times before the script finishes
+        /// HpLeftAmount: How low the HP should be before casting a spell on it. Such as wounded targets
+        /// MinRange: If the spell has a minRange to it
+        /// X,Y,Z: The general location where these objects can be found
+        /// </summary>
+        /// 
+
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"SpellId",null},
+            {"NpcId",null},
+            {"NumOfTimes",null},
+            {"HpLeftAmount",null},
+            {"MinRange",null},
+            {"X",null},
+            {"Y",null},
+            {"Z",null},
+            {"QuestId",null},
+
+        };
+
+        bool success = true;
+
         public CastSpellOn(Dictionary<string, string> args)
             : base(args)
         {
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
-            {
-                Logging.Write("Parsing QuestID in UseGameObject behavior failed! please check your profile!");
-            }
+            CheckForUnrecognizedAttributes(recognizedAttributes);
 
-            int spellId;
-            if (!int.TryParse(Args["SpellId"], out spellId))
-            {
-                Logging.Write("Parsing mobid in CastSpellOn behavior failed! please check your profile!");
-            }
+            int spellId = 0;
+            int mobid = 0;
+            int numberoftimes = 0;
+            int hpleftamount = 0;
+            int minRange = 0;
+            int questId = 0;
+            WoWPoint location = new WoWPoint(0, 0, 0);
 
-            int npcId;
-            if (!int.TryParse(Args["NpcId"], out npcId))
-            {
-                Logging.Write("Parsing mobid in CastSpellOn behavior failed! please check your profile!");
-            }
+            success = success && GetAttributeAsInteger("SpellId", true, "1", 0, int.MaxValue, out spellId);
+            success = success && GetAttributeAsInteger("NpcId", true, "1", 0, int.MaxValue, out mobid);
+            success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 1, int.MaxValue, out numberoftimes);
+            success = success && GetAttributeAsInteger("HpLeftAmount", false, "110", 0, int.MaxValue, out hpleftamount); ;
+            success = success && GetAttributeAsInteger("MinRange", false, "3", 0, int.MaxValue, out minRange);
+            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
 
-            int numOfTimes;
-            if (!int.TryParse(Args["NumOfTimes"], out numOfTimes))
-            {
-                Logging.Write("Parsing mobid in CastSpellOn behavior failed! please check your profile!");
-            }
-
-            int minRange;
-            if (!int.TryParse(Args["MinRange"], out minRange))
-            {
-                Logging.Write("Parsing mobid in CastSpellOn behavior failed! please check your profile!");
-            }
-
-            float x;
-            if (!float.TryParse(Args["X"], out x))
-                Logging.Write("Parsing X in CastSpellOn behavior failed! please check your profile!");
-
-            float y;
-            if (!float.TryParse(Args["Y"], out y))
-                Logging.Write("Parsing Y in CastSpellOn behavior failed! please check your profile!");
-
-            float z;
-            if (!float.TryParse(Args["Z"], out z))
-                Logging.Write("Parsing Z in CastSpellOn behavior failed! please check your profile!");
-
-            QuestId = questId;
-            SpellId = spellId;
-            NpcId = npcId;
-
+            QuestId = (uint)questId;
+            SpellID = spellId;
+            MobId = mobid;
+            Counter = 1;
+            HPLeftAmount = hpleftamount;
+            MovedToTarget = false;
             MinRange = minRange;
-            NumOfTimes = numOfTimes;
-            Location = new WoWPoint(x, y, z);
+            NumberOfTimes = numberoftimes;
+            Location = location;
+
         }
 
-        public uint QuestId { get; private set; }
-        public int SpellId { get; private set; }
-        public int NpcId { get; private set; }
-        public int MinRange { get; private set; }
-        public int NumOfTimes { get; private set; }
         public WoWPoint Location { get; private set; }
-        public int Counter { get; private set; }
+        public int Counter { get; set; }
+        public int SpellID { get; set; }
+        public int MobId { get; set; }
+        public bool MovedToTarget;
+        public int NumberOfTimes { get; set; }
+        public int HPLeftAmount { get; set; }
+        public int MinRange { get; set; }
+        public uint QuestId { get; set; }
 
-        public WoWObject CurrentObject
+        public static LocalPlayer me = ObjectManager.Me;
+
+        public List<WoWUnit> mobList
         {
             get
             {
-                return
-                    ObjectManager.GetObjectsOfType<WoWObject>(true).FirstOrDefault(
-                        ret => ret.Entry == NpcId && ret.Location.Distance(Location) < 2);
+                if (HPLeftAmount > 0)
+                {
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                .Where(u => u.Entry == MobId && !u.Dead && u.HealthPercent <= HPLeftAmount)
+                                                                .OrderBy(u => u.Distance).ToList();
+                }
+                else
+                {
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                            .Where(u => u.Entry == MobId && !u.Dead)
+                                            .OrderBy(u => u.Distance).ToList();
+                }
             }
         }
 
-
         #region Overrides of CustomForcedBehavior
+
+        public override void OnStart()
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+
+            if (quest != null)
+            {
+                TreeRoot.GoalText = "CombatUseItem - " + quest.Name;
+            }
+            else
+            {
+                TreeRoot.GoalText = "CastSpellOn: Running";
+            }
+        }
 
         private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
-            new PrioritySelector(
+                new PrioritySelector(
 
-                new Decorator(ret => Counter >= NumOfTimes,
-                    new Action(ret => _isDone = true)),
-
-                    new PrioritySelector(
-
-                        new Decorator(ret => CurrentObject != null && (CurrentObject.Distance > MinRange || !CurrentObject.InLineOfSight),
-                            new Sequence(
-                                new Action(delegate { TreeRoot.StatusText = "Moving to cast spell on - " + CurrentObject.Name; }),
-                                new Action(ret => Navigator.MoveTo(CurrentObject.Location))
-                                )
-                            ),
-
-                        new Decorator(ret => CurrentObject != null && CurrentObject.Distance <= MinRange && CurrentObject.InLineOfSight,
-                            
-                            // Set the context to the spell
-                            new Sequence(ret => WoWSpell.FromId(SpellId),
-                                
-                                new DecoratorContinue(ret => ret == null,
-                                    new Action(delegate
-                                                   {
-                                                       TreeRoot.StatusText = "Casting spell on - " + CurrentObject.Name;
-                                                       WoWSpell spell = WoWSpell.FromId(SpellId);
-                                                       if (spell == null)
-                                                       {
-                                                           Logging.Write(Color.Red, "Could not find spell with id:{0} for CastSpellOn behavior!", SpellId);
-                                                           Logging.Write(Color.Red, "Honorbuddy stopped!");
-                                                           TreeRoot.Stop();
-                                                           return;
-                                                       }
-                                                   })),
-
-                                new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                    new Action(delegate
-                                    {
-                                        WoWMovement.MoveStop();
-                                        StyxWoW.SleepForLagDuration();
-                                    })),
-
-                                    // Cast the spell
-                                    new Action(ret => SpellManager.Cast(SpellId, CurrentObject.ToUnit())),
-                                    new Action(ret => StyxWoW.SleepForLagDuration()),
-                                    
-                                    // Increase the counter.
-                                    new WaitContinue(5, ret => !StyxWoW.Me.IsCasting,
-                                        new Action(ret => Counter++))
-                                    
+                            new Decorator(ret => (Counter > NumberOfTimes && QuestId == 0) || (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isDone = true;
+                                            return RunStatus.Success;
+                                        }))
                                     )),
 
-                        new Sequence(
-                            new Action(delegate { TreeRoot.StatusText = "Moving towards - " + Location; }),
-                            new Action(ret => Navigator.MoveTo(Location))))
-                ));
+                           new Decorator(ret => mobList.Count == 0,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
+                                        new Action(ret => Navigator.MoveTo(Location)),
+                                        new Action(ret => Thread.Sleep(300))
+                                    )
+                                ),
+
+                           new Decorator(ret => mobList.Count > 0 && !me.IsCasting,
+                                new Sequence(
+                                    new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) >= MinRange && mobList[0].Location.Distance(me.Location) <= 25,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellID + " On Mob: " + mobList[0].Name + " Yards Away "+ mobList[0].Location.Distance(me.Location)),
+                                            new Action(ret => WoWMovement.MoveStop()),
+                                            new Action(ret => Thread.Sleep(300)),
+                                            new Decorator(c => !me.IsCasting, CreateSpellBehavior)
+                                            )
+                                    ),
+                                    new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) > 25,
+                                        new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + mobList[0].Name + " Yards Away: " + mobList[0].Location.Distance(me.Location)),
+                                        new Action(ret => Navigator.MoveTo(mobList[0].Location)),
+                                        new Action(ret => Thread.Sleep(300))
+                                            )
+                                    ),
+
+                                   new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) < MinRange,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
+                                            new Action(ret => mobList[0].Face()),
+                                            new Action(ret => Thread.Sleep(100)),
+                                            new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
+                                            new Action(ret => Thread.Sleep(100))
+                                          ))
+                                    ))
+
+                                    
+
+                            
+                        )
+                    );
         }
-    
-        private bool _isDone;
-        public override bool IsDone
+
+        Composite CreateSpellBehavior
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                return new Action(c =>
+                {
+                    if (SpellID > 0 && !me.IsCasting)
+                    {
+                        mobList[0].Target();
+                        mobList[0].Face();
+                        Thread.Sleep(300);
+                        SpellManager.Cast(SpellID);
 
-                return
-                    _isDone ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
+                        if (me.QuestLog.GetQuestById(QuestId) == null || QuestId == 0)
+                        {
+                            Counter++;
+                        }
+                        Thread.Sleep(300);
+                        return RunStatus.Success;
+                    }
+                    else
+                    {
+                        _isDone = true;
+                        return RunStatus.Success;
+                    }
+
+                });
             }
         }
 
-        public override void OnStart()
+        private bool _isDone;
+        public override bool IsDone
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest != null)
-                TreeRoot.GoalText = string.Format("Casting spell on Mob Id:{0} {1} Times for quest:{2}", NpcId, NumOfTimes, quest.Name);
+            get { return _isDone; }
         }
 
         #endregion

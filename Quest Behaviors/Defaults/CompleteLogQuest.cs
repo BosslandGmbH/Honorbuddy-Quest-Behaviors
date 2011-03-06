@@ -1,17 +1,32 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text;
 using System.Threading;
+using Styx.Database;
 using Styx.Helpers;
+using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
+using Styx.Logic.Combat;
+using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class CompleteLogQuest : CustomForcedBehavior
     {
+
+        /// <summary>
+        /// CompleteLogQuest by Natfoth
+        /// Will complete a "In-The-Field" Quest.
+        /// ##Syntax##
+        /// QuestId: The Entire purpose of this behavior, so this one is required.
+        /// </summary>
+        /// 
 
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {
@@ -49,38 +64,46 @@ namespace Styx.Bot.Quest_Behaviors
 
         static public int questIndexID { get { return Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestID + ")", 0); } }
 
+        public override void OnStart()
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestID);
+
+            if (quest != null)
+                TreeRoot.GoalText = "CompleteLogQuest - " + quest.Name;
+        }
+
         private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new PrioritySelector(
 
-                    new Decorator(ret => Counter >= 1,
-                        new Action(ret => _isDone = true)),
+                    new Decorator(ret => Counter > 0,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
 
-                        new PrioritySelector(
-
-                            new Decorator(ret => Counter == 0,
-                                new Action(delegate
-                                {
-
-                                   // Lua.DoString("ShowQuestComplete(" + QuestID + "); CompleteQuest(); GetQuestReward(1); ");
-
-                                    //uint bob = me.QuestLog.GetQuestById(QuestID).
-
-                                    Lua.DoString("ShowQuestComplete(\"" + questIndexID + "\")");
-                                    Thread.Sleep(300);
-                                    Lua.DoString("CompleteQuest()");
-                                    Thread.Sleep(300);
-                                    Lua.DoString("GetQuestReward(1)");
-                                    Thread.Sleep(300);
-                                    Counter++;
-                                })
-                                ),
-
-                            new Action(ret => Logging.Write(""))
+                           new Decorator(ret => Counter == 0,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Completing Log Quest - " + QuestID),
+                                        new Action(ret => Lua.DoString("ShowQuestComplete({0})", questIndexID)),
+                                        new Action(ret => Thread.Sleep(300)),
+                                        new Action(ret => Lua.DoString("CompleteQuest()")),
+                                        new Action(ret => Thread.Sleep(300)),
+                                        new Action(ret => Lua.DoString("GetQuestReward({0})", 1)),
+                                        new Action(ret => Thread.Sleep(300)),
+                                        new Action(ret => Lua.DoString("AcceptQuest()")),
+                                        new Action(ret => Counter++)
+                                    ))
+                               
                         )
-                    ));
+                    );
         }
 
         private bool _isDone;

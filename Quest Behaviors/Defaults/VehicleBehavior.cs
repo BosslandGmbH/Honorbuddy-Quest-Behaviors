@@ -1,26 +1,47 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Styx.Database;
+using Styx.Logic.Combat;
 using Styx.Helpers;
+using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
+using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
+using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class VehicleBehavior : CustomForcedBehavior
     {
-        #region Overrides of CustomForcedBehavior
+        /// <summary>
+        /// VehicleBehavior by Natfoth
+        /// Will control a vehicle and fire on locations/Mobs
+        /// ##Syntax##
+        /// QuestId: Id of the quest.
+        /// NpcMountID: MobId of the vehicle before it is mounted.
+        /// VehicleID: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
+        /// SpellIndex: Button bar Number starting from 1
+        /// FireHeight: Between 0 - 99 The lower the number the closer to the ground it will be
+        /// FireTillFinish: This is used for a few quests that the mob is flying but respawns fast, So the bot can fire in the same spot over and over.
+        /// FireLocation Coords: Where you want to be at when you fire.
+        /// TargetLocation Coords: Where you want to aim.
+        /// PreviousFireLocation Coords: This should only be used if you are already inside of the vehicle when you call the behaviors again, and
+        ///                                 should be the same coords as FireLocation on the call before it, Check the Wiki for more info or examples.
+        /// </summary>
+        /// 
 
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {
 
             {"NpcMountID",null},
             {"VehicleID",null},
-            {"SpellID",null},
+            {"SpellIndex",null},
             {"FireHeight",null},
             {"FireTillFinish",null},
             {"QuestId",null},
@@ -45,7 +66,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             int npcmountid = 0;
             int vehicleID = 0;
-            int spellID = 0;
+            int spellIndex = 0;
             int fireheight = 0;
             int firetillFinish = 0;
             int questId = 0;
@@ -53,12 +74,11 @@ namespace Styx.Bot.Quest_Behaviors
             WoWPoint targetCoords = new WoWPoint(0, 0, 0);
             WoWPoint previousCoords = new WoWPoint(0, 0, 0);
 
-            Logging.Write("Activating Emergency Gnome Bombing Tech!");
-
+            TreeRoot.GoalText = "VehicleBehavior: Running";
             
             success = success && GetAttributeAsInteger("NpcMountID", true, "1", 1, int.MaxValue, out npcmountid);
             success = success && GetAttributeAsInteger("VehicleID", true, "1", 1, int.MaxValue, out vehicleID);
-            success = success && GetAttributeAsInteger("SpellID", true, "1", 1, int.MaxValue, out spellID);
+            success = success && GetAttributeAsInteger("SpellIndex", true, "1", 1, int.MaxValue, out spellIndex);
             success = success && GetAttributeAsInteger("FireHeight", true, "1", 1, int.MaxValue, out fireheight);
             success = success && GetAttributeAsInteger("FireTillFinish", false, "0", 0, 1, out firetillFinish);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
@@ -70,7 +90,7 @@ namespace Styx.Bot.Quest_Behaviors
             NpcMountID = npcmountid;
             SpellType = 2;
             FireHeight = fireheight;
-            SpellCastID = spellID;
+            SpellIndex = spellIndex;
             VehicleID = vehicleID;
             FirePoint = fireCoords;
             TargetPoint = targetCoords;
@@ -87,9 +107,11 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint FirePoint { get; private set; }
         public WoWPoint MountedPoint { get; private set; }
         public WoWPoint TargetPoint { get; private set; }
+        public WoWPoint LatestLocation { get; private set; }
         public int Counter { get; set; }
+        public bool gotVehicle = false;
         public int SpellType { get; set; }
-        public int SpellCastID { get; set; }
+        public int SpellIndex { get; set; }
         public int VehicleID { get; set; }
         public int NpcMountID { get; set; }
         public int FireHeight { get; set; }
@@ -97,18 +119,58 @@ namespace Styx.Bot.Quest_Behaviors
         public int FireTillFinish { get; set; }
         public uint QuestId { get; set; }
 
+        public WoWUnit Vehicle;
+
+        public WoWPoint[] Path { get; private set; }
+        int pathIndex = 0;
+
         public static LocalPlayer me = ObjectManager.Me;
 
-        public List<WoWUnit> npcaroundlist;
-        public List<WoWUnit> vehicleList;
-        public List<WoWUnit> npcvehicleList;
+        public List<WoWUnit> vehicleList
+        {
+            get
+            {
+                if (MountedPoint.X != 0)
+                {
+                    gotVehicle = true;
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                              .Where(ret => (ret.Entry == VehicleID) && !ret.Dead).OrderBy(u => u.Location.Distance(MountedPoint)).ToList();
+                }
+                else
+                {
+                    gotVehicle = true;
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                        .Where(ret => (ret.Entry == VehicleID) && !ret.Dead).OrderBy(u => u.Distance).ToList();
+                }
+            }
+        }
+
+        public List<WoWUnit> npcvehicleList
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                    .Where(ret => (ret.Entry == NpcMountID) && !ret.Dead).OrderBy(u => u.Distance).ToList();
+            }
+        }
 
         static public bool inVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
 
-        /// <summary>
-        /// A Queue for npc's we need to talk to
-        /// </summary>
-        //private WoWUnit CurrentUnit { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => unit.Entry == VehicleId); } }
+        #region Overrides of CustomForcedBehavior
+
+        public override void OnStart()
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+
+            if (quest != null)
+            {
+                TreeRoot.GoalText = "VehicleBehavior - " + quest.Name;
+            }
+            else
+            {
+                TreeRoot.GoalText = "VehicleBehavior: Running";
+            }
+        }
 
         private Composite _root;
         protected override Composite CreateBehavior()
@@ -116,118 +178,85 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                    new Decorator(ret => (QuestId != 0 && me.QuestLog.GetQuestById(QuestId) != null &&
-                         me.QuestLog.GetQuestById(QuestId).IsCompleted),
-                        new Action(ret => _isDone = true)),
-
-                    new Decorator(ret => Counter >= 1,
-                        new Action(ret => _isDone = true)),
-
-                        new PrioritySelector(
-
-                            new Decorator(ret => !inVehicle,
-                                new Action(delegate
-                                {
-                                    UpdateNpcList();
-
-                                    if (npcvehicleList.Count >= 1 && npcvehicleList[0].WithinInteractRange)
-                                    {
-                                        npcaroundlist = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(ret => (ret.Entry != VehicleID) && !ret.Dead).OrderBy(u => u.Location.Distance(me.Location)).ToList();
-
-                                        npcaroundlist[0].Face();
-
-                                        Styx.Logic.Combat.LegacySpellManager.CastSpellById(6603);
-
-                                        MountedPoint = me.Location;
-                                        npcvehicleList[0].Interact();
-                                        return RunStatus.Success;
-                                    }
-                                    else
-                                    {
-                                        Navigator.MoveTo(npcvehicleList[0].Location);
-                                        Thread.Sleep(300);
-                                        return RunStatus.Running;
-                                    }
-
-                                })
-                                ),
-
-                            new Decorator(ret => inVehicle,
-                                new Action(delegate
-                                {
-                                    vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(ret => (ret.Entry == VehicleID) && !ret.Dead).OrderBy(u => u.Location.Distance(MountedPoint)).ToList();
-
-                                    if (vehicleList[0].Location.Distance(FirePoint) > 10)
-                                    {
-
-                                        WoWPoint destination1 = new WoWPoint(FirePoint.X, FirePoint.Y, FirePoint.Z);
-                                        WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(MountedPoint, destination1);
-
-                                        foreach (WoWPoint p in pathtoDest1)
+                           new Decorator(ret => (Counter > 0 && FireTillFinish == 0) || (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
                                         {
-                                            while (!vehicleList[0].Dead && p.Distance(vehicleList[0].Location) > 7)
-                                            {
-                                                Thread.Sleep(100);
-                                                WoWMovement.ClickToMove(p);
-                                            }
-                                        }
+                                            _isDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
 
-                                        Thread.Sleep(400);
-                                    }
+                           new Decorator(c => !inVehicle,
+                            new Action(c =>
+                            {
+                                if (!npcvehicleList[0].WithinInteractRange)
+                                {
+                                    Navigator.MoveTo(npcvehicleList[0].Location);
+                                    TreeRoot.StatusText = "Moving To Vehicle - " + npcvehicleList[0].Name + " Yards Away: " + npcvehicleList[0].Location.Distance(me.Location);
+                                }
+                                else
+                                {
+                                    npcvehicleList[0].Interact();
+                                    MountedPoint = me.Location;
+                                    
+                                }
 
+                            })
+                        ),
+                        new Decorator(c => inVehicle,
+                            new Action(c =>
+                            {
+                                if (Vehicle == null)
+                                {
+                                    Vehicle = vehicleList[0];
+                                }
+
+                                if (Vehicle.Location.Distance(FirePoint) <= 5)
+                                {
+                                    TreeRoot.StatusText = "Firing Vehicle - " + Vehicle.Name + " Using Spell Index: " + SpellIndex + " Height: " + FireHeight;
                                     WoWMovement.ClickToMove(TargetPoint);
                                     Thread.Sleep(500);
                                     WoWMovement.MoveStop();
 
-                                    Lua.DoString("VehicleAimRequestNormAngle(0." + FireHeight + ")");
-                                    Thread.Sleep(400);
-
-                                    // Logging.Write("8 " + (Environment.TickCount - timer));
-
-                                    if (FireTillFinish == 1)
+                                    using (new FrameLock())
                                     {
-                                        while (!me.QuestLog.GetQuestById(QuestId).IsCompleted)
-                                        {
-                                            Lua.DoString("CastSpellByID(" + SpellCastID + ")");
-                                            Thread.Sleep(700);
-                                        }
-
-                                        if (me.QuestLog.GetQuestById(QuestId).IsCompleted)
-                                        {
-                                            Counter++;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Lua.DoString("CastSpellByID(" + SpellCastID + ")");
-                                        Thread.Sleep(700);
+                                        Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
+                                        Lua.DoString("CastPetAction({0})", SpellIndex);
                                         Counter++;
+                                        return RunStatus.Success;
                                     }
-
-
-                                    return RunStatus.Success;
-
-
-                                })
-                                ),
-
-                            new Action(ret => Logging.Write(""))
-                        )
+                                }
+                                else if (Vehicle.Location.Distance(FirePoint) > 5)
+                                {
+                                    TreeRoot.StatusText = "Moving To FireLocation - Yards Away: " + FirePoint.Distance(Vehicle.Location);
+                                    WoWMovement.ClickToMove(moveToLocation);
+                                    Vehicle.Target();
+                                }
+                                return RunStatus.Running;
+                            }))
+                                   
                     ));
         }
 
-        public void UpdateNpcList()
+        WoWPoint moveToLocation
         {
-            ObjectManager.Update();
+            get
+            {
 
-            vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-              .Where(ret => (ret.Entry == VehicleID) && !ret.Dead).OrderBy(u => u.Distance).ToList();
+                Path = Navigator.GeneratePath(Vehicle.Location, FirePoint);
+                pathIndex = 0;
 
-            npcvehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-              .Where(ret => (ret.Entry == NpcMountID) && !ret.Dead).OrderBy(u => u.Distance).ToList();
+                while (Path[pathIndex].Distance(Vehicle.Location) <= 3 && pathIndex < Path.Length - 1)
+                    pathIndex++;
+                return Path[pathIndex];
+
+            }
         }
+
+            
 
         private bool _isDone;
         public override bool IsDone

@@ -24,26 +24,29 @@ namespace Styx.Bot.Quest_Behaviors
 
         private readonly Timer _timer;
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"WaitTime",null},
+            {"QuestId",null},
+
+        };
+
+        bool success = true;
+
+
         public WaitTimer(Dictionary<string, string> args)
             : base(args)
         {
-            if (Args.Count == 1)
-            {
-                int waitTime;
-                if (!int.TryParse(Args["WaitTime"], out waitTime))
-                {
-                    Logging.Write(Color.Red, "Parsing attribute 'WaitTime' in WaitTimer behavior failed! please check your profile!");
-                    TreeRoot.Stop();
-                }
+            CheckForUnrecognizedAttributes(recognizedAttributes);
+
+                int waitTime = 0;
+
+                success = success && GetAttributeAsInteger("WaitTime", true, "1000", 0, int.MaxValue, out waitTime);
 
                 _timer = new Timer(new TimeSpan(0, 0, 0, 0, waitTime));
-            }
-            else
-            {
-                Logging.Write(Color.Red, "Invalid amount of Args!");
-                TreeRoot.Stop();
-            }
         }
+        
 
         public override void OnStart()
         {
@@ -55,11 +58,11 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ?? (_root =
                 new Decorator(ret => !_timer.IsFinished,
-                    new Sequence( 
+                    new Sequence(
                         new Action(ret => TreeRoot.GoalText = "Waiting for wait timer to expire"),
                         new Action(ret => TreeRoot.StatusText = "Waiting for wait timer to expire, " + _timer.TimeLeft.Seconds + " seconds left"),
-                        new Action(delegate { return RunStatus.Success; })) 
-                        )                           
+                        new Action(delegate { return RunStatus.Success; }))
+                        )
                        );
         }
 

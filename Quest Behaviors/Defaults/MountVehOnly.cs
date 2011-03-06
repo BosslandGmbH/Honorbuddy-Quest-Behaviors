@@ -1,54 +1,107 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Styx.Database;
+using Styx.Logic.Combat;
 using Styx.Helpers;
+using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
+using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
+using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class MountVehOnly : CustomForcedBehavior
     {
-        #region Overrides of CustomForcedBehavior
+        
+
+        /// <summary>
+        /// MountVehOnly by Natfoth
+        /// Only use this when you need to mount a Vehicle but it will require nothing else, wow has to auto dismount you at the end or you use EjectVeh.
+        /// ##Syntax##
+        /// QuestId: Id of the quest.
+        /// MobMountId: The ID of the Vehicle you want to mount.
+        /// X,Y,Z: The general location where these objects can be found
+        /// </summary>
+        /// 
+
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"NpcMountId",null},
+            {"X",null},
+            {"Y",null},
+            {"Z",null},
+            {"QuestId",null},
+
+        };
+
+        bool success = true;
 
         public MountVehOnly(Dictionary<string, string> args)
             : base(args)
         {
 
-            int npcmountid;
-            if (!GetAttributeAsInteger("NpcMountId", true, "1", 0, int.MaxValue, out npcmountid))
-                Logging.Write("Parsing mobid in MountVehOnly behavior failed! please check your profile!");
+            CheckForUnrecognizedAttributes(recognizedAttributes);
 
-            WoWPoint location;
-            if (!GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location))
-                Logging.Write("Parsing location in MountVehOnly behavior failed! please check your profile!");
+            int mobmountid = 0;
+            int questId = 0;
+            WoWPoint location = new WoWPoint(0, 0, 0);
 
-            NpcMountID = npcmountid;
+            success = success && GetAttributeAsInteger("NpcMountId", true, "1", 0, int.MaxValue, out mobmountid);
+            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
+
+            MobMountId = mobmountid;
             Location = location;
+            QuestId = (uint)questId;
 
             Counter = 0;
         }
 
         public WoWPoint Location { get; private set; }
         public int Counter { get; set; }
-        public int NpcMountID { get; set; }
+        public int MobMountId { get; set; }
+        public uint QuestId { get; set; }
 
         public static LocalPlayer me = ObjectManager.Me;
 
-        public List<WoWUnit> npcaroundlist;
-        public List<WoWUnit> vehicleList;
         public List<WoWUnit> npcvehicleList;
 
         static public bool inVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
 
-        /// <summary>
-        /// A Queue for npc's we need to talk to
-        /// </summary>
-        //private WoWUnit CurrentUnit { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => unit.Entry == VehicleId); } }
+
+        public List<WoWUnit> mobList
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                    .Where(u => u.Entry == MobMountId && !u.Dead)
+                                    .OrderBy(u => u.Distance).ToList();
+            }
+        }
+
+        #region Overrides of CustomForcedBehavior
+
+        public override void OnStart()
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+
+            if (quest != null)
+            {
+                TreeRoot.GoalText = "MountVehOnly - " + quest.Name;
+            }
+            else
+            {
+                TreeRoot.GoalText = "MountVehOnly: Running";
+            }
+        }
 
         private Composite _root;
         protected override Composite CreateBehavior()
@@ -56,55 +109,48 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                    new Decorator(ret => Counter >= 1,
-                        new Action(ret => _isDone = true)),
+                            new Decorator(ret => Counter > 0,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
 
-                        new PrioritySelector(
-
-                            new Decorator(ret => !inVehicle,
-                                new Action(delegate
-                                {
-                                    UpdateNpcList();
-
-                                    if (npcvehicleList.Count >= 1 && Location.Distance(me.Location) < 3)
-                                    {
-                                        npcvehicleList[0].Interact();
-                                        Logging.Write("Mounting Vehicle");
-                                        return RunStatus.Success;
-                                    }
-                                    else
-                                    {
-                                        Navigator.MoveTo(Location);
-                                        Thread.Sleep(300);
-                                        return RunStatus.Running;
-                                    }
-
-                                })
+                           new Decorator(ret => inVehicle,
+                                new Sequence(
+                                        new Action(ret => Counter++)
+                                    )
                                 ),
 
-                            new Decorator(ret => inVehicle,
-                                new Action(delegate
-                                {
-
-                                    Logging.Write("Mounted Finished");
-                                    Counter++;
-                                    return RunStatus.Success;
-
-
-                                })
+                           new Decorator(ret => mobList.Count == 0,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
+                                        new Action(ret => Navigator.MoveTo(Location)),
+                                        new Action(ret => Thread.Sleep(300))
+                                    )
                                 ),
 
-                            new Action(ret => Logging.Write(""))
-                        )
+                           new Decorator(ret => mobList.Count > 0,
+                                new Sequence(
+                                    new DecoratorContinue(ret => mobList[0].WithinInteractRange,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Mounting Vehicle - " + mobList[0].Name),
+                                            new Action(ret => WoWMovement.MoveStop()),
+                                            new Action(ret => mobList[0].Interact())
+                                            )
+                                    ),
+                                    new DecoratorContinue(ret => !mobList[0].WithinInteractRange,
+                                        new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Vehicle - " + mobList[0].Name + " X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z + " Yards Away: " + mobList[0].Location.Distance(me.Location)),
+                                        new Action(ret => Navigator.MoveTo(mobList[0].Location)),
+                                        new Action(ret => Thread.Sleep(300))
+                                            ))
+                                    ))
                     ));
-        }
-
-        public void UpdateNpcList()
-        {
-            ObjectManager.Update();
-
-            npcvehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-              .Where(ret => (ret.Entry == NpcMountID) && !ret.Dead).OrderBy(u => u.Distance).ToList();
         }
 
         private bool _isDone;
