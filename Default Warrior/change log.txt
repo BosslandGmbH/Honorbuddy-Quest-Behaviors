@@ -1,0 +1,69 @@
+[16 12 2010]
+FIXED: Melee range bug, completely rewritten. Now uses the target's interact range
+FIXED: Health Potions now work - I broke it a while ago.
+CHANGED: Mortal Strike is now cast sooner
+CHANGED: Rend is now cast sooner
+CHANGED: Charge -> Thunder Clap -> Rend -> Berserker Stance (if you are Fury spec)
+CHANGED: Deadly Calm, should now make better use of it
+CHANGED: Bladestorm, should now make better use of it
+CHANGED: Aggro detection during pull changed slightly
+ADDED: Clossuss Smash
+ADDED: Recklessness, setting in the UI
+ADDED: Sunder Armor, setting in the UI
+ADDED: Enraged Regeneration, setting in the UI
+ADDED: More spells and UI settings
+ADDED: Dynamically loading environment settings. Turned off by default
+ADDED: Exception handling and logging throughout
+
+
+[16 11 2010]
+
+FIXED: Melee range bug (fingers crossed)
+CHANGED: General tweaks and settings.
+ADDED: Stance Dance --> Charge / Intercept
+
+
+[03 11 2010]
+
+FIXED: Settings were not being read properly after a small modification
+
+
+[02 11 2010]
+
+FIXED: Constantly spamming Slam. Incorrectly checking for Blood Surge proc caused it to spam Slam over and over
+
+
+
+[31 10 2010]
+
+
+FIXED: Pulling with Charge/Intercept will now perform a Min/Max range check before attempting to cast the spell
+
+
+[30 10 2010]
+
+FIXED: Pull bug would sometimes prevents the character from actually pulling
+FIXED: Range of Charge adjusted.
+
+CHANGED: Use of Berserker stance is only if you are Fury spec and have either Death Wish or Ranging Blow, otherwise Battle Stance is used
+CHANGED: Order of priority for Thunder Clap and Bloodthirst. 
+CHANGED: Will only use Thunder Clap when Bloodthirst is on cooldown
+CHANGED: Rage limit on Cleave removed
+CHANGED: Disable the use of Rend on low level mobs
+
+ADDED: Support for a few Protection spells
+ADDED: Support for Battle Trance proc
+ADDED: Support for Heroic Throw in combat (on runners only)
+ADDED: Support for Heroic Throw during pull
+ADDED: Additional option to Death Wish and Execute 'hidden UI' setting; Only when no adds
+
+
+TO DO:
+ * More options in the 'hidden' UI
+ * Support for Protection grinding
+ * Modify pull logic
+
+
+KNOWN BUGS:
+ * When fightning multiple mobs it is slow to swap to the next mob once your target dies
+ * Jerky movement, HB related, nothing I can do about this!

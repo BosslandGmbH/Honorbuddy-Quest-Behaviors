@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Warrior>
+  <!--Common class settings template-->
+  <ShowUI>... always</ShowUI>
+  <SmartEatDrink>... always</SmartEatDrink>
+  <RAFTarget>... always</RAFTarget>
+  <Debug>... do not show debug</Debug>
+  <LowLevelCheck>... always</LowLevelCheck>
+  <RestHealth>45</RestHealth>
+  <RestMana>0</RestMana>
+  <CombatTimeout>30</CombatTimeout>
+  <HealthPotion>52</HealthPotion>
+  <LifebloodHealth>40</LifebloodHealth>
+  <ManaPotion>0</ManaPotion>
+  <!--Class specific settings everything below here-->
+  <Rend>... always</Rend>
+  <ThunderClap>... always</ThunderClap>
+  <Shout>Battle Shout</Shout>
+  <DeathWish>... always</DeathWish>
+  <BerserkerRage>... always</BerserkerRage>
+  <AttackRage>40</AttackRage>
+  <Execute>... always</Execute>
+  <DeadlyCalm>... only on adds</DeadlyCalm>
+  <Cleave>... only on adds</Cleave>
+  <Whirlwind>... always</Whirlwind>
+  <Retaliation>... only on adds</Retaliation>
+  <Hamstring>... only on fleeing</Hamstring>
+  <SweepingStrikes>... only on adds</SweepingStrikes>
+  <SunderArmor>... never</SunderArmor>
+  <Recklessness>... only on adds</Recklessness>
+  <EnragedRegenerationHealth>34</EnragedRegenerationHealth>
+</Warrior>
