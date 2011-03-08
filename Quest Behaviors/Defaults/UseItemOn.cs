@@ -7,7 +7,7 @@ using Styx.Logic.Combat;
 using Styx.Helpers;
 using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest.Order;
+using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
 using Styx.Logic.POI;
 using Styx.Combat.CombatRoutine;

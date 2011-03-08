@@ -18,7 +18,7 @@ using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
 using Tripper.Tools.Math;
 
-namespace Styx.Bot.Quest_Behaviors.DeathknightStart
+namespace Styx.Bot.Quest_Behaviors
 {
     public class SafeQuestTurnin : CustomForcedBehavior
     {

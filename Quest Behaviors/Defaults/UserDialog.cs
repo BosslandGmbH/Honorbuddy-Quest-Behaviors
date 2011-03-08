@@ -310,24 +310,6 @@ namespace BuddyWiki.CustomBehavior
                 { _soundCue = (System.Media.SystemSound)s_soundsAllowed[soundCueName]; }
         }
 
-
-        private void UtilLogMessage(string messageType,
-                                    string message)
-        {
-            string  behaviorName = this.GetType().Name;
-            Color   messageColor = Color.Black;
-
-            if (messageType == "error")
-                messageColor = Color.Red;
-            else if (messageType == "warning")
-                messageColor = Color.DarkOrange;
-            else if (messageType == "info")
-                messageColor = Color.Navy;
-
-            Logging.Write(messageColor, String.Format("[Behavior: {0}({1})]: {2}", behaviorName, messageType, message));
-        }
-
-
         #region Overrides of CustomForcedBehavior
 
         public override bool IsDone

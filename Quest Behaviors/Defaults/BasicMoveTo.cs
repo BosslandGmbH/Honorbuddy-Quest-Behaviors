@@ -17,7 +17,6 @@ namespace Styx.Bot.Quest_Behaviors
         public BasicMoveTo(Dictionary<string, string> args)
             : base(args)
         {
-            WoWPoint location;
             string locationString = Args["Location"];
 
             float x, y, z;
