@@ -9,7 +9,7 @@ using Styx.Logic.Questing;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
 
-namespace Styx.Bot.Quest_Behaviors.DeathknightStart
+namespace Styx.Bot.Quest_Behaviors
 {
     public class SafeQuestTurnin : CustomForcedBehavior
     {

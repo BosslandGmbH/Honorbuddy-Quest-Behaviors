@@ -27,6 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
             {"UseGO",null},
             {"UseNPC",null},
             {"NPCID",null},
+            {"NpcID",null},
             {"UseNPCLocation",null},
             {"GameObjectID",null},
             {"DoUntilFinished",null},
@@ -72,25 +73,21 @@ namespace Styx.Bot.Quest_Behaviors
             success = success && GetAttributeAsInteger("GameObjectID", false, "1", 0, int.MaxValue, out goID);
             success = success && GetAttributeAsInteger("DoUntilFinished", false, "0", 0, int.MaxValue, out douUtilFinished);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", false, new WoWPoint(0, 0, 0), out movelocation);
 
-            if (useNPC == 1 || useGO == 1)
+            if (npcID == 1)
+                success = success && GetAttributeAsInteger("NpcID", false, "1", 0, int.MaxValue, out npcID);
+
+            if (movelocation == WoWPoint.Zero)
+                success = success && GetXYZAttributeAsWoWPoint("MoveX", "MoveY", "MoveZ", false, new WoWPoint(0, 0, 0), out movelocation);
+
+            if (useNPC != 1 && useGO != 1)
             {
-
-                
-                success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out movelocation);
-
-                MoveLocation = movelocation;
-            }
-            else
-            {
-                success = success && GetXYZAttributeAsWoWPoint("MoveX", "MoveY", "MoveZ", true, new WoWPoint(0, 0, 0), out movelocation);
-                success = success && GetXYZAttributeAsWoWPoint("TargetX", "TargetY", "TargetZ", true, new WoWPoint(0, 0, 0), out targetlocation);
-
-                MoveLocation = movelocation;
-                TargetLocation = targetlocation;
+                success = success && GetXYZAttributeAsWoWPoint("TargetX", "TargetY", "TargetZ", false, new WoWPoint(0, 0, 0), out targetlocation);
             }
 
-
+            TargetLocation = targetlocation;
+            MoveLocation = movelocation;
             QuestId = (uint)questId;
             WaitTime = waittime;
             ItemID = itemId;
@@ -257,7 +254,7 @@ namespace Styx.Bot.Quest_Behaviors
                 Counter++;
             }
             
-            if (UseGO == 0 && UseNPC == 0)
+            if (UseGO == 0 && UseNPC == 0 && TargetLocation != WoWPoint.Zero)
             {
                 LegacySpellManager.ClickRemoteLocation(TargetLocation);
             }

@@ -47,6 +47,8 @@ namespace Styx.Bot.Quest_Behaviors
             {"TargetId3",null},
             {"MobId",null},
             {"SpellIndex",null},
+            {"AttackIndex",null},
+            {"WaitTime",null},
             {"VehicleId",null},
             {"OftenToUse",null},
             {"NumOfTimes",null},
@@ -71,6 +73,7 @@ namespace Styx.Bot.Quest_Behaviors
             int targetID2 = 0;
             int targetID3 = 0;
             int spellIndex = 0;
+            int waitTime = 0;
             int homeIndex = 0;
             int vehicleID = 0;
             int oftentouse = 0;
@@ -85,6 +88,7 @@ namespace Styx.Bot.Quest_Behaviors
             success = success && GetAttributeAsInteger("TargetId3", false, "0", 0, int.MaxValue, out targetID3);
             success = success && GetAttributeAsInteger("SpellIndex", false, "1", 0, int.MaxValue, out spellIndex);
             success = success && GetAttributeAsInteger("VehicleId", false, "0", 0, int.MaxValue, out vehicleID);
+            success = success && GetAttributeAsInteger("WaitTime", false, "0", 0, int.MaxValue, out waitTime);
             success = success && GetAttributeAsInteger("OftenToUse", false, "1000", 0, int.MaxValue, out oftentouse);
             success = success && GetAttributeAsInteger("TimesToUse", false, "1", 0, int.MaxValue, out timestouse);
             success = success && GetAttributeAsInteger("TypeId", false, "2", 0, 4, out TypeID);
@@ -98,11 +102,11 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out targetID);
             }
-            if (spellIndex == 0)
+            if (spellIndex == 1)
             {
                 success = success && GetAttributeAsInteger("AttackIndex", false, "1", 0, int.MaxValue, out spellIndex);
             }
-            if (timestouse == 0)
+            if (timestouse == 1)
             {
                 success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out timestouse);
             }
@@ -119,6 +123,7 @@ namespace Styx.Bot.Quest_Behaviors
             VehicleID = vehicleID;
             TimesToUse = timestouse;
             OftenToUse = oftentouse;
+            WaitTime = waitTime;
 
             MountedPoint = new WoWPoint(0, 0, 0);
 
@@ -129,6 +134,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint LocationMount { get; private set; }
         public int Counter = 1;
         public int MaxRange = 1;
+        public int WaitTime { get; set; }
         public int SpellType { get; set; }
         public int TargetID { get; set; }
         public int TargetID2 { get; set; }
@@ -244,6 +250,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     TreeRoot.StatusText = "Using Spell Index On - " + npcList[0].Name + " Spell Index: " + SpellIndex;
                                     npcList[0].Target();
                                     Lua.DoString("CastPetAction({0})", SpellIndex);
+                                    Thread.Sleep(WaitTime);
                                     Counter++;
                                     return RunStatus.Success;
                                 }
@@ -270,6 +277,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     npcList[0].Target();
                                     Lua.DoString("CastPetAction({0})", SpellIndex);
                                     LegacySpellManager.ClickRemoteLocation(npcList[0].Location);
+                                    Thread.Sleep(WaitTime);
                                     Counter++;
                                     return RunStatus.Running;
                                 }
@@ -301,6 +309,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     Random rand = new Random();
                                     Lua.DoString("VehicleAimRequestNormAngle({0})", 0.1 + (rand.NextDouble() * (0.6 - 0.1)));
                                     Lua.DoString("CastPetAction({0})", SpellIndex);
+                                    Thread.Sleep(WaitTime);
                                     Counter++;
                                     return RunStatus.Running;
                                 }
