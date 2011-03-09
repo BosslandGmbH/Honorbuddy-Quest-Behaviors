@@ -150,7 +150,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
                             
-                           new Decorator(ret => objectList.Count == 0,
+                           new Decorator(ret => objectList.Count == 0 && Location != WoWPoint.Zero,
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y + " Z: " + Location.Z),
                                         new Action(ret => Navigator.MoveTo(Location)),

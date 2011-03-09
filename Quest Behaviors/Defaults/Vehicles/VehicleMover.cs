@@ -43,6 +43,8 @@ namespace Styx.Bot.Quest_Behaviors
             {"UseNavigator",null},
             {"Precision",null},
             {"MobID",null},
+            {"NpcId",null},
+            {"MobId",null},
             {"SpellID",null},
             {"CastTime",null},
             {"CastNum",null},
@@ -85,6 +87,12 @@ namespace Styx.Bot.Quest_Behaviors
             success = success && GetAttributeAsBoolean("IgnoreCombat", false, "true", out ignoreCombat);
             success = success && GetAttributeAsBoolean("Hop", false, "false", out hop);
             success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out point);
+
+            if (mobID == 0)
+                success = success && GetAttributeAsInteger("MobId", false, "0", 0, int.MaxValue, out mobID);
+
+            if (mobID == 0)
+                success = success && GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobID);
 
             Precision = precision;
             SpellID = spellID;

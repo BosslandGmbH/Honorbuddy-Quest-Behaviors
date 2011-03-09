@@ -38,6 +38,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             {"SpellId",null},
             {"NpcId",null},
+            {"MobId",null},
             {"NumOfTimes",null},
             {"HpLeftAmount",null},
             {"MinRange",null},
@@ -64,12 +65,15 @@ namespace Styx.Bot.Quest_Behaviors
             WoWPoint location = new WoWPoint(0, 0, 0);
 
             success = success && GetAttributeAsInteger("SpellId", true, "1", 0, int.MaxValue, out spellId);
-            success = success && GetAttributeAsInteger("NpcId", true, "1", 0, int.MaxValue, out mobid);
+            success = success && GetAttributeAsInteger("NpcId", false, "1", 0, int.MaxValue, out mobid);
             success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 1, int.MaxValue, out numberoftimes);
             success = success && GetAttributeAsInteger("HpLeftAmount", false, "110", 0, int.MaxValue, out hpleftamount); ;
             success = success && GetAttributeAsInteger("MinRange", false, "3", 0, int.MaxValue, out minRange);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
             success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
+
+            if (mobid == 1)
+                success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out mobid);
 
             QuestId = (uint)questId;
             SpellID = spellId;

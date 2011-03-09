@@ -48,6 +48,9 @@ namespace Styx.Bot.Quest_Behaviors
             {"NpcId",null},
             {"NpcId2",null},
             {"NpcId3",null},
+            {"MobId",null},
+            {"MobId2",null},
+            {"MobId3",null},
             {"NumOfTimes",null},
             {"HpLeftAmount",null},
             {"InCombatHPUse",null},
@@ -85,7 +88,7 @@ namespace Styx.Bot.Quest_Behaviors
             
             success = success && GetAttributeAsInteger("ItemId", true, "1", 0, int.MaxValue, out itemId);
             success = success && GetAttributeAsInteger("Range", false, "5", 0, int.MaxValue, out range);
-            success = success && GetAttributeAsInteger("NpcId", true, "1", 0, int.MaxValue, out npcID);
+            success = success && GetAttributeAsInteger("NpcId", false, "1", 0, int.MaxValue, out npcID);
             success = success && GetAttributeAsInteger("NpcId2", false, "1", 0, int.MaxValue, out npcID2);
             success = success && GetAttributeAsInteger("NpcId3", false, "1", 0, int.MaxValue, out npcID3);
             success = success && GetAttributeAsInteger("FactionID", false, "0", 0, int.MaxValue, out factionid);
@@ -95,6 +98,15 @@ namespace Styx.Bot.Quest_Behaviors
             success = success && GetAttributeAsInteger("WaitTime", false, "1000", 0, int.MaxValue, out waittime);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
             success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
+
+            if (npcID == 1)
+                success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out npcID);
+
+            if (npcID2 == 1)
+                success = success && GetAttributeAsInteger("MobId2", false, "1", 0, int.MaxValue, out npcID);
+
+            if (npcID3 == 1)
+                success = success && GetAttributeAsInteger("MobId3", false, "1", 0, int.MaxValue, out npcID);
 
             QuestId = (uint)questId;
             ItemID = itemId;
@@ -226,7 +238,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
 
-                           new Decorator(c => npcList.Count == 0,
+                           new Decorator(c => npcList.Count == 0 && Location != WoWPoint.Zero,
                             new Action(c =>
                             {
                                 if (!me.IsIndoors && !me.Mounted && me.Level > 19)

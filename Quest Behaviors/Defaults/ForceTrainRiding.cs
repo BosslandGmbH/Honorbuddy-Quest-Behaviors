@@ -25,7 +25,7 @@ namespace Styx.Bot.Quest_Behaviors
         /// Allows you to Interact with Mobs that are Nearby.
         /// ##Syntax##
         /// QuestId: Id of the quest.
-        /// NpcID: Id of the Mob to interact with.
+        /// NpcId: Id of the Mob to interact with.
         /// UseCTM, MoveTo(Optional): Will move to the Npc Location
         /// Faction: The faction the mobs needs to be before interacting
         /// X,Y,Z: The general location where theese objects can be found
@@ -36,6 +36,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
 
             {"NpcID",null},
+            {"NpcId",null},
             {"X",null},
             {"Y",null},
             {"Z",null},
@@ -54,9 +55,12 @@ namespace Styx.Bot.Quest_Behaviors
             int questId = 0;
             WoWPoint location = new WoWPoint(0, 0, 0);
 
-            success = success && GetAttributeAsInteger("NpcID", true, "0", 0, int.MaxValue, out mobID);
+            success = success && GetAttributeAsInteger("NpcID", false, "0", 0, int.MaxValue, out mobID);
             success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", false, new WoWPoint(0, 0, 0), out location);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+
+            if (mobID == 0)
+                success = success && GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobID);
 
             Location = location;
             MobId = mobID;

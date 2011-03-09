@@ -47,6 +47,17 @@ namespace Styx.Bot.Quest_Behaviors
                         Logging.Write("Unable to parse {0} as an integer! check your profile", s);
                 }
             }
+            else if (Args.ContainsKey("MobIds"))
+            {
+                foreach (string s in Args["MobIds"].Split(' '))
+                {
+                    uint id;
+                    if (uint.TryParse(s, out id))
+                        _npcResults.Enqueue(NpcQueries.GetNpcById(id));
+                    else
+                        Logging.Write("Unable to parse {0} as an integer! check your profile", s);
+                }
+            }
             else
             {
                 Logging.Write("Could not find attribute: NpcIds in TalkToAndListenToStory custom behavior!");

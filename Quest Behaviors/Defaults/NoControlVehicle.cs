@@ -46,6 +46,7 @@ namespace Styx.Bot.Quest_Behaviors
             {"TargetId2",null},
             {"TargetId3",null},
             {"MobId",null},
+            {"NpcId",null},
             {"SpellIndex",null},
             {"AttackIndex",null},
             {"WaitTime",null},
@@ -101,6 +102,11 @@ namespace Styx.Bot.Quest_Behaviors
             if (targetID == 0)
             {
                 success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out targetID);
+
+                if (targetID == 1)
+                {
+                    success = success && GetAttributeAsInteger("NpcId", false, "1", 0, int.MaxValue, out targetID);
+                }
             }
             if (spellIndex == 1)
             {

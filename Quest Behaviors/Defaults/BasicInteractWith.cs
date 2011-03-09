@@ -38,6 +38,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
 
             {"NpcID",null},
+            {"NpcId",null},
             {"UseCTM",null},
             {"MoveTo",null},
             {"LUATarget",null},
@@ -59,11 +60,14 @@ namespace Styx.Bot.Quest_Behaviors
             int usefaction = 0;
             int questId = 0;
 
-            success = success && GetAttributeAsInteger("NpcID", true, "0", 0, int.MaxValue, out mobID);
+            success = success && GetAttributeAsInteger("NpcID", false, "0", 0, int.MaxValue, out mobID);
             success = success && GetAttributeAsInteger("UseCTM", false, "0", 0, int.MaxValue, out useCTM);
             success = success && GetAttributeAsInteger("LUATarget", false, "0", 0, int.MaxValue, out luatarget);
             success = success && GetAttributeAsInteger("Faction", false, "0", 0, int.MaxValue, out usefaction);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+
+            if (mobID == 0)
+                success = success && GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobID);
 
             if (useCTM == 0)
             {

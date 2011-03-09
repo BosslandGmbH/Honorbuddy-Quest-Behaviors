@@ -18,9 +18,16 @@ namespace Styx.Bot.Quest_Behaviors
     /// Allows you to do quests that requires you to interact with nearby objects.
     /// ##Syntax##
     /// [Optional]QuestId: Id of the quest.
-    /// MobId: Id of the object to interact with.
+    /// NpcId: Id of the object to interact with.
     /// NumOfTimes: Number of times to interact with object.
+    /// [Optional]GossipOption: The Dialog number you wish to choose. DefaultValue:1
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
+    /// [Optional]BuySlot: Buys the item from the slot. Slots are: 1 2
+    ///                                                            3 4
+    ///                                                            5 6
+    ///                                                            7 8
+    ///                                                            page2
+    ///                                                            9 10 etc.
     /// [Optional]WaitTime: The time to wait once it has interacted with an object. DefaultValue:3000
     /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
     /// X,Y,Z: The general location where theese objects can be found
@@ -53,10 +60,18 @@ namespace Styx.Bot.Quest_Behaviors
             else
                 waitTime = 3000;
 
-            uint mobId;
-            if (!uint.TryParse(Args["MobId"], out mobId))
+            uint mobId = 0;
+            if (Args.ContainsKey("MobId"))
             {
-                Logging.Write("Parsing attribute 'MobId' in InteractWith behavior failed! please check your profile!");
+                if (!uint.TryParse(Args["MobId"], out mobId))
+                {
+                    Logging.Write("Parsing attribute 'MobId' in InteractWith behavior failed! please check your profile!");
+                    error = true;
+                }
+            }
+            else if (!uint.TryParse(Args["NpcId"], out mobId))
+            {
+                Logging.Write("Parsing attribute 'NpcId' in InteractWith behavior failed! please check your profile!");
                 error = true;
             }
 
@@ -101,14 +116,34 @@ namespace Styx.Bot.Quest_Behaviors
                 error = true;
             }
 
+            int bSlot = 0;
+            if (Args.ContainsKey("BuySlot"))
+            {
+                if (!int.TryParse(Args["BuySlot"], out bSlot))
+                {
+                    Logging.Write("Parsing attribute 'BuySlot' in InteractWith behavior failed! please check your profile!");
+                    error = true;
+                }
+            }
+
+            int gossipOption = 0;
+            if (Args.ContainsKey("GossipOption"))
+            {
+                int gossipopt;
+                int.TryParse(Args["GossipOption"], out gossipopt);
+                gossipOption = gossipopt != 0 ? gossipopt : 1;
+            }
+
             if (error)
                 TreeRoot.Stop();
 
+            GossipOption = gossipOption;
             WaitTime = waitTime;
             ObjectType = type;
             QuestId = questId;
             NumOfTimes = numOfTimes;
             MobId = mobId;
+            BuySlot = bSlot;
             Location = new WoWPoint(x, y, z);
         }
 
@@ -116,10 +151,12 @@ namespace Styx.Bot.Quest_Behaviors
         public int Counter { get; set; }
         public uint MobId { get; set; }
         public int NumOfTimes { get; set; }
+        public int BuySlot { get; set; }
         private int WaitTime { get; set; }
         public uint QuestId { get; private set; }
         public ObjectType ObjectType { get; private set; }
         public int CollectionDistance = 100;
+        public int GossipOption { get; private set; }
 
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
 
@@ -187,17 +224,35 @@ namespace Styx.Bot.Quest_Behaviors
                                                 StyxWoW.SleepForLagDuration();
                                             })),
 
-                                        new Action(delegate
-                                        {
-                                            TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
-                                            CurrentObject.Interact();
-                                            _npcBlacklist.Add(CurrentObject.Guid);
+                                    new Action(delegate
+                                    {
+                                        TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
+                                        CurrentObject.Interact();
+                                        _npcBlacklist.Add(CurrentObject.Guid);
 
-                                            StyxWoW.SleepForLagDuration();
-                                            Counter++;
-                                            Thread.Sleep(WaitTime);
-                                        }))
-                                        ),
+                                        StyxWoW.SleepForLagDuration();
+                                        Counter++;
+                                    }),
+
+                                    new DecoratorContinue(
+                                        ret => GossipOption != 0,
+                                        new Action(delegate
+                                            {
+                                                Lua.DoString("SelectGossipOption(" + GossipOption + ")");
+                                                Thread.Sleep(1000);
+                                            })),
+                                    
+                                    new DecoratorContinue(
+                                        ret => BuySlot != 0,
+                                        new Action(delegate
+                                            {
+                                                Lua.DoString("BuyMerchantItem(" + BuySlot + ",1)");
+                                                Thread.Sleep(1500);
+                                            })),
+
+                                    new Action(ret => Thread.Sleep(WaitTime))
+
+                                )),
 
                             new Sequence(
                                 new Action(delegate { TreeRoot.StatusText = "Moving towards - " + Location; }),

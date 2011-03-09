@@ -22,6 +22,7 @@ namespace Styx.Bot.Quest_Behaviors
             {"DestY",null},
             {"DestZ",null},
             {"NpcId",null},
+            {"MobId",null},
             {"VehicleId",null},
             {"SpellId",null},
             {"MountX",null},
@@ -46,12 +47,14 @@ namespace Styx.Bot.Quest_Behaviors
             int questId = 0;
 
             success = success && GetXYZAttributeAsWoWPoint("DestX", "DestY", "DestZ", true, new WoWPoint(0, 0, 0), out destcoords);
-            success = success && GetAttributeAsInteger("NpcId", true, "1", 0, int.MaxValue, out npcID);
+            success = success && GetAttributeAsInteger("NpcId", false, "1", 0, int.MaxValue, out npcID);
             success = success && GetAttributeAsInteger("VehicleId", true, "1", 0, int.MaxValue, out vehicleID);
             success = success && GetAttributeAsInteger("SpellId", false, "1", 0, int.MaxValue, out spellID);
             success = success && GetXYZAttributeAsWoWPoint("MountX", "MountY", "MountZ", true, new WoWPoint(0, 0, 0), out mountcoords);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
 
+            if (npcID == 1)
+                success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out npcID);
 
             VehicleId = vehicleID;
             IsMounted = false;

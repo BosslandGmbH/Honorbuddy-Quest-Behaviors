@@ -61,7 +61,7 @@ namespace Styx.Bot.Quest_Behaviors
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
             success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
 
-            MobMountId = mobmountid != 0 && mobmountid != int.MaxValue ? mobmountid : npcmountid;
+            MobMountId = mobmountid != 1 ? mobmountid : npcmountid;
             Location = location;
             QuestId = (uint)questId;
 
