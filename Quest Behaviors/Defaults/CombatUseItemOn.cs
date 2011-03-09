@@ -171,7 +171,8 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Decorator(
                                     ret => RoutineManager.Current.PullBehavior != null,
                                     RoutineManager.Current.PullBehavior),
-                                new Action(ret => RoutineManager.Current.Pull())))
+                                new Action(ret => RoutineManager.Current.Pull()))),
+                    RootCompositeOverride()
                 ));
         }
 
