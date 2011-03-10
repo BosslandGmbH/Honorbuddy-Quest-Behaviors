@@ -121,7 +121,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemID && i.Usable && i.Cooldown == 0);
+                return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemID && i.Cooldown == 0);
             }
         }
 

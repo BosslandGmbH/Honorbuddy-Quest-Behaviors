@@ -108,7 +108,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public LocalPlayer Me { get { return StyxWoW.Me; } }
 
-        private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Usable && i.Cooldown == 0); } }
+        private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
 
         private WoWObject UseObject 
         { 

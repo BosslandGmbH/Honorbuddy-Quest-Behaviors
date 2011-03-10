@@ -140,6 +140,10 @@ namespace Styx.Bot.Quest_Behaviors
                     int.TryParse(Args["Range"], out range);
                     Range = range != 0 ? range : 4;
                 }
+                else
+                {
+                    Range = 4;
+                }
 
                 if (!Args.ContainsKey("ObjectType"))
                 {
@@ -313,7 +317,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId && ret.Usable && ret.Cooldown == 0);
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId && ret.Cooldown == 0);
             }
         }
 
