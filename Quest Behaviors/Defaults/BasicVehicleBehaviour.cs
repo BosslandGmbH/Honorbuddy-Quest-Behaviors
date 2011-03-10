@@ -102,7 +102,7 @@ namespace Styx.Bot.Quest_Behaviors
                         new PrioritySelector(
 
                             new Decorator(ret => IsMounted != true && vehicleList == null,
-                                new Action(delegate
+                                new Action(ctx =>
                                 {
                                     WoWPoint destination1 = new WoWPoint(LocationMount.X, LocationMount.Y, LocationMount.Z);
                                     WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(me.Location, destination1);
@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
                             new Decorator(ret => StyxWoW.Me.IsMoving,
-                                new Action(delegate
+                                new Action(ret =>
                                 {
                                     WoWMovement.MoveStop();
                                     StyxWoW.SleepForLagDuration();
@@ -136,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
                             new Decorator(ret => IsMounted != true,
-                                new Action(delegate
+                                new Action(ctx =>
                                 {
 
                                     MountedPoint = me.Location;
@@ -152,7 +152,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
                             new Decorator(ret => IsMounted = true,
-                                new Action(delegate
+                                new Action(ret =>
                                 {
                                     WoWPoint destination = new WoWPoint(LocationDest.X, LocationDest.Y, LocationDest.Z);
                                     WoWPoint[] pathtoDest = Styx.Logic.Pathing.Navigator.GeneratePath(vehicleList[0].Location, destination);

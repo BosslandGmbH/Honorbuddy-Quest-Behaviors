@@ -10,6 +10,8 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
 using Action = TreeSharp.Action;
+using Styx.Logic.Inventory.Frames.Merchant;
+using Styx.Logic.Inventory.Frames.Gossip;
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -34,10 +36,30 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class InteractWith : CustomForcedBehavior
     {
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"WaitTime",null},
+            {"MobId",null},
+            {"NpcId",null},
+            {"NumOfTimes",null},
+            {"CollectionDistance",null},
+            {"ObjectType",null},
+            {"X",null},
+            {"Y",null},
+            {"Z",null},
+            {"BuySlot",null},
+            {"BuyItemId",null},
+            {"BuyItemCount",null},
+            {"GossipOption",null}
+        };
         
         public InteractWith(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
+
             bool error = false;
 
             uint questId = 0;
@@ -126,12 +148,34 @@ namespace Styx.Bot.Quest_Behaviors
                 }
             }
 
-            int gossipOption = 0;
+            int bItemId = 0;
+            if (Args.ContainsKey("BuyItemId"))
+            {
+                if (!int.TryParse(Args["BuyItem"], out bSlot))
+                {
+                    Logging.Write("Parsing attribute 'BuyItemId' in InteractWith behavior failed! please check your profile!");
+                    error = true;
+                }
+            }
+
+            int bItemCount = 1;
+            if (Args.ContainsKey("BuyItemCount"))
+            {
+                if (!int.TryParse(Args["BuyItemCount"], out bSlot))
+                {
+                    Logging.Write("Parsing attribute 'BuyItemCount' in InteractWith behavior failed! please check your profile!");
+                    error = true;
+                }
+            }
+
+            List<int> gossipOption = new List<int>();
             if (Args.ContainsKey("GossipOption"))
             {
-                int gossipopt;
-                int.TryParse(Args["GossipOption"], out gossipopt);
-                gossipOption = gossipopt != 0 ? gossipopt : 1;
+                string gossip = Args["GossipOption"].ToString();
+                foreach (var item in gossip.Split(','))
+                {
+                    gossipOption.Add(int.Parse(item));
+                }
             }
 
             if (error)
@@ -144,6 +188,8 @@ namespace Styx.Bot.Quest_Behaviors
             NumOfTimes = numOfTimes;
             MobId = mobId;
             BuySlot = bSlot;
+            BuyItemId = bItemId;
+            BuyItemCount = bItemCount;
             Location = new WoWPoint(x, y, z);
         }
 
@@ -152,11 +198,15 @@ namespace Styx.Bot.Quest_Behaviors
         public uint MobId { get; set; }
         public int NumOfTimes { get; set; }
         public int BuySlot { get; set; }
+        public int BuyItemId { get; set; }
+        public int BuyItemCount { get; set; }
         private int WaitTime { get; set; }
         public uint QuestId { get; private set; }
         public ObjectType ObjectType { get; private set; }
         public int CollectionDistance = 100;
-        public int GossipOption { get; private set; }
+        public List<int> GossipOption { get; private set; }
+
+        public LocalPlayer Me { get { return StyxWoW.Me; } }
 
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
 
@@ -210,7 +260,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                             new Decorator(ret => CurrentObject != null && !CurrentObject.WithinInteractRange,
                                 new Sequence(
-                                    new Action(delegate { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
+                                    new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
                                     new Action(ret => Navigator.MoveTo(CurrentObject.Location))
                                     )
                                 ),
@@ -218,13 +268,13 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(ret => CurrentObject != null && CurrentObject.WithinInteractRange,
                                 new Sequence(
                                     new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                        new Action(delegate
+                                        new Action(ret =>
                                             {
                                                 WoWMovement.MoveStop();
                                                 StyxWoW.SleepForLagDuration();
                                             })),
 
-                                    new Action(delegate
+                                    new Action(ret =>
                                     {
                                         TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
                                         CurrentObject.Interact();
@@ -235,27 +285,48 @@ namespace Styx.Bot.Quest_Behaviors
                                     }),
 
                                     new DecoratorContinue(
-                                        ret => GossipOption != 0,
-                                        new Action(delegate
+                                        ret => GossipOption.Count != 0,
+                                        new Action(ret =>
                                             {
-                                                Lua.DoString("SelectGossipOption(" + GossipOption + ")");
-                                                Thread.Sleep(1000);
+                                                foreach (var gos in GossipOption)
+                                                {
+                                                    GossipFrame.Instance.SelectGossipOption(gos);
+                                                    Thread.Sleep(1000);
+                                                }
                                             })),
                                     
                                     new DecoratorContinue(
-                                        ret => BuySlot != 0,
-                                        new Action(delegate
+                                        ret => BuyItemId != 0 && MerchantFrame.Instance.IsVisible,
+                                        new Action(ret =>
                                             {
-                                                Lua.DoString("BuyMerchantItem(" + BuySlot + ",1)");
-                                                Thread.Sleep(1500);
+                                                var items = MerchantFrame.Instance.GetAllMerchantItems();
+                                                var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (ulong)(i.BuyPrice * BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
+
+                                                if (item != null)
+                                                {
+                                                    MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
+                                                    Thread.Sleep(1500);
+                                                }
                                             })),
+
+                                    new DecoratorContinue(
+                                        ret => BuySlot != 0 && BuyItemId == 0 && MerchantFrame.Instance.IsVisible,
+                                        new Action(ret =>
+                                        {
+                                            var item = MerchantFrame.Instance.GetMerchantItemByIndex(BuySlot);
+                                            if (item != null && (ulong)(item.BuyPrice * BuyItemCount) <= Me.Copper && (item.NumAvailable >= BuyItemCount || item.NumAvailable == -1))
+                                            {
+                                                MerchantFrame.Instance.BuyItem(BuySlot, BuyItemCount);
+                                                Thread.Sleep(1500);
+                                            }
+                                        })),
 
                                     new Action(ret => Thread.Sleep(WaitTime))
 
                                 )),
 
                             new Sequence(
-                                new Action(delegate { TreeRoot.StatusText = "Moving towards - " + Location; }),
+                                new Action(ret => { TreeRoot.StatusText = "Moving towards - " + Location; }),
                                 new Action(ret => Navigator.MoveTo(Location))))
                     ));
         }

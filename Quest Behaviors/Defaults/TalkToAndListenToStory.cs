@@ -93,7 +93,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Sequence(
 
                                 new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                    new Action(delegate
+                                    new Action(ret => 
                                     {
                                         WoWMovement.MoveStop();
                                         StyxWoW.SleepForLagDuration();

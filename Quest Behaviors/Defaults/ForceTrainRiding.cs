@@ -142,7 +142,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(ret => mobList.Count > 0 && mobList[0].WithinInteractRange,
                                 new Sequence(
                                     new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                        new Action(delegate
+                                        new Action(ret =>
                                         {
                                             WoWMovement.MoveStop();
                                             StyxWoW.SleepForLagDuration();

@@ -51,11 +51,11 @@ namespace Styx.Bot.Quest_Behaviors
             int questId = 0;
             CurrentProfile = Logic.Profiles.ProfileManager.XmlLocation;
             Logging.Write(CurrentProfile);
-            success = success && GetAttributeAsString("ProfileName", true, "1", out fileName);
+            success = success && GetAttributeAsString("ProfileName", false, "1", out fileName);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
 
             if (fileName == "1")
-                success = success && GetAttributeAsString("Profile", true, "1", out fileName);
+                success = success && GetAttributeAsString("Profile", false, "1", out fileName);
 
             Counter = 0;
             FileName = fileName;

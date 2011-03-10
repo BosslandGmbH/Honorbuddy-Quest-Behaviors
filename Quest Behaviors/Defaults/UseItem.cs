@@ -84,7 +84,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 new Decorator(
                     ret => StyxWoW.Me.IsMoving,
-                    new Action(delegate
+                    new Action(ret =>
                     {
                         Navigator.PlayerMover.MoveStop();
                         StyxWoW.SleepForLagDuration();
@@ -92,7 +92,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 new Decorator(
                     ret => Item != null,
-                    new Action(delegate
+                    new Action(ret =>
                     {
                         TreeRoot.StatusText = "Using item - Count: " + Counter;
 
