@@ -121,11 +121,12 @@ namespace Styx.Bot.Quest_Behaviors
 
             if (!Args.ContainsKey("ObjectType"))
             {
-                Logging.Write("Could not find attribute 'ObjectType' in InteractWith behavior! please check your profile!");
-                error = true;
+                _ObjectType = ObjectType.Npc;
             }
-
-            var type = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
+            else
+            {
+                _ObjectType = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
+            }
 
             float x, y, z;
             if (!float.TryParse(Args["X"], out x))
@@ -194,7 +195,6 @@ namespace Styx.Bot.Quest_Behaviors
 
             GossipOption = gossipOption;
             WaitTime = waitTime;
-            _ObjectType = type;
             QuestId = questId;
             NumOfTimes = numOfTimes;
             MobId = mobId;
@@ -291,7 +291,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         CurrentObject.Interact();
                                         _npcBlacklist.Add(CurrentObject.Guid);
 
-                                        StyxWoW.SleepForLagDuration();
+                                        Thread.Sleep(2000);
                                         Counter++;
                                     }),
 

@@ -70,6 +70,7 @@ namespace Styx.Bot.Quest_Behaviors
                 int.TryParse(Args["WaitTime"], out waitTime);
                 WaitTime = waitTime != 0 ? waitTime : 1500;
             }
+
             WoWPoint location = WoWPoint.Empty;
             GetXYZAttributeAsWoWPoint(false, WoWPoint.Empty, out location);
 
@@ -100,28 +101,23 @@ namespace Styx.Bot.Quest_Behaviors
                     new Action(ret => _isDone = true)),
 
                 new Decorator(
-                    ret => StyxWoW.Me.IsMoving,
-                    new Action(ret =>
-                    {
-                        Navigator.PlayerMover.MoveStop();
-                        StyxWoW.SleepForLagDuration();
-                    })),
-
-                new Decorator(
                     ret => Location != WoWPoint.Empty && Location.Distance(StyxWoW.Me.Location) > 2,
                     new Sequence(
                         new Action(ret => TreeRoot.StatusText = "Moving to location"),
                         new Action(ret => Navigator.MoveTo(Location)))),
 
                 new Decorator(
-                    ret => Item != null,
+                    ret => StyxWoW.Me.IsMoving,
                     new Action(ret =>
-                    {
-                        if (StyxWoW.Me.IsMoving)
                         {
                             Navigator.PlayerMover.MoveStop();
                             StyxWoW.SleepForLagDuration();
-                        }
+                        })),
+
+                new Decorator(
+                    ret => Item != null,
+                    new Action(ret =>
+                    {
                         TreeRoot.StatusText = "Using item - Count: " + Counter;
 
                         Item.UseContainerItem();
@@ -159,17 +155,17 @@ namespace Styx.Bot.Quest_Behaviors
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
             if (quest != null)
             {
-                var item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
-                if(item != null)
+                if (Item != null)
+                {
                     TreeRoot.GoalText = string.Format("Using item {0} for {1}",
-                    item.Name,
+                    Item.Name,
                     quest.Name);
-                
+                }
                 else
                 {
                     TreeRoot.GoalText = string.Format("Use item {0} times for quest:{1}",
                         NumOfTimes,
-                        quest.Name);    
+                        quest.Name);
                 }
             }
         }

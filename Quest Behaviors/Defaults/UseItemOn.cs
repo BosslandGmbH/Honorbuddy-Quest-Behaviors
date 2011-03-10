@@ -27,7 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
     /// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
     /// [Optional]Range: The range to object that it will use the item
-    /// [Optional]NpcState: The state of the npc -> Dead, Alive, BelowHp, None. None is default
+    /// [Optional]NpcState: The state of the npc -> Dead, Alive, BelowHp. None is default
     /// [Optional]HpLeftAmount: Will only be used when NpcState is BelowHp
     /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
     /// X,Y,Z: The general location where theese objects can be found
@@ -339,13 +339,13 @@ namespace Styx.Bot.Quest_Behaviors
                         new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr <= Range * Range && Item != null,
                             new Sequence(
                                 new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                    new Action(delegate
+                                    new Action(ret =>
                                     {
                                         WoWMovement.MoveStop();
                                         StyxWoW.SleepForLagDuration();
                                     })),
 
-                                new Action(delegate
+                                new Action(ret =>
                                 {
                                     TreeRoot.StatusText = "Using item on - " + CurrentObject.Name;
                                     if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
