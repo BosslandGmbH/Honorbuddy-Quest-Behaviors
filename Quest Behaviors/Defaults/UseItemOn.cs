@@ -27,6 +27,8 @@ namespace Styx.Bot.Quest_Behaviors
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
     /// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
     /// [Optional]Range: The range to object that it will use the item
+    /// [Optional]NpcState: The state of the npc -> Dead, Alive, BelowHp, None. None is default
+    /// [Optional]HpLeftAmount: Will only be used when NpcState is BelowHp
     /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
     /// X,Y,Z: The general location where theese objects can be found
     /// </summary>
@@ -36,6 +38,14 @@ namespace Styx.Bot.Quest_Behaviors
         {
             Npc,
             Gameobject
+        }
+
+        public enum NpcState
+        {
+            None,
+            Dead,
+            Alive,
+            BelowHp
         }
 
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
@@ -140,6 +150,26 @@ namespace Styx.Bot.Quest_Behaviors
                     _ObjectType = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
                 }
 
+                if (!Args.ContainsKey("NpcState"))
+                {
+                    _NpcState = NpcState.None;
+                }
+                else
+                {
+                    _NpcState = (NpcState)Enum.Parse(typeof(NpcState), Args["NpcState"], true);
+                }
+
+                if (Args.ContainsKey("HpLeftAmount"))
+                {
+                    int hpleft = -1;
+                    if (!int.TryParse(Args["HpLeftAmount"], out hpleft))
+                    {
+                        Logging.Write("Parsing attribute 'HpLeftAmount' in UseItemOn behavior failed! please check your profile!");
+                        error = true;
+                    }
+                    HpLeftAmount = hpleft != -1 ? hpleft : 100;
+                }
+
 
                 float x, y, z;
                 if (!float.TryParse(Args["X"], out x))
@@ -181,11 +211,13 @@ namespace Styx.Bot.Quest_Behaviors
         public int Aura { get; private set; }
         public int Counter { get; private set; }
         public int Range { get; private set; }
+        public int HpLeftAmount { get; private set; }
         public uint MobId { get; private set; }
         public uint ItemId { get; private set; }
         public int NumOfTimes { get; private set; }
         public uint QuestId { get; private set; }
         public ObjectType _ObjectType { get; private set; }
+        public NpcState _NpcState { get; private set; }
         public int CollectionDistance = 100;
 
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
@@ -232,10 +264,38 @@ namespace Styx.Bot.Quest_Behaviors
                         }
                         else
                         {
-                            @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                                !_npcBlacklist.Contains(obj.Guid) &&
-                                obj.Distance < CollectionDistance &&
-                                obj.Entry == MobId);
+                            switch (_NpcState)
+                            {
+                                case NpcState.None:
+                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
+                                        !_npcBlacklist.Contains(obj.Guid) &&
+                                        obj.Distance < CollectionDistance &&
+                                        obj.Entry == MobId);
+                                    break;
+                                case NpcState.Dead:
+                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
+                                        !_npcBlacklist.Contains(obj.Guid) &&
+                                        obj.Dead &&
+                                        obj.Distance < CollectionDistance &&
+                                        obj.Entry == MobId);
+                                    break;
+                                case NpcState.Alive:
+                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
+                                        !_npcBlacklist.Contains(obj.Guid) &&
+                                        obj.IsAlive &&
+                                        obj.Distance < CollectionDistance &&
+                                        obj.Entry == MobId);
+                                    break;
+                                case NpcState.BelowHp:
+                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
+                                        !_npcBlacklist.Contains(obj.Guid) &&
+                                        obj.HealthPercent <= HpLeftAmount &&
+                                        obj.IsAlive &&
+                                        obj.Distance < CollectionDistance &&
+                                        obj.Entry == MobId);
+                                    break;
+                            }
+                            
                         }
 
                         break;
