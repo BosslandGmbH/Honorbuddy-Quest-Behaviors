@@ -31,7 +31,10 @@ namespace Styx.Bot.Quest_Behaviors
             {"QuestId",null},
             {"ItemId",null},
             {"NumOfTimes",null},
-            {"WaitTime",null}
+            {"WaitTime",null},
+            {"X",null},
+            {"Y",null},
+            {"Z",null}
         };
 
         public UseItem(Dictionary<string, string> args)
@@ -67,10 +70,13 @@ namespace Styx.Bot.Quest_Behaviors
                 int.TryParse(Args["WaitTime"], out waitTime);
                 WaitTime = waitTime != 0 ? waitTime : 1500;
             }
+            WoWPoint location = WoWPoint.Empty;
+            GetXYZAttributeAsWoWPoint(false, WoWPoint.Empty, out location);
 
             if (error)
                 TreeRoot.Stop();
 
+            Location = location;
             QuestId = questId;
             NumOfTimes = numOfTimes;
             ItemId = itemId;
@@ -78,6 +84,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public int WaitTime { get; private set; }
         public int Counter { get; private set; }
+        public WoWPoint Location { get; private set; }
         public uint ItemId { get; private set; }
         public int NumOfTimes { get; private set; }
         public uint QuestId { get; private set; }
@@ -101,9 +108,20 @@ namespace Styx.Bot.Quest_Behaviors
                     })),
 
                 new Decorator(
+                    ret => Location != WoWPoint.Empty && Location.Distance(StyxWoW.Me.Location) > 2,
+                    new Sequence(
+                        new Action(ret => TreeRoot.StatusText = "Moving to location"),
+                        new Action(ret => Navigator.MoveTo(Location)))),
+
+                new Decorator(
                     ret => Item != null,
                     new Action(ret =>
                     {
+                        if (StyxWoW.Me.IsMoving)
+                        {
+                            Navigator.PlayerMover.MoveStop();
+                            StyxWoW.SleepForLagDuration();
+                        }
                         TreeRoot.StatusText = "Using item - Count: " + Counter;
 
                         Item.UseContainerItem();

@@ -38,6 +38,12 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class InteractWith : CustomForcedBehavior
     {
+        public enum ObjectType
+        {
+            Npc,
+            Gameobject
+        }
+
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {
 
@@ -185,7 +191,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             GossipOption = gossipOption;
             WaitTime = waitTime;
-            ObjectType = type;
+            _ObjectType = type;
             QuestId = questId;
             NumOfTimes = numOfTimes;
             MobId = mobId;
@@ -204,7 +210,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int BuyItemCount { get; set; }
         private int WaitTime { get; set; }
         public uint QuestId { get; private set; }
-        public ObjectType ObjectType { get; private set; }
+        public ObjectType _ObjectType { get; private set; }
         public int CollectionDistance = 100;
         public List<int> GossipOption { get; private set; }
 
@@ -219,7 +225,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 WoWObject @object = null;
-                switch (ObjectType)
+                switch (_ObjectType)
                 {
                     case ObjectType.Gameobject:
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
@@ -357,11 +363,5 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         #endregion
-    }
-
-    public enum ObjectType
-    {
-        Npc,
-        Gameobject
     }
 }

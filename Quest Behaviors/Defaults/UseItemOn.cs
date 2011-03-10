@@ -32,11 +32,17 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class UseItemOn : CustomForcedBehavior
     {
+        public enum ObjectType
+        {
+            Npc,
+            Gameobject
+        }
+
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {
-
             {"QuestId",null},
             {"MobId",null},
+            {"NpcId",null},
             {"ItemId",null},
             {"NumOfTimes",null},
             {"WaitTime",null},
@@ -52,102 +58,122 @@ namespace Styx.Bot.Quest_Behaviors
         public UseItemOn(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            bool error = false;
-
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
+            try
             {
-                Logging.Write("Parsing attribute 'QuestId' in UseItemOn behavior failed! please check your profile!");
-                error = true;
-            }
+                CheckForUnrecognizedAttributes(recognizedAttributes);
 
-            uint mobId;
-            if (!uint.TryParse(Args["MobId"], out mobId))
+                bool error = false;
+
+                uint questId;
+                if (!uint.TryParse(Args["QuestId"], out questId))
+                {
+                    Logging.Write("Parsing attribute 'QuestId' in UseItemOn behavior failed! please check your profile!");
+                    error = true;
+                }
+
+                uint mobId;
+                if (Args.ContainsKey("MobId"))
+                {
+                    if (!uint.TryParse(Args["MobId"], out mobId))
+                    {
+                        Logging.Write("Parsing attribute 'MobId' and 'NpcId' in UseItemOn behavior failed! please check your profile!");
+                        error = true;
+                    }
+                }
+                else if (!uint.TryParse(Args["NpcId"], out mobId))
+                {
+                    Logging.Write("Parsing attribute 'MobId' and 'NpcId' in UseItemOn behavior failed! please check your profile!");
+                    error = true;
+                }
+
+                uint itemId;
+                if (!uint.TryParse(Args["ItemId"], out itemId))
+                {
+                    Logging.Write("Parsing attribute 'ItemId' in UseItemOn behavior failed! please check your profile!");
+                    error = true;
+                }
+
+                int numOfTimes = 1;
+                if (Args.ContainsKey("NumOfTimes"))
+                {
+                    if (!int.TryParse(Args["NumOfTimes"], out numOfTimes))
+                    {
+                        Logging.Write("Parsing attribute 'NumOfTimes' in UseItemOn behavior failed! please check your profile!");
+                        error = true;
+                    }
+                }
+
+                if (Args.ContainsKey("WaitTime"))
+                {
+                    int waitTime;
+                    int.TryParse(Args["WaitTime"], out waitTime);
+                    WaitTime = waitTime != 0 ? waitTime : 1500;
+                }
+
+                if (Args.ContainsKey("CollectionDistance"))
+                {
+                    int distance;
+                    int.TryParse(Args["CollectionDistance"], out distance);
+                    CollectionDistance = distance != 0 ? distance : 100;
+                }
+
+                if (Args.ContainsKey("HasAura"))
+                {
+                    int HasAura;
+                    int.TryParse(Args["HasAura"], out HasAura);
+                    Aura = HasAura != 0 ? HasAura : 0;
+                }
+
+                if (Args.ContainsKey("Range"))
+                {
+                    int range;
+                    int.TryParse(Args["Range"], out range);
+                    Range = range != 0 ? range : 4;
+                }
+
+                if (!Args.ContainsKey("ObjectType"))
+                {
+                    _ObjectType = ObjectType.Npc;
+                }
+                else
+                {
+                    _ObjectType = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
+                }
+
+
+                float x, y, z;
+                if (!float.TryParse(Args["X"], out x))
+                {
+                    Logging.Write("Parsing attribute 'X' in UseItemOn behavior failed! please check your profile!");
+                    error = true;
+                }
+
+                if (!float.TryParse(Args["Y"], out y))
+                {
+                    Logging.Write("Parsing attribute 'Y' in UseItemOn behavior failed! please check your profile!");
+                    error = true;
+                }
+
+                if (!float.TryParse(Args["Z"], out z))
+                {
+                    Logging.Write("Parsing attribute 'Z' in UseItemOn behavior failed! please check your profile!");
+                    error = true;
+                }
+
+                if (error)
+                    TreeRoot.Stop();
+
+                QuestId = questId;
+                NumOfTimes = numOfTimes;
+                MobId = mobId;
+                ItemId = itemId;
+                Location = new WoWPoint(x, y, z);
+            }
+            catch (Exception ex)
             {
-                Logging.Write("Parsing attribute 'MobId' in UseItemOn behavior failed! please check your profile!");
-                error = true;
+                Logging.Write("UseItemOn failed");
+                Logging.WriteException(ex);
             }
-
-            uint itemId;
-            if(!uint.TryParse(Args["ItemId"], out itemId))
-            {
-                Logging.Write("Parsing attribute 'ItemId' in UseItemOn behavior failed! please check your profile!");
-                error = true;
-            }
-
-            int numOfTimes;
-            if (!int.TryParse(Args["NumOfTimes"], out numOfTimes))
-            {
-                Logging.Write("Parsing attribute 'NumOfTimes' in UseItemOn behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if(Args.ContainsKey("WaitTime"))
-            {
-                int waitTime;
-                int.TryParse(Args["WaitTime"], out waitTime);
-                WaitTime = waitTime != 0 ? waitTime : 1500;
-            }
-
-            if (Args.ContainsKey("CollectionDistance"))
-            {
-                int distance;
-                int.TryParse(Args["CollectionDistance"], out distance);
-                CollectionDistance = distance != 0 ? distance : 100;
-            }
-
-            if (Args.ContainsKey("HasAura"))
-            {
-                int HasAura;
-                int.TryParse(Args["HasAura"], out HasAura);
-                Aura = HasAura != 0 ? HasAura : 0;
-            }
-
-            if (Args.ContainsKey("Range"))
-            {
-                int range;
-                int.TryParse(Args["Range"], out range);
-                Range = range != 0 ? range : 4;
-            }
-
-            if (!Args.ContainsKey("ObjectType"))
-            {
-                Logging.Write("Could not find attribute 'ObjectType' in UseItemOn behavior! please check your profile!");
-                error = true;
-            }
-
-            var type = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
-
-            float x, y, z;
-            if (!float.TryParse(Args["X"], out x))
-            {
-                Logging.Write("Parsing attribute 'X' in UseItemOn behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if (!float.TryParse(Args["Y"], out y))
-            {
-                Logging.Write("Parsing attribute 'Y' in UseItemOn behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if (!float.TryParse(Args["Z"], out z))
-            {
-                Logging.Write("Parsing attribute 'Z' in UseItemOn behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if (error)
-                TreeRoot.Stop();
-
-            ObjectType = type;
-            QuestId = questId;
-            NumOfTimes = numOfTimes;
-            MobId = mobId;
-            ItemId = itemId;
-            Location = new WoWPoint(x, y, z);
         }
 
         public WoWPoint Location { get; private set; }
@@ -159,7 +185,7 @@ namespace Styx.Bot.Quest_Behaviors
         public uint ItemId { get; private set; }
         public int NumOfTimes { get; private set; }
         public uint QuestId { get; private set; }
-        public ObjectType ObjectType { get; private set; }
+        public ObjectType _ObjectType { get; private set; }
         public int CollectionDistance = 100;
 
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
@@ -172,7 +198,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 WoWObject @object = null;
-                switch (ObjectType)
+                switch (_ObjectType)
                 {
                     case ObjectType.Gameobject:
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
