@@ -138,21 +138,19 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
                            new Decorator(ret => mobList.Count > 0 && (me.Combat || mobList[0].Combat),
-                                new Sequence(
-                                    new DecoratorContinue(ret => mobList[0].CurrentTarget.Location.Distance(me.Location) > 3,
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ret => me.CurrentTarget == null && mobList[0].CurrentTarget != null,
                                         new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Combat Detected, Moving to Attacking Target - " + mobList[0].CurrentTarget.Name + " Yards Away: " + mobList[0].CurrentTarget.Location.Distance(me.Location)),
-                                            new Action(ret => Navigator.MoveTo(mobList[0].Location)),
-                                            new Action(ret => Thread.Sleep(100))
-                                            )
-                                    ),
-                                    new DecoratorContinue(ret => mobList[0].CurrentTarget.Location.Distance(me.Location) <= 3,
-                                        new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Combat Detected, Attacking Target - " + mobList[0].CurrentTarget.Name + " Yards Away: " + mobList[0].CurrentTarget.Location.Distance(me.Location)),
-                                        new Action(ret => SpellManager.Cast(RangeSpell)),
-                                        new Action(ret => Thread.Sleep(300))
-                                            ))
-                                    ))
+                                        new Action(ret => mobList[0].CurrentTarget.Target()),
+                                        new Action(ret => StyxWoW.SleepForLagDuration()))),
+                                    new Decorator(
+                                        ret => !me.Combat,
+                                        new PrioritySelector(
+                                            new Decorator(
+                                                ret => RoutineManager.Current.PullBehavior != null,
+                                                RoutineManager.Current.PullBehavior),
+                                            new Action(ret => RoutineManager.Current.Pull())))))
 
                         )
                     );

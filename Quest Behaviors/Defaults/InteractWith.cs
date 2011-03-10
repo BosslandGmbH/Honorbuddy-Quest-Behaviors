@@ -22,7 +22,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// [Optional]QuestId: Id of the quest.
     /// NpcId: Id of the object to interact with.
     /// NumOfTimes: Number of times to interact with object.
-    /// [Optional]GossipOption: The Dialog number you wish to choose. DefaultValue:1
+    /// [Optional]GossipOption: The Dialog numbers you wish to choose. Should be seperated with commas. ie. GossipOption="1,1,4,2" or GossipOption="1"
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
     /// [Optional]BuySlot: Buys the item from the slot. Slots are: 1 2
     ///                                                            3 4
@@ -30,6 +30,8 @@ namespace Styx.Bot.Quest_Behaviors
     ///                                                            7 8
     ///                                                            page2
     ///                                                            9 10 etc.
+    /// [Optional]BuyItemId: Buys the item with that id from vendor.
+    /// [Optional]BuyItemCount: The amount to buy the item. Default: 1
     /// [Optional]WaitTime: The time to wait once it has interacted with an object. DefaultValue:3000
     /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
     /// X,Y,Z: The general location where theese objects can be found
