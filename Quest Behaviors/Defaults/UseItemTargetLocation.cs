@@ -33,8 +33,8 @@ namespace Styx.Bot.Quest_Behaviors
         ///          ToObject      (from range of an object to object's location)
         ///          Default is PointToPoint
         /// X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
-        /// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is AtLocation, this location will be used to remote click 
-        /// [Optional]Range: If the UseType is AtObject, QB will move to that range of an object/npc before using item. (default 4)
+        /// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click 
+        /// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 4)
         /// </summary>
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {

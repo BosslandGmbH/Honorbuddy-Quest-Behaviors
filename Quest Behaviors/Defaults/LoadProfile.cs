@@ -17,7 +17,7 @@ using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    public class ForceLoadProfile : CustomForcedBehavior
+    public class LoadProfile : CustomForcedBehavior
     {
         
 
@@ -34,13 +34,14 @@ namespace Styx.Bot.Quest_Behaviors
         {
 
             {"ProfileName",null},
+            {"Profile",null},
             {"QuestId",null},
 
         };
 
         bool success = true;
 
-        public ForceLoadProfile(Dictionary<string, string> args)
+        public LoadProfile(Dictionary<string, string> args)
             : base(args)
         {
 
@@ -49,9 +50,12 @@ namespace Styx.Bot.Quest_Behaviors
             string fileName = "";
             int questId = 0;
             CurrentProfile = Logic.Profiles.ProfileManager.XmlLocation;
-
+            Logging.Write(CurrentProfile);
             success = success && GetAttributeAsString("ProfileName", true, "1", out fileName);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+
+            if (fileName == "1")
+                success = success && GetAttributeAsString("Profile", true, "1", out fileName);
 
             Counter = 0;
             FileName = fileName;
@@ -71,9 +75,7 @@ namespace Styx.Bot.Quest_Behaviors
                 if (index > 0)
                     CurrentProfile = CurrentProfile.Substring(0, index + 1);
 
-                CurrentProfile += FileName;
-
-                return CurrentProfile;
+                return CurrentProfile += FileName;
             }
         }
 
@@ -81,7 +83,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override void OnStart()
         {
-            TreeRoot.GoalText = "ForceLoadProfile: Running";
+            TreeRoot.GoalText = "LoadProfile: Running";
         }
 
         private Composite _root;
@@ -93,17 +95,11 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(ret => Counter > 0,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
+                                    new Action(ret => _isDone = true))),
 
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "ForceLoadingProfile - " + fileLocation),
+                                        new Action(ret => TreeRoot.StatusText = "LoadingProfile - " + fileLocation),
                                         new Action(ret => Styx.Logic.Profiles.ProfileManager.LoadNew(fileLocation)),
                                         new Action(ret => Counter++),
                                         new Action(ret => Thread.Sleep(300))
