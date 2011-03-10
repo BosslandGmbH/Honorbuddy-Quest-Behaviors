@@ -182,7 +182,10 @@ namespace Styx.Bot.Quest_Behaviors
                 string gossip = Args["GossipOption"].ToString();
                 foreach (var item in gossip.Split(','))
                 {
-                    gossipOption.Add(int.Parse(item));
+                    int i = 0;
+                    int.TryParse(item, out i);
+                    if (i != 0)
+                        gossipOption.Add(i - 1);
                 }
             }
 
@@ -293,7 +296,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     }),
 
                                     new DecoratorContinue(
-                                        ret => GossipOption.Count != 0,
+                                        ret => GossipOption.Count > 0,
                                         new Action(ret =>
                                             {
                                                 foreach (var gos in GossipOption)
