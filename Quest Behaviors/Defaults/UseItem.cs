@@ -25,9 +25,19 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class UseItem: CustomForcedBehavior
     {
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"ItemId",null},
+            {"NumOfTimes",null},
+            {"WaitTime",null}
+        };
+
         public UseItem(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
             bool error = false;
 
             uint questId;

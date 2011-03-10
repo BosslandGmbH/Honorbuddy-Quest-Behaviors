@@ -34,10 +34,17 @@ namespace Styx.Bot.Quest_Behaviors
         private ForcedDismountType MountType { get; set; }
         private uint QuestId { get; set; }
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"MountType",null},
+        };
+
         public ForcedDismount(Dictionary<string, string> args)
             : base(args)
         {
-
+            CheckForUnrecognizedAttributes(recognizedAttributes);
             bool error = false;
 
             if (!Args.ContainsKey("QuestId"))

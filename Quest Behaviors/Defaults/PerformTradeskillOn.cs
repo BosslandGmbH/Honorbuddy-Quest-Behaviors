@@ -34,8 +34,20 @@ namespace Styx.Bot.Quest_Behaviors
         /// <summary> Number of times </summary>
         public uint NumTimes;
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"TradeSkillId",null},
+            {"TradeSkillItemId",null},
+            {"NumTimes",null},
+            {"CastOnItemId",null}
+        };
+
         public PerformTradeskillOn(Dictionary<string, string> args) : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
+
             StringBuilder errors = new StringBuilder();
             if (!args.ContainsKey("QuestId"))
             {

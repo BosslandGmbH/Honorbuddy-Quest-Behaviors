@@ -26,14 +26,34 @@ namespace Styx.Bot.Quest_Behaviors
     /// [Optional]WaitTime: Time to wait after using an item. DefaultValue: 1500 ms
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
     /// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
+    /// [Optional]Range: The range to object that it will use the item
     /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
     /// X,Y,Z: The general location where theese objects can be found
     /// </summary>
     public class UseItemOn : CustomForcedBehavior
     {
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"MobId",null},
+            {"ItemId",null},
+            {"NumOfTimes",null},
+            {"WaitTime",null},
+            {"CollectionDistance",null},
+            {"X",null},
+            {"Y",null},
+            {"Z",null},
+            {"HasAura",null},
+            {"Range",null},
+            {"ObjectType",null}
+        };
+
         public UseItemOn(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
+
             bool error = false;
 
             uint questId;
@@ -85,6 +105,13 @@ namespace Styx.Bot.Quest_Behaviors
                 Aura = HasAura != 0 ? HasAura : 0;
             }
 
+            if (Args.ContainsKey("Range"))
+            {
+                int range;
+                int.TryParse(Args["Range"], out range);
+                Range = range != 0 ? range : 4;
+            }
+
             if (!Args.ContainsKey("ObjectType"))
             {
                 Logging.Write("Could not find attribute 'ObjectType' in UseItemOn behavior! please check your profile!");
@@ -127,6 +154,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int WaitTime { get; private set; }
         public int Aura { get; private set; }
         public int Counter { get; private set; }
+        public int Range { get; private set; }
         public uint MobId { get; private set; }
         public uint ItemId { get; private set; }
         public int NumOfTimes { get; private set; }
@@ -195,6 +223,14 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        public WoWItem Item
+        {
+            get
+            {
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId && ret.Usable && ret.Cooldown == 0);
+            }
+        }
+
         #region Overrides of CustomForcedBehavior
 
         private Composite _root;
@@ -207,14 +243,14 @@ namespace Styx.Bot.Quest_Behaviors
                     new Action(ret => _isDone = true)),
 
                     new PrioritySelector(
-                        new Decorator(ret => CurrentObject != null && !CurrentObject.WithinInteractRange,
+                        new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr > Range * Range,
                             new Sequence(
                                 new Action(delegate { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
                                 new Action(ret => Navigator.MoveTo(CurrentObject.Location))
                                 )
                             ),
 
-                        new Decorator(ret => CurrentObject != null && CurrentObject.WithinInteractRange,
+                        new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr <= Range * Range && Item != null,
                             new Sequence(
                                 new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                     new Action(delegate
@@ -223,32 +259,25 @@ namespace Styx.Bot.Quest_Behaviors
                                         StyxWoW.SleepForLagDuration();
                                     })),
 
-                                    new Action(delegate
+                                new Action(delegate
+                                {
+                                    TreeRoot.StatusText = "Using item on - " + CurrentObject.Name;
+                                    if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
                                     {
-                                        TreeRoot.StatusText = "Using item on - " + CurrentObject.Name;
-                                        if (CurrentObject is WoWUnit)
-                                        {
-                                            (CurrentObject as WoWUnit).Target();
-                                        }
-
-                                        var item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
-                                        if (item == null)
-                                        {
-                                            Logging.Write(Color.Red, "Could not find item with id:{0} for UseItemOn behavior!", ItemId);
-                                            Logging.Write(Color.Red, "Honorbuddy stopped!");
-                                            TreeRoot.Stop();
-                                            return;
-                                        }
-
-                                        WoWMovement.Face(CurrentObject.Guid);
-
-                                        item.UseContainerItem();
-                                        _npcBlacklist.Add(CurrentObject.Guid);
+                                        (CurrentObject as WoWUnit).Target();
 
                                         StyxWoW.SleepForLagDuration();
-                                        Counter++;
-                                        Thread.Sleep(WaitTime);
-                                    }))
+                                    }
+                                        
+                                    WoWMovement.Face(CurrentObject.Guid);
+
+                                    Item.UseContainerItem();
+                                    _npcBlacklist.Add(CurrentObject.Guid);
+
+                                    StyxWoW.SleepForLagDuration();
+                                    Counter++;
+                                    Thread.Sleep(WaitTime);
+                                }))
                                     ),
 
                         new Sequence(

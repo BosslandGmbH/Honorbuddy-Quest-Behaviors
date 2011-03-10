@@ -18,9 +18,16 @@ namespace Styx.Bot.Quest_Behaviors
     {
         #region Overrides of CustomForcedBehavior
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null}
+        };
+
         public ForceTrain(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
             uint questId;
             if (!uint.TryParse(Args["QuestId"], out questId))
             {

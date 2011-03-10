@@ -27,9 +27,19 @@ namespace Styx.Bot.Quest_Behaviors
 
         private Composite _root;
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"NpcIds",null},
+            {"MobIds",null}
+        };
+
         public TalkToAndListenToStory(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
+
             uint questId;
             if (!uint.TryParse(Args["QuestId"], out questId))
                 Logging.Write("Unable to parse value of attribute QuestId!");

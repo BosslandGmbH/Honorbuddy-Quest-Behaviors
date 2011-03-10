@@ -25,9 +25,17 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"VendorType",null}
+        };
+
         public ForceSetVendor(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
             if(Args.ContainsKey("QuestId"))
             {
                 uint questId;

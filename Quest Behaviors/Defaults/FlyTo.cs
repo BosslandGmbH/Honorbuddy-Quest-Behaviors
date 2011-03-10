@@ -13,9 +13,20 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint Location { get; private set; }
         public float Distance { get; private set; }
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"X",null},
+            {"Y",null},
+            {"Z",null},
+            {"Distance",null},
+        };
+
         public FlyTo(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
+
             WoWPoint p;
             float f;
             bool HasLocation = GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out p);

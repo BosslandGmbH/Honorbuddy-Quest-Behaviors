@@ -14,9 +14,15 @@ namespace Styx.Bot.Quest_Behaviors
     {
         #region Overrides of CustomForcedBehavior
 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+            {"Location",null},
+        };
+
         public BasicMoveTo(Dictionary<string, string> args)
             : base(args)
         {
+            CheckForUnrecognizedAttributes(recognizedAttributes);
             string locationString = Args["Location"];
 
             float x, y, z;

@@ -27,13 +27,19 @@ namespace Styx.Bot.Quest_Behaviors
             Flying,
             Water
         }
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+
+            {"QuestId",null},
+            {"MountType",null},
+        };
 
         private ForcedMountType MountType { get; set; }
         private uint QuestId { get; set; }
         public ForcedMount(Dictionary<string, string> args)
             : base(args)
         {
-
+            CheckForUnrecognizedAttributes(recognizedAttributes);
             bool error = false;
 
             uint questId;
