@@ -105,8 +105,8 @@ namespace Styx.Bot.Quest_Behaviors
                 error = true;
             }
 
-            int numOfTimes;
-            if (!int.TryParse(Args["NumOfTimes"], out numOfTimes))
+            int numOfTimes = 1;
+            if (Args.ContainsKey("NumOfTimes") && !int.TryParse(Args["NumOfTimes"], out numOfTimes))
             {
                 Logging.Write("Parsing attribute 'NumOfTimes' in InteractWith behavior failed! please check your profile!");
                 error = true;
@@ -331,6 +331,9 @@ namespace Styx.Bot.Quest_Behaviors
                                                 Thread.Sleep(1500);
                                             }
                                         })),
+                                    new DecoratorContinue(
+                                        ret => Me.CurrentTarget != null && Me.CurrentTarget == CurrentObject,
+                                        new Action(ret => Me.ClearTarget())),
 
                                     new Action(ret => Thread.Sleep(WaitTime))
 
