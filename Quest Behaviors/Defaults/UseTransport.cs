@@ -148,11 +148,11 @@ namespace Styx.Bot.Quest_Behaviors
 
             if (quest != null)
             {
-                TreeRoot.GoalText = "Transport - " + quest.Name;
+                TreeRoot.GoalText = "UseTransport - " + quest.Name;
             }
             else
             {
-                TreeRoot.GoalText = "Transport: Running";
+                TreeRoot.GoalText = "UseTransport: Running";
             }
         }
         private bool usedTransport;
@@ -168,20 +168,20 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(
                                 ret => WaitAtLocation.Distance(me.Location) > 3,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.GoalText = "Moving to wait location"),
+                                    new Action(ret => TreeRoot.StatusText = "Moving to wait location"),
                                     new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
                             new Sequence(
                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
                                 new Action(ret => Mount.Dismount()),
                                 new Action(ret => wasOnWaitLocation = true),
-                                new Action(ret => TreeRoot.GoalText = "Waiting for transport")))),
+                                new Action(ret => TreeRoot.StatusText = "Waiting for transport")))),
                     new Decorator(
                         ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(EndLocation) < 2 && usedTransport,
                         new PrioritySelector(
                             new Decorator(
                                 ret => me.Location.Distance(GetOffLocation) > 2,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.GoalText = "Moving out of transport"),
+                                    new Action(ret => TreeRoot.StatusText = "Moving out of transport"),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)),
                                     new Action(ret => StyxWoW.SleepForLagDuration()),
                                     new DecoratorContinue(
@@ -194,12 +194,12 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(
                                 ret => me.Location.Distance2D(StandLocation) > 2,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.GoalText = "Moving to stand location"),
+                                    new Action(ret => TreeRoot.StatusText = "Moving to stand location"),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
                             new Sequence(
                                 new Action(ret => usedTransport = true),
                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                new Action(ret => TreeRoot.GoalText = "Waiting for the end location"))
+                                new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))
                         )),
                     new Decorator(
                         ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(StartLocation) < 2 && !usedTransport,
@@ -207,7 +207,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(
                                 ret => me.Location.Distance2D(TransportLocation) > 2,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.GoalText = "Moving inside transport"),
+                                    new Action(ret => TreeRoot.StatusText = "Moving inside transport"),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(TransportLocation)),
                                     new Action(ret => StyxWoW.SleepForLagDuration()),
                                     new DecoratorContinue(
@@ -216,7 +216,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Sequence(
                                 new Action(ret => usedTransport = true),
                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                new Action(ret => TreeRoot.GoalText = "Waiting for the end location"))))
+                                new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))))
                     ));
         }
 
