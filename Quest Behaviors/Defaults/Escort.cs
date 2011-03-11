@@ -129,6 +129,25 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
+                           new Decorator(
+                               ret => mobList.Count > 0 && mobList[0].IsHostile,
+                               new PrioritySelector(
+                                   new Decorator(
+                                       ret => me.CurrentTarget != mobList[0],
+                                       new Action(ret =>
+                                           {
+                                               mobList[0].Target();
+                                               StyxWoW.SleepForLagDuration();
+                                           })),
+                                   new Decorator(
+                                       ret => !me.Combat,
+                                       new PrioritySelector(
+                                            new Decorator(
+                                                ret => RoutineManager.Current.PullBehavior != null,
+                                                RoutineManager.Current.PullBehavior),
+                                            new Action(ret => RoutineManager.Current.Pull()))))),
+
+
                            new Decorator(ret => mobList.Count > 0 && !me.Combat && !mobList[0].Combat,
                                 new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Following Mob - " + mobList[0].Name + " At X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
