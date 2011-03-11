@@ -209,6 +209,7 @@ namespace Styx.Bot.Quest_Behaviors
             BuySlot = bSlot;
             BuyItemId = bItemId;
             BuyItemCount = bItemCount;
+            Range = range;
             Location = new WoWPoint(x, y, z);
         }
 

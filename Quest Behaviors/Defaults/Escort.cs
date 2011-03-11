@@ -148,7 +148,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             new Action(ret => RoutineManager.Current.Pull()))))),
 
 
-                           new Decorator(ret => mobList.Count > 0 && !me.Combat && !mobList[0].Combat,
+                           new Decorator(ret => mobList.Count > 0 && (!me.Combat || me.CurrentTarget == null || me.CurrentTarget.Dead)  && mobList[0].CurrentTarget == null,
                                 new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Following Mob - " + mobList[0].Name + " At X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
                                             new Action(ret => Navigator.MoveTo(mobList[0].Location)),
