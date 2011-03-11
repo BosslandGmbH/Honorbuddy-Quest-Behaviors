@@ -166,7 +166,7 @@ namespace Styx.Bot.Quest_Behaviors
                         ret => !wasOnWaitLocation,
                         new PrioritySelector(
                             new Decorator(
-                                ret => WaitAtLocation.Distance(me.Location) > 3,
+                                ret => WaitAtLocation.Distance(me.Location) > 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to wait location"),
                                     new Action(ret => Navigator.MoveTo(WaitAtLocation)))),

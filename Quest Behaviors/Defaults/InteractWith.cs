@@ -60,7 +60,8 @@ namespace Styx.Bot.Quest_Behaviors
             {"BuySlot",null},
             {"BuyItemId",null},
             {"BuyItemCount",null},
-            {"GossipOption",null}
+            {"GossipOption",null},
+            {"Range",null},
         };
         
         public InteractWith(Dictionary<string, string> args)
@@ -190,6 +191,13 @@ namespace Styx.Bot.Quest_Behaviors
                 }
             }
 
+            int range = 4;
+            if (Args.ContainsKey("Range") && !int.TryParse(Args["Range"], out range))
+            {
+                Logging.Write("Parsing attribute 'Range' in InteractWith behavior failed! please check your profile!");
+                error = true;
+            }
+
             if (error)
                 TreeRoot.Stop();
 
@@ -210,6 +218,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int NumOfTimes { get; set; }
         public int BuySlot { get; set; }
         public int BuyItemId { get; set; }
+        public int Range { get; set; }
         public int BuyItemCount { get; set; }
         private int WaitTime { get; set; }
         public uint QuestId { get; private set; }
@@ -269,14 +278,14 @@ namespace Styx.Bot.Quest_Behaviors
 
                         new PrioritySelector(
 
-                            new Decorator(ret => CurrentObject != null && !CurrentObject.WithinInteractRange,
+                            new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range,
                                 new Sequence(
                                     new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
                                     new Action(ret => Navigator.MoveTo(CurrentObject.Location))
                                     )
                                 ),
-                                
-                            new Decorator(ret => CurrentObject != null && CurrentObject.WithinInteractRange,
+
+                            new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) <= Range * Range,
                                 new Sequence(
                                     new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                         new Action(ret =>
