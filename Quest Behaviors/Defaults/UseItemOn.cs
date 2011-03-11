@@ -61,6 +61,8 @@ namespace Styx.Bot.Quest_Behaviors
             {"Y",null},
             {"Z",null},
             {"HasAura",null},
+            {"NpcState",null},
+            {"HpLeftAmount",null},
             {"Range",null},
             {"ObjectType",null}
         };
