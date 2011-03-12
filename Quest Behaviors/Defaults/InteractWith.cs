@@ -161,7 +161,7 @@ namespace Styx.Bot.Quest_Behaviors
             int bItemId = 0;
             if (Args.ContainsKey("BuyItemId"))
             {
-                if (!int.TryParse(Args["BuyItem"], out bSlot))
+                if (!int.TryParse(Args["BuyItemId"], out bItemId))
                 {
                     Logging.Write("Parsing attribute 'BuyItemId' in InteractWith behavior failed! please check your profile!");
                     error = true;
@@ -171,7 +171,7 @@ namespace Styx.Bot.Quest_Behaviors
             int bItemCount = 1;
             if (Args.ContainsKey("BuyItemCount"))
             {
-                if (!int.TryParse(Args["BuyItemCount"], out bSlot))
+                if (!int.TryParse(Args["BuyItemCount"], out bItemCount))
                 {
                     Logging.Write("Parsing attribute 'BuyItemCount' in InteractWith behavior failed! please check your profile!");
                     error = true;

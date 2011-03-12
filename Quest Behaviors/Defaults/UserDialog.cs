@@ -11,6 +11,20 @@
 //      San Francisco, California, 94105, USA. 
 //
 // Release History:
+//  Version 1.5 -- UserDialog now automatically pops down when quest is done (8-Mar-2011, chinajade)
+//                   Expiry time display is more concise.
+//                   Sound period time is now driven it from the heartbeat timer.
+//                   Consistent UserDialog exit processing--whether exit is from the behavior tree,
+//                   or normal UserDialogForm closing.
+//                   Refactored to Enum pattern to eliminate maintainence and performance concerns.
+//  Version 1.4 -- Added ExpiryAction and ExpiryTime capabilities (6-Mar-2011, chinajade)
+//                   Also, general cleanup.
+//  Version 1.3 -- Added StopOnContinue attribute (26-Feb-2011, chinajade)
+//  Version 1.2 -- Auto-defend (26-Feb-2011, chinajade)
+//                   Will now auto-defend if attacked (user selectable).
+//                   Will not harvest minerals, herbs, and chests while dialog
+//                   is showing.  This allows the user complete control of
+//                   of the toon while the dialog is showing.
 //  Version 1.1 -- Built-in error handlers (15-Feb-2011, chinajade)
 //                   Converted to the new buit-in error handlers provided by
 //                   CustomForcedBehavior.  Eliminated the CustomBehaviorUtils
@@ -21,12 +35,16 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
+using System.Media;
 using System.Text;
+using System.Threading;
+using System.Windows.Forms;
 
 using Styx;
 using Styx.Helpers;
@@ -34,15 +52,35 @@ using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 
-using System.Windows.Forms;
 
-
-namespace BuddyWiki.CustomBehavior
+namespace BuddyWiki.CustomBehavior.UserDialog
 {
-    public class UserDialogForm : Form
+    // Visual Studio's "Designer" requires the form to be the first class in the file...
+    // <sigh> So much for alphabetical class listings.
+    class UserDialogForm : Form
     {
-        private UserDialogForm()
+        public UserDialogForm(AsyncCompletionToken     completionToken,
+                              string                   toonName,
+                              string                   dialogTitle,
+                              string                   dialogMessage,
+                              string                   expiryActionName,
+                              int                      expiryRemainingInSeconds,
+                              bool                     isBotStopAllowed,
+                              bool                     isStopOnContinue,
+                              SystemSound              soundCue,
+                              int                      soundCuePeriodInSeconds)
         {
+            _completionToken = completionToken;
+            _completionToken.PopdownResponse = PopdownReason.UNKNOWN;
+            _expiryActionHandler = ExpiryActionHandler.GetEnumItemByName(expiryActionName);
+            _expiryRemainingInSeconds = expiryRemainingInSeconds;
+            _isBotStopAllowed = isBotStopAllowed;
+            _isStopOnContinue = isStopOnContinue;
+            _soundCue = soundCue;
+            _soundCuePeriodInSeconds = soundCuePeriodInSeconds;
+
+
+            // Dialog creation
             InitializeComponent();
 
             this.ControlBox  = false;    // disable close box for this dialog
@@ -50,31 +88,74 @@ namespace BuddyWiki.CustomBehavior
             this.MaximizeBox = false;    // disable maximize box for this dialog
             this.FormBorderStyle = FormBorderStyle.FixedDialog;
 
-            _windowParent = (Form)Control.FromHandle(Process.GetCurrentProcess().MainWindowHandle);
-            periodicWarningTimer.Stop();
-        }
+            this.FormClosing += new FormClosingEventHandler(dialogForm_FormClosing);
+
+            heartbeatPulseTimer.Stop();
 
 
-        public static UserDialogForm Singleton()
-        {
-            if (s_singleton == null)
+            // Dialog identity
+            this.Text                           = String.Format("['{0}' UserDialog] {1}", toonName, dialogTitle);
+            this.textBoxMessage.Text            = dialogMessage.Replace("\\n", Environment.NewLine).Replace("\\t", "\t");
+            this.textBoxMessage.SelectionStart  = this.textBoxMessage.SelectionLength;
+            this.checkBoxAutoDefend.Checked     = _completionToken.IsAutoDefend;
+            this.buttonStopBot.Enabled          = isBotStopAllowed;
+            this.labelStatus.Text               = "";
+
+            // If only 'stop' allowed, convert the normally 'profile continue' button to 'stop'
+            if (_isStopOnContinue)
             {
-                s_singleton = new UserDialogForm();
-                s_singleton.FormClosing += new FormClosingEventHandler(Singleton_FormClosing);
+                this.buttonStopBot.Visible = false;
+                this.buttonContinueProfile.Text = "Stop Bot";
             }
 
-            return (s_singleton);
-        }
+
+            // Setup the Expiry countdown, if enabled--
+            // Our pulse timer goes off every second to notify the user how much time
+            // remains before the expiry action will be executed.
+            if (_expiryRemainingInSeconds > 0)
+            {
+                _expiryActionHandler.Initialize(this);
+                labelStatus.Text = UtilBuildTimeRemainingStatusText(_expiryActionHandler.ActionAsString(), _expiryRemainingInSeconds);
+            }
 
 
-        private static void Singleton_FormClosing(object sender, FormClosingEventArgs evt)
-        {
-            // This prevents the dialog from actually closing --
-            // If we close it, the resources would be released, and we don't want this.
-            // Instead, we simply Hide the dialog.
-            evt.Cancel = true;
+            // Setup the audible warnings --
+            // Note: *Never* try to set the System.Windows.Forms.Timer.Interval to zero.
+            // Doing so will trigger a Windoze bug that prevents the dialog from
+            // opening.
+            switch (_soundCuePeriodInSeconds)
+            {
+              case 0:
+                // Play no sound--nothing to do
+                _soundPeriodRemaining = 0;
+                this.checkBoxSuppressAudio.Enabled = false;
+                break;
 
-            s_singleton.Hide();
+              case 1:
+                // Play sound once for dialog open
+                _soundPeriodRemaining = 0;
+                soundCue.Play();
+                this.checkBoxSuppressAudio.Enabled = false;
+                break;
+
+              default:
+                // Play sound now for dialog open, and
+                // arrange to play the sound at the specified intervals
+                _soundPeriodRemaining = _soundCuePeriodInSeconds;
+                soundCue.Play();
+                this.checkBoxSuppressAudio.Enabled = true;
+                break;
+            }
+
+
+
+            // Our heartbeat pulse handler looks for things like timer expiry, and dialog close requests.
+            // Polling techniques like this offend us; however, our choices are limited, since
+            // .NET requires the actual processing of a request to occur on the same thread
+            // that created the dialog and its widgets.  Yet, .NET provides us with no clean mechanisms
+            // for external event notifications other than through timers.
+            heartbeatPulseTimer.Interval = 1000;    // one second
+            heartbeatPulseTimer.Enabled = true;
         }
 
 
@@ -109,7 +190,9 @@ namespace BuddyWiki.CustomBehavior
             this.buttonContinueProfile = new System.Windows.Forms.Button();
             this.buttonStopBot = new System.Windows.Forms.Button();
             this.checkBoxSuppressAudio = new System.Windows.Forms.CheckBox();
-            this.periodicWarningTimer = new System.Windows.Forms.Timer(this.components);
+            this.checkBoxAutoDefend = new System.Windows.Forms.CheckBox();
+            this.labelStatus = new System.Windows.Forms.Label();
+            this.heartbeatPulseTimer = new System.Windows.Forms.Timer(this.components);
             this.SuspendLayout();
             // 
             // textBoxMessage
@@ -119,12 +202,12 @@ namespace BuddyWiki.CustomBehavior
             this.textBoxMessage.Multiline = true;
             this.textBoxMessage.Name = "textBoxMessage";
             this.textBoxMessage.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxMessage.Size = new System.Drawing.Size(393, 151);
+            this.textBoxMessage.Size = new System.Drawing.Size(393, 134);
             this.textBoxMessage.TabIndex = 0;
             // 
             // buttonContinueProfile
             // 
-            this.buttonContinueProfile.Location = new System.Drawing.Point(315, 169);
+            this.buttonContinueProfile.Location = new System.Drawing.Point(315, 152);
             this.buttonContinueProfile.Name = "buttonContinueProfile";
             this.buttonContinueProfile.Size = new System.Drawing.Size(90, 23);
             this.buttonContinueProfile.TabIndex = 1;
@@ -135,7 +218,7 @@ namespace BuddyWiki.CustomBehavior
             // buttonStopBot
             // 
             this.buttonStopBot.Enabled = false;
-            this.buttonStopBot.Location = new System.Drawing.Point(234, 169);
+            this.buttonStopBot.Location = new System.Drawing.Point(234, 152);
             this.buttonStopBot.Name = "buttonStopBot";
             this.buttonStopBot.Size = new System.Drawing.Size(75, 23);
             this.buttonStopBot.TabIndex = 2;
@@ -146,24 +229,46 @@ namespace BuddyWiki.CustomBehavior
             // checkBoxSuppressAudio
             // 
             this.checkBoxSuppressAudio.AutoSize = true;
-            this.checkBoxSuppressAudio.Location = new System.Drawing.Point(12, 173);
+            this.checkBoxSuppressAudio.Location = new System.Drawing.Point(12, 175);
             this.checkBoxSuppressAudio.Name = "checkBoxSuppressAudio";
             this.checkBoxSuppressAudio.Size = new System.Drawing.Size(197, 17);
             this.checkBoxSuppressAudio.TabIndex = 3;
             this.checkBoxSuppressAudio.Text = "Suppress Periodic Audible Warnings";
             this.checkBoxSuppressAudio.UseVisualStyleBackColor = true;
             // 
-            // PeriodicWarningTimer
+            // checkBoxAutoDefend
             // 
-            this.periodicWarningTimer.Enabled = true;
-            this.periodicWarningTimer.Interval = 5000;
-            this.periodicWarningTimer.Tick += new System.EventHandler(this.periodicWarningTimer_Tick);
+            this.checkBoxAutoDefend.AutoSize = true;
+            this.checkBoxAutoDefend.Location = new System.Drawing.Point(12, 152);
+            this.checkBoxAutoDefend.Name = "checkBoxAutoDefend";
+            this.checkBoxAutoDefend.Size = new System.Drawing.Size(142, 17);
+            this.checkBoxAutoDefend.TabIndex = 4;
+            this.checkBoxAutoDefend.Text = "Auto Defend, if attacked";
+            this.checkBoxAutoDefend.UseVisualStyleBackColor = true;
+            this.checkBoxAutoDefend.CheckedChanged += new System.EventHandler(this.checkBoxAutoDefend_CheckedChanged);
+            // 
+            // labelStatus
+            // 
+            this.labelStatus.AutoSize = true;
+            this.labelStatus.Location = new System.Drawing.Point(225, 182);
+            this.labelStatus.MinimumSize = new System.Drawing.Size(180, 0);
+            this.labelStatus.Name = "labelStatus";
+            this.labelStatus.Size = new System.Drawing.Size(180, 13);
+            this.labelStatus.TabIndex = 5;
+            this.labelStatus.TextAlign = System.Drawing.ContentAlignment.BottomRight;
+            // 
+            // heartbeatPulseTimer
+            // 
+            this.heartbeatPulseTimer.Interval = 1000;
+            this.heartbeatPulseTimer.Tick += new System.EventHandler(this.heartbeatPulseTimer_Tick);
             // 
             // UserDialogForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(417, 204);
+            this.Controls.Add(this.labelStatus);
+            this.Controls.Add(this.checkBoxAutoDefend);
             this.Controls.Add(this.checkBoxSuppressAudio);
             this.Controls.Add(this.buttonStopBot);
             this.Controls.Add(this.buttonContinueProfile);
@@ -178,112 +283,229 @@ namespace BuddyWiki.CustomBehavior
         #endregion
 
 
+        private void checkBoxAutoDefend_CheckedChanged(object sender, EventArgs e)
+        {
+            _completionToken.IsAutoDefend = checkBoxAutoDefend.Checked;
+        }
+
+
         private void buttonContinueProfile_Click(object sender, EventArgs e)
         {
-            _usersChoice = UsersChoice.BOT_CONTINUE;
+            if (_isStopOnContinue)
+                { _completionToken.PopdownResponse = PopdownReason.BotStopViaUser; }
+            else
+                { _completionToken.PopdownResponse = PopdownReason.ContinueViaUser; }
 
-            // Note that the Singleton_FormClosing handler prevents the dialog from
-            // actually closing, and instead just hides it.  This prevents the
-            // resources associated with the dialog from being released--which would
-            // be a bad thing for a Singleton pattern.
             Close();
         }
 
 
         private void buttonStopBot_Click(object sender, EventArgs e)
         {
-            _usersChoice = UsersChoice.BOT_STOP;
+            _completionToken.PopdownResponse = PopdownReason.BotStopViaUser;
 
-            // Note that the Singleton_FormClosing handler prevents the dialog from
-            // actually closing, and instead just hides it.  This prevents the
-            // resources associated with the dialog from being released--which would
-            // be a bad thing for a Singleton pattern.
             Close();
         }
 
 
-        private void periodicWarningTimer_Tick(object sender, EventArgs e)
+        public abstract class  ExpiryActionHandler     : EnumBaseType<ExpiryActionHandler>
         {
-            if (!checkBoxSuppressAudio.Checked)
-                { _soundCue.Play(); }
-        }
+            public static readonly ExpiryActionHandler  HandleInputDisabled_BotStop   = new InputDisabled_BotStop();
+            public static readonly ExpiryActionHandler  HandleInputDisabled_Continue  = new InputDisabled_Continue();
+            public static readonly ExpiryActionHandler  HandleInputDisabled_EnableInput = new InputDisabled_EnableInput();
+            public static readonly ExpiryActionHandler  HandleInputEnabled_BotStop    = new InputEnabled_BotStop();
+            public static readonly ExpiryActionHandler  HandleInputEnabled_Continue   = new InputEnabled_Continue();
 
 
-        public enum UsersChoice
-        {
-            BOT_CONTINUE,
-            BOT_STOP,
-        }
+            // Caller-visible methods --
+            public abstract string  ActionAsString();
+            public abstract void    Initialize(UserDialogForm   userDialogForm);
+            public abstract void    WrapUp(UserDialogForm       userDialogForm);
 
-        public UsersChoice        popupDialog(string                        title,
-                                              string                        message,
-                                              bool                          isBotStopAllowed,
-                                              System.Media.SystemSound      soundCue,
-                                              int                           soundPeriodInSeconds)
-        {
-            _usersChoice    = UsersChoice.BOT_CONTINUE;
-            _soundCue        = soundCue;
-
-            message = message.Replace("\\n", Environment.NewLine);
-            message = message.Replace("\\t", "\t");
-
-            this.Text                          = "[Honorbuddy UserDialog] " + title;
-            this.textBoxMessage.Text           = message;
-            this.textBoxMessage.SelectionStart = this.textBoxMessage.SelectionLength;
-            this.buttonStopBot.Enabled         = isBotStopAllowed;
+            public static List<string>                              GetEnumNames()                      { return (GetBaseEnumNames()); }
+            public static ReadOnlyCollection<ExpiryActionHandler>   GetEnumItems()                      { return (GetBaseEnumItems()); }
+            public static ExpiryActionHandler                       GetEnumItemByName(string    name)   { return (GetBaseEnumItemByName(name)); }
 
 
-            // Setup the audible warnings --
-            // Note: *Never* try to set the periodicWarningTimer.Interval to zero.
-            // Doing so will trigger a Windoze bug that prevents the dialog from
-            // opening.
-            switch (soundPeriodInSeconds)
+            // (Non-visible) specific behaviors --
+            private class       InputDisabled_BotStop    : ExpiryActionHandler
             {
-              case 0:
-                // Play no sound--nothing to do
-                this.checkBoxSuppressAudio.Enabled = false;
-                break;
+                public override string ActionAsString()       { return ("Stopping Bot"); }
 
-              case 1:
-                // Play sound once for dialog open
-                soundCue.Play();
-                periodicWarningTimer.Enabled = false;
-                this.checkBoxSuppressAudio.Enabled = false;
-                break;
+                public override void    Initialize(UserDialogForm   userDialogForm)
+                {
+                    userDialogForm.buttonContinueProfile.Enabled = false;
+                    userDialogForm.buttonStopBot.Enabled = false;
+                }
 
-              default:
-                // Play sound now for dialog open, then
-                // arrange to play the sound at the specified intervals
-                soundCue.Play();
-                periodicWarningTimer.Interval = soundPeriodInSeconds * 1000;
-                periodicWarningTimer.Enabled  = true;
-                this.checkBoxSuppressAudio.Enabled = true;
-                break;
+                public override void    WrapUp(UserDialogForm       userDialogForm)
+                {
+                    userDialogForm._completionToken.PopdownResponse = PopdownReason.BotStopViaExpiry;
+                    userDialogForm.Close();
+                }
             }
 
-            // Popup the window
-            this.Activate();
-            this.ShowDialog(_windowParent);
+            private class       InputDisabled_Continue     : ExpiryActionHandler
+            {
+                public override string ActionAsString()     { return ("Continuing"); }
 
-            // Turn the timer off --
-            periodicWarningTimer.Enabled = false;
+                public override void    Initialize(UserDialogForm   userDialogForm)
+                {
+                    userDialogForm.buttonContinueProfile.Enabled = false;
+                    userDialogForm.buttonStopBot.Enabled = false;
+                }
 
-            return (_usersChoice);
+                public override void    WrapUp(UserDialogForm       userDialogForm)
+                {
+                    userDialogForm._completionToken.PopdownResponse = PopdownReason.ContinueViaExpiry;
+                    userDialogForm.Close();
+                }
+            }
+
+            private class       InputDisabled_EnableInput  : ExpiryActionHandler
+            {
+                public override string ActionAsString()     { return ("User choice enabled"); }
+
+                public override void    Initialize(UserDialogForm   userDialogForm)
+                {
+                    userDialogForm.buttonContinueProfile.Enabled = false;
+                    userDialogForm.buttonStopBot.Enabled = false;
+                }
+
+                public override void    WrapUp(UserDialogForm       userDialogForm)
+                {
+                    userDialogForm.buttonContinueProfile.Enabled = true;
+                    if (userDialogForm._isBotStopAllowed)
+                        { userDialogForm.buttonStopBot.Enabled = true; }
+                }
+            }
+
+            private class       InputEnabled_BotStop   : ExpiryActionHandler
+            {
+                public override string ActionAsString()         { return ("Stopping Bot"); }
+
+                public override void    Initialize(UserDialogForm   userDialogForm)
+                {
+                    userDialogForm.buttonContinueProfile.Enabled = true;
+                    userDialogForm.buttonStopBot.Enabled = true;
+                }
+
+                public override void    WrapUp(UserDialogForm       userDialogForm)
+                {
+                    userDialogForm._completionToken.PopdownResponse = PopdownReason.BotStopViaExpiry;
+                    userDialogForm.Close();
+                }
+            }
+
+            private class       InputEnabled_Continue  : ExpiryActionHandler
+            {
+                public override string ActionAsString()         { return ("Continuing"); }
+
+                public override void    Initialize(UserDialogForm   userDialogForm)
+                {
+                    userDialogForm.buttonContinueProfile.Enabled = true;
+                    userDialogForm.buttonStopBot.Enabled = true;
+                }
+
+                public override void    WrapUp(UserDialogForm       userDialogForm)
+                {
+                    userDialogForm._completionToken.PopdownResponse = PopdownReason.ContinueViaExpiry;
+                    userDialogForm.Close();
+                }
+            }
         }
+
+
+        private void dialogForm_FormClosing(object sender, FormClosingEventArgs evt)
+        {
+            heartbeatPulseTimer.Enabled = false;
+            labelStatus.Text = "";
+        }
+
+
+        private void heartbeatPulseTimer_Tick(object sender, EventArgs e)
+        {
+            // If we've received a 'pop down' request...
+            if (_completionToken.PopdownRequest.IsPopdown())
+            {
+                _completionToken.PopdownResponse = _completionToken.PopdownRequest;
+                Close();
+            }
+    
+
+            // If the expiry timer is ticking...
+            // Recall that an _expiryRemainingInSeconds of zero means the timer is not running.
+            if (_expiryRemainingInSeconds  >  0)
+            {
+                --_expiryRemainingInSeconds;
+                labelStatus.Text = UtilBuildTimeRemainingStatusText(_expiryActionHandler.ActionAsString(), _expiryRemainingInSeconds);
+
+                if (_expiryRemainingInSeconds <= 0)
+                {
+                    // An expiry action doesn't always close the dialog --
+                    // Sometimes, it will do things like enable inputs that were disabled.
+                    _expiryActionHandler.WrapUp(this);
+                    labelStatus.Text = "";
+                }
+            }
+
+
+            // If time for audible alert...
+            // Recall that a _soundPeriodRemaining of zero means periodic audible alerts are not being issued.
+            if (_soundPeriodRemaining  >  0)
+            {
+                --_soundPeriodRemaining;
+
+                if (_soundPeriodRemaining <= 0)
+                {
+                    if (!checkBoxSuppressAudio.Checked)
+                        { _soundCue.Play(); }
+
+                    _soundPeriodRemaining = _soundCuePeriodInSeconds;
+                }
+            }
+        }
+
+
+        private static string   UtilBuildTimeRemainingStatusText(string     actionName,
+                                                                 int        timeRemaining)
+        {
+            string      formatString    =  "";
+            TimeSpan    timeSpan        = TimeSpan.FromSeconds(timeRemaining);
+
+            if (timeSpan.Hours > 0)
+                { formatString = "{0} in {1:D2}h:{2:D2}m:{3:D2}s."; }
+            else if (timeSpan.Minutes > 0)
+                { formatString = "{0} in {2:D2}m:{3:D2}s."; }
+            else
+                { formatString = "{0} in {3:D2}s."; }
+
+            return (string.Format(formatString,
+                                  actionName,
+                                  timeSpan.Hours,
+                                  timeSpan.Minutes,
+                                  timeSpan.Seconds));
+        }
+
 
         // VS-generated data members
         private System.Windows.Forms.Button     buttonContinueProfile;
         private System.Windows.Forms.Button     buttonStopBot;
+        private CheckBox                        checkBoxAutoDefend;
         private System.Windows.Forms.CheckBox   checkBoxSuppressAudio;
+        private System.Windows.Forms.Timer      heartbeatPulseTimer;
+        private Label labelStatus;
         private System.Windows.Forms.TextBox    textBoxMessage;
-        private System.Windows.Forms.Timer      periodicWarningTimer;
 
         // Hand-written data members
-        private System.Media.SystemSound        _soundCue;
-        private UsersChoice                     _usersChoice;
-        private Form                            _windowParent;
-
-        private static UserDialogForm           s_singleton;
+        private AsyncCompletionToken    _completionToken;
+        private ExpiryActionHandler     _expiryActionHandler;
+        private int                     _expiryRemainingInSeconds;
+        private readonly bool           _isBotStopAllowed;
+        private readonly bool           _isStopOnContinue;
+        private readonly SystemSound    _soundCue;
+        private readonly int            _soundCuePeriodInSeconds;
+        private int                     _soundPeriodRemaining;
     }
 
 
@@ -292,36 +514,153 @@ namespace BuddyWiki.CustomBehavior
         public UserDialog(Dictionary<string, string> args)
             : base(args)
         {
-            String        soundCueName  = "";
+            try
+            {
+                Dictionary<string, object>  expiryActionNames   = (UserDialogForm.ExpiryActionHandler.GetEnumNames()
+                                                                    .ToDictionary(key => key, value => (object)null));
+                Dictionary<string, object>  soundsAllowed  = new Dictionary<string, object>()
+                                                                 {
+                                                                      { "Asterisk",       System.Media.SystemSounds.Asterisk },
+                                                                      { "Beep",           System.Media.SystemSounds.Beep },
+                                                                      { "Exclamation",    System.Media.SystemSounds.Exclamation },
+                                                                      { "Hand",           System.Media.SystemSounds.Hand },
+                                                                      { "Question",       System.Media.SystemSounds.Question },
+                                                                 };
+                string                      soundCueName  = "";
 
-            _isBehaviorDone = false;
 
-            CheckForUnrecognizedAttributes(s_recognizedAttributeNames);
+                _isBehaviorDone     = false;
 
-            _isAttributesOkay = true;
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("Title", false, "Attention Required...", out _dialogTitle);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("Text", true, "", out _dialogMessage);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsBoolean("AllowBotStop", false, "false", out _isBotStopAllowed);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsSpecificString("SoundCue", false, "Asterisk", s_soundsAllowed, out soundCueName);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("SoundCueInterval", false, "60", 0, int.MaxValue, out _soundCueIntervalInSeconds);
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                               {
+                                                    { "AllowBotStop",               null },
+                                                    { "ExpiryAction",               null },
+                                                    { "ExpiryTime",                 null },
+                                                    { "QuestCompleteRequirement",   null },
+                                                    { "QuestId",                    null },
+                                                    { "QuestInLogRequirement",      null },
+                                                    { "SoundCue",                   null },
+                                                    { "SoundCueInterval",           null },
+                                                    { "StopOnContinue",             null },
+                                                    { "Title",                      null },
+                                                    { "Text",                       null },
+                                               });
 
-            if (_isAttributesOkay)
-                { _soundCue = (System.Media.SystemSound)s_soundsAllowed[soundCueName]; }
+
+                // We're intentionally using booleans with compound assignment (i.e., "&=") here...
+                // 1) C# allows this by design, and
+                // 2) We don't want the evaluation short-circuited as "&&" does.  To do so would nickel-and-dime
+                //    the profile writer with error messages.  Instead, we want him to see all his mistakes at once.
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsBoolean("AllowBotStop", false, "false", out _isBotStopAllowed);
+                _isAttributesOkay &= GetAttributeAsSpecificString("ExpiryAction", false, "InputEnabled_Continue", expiryActionNames, out _expiryActionName);
+                _isAttributesOkay &= GetAttributeAsInteger("ExpiryTime", false, "0", 0, int.MaxValue, out _expiryTime);
+                _isAttributesOkay &= GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, QuestCompleteRequirement.NotComplete, out _questCompleteRequirement); 
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
+                _isAttributesOkay &= GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, QuestInLogRequirement.DontCare, out _questInLogRequirement);
+                _isAttributesOkay &= GetAttributeAsSpecificString("SoundCue", false, "Asterisk", soundsAllowed, out soundCueName);
+                _isAttributesOkay &= GetAttributeAsInteger("SoundCueInterval", false, "60", 0, int.MaxValue, out _soundCueIntervalInSeconds);
+                _isAttributesOkay &= GetAttributeAsBoolean("StopOnContinue", false, "false", out _isStopOnContinue);
+                _isAttributesOkay &= GetAttributeAsString("Text", true, "", out _dialogMessage);
+                _isAttributesOkay &= GetAttributeAsString("Title", false, "Attention Required...", out _dialogTitle);
+
+
+                if (_isAttributesOkay)
+                    { _soundCue = (System.Media.SystemSound)soundsAllowed[soundCueName]; }
+
+                BotEvents.OnBotStop  += BotEvents_OnBotStop;
+
+                // Note: we don't want to actually create the dialog here, as that will cause it
+                // to popup even if the quest is complete.  This action is properly deferred until
+                // OnStart(), which handles IsDone processing.
+            }
+
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                        + "\nFROM HERE:\n"
+                                        + except.StackTrace + "\n");
+                _isAttributesOkay = false;
+            }
         }
 
+
+        private void    UserDialogExitProcessing(PopdownReason     popdownReason)
+        {
+            // Log to Honorbuddy why we're exiting behavior...
+            if (popdownReason.IsReasonKnown())
+            {
+                string      directiveRequester      = (_isStopOnContinue ? "Profile Writer request"
+                                                        : popdownReason.IsPopdown() ? "Notification criteria no longer valid"
+                                                        : popdownReason.IsTimerExpiry() ? "Profile Writer request"
+                                                        : popdownReason.IsUserResponse() ? "User request"
+                                                        : "Profile Writer request");
+                string      messageType             = (popdownReason.IsTimerExpiry() ? "timer expired"
+                                                        : popdownReason.IsUserResponse() ? "user response"
+                                                        : popdownReason.IsPopdown() ? "completion criteria"
+                                                        : "info");
+                string      terminationMessage      = string.Format("{0} {1}",
+                                                                    (popdownReason.IsBotStop() ? "Honorbuddy stopped due to "
+                                                                     : "Continuing profile due to"),
+                                                                     directiveRequester);
+
+                TreeRoot.StatusText = terminationMessage;
+                UtilLogMessage(messageType, terminationMessage);
+            }
+
+
+            // Extinguish any stated goal
+            TreeRoot.GoalText   = "";
+
+
+            // Restore any settings we may have altered
+            if (_honorbuddyConfigSnapshot != null)
+            {
+                _honorbuddyConfigSnapshot.Restore();
+                _honorbuddyConfigSnapshot = null;
+            }
+
+            // Unhook event handlers
+            BotEvents.OnBotStop  -= BotEvents_OnBotStop;
+
+            if (popdownReason.IsBotStop())
+                { TreeRoot.Stop(); }
+        }
+
+
+        private void    BotEvents_OnBotStop(EventArgs args)
+        {
+            UserDialogExitProcessing(PopdownReason.UNKNOWN);
+        }
+
+
         #region Overrides of CustomForcedBehavior
+
+
+        public override void        Dispose()
+        {
+            // Request that the dialog 'pop down', if we're done...
+            if (_completionToken != null)
+            {
+                _completionToken.Dispose();
+                _completionToken = null;
+            }
+
+            base.Dispose();
+        }
+
 
         public override bool IsDone
         {
             get
             {
-                PlayerQuest        quest = StyxWoW.Me.QuestLog.GetQuestById((uint)_questId);
-
-                // Note that a _questId of zero is never complete (by definition), it requires the behavior to complete...
-                return (_isBehaviorDone                                                         // normal completion
-                        ||  ((_questId != 0) && (quest == null))                                // quest not in our log
-                        ||  ((_questId != 0) && (quest != null) && quest.IsCompleted));         // quest is done
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet(_questId, _questInLogRequirement, _questCompleteRequirement));
             }
         }
 
@@ -336,60 +675,448 @@ namespace BuddyWiki.CustomBehavior
 
             else if (!IsDone)
             {
-                UserDialogForm.UsersChoice    usersChoice;
-                UserDialogForm                userDialogForm    = UserDialogForm.Singleton();
 
                 TreeRoot.GoalText   = "User Attention Required...";
-                TreeRoot.StatusText = "Waiting for user confirmation of dialog";
-                usersChoice = userDialogForm.popupDialog(_dialogTitle,
-                                                         _dialogMessage,
-                                                         _isBotStopAllowed,
-                                                         _soundCue,
-                                                         _soundCueIntervalInSeconds);
-                TreeRoot.GoalText   = "";
-                TreeRoot.StatusText = "";
+                TreeRoot.StatusText = "Waiting for user dialog to close";
 
-                if (usersChoice == UserDialogForm.UsersChoice.BOT_STOP)
-                {
-                    TreeRoot.StatusText = "Honorbuddy stopped at User's request";
-                    UtilLogMessage("user response", "Stopping Bot at User request.");
-                    TreeRoot.Stop();
-                }
-               
-                _isBehaviorDone = true;
+
+                // We don't want the bot running around harvesting while the user
+                // is manually controlling it trying to get the task completed.
+                // (We've already captured the existing configuration which will
+                //  be restored when this behavior exits, or the bot is stopped.
+                //  So there are no worries about destroying user's configuration.)
+                _honorbuddyConfigSnapshot = new HonorbuddyConfigSnapshot();
+
+                LevelbotSettings.Instance.HarvestHerbs      = false;
+                LevelbotSettings.Instance.HarvestMinerals   = false;
+                LevelbotSettings.Instance.LootChests        = false;
+                LevelbotSettings.Instance.LootMobs          = false;
+                LevelbotSettings.Instance.NinjaSkin         = false;
+                LevelbotSettings.Instance.SkinMobs          = false;
+
+                _completionToken = new AsyncCompletionToken(StyxWoW.Me.Name,
+                                                            _dialogTitle,
+                                                            _dialogMessage,
+                                                            _expiryActionName,
+                                                            _expiryTime,
+                                                            _isBotStopAllowed,
+                                                            _isStopOnContinue,
+                                                            _soundCue,
+                                                            _soundCueIntervalInSeconds);
             }
+        }
+
+ 
+        protected override TreeSharp.Composite CreateBehavior()
+        {
+            if (_behavior == null)
+            {
+                _behavior = new TreeSharp.PrioritySelector(
+                    new TreeSharp.Action(ret =>
+                    {
+                        bool    isDialogComplete    = _completionToken.IsComplete;
+                        bool    isProgressing       = UtilIsProgressRequirementsMet(_questId, _questInLogRequirement, _questCompleteRequirement);
+
+                        // We're complete... wrap it up
+                        if (isDialogComplete  ||  !isProgressing)
+                        {
+                            // If we're no longer progressing, we don't want to wait for the user response to close up shop...
+                            // Thus, we use UNKNOWN when not progressing.  This will also keep us from blocking and waiting for
+                            // PopdownResponse to be populated by the UserDialogForm we're trying to close.
+                            UserDialogExitProcessing(isDialogComplete
+                                                     ? _completionToken.PopdownResponse
+                                                     : PopdownReason.PopdownCompletionCriteriaMet);
+              
+                            _isBehaviorDone = true;
+                            return (TreeSharp.RunStatus.Success);
+                        }
+
+                        // If 'auto defend' is on and we're in combat, we skip this node to allow combat to take place
+                        // somewhere in our parent's subtree
+                        if (_completionToken.IsAutoDefend  &&  StyxWoW.Me.IsActuallyInCombat)
+                            return (TreeSharp.RunStatus.Failure);
+
+
+                        // 'auto defend is off'...
+                        // RunStatus.Running returns us to this node.  This allows the user to control everything manually--
+                        // including combat
+                        return (TreeSharp.RunStatus.Running);
+                    })
+                );
+            }
+
+            return (_behavior);
         }
 
         #endregion
 
 
+        public new enum QuestCompleteRequirement
+        {
+            DontCare,
+            Complete,
+            NotComplete,
+        }
 
+        public new enum QuestInLogRequirement
+        {
+            DontCare,
+            InLog,
+            NotInLog,
+        }
+
+        /// <summary>
+        /// Determine whether a behavior should start or continue based on the QuestId, and its required
+        /// presence and completion criteria.
+        /// </summary>
+        /// <param name="questId">provides the reference for which the specified qualifies should be applied</param>
+        /// <param name="questInLogRequirement">the QuestId must meet this specified qualifier for the behavior to proceed.</param>
+        /// <param name="questCompleteRequirement">the QuestId must mee this specified qualifier for the behavior to proceed.</param>
+        /// <returns>true, if the provided QuestId meets the specified qualifiers; otherwise, returns false.</returns>
+        public static bool      UtilIsProgressRequirementsMet(int                          questId,
+                                                              QuestInLogRequirement        questInLogRequirement,
+                                                              QuestCompleteRequirement     questCompleteRequirement)
+        {
+            if (questId == 0)           // QuestId zero always meets our requirements, by definition
+                { return (true); }
+
+
+            PlayerQuest     quest   = StyxWoW.Me.QuestLog.GetQuestById((uint)questId);
+
+            // 'Quest In Log' handling --
+            if ((questInLogRequirement == QuestInLogRequirement.InLog)  &&  (quest == null))
+                { return (false); }
+
+            if ((questInLogRequirement == QuestInLogRequirement.NotInLog)  &&  (quest != null))
+                { return (false); }
+
+
+            // 'Quest Complete' handling --
+            bool    isQuestComplete = (((quest != null)  &&  (quest.IsCompleted))
+                                       || StyxWoW.Me.QuestLog.GetCompletedQuests().Contains((uint)questId));
+
+            if ((questCompleteRequirement == QuestCompleteRequirement.Complete)  &&  !isQuestComplete)
+                { return (false); }
+
+            if ((questCompleteRequirement == QuestCompleteRequirement.NotComplete)  &&  isQuestComplete)
+                { return (false); }
+
+            return (true);
+        }
+
+
+        private TreeSharp.Composite         _behavior;
+        private AsyncCompletionToken        _completionToken;
         private string                      _dialogTitle;
         private string                      _dialogMessage;
+        private string                      _expiryActionName;
+        private int                         _expiryTime;
         private bool                        _isAttributesOkay;
         private bool                        _isBehaviorDone;
         private bool                        _isBotStopAllowed;
+        private bool                        _isStopOnContinue;
+        private HonorbuddyConfigSnapshot    _honorbuddyConfigSnapshot;
         private int                         _questId;
+        private QuestInLogRequirement       _questInLogRequirement;
+        private QuestCompleteRequirement    _questCompleteRequirement;
         private System.Media.SystemSound    _soundCue;
         private int                         _soundCueIntervalInSeconds;
+    }
 
-        private static Dictionary<String, Object>    s_soundsAllowed  = new Dictionary<string, object>()
-                       {
-                            { "Asterisk",        System.Media.SystemSounds.Asterisk },
-                            { "Beep",            System.Media.SystemSounds.Beep },
-                            { "Exclamation",     System.Media.SystemSounds.Exclamation },
-                            { "Hand",            System.Media.SystemSounds.Hand },
-                            { "Question",        System.Media.SystemSounds.Question },
-                       };
 
-        private static Dictionary<String, Object>    s_recognizedAttributeNames = new Dictionary<string, object>()
-                       {
-                            { "AllowBotStop",        null },
-                            { "QuestId",             null },
-                            { "Title",               null },
-                            { "Text",                null },
-                            { "SoundCue",            null },
-                            { "SoundCueInterval",    null },
-                       };
+    //============================================================
+    // The remainder of this file are support classes to get the work done --
+    //
+
+    // We know this is clumsy, but its a .NET-ism --
+    // Form widgets can *only* be controlled by the thread that creates them.
+    // Thus, we make this guarantee by wrapping all creation & processing actions
+    // in a method called by just one thread.  <sigh>
+    class AsyncCompletionToken      : IDisposable
+    {
+        public AsyncCompletionToken(string          toonName,
+                                    string          dialogTitle,
+                                    string          dialogMessage,
+                                    string          expiryActionName,
+                                    int             expiryRemainingInSeconds,
+                                    bool            isBotStopAllowed,
+                                    bool            isStopOnContinue,
+                                    SystemSound     soundCue,
+                                    int             soundPeriodInSeconds)
+        {
+            _dialogDelegate = new UserDialogDelegate(PopupDialogViaDelegate);
+            _isAutoDefend   = true;
+            _popdownRequest = PopdownReason.UNKNOWN;
+            _popdownResponse  = PopdownReason.UNKNOWN;
+
+            _actResult = _dialogDelegate.BeginInvoke(this,
+                                                     toonName,
+                                                     dialogTitle,
+                                                     dialogMessage,
+                                                     expiryActionName,
+                                                     expiryRemainingInSeconds,
+                                                     isBotStopAllowed,
+                                                     isStopOnContinue,
+                                                     soundCue,
+                                                     soundPeriodInSeconds,
+                                                     null,
+                                                     null);
+        }
+
+
+        public void         Dispose()
+        {
+            PopdownRequest = PopdownReason.PopdownAndDispose;
+            WaitForComplete();
+        }
+
+
+        // We know this is clumsy, but its a .NET-ism --
+        // Form widgets can *only* be controlled by the thread that creates them.
+        // Thus, we make this guarantee by wrapping all creation & processing actions
+        // in a method called by just one thread.  <sigh>
+        private static void PopupDialogViaDelegate(AsyncCompletionToken   completionToken,
+                                                   string                 toonName,
+                                                   string                 dialogTitle,
+                                                   string                 dialogMessage,
+                                                   string                 expiryActionName,
+                                                   int                    expiryRemainingInSeconds,
+                                                   bool                   isBotStopAllowed,
+                                                   bool                   isStopOnContinue,
+                                                   SystemSound            soundCue,
+                                                   int                    soundPeriodInSeconds)
+        {
+            UserDialogForm      dialogForm      = new UserDialogForm(completionToken,
+                                                                     toonName,
+                                                                     dialogTitle,
+                                                                     dialogMessage,
+                                                                     expiryActionName,
+                                                                     expiryRemainingInSeconds,
+                                                                     isBotStopAllowed,
+                                                                     isStopOnContinue,
+                                                                     soundCue,
+                                                                     soundPeriodInSeconds);
+
+            // Making the main Honorbuddy window the popup's parent--
+            // This will bring the popup window to the front any time Honorbuddy is brought to the front.
+            Form                windowParent    = (Form)Control.FromHandle(Process.GetCurrentProcess().MainWindowHandle);
+          
+            // Popup the window
+            dialogForm.Activate();
+            dialogForm.ShowDialog(windowParent);
+        }
+
+
+        // IsAutoDefend is updated by UserDialogForm any time the user alters the corresponding
+        // checkbox on the UserDialogForm.
+        public bool             IsAutoDefend
+        {
+            get { lock (_stateLock) { return (_isAutoDefend); } }
+            set { lock (_stateLock) { _isAutoDefend = value; } }
+        }
+
+
+        // This is a request to the UserDialogForm, asking it to close
+        // for the provided reason.
+        // Note that UserDialogForm may pop down for other reasons, such
+        // as the user clicking a button, or the expiry timer elapsing.
+        public PopdownReason    PopdownRequest
+        {
+            get { lock (_stateLock) { return (_popdownRequest); } }
+            set { lock (_stateLock) { _popdownRequest = value; } }
+        }
+
+
+        // This is a response from the UserDialogForm, making available
+        // the reason that it popped down.  If the PopdownResponse is not
+        // yet available, accessing this value will block the caller until
+        // it becomes available.  If the caller doesn't want to be blocked,
+        // use the IsComplete property to determine whether or not to
+        // read this one.
+        public PopdownReason    PopdownResponse
+        {
+            get
+            {
+                WaitForComplete();
+
+                lock (_stateLock) { return (_popdownResponse); }
+            }
+            set { lock (_stateLock) { _popdownResponse = value; } }
+        }
+
+
+        public bool             IsComplete
+        {
+            get { return (_actResult.IsCompleted); }
+        }
+
+        public void             WaitForComplete()
+        {
+            if (!IsComplete)
+                _dialogDelegate.EndInvoke(_actResult);
+        }
+
+
+        private IAsyncResult        _actResult;
+        private UserDialogDelegate  _dialogDelegate;
+        private bool                _isAutoDefend;
+        private PopdownReason       _popdownRequest;
+        private PopdownReason       _popdownResponse;
+        private readonly object     _stateLock      = new object();
+    }
+
+
+    class HonorbuddyConfigSnapshot
+    {
+        public HonorbuddyConfigSnapshot()
+        {
+            _characterSettings = CharacterSettings.Instance.GetXML();
+            _levelBotSettings  = LevelbotSettings.Instance.GetXML();
+            _styxSettings      = StyxSettings.Instance.GetXML();
+        }
+
+        public void     Restore()
+        {
+            CharacterSettings.Instance.LoadFromXML(_characterSettings);
+            LevelbotSettings.Instance.LoadFromXML(_levelBotSettings);
+            StyxSettings.Instance.LoadFromXML(_styxSettings);
+        }
+
+        public string       GetSettingsAsString()
+        {
+            string      outString   = "";
+                
+            outString += _characterSettings.ToString();
+            outString += _levelBotSettings.ToString();
+            outString += _styxSettings.ToString();
+
+            return (outString);
+        }
+
+        private System.Xml.Linq.XElement        _characterSettings;
+        private System.Xml.Linq.XElement        _levelBotSettings;
+        private System.Xml.Linq.XElement        _styxSettings;             
+    }
+
+
+    enum PopdownReason
+    {
+        BotStopViaExpiry,
+        BotStopViaUser,
+        ContinueViaExpiry,
+        ContinueViaUser,
+        PopdownAndDispose,
+        PopdownCompletionCriteriaMet,
+        UNKNOWN,
+    };
+
+    static class PopdownReason_ExtensionMethods
+    {
+        public static bool  IsBotStop(this PopdownReason            popdownReason)
+        {
+            return ((popdownReason == PopdownReason.BotStopViaExpiry)
+                    || (popdownReason == PopdownReason.BotStopViaUser));
+        }
+
+        public static bool  IsContinue(this PopdownReason           popdownReason)
+        {
+            return ((popdownReason == PopdownReason.ContinueViaExpiry)
+                    ||  (popdownReason == PopdownReason.ContinueViaUser));
+        }
+
+        public static bool  IsReasonKnown(this PopdownReason        popdownReason)
+        {
+            return (popdownReason != PopdownReason.UNKNOWN);
+        }
+
+        public static bool  IsPopdown(this PopdownReason   popdownReason)
+        {
+            return ((popdownReason == PopdownReason.PopdownAndDispose)
+                    ||  (popdownReason == PopdownReason.PopdownCompletionCriteriaMet));
+        }
+
+        public static bool  IsTimerExpiry(this PopdownReason        popdownReason)
+        {
+            return ((popdownReason == PopdownReason.BotStopViaExpiry)
+                    ||  (popdownReason == PopdownReason.ContinueViaExpiry));
+        }
+
+
+        public static bool  IsUserResponse(this PopdownReason       popdownReason)
+        {
+            return ((popdownReason == PopdownReason.BotStopViaUser)
+                    ||  (popdownReason == PopdownReason.ContinueViaUser));
+        }
+    }
+
+
+    delegate void        UserDialogDelegate(AsyncCompletionToken     completionToken,
+                                            string                   toonName,
+                                            string                   dialogTitle,
+                                            string                   dialogMessage,
+                                            string                   expiryActionName,
+                                            int                      expiryRemainingInSeconds,
+                                            bool                     isBotStopAllowed,
+                                            bool                     isStopOnContinue,
+                                            SystemSound              soundCue,
+                                            int                      soundPeriodInSeconds);
+
+
+    //============================================================
+    // Candidate functionality for CustomForcedBehavior base class --
+
+
+    // using SystemCollections.ObjectModel
+
+    /// <summary>
+    /// Base class for the classic enumeration pattern.  The enumeration pattern allows
+    /// behavior (e.g., methods) to be associated with each enumerable item that is
+    /// defined.
+    /// 
+    /// The enumeration pattern has these characteristics:
+    /// * This technique is *fast*--no reflection is involved
+    /// * Any number of methods can be associatd with each enumerated item
+    /// * Strongly typed
+    /// * Enforces type safety against accidental misuse
+    /// * Can be used in If statements and iterated over
+    /// * Cannot be used in a switch statement. This is a feature--switch statements
+    ///   are not object-oriented and a major source of maintenance errors.
+    ///   As enumerations are added, 'default' cases in switch statements mask
+    ///   the omission of their handling.
+    ///   
+    ///  A good tutorial on this pattern can be found here...
+    ///      http://www.codeproject.com/KB/cs/EnhancedEnums.aspx
+    /// </summary>
+    /// <typeparam name="T"></typeparam>
+    public class EnumBaseType<T> where T : EnumBaseType<T>
+    {
+        protected EnumBaseType()
+        {
+            _enumValues.Add(this.GetType().Name, (T)this);
+        }
+
+        public static List<string>              GetBaseEnumNames()
+        {
+            return (_enumValues.Keys.ToList());
+        }
+
+        public static ReadOnlyCollection<T>     GetBaseEnumItems()
+        {
+            return (_enumValues.Values.ToList().AsReadOnly());
+        }
+
+        public static T                         GetBaseEnumItemByName(string        name)
+        {
+            T   returnValue;
+
+            if (_enumValues.TryGetValue(name, out returnValue))
+                { return (returnValue); }
+
+            throw (new ArgumentException(string.Format("Invalid enum item name ('{0}') provided for {1}",
+                                                       name,
+                                                       typeof(T).Name)));
+        }
+
+        private static Dictionary<string, T>   _enumValues    = new Dictionary<string, T>();
     }
 }
