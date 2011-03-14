@@ -129,15 +129,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 ),
 
                              new Decorator(ret => mobList.Count > 0 && !mobList[0].WithinInteractRange,
-                                new Sequence(
-                                    new DecoratorContinue(ret => ridingTrainer.Location.X > 0,
-                                        new Action(ret => Navigator.MoveTo(ridingTrainer.Location))
-                                        ),
-
-                                        new DecoratorContinue(ret => ridingTrainer == null,
-                                        new Action(ret => Navigator.MoveTo(Location))
-                                        )
-                                    )),
+                                new Action(ret => Navigator.MoveTo(mobList[0].Location))),
 
                             new Decorator(ret => mobList.Count > 0 && mobList[0].WithinInteractRange,
                                 new Sequence(
@@ -147,13 +139,19 @@ namespace Styx.Bot.Quest_Behaviors
                                             WoWMovement.MoveStop();
                                             StyxWoW.SleepForLagDuration();
                                         })),
-                                        new Action(ret => TreeRoot.StatusText = "Opening Trainer - " + mobList[0].Name + " X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
-                                        new Action(ret => mobList[0].Interact()),
-                                        new Action(ret => Thread.Sleep(200)),
-                                        new Action(ret => Lua.DoString("BuyTrainerService(0)")),
-                                        new Action(ret => Counter++)
+                                    new Action(ret => TreeRoot.StatusText = "Opening Trainer - " + mobList[0].Name + " X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
+                                    new Action(ret => mobList[0].Interact()),
+                                    new Action(ret => Thread.Sleep(200)),
+                                    new Action(ret => Lua.DoString("BuyTrainerService(0)")),
+                                    new Action(ret => Counter++)
                                     )
-                            )
+                            ),
+
+                            new Decorator(ret => ridingTrainer != null,
+                                new Action(ret => Navigator.MoveTo(ridingTrainer.Location))
+                                ),
+
+                            new Action(ret => Counter++)
                     )));
         }
 

@@ -148,13 +148,17 @@ namespace Styx.Bot.Quest_Behaviors
                 error = true;
             }
 
-            int bSlot = 0;
+            int bSlot = -1;
             if (Args.ContainsKey("BuySlot"))
             {
                 if (!int.TryParse(Args["BuySlot"], out bSlot))
                 {
                     Logging.Write("Parsing attribute 'BuySlot' in InteractWith behavior failed! please check your profile!");
                     error = true;
+                }
+                else
+                {
+                    bSlot -= 1;
                 }
             }
 
@@ -331,7 +335,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             })),
 
                                     new DecoratorContinue(
-                                        ret => BuySlot != 0 && BuyItemId == 0 && MerchantFrame.Instance.IsVisible,
+                                        ret => BuySlot != -1 && BuyItemId == 0 && MerchantFrame.Instance.IsVisible,
                                         new Action(ret =>
                                         {
                                             var item = MerchantFrame.Instance.GetMerchantItemByIndex(BuySlot);
