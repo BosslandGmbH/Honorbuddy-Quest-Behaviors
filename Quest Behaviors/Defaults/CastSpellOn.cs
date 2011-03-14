@@ -161,7 +161,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                            new Decorator(ret => mobList.Count > 0 && !me.IsCasting,
                                 new Sequence(
-                                    new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) >= MinRange && mobList[0].Location.Distance(me.Location) <= 25,
+                                    new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) >= MinRange && mobList[0].Location.Distance(me.Location) <= 25 && mobList[0].InLineOfSightOCD,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellID + " On Mob: " + mobList[0].Name + " Yards Away "+ mobList[0].Location.Distance(me.Location)),
                                             new Action(ret => WoWMovement.MoveStop()),
@@ -169,11 +169,10 @@ namespace Styx.Bot.Quest_Behaviors
                                             new Decorator(c => !me.IsCasting, CreateSpellBehavior)
                                             )
                                     ),
-                                    new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) > 25,
+                                    new DecoratorContinue(ret => mobList[0].Location.Distance(me.Location) > 25 || !mobList[0].InLineOfSightOCD,
                                         new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + mobList[0].Name + " Yards Away: " + mobList[0].Location.Distance(me.Location)),
-                                        new Action(ret => Navigator.MoveTo(mobList[0].Location)),
-                                        new Action(ret => Thread.Sleep(300))
+                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + mobList[0].Name + " Yards Away: " + mobList[0].Location.Distance(me.Location)),
+                                            new Action(ret => Navigator.MoveTo(mobList[0].Location))
                                             )
                                     ),
 
