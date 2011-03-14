@@ -353,11 +353,12 @@ namespace Styx.Bot.Quest_Behaviors
 
                                 new Action(ret =>
                                 {
+                                    bool targeted = false;
                                     TreeRoot.StatusText = "Using item on - " + CurrentObject.Name;
                                     if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
                                     {
                                         (CurrentObject as WoWUnit).Target();
-
+                                        targeted = true;
                                         StyxWoW.SleepForLagDuration();
                                     }
                                         
@@ -369,6 +370,9 @@ namespace Styx.Bot.Quest_Behaviors
                                     StyxWoW.SleepForLagDuration();
                                     Counter++;
                                     Thread.Sleep(WaitTime);
+
+                                    if (targeted)
+                                        StyxWoW.Me.ClearTarget();
                                 }))
                                     ),
 

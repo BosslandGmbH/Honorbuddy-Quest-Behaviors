@@ -141,6 +141,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Using Item"),
                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                new Action(ret => Me.SetFacing(ClickToLocation)),
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => Item.UseContainerItem()),
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
