@@ -229,9 +229,11 @@ namespace Styx.Bot.Quest_Behaviors
                if (transport == null)
                    return WoWPoint.Empty;
 
-               Tripper.Tools.Math.Matrix m = transport.GetWorldMatrix();
+               //Tripper.Tools.Math.Matrix m = transport.GetWorldMatrix();
 
-               return new WoWPoint(m.M41, m.M42, m.M43);
+               //return new WoWPoint(m.M41, m.M42, m.M43);
+
+               return transport.WorldLocation;
             }
         }
 

@@ -19,12 +19,36 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class GoThruPortal : CustomForcedBehavior
     {
+        /// <summary>
+        /// GoThurPortal by Bobby53
+        /// 
+        /// Supports walk through portals in a way that does not result
+        /// in red error messages in WoW or in the HB log/debug files.
+        /// 
+        /// xyz should be a position as close as possible to portal entrance 
+        /// without entering.
+        /// 
+        /// ##Syntax##
+        /// [Optional] QuestId: The id of the quest (0 is default)
+        /// [Optional] QuestName: The name of the quest.
+        /// [Optional] Timeout: time in milliseconds it allows for completing (10000 is default)
+        /// X,Y,Z: used with current location to create a vector it moves along
+        /// 
+        /// ##Example##
+        /// use RunTo to get start position, then GoThruPortal to run throuhg xyz vector
+        /// on way through portal.
+        /// 
+        ///     <RunTo X="4646.201" Y="-3685.043" Z="954.2496" />
+        ///     <CustomBehavior File="GoThruPortal" X="4656.928" Y="-3685.472" Z="957.185" />
+        /// 
+        /// </summary>
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {
             {"X",null},
             {"Y",null},
             {"Z",null},
             {"QuestId",null},
+            {"QuestName",null},
             {"Timeout",null}
         };
 

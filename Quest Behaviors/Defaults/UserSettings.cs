@@ -77,6 +77,12 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 							.Add("TrainNewSkills", false)
 						);
 
+            presets.Add("NoTrain",
+                        new ConfigurationChangeRequest(recognizedAttributes)
+                            .Add("TrainNewSkills", false)
+                            .Add("FindVendorsAutomatically", false)
+                        );
+
 			presets.Add("NormalQuesting",
 						new ConfigurationChangeRequest(recognizedAttributes)
 							.Add("FindMountAutomatically", true)

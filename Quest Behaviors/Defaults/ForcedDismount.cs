@@ -22,6 +22,26 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class ForcedDismount : CustomForcedBehavior
     {
+        /// <summary>
+        /// ForcedDismount by Bobby53
+        /// 
+        /// forces character to dismount.  additionally forces Druids
+        /// to leave Flight Form and Swift Flight Form. if in flight,
+        /// will descend straight down before dismount        
+        /// 
+        /// ##Syntax##
+        /// [Optional] QuestId: The id of the quest (defaults to 0)
+        /// [Optional] QuestName:  documentation only
+        /// [Optional] MountType:  ignored currently
+        /// </summary>
+        /// 
+        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        {
+            {"QuestId",null},               //  optional quest id (defaults to 0)
+            {"QuestName",null},             //  (doc only - not used)
+            {"MountType",null},             //  ignored currently
+        };
+
         private enum ForcedDismountType
         {
             Any,
@@ -34,25 +54,12 @@ namespace Styx.Bot.Quest_Behaviors
         private ForcedDismountType MountType { get; set; }
         private uint QuestId { get; set; }
 
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null},
-            {"MountType",null},
-        };
-
         public ForcedDismount(Dictionary<string, string> args)
             : base(args)
         {
             CheckForUnrecognizedAttributes(recognizedAttributes);
+
             bool error = false;
-
-            if (!Args.ContainsKey("QuestId"))
-            {
-                Logging.Write("Could not find attribute 'QuestId' in ForcedDismount behavior! please check your profile!");
-                error = true;
-            }
-
             uint questId = 0;
             if ( Args.ContainsKey( "QuestId") && !uint.TryParse(Args["QuestId"], out questId))
             {

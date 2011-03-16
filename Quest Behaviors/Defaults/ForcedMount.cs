@@ -42,8 +42,8 @@ namespace Styx.Bot.Quest_Behaviors
             CheckForUnrecognizedAttributes(recognizedAttributes);
             bool error = false;
 
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
+            uint questId = 0;
+            if (Args.ContainsKey("QuestId") && !uint.TryParse(Args["QuestId"], out questId))
             {
                 Logging.Write("Parsing attribute 'QuestId' in ForcedMount behavior failed! please check your profile!");
                 error = true;

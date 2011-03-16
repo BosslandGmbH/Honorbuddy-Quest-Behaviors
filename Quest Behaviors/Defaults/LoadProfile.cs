@@ -1,18 +1,14 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using System.IO;
 using System.Threading;
-using Styx.Database;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
+using Styx.Logic.BehaviorTree;
+using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
-using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
@@ -47,37 +43,34 @@ namespace Styx.Bot.Quest_Behaviors
 
             CheckForUnrecognizedAttributes(recognizedAttributes);
 
-            string fileName = "";
+            string profileName = "";
             int questId = 0;
-            CurrentProfile = Logic.Profiles.ProfileManager.XmlLocation;
             Logging.Write(CurrentProfile);
-            success = success && GetAttributeAsString("ProfileName", false, "1", out fileName);
+            success = success && GetAttributeAsString("ProfileName", false, "1", out profileName);
             success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
 
-            if (fileName == "1")
-                success = success && GetAttributeAsString("Profile", false, "1", out fileName);
+            if (profileName == "1")
+                success = success && GetAttributeAsString("Profile", false, "1", out profileName);
 
             Counter = 0;
-            FileName = fileName;
+            ProfileName = profileName + ".xml";
+
         }
 
         public int Counter { get; set; }
-        public String FileName { get; set; }
-        public String CurrentProfile { get; set; }
+        public String ProfileName { get; set; }
+        public String CurrentProfile { get { return ProfileManager.XmlLocation; } }
+        public static LocalPlayer Me { get { return ObjectManager.Me; } }
 
-        public static LocalPlayer me = ObjectManager.Me;
-
-        public String fileLocation
+        public String NewProfilePath
         {
             get
             {
-                int index = CurrentProfile.LastIndexOf("\\");
-                if (index > 0)
-                    CurrentProfile = CurrentProfile.Substring(0, index + 1);
-
-                return CurrentProfile += FileName;
+                string directory = Path.GetDirectoryName(CurrentProfile);
+                return Path.Combine(directory, ProfileName);
             }
         }
+
 
         #region Overrides of CustomForcedBehavior
 
@@ -99,8 +92,8 @@ namespace Styx.Bot.Quest_Behaviors
 
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "LoadingProfile - " + fileLocation),
-                                        new Action(ret => Styx.Logic.Profiles.ProfileManager.LoadNew(fileLocation)),
+                                        new Action(ret => TreeRoot.StatusText = "LoadingProfile - " + NewProfilePath),
+                                        new Action(ret => ProfileManager.LoadNew(NewProfilePath, false)),
                                         new Action(ret => Counter++),
                                         new Action(ret => Thread.Sleep(300))
                                     )

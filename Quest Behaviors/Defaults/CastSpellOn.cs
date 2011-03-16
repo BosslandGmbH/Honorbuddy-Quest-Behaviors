@@ -140,7 +140,7 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                            new Decorator(ret => (Counter > NumberOfTimes && QuestId == 0) || (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                            new Decorator(ret => Counter > NumberOfTimes && QuestId == 0,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -226,7 +226,14 @@ namespace Styx.Bot.Quest_Behaviors
         private bool _isDone;
         public override bool IsDone
         {
-            get { return _isDone; }
+            get 
+            {
+                var quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                if (QuestId != 0 && (quest == null || quest.IsCompleted))
+                    return true;
+
+                return _isDone; 
+            }
         }
 
         #endregion
