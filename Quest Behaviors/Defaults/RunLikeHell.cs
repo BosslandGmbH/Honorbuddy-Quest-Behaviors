@@ -29,10 +29,11 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         /// the ability to specify a mob that when it enters the specified range, causes
         /// you to move to the nexts point.  
         /// 
-        /// The difference between this and having several NoCombatMoveTo in a row is that
-        /// HonorBuddy will let the CC enter combat after one has completed but before the
-        /// next begins.  RunLikeHell prevents that since it stays in control.  However it
-        /// takes a straight path to the point using ClickToMove so no path calculation is done.
+        /// A few key difference between this and having several RunTo/NoCombatMoveTo in sequence:
+        /// - HonorBuddy allows CC control between lines if attacked; RunLikeHell does not
+        /// - Syntax allows easy switch from ClickToMove() to Navigator.MoveTo() when a mesh is updated
+        /// - On startup, RunLikeHell finds the closest point in the path and starts there
+        /// - If Combat=true, will only fight if aggro picked up while running.. will not Pull
         /// 
         /// If QuestId is non-zero, behavior will stop when quest becomes complete even if 
         /// it has not completed NumOfTimes iterations of full path specified
@@ -163,13 +164,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public void Log(string msg, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Blue, "[GreaterOfTwoEvils] " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
+            Logging.Write(Color.Blue, "[RunLikeHell] " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
         }
 
         public void DLog(string msg, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Blue, "(GreaterOfTwoEvils) " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
+            Logging.Write(Color.Blue, "(RunLikeHell) " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
         }
 
         private bool ParsePath()
@@ -213,6 +214,26 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
             ParsePath();        // refresh the list of points
 
+            // find the closest point in path
+            WoWPoint closePt = Path.Peek();
+            double minDist = Me.Location.Distance(closePt);
+
+            foreach (WoWPoint pt in Path)
+            {
+                if (Me.Location.Distance(pt) < minDist )
+                {
+                    minDist = Me.Location.Distance(pt);
+                    closePt = pt;
+                }
+            }
+
+            // set closest point as current
+            while (Path.Any() && closePt != Path.Peek())
+            {
+                Path.Dequeue();
+            }
+
+            Counter = 1;        
             if (quest != null)
             {
                 TreeRoot.GoalText = "RunLikeHell - " + quest.Name;
@@ -222,37 +243,32 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 TreeRoot.GoalText = "RunLikeHell";
             }
 
-            if (AllowCombat)
-                Log("will allow Combat");
+            if (TreeRoot.Current == null)
+                Log("ERROR - TreeRoot.Current == null");
+            else if (TreeRoot.Current.Root == null)
+                Log("ERROR - TreeRoot.Current.Root == null");
+            else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
+                Log("ERROR - TreeRoot.Current.Root.LastStatus == RunStatus.Running");
             else
             {
-                if (TreeRoot.Current == null)
-                    Log("ERROR - TreeRoot.Current == null");
-                else if (TreeRoot.Current.Root == null)
-                    Log("ERROR - TreeRoot.Current.Root == null");
-                else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
-                    Log("ERROR - TreeRoot.Current.Root.LastStatus == RunStatus.Running");
+                var currentRoot = TreeRoot.Current.Root;    
+                if (!(currentRoot is GroupComposite))
+                    Log("ERROR - !(currentRoot is GroupComposite)");
                 else
                 {
-                    var currentRoot = TreeRoot.Current.Root;    
-                    if (!(currentRoot is GroupComposite))
-                        Log("ERROR - !(currentRoot is GroupComposite)");
+                    if (currentRoot is Sequence)
+                        lastStateReturn = RunStatus.Failure;
+                    else if (currentRoot is PrioritySelector)
+                        lastStateReturn = RunStatus.Success;
                     else
                     {
-                        if (currentRoot is Sequence)
-                            lastStateReturn = RunStatus.Failure;
-                        else if (currentRoot is PrioritySelector)
-                            lastStateReturn = RunStatus.Success;
-                        else
-                        {
-                            Log("unknown type of Group Composite at root");
-                            lastStateReturn = RunStatus.Success;
-                        }
-
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                        Log("disabled Combat");
+                        DLog("unknown type of Group Composite at root");
+                        lastStateReturn = RunStatus.Success;
                     }
+
+                    var root = (GroupComposite)currentRoot;
+                    root.InsertChild(0, CreateBehavior());
+                    DLog("disabled Combat");
                 }
             }
         }
@@ -261,15 +277,20 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
-                new Decorator( ret => !IsDone,
+                new Decorator( ret => !IsDone && (!AllowCombat || !Me.Combat),
                     new PrioritySelector(
-                        new Decorator(ret => !Path.Any() && Counter < NumberOfTimes ,
+                        new Decorator(ret => !Path.Any() && Counter >= NumberOfTimes,
+                            new Action(delegate
+                            {
+                                _isDone = true;
+                            })),
+                        new Decorator(ret => !Path.Any(),
                             new Action(delegate
                             {
                                 Counter++;
                                 ParsePath();
                             })),
-                        new Decorator(ret => Path.Peek().Distance(Me.Location) <= 1,
+                        new Decorator(ret => Path.Peek().Distance(Me.Location) <= Navigator.PathPrecision,
                             new PrioritySelector(
                                 new Decorator(ret => Me.IsMoving && WaitTime > 0,
                                     new Action(delegate
@@ -316,7 +337,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 var result = 
                     _isDone 
                     || (quest != null && quest.IsCompleted)         // quest complete
-                    || quest == null                                // don't have quest
+                    || (quest == null && QuestId != 0)              // don't have quest
                     || Me.Dead || Me.IsGhost                        // i'm a ghost
                     || (!Path.Any() && Counter >= NumberOfTimes);   // not hotspots left and all iterations complete
 
