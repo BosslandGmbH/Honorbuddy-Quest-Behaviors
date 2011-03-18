@@ -43,8 +43,8 @@ namespace Styx.Bot.Quest_Behaviors
             CheckForUnrecognizedAttributes(recognizedAttributes);
             bool error = false;
 
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
+            uint questId = 0;
+            if (Args.ContainsKey("QuestId") && !uint.TryParse(Args["QuestId"], out questId))
             {
                 Logging.Write("Parsing attribute 'QuestId' in UseItem behavior failed! please check your profile!");
                 error = true;
@@ -57,8 +57,8 @@ namespace Styx.Bot.Quest_Behaviors
                 error = true;
             }
 
-            int numOfTimes;
-            if (!int.TryParse(Args["NumOfTimes"], out numOfTimes))
+            int numOfTimes = 1;
+            if (Args.ContainsKey("NumOfTimes") && !int.TryParse(Args["NumOfTimes"], out numOfTimes))
             {
                 Logging.Write("Parsing attribute 'NumOfTimes' in UseItem behavior failed! please check your profile!");
                 error = true;
@@ -132,7 +132,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown != 0);
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0);
             }
         }
 
@@ -145,28 +145,25 @@ namespace Styx.Bot.Quest_Behaviors
 
                 return
                     _isDone ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
+                    (quest != null && quest.IsCompleted);
             }
         }
 
         public override void OnStart()
         {
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest != null)
+
+            if (Item != null)
             {
-                if (Item != null)
-                {
-                    TreeRoot.GoalText = string.Format("Using item {0} for {1}",
-                    Item.Name,
-                    quest.Name);
-                }
-                else
-                {
-                    TreeRoot.GoalText = string.Format("Use item {0} times for quest:{1}",
-                        NumOfTimes,
-                        quest.Name);
-                }
+                TreeRoot.GoalText = string.Format("Using item {0} for {1}",
+                Item.Name,
+                quest != null ? quest.Name: "");
+            }
+            else
+            {
+                TreeRoot.GoalText = string.Format("Use item {0} times for quest:{1}",
+                    NumOfTimes,
+                    quest != null ? quest.Name : "");
             }
         }
 

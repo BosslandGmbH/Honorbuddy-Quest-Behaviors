@@ -251,15 +251,12 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             else if (npcList.Count >= 1 && npcList[0].Location.Distance(vehicleList[0].Location) <= 15)
                             {
-                                using (new FrameLock())
-                                {
-                                    TreeRoot.StatusText = "Using Spell Index On - " + npcList[0].Name + " Spell Index: " + SpellIndex;
-                                    npcList[0].Target();
-                                    Lua.DoString("CastPetAction({0})", SpellIndex);
-                                    Thread.Sleep(WaitTime);
-                                    Counter++;
-                                    return RunStatus.Success;
-                                }
+                                TreeRoot.StatusText = "Using Spell Index On - " + npcList[0].Name + " Spell Index: " + SpellIndex;
+                                npcList[0].Target();
+                                Lua.DoString("CastPetAction({0})", SpellIndex);
+                                Thread.Sleep(WaitTime);
+                                Counter++;
+                                return RunStatus.Success;
                             }
                             return RunStatus.Running;
                         })),
@@ -270,24 +267,21 @@ namespace Styx.Bot.Quest_Behaviors
                             if (npcList.Count >= 1)
                             {
                                 Thread.Sleep(OftenToUse);
-                                using (new FrameLock())
-                                {
-                                    TreeRoot.StatusText = "Using Spell Index On - " + npcList[0].Name + " Spell Index: " + SpellIndex + " Times Used: " + Counter;
 
-                                    if (Counter > TimesToUse || (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted && QuestId > 0))
-                                    {
-                                        Lua.DoString("VehicleExit()");
-                                        _isDone = true;
-                                        return RunStatus.Success;
-                                    }
-                                    npcList[0].Target();
-                                    Lua.DoString("CastPetAction({0})", SpellIndex);
-                                    LegacySpellManager.ClickRemoteLocation(npcList[0].Location);
-                                    Thread.Sleep(WaitTime);
-                                    Counter++;
-                                    return RunStatus.Running;
+                                TreeRoot.StatusText = "Using Spell Index On - " + npcList[0].Name + " Spell Index: " + SpellIndex + " Times Used: " + Counter;
+
+                                if (Counter > TimesToUse || (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted && QuestId > 0))
+                                {
+                                    Lua.DoString("VehicleExit()");
+                                    _isDone = true;
+                                    return RunStatus.Success;
                                 }
-                                
+                                npcList[0].Target();
+                                Lua.DoString("CastPetAction({0})", SpellIndex);
+                                LegacySpellManager.ClickRemoteLocation(npcList[0].Location);
+                                Thread.Sleep(WaitTime);
+                                Counter++;
+                                return RunStatus.Running;                                
                             }
                             return RunStatus.Running;
                         })),
@@ -299,7 +293,6 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 using (new FrameLock())
                                 {
-                                    
                                     TreeRoot.StatusText = "Using Spell Index On - " + npcList[0].Name + " Spell Index: " + SpellIndex + " Times Used: " + Counter;
                                     if (Counter > TimesToUse || (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted && QuestId > 0))
                                     {

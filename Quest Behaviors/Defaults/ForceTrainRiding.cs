@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
-                             new Decorator(ret => mobList.Count > 0 && !mobList[0].WithinInteractRange,
+                            new Decorator(ret => mobList.Count > 0 && !mobList[0].WithinInteractRange,
                                 new Action(ret => Navigator.MoveTo(mobList[0].Location))),
 
                             new Decorator(ret => mobList.Count > 0 && mobList[0].WithinInteractRange,
