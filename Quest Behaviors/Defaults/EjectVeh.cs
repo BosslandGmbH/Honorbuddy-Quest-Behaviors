@@ -1,25 +1,21 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading;
-using Styx.Database;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
+
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Styx.Logic.Combat;
 using Styx.Logic.BehaviorTree;
+
+using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class EjectVeh : CustomForcedBehavior
     {
-
         /// <summary>
         /// EjectVeh by Natfoth
         /// Will Eject from the current vehicle, nothing more and nothing less.
@@ -27,47 +23,58 @@ namespace Styx.Bot.Quest_Behaviors
         /// Eject: Not required but just incase it messes with the args.
         /// </summary>
         /// 
-
-        
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"Eject",null},
-            {"QuestId",null},
-
-        };
-
-        bool success = true;
-
         public EjectVeh(Dictionary<string, string> args)
             : base(args)
         {
+			try
+			{
+                int itemId = 0;
+                int questId = 0;
 
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "Eject",      null },
+                                                    { "QuestId",    null },
+                                                });
 
-            int itemId = 0;
-            int questId = 0;
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("Eject", false, "1", 0, int.MaxValue, out itemId);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
 
-            success = success && GetAttributeAsInteger("Eject", false, "1", 0, int.MaxValue, out itemId);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                if (_isAttributesOkay)
+                {
+                    Counter = 0;
+                    QuestId = questId;
+                }
+			}
 
-            Counter = 0;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
+
         }
 
-        public WoWPoint MovePoint { get; private set; }
-        public int Counter { get; set; }
+        public int      Counter { get; set; }
+        public int      QuestId { get; private set; }
 
-        public static LocalPlayer me = ObjectManager.Me;
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+        private Composite   _root;
+
+        public static LocalPlayer   s_me = ObjectManager.Me;
+
 
         #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            TreeRoot.GoalText = "EjectVeh";
-        }
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -75,18 +82,18 @@ namespace Styx.Bot.Quest_Behaviors
 
                     new Decorator(ret => Counter > 0,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new Action(ret => TreeRoot.StatusText = "Vehicle eject complete"),
                                     new WaitContinue(120,
                                         new Action(delegate
                                         {
-                                            _isDone = true;
+                                            _isBehaviorDone = true;
                                             return RunStatus.Success;
                                         }))
                                     )),
 
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Ejecting Vehicle"),
+                                        new Action(ret => TreeRoot.StatusText = "Ejecting from vehicle"),
                                         new Action(ret => Lua.DoString("VehicleExit()")),
                                         new Action(ret => Thread.Sleep(300)),
                                         new Action(ret => Counter++)
@@ -94,10 +101,35 @@ namespace Styx.Bot.Quest_Behaviors
                     ));
         }
 
-        private bool _isDone;
+
         public override bool IsDone
         {
-            get { return _isDone; }
+            get
+            {
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet(QuestId,
+                                                           QuestInLogRequirement.InLog,
+                                                           QuestCompleteRequirement.NotComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else if (!IsDone)
+            {
+                TreeRoot.GoalText = "Ejecting from Vehicle";
+            }
         }
 
         #endregion

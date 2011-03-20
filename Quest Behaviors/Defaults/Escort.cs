@@ -2,26 +2,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Styx.Database;
+
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
-using Styx.Logic.POI;
-using Styx.Combat.CombatRoutine;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
-using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class Escort : CustomForcedBehavior
     {
-
         /// <summary>
         /// Escort by Natfoth
         /// Allows you to follow and/or defend an NPC until the quest is completed
@@ -31,63 +27,124 @@ namespace Styx.Bot.Quest_Behaviors
         /// X,Y,Z: The general location where theese objects can be found
         /// </summary>
         /// 
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"NpcId",null},
-            {"MobId",null},
-            {"QuestId",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-
-        };
-
-        bool success = true;
-
-
         public Escort(Dictionary<string, string> args)
             : base(args)
         {
+			try
+			{
+                WoWPoint    location;
+                int         mobId;
+                int         questId;
 
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "NpcId",      null },
+                                                    { "MobId",      null },
+                                                    { "QuestId",    null },
+                                                    { "X",          null },
+                                                    { "Y",          null },
+                                                    { "Z",          null },
+                                                });
 
-            int mobID = 0;
-            int questId = 0;
-            WoWPoint location = new WoWPoint(0, 0, 0);
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobId);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
 
-            success = success && GetAttributeAsInteger("NpcId", false, "1", 0, int.MaxValue, out mobID);
-            success = success && GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
+                // "NpcId" is allowed for legacy purposes --
+                // If it was not supplied, then its new name "NpcId" is required.
+                if (mobId == 0)
+                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId); }
 
-            if (mobID == 1)
-                success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out mobID);
+                // Weed out Profile Writer sloppiness --
+                if (_isAttributesOkay)
+                {
+                    if (mobId == 0)
+                    {
+                        UtilLogMessage("error", "MobId may not be zero");
+                        _isAttributesOkay = false;
+                    }
 
-            QuestId = (uint)questId;
-            MobId = mobID;
-            Counter = 1;
-            MovedToTarget = false;
-            Location = location;
+                    if (questId == 0)
+                    {
+                        UtilLogMessage("error", "QuestId may not be zero");
+                        _isAttributesOkay = false;
+                    }
+                }
+
+
+                if (_isAttributesOkay)
+                {
+                    QuestId = (uint)questId;
+                    MobId = mobId;
+                    Counter = 1;
+                    MovedToTarget = false;
+                    Location = location;
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
+        public int      Counter { get; set; }
         public WoWPoint Location { get; private set; }
-        public int Counter { get; set; }
-        public int MobId { get; set; }
-        public bool MovedToTarget;
-        public uint QuestId { get; set; }
+        public int      MobId { get; set; }
+        public bool     MovedToTarget { get; set; }
+        public uint     QuestId { get; set; }
 
-        public static LocalPlayer me = ObjectManager.Me;
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+        private Composite   _root;
+
+        public static LocalPlayer   s_me = ObjectManager.Me;
+
 
         public List<WoWUnit> mobList
         {
             get
             {
-               return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                   .Where(u => u.Entry == MobId && !u.Dead)
-                                   .OrderBy(u => u.Distance).ToList();
+               return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                    .Where(u => u.Entry == MobId && !u.Dead)
+                                    .OrderBy(u => u.Distance).ToList());
             }
         }
+
+
+        WoWSpell RangeSpell
+        {
+            get
+            {
+                switch (s_me.Class)
+                {
+                    case Styx.Combat.CombatRoutine.WoWClass.Druid:
+                        return SpellManager.Spells["Starfire"];
+                    case Styx.Combat.CombatRoutine.WoWClass.Hunter:
+                        return SpellManager.Spells["Arcane Shot"];
+                    case Styx.Combat.CombatRoutine.WoWClass.Mage:
+                        return SpellManager.Spells["Frost Bolt"];
+                    case Styx.Combat.CombatRoutine.WoWClass.Priest:
+                        return SpellManager.Spells["Shoot"];
+                    case Styx.Combat.CombatRoutine.WoWClass.Shaman:
+                        return SpellManager.Spells["Lightning Bolt"];
+                    case Styx.Combat.CombatRoutine.WoWClass.Warlock:
+                        return SpellManager.Spells["Curse of Agony"];
+                    default: // should never get to here but adding this since the compiler complains
+                        return SpellManager.Spells["Auto Attack"]; ;
+                }
+            }
+        }
+
 
         /// <summary>
         /// A Queue for npc's we need to talk to
@@ -96,27 +153,18 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-            if (quest != null)
-                TreeRoot.GoalText = "Escort - " + quest.Name;
-        }
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new PrioritySelector(
 
-                            new Decorator(ret => me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted,
+                            new Decorator(ret => s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
                                         new Action(delegate
                                         {
-                                            _isDone = true;
+                                            _isBehaviorDone = true;
                                             return RunStatus.Success;
                                         }))
                                     )),
@@ -133,14 +181,14 @@ namespace Styx.Bot.Quest_Behaviors
                                ret => mobList.Count > 0 && mobList[0].IsHostile,
                                new PrioritySelector(
                                    new Decorator(
-                                       ret => me.CurrentTarget != mobList[0],
+                                       ret => s_me.CurrentTarget != mobList[0],
                                        new Action(ret =>
                                            {
                                                mobList[0].Target();
                                                StyxWoW.SleepForLagDuration();
                                            })),
                                    new Decorator(
-                                       ret => !me.Combat,
+                                       ret => !s_me.Combat,
                                        new PrioritySelector(
                                             new Decorator(
                                                 ret => RoutineManager.Current.PullBehavior != null,
@@ -148,7 +196,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             new Action(ret => RoutineManager.Current.Pull()))))),
 
 
-                           new Decorator(ret => mobList.Count > 0 && (!me.Combat || me.CurrentTarget == null || me.CurrentTarget.Dead)  && mobList[0].CurrentTarget == null,
+                           new Decorator(ret => mobList.Count > 0 && (!s_me.Combat || s_me.CurrentTarget == null || s_me.CurrentTarget.Dead)  && mobList[0].CurrentTarget == null,
                                 new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Following Mob - " + mobList[0].Name + " At X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
                                             new Action(ret => Navigator.MoveTo(mobList[0].Location)),
@@ -156,15 +204,15 @@ namespace Styx.Bot.Quest_Behaviors
                                        )
                                 ),
 
-                           new Decorator(ret => mobList.Count > 0 && (me.Combat || mobList[0].Combat),
+                           new Decorator(ret => mobList.Count > 0 && (s_me.Combat || mobList[0].Combat),
                                 new PrioritySelector(
                                     new Decorator(
-                                        ret => me.CurrentTarget == null && mobList[0].CurrentTarget != null,
+                                        ret => s_me.CurrentTarget == null && mobList[0].CurrentTarget != null,
                                         new Sequence(
                                         new Action(ret => mobList[0].CurrentTarget.Target()),
                                         new Action(ret => StyxWoW.SleepForLagDuration()))),
                                     new Decorator(
-                                        ret => !me.Combat,
+                                        ret => !s_me.Combat,
                                         new PrioritySelector(
                                             new Decorator(
                                                 ret => RoutineManager.Current.PullBehavior != null,
@@ -175,36 +223,34 @@ namespace Styx.Bot.Quest_Behaviors
                     );
         }
 
-        WoWSpell RangeSpell
-        {
-            get
-            {
-                switch (me.Class)
-                {
-                    case Styx.Combat.CombatRoutine.WoWClass.Druid:
-                        return SpellManager.Spells["Starfire"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Hunter:
-                        return SpellManager.Spells["Arcane Shot"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Mage:
-                        return SpellManager.Spells["Frost Bolt"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Priest:
-                        return SpellManager.Spells["Shoot"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Shaman:
-                        return SpellManager.Spells["Lightning Bolt"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Warlock:
-                        return SpellManager.Spells["Curse of Agony"];
-                    default: // should never get to here but adding this since the compiler complains
-                        return SpellManager.Spells["Auto Attack"]; ;
 
-                }
+        public override bool IsDone
+        {
+            get { return (_isBehaviorDone); }
+        }
+
+
+        public override void OnStart()
+        {
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+
+                if (quest != null)
+                    TreeRoot.GoalText = string.Format("Escorting for \"{0}\"", quest.Name);
             }
         }
 
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get { return _isDone; }
-        }
 
         #endregion
     }

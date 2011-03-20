@@ -1,14 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
 using Styx.Logic.Inventory;
 
+using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -48,39 +50,57 @@ namespace Styx.Bot.Quest_Behaviors
     /// 
     public class EquipItem : CustomForcedBehavior
     {
-        readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>
-        {
-            {"ItemId",null},
-            {"QuestId",null},
-            {"Slot",null},
-        };
-
-        bool success = true;
         public EquipItem(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(_recognizedAttributes);
-            int itemId = 0;
-            int questId = 0;
-            int slot = 0;
-            success = success && GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("Slot", false, "-1", -1, int.MaxValue, out slot);
-            if (!success)
-            {
-                Err("Invalid or missing Attributes, Stopping HB");
-            }
-            ItemId = itemId;
-            Slot = slot;
-        }
+			try
+			{            int itemId;
+                int questId;
+                int slot;
+
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>
+                                                {
+                                                    { "ItemId",     null },
+                                                    { "QuestId",    null },
+                                                    { "Slot",       null },
+                                                });
+
+                _isAttributesOkay &= GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetAttributeAsInteger("Slot", false, "-1", -1, int.MaxValue, out slot);
+
+                if (_isAttributesOkay)
+                {
+                    ItemId = itemId;
+                    Slot = slot;
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}        }
+
 
         public int ItemId { get; private set; }
         public int QuestId { get; private set; }
         public int Slot { get; private set; }
 
+        private bool        _isAttributesOkay = true;
+        private bool        _isBehaviorDone;
+        private Composite   _root;
+
+
         #region Overrides of CustomForcedBehavior
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ??
@@ -100,32 +120,43 @@ namespace Styx.Bot.Quest_Behaviors
                                     item.BagIndex + 1, item.BagSlot + 1, Slot);
                             }
                         }
-                        _isDone = true;
+                        _isBehaviorDone = true;
                     })
                 ));
         }
 
-        private static void Err(string format, params object[] args)
-        {
-            Logging.Write(System.Drawing.Color.Red, "EquipItem: " + format, args);
-            TreeRoot.Stop();
-        }
 
-        private bool _isDone;
         public override bool IsDone 
         {
             get 
             {
-                var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                return _isDone || (QuestId > 0 && ((quest != null && quest.IsCompleted) || quest == null));
-            } 
+                 return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet(QuestId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
+           } 
         }
  
+
         public override void OnStart()
         {
-            WoWItem item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
-            if(item != null)
-                TreeRoot.GoalText = string.Format("Equiping [{0}] Into Slot: {1}", item.Name, (InventorySlot)Slot);    
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else
+            {
+                WoWItem item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
+
+                if (item != null)
+                    { TreeRoot.GoalText = string.Format("Equiping [{0}] Into Slot: {1}", item.Name, (InventorySlot)Slot); }
+            }
         }
 
         #endregion
