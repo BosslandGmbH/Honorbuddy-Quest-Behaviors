@@ -1,17 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Threading;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
-using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -32,12 +24,6 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class AbandonQuest : CustomForcedBehavior
     {
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},
-            {"Type", null}
-        };
-
         public enum AbandonType
         {
             All,
@@ -45,73 +31,102 @@ namespace Styx.Bot.Quest_Behaviors
             Incomplete
         };
 
+
         public AbandonQuest(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                CheckForUnrecognizedAttributes(recognizedAttributes);
+                AbandonType     abandonType;
+                int             questId;
 
-                bool error = false;
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "QuestId",    null},
+                                                    { "Type",       null},
+                                                });
 
-                uint questId;
-                if (!uint.TryParse(Args["QuestId"], out questId))
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetAttributeAsEnum<AbandonType>("Type", true, AbandonType.Incomplete, out abandonType);
+                
+                if (_isAttributesOkay)
                 {
-                    Logging.Write("Parsing attribute 'QuestId' in AbandonQuest behavior failed! please check your profile!");
-                    error = true;
+                    QuestId = (uint)questId;
+                    Type = abandonType;
                 }
-
-                AbandonType type = AbandonType.Incomplete;
-                if (Args.ContainsKey("Type"))
-                {
-                    type = (AbandonType )Enum.Parse(typeof(AbandonType ), Args["Type"], true);
-                }
-
-                if (error)
-                    TreeRoot.Stop();
-
-                QuestId = questId;
-                Type = type;
             }
-            catch (Exception ex)
-            {
-                Logging.Write("AbandonQuest failed");
-                Logging.WriteException(ex);
-            }
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
-        public uint QuestId { get; private set; }
+        public uint         QuestId { get; private set; }
         public AbandonType  Type { get; private set; }
 
-        private bool _isDone;
+        private bool    _isAttributesOkay;
+        private bool    _isBehaviorDone;
+
+        
+        #region Overrides of CustomForcedBehavior
+
         public override bool IsDone
         {
             get
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-                return _isDone || quest == null ;
+                return (_isBehaviorDone || (quest == null));
             }
         }
+
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest == null)
-                Logging.WriteDebug("AbandonQuest: cannot find quest {0}", QuestId);
-            else if (quest != null && quest.IsCompleted && Type != AbandonType.All)
-                Logging.WriteDebug("AbandonQuest: quest {0} is Complete!  skipping abandon", QuestId);
-            else if (quest != null && !quest.IsFailed && Type == AbandonType.Failed)
-                Logging.WriteDebug("AbandonQuest: quest {0} has not Failed!  skipping abandon", QuestId);
+            if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
             else
             {
-                TreeRoot.GoalText = string.Format("Abandoning quest: {0}", quest.Name);
-                QuestLog ql = new QuestLog();
-                ql.AbandonQuestById(QuestId);
-                Logging.WriteDebug("AbandonQuest: quest {0} successfully abandoned", QuestId);
-            }
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
 
-            _isDone = true;
+                if (quest == null)
+                    { UtilLogMessage("error", string.Format("Cannot find quest {0}.", QuestId)); }
+
+                else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
+                    { UtilLogMessage("warning", string.Format("Quest \"{0}\"(id: {1}) is Complete!  Skipping abandon.", quest.Name, QuestId)); }
+
+                else if ((quest != null)  &&  !quest.IsFailed  &&  (Type == AbandonType.Failed))
+                    { UtilLogMessage("error", string.Format("Quest \"{0}\"(id: {1}) has not Failed!  Skipping abandon.", quest.Name, QuestId)); }
+
+                else
+                {
+                    TreeRoot.GoalText = string.Format("Abandoning quest: \"{0}\"", quest.Name);
+                    QuestLog ql = new QuestLog();
+                    ql.AbandonQuestById(QuestId);
+                    UtilLogMessage("info", string.Format("Quest \"{0}\"(id: {1}) successfully abandoned", quest.Name, QuestId));
+                }
+
+                _isBehaviorDone = true;
+            }
         }
 
+        #endregion
     }
 }
