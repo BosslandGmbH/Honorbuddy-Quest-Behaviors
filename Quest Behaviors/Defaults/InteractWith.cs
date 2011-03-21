@@ -325,7 +325,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret =>
                                             {
                                                 var items = MerchantFrame.Instance.GetAllMerchantItems();
-                                                var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (ulong)(i.BuyPrice * BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
+                                                var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (i.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
 
                                                 if (item != null)
                                                 {
@@ -339,7 +339,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret =>
                                         {
                                             var item = MerchantFrame.Instance.GetMerchantItemByIndex(BuySlot);
-                                            if (item != null && (ulong)(item.BuyPrice * BuyItemCount) <= Me.Copper && (item.NumAvailable >= BuyItemCount || item.NumAvailable == -1))
+                                            if (item != null && (item.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (item.NumAvailable >= BuyItemCount || item.NumAvailable == -1))
                                             {
                                                 MerchantFrame.Instance.BuyItem(BuySlot, BuyItemCount);
                                                 Thread.Sleep(1500);
