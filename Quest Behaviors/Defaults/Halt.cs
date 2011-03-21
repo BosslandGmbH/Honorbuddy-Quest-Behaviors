@@ -37,7 +37,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                Color   color;
+                Color   color = Color.Black;
                 string  colorName;
                 string  message;
                 int     questId;
