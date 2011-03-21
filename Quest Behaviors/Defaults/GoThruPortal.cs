@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
-using Styx.Database;
-using Styx.Logic.Combat;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
+
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
 using Styx.Logic.BehaviorTree ;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -42,68 +39,90 @@ namespace Styx.Bot.Quest_Behaviors
         ///     <CustomBehavior File="GoThruPortal" X="4656.928" Y="-3685.472" Z="957.185" />
         /// 
         /// </summary>
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-            {"QuestId",null},
-            {"QuestName",null},
-            {"Timeout",null}
-        };
-
-        bool success = true;
-        bool inPortal = false;
-        string zoneText;
-
-        public GoThruPortal(Dictionary<string, string> args)
+       public GoThruPortal(Dictionary<string, string> args)
             : base(args)
         {
+			try
+			{
+                WoWPoint    location;
+                int         questId;
+                int         timeOut;
 
-            CheckForUnrecognizedAttributes(recognizedAttributes);
 
-            WoWPoint location = new WoWPoint(0, 0, 0);
-            int questId = 0;
-            int timeOut = 0;
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "QuestId",    null },
+                                                    { "QuestName",  null },
+                                                    { "Timeout",    null },
+                                                    { "X",          null },
+                                                    { "Y",          null },
+                                                    { "Z",          null },
+                                                });
 
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("Timeout", false, "10000", 1, 60000, out timeOut);
 
-            zoneText = StyxWoW.Me.ZoneText;
-            MovePoint = WoWMovement.CalculatePointFrom(location, -15);
-            QuestId = (uint)questId;
-            Timeout =  System.Environment.TickCount + timeOut;
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetAttributeAsInteger("Timeout", false, "10000", 1, 60000, out timeOut);
+                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
+
+                if (_isAttributesOkay)
+                {
+                    _zoneText = StyxWoW.Me.ZoneText;
+                    MovePoint = WoWMovement.CalculatePointFrom(location, -15);
+                    QuestId = (uint)questId;
+                    Timeout =  System.Environment.TickCount + timeOut;
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
+
+        public int      Counter { get; set; }
         public WoWPoint MovePoint { get; private set; }
-        public int Counter { get; set; }
-        public uint QuestId { get; set; }
-        public int Timeout { get; set; }
+        public uint     QuestId { get; set; }
+        public int      Timeout { get; set; }
+
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+        private bool        _isInPortal = false;
+        private Composite   _root;
+        private string      _zoneText;
+
+        public static LocalPlayer s_me = ObjectManager.Me;
 
 
-        public static LocalPlayer me = ObjectManager.Me;
-        public bool _isDone;
+        #region Overrides of CustomForcedBehavior
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new PrioritySelector(
 
                     // first state catches if we are done just in case
-                    new Decorator(ret => _isDone,
+                    new Decorator(ret => _isBehaviorDone,
                         new Action(delegate
                         {
                             return RunStatus.Success;
                         })),
 
                     // if we hit the load screen and we are back in game
-                    new Decorator(ret => inPortal && ObjectManager.IsInGame && StyxWoW.Me != null,
+                    new Decorator(ret => _isInPortal && ObjectManager.IsInGame && StyxWoW.Me != null,
                         new Action(delegate
                         {
-                            _isDone = true;
-                            Logging.WriteDebug("GoThruPortal: went thru portal");
+                            _isBehaviorDone = true;
+                            UtilLogMessage("info", "Went thru portal.");
                             Thread.Sleep(500);
                             WoWMovement.MoveStop();
                             Thread.Sleep(500);
@@ -111,20 +130,21 @@ namespace Styx.Bot.Quest_Behaviors
                         })),
 
                     // if zone name changed
-                    new Decorator(ret => zoneText != StyxWoW.Me.ZoneText,
-                        new Action(ret => inPortal = true)),
+                    new Decorator(ret => _zoneText != StyxWoW.Me.ZoneText,
+                        new Action(ret => _isInPortal = true)),
 
                     // if load screen is visible
                     new Decorator(ret => !ObjectManager.IsInGame || StyxWoW.Me == null,
-                        new Action(ret => inPortal = true)),
+                        new Action(ret => _isInPortal = true)),
 
                     // if we are within 2 yards of calculated end point we should never reach
-                    new Decorator(ret => MovePoint.Distance(me.Location) < 2,
+                    new Decorator(ret => MovePoint.Distance(s_me.Location) < 2,
                         new Action(delegate
                         {
-                            _isDone = true;
+                            _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            Logging.Write("GoThruPortal: ERROR reached end point - failed to go through portal");
+                            UtilLogMessage("error", "GoThruPortal: ERROR reached end point. Failed to go through portal.\n"
+                                                    + "Stopping Honorbuddy.");
                             TreeRoot.Stop();
                             return RunStatus.Success;
                         })),
@@ -132,9 +152,11 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(ret => Timeout != 0 && Timeout < System.Environment.TickCount,
                         new Action(delegate
                         {
-                            _isDone = true;
+                            _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            Logging.Write("GoThruPortal: ERROR timed out after {0} ms - failed to go through portal", Timeout );
+                            UtilLogMessage("error", string.Format("ERROR timed out after {0} ms. Failed to go through portal\n"
+                                                                  + "Stopping Honorbuddy.",
+                                                                  Timeout));
                             TreeRoot.Stop();
                             return RunStatus.Success;
                         })),
@@ -142,7 +164,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(ret => !StyxWoW.Me.IsMoving,
                         new Action(delegate
                         {
-                            Logging.WriteDebug("GoThruPortal: moving to {0}", MovePoint);
+                            UtilLogMessage("info", string.Format("Moving to {0}", MovePoint));
                             WoWMovement.ClickToMove(MovePoint);
                             return RunStatus.Success;
                         }))
@@ -151,13 +173,33 @@ namespace Styx.Bot.Quest_Behaviors
 
         }
 
+
         public override bool IsDone
         {
             get
             {
-                return _isDone;
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
             }
         }
+
+
+        public override void OnStart()
+		{
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+		}
+
+   		#endregion
     }
 }
 

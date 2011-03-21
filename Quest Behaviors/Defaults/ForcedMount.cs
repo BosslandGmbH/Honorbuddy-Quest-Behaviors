@@ -1,11 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 using Styx.Combat.CombatRoutine;
-using Styx.Helpers;
 using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
@@ -14,8 +12,8 @@ using Styx.Logic.Questing;
 using Styx.WoWInternals;
 
 using TreeSharp;
-
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -25,71 +23,81 @@ namespace Styx.Bot.Quest_Behaviors
         {
             Ground,
             Flying,
-            Water
+            Water,
         }
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
 
-            {"QuestId",null},
-            {"MountType",null},
-        };
 
-        private ForcedMountType MountType { get; set; }
-        private uint QuestId { get; set; }
         public ForcedMount(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            bool error = false;
+			try
+			{
+                ForcedMountType     mountType;
+                int                 questId;
 
-            uint questId = 0;
-            if (Args.ContainsKey("QuestId") && !uint.TryParse(Args["QuestId"], out questId))
-            {
-                Logging.Write("Parsing attribute 'QuestId' in ForcedMount behavior failed! please check your profile!");
-                error = true;
-            }
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    {"MountType",null},
+                                                    {"QuestId",null},
+                                                });
 
-            if (!Args.ContainsKey("MountType"))
-            {
-                Logging.Write("Could not find attribute 'MountType' in ForcedMount behavior! please check your profile!");
-                error = true;
-            }
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsEnum<ForcedMountType>("MountType", true, ForcedMountType.Flying, out mountType);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
 
-            if (error)
-            {
-                TreeRoot.Stop();
-                return;
-            }
+                if (_isAttributesOkay)
+                {
+                    this.MountType = mountType;
+                    this.QuestId = (uint)questId;
+                }
+			}
 
-            var type = (ForcedMountType)Enum.Parse(typeof(ForcedMountType), Args["MountType"], true);
-
-            this.MountType = type;
-            this.QuestId = questId;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
-        public override bool IsDone
+        private ForcedMountType MountType { get; set; }
+        private uint            QuestId { get; set; }
+
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+        private Composite   _root;
+
+
+        private void MountForFlying()
         {
-            get
+            if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || SpellManager.HasSpell("Swift Flight Form")))
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                if (SpellManager.CanCast("Swift Flight Form"))
+                    { SpellManager.Cast("Swift Flight Form"); }
 
-                return
-                    _done || (QuestId > 0 && quest == null);
+                else if (SpellManager.CanCast("Flight Form"))
+                    { SpellManager.Cast("Flight Form"); }
             }
+
+            else
+            {
+                MountHelper.FlyingMounts.First().CreatureSpell.Cast();
+                while (StyxWoW.Me.IsCasting)
+                    { Thread.Sleep(100); }
+            }
+
+            // Hop off the ground. Kthx
+            Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
+            Thread.Sleep(250);
+            Navigator.PlayerMover.MoveStop();
         }
 
-        private bool _done;
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            if (_root == null)
-            {
-                _root = new Sequence(
-                    CreateActualBehavior(),
-                    new Action(ret => _done = true));
-            }
-            return _root;
-        }
 
         private Composite CreateActualBehavior()
         {
@@ -110,26 +118,46 @@ namespace Styx.Bot.Quest_Behaviors
                 );
         }
 
-        private void MountForFlying()
-        {
-            if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || SpellManager.HasSpell("Swift Flight Form")))
-            {
-                if (SpellManager.CanCast("Swift Flight Form"))
-                    SpellManager.Cast("Swift Flight Form");
-                else if (SpellManager.CanCast("Flight Form"))
-                    SpellManager.Cast("Flight Form");
-            }
-            else
-            {
-                MountHelper.FlyingMounts.First().CreatureSpell.Cast();
-                while (StyxWoW.Me.IsCasting)
-                    Thread.Sleep(100);
-            }
 
-            // Hop off the ground. Kthx
-            Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
-            Thread.Sleep(250);
-            Navigator.PlayerMover.MoveStop();
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            if (_root == null)
+            {
+                _root = new Sequence(
+                    CreateActualBehavior(),
+                    new Action(ret => _isBehaviorDone = true));
+            }
+            return _root;
         }
+
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
+            }
+        }
+
+
+        public override void OnStart()
+		{
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+		}
+
+        #endregion
     }
 }

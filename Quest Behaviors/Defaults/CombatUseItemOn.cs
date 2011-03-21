@@ -1,20 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+using Styx.Logic.Combat;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
-using Styx.Logic.Combat;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class CombatUseItemOn : CustomForcedBehavior
     {
-
         /// <summary>
         /// CombatUseItemOn by raphus
         /// Allows you to use an Item after you gain an Aura.
@@ -30,92 +32,136 @@ namespace Styx.Bot.Quest_Behaviors
         /// X,Y,Z: The general location where these objects can be found
         /// </summary>
         /// 
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"ItemId",null},
-            {"NpcId",null},
-            {"MobId",null},
-            {"NumOfTimes",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-            {"HasAura",null},
-            {"NpcHPLeft",null},
-            {"NpcHasAura",null},
-            {"CastingSpellId",null},
-            {"QuestId",null},
-
-        };
-
-        bool success = true;
-
         public CombatUseItemOn(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
 
-            int itemId = 0;
-            int mobid = 0;
-            int hasaura = 0;
-            int npcHPLeft = 0;
-            int npcHasAura = 0;
-            int castingSpellId = 0;
-            int numberoftimes = 0;
-            int questId = 0;
-            WoWPoint location = new WoWPoint(0, 0, 0);
+			try
+			{
+                int         castingSpellId;
+                int         hasAura;
+                int         itemId;
+                WoWPoint    location;
+                int         mobId;
+                int         npcHasAura;
+                int         npcHPLeft;
+                int         numberoftimes;
+                int         questId;
 
-            success = success && GetAttributeAsInteger("ItemId", true, "1", 0, int.MaxValue, out itemId);
-            success = success && GetAttributeAsInteger("NpcId", true, "1", 0, int.MaxValue, out mobid);
-            success = success && GetAttributeAsInteger("HasAura", false, "0", 0, int.MaxValue, out hasaura);
-            success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out numberoftimes);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("NpcHPLeft", false, "0", 0, int.MaxValue, out npcHPLeft);
-            success = success && GetAttributeAsInteger("NpcHasAura", false, "0", 0, int.MaxValue, out npcHasAura);
-            success = success && GetAttributeAsInteger("CastingSpellId", false, "0", 0, int.MaxValue, out castingSpellId);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "ItemId",         null },
+                                                    { "NpcId",          null },
+                                                    { "MobId",          null },
+                                                    { "NumOfTimes",     null },
+                                                    { "X",              null },
+                                                    { "Y",              null },
+                                                    { "Z",              null },
+                                                    { "HasAura",        null },
+                                                    { "NpcHPLeft",      null },
+                                                    { "NpcHasAura",     null },
+                                                    { "CastingSpellId", null },
+                                                    { "QuestId",        null },
+                                                });
 
-            if (mobid == 1)
-                success = success && GetAttributeAsInteger("MobId", false, "1", 0, int.MaxValue, out mobid);
 
-            QuestId = (uint)questId;
-            ItemID = itemId;
-            MobId = mobid;
-            HasAura = hasaura;
-            NpcHasAura = npcHasAura;
-            NpcHPLeft = npcHPLeft;
-            CastingSpellId = castingSpellId;
-            Counter = 0;
-            NumberOfTimes = numberoftimes;
-            Location = location;
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
+                _isAttributesOkay &= GetAttributeAsInteger("HasAura", false, "0", 0, int.MaxValue, out hasAura);
+                _isAttributesOkay &= GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out numberoftimes);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetAttributeAsInteger("NpcHPLeft", false, "0", 0, int.MaxValue, out npcHPLeft);
+                _isAttributesOkay &= GetAttributeAsInteger("NpcHasAura", false, "0", 0, int.MaxValue, out npcHasAura);
+                _isAttributesOkay &= GetAttributeAsInteger("CastingSpellId", false, "0", 0, int.MaxValue, out castingSpellId);
+                _isAttributesOkay &= GetXYZAttributeAsWoWPoint( true, WoWPoint.Empty, out location);
+
+                // "NpcId" is allowed for legacy purposes --
+                // If it was not supplied, then its new name "MobId" is required.
+                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobId);
+                if (mobId == 0)
+                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId); }
+
+
+                // Weed out Profile Writer sloppiness --
+                if (_isAttributesOkay)
+                {
+                    if (itemId == 0)
+                    {
+                        UtilLogMessage("error", "ItemId may not be zero");
+                        _isAttributesOkay = false;
+                    }
+
+                    if (mobId == 0)
+                    {
+                        UtilLogMessage("error", "MobId may not be zero");
+                        _isAttributesOkay = false;
+                    }
+
+                    if (location == WoWPoint.Empty)
+                    {
+                        UtilLogMessage("error", "X-Y-Z may not be zero");
+                        _isAttributesOkay = false;
+                    }
+                }
+
+
+                if (_isAttributesOkay)
+                {
+                    CastingSpellId = castingSpellId;
+                    Counter = 0;
+                    HasAura = hasAura;
+                    ItemID = itemId;
+                    Location = location;
+                    MobId = mobId;
+                    NpcHasAura = npcHasAura;
+                    NpcHPLeft = npcHPLeft;
+                    NumberOfTimes = numberoftimes;
+                    QuestId = (uint)questId;
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
-        public WoWPoint Location { get; private set; }
-        public int Counter { get; set; }
-        public int ItemID { get; set; }
-        public int MobId { get; set; }
-        public int HasAura { get; set; }
-        public int NpcHasAura { get; set; }
-        public int NpcHPLeft { get; set; }
-        public int CastingSpellId { get; set; }
-        public bool MovedToTarget;
-        public int NumberOfTimes { get; set; }
-        public uint QuestId { get; set; }
+        public int                  CastingSpellId { get; set; }
+        public int                  Counter { get; set; }
+        public int                  HasAura { get; set; }
+        public int                  ItemID { get; set; }
+        public WoWPoint             Location { get; private set; }
+        public static LocalPlayer   Me { get { return StyxWoW.Me; } }
+        public int                  MobId { get; set; }
+        public bool                 MovedToTarget { get; set; }
+        public int                  NpcHasAura { get; set; }
+        public int                  NpcHPLeft { get; set; }
+        public int                  NumberOfTimes { get; set; }
+        public uint                 QuestId { get; set; }
 
-        public static LocalPlayer Me { get { return StyxWoW.Me; } }
-
-        
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+        private Composite   _root;
+     
 
         public WoWUnit Mob
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .Where(u => u.Entry == MobId && !u.Dead)
-                                       .OrderBy(u => u.Distance).FirstOrDefault();
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(u => u.Entry == MobId && !u.Dead)
+                                     .OrderBy(u => u.Distance).FirstOrDefault());
             }
         }
+
 
         public WoWItem Item
         {
@@ -128,31 +174,6 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-            if (quest != null)
-            {
-                TreeRoot.GoalText = "CombatUseItem - " + quest.Name;
-            }
-            else
-            {
-                TreeRoot.GoalText = "CombatUseItem";
-            }
-
-            if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-            {
-                var currentRoot = TreeRoot.Current.Root;
-                if (currentRoot is GroupComposite)
-                {
-                    var root = (GroupComposite)currentRoot;
-                    root.InsertChild(0, RootCompositeOverride());
-                }
-            }
-        }
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -181,7 +202,7 @@ namespace Styx.Bot.Quest_Behaviors
             return
                 new PrioritySelector(
                     new Decorator(
-                        ret => !_isDone && Me.IsAlive,
+                        ret => !_isBehaviorDone && Me.IsAlive,
                         new PrioritySelector(
                             new Decorator(ret => (Counter >= NumberOfTimes) || (Me.QuestLog.GetQuestById(QuestId) != null && Me.QuestLog.GetQuestById(QuestId).IsCompleted),
                                 new Sequence(
@@ -189,7 +210,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     new WaitContinue(120,
                                         new Action(delegate
                                         {
-                                            _isDone = true;
+                                            _isBehaviorDone = true;
                                             return RunStatus.Success;
                                         }))
                                     )),
@@ -218,16 +239,54 @@ namespace Styx.Bot.Quest_Behaviors
                     )));
         }
 
-        private bool _isDone;
+
         public override bool IsDone
         {
             get
             {
+                bool    isDone = (_isBehaviorDone    // normal completion
+                                  ||  !UtilIsProgressRequirementsMet((int)QuestId, 
+                                                                     QuestInLogRequirement.InLog, 
+                                                                     QuestCompleteRequirement.NotComplete));
+
+                if (isDone)
+                    { _isBehaviorDone = true; }
+
+                return (isDone);
+            }
+        }
+
+
+        public override void OnStart()
+        {
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else
+            {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-                var result = _isDone && quest != null && quest.IsCompleted || quest == null;
-                if (result)
-                    _isDone = true;
-                return result;
+
+                if (quest != null)
+                    { TreeRoot.GoalText = string.Format("{0} - \"{1}\"", this.GetType().Name, quest.Name); }
+                else
+                    { TreeRoot.GoalText = string.Format("{0} in progress", this.GetType().Name); }
+
+                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (currentRoot is GroupComposite)
+                    {
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, RootCompositeOverride());
+                    }
+                }
             }
         }
 

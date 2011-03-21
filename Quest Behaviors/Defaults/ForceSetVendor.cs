@@ -1,18 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using Styx.Helpers;
+
 using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
 
+
 namespace Styx.Bot.Quest_Behaviors
 {
-    /// <summary>
-    /// Behavior for forcing train/mail/vendor/repair
-    /// Example usage: <CustomBehavior QuestId="14324" File="ForceSetVendor" VendorType="Train" />
-    /// QuestId is optional, if you don't use it make sure you put this tag inside an 'If'
-    /// </summary>
     public class ForceSetVendor : CustomForcedBehavior
     {
         public enum VendorType
@@ -23,57 +18,86 @@ namespace Styx.Bot.Quest_Behaviors
             Train,
         }
 
-        #region Overrides of CustomForcedBehavior
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null},
-            {"VendorType",null}
-        };
-
+        /// <summary>
+        /// Behavior for forcing train/mail/vendor/repair
+        /// Example usage: <CustomBehavior QuestId="14324" File="ForceSetVendor" VendorType="Train" />
+        /// QuestId is optional, if you don't use it make sure you put this tag inside an 'If'
+        /// </summary> 
         public ForceSetVendor(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            if(Args.ContainsKey("QuestId"))
-            {
-                uint questId;
-                if(!uint.TryParse(Args["QuestId"], out questId))
+			try
+			{
+                int         questId;
+                VendorType  vendorType;
+
+
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "QuestId",        null },
+                                                    { "VendorType",     null },
+                                                });
+
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetAttributeAsEnum<VendorType>("VendorType", true, VendorType.Repair, out vendorType);
+
+                if (_isAttributesOkay)
                 {
-                    Logging.Write(Color.Red, "Unable to parse attribute 'QuestId' in ForceSetVendor tag: {0}", Element.ToString());
-                    TreeRoot.Stop();
+                    QuestId = (uint)questId;
+                    Type    = vendorType;
                 }
+			}
 
-                QuestId = questId;
-            }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
+        }
 
-            try
+
+        public uint         QuestId { get; private set; }
+        public VendorType   Type { get; private set; }
+  
+        private bool    _isAttributesOkay;
+        private bool    _isBehaviorDone;
+
+      
+        #region Overrides of CustomForcedBehavior
+
+        public override bool IsDone
+        {
+            get
             {
-                var type = (VendorType)Enum.Parse(typeof(VendorType), Args["VendorType"], true);
-                Type = type;
-            }
-            catch (Exception)
-            {
-                Logging.Write(Color.Red, "Unable to parse attribute 'VendorType' in ForceSetVendor tag: {0}", Element.ToString());
-                TreeRoot.Stop();
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
             }
         }
 
-        /// <summary>
-        /// The QuestId for this behavior, if any. (not required)
-        /// </summary>
-        public uint QuestId { get; private set; }
 
-        /// <summary>
-        /// The vendor type for this behavior.
-        /// Mail/Repair/Sell/Train
-        /// </summary>
-        public VendorType Type { get; private set; }
-        
         public override void OnStart()
         {
-            if (!IsDone || QuestId == 0)
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else if (!IsDone)
             {
                 switch (Type)
                 {
@@ -94,17 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
                         break;
                 }
 
-                _isDone = true;
-            }
-        }
-
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-				return _isDone || (QuestId > 0 && quest == null) || (quest != null && quest.IsCompleted);
+                _isBehaviorDone = true;
             }
         }
 

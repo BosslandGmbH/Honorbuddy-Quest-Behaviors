@@ -1,9 +1,11 @@
+using System;
 using System.Collections.Generic;
-using System.Drawing;
+
 using Styx.Helpers;
 using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -16,54 +18,88 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class ForceTrain : CustomForcedBehavior
     {
-        #region Overrides of CustomForcedBehavior
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null}
-        };
-
         public ForceTrain(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
-            {
-                Logging.Write(Color.Red, "Parsing attribute 'QuestId' in ForceTrain behavior failed! please check your profile!");
-                TreeRoot.Stop();
-            }
+			try
+			{
+                int     questId;
 
-            QuestId = questId;
+
+                UtilLogMessage("warning",   "*****\n"
+                                          + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                          + "*\n"
+                                          + "* ForceTrain adds _no_ _additonal_ _value_ over the ForceSetVendor behavior.\n"
+                                          + "* Please update the profile to use ForceSetVendor in preference to this Behavior.\n"
+                                          + "*****");
+
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "QuestId",    null },
+                                                });
+
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+
+
+                if (_isAttributesOkay)
+                {
+                    QuestId = (uint)questId;
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
-        /// <summary>
-        /// The id of the quest associated with this behavior.
-        /// </summary>
-        public uint QuestId { get; set; }
 
-        public override void OnStart()
-        {
-            if (!IsDone || QuestId == 0)
-            {
-                LevelbotSettings.Instance.FindVendorsAutomatically = true;
-                Vendors.ForceTrainer = true;
-                _isDone = true;
-            }
-        }
+        public uint     QuestId { get; set; }
 
-        private bool _isDone;
+        private bool    _isAttributesOkay;
+        private bool    _isBehaviorDone;
+
+
+        #region Overrides of CustomForcedBehavior
+
         public override bool IsDone
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
+            }
+        }
 
-                return
-                    _isDone ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
+
+        public override void OnStart()
+        {
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else if (!IsDone)
+            {
+                LevelbotSettings.Instance.FindVendorsAutomatically = true;
+                Vendors.ForceTrainer = true;
+                _isBehaviorDone = true;
             }
         }
 
