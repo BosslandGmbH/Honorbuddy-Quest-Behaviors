@@ -33,25 +33,56 @@ namespace Styx.Bot.Quest_Behaviors
         public Message(Dictionary<string,string> args)
             : base(args)
         {
-            string  colorNameGoal  = "";
-            string  colorNameLog   = "";
+			try
+			{
+                string  colorNameGoal;
+                string  colorNameLog;
 
-			CheckForUnrecognizedAttributes(s_recognizedAttributeNames);
+			    CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+					                           {
+							                        { "GoalColor",		null },
+							                        { "LogColor",		null },
+							                        { "QuestId",		null },
+							                        { "Text",			null },
+					                           });
 
-            _isAttributesOkay = true;
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("Text", true, "", out _text);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("LogColor", false, "Black", out colorNameLog);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("GoalColor", false, "", out colorNameGoal);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsString("Text", true, "", out _text);
+                _isAttributesOkay &= GetAttributeAsString("LogColor", false, "Black", out colorNameLog);
+                _isAttributesOkay &= GetAttributeAsString("GoalColor", false, "", out colorNameGoal);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
 
 
-            // Convert the color names into actual colors...
-            if (!string.IsNullOrEmpty(colorNameLog))
-                _colorLog = Color.FromName(colorNameLog);
+                // Convert the color names into actual colors...
+                if (!string.IsNullOrEmpty(colorNameLog))
+                    _colorLog = Color.FromName(colorNameLog);
 
-            if (!string.IsNullOrEmpty(colorNameGoal))
-                _colorGoal = Color.FromName(colorNameGoal);
+                if (!string.IsNullOrEmpty(colorNameGoal))
+                    _colorGoal = Color.FromName(colorNameGoal);
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
+
+
+        private Color       _colorGoal;
+        private Color       _colorLog;
+        private bool		_isAttributesOkay;
+		private bool		_isBehaviorDone;
+        private int         _questId;
+        private string      _text;
+
 
         #region Overrides of CustomForcedBehavior
 
@@ -59,12 +90,10 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                PlayerQuest        quest = StyxWoW.Me.QuestLog.GetQuestById((uint)_questId);
-
-                // Note that a _questId of zero is never complete (by definition), it requires the behavior to complete...
-                return (_isBehaviorDone                                                         // normal completion
-                        ||  ((_questId != 0) && (quest == null))                                // quest not in our log
-                        ||  ((_questId != 0) && (quest != null) && quest.IsCompleted));         // quest is done
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet(_questId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
             }
         }
 
@@ -74,6 +103,10 @@ namespace Styx.Bot.Quest_Behaviors
 			if (!_isAttributesOkay)
 			{
 				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
 				TreeRoot.Stop();
 			}
 
@@ -85,30 +118,12 @@ namespace Styx.Bot.Quest_Behaviors
 			
                 // TODO: Goal has no color, so GoalColor is ignored
                 if (_colorGoal != null)
-                {
-                    TreeRoot.GoalText = _text;
-                }
+                    {  TreeRoot.GoalText = _text; }
 
                 _isBehaviorDone = true;
             }
         }
 
         #endregion
-
-
-        private Color       _colorGoal;
-        private Color       _colorLog;
-        private bool		_isAttributesOkay;
-		private bool		_isBehaviorDone;
-        private int         _questId;
-        private string      _text;
-
-		private static Dictionary<string, object>	s_recognizedAttributeNames = new Dictionary<string, object>()
-					   {
-							{ "GoalColor",		null },
-							{ "LogColor",		null },
-							{ "QuestId",		null },
-							{ "Text",			null },
-					   };
     }
 }

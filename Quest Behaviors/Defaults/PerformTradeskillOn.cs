@@ -1,125 +1,109 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
+
 using CommonBehaviors.Actions;
+
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;
-
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     class PerformTradeskillOn : CustomForcedBehavior
     {
-        public uint QuestId;
-
-        /// <summary> Identifier for the trade skill </summary>
-        public uint TradeSkillId;
-
-        /// <summary> Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window. </summary>
-        public uint TradeSkillItemId;
-
-        /// <summary> If set, an item ID to cast the trade skill on. </summary>
-        public uint? CastOnItemId;
-        
-        /// <summary> Number of times </summary>
-        public uint NumTimes;
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null},
-            {"TradeSkillId",null},
-            {"TradeSkillItemId",null},
-            {"NumTimes",null},
-            {"CastOnItemId",null}
-        };
-
         public PerformTradeskillOn(Dictionary<string, string> args) : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+			try
+			{
+                int castOnItemId;
 
-            StringBuilder errors = new StringBuilder();
-            if (!args.ContainsKey("QuestId"))
-            {
-                errors.AppendLine(GetType().Name + " - QuestId is missing!");
-            }
-            else if (!uint.TryParse(args["QuestId"], out QuestId))
-            {
-                errors.AppendLine(GetType().Name + " - Malformed QuestId. It must be an integer! [1, 2, 3, etc] Got: " + args["QuestId"]);
-            }
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "CastOnItemId",       null },
+                                                    { "NumTimes",           null },
+                                                    { "QuestId",            null },
+                                                    { "TradeSkillId",       null },
+                                                    { "TradeSkillItemId",   null },
+                                                });
 
-            if (!args.ContainsKey("TradeSkillId"))
-            {
-                errors.AppendLine(GetType().Name + " - TradeSkillId is missing!");
-            }
-            else if (!uint.TryParse(args["TradeSkillId"], out TradeSkillId))
-            {
-                errors.AppendLine(GetType().Name + " - Malformed TradeSkillId. It must be an integer! [1, 2, 3, etc] Got: " + args["TradeSkillId"]);
-            }
+                _isAttributesOkay = true;
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out QuestId);
+                _isAttributesOkay &= GetAttributeAsInteger("TradeSkillId", true, "0", 0, int.MaxValue, out TradeSkillId);
+                _isAttributesOkay &= GetAttributeAsInteger("TradeSkillItemId", true, "0", 0, int.MaxValue, out TradeSkillItemId);
+                _isAttributesOkay &= GetAttributeAsInteger("NumTimes", false, "1", 1, int.MaxValue, out NumTimes);
+                _isAttributesOkay &= GetAttributeAsInteger("CastOnItemId", false, "0", 0, int.MaxValue, out castOnItemId);
 
-            if (!args.ContainsKey("TradeSkillItemId"))
-            {
-                errors.AppendLine(GetType().Name + " - TradeSkillItemId is missing!");
-            }
-            else if (!uint.TryParse(args["TradeSkillItemId"], out TradeSkillItemId))
-            {
-                errors.AppendLine(GetType().Name + " - Malformed TradeSkillItemId. It must be an integer! [1, 2, 3, etc] Got: " + args["TradeSkillItemId"]);
-            }
-
-            if (!args.ContainsKey("NumTimes"))
-            {
-                errors.AppendLine(GetType().Name + " - NumTimes is missing!");
-            }
-            else if (!uint.TryParse(args["NumTimes"], out NumTimes))
-            {
-                errors.AppendLine(GetType().Name + " - Malformed NumTimes. It must be an integer! [1, 2, 3, etc] Got: " + args["NumTimes"]);
-            }
-
-            // OPTIONAL
-            if (args.ContainsKey("CastOnItemId"))
-            {
-                uint tmp;
-                if (!uint.TryParse(args["CastOnItemId"], out tmp))
+                // Semantic coherency --
+                if (_isAttributesOkay)
                 {
-                    errors.AppendLine(
-                        GetType().Name + " - Malformed CastOnItemId. It must be an integer! [1, 2, 3, etc] Got: " + args["CastOnItemId"]);
-                }
-                else
-                {
-                    CastOnItemId = tmp;
-                }
-            }
+                    if (QuestId == 0)
+                    {
+                        UtilLogMessage("error", "\"QuestId\" may not be zero");
+                        _isAttributesOkay = false;
+                    }
 
-            if (!string.IsNullOrEmpty(errors.ToString()))
-            {
-                Logging.Write(errors.ToString());
-                throw new Exception(errors.ToString());
-            }
+                    if (TradeSkillId == 0)
+                    {
+                        UtilLogMessage("error", "\"TradeSkillId\" may not be zero");
+                        _isAttributesOkay = false;
+                    }
+
+                    if (TradeSkillItemId == 0)
+                    {
+                        UtilLogMessage("error", "\"TradeSkillItemId\" may not be zero");
+                        _isAttributesOkay = false;
+                    }
+                }
+
+
+                if (_isAttributesOkay)
+                {
+                    if (castOnItemId > 0)
+                        { CastOnItemId = castOnItemId; }
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
-        private bool _done;
-        public override bool IsDone
-        {
-            get
-            {
-                // Don't allow this behavior to run on null quest IDs. We MUST have an ID for this.
-                if (QuestId == 0)
-                    return true;
+        public int      QuestId;
 
-                var q = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-                return (q != null && q.IsCompleted) || _done;
-            }
-        }
+        /// <summary> Identifier for the trade skill </summary>
+        public int      TradeSkillId;
+
+        /// <summary> Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window. </summary>
+        public int      TradeSkillItemId;
+
+        /// <summary> If set, an item ID to cast the trade skill on. </summary>
+        public int?     CastOnItemId;
+        
+        /// <summary> Number of times </summary>
+        public int      NumTimes;
+
+
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+
 
         private void PerformTradeSkill()
         {
@@ -131,7 +115,8 @@ namespace Styx.Bot.Quest_Behaviors
                 var item = StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value);
                 if (item == null)
                 {
-                    Logging.Write("COULD NOT FIND ITEM FOR " + GetType().Name + "! Aborting and stopping bot! [Item: " + CastOnItemId.Value + "]");
+                    UtilLogMessage("error", "COULD NOT FIND ITEM FOR " + GetType().Name 
+                                            + "! Aborting and stopping bot! [Item: " + CastOnItemId.Value + "]");
                     TreeRoot.Stop();
                     return;
                 }
@@ -149,17 +134,10 @@ namespace Styx.Bot.Quest_Behaviors
                 Thread.Sleep(100);
             }
 
-            _done = true;
+            _isBehaviorDone = true;
         }
 
-        protected override Composite CreateBehavior()
-        {
-            return new PrioritySelector(
-                new Decorator(ret=>StyxWoW.Me.IsMoving,
-                    new Action(ret=>Navigator.PlayerMover.MoveStop())),
 
-                CreateTradeSkillCast());
-        }
 
         private Composite CreateTradeSkillCast()
         {
@@ -177,6 +155,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 new Action(ret=>PerformTradeSkill()));
         }
+
 
         private int GetTradeSkillIndex()
         {
@@ -208,5 +187,54 @@ namespace Styx.Bot.Quest_Behaviors
             }
             return 0;
         }
+
+
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            return new PrioritySelector(
+                new Decorator(ret=>StyxWoW.Me.IsMoving,
+                    new Action(ret=>Navigator.PlayerMover.MoveStop())),
+
+                CreateTradeSkillCast());
+        }
+
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone    // normal completion
+                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
+                                                           QuestInLogRequirement.InLog, 
+                                                           QuestCompleteRequirement.NotComplete));
+            }
+        }
+
+
+        public override void OnStart()
+		{
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = string.Format("{0}: {1}",
+                                                  this.GetType().Name,
+                                                  (quest == null) ? "Running" : ("\"" + quest.Name + "\""));
+            }
+		}
+
+        #endregion
     }
 }

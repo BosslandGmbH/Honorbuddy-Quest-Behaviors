@@ -2,84 +2,112 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class LoadProfile : CustomForcedBehavior
     {
-        
-
         /// <summary>
         /// ForceLoadProfile by Natfoth
         /// Allows you to load a profile, it needs to be in the same folder as your current profile.
         /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// ProfileName: The exact name of the profile including the extension.
+        /// ProfileName: The name of the profile with the ".xml" extension.
         /// </summary>
         /// 
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"ProfileName",null},
-            {"Profile",null},
-            {"QuestId",null},
-
-        };
-
-        bool success = true;
-
         public LoadProfile(Dictionary<string, string> args)
             : base(args)
         {
+			try
+			{
+                string  profileName;
 
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
+                                                {
+                                                    { "Profile",        null},
+                                                    { "ProfileName",    null},
+                                                });
 
-            string profileName = "";
-            int questId = 0;
-            Logging.Write(CurrentProfile);
-            success = success && GetAttributeAsString("ProfileName", false, "1", out profileName);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                UtilLogMessage("info", string.Format("Current profile is \"{0}\"", CurrentProfile));
 
-            if (profileName == "1")
-                success = success && GetAttributeAsString("Profile", false, "1", out profileName);
+                _isAttributesOkay = true;
 
-            Counter = 0;
-            ProfileName = profileName + ".xml";
+                _isAttributesOkay &= GetAttributeAsString("Profile", false, "", out profileName);
+                if (string.IsNullOrEmpty(profileName))
+                    _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("ProfileName", true, "1", out profileName);
 
+
+                // Semantic coherency --
+                if (_isAttributesOkay)
+                {
+                    if (Args.ContainsKey("Profile"))
+                        { UtilLogMessage("warning", "Prefer \"ProfileName\" (\"Profile\" is deprecated)."); }
+
+                    if (Args.ContainsKey("ProfileName")  &&  Args.ContainsKey("Profile"))
+                    {
+                        UtilLogMessage("error", "\"ProfileName\" and \"Profile\" attributes are mutually exclusive.   Use \"ProfileName\" (\"Profile\" is deprecated).");
+                        _isAttributesOkay = false;
+                    }
+                }
+
+
+                if (_isAttributesOkay)
+                {
+                    Counter = 0;
+
+                    if (!profileName.ToLower().EndsWith(".xml"))
+                        { profileName += ".xml"; }
+
+                    ProfileName = profileName;
+                }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				_isAttributesOkay = false;
+			}
         }
 
-        public int Counter { get; set; }
-        public String ProfileName { get; set; }
-        public String CurrentProfile { get { return ProfileManager.XmlLocation; } }
+        public int      Counter { get; set; }
+        public String   CurrentProfile { get { return ProfileManager.XmlLocation; } }
+        public String   ProfileName { get; set; }
+
         public static LocalPlayer Me { get { return ObjectManager.Me; } }
+
+        private bool        _isAttributesOkay;
+        private bool        _isBehaviorDone;
+        private Composite   _root;
+
 
         public String NewProfilePath
         {
             get
             {
                 string directory = Path.GetDirectoryName(CurrentProfile);
-                return Path.Combine(directory, ProfileName);
+                return (Path.Combine(directory, ProfileName));
             }
         }
 
 
         #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            TreeRoot.GoalText = "LoadProfile: Running";
-        }
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -88,7 +116,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(ret => Counter > 0,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new Action(ret => _isDone = true))),
+                                    new Action(ret => _isBehaviorDone = true))),
 
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
@@ -101,10 +129,29 @@ namespace Styx.Bot.Quest_Behaviors
                     ));
         }
 
-        private bool _isDone;
+
         public override bool IsDone
         {
-            get { return _isDone; }
+            get { return (_isBehaviorDone); }
+        }
+
+
+        public override void OnStart()
+        {
+			if (!_isAttributesOkay)
+			{
+				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+
+                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
+                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
+                // used behavior when the profile is loaded.
+				TreeRoot.Stop();
+			}
+
+            else if (!IsDone)
+            {
+                TreeRoot.GoalText = string.Format("{0}: Running", this.GetType().Name);
+            }
         }
 
         #endregion
