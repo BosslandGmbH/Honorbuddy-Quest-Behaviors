@@ -50,9 +50,9 @@ namespace Styx.Bot.Quest_Behaviors
                                                 });
 
                 _isAttributesOkay = true;
-                _isAttributesOkay = GetAttributeAsString("Color", false, "Red", out colorName);
-                _isAttributesOkay = GetAttributeAsString("Msg", false, "Quest Profile HALT", out message);
-                _isAttributesOkay = GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+                _isAttributesOkay &= GetAttributeAsString("Color", false, "Red", out colorName);
+                _isAttributesOkay &= GetAttributeAsString("Msg", false, "Quest Profile HALT", out message);
+                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
 
                 if (!string.IsNullOrEmpty(colorName))
                     { color = Color.FromName(colorName); }
