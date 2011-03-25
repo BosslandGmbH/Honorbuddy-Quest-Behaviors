@@ -58,15 +58,15 @@ namespace Styx.Bot.Quest_Behaviors
 
                 _isAttributesOkay &= GetAttributeAsInteger("NpcID", false, "0", 0, int.MaxValue, out mobId);
                 if (mobId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId); }
+                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", false, "0", 0, int.MaxValue, out mobId); }
 
                 _isAttributesOkay &= GetAttributeAsInteger("NpcID2", false, "0", 0, int.MaxValue, out mobId2);
                 if (mobId2 == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId2", true, "0", 0, int.MaxValue, out mobId2); }
+                    { _isAttributesOkay &= GetAttributeAsInteger("MobId2", false, "0", 0, int.MaxValue, out mobId2); }
 
                 _isAttributesOkay &= GetAttributeAsInteger("NpcID3", false, "0", 0, int.MaxValue, out mobId3);
                 if (mobId3 == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId3", true, "0", 0, int.MaxValue, out mobId3); }
+                    { _isAttributesOkay &= GetAttributeAsInteger("MobId3", false, "0", 0, int.MaxValue, out mobId3); }
 
                 _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
                 _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
