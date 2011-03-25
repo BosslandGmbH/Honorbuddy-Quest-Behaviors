@@ -319,7 +319,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId && ret.Cooldown == 0);
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
             }
         }
 
@@ -342,7 +342,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 )
                             ),
 
-                        new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr <= Range * Range && Item != null,
+                        new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr <= Range * Range && Item != null && Item.Cooldown == 0,
                             new Sequence(
                                 new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                     new Action(ret =>
@@ -390,7 +390,7 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
 
                 return
-                    _isDone ||
+                    _isDone || Item == null ||
                     (quest != null && quest.IsCompleted) ||
                     quest == null;
             }
