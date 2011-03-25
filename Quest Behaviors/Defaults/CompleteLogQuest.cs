@@ -131,10 +131,10 @@ namespace Styx.Bot.Quest_Behaviors
 
                 else
                 {
-                    UtilLogMessage("error", string.Format("QuestId {0} could not be located in log.\n"
-                                                          + "Stopping Honorbudy.  Please repair the profile.",
-                                                          QuestID));
-                    TreeRoot.Stop();
+                    //UtilLogMessage("error", string.Format("QuestId {0} could not be located in log.\n"
+                    //                                      + "Stopping Honorbudy.  Please repair the profile.",
+                    //                                      QuestID));
+                    //TreeRoot.Stop();
                     _isBehaviorDone = true;
                 }
             }

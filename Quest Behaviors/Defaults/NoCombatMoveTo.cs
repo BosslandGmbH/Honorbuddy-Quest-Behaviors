@@ -77,7 +77,7 @@ namespace Styx.Bot.Quest_Behaviors
         private bool        _isBehaviorDone;
         private Composite   _root;
 
-        public static LocalPlayer s_me = ObjectManager.Me;
+        public static LocalPlayer Me { get { return StyxWoW.Me; } }
 
 
         #region Overrides of CustomForcedBehavior
@@ -87,7 +87,7 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                            new Decorator(ret => Location.Distance(s_me.Location) <= 3,
+                           new Decorator(ret => Location.Distance(Me.Location) <= 3,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -100,20 +100,20 @@ namespace Styx.Bot.Quest_Behaviors
                                     )),
 
 
-                           new Decorator(c => Location.Distance(s_me.Location) > 3,
+                           new Decorator(c => Location.Distance(Me.Location) > 3,
                             new Action(c =>
                             {
-                                if (Location.Distance(s_me.Location) <= 3)
+                                if (Location.Distance(Me.Location) <= 3)
                                 {
                                     return RunStatus.Success;
                                 }
                                 TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y + " Z: " + Location.Z;
 
-                                WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(s_me.Location, Location);
+                                WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, Location);
 
                                 foreach (WoWPoint p in pathtoDest1)
                                 {
-                                    while (!s_me.Dead && p.Distance(s_me.Location) > 2)
+                                    while (!Me.Dead && p.Distance(Me.Location) > 2)
                                     {
                                         Thread.Sleep(100);
                                         WoWMovement.ClickToMove(p);

@@ -115,7 +115,7 @@ namespace Styx.Bot.Quest_Behaviors
                         })),
 
                 new Decorator(
-                    ret => Item != null,
+                    ret => Item != null && Item.Cooldown == 0,
                     new Action(ret =>
                     {
                         TreeRoot.StatusText = "Using item - Count: " + Counter;
@@ -132,7 +132,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0);
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId);
             }
         }
 
@@ -144,7 +144,7 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
 
                 return
-                    _isDone ||
+                    _isDone || Item == null ||
                     (quest != null && quest.IsCompleted);
             }
         }
