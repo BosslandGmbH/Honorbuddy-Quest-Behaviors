@@ -27,6 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
         /// NumOfTimes: How many times before the script finishes
         /// HpLeftAmount: How low the HP should be before casting a spell on it. Such as wounded targets
         /// MinRange: If the spell has a minRange to it
+        /// Range: Range to cast spell at
         /// X,Y,Z: The general location where these objects can be found
         /// </summary>
         /// 
@@ -40,6 +41,7 @@ namespace Styx.Bot.Quest_Behaviors
                 int numberOfTimes;
                 int hpLeftAmount;
                 int minRange;
+                int range;
                 int questId;
                 WoWPoint location;
 
@@ -47,6 +49,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                 {
                                                     { "HpLeftAmount",   null },
                                                     { "MinRange",       null },
+                                                    { "Range",          null },
                                                     { "MobId",          null },
                                                     { "NpcId",          null },
                                                     { "NumOfTimes",     null },
@@ -60,6 +63,7 @@ namespace Styx.Bot.Quest_Behaviors
                 _isAttributesOkay = true;
                 _isAttributesOkay &= GetAttributeAsInteger("HpLeftAmount", false, "110", 0, int.MaxValue, out hpLeftAmount); ;
                 _isAttributesOkay &= GetAttributeAsInteger("MinRange", false, "3", 0, int.MaxValue, out minRange);
+                _isAttributesOkay &= GetAttributeAsInteger("Range", false, "25", 0, int.MaxValue, out range);
                 _isAttributesOkay &= GetAttributeAsInteger("NumOfTimes", false, "1", 1, int.MaxValue, out numberOfTimes);
                 _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
                 _isAttributesOkay &= GetAttributeAsInteger("SpellId", true, "0", 0, int.MaxValue, out spellId);
@@ -101,6 +105,7 @@ namespace Styx.Bot.Quest_Behaviors
                     HPLeftAmount = hpLeftAmount;
                     Location = location;
                     MinRange = minRange;
+                    Range = range;
                     MobId = mobId;
                     MovedToTarget = false;
                     NumberOfTimes = numberOfTimes;
@@ -128,6 +133,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int      HPLeftAmount { get; set; }
         public WoWPoint Location { get; private set; }
         public int      MinRange { get; set; }
+        public int      Range { get; set; }
         public int      MobId { get; set; }
         public bool     MovedToTarget { get; set; }
         public int      NumberOfTimes { get; set; }
@@ -162,56 +168,65 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
+        private Composite CreateRootBehavior()
+        {
+            return new PrioritySelector(
+                new Decorator(
+                    ret => !IsDone && StyxWoW.Me.IsAlive,
+                    new PrioritySelector(
+                        new Decorator(ret => Counter > NumberOfTimes && QuestId == 0,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                            new WaitContinue(120,
+                                                new Action(delegate
+                                                {
+                                                    _isBehaviorDone = true;
+                                                    return RunStatus.Success;
+                                                }))
+                                            )),
+
+                        new Decorator(ret => mobList.Count > 0 && !s_me.IsCasting && SpellManager.CanCast(SpellID),
+                            new Sequence(
+                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) >= MinRange && mobList[0].Location.Distance(s_me.Location) <= 25 && mobList[0].InLineOfSightOCD,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellID + " On Mob: " + mobList[0].Name + " Yards Away " + mobList[0].Location.Distance(s_me.Location)),
+                                        new Action(ret => WoWMovement.MoveStop()),
+                                        new Action(ret => Thread.Sleep(300)),
+                                        new Decorator(c => !s_me.IsCasting, CreateSpellBehavior)
+                                        )
+                                ),
+                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) > Range || !mobList[0].InLineOfSightOCD,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + mobList[0].Name + " Yards Away: " + mobList[0].Location.Distance(s_me.Location)),
+                                        new Action(ret => Navigator.MoveTo(mobList[0].Location))
+                                        )
+                                ),
+
+                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) < MinRange,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
+                                        new Action(ret => mobList[0].Face()),
+                                        new Action(ret => Thread.Sleep(100)),
+                                        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
+                                        new Action(ret => Thread.Sleep(100))
+                                        ))
+                                ))
+                )));
+        }
+
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new PrioritySelector(
-
-                            new Decorator(ret => Counter > NumberOfTimes && QuestId == 0,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
-
-                           new Decorator(ret => mobList.Count == 0,
-                                new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
-                                        new Action(ret => Navigator.MoveTo(Location)),
-                                        new Action(ret => Thread.Sleep(300))
-                                    )
-                                ),
-
-                           new Decorator(ret => mobList.Count > 0 && !s_me.IsCasting,
-                                new Sequence(
-                                    new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) >= MinRange && mobList[0].Location.Distance(s_me.Location) <= 25 && mobList[0].InLineOfSightOCD,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellID + " On Mob: " + mobList[0].Name + " Yards Away "+ mobList[0].Location.Distance(s_me.Location)),
-                                            new Action(ret => WoWMovement.MoveStop()),
-                                            new Action(ret => Thread.Sleep(300)),
-                                            new Decorator(c => !s_me.IsCasting, CreateSpellBehavior)
-                                            )
-                                    ),
-                                    new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) > 25 || !mobList[0].InLineOfSightOCD,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + mobList[0].Name + " Yards Away: " + mobList[0].Location.Distance(s_me.Location)),
-                                            new Action(ret => Navigator.MoveTo(mobList[0].Location))
-                                            )
-                                    ),
-
-                                   new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) < MinRange,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-                                            new Action(ret => mobList[0].Face()),
-                                            new Action(ret => Thread.Sleep(100)),
-                                            new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
-                                            new Action(ret => Thread.Sleep(100))
-                                          ))
-                                    ))
+                    
+                        new Decorator(ret => mobList.Count == 0,
+                            new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
+                                    new Action(ret => Navigator.MoveTo(Location)),
+                                    new Action(ret => Thread.Sleep(300))
+                                )
+                            )
+                            
                         )
                     );
         }
@@ -223,7 +238,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 return new Action(c =>
                 {
-                    if (SpellID > 0 && !s_me.IsCasting)
+                    if (SpellID > 0)
                     {
                         mobList[0].Target();
                         mobList[0].Face();
@@ -279,6 +294,16 @@ namespace Styx.Bot.Quest_Behaviors
                     {  TreeRoot.GoalText = string.Format("{0} for \"{1}\"", this.GetType().Name, quest.Name); }
                 else
                     { TreeRoot.GoalText = string.Format("{0}: Running", this.GetType().Name); }
+
+                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (currentRoot is GroupComposite)
+                    {
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateRootBehavior());
+                    }
+                }
             }
         }
 
