@@ -177,6 +177,9 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
+                           new Decorator(ret => s_me.CurrentTarget != null && s_me.CurrentTarget.IsFriendly,
+                               new Action(ret => s_me.ClearTarget())),
+
                            new Decorator(
                                ret => mobList.Count > 0 && mobList[0].IsHostile,
                                new PrioritySelector(
