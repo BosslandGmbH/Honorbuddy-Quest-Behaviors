@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
@@ -144,15 +145,24 @@ namespace Styx.Bot.Quest_Behaviors
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
         LocalPlayer me = ObjectManager.Me;
         Stopwatch waitTimer = new Stopwatch();
+
+        private static Helpers.WaitTimer _timer = new Helpers.WaitTimer(TimeSpan.FromSeconds(5));
+        private WoWObject _object;
+        
         public WoWObject Object
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWObject>(true)
-                    .Where(o => ObjCheck(o, MobID) ||
-                        (MobID2 > 0 && ObjCheck(o, MobID2)) ||
-                        (MobID3 > 0 && ObjCheck(o, MobID3)))
-                        .OrderBy(o => o.Distance).FirstOrDefault();
+                if (!_timer.IsFinished)
+                    return _object;
+
+                _object = 
+                    ObjectManager.GetObjectsOfType<WoWObject>(true).Where(
+                    o => ObjCheck(o, MobID) || (MobID2 > 0 && ObjCheck(o, MobID2)) || (MobID3 > 0 && ObjCheck(o, MobID3))).OrderBy(o => 
+                        o.Distance).FirstOrDefault();
+
+                _timer.Reset();
+                return _object;
             }
         }
         bool ObjCheck(WoWObject obj, int Id)
