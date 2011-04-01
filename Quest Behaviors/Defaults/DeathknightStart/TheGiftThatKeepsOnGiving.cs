@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
@@ -38,7 +37,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class TheGiftThatKeepsOnGiving : CustomForcedBehavior
     {
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>
         {
             {"QuestId",null},
             {"MobId",null},
@@ -59,11 +58,12 @@ namespace Styx.Bot.Quest_Behaviors
             {"Z",null},
         };
 
-        bool success = true;
+        readonly bool _success = true;
+
         public TheGiftThatKeepsOnGiving(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+            CheckForUnrecognizedAttributes(_recognizedAttributes);
             int questId = 0;
             int mobId = 0;
             int mobId2 = 0;
@@ -80,22 +80,22 @@ namespace Styx.Bot.Quest_Behaviors
             int minionCount = 0;
             WoWPoint point = WoWPoint.Empty;
 
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId);
-            success = success && GetAttributeAsInteger("MobId2", false, "0", 0, int.MaxValue, out mobId2);
-            success = success && GetAttributeAsInteger("MobId3", false, "0", 0, int.MaxValue, out mobId3);
-            success = success && GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
-            success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out numOfTimes);
-            success = success && GetAttributeAsInteger("WaitTime", false, "1500", 0, int.MaxValue, out waitTime);
-            success = success && GetAttributeAsFloat("InteractRange", false, "4.5", 0, int.MaxValue, out interactRange);
-            success = success && GetAttributeAsInteger("CollectionDistance", false, "100000", 0, int.MaxValue, out collectionDistance);
-            success = success && GetAttributeAsInteger("HasAura", false, "0", 0, int.MaxValue, out hasAura);
-            success = success && GetAttributeAsInteger("MinionCount", false, "0", 0, int.MaxValue, out minionCount);
-            success = success && GetAttributeAsBoolean("StopMovingOnUse", false, "true", out stopMoving);
-            success = success && GetAttributeAsBoolean("IsDead", false, "false", out isDead);
-            success = success && GetAttributeAsBoolean("HasGroundTarget", false, "false", out groundTarget);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out point);
-            if (!success)
+            _success = _success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
+            _success = _success && GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId);
+            _success = _success && GetAttributeAsInteger("MobId2", false, "0", 0, int.MaxValue, out mobId2);
+            _success = _success && GetAttributeAsInteger("MobId3", false, "0", 0, int.MaxValue, out mobId3);
+            _success = _success && GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
+            _success = _success && GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out numOfTimes);
+            _success = _success && GetAttributeAsInteger("WaitTime", false, "1500", 0, int.MaxValue, out waitTime);
+            _success = _success && GetAttributeAsFloat("InteractRange", false, "4.5", 0, int.MaxValue, out interactRange);
+            _success = _success && GetAttributeAsInteger("CollectionDistance", false, "100000", 0, int.MaxValue, out collectionDistance);
+            _success = _success && GetAttributeAsInteger("HasAura", false, "0", 0, int.MaxValue, out hasAura);
+            _success = _success && GetAttributeAsInteger("MinionCount", false, "0", 0, int.MaxValue, out minionCount);
+            _success = _success && GetAttributeAsBoolean("StopMovingOnUse", false, "true", out stopMoving);
+            _success = _success && GetAttributeAsBoolean("IsDead", false, "false", out isDead);
+            _success = _success && GetAttributeAsBoolean("HasGroundTarget", false, "false", out groundTarget);
+            _success = _success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out point);
+            if (!_success)
                 Err("Stopping HB due to profile errors");
 
             QuestId = questId;
@@ -105,16 +105,20 @@ namespace Styx.Bot.Quest_Behaviors
             ItemId = itemId;
             NumOfTimes = numOfTimes;
             WaitTime = waitTime;
+
             if (hasAura > 0)
             {
-                WoWSpell a = WoWSpell.FromId(hasAura);
-                if (a != null)
-                    Aura = a.Name;
+                var spell = WoWSpell.FromId(hasAura);
+                if (spell != null)
+                {
+                    Aura = spell.Name;
+                }
                 else
                     Err("Unable to find Aura: {0}", hasAura);
             }
             else
                 Aura = "";
+
             ItemId = itemId;
             CollectionDistance = collectionDistance;
             StopMovingOnUse = stopMoving;
@@ -142,39 +146,30 @@ namespace Styx.Bot.Quest_Behaviors
         public bool HasGroundTarget { get; private set; }
         public bool IsDead { get; private set; }
         public int CollectionDistance { get; private set; }
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
-        LocalPlayer me = ObjectManager.Me;
-        Stopwatch waitTimer = new Stopwatch();
 
-        private static Helpers.WaitTimer _timer = new Helpers.WaitTimer(TimeSpan.FromSeconds(5));
-        private WoWObject _object;
-        
+        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private static LocalPlayer Me { get { return StyxWoW.Me; } }
+        readonly Stopwatch _waitTimer = new Stopwatch();
+
         public WoWObject Object
         {
             get
             {
-                if (!_timer.IsFinished)
-                    return _object;
-
-                _object = 
+                return
                     ObjectManager.GetObjectsOfType<WoWObject>(true).Where(
                     o => ObjCheck(o, MobID) || (MobID2 > 0 && ObjCheck(o, MobID2)) || (MobID3 > 0 && ObjCheck(o, MobID3))).OrderBy(o => 
                         o.Distance).FirstOrDefault();
-
-                _timer.Reset();
-                return _object;
             }
         }
-        bool ObjCheck(WoWObject obj, int Id)
+
+        bool ObjCheck(WoWObject obj, int id)
         {
             bool ret = false;
-            if (obj.Entry == Id && obj.Distance <= CollectionDistance &&
+            if (obj.Entry == id && obj.Distance <= CollectionDistance &&
                 !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
             {
-                if ((IsDead && obj is WoWUnit && !((WoWUnit)obj).Dead) || !IsDead && obj is WoWUnit && ((WoWUnit)obj).Dead)
-                    ret = false;
-                else 
-                    ret = true;
+                ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit) obj).Dead) &&
+                      (IsDead || !(obj is WoWUnit) || !((WoWUnit) obj).Dead);
             }
             // temp fix to HB killing targets without letting us using item...
             if (ret && obj is WoWUnit)
@@ -192,77 +187,88 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         #region Overrides of CustomForcedBehavior
-        private Composite root;
+
+        private Composite _root;
         protected override Composite CreateBehavior()
         {
-            return root ??
-                (root = new PrioritySelector(
-                    new Decorator(c => Counter >= NumOfTimes,
-                        new Action(ret => isDone = true)),
-                    //new Decorator(c => { Log("{0}", waitTimer.IsRunning); if (((waitTimer.IsRunning && waitTimer.ElapsedMilliseconds < WaitTime) || me.Combat)) return true; return false; },
-                    //        new Action(c => { Log("wewewe"); return RunStatus.Success; })
-                    //    ),
-                    new Decorator(c => Object != null && Object.Distance > InteractRange,
-                        new Action(c =>
-                        {
-                            TreeRoot.StatusText = "Moving to use item on - " + Object.Name;
-                            Navigator.MoveTo(Object.Location);
-                        })
-                    ),
-                    new Decorator(c => Object != null && Object.Distance <= InteractRange,
+            return _root ?? (_root = 
+
+                new PrioritySelector(ctx => Object,
+
+                    new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSight),
                         new Sequence(
-                            new DecoratorContinue(c => StopMovingOnUse && me.IsMoving,
-                                new Action(c => { WoWMovement.MoveStop(); })
-                            ),
-                            new Action(c => {
-                                TreeRoot.StatusText = "Using item on " + Object.Name;
-                                if (Object is WoWUnit)
-                                {
-                                    (Object as WoWUnit).Target();
-                                }
-                                var item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
-                                if (item == null)
-                                {
-                                    Err("Could not find item with id:{0} for UseItemOn behavior!\n Stopping HB", ItemId);
-                                }
-                                WoWMovement.Face(Object.Guid);
-                                item.UseContainerItem();
-                                if (HasGroundTarget)
-                                    LegacySpellManager.ClickRemoteLocation(Object.Location);
-                                _npcBlacklist.Add(Object.Guid);
-                                waitTimer.Reset();
-                                if (!waitTimer.IsRunning)
-                                    waitTimer.Start();
-                                Counter++;
-                            })
+                            new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).Name),
+                            new Action(ctx => Navigator.MoveTo(((WoWObject)ctx).Location)))),
+
+                    new Decorator(ctx => ctx != null && ((WoWObject)ctx).Distance <= InteractRange,
+                        new Sequence(
+                            new DecoratorContinue(c => StopMovingOnUse && Me.IsMoving,
+                                new Sequence(
+                                    new Action(ctx => WoWMovement.MoveStop()),
+                                    new WaitContinue(5, ctx => !Me.IsMoving,
+                                        new Action(ctx => StyxWoW.SleepForLagDuration()))
+                                    )),
+
+                            new Sequence(ctx => StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId),
+                                // Set the status text.
+                                new Action(ctx => TreeRoot.StatusText = "Using item on " + Object.Name),
+                                
+                                // If we don't have the item stop!
+                                new DecoratorContinue(ctx => ctx == null,
+                                    new Action(ctx => Err("Could not find item with id:{0} for UseItemOn behavior!\n Stopping HB", ItemId))),
+
+                                new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
+                                    new Action(ctx => Object.ToUnit().Target())),
+                                
+                                // Face the object.
+                                new Action(ctx => WoWMovement.Face(Object.Guid)),
+
+                                // Use the item.
+                                new Action(ctx => ((WoWItem)ctx).UseContainerItem()),
+
+                                new DecoratorContinue(ctx => HasGroundTarget,
+                                    new Action(ctx => LegacySpellManager.ClickRemoteLocation(Object.Location))),
+
+                                new WaitContinue(6, ctx => false, 
+                                    new Sequence(
+                                        new Action(ctx => StyxWoW.SleepForLagDuration()),
+                                        new Action(ctx => _npcBlacklist.Add(Object.Guid)),
+                                        new Action(ctx => _waitTimer.Reset()),
+
+                                        new DecoratorContinue(ctx => !_waitTimer.IsRunning,
+                                            new Action(ctx => _waitTimer.Start())),
+
+                                        new Action(ctx => Counter++)
+                                        )
+                                    )
+                                )
                         )),
-                    new Action(c =>
-                    {
-                        Log("Moving to {0}", Location);
-                        Navigator.MoveTo(Location);
-                    })
+
+                    new Sequence(
+                        new Action(ctx => Log("Moving to {0}", Location)),
+                        new Action(ctx => Navigator.MoveTo(Location))
+                        )
                  ));
         }
 
-        void Err(string format, params object[] args)
+        private static void Err(string format, params object[] args)
         {
             Logging.Write(System.Drawing.Color.Red, "UseItemOn: " + format, args);
             TreeRoot.Stop();
         }
 
-        void Log(string format, params object[] args)
+        private static void Log(string format, params object[] args)
         {
             Logging.Write("UseItemOn: " + format, args);
         }
 
-        private bool isDone = false;
         public override bool IsDone
         {
             get
             {
                 var quest = ObjectManager.Me.QuestLog.GetQuestById((uint)QuestId);
-                return isDone || (QuestId > 0 && ((quest != null && quest.IsCompleted) || quest == null) ||
-                    (MinionCount > 0 && MinionCount <= me.Minions.Count));
+                return Counter >= NumOfTimes || (QuestId > 0 && ((quest != null && quest.IsCompleted) || quest == null) ||
+                    (MinionCount > 0 && MinionCount <= Me.Minions.Count));
             }
         }
 
