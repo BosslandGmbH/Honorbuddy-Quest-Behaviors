@@ -1,12 +1,8 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using Styx.Database;
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
-using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -105,7 +101,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Sequence(
                                     new Action(ret => WoWMovement.MoveStop()),
                                     new WaitContinue(5, ret => !StyxWoW.Me.IsMoving,
-                                        null)
+                                        new Action(ret => StyxWoW.SleepForLagDuration()))
                                     )),
 
                             new Action(ret => Logging.Write("Using Object [{0}] {1} Times out of {2}", ((WoWGameObject)ret).Name, _counter + 1, NumberOfTimes)),

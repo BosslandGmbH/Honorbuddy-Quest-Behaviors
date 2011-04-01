@@ -16,6 +16,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
 using Action = TreeSharp.Action;
+using Styx.Logic.Combat;
 
 namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 {
@@ -37,7 +38,8 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             {"ItemId",null},
             {"AttackSpell",null},
             {"HealSpell",null},
-            {"NpcIds",null},
+            {"KillNpc",null},
+            {"HealNpc",null}
         };
 
         private readonly bool _success = true;
@@ -45,14 +47,14 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         public AnEndToAllThings(Dictionary<string, string> args) : base(args)
         {
             CheckForUnrecognizedAttributes(_recognizedAttributes);
-            int vehicleId = 0, attackSpell = 0, healSpell = 0, itemId = 0;
-            string npcIds = "";
+            int vehicleId = 0, attackSpell = 0, healSpell = 0, itemId = 0, killNpc = 0, healNpc = 0;
 
             _success = _success && GetAttributeAsInteger("VehicleId", true, "0", 0, int.MaxValue, out vehicleId);
             _success = _success && GetAttributeAsInteger("ItemId", false, "0", 0, int.MaxValue, out itemId);
             _success = _success && GetAttributeAsInteger("AttackSpell", true, "0", 0, int.MaxValue, out attackSpell);
             _success = _success && GetAttributeAsInteger("HealSpell", false, "0", 0, int.MaxValue, out healSpell);
-            _success = _success && GetAttributeAsString("NpcIds", true, "", out npcIds);
+            _success = _success && GetAttributeAsInteger("KillNpc", true, "0", 0, int.MaxValue, out killNpc);
+            _success = _success && GetAttributeAsInteger("HealNpc", true, "0", 0, int.MaxValue, out healNpc);
 
             if(!_success)
             {
@@ -62,24 +64,11 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
             VehicleId = vehicleId;
             ItemId = itemId;
-            AttackSpell = attackSpell;
-            HealSpell = healSpell;
+            AttackSpellId = attackSpell;
+            HealSpellId = healSpell;
+            KillNpc = (uint)killNpc;
+            HealNpc = (uint)healNpc;
 
-            string[] splitted = npcIds.Split(',');
-            NpcIds = new List<uint>();
-
-            foreach(string s in splitted)
-            {
-                uint temp;
-                if(uint.TryParse(s, out temp))
-                    NpcIds.Add(temp);
-
-                else
-                {
-                    Logging.Write(Color.Red, "Error parsing attribute NpcIds");
-                    TreeRoot.Stop();
-                }
-            }
         }
 
         /// <summary>Id of the quest. </summary>
@@ -88,14 +77,32 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         /// <summary>Item that summons the big bad dragon! </summary>
         public int ItemId { get; private set; }
 
+        public int AttackSpellId { get;  private set; }
+
+        public int HealSpellId { get; private set; }
+
         /// <summary>Id of the attack spell. </summary>
-        public int AttackSpell { get; private set; }
+        public WoWPetSpell AttackSpell
+        {
+            get
+            {
+                return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId);
+            } 
+        }
 
         /// <summary>Id of the heal spell. </summary>
-        public int HealSpell { get; private set; }
+        public WoWPetSpell HealSpell 
+        { 
+            get
+            {
+                return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId);
+            } 
+        }
 
         /// <summary>Ids of npc's to kill. </summary>
-        public List<uint> NpcIds { get; private set; }
+        public uint KillNpc { get; private set; }
+
+        public uint HealNpc { get; private set; }
 
         public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
         {
@@ -153,12 +160,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
         private static LocalPlayer Me { get { return StyxWoW.Me; } }
 
-        /// <summary> Returns true if the player is inside a vehicle. </summary>
-        private static bool IsInVehicle
-        {
-            get { return Lua.GetReturnVal<bool>("return UnitInVehicle('player')", 0); }
-        }
-
         private PlayerQuest _quest;
         /// <summary> Returns a quest object, 'An end to all things...' </summary>
         private PlayerQuest Quest
@@ -172,7 +173,9 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         /// <summary> The vehicle as a wowunit </summary>
         public WoWUnit Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(ret => ret.Entry == VehicleId); } }
 
-        public IEnumerable<WoWUnit> Npcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => NpcIds.Contains(ret.Entry)); } }
+        public IEnumerable<WoWUnit> KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpc); } }
+
+        public IEnumerable<WoWUnit> HealNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpc); } }
 
         private bool _isDone;
         /// <summary>Gets a value indicating whether this object is done.</summary>
@@ -180,6 +183,11 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         public override bool IsDone { get { return _isDone; } }
 
         private readonly Stopwatch _remountTimer = new Stopwatch();
+
+        public static void CastPetAction(WoWPetSpell spell)
+        {
+            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+        }
 
         protected override Composite CreateBehavior()
         {
@@ -192,7 +200,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                     // Go home.
                     new Decorator(ret => Quest != null && Quest.IsCompleted || _remountTimer.Elapsed.TotalMinutes >= 14,
                         new PrioritySelector(
-
                             new Decorator(ret => ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 29107 && Vehicle.Location.Distance(r.Location) <= 10) != null,
                                 new Sequence(
                                     new Action(ret => Lua.DoString("VehicleExit()")),
@@ -200,52 +207,36 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                     new Action(ret => _remountTimer.Reset())
                                     )),
 
-                    new Decorator(ret => !IsInVehicle,
-                        new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
-                            new DecoratorContinue(ret => ret == null,
-                                new Sequence(
-                                    new Action(ret => Logging.Write("Couldn't find item with id: {0}", ItemId)),
-                                    new Action(ret => Logging.Write(Color.Red, "Honorbuddy stopped.")),
-                                    new Action(ret => TreeRoot.Stop())
-                                    )),
+                            new Decorator(ret => Vehicle == null,
+                                new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
+                                    new DecoratorContinue(ret => ret == null,
+                                        new Sequence(
+                                            new Action(ret => Logging.Write("Couldn't find item with id: {0}", ItemId)),
+                                            new Action(ret => Logging.Write(Color.Red, "Honorbuddy stopped.")),
+                                            new Action(ret => TreeRoot.Stop())
+                                            )),
 
-                            new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                                // Use the item
-                                new Action(ret => ((WoWItem)ret).UseContainerItem())
-                                ),
+                                    new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
+                                        // Use the item
+                                        new Action(ret => ((WoWItem)ret).UseContainerItem())
+                                        ),
 
-                            // Wait until we are in the vehicle
-                            new WaitContinue(5, ret => IsInVehicle,
-                                new Sequence(
-                                    new Action(ret => _remountTimer.Reset()),
-                                    new Action(ret => _remountTimer.Start()),
-                                    new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(500)))
-                                    )
-                                ))),
+                                    // Wait until we are in the vehicle
+                                    new WaitContinue(5, ret => Vehicle != null,
+                                        new Sequence(
+                                            new Action(ret => _remountTimer.Reset()),
+                                            new Action(ret => _remountTimer.Start()),
+                                            new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(500)))
+                                            )
+                                        ))),
 
                             new Decorator(ret => StartPath.Peek().Distance(Vehicle.Location) <= 6,
                                 new Action(ret => StartPath.Dequeue())),
 
                             new Action(ret => WoWMovement.ClickToMove(StartPath.Peek()))
-                        )),
+                                )),
 
-                    new Decorator(ret => Vehicle != null && ((Vehicle.HealthPercent <= 35 || Vehicle.ManaPercent <= 35) && Npcs.ToList().Count > 0 && Npcs.First(u => u.Distance < 60) != null),
-                        new Action(delegate 
-                            {
-                                Lua.DoString(
-                                    @"  for i=1, NUM_PET_ACTION_SLOTS, 1 do 
-                                            local c,_,_ = GetPetActionCooldown(i)
-                                            local _,_,_,_,_,_,_,s = GetPetActionInfo(i)
-                                            
-                                            if c == 0 and s == " + HealSpell + " then " +
-                                                "CastPetAction(i) " +
-                                            "end " +
-                                        "end");
-
-                                return RunStatus.Failure;
-                            })),
-
-                    new Decorator(ret => !IsInVehicle,
+                    new Decorator(ret => Vehicle == null,
                         new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                             new DecoratorContinue(ret => ret == null,
                                 new Sequence( 
@@ -260,7 +251,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                 ),
 
                             // Wait until we are in the vehicle
-                            new WaitContinue(5, ret => IsInVehicle, 
+                            new WaitContinue(5, ret => Vehicle != null, 
                                 new Sequence(
                                     new Action(ret => _remountTimer.Reset()),
                                     new Action(ret => _remountTimer.Start()),
@@ -271,28 +262,37 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                     new Decorator(ret => Vehicle != null,
                         
                         new PrioritySelector(
-
                             new Decorator(ret => !_remountTimer.IsRunning,
                                 new Action(ret => _remountTimer.Start())),
 
-                            new Decorator(ret => Path.Peek().Distance(Vehicle.Location) <= 6,
-                                new Action(ret => Path.Dequeue())
-                                ),
+                            new Decorator(ret => Path.Peek().DistanceSqr(Vehicle.Location) <= 35 * 35,
+                                new Action(ret => Path.Dequeue())),
+
+                            new Decorator(ret => (Vehicle.HealthPercent <= 70 || Vehicle.ManaPercent <= 35) &&
+                                                 HealNpcs != null && HealSpell != null && !HealSpell.Spell.Cooldown,
+                                 new PrioritySelector(
+                                    ret => HealNpcs.Where(n => Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
+                                    new Decorator(
+                                        ret => ((WoWUnit)ret).Distance > 15,
+                                        new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0,0,10)))),
+                                    new Action(ret =>
+                                    {
+                                        WoWMovement.MoveStop();
+                                        CastPetAction(HealSpell);
+                                        StyxWoW.SleepForLagDuration();
+                                    }))),
 
                             new Sequence(
-                                new Action(ret => Lua.DoString(
-                                       @" for i=1, NUM_PET_ACTION_SLOTS, 1 do 
-                                            local c,_,_ = GetPetActionCooldown(i)
-                                            local _,_,_,_,_,_,_,s = GetPetActionInfo(i)
-                                            if c == 0 and s == " + AttackSpell + " then " +
-                                                "CastPetAction(i) " +
-                                            "end " +
-                                        "end")),
-
+                                ret => KillNpcs.Where(n => n.DistanceSqr > 30 * 30 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
+                                new DecoratorContinue(
+                                    ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
+                                    new Sequence(
+                                        new Action(ret => Navigator.PlayerMover.MoveTowards(((WoWUnit)ret).Location)),
+                                        new Action(ret => CastPetAction(AttackSpell)),
+                                        new Action(ret => StyxWoW.SleepForLagDuration()))),
                                 new Action(ret => WoWMovement.ClickToMove(Path.Peek()))
                                 )
-                        ))
-                );
+                        )));
         }
 
         private static void Player_OnPlayerDied()
