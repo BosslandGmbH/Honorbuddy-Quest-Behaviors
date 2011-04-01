@@ -107,7 +107,7 @@ namespace Styx.Bot.Quest_Behaviors
             WaitTime = waitTime;
             if (hasAura > 0)
             {
-                var a = Styx.Logic.Combat.WoWSpell.FromId(hasAura);
+                WoWSpell a = WoWSpell.FromId(hasAura);
                 if (a != null)
                     Aura = a.Name;
                 else

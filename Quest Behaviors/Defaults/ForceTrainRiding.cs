@@ -12,6 +12,9 @@ using Styx.Logic.BehaviorTree;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
+using Styx.Helpers;
+using Styx.Logic;
+using Styx.Logic.Inventory.Frames.Trainer;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -151,8 +154,10 @@ namespace Styx.Bot.Quest_Behaviors
                                         })),
                                     new Action(ret => TreeRoot.StatusText = "Opening Trainer - " + mobList[0].Name + " X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
                                     new Action(ret => mobList[0].Interact()),
-                                    new Action(ret => Thread.Sleep(200)),
-                                    new Action(ret => Lua.DoString("BuyTrainerService(0)")),
+                                    new WaitContinue(5, 
+                                        ret => TrainerFrame.Instance.IsVisible,
+                                        new Action(ret => TrainerFrame.Instance.BuyAll())),
+                                    new Action(ret => TrainerFrame.Instance.Close()),
                                     new Action(ret => Counter++)
                                     )
                             ),
@@ -180,6 +185,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override void OnStart()
         {
+            
 			if (!_isAttributesOkay)
 			{
 				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");

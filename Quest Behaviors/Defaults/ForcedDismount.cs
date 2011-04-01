@@ -59,8 +59,8 @@ namespace Styx.Bot.Quest_Behaviors
 
                 if (_isAttributesOkay)
                 {
-                    this.QuestId = (uint)questId;
-                    this.MountType = typeMount;
+                    QuestId = (uint)questId;
+                    MountType = typeMount;
                 }
 			}
 
