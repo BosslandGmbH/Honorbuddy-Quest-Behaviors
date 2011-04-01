@@ -11,6 +11,18 @@ using TreeSharp;
 
 namespace Styx.Bot.Quest_Behaviors
 {
+    /// <summary>
+    /// SafeQuestTurnin by Nesox
+    /// Removes all units from targeting while running.
+    /// ##Syntax##
+    /// QuestId: Id of the quest, duh!
+    /// QuestName: Name of the quest.
+    /// TurnInName: Name of the npc to turn in quest at.
+    /// TurnInId: id of the npc to turn in the quest at.
+    /// X: X axis of this npc
+    /// Y: Y axis of this npc
+    /// Z: Z axis of this npc
+    /// </summary>
     public class SafeQuestTurnin : CustomForcedBehavior
     {
         readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>()
