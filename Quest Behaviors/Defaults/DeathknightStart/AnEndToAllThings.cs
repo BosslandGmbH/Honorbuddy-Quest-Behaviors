@@ -17,6 +17,8 @@ using Styx.WoWInternals.WoWObjects;
 using TreeSharp;
 using Action = TreeSharp.Action;
 using Styx.Logic.Combat;
+using Tripper.Tools.Math;
+using System.Globalization;
 
 namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 {
@@ -273,23 +275,34 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                  new PrioritySelector(
                                     ret => HealNpcs.Where(n => Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                     new Decorator(
-                                        ret => ((WoWUnit)ret).Distance > 15,
-                                        new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0,0,10)))),
-                                    new Action(ret =>
-                                    {
-                                        WoWMovement.MoveStop();
-                                        CastPetAction(HealSpell);
-                                        StyxWoW.SleepForLagDuration();
-                                    }))),
+                                        ret => ret != null,
+                                        new PrioritySelector(
+                                            new Decorator(
+                                                ret => ((WoWUnit)ret).Distance > 15,
+                                                new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0,0,10)))),
+                                            new Action(ret =>
+                                            {
+                                                WoWMovement.MoveStop();
+                                                CastPetAction(HealSpell);
+                                            }))))),
 
                             new Sequence(
-                                ret => KillNpcs.Where(n => n.DistanceSqr > 30 * 30 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
+                                ret => KillNpcs.Where(n => n.Distance2DSqr > 30 * 30 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                 new DecoratorContinue(
                                     ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
                                     new Sequence(
-                                        new Action(ret => Navigator.PlayerMover.MoveTowards(((WoWUnit)ret).Location)),
+                                        new Action(ret => Me.SetFacing((WoWUnit)ret)),
+                                        new Action(ret =>
+                                            {
+                                                Vector3 v = ((WoWUnit)ret).Location - StyxWoW.Me.Location;
+                                                v.Normalize();
+                                                Lua.DoString(string.Format(
+                                                    "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);", 
+                                                    Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
+                                            }),
                                         new Action(ret => CastPetAction(AttackSpell)),
                                         new Action(ret => StyxWoW.SleepForLagDuration()))),
+                                        new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => WoWMovement.ClickToMove(Path.Peek()))
                                 )
                         )));
@@ -316,6 +329,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             LevelbotSettings.Instance.RessAtSpiritHealers = true;
 
             BotEvents.Player.OnPlayerDied += Player_OnPlayerDied;
+            TreeRoot.GoalText = "An end to all things";
         }
 
         public override void Dispose()

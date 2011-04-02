@@ -187,7 +187,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                         new Decorator(ret => mobList.Count > 0 && !s_me.IsCasting && SpellManager.CanCast(SpellID),
                             new Sequence(
-                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) >= MinRange && mobList[0].Location.Distance(s_me.Location) <= 25 && mobList[0].InLineOfSightOCD,
+                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) >= MinRange && mobList[0].Location.Distance(s_me.Location) <= Range && mobList[0].InLineOfSightOCD,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellID + " On Mob: " + mobList[0].Name + " Yards Away " + mobList[0].Location.Distance(s_me.Location)),
                                         new Action(ret => WoWMovement.MoveStop()),
