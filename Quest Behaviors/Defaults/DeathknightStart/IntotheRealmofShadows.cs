@@ -60,6 +60,10 @@ namespace Styx.Bot.Quest_Behaviors
                 new PrioritySelector(
                     new Action(c =>
                     {
+                        if (Me.Dead)
+                        {
+                            return RunStatus.Failure;
+                        }
                         if (Me.HealthPercent < 60 && !Me.IsActuallyInCombat)
                         {
                             WoWItem food = Consumable.GetBestFood(true);
