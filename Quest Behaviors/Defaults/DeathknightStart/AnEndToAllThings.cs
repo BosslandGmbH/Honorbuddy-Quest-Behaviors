@@ -173,7 +173,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         }
 
         /// <summary> The vehicle as a wowunit </summary>
-        public WoWUnit Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(ret => ret.Entry == VehicleId); } }
+        public WoWUnit Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid); } }
 
         public IEnumerable<WoWUnit> KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpc); } }
 
@@ -267,7 +267,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                             new Decorator(ret => !_remountTimer.IsRunning,
                                 new Action(ret => _remountTimer.Start())),
 
-                            new Decorator(ret => Path.Peek().DistanceSqr(Vehicle.Location) <= 35 * 35,
+                            new Decorator(ret => Path.Peek().Distance2DSqr(Vehicle.Location) <= 30 * 30,
                                 new Action(ret => Path.Dequeue())),
 
                             new Decorator(ret => (Vehicle.HealthPercent <= 70 || Vehicle.ManaPercent <= 35) &&
@@ -275,7 +275,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                  new PrioritySelector(
                                     ret => HealNpcs.Where(n => Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                     new Decorator(
-                                        ret => ret != null,
+                                        ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD,
                                         new PrioritySelector(
                                             new Decorator(
                                                 ret => ((WoWUnit)ret).Distance > 15,
@@ -287,7 +287,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                             }))))),
 
                             new Sequence(
-                                ret => KillNpcs.Where(n => n.Distance2DSqr > 30 * 30 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
+                                ret => KillNpcs.Where(n => n.Distance2DSqr > 20 * 20 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                 new DecoratorContinue(
                                     ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
                                     new Sequence(
