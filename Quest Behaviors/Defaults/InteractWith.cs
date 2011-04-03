@@ -12,6 +12,7 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 using Styx.Logic.Inventory.Frames.Merchant;
 using Styx.Logic.Inventory.Frames.Gossip;
+using Styx.Logic.Inventory.Frames.LootFrame;
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -62,6 +63,8 @@ namespace Styx.Bot.Quest_Behaviors
             {"BuyItemCount",null},
             {"GossipOption",null},
             {"Range",null},
+            {"Loot", null},
+            {"NotMoving", null}
         };
         
         public InteractWith(Dictionary<string, string> args)
@@ -182,7 +185,7 @@ namespace Styx.Bot.Quest_Behaviors
                 }
             }
 
-            List<int> gossipOption = new List<int>();
+            var gossipOption = new List<int>();
             if (Args.ContainsKey("GossipOption"))
             {
                 string gossip = Args["GossipOption"].ToString();
@@ -202,9 +205,15 @@ namespace Styx.Bot.Quest_Behaviors
                 error = true;
             }
 
+            bool loot, notMoving;
+            GetAttributeAsBoolean("Loot", false, "false", out loot);
+            GetAttributeAsBoolean("NotMoving", false, "false", out notMoving);
+
             if (error)
                 TreeRoot.Stop();
 
+            NotMoving = notMoving;
+            Loot = loot;
             GossipOption = gossipOption;
             WaitTime = waitTime;
             QuestId = questId;
@@ -217,6 +226,8 @@ namespace Styx.Bot.Quest_Behaviors
             Location = new WoWPoint(x, y, z);
         }
 
+        public bool NotMoving { get; private set; }
+        public bool Loot { get; private set; }
         public WoWPoint Location { get; private set; }
         public int Counter { get; set; }
         public uint MobId { get; set; }
@@ -241,6 +252,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
+                bool test = ObjectManager.GetObjectsOfType<WoWGameObject>().Any(delegate(WoWGameObject obj) { return obj.Entry == 191092; });
                 WoWObject @object = null;
                 switch (_ObjectType)
                 {
@@ -256,6 +268,7 @@ namespace Styx.Bot.Quest_Behaviors
                         @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                             !_npcBlacklist.Contains(obj.Guid) &&
                             obj.Distance < CollectionDistance &&
+                            (NotMoving ? !obj.IsMoving : true) &&
                             obj.Entry == MobId);
 
                         break;
@@ -319,6 +332,10 @@ namespace Styx.Bot.Quest_Behaviors
                                                     Thread.Sleep(1000);
                                                 }
                                             })),
+
+                                    new DecoratorContinue(
+                                        ret => Loot && LootFrame.Instance.IsVisible,
+                                        new Action(ret => LootFrame.Instance.LootAll())),
                                     
                                     new DecoratorContinue(
                                         ret => BuyItemId != 0 && MerchantFrame.Instance.IsVisible,
@@ -353,10 +370,15 @@ namespace Styx.Bot.Quest_Behaviors
 
                                 )),
 
-                            new Sequence(
-                                new Action(ret => { TreeRoot.StatusText = "Moving towards - " + Location; }),
-                                new Action(ret => Navigator.MoveTo(Location))))
-                    ));
+                            new Decorator(
+                                ret => Location.DistanceSqr(Me.Location) > 2 * 2,
+                                new Sequence(
+                                    new Action(ret => { TreeRoot.StatusText = "Moving towards - " + Location; }),
+                                    new Action(ret => Navigator.MoveTo(Location)))),
+
+                            new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")
+
+                    )));
         }
 
         private bool _isDone;

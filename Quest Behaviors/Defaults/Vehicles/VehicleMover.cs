@@ -171,7 +171,8 @@ namespace Styx.Bot.Quest_Behaviors
                                     Navigator.MoveTo(Vehicle.Location);
                                 else
                                     Vehicle.Interact();
-                                if (IgnoreCombat)
+
+                                if (IgnoreCombat && StyxWoW.Me.IsAlive)
                                     return RunStatus.Running;
                                 else
                                     return RunStatus.Success;

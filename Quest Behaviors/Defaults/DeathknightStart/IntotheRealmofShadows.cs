@@ -60,7 +60,7 @@ namespace Styx.Bot.Quest_Behaviors
                 new PrioritySelector(
                     new Action(c =>
                     {
-                        if (Me.Dead)
+                        if (Me.HealthPercent < 2)
                         {
                             return RunStatus.Failure;
                         }
@@ -124,18 +124,13 @@ namespace Styx.Bot.Quest_Behaviors
         private bool _isDone;
         public override bool IsDone { get { return _isDone; } }
 
-        private bool _shouldLoot;
         public override void OnStart()
         {
-            _shouldLoot = LevelbotSettings.Instance.LootMobs;
-            LevelbotSettings.Instance.LootMobs = false;
-
             TreeRoot.GoalText = "Completing quest 'Realm of the Shadow'";
         }
 
         public override void Dispose()
         {
-            LevelbotSettings.Instance.LootMobs = _shouldLoot;
         }
 
         #endregion
