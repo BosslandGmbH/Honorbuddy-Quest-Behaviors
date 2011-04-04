@@ -157,7 +157,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(c => Vehicle == null,
                         new Action(c =>
                         {
-                            Err("No Vehicle matching ID was found, Stopping HB");
+                            Err("No Vehicle matching ID was found, ending QB");
                             return RunStatus.Failure;
                         })),
                     new Action(c =>
@@ -331,7 +331,7 @@ namespace Styx.Bot.Quest_Behaviors
         void Err(string format, params object[] args)
         {
             Logging.Write(System.Drawing.Color.Red, "VehicleMover: " + format, args);
-            TreeRoot.Stop();
+            isDone = true;
         }
 
         void Log(string format, params object[] args)

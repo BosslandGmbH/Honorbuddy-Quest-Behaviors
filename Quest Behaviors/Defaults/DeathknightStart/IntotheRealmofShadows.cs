@@ -88,9 +88,13 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             if (Me.IsActuallyInCombat)
                             {
-                                if (Me.GotTarget)
+                                if (Me.CurrentTarget != null)
                                 {
-                                    if (Me.CurrentTarget.Entry == 28768)
+                                    if (Me.CurrentTarget.Dead)
+                                    {
+                                        Me.ClearTarget();
+                                    }
+                                    else if (Me.CurrentTarget.Entry == 28768)
                                     {
                                         if (!Me.IsSafelyFacing(Horse))
                                             Horse.Face();
@@ -101,6 +105,8 @@ namespace Styx.Bot.Quest_Behaviors
                                     {
                                         WoWMovement.MoveStop();
                                     }
+                                    if (!Me.IsSafelyFacing(Me.CurrentTarget))
+                                        Me.CurrentTarget.Face();
                                     if (SpellManager.CanCast("Icy Touch"))
                                         SpellManager.Cast("Icy Touch");
                                     if (SpellManager.CanCast("Plague Strike"))

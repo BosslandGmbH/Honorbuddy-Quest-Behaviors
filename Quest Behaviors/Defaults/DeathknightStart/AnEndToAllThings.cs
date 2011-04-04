@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         }
 
         /// <summary> The start path. </summary>
-        public CircularQueue<WoWPoint> StartPath { get; private set; }
+        public WoWPoint StartPoint { get; private set; }
 
         /// <summary> The end path. </summary>
         public CircularQueue<WoWPoint> EndPath { get; private set; }
@@ -140,19 +140,19 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         private void ParsePaths()
         {
             var endPath = new CircularQueue<WoWPoint>();
-            var startPath = new CircularQueue<WoWPoint>();
+            var startPoint = WoWPoint.Empty;
             var path = new CircularQueue<WoWPoint>();
 
             foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
-                endPath.Enqueue(point);
+                startPoint = point;
 
             foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "End")))
-                startPath.Enqueue(point);
+                endPath.Enqueue(point);
 
             foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Hop")))
                 path.Enqueue(point);
 
-            StartPath = startPath;
+            StartPoint = startPoint;
             EndPath = endPath;
             Path = path;
             _isInitialized = true;
@@ -220,7 +220,9 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
                                     new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
                                         // Use the item
-                                        new Action(ret => ((WoWItem)ret).UseContainerItem())
+                                        new Sequence(
+                                            new Action(ret => ((WoWItem)ret).UseContainerItem()),
+                                            new Action(ret => ParsePaths()))
                                         ),
 
                                     // Wait until we are in the vehicle
@@ -232,10 +234,12 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                             )
                                         ))),
 
-                            new Decorator(ret => StartPath.Peek().Distance(Vehicle.Location) <= 6,
-                                new Action(ret => StartPath.Dequeue())),
+                            new Decorator(ret => EndPath.Peek().Distance(Vehicle.Location) <= 6,
+                                new Action(ret => EndPath.Dequeue())),
 
-                            new Action(ret => WoWMovement.ClickToMove(StartPath.Peek()))
+                            new Sequence(
+                                new Action(ret => TreeRoot.StatusText = "Flying back to turn in the quest"),
+                                new Action(ret => WoWMovement.ClickToMove(EndPath.Peek())))
                                 )),
 
                     new Decorator(ret => Vehicle == null,
@@ -249,7 +253,9 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
                             new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
                                 // Use the item
-                                new Action(ret => ((WoWItem)ret).UseContainerItem())
+                                new Sequence(
+                                    new Action(ret => ParsePaths()),
+                                    new Action(ret => ((WoWItem)ret).UseContainerItem()))
                                 ),
 
                             // Wait until we are in the vehicle
@@ -266,6 +272,18 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                         new PrioritySelector(
                             new Decorator(ret => !_remountTimer.IsRunning,
                                 new Action(ret => _remountTimer.Start())),
+
+                            new Decorator(
+                                ret => StartPoint != WoWPoint.Empty,
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ret => Vehicle.Location.Distance2D(StartPoint) < 15,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Pathing through"),
+                                            new Action(ret => StartPoint = WoWPoint.Empty))),
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving towards start point"),
+                                        new Action(ret => Navigator.PlayerMover.MoveTowards(StartPoint))))),
 
                             new Decorator(ret => Path.Peek().Distance2DSqr(Vehicle.Location) <= 30 * 30,
                                 new Action(ret => Path.Dequeue())),

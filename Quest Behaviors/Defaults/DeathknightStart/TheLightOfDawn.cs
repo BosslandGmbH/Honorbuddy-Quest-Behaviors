@@ -58,8 +58,8 @@ namespace Styx.Bot.Quest_Behaviors
 
                     new Decorator(ret => !_waitTimer.IsFinished,
                         new Sequence(
-                            new Action(ret => TreeRoot.GoalText = "Waiting for the story to end"),
-                            new Action(ret => Logging.Write("Waiting for the story to end")),
+                            new Action(ret => AntiAfk()),
+                            new Action(ret => TreeRoot.StatusText = "Waiting for the story to end"),
                             new ActionAlwaysSucceed())
                             ), 
                         
@@ -67,11 +67,11 @@ namespace Styx.Bot.Quest_Behaviors
                         new PrioritySelector(
                             new Decorator(ret => !HighWarlordDarion.WithinInteractRange,
                                 new Sequence(
-                                   new Action(ret => TreeRoot.GoalText = "Moving to High Warlord Darion"),
+                                   new Action(ret => TreeRoot.StatusText = "Moving to High Warlord Darion"),
                                    new Action(ret => Navigator.MoveTo(HighWarlordDarion.Location)))),
 								
                             new Sequence(
-                                new Action(ret => TreeRoot.GoalText = "Talking to High Warlord Darion"),
+                                new Action(ret => TreeRoot.StatusText = "Talking to High Warlord Darion"),
                                 new DecoratorContinue(ret => Me.IsMoving,
                                     new Sequence(
                                         new Action(ret => WoWMovement.MoveStop()),
@@ -96,6 +96,14 @@ namespace Styx.Bot.Quest_Behaviors
                     ));
         }
 
+        private readonly Helpers.WaitTimer _afkTimer = new Helpers.WaitTimer(TimeSpan.FromMinutes(2));
+        private void AntiAfk()
+        {
+            if (!_afkTimer.IsFinished) return;
+            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(100));
+            _afkTimer.Reset();
+        }
+
         public override bool IsDone
         {
             get
@@ -103,6 +111,11 @@ namespace Styx.Bot.Quest_Behaviors
                 var quest = Me.QuestLog.GetQuestById(QuestId);
                 return quest != null && quest.IsCompleted;
             }
+        }
+
+        public override void OnStart()
+        {
+            TreeRoot.GoalText = "The Light of Dawn";
         }
 
         #endregion
