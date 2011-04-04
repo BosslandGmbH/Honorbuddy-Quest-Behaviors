@@ -195,7 +195,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 new PrioritySelector(ctx => Object,
 
-                    new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSight),
+                    new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSightOCD),
                         new Sequence(
                             new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).Name),
                             new Action(ctx => Navigator.MoveTo(((WoWObject)ctx).Location)))),

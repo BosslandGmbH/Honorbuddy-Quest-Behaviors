@@ -296,7 +296,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                         ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD,
                                         new PrioritySelector(
                                             new Decorator(
-                                                ret => ((WoWUnit)ret).Distance > 15,
+                                                ret => ((WoWUnit)ret).Location.Distance(Vehicle.Location) > 15,
                                                 new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0,0,10)))),
                                             new Action(ret =>
                                             {
@@ -309,7 +309,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                 new DecoratorContinue(
                                     ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
                                     new Sequence(
-                                        new Action(ret => Me.SetFacing((WoWUnit)ret)),
                                         new Action(ret =>
                                             {
                                                 Vector3 v = ((WoWUnit)ret).Location - StyxWoW.Me.Location;
