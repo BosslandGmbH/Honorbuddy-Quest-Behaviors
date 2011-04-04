@@ -38,6 +38,13 @@ namespace Styx.Bot.Quest_Behaviors
         public TalkToAndListenToStory(Dictionary<string, string> args)
             : base(args)
         {
+            UtilLogMessage("warning",   "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                        + "*\n"
+                                        + "* TalkToAndListenToStory adds _no_ _additonal_ _value_ over the InteractWith behavior (with the \"GossipOption\" attribute).\n"
+                                        + "* Please update the profile to use InteractWith in preference to the TalkToAndListenToStory behavior.\n"
+                                        + "*****");
+
             CheckForUnrecognizedAttributes(recognizedAttributes);
 
             uint questId;
