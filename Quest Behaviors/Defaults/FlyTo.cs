@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
+using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
@@ -39,6 +40,14 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     Location = location;
                     Distance = distance;
+
+                    _configSnapshot = new HonorbuddyUserConfigSnapshot();
+                    BotEvents.OnBotStop  += BotEvents_OnBotStop;
+
+                    // Set the "PullDistance" to minimum --
+                    // If we don't do this, then HB will try to dismount and engage a mob if it is
+                    // within the PullDistance.
+                    LevelbotSettings.Instance.PullDistance = 1;
                 }
 			}
 
@@ -60,9 +69,36 @@ namespace Styx.Bot.Quest_Behaviors
         public float    Distance { get; private set; }
         public WoWPoint Location { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private string      _destinationName;
-        private Composite   _root;
+        private bool                            _isAttributesOkay;
+        private HonorbuddyUserConfigSnapshot    _configSnapshot;
+        private string                          _destinationName;
+        private Composite                       _root;
+
+
+        private void    BehaviorCleanup()
+        {
+           // Restore any settings we may have altered...
+           if (_configSnapshot != null)
+           {
+                // Restore PullDistance to normal, and anything else we may have changed.
+                _configSnapshot.Restore();
+                _configSnapshot = null;
+           }
+   
+            // Unhook event handler
+           BotEvents.OnBotStop -= BotEvents_OnBotStop;
+        }
+
+
+        public void    BotEvents_OnBotStop(EventArgs args)
+        {
+             BehaviorCleanup();
+        }
+
+        public override void    Dispose()
+        {
+            BehaviorCleanup();
+        }
 
 
         #region Overrides of CustomForcedBehavior
@@ -100,5 +136,38 @@ namespace Styx.Bot.Quest_Behaviors
 		}
 
         #endregion
+    }
+
+
+    class HonorbuddyUserConfigSnapshot
+    {
+        public HonorbuddyUserConfigSnapshot()
+        {
+            _characterSettings = CharacterSettings.Instance.GetXML();
+            _levelBotSettings  = LevelbotSettings.Instance.GetXML();
+            _styxSettings      = StyxSettings.Instance.GetXML();
+        }
+   
+        public void     Restore()
+        {
+            CharacterSettings.Instance.LoadFromXML(_characterSettings);
+            LevelbotSettings.Instance.LoadFromXML(_levelBotSettings);
+            StyxSettings.Instance.LoadFromXML(_styxSettings);
+        }
+   
+        public string       GetSettingsAsString()
+        {
+            string      outString   = "";
+               
+            outString += _characterSettings.ToString();
+            outString += _levelBotSettings.ToString();
+            outString += _styxSettings.ToString();
+   
+            return (outString);
+        }
+   
+        private System.Xml.Linq.XElement        _characterSettings;
+        private System.Xml.Linq.XElement        _levelBotSettings;
+        private System.Xml.Linq.XElement        _styxSettings;             
     }
 }
