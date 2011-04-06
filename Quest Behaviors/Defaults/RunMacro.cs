@@ -62,6 +62,7 @@ namespace BuddyWiki.CustomBehavior.RunMacro
 			CheckForUnrecognizedAttributes(s_recognizedAttributeNames);
 
 			_isAttributesOkay = true;
+            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("GoalText", false, "", out _goalText); 
 			_isAttributesOkay = _isAttributesOkay && GetAttributeAsString("Macro", true, "", out _macro);
             _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("NumOfTimes", false, "1", 1, 100, out _numOfTimes);
             _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("WaitTime", false, "1500", 0, int.MaxValue, out _waitTime);
@@ -104,11 +105,16 @@ namespace BuddyWiki.CustomBehavior.RunMacro
 
 			else if (!IsDone)
 			{
-				TreeRoot.GoalText = string.Format("RunMacro {0} Times", _numOfTimes);
-
 				for (int counter = 1;   counter <= _numOfTimes;   ++counter)
 				{
-					TreeRoot.StatusText = string.Format("RunMacro progress... {0}/{1} Times", counter, _numOfTimes);
+                    if (!string.IsNullOrEmpty(_goalText))
+                    {
+                        TreeRoot.GoalText = _goalText;
+                        UtilLogMessage("info", _goalText);
+                    }
+
+                    TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, _numOfTimes);
+
 					Lua.DoString(string.Format("RunMacroText(\"{0}\")", _macro), 0);
 					Thread.Sleep(_waitTime);
 				}
@@ -119,7 +125,7 @@ namespace BuddyWiki.CustomBehavior.RunMacro
 
         #endregion
 
-
+        private string      _goalText;
 		private bool		_isAttributesOkay;
 		private bool		_isBehaviorDone;
 		private string		_macro;
@@ -129,6 +135,7 @@ namespace BuddyWiki.CustomBehavior.RunMacro
 
 		private static Dictionary<string, object>	s_recognizedAttributeNames = new Dictionary<string, object>()
 					   {
+							{ "GoalText",			null },
 							{ "Macro",				null },
 							{ "NumOfTimes",			null },
 							{ "QuestId",		    null },
