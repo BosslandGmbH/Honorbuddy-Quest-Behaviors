@@ -29,12 +29,14 @@ namespace Styx.Bot.Quest_Behaviors
         Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
         {
             {"GoalText",null},
+            {"VariantTime",null},
             {"WaitTime",null},
             {"QuestId",null},
         };
 
         bool success = true;
         private string      _goalText;
+        private string      _waitTimeAsString;
 
 
         public WaitTimer(Dictionary<string, string> args)
@@ -43,11 +45,18 @@ namespace Styx.Bot.Quest_Behaviors
             CheckForUnrecognizedAttributes(recognizedAttributes);
 
             int waitTime = 0;
+            int variantTime = 0;
 
             success = success && GetAttributeAsString("GoalText", false, "", out _goalText);
             success = success && GetAttributeAsInteger("WaitTime", true, "1000", 0, int.MaxValue, out waitTime);
+            success = success && GetAttributeAsInteger("VariantTime", false, "0", 0, int.MaxValue, out variantTime);
+
+            if (variantTime > 0)
+                { waitTime +=  (new Random()).Next(variantTime); }
 
             _timer = new Timer(new TimeSpan(0, 0, 0, 0, waitTime));
+
+            _waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);
         }
         
 
@@ -65,7 +74,10 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(ret => TreeRoot.GoalText = (!string.IsNullOrEmpty(_goalText)
                                                                ? UtilSubstituteInMessage(_goalText)
                                                                : "Waiting for timer expiration")),
-                        new Action(ret => TreeRoot.StatusText = "Wait time remaining... " + UtilBuildTimeAsString(_timer.TimeLeft) + "."),
+                        new Action(ret => TreeRoot.StatusText = "Wait time remaining... "
+                                         + UtilBuildTimeAsString(_timer.TimeLeft)
+                                         + "... of "
+                                         + _waitTimeAsString),
                         new Action(delegate { return RunStatus.Success; }))
                         )
                        );
@@ -77,7 +89,7 @@ namespace Styx.Bot.Quest_Behaviors
         private string   UtilSubstituteInMessage(string   message)
         {
             message = message.Replace("{TimeRemaining}", UtilBuildTimeAsString(_timer.TimeLeft));
-            message = message.Replace("{TimeDuration}", UtilBuildTimeAsString(_timer.WaitTime));
+            message = message.Replace("{TimeDuration}", _waitTimeAsString);
 
             return (message);
         }
