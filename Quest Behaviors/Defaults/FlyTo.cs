@@ -32,7 +32,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                 });
 
                 _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsFloat("Distance", false, "10.0", 1.0f, float.MaxValue, out distance); 
+                _isAttributesOkay &= GetAttributeAsFloat("Distance", false, "10.0", 0.05f, float.MaxValue, out distance); 
                 _isAttributesOkay &= GetAttributeAsString("Name", false, "", out _destinationName);
                 _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
 
