@@ -10,7 +10,7 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.FlyTo
 {
     class FlyTo : CustomForcedBehavior
     {
