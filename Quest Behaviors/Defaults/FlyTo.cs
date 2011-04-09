@@ -44,9 +44,18 @@ namespace Styx.Bot.Quest_Behaviors
                     _configSnapshot = new HonorbuddyUserConfigSnapshot();
                     BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
-                    // Set the "PullDistance" to minimum --
-                    // If we don't do this, then HB will try to dismount and engage a mob if it is
-                    // within the PullDistance.
+                    // Disable any settings that may cause us to dismount --
+                    // When we mount for travel via FlyTo, we don't want to be distracted by other things.
+                    // We also set PullDistance to its minimum value.  If we don't do this, HB will try
+                    // to dismount and engage a mob if it is within its normal PullDistance.
+                    // NOTE: these settings are restored to their normal values when the behavior completes
+                    // or the bot is stopped.
+                    LevelbotSettings.Instance.HarvestHerbs = false;
+                    LevelbotSettings.Instance.HarvestMinerals = false;
+                    LevelbotSettings.Instance.LootChests = false;
+                    LevelbotSettings.Instance.LootMobs = false;
+                    LevelbotSettings.Instance.NinjaSkin = false;
+                    LevelbotSettings.Instance.SkinMobs = false;
                     LevelbotSettings.Instance.PullDistance = 1;
                 }
 			}
