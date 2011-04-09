@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
@@ -14,7 +15,7 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.Escort
 {
     public class Escort : CustomForcedBehavior
     {
@@ -80,6 +81,20 @@ namespace Styx.Bot.Quest_Behaviors
                     Counter = 1;
                     MovedToTarget = false;
                     Location = location;
+
+                    _configSnapshot = new HonorbuddyUserConfigSnapshot();
+                    BotEvents.OnBotStop  += BotEvents_OnBotStop;
+
+                    // Disable any settings that may interfere with the escort --
+                    // When we escort, we don't want to be distracted by other things.
+                    // NOTE: these settings are restored to their normal values when the behavior completes
+                    // or the bot is stopped.
+                    LevelbotSettings.Instance.HarvestHerbs = false;
+                    LevelbotSettings.Instance.HarvestMinerals = false;
+                    LevelbotSettings.Instance.LootChests = false;
+                    LevelbotSettings.Instance.LootMobs = false;
+                    LevelbotSettings.Instance.NinjaSkin = false;
+                    LevelbotSettings.Instance.SkinMobs = false;
                 }
 			}
 
@@ -103,11 +118,38 @@ namespace Styx.Bot.Quest_Behaviors
         public bool     MovedToTarget { get; set; }
         public uint     QuestId { get; set; }
 
+        private HonorbuddyUserConfigSnapshot    _configSnapshot;
         private bool        _isAttributesOkay;
         private bool        _isBehaviorDone;
         private Composite   _root;
 
         public static LocalPlayer   s_me = ObjectManager.Me;
+
+
+        private void    BehaviorCleanup()
+        {
+           // Restore any settings we may have altered...
+           if (_configSnapshot != null)
+           {
+                // Restore PullDistance to normal, and anything else we may have changed.
+                _configSnapshot.Restore();
+                _configSnapshot = null;
+           }
+   
+            // Unhook event handler
+           BotEvents.OnBotStop -= BotEvents_OnBotStop;
+        }
+
+
+        public void    BotEvents_OnBotStop(EventArgs args)
+        {
+             BehaviorCleanup();
+        }
+
+        public override void    Dispose()
+        {
+            BehaviorCleanup();
+        }
 
 
         public List<WoWUnit> mobList
@@ -258,5 +300,38 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         #endregion
+    }
+
+
+    class HonorbuddyUserConfigSnapshot
+    {
+        public HonorbuddyUserConfigSnapshot()
+        {
+            _characterSettings = CharacterSettings.Instance.GetXML();
+            _levelBotSettings  = LevelbotSettings.Instance.GetXML();
+            _styxSettings      = StyxSettings.Instance.GetXML();
+        }
+   
+        public void     Restore()
+        {
+            CharacterSettings.Instance.LoadFromXML(_characterSettings);
+            LevelbotSettings.Instance.LoadFromXML(_levelBotSettings);
+            StyxSettings.Instance.LoadFromXML(_styxSettings);
+        }
+   
+        public string       GetSettingsAsString()
+        {
+            string      outString   = "";
+               
+            outString += _characterSettings.ToString();
+            outString += _levelBotSettings.ToString();
+            outString += _styxSettings.ToString();
+   
+            return (outString);
+        }
+   
+        private System.Xml.Linq.XElement        _characterSettings;
+        private System.Xml.Linq.XElement        _levelBotSettings;
+        private System.Xml.Linq.XElement        _styxSettings;             
     }
 }
