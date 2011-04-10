@@ -42,6 +42,14 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		{
 			Dictionary<string, ConfigurationChangeRequest> presets = new Dictionary<string, ConfigurationChangeRequest>();
 
+            presets.Add("Grind",
+                        new ConfigurationChangeRequest(recognizedAttributes)
+                            .Add("GroundMountFarmingMode", false)
+                            .Add("KillBetweenHotspots", true)
+                            .Add("PullDistance", 50)
+                            .Add("UseMount", false)
+                        );
+
 			presets.Add("HarvestsOff",
 						new ConfigurationChangeRequest(recognizedAttributes)
 							.Add("HarvestHerbs", false)
@@ -341,6 +349,8 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 			// Attach constraints to particular elements --
 			Dictionary<string, Constraint> constraints = new Dictionary<string, Constraint>()
             {
+                { "DrinkAmount",            new ConstrainInteger(0, 100) },
+                { "FoodAmount",             new ConstrainInteger(0, 100) },
                 { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
                 { "LootRadius",             new ConstrainInteger(1, 100) },
                 { "MountDistance",          new ConstrainInteger(1, 200) },
