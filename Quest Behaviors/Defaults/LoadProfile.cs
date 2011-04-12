@@ -37,8 +37,6 @@ namespace Styx.Bot.Quest_Behaviors
                                                     { "ProfileName",    null},
                                                 });
 
-                UtilLogMessage("info", string.Format("Current profile is \"{0}\"", CurrentProfile));
-
                 _isAttributesOkay = true;
 
                 _isAttributesOkay &= GetAttributeAsString("Profile", false, "", out profileName);
@@ -121,6 +119,7 @@ namespace Styx.Bot.Quest_Behaviors
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "LoadingProfile - " + NewProfilePath),
+                                        new Action(ret => UtilLogMessage("info", string.Format("Loading profile : \"{0}\"", ProfileName))),
                                         new Action(ret => ProfileManager.LoadNew(NewProfilePath, false)),
                                         new Action(ret => Counter++),
                                         new Action(ret => Thread.Sleep(300))
