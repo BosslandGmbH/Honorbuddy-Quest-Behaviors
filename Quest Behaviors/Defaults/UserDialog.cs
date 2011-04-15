@@ -1,6 +1,9 @@
-﻿// This work is part of the Buddy Wiki.  You may find it here:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Category:Honorbuddy_CustomBehavior
+﻿// Behavior originally contributed by Chinajade.
 //
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UseItemOn
+//
+// LICENSE:
 // This work is licensed under the 
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
@@ -8,48 +11,19 @@
 // or send a letter to
 //      Creative Commons
 //      171 Second Street, Suite 300
-//      San Francisco, California, 94105, USA. 
-//
-// Release History:
-//  Version 1.5 -- UserDialog now automatically pops down when quest is done (8-Mar-2011, chinajade)
-//                   Expiry time display is more concise.
-//                   Sound period time is now driven it from the heartbeat timer.
-//                   Consistent UserDialog exit processing--whether exit is from the behavior tree,
-//                   or normal UserDialogForm closing.
-//                   Refactored to Enum pattern to eliminate maintainence and performance concerns.
-//  Version 1.4 -- Added ExpiryAction and ExpiryTime capabilities (6-Mar-2011, chinajade)
-//                   Also, general cleanup.
-//  Version 1.3 -- Added StopOnContinue attribute (26-Feb-2011, chinajade)
-//  Version 1.2 -- Auto-defend (26-Feb-2011, chinajade)
-//                   Will now auto-defend if attacked (user selectable).
-//                   Will not harvest minerals, herbs, and chests while dialog
-//                   is showing.  This allows the user complete control of
-//                   of the toon while the dialog is showing.
-//  Version 1.1 -- Built-in error handlers (15-Feb-2011, chinajade)
-//                   Converted to the new buit-in error handlers provided by
-//                   CustomForcedBehavior.  Eliminated the CustomBehaviorUtils
-//                   class as a consequence. Yay!
-//                   Repaired a bug with IsDone processing wrt/QuestIds
-//  Version 1.0 -- Initial Release to BuddyWiki (22-Jan-2011, chinajade)
-//                   Includes the new 'standardized' error checking.
+//      San Francisco, California, 94105, USA.
 //
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Data;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 using System.Media;
-using System.Text;
-using System.Threading;
 using System.Windows.Forms;
 
 using Styx;
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 
 
@@ -516,9 +490,8 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         {
             try
             {
-                Dictionary<string, object>  expiryActionNames   = (UserDialogForm.ExpiryActionHandler.GetEnumNames()
-                                                                    .ToDictionary(key => key, value => (object)null));
-                Dictionary<string, object>  soundsAllowed  = new Dictionary<string, object>()
+                string[]                    expiryActionNames   = UserDialogForm.ExpiryActionHandler.GetEnumNames().ToArray();
+                Dictionary<string, System.Media.SystemSound>  soundsAllowed  = new Dictionary<string, System.Media.SystemSound>()
                                                                  {
                                                                       { "Asterisk",       System.Media.SystemSounds.Asterisk },
                                                                       { "Beep",           System.Media.SystemSounds.Beep },
@@ -526,47 +499,26 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                                                                       { "Hand",           System.Media.SystemSounds.Hand },
                                                                       { "Question",       System.Media.SystemSounds.Question },
                                                                  };
-                string                      soundCueName  = "";
+                string                      tmpSoundCueName  = "";
 
 
                 _isBehaviorDone     = false;
 
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                               {
-                                                    { "AllowBotStop",               null },
-                                                    { "ExpiryAction",               null },
-                                                    { "ExpiryTime",                 null },
-                                                    { "QuestCompleteRequirement",   null },
-                                                    { "QuestId",                    null },
-                                                    { "QuestInLogRequirement",      null },
-                                                    { "SoundCue",                   null },
-                                                    { "SoundCueInterval",           null },
-                                                    { "StopOnContinue",             null },
-                                                    { "Title",                      null },
-                                                    { "Text",                       null },
-                                               });
-
-
-                // We're intentionally using booleans with compound assignment (i.e., "&=") here...
-                // 1) C# allows this by design, and
-                // 2) We don't want the evaluation short-circuited as "&&" does.  To do so would nickel-and-dime
-                //    the profile writer with error messages.  Instead, we want him to see all his mistakes at once.
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsBoolean("AllowBotStop", false, "false", out _isBotStopAllowed);
-                _isAttributesOkay &= GetAttributeAsSpecificString("ExpiryAction", false, "InputEnabled_Continue", expiryActionNames, out _expiryActionName);
-                _isAttributesOkay &= GetAttributeAsInteger("ExpiryTime", false, "0", 0, int.MaxValue, out _expiryTime);
-                _isAttributesOkay &= GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, QuestCompleteRequirement.NotComplete, out _questCompleteRequirement); 
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
-                _isAttributesOkay &= GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, QuestInLogRequirement.DontCare, out _questInLogRequirement);
-                _isAttributesOkay &= GetAttributeAsSpecificString("SoundCue", false, "Asterisk", soundsAllowed, out soundCueName);
-                _isAttributesOkay &= GetAttributeAsInteger("SoundCueInterval", false, "60", 0, int.MaxValue, out _soundCueIntervalInSeconds);
-                _isAttributesOkay &= GetAttributeAsBoolean("StopOnContinue", false, "false", out _isStopOnContinue);
-                _isAttributesOkay &= GetAttributeAsString("Text", true, "", out _dialogMessage);
-                _isAttributesOkay &= GetAttributeAsString("Title", false, "Attention Required...", out _dialogTitle);
-
-
-                if (_isAttributesOkay)
-                    { _soundCue = (System.Media.SystemSound)soundsAllowed[soundCueName]; }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                DialogMessage       = GetAttributeAsString_NonEmpty("Text", true, null) ?? "";
+                DialogTitle         = GetAttributeAsString_NonEmpty("Title", false, null) ?? "Attention Required...";
+                ExpiryActionName    = GetAttributeAsString_SpecificValue("ExpiryAction", false, expiryActionNames, null) ?? "InputEnabled_Continue";
+                ExpiryTime          = GetAttributeAsInteger("ExpiryTime", false, 1, int.MaxValue, null) ?? 0;
+                IsBotStopAllowed    = GetAttributeAsBoolean("AllowBotStop", false, null) ?? false;
+                IsStopOnContinue    = GetAttributeAsBoolean("StopOnContinue", false, null) ?? false;
+                QuestId             = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                tmpSoundCueName     = GetAttributeAsString_SpecificValue("SoundCue", false, soundsAllowed.Keys.ToArray(), null) ?? "Asterisk";
+                SoundCue            = soundsAllowed[tmpSoundCueName];
+                SoundCueIntervalInSeconds = GetAttributeAsInteger("SoundCueInterval", false, 0, int.MaxValue, null) ?? 60;
 
                 BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
@@ -575,19 +527,36 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 // OnStart(), which handles IsDone processing.
             }
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
-                _isAttributesOkay = false;
-            }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
+
+        public string                       DialogTitle { get; private set; }
+        public string                       DialogMessage { get; private set; }
+        public string                       ExpiryActionName { get; private set; }
+        public int                          ExpiryTime { get; private set; }
+        public bool                         IsBotStopAllowed { get; private set; }
+        public bool                         IsStopOnContinue { get; private set; }
+        public int                          QuestId { get; private set; }
+        public QuestCompleteRequirement     QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement        QuestRequirementInLog { get; private set; }
+        public System.Media.SystemSound     SoundCue { get; private set; }
+        public int                          SoundCueIntervalInSeconds { get; private set; }
+
+        private TreeSharp.Composite         _behavior;
+        private AsyncCompletionToken        _completionToken;
+        private bool                        _isBehaviorDone;
+        private HonorbuddyConfigSnapshot    _honorbuddyConfigSnapshot;
 
 
         private void    UserDialogExitProcessing(PopdownReason     popdownReason)
@@ -595,7 +564,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             // Log to Honorbuddy why we're exiting behavior...
             if (popdownReason.IsReasonKnown())
             {
-                string      directiveRequester      = (_isStopOnContinue ? "Profile Writer request"
+                string      directiveRequester      = (IsStopOnContinue ? "Profile Writer request"
                                                         : popdownReason.IsPopdown() ? "Notification criteria no longer valid"
                                                         : popdownReason.IsTimerExpiry() ? "Profile Writer request"
                                                         : popdownReason.IsUserResponse() ? "User request"
@@ -659,21 +628,22 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet(_questId, _questInLogRequirement, _questCompleteRequirement));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-            if (!_isAttributesOkay)
-            {
-                UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
-                TreeRoot.Stop();
-            }
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
 
                 TreeRoot.GoalText   = "User Attention Required...";
@@ -695,14 +665,14 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 LevelbotSettings.Instance.SkinMobs          = false;
 
                 _completionToken = new AsyncCompletionToken(StyxWoW.Me.Name,
-                                                            _dialogTitle,
-                                                            _dialogMessage,
-                                                            _expiryActionName,
-                                                            _expiryTime,
-                                                            _isBotStopAllowed,
-                                                            _isStopOnContinue,
-                                                            _soundCue,
-                                                            _soundCueIntervalInSeconds);
+                                                            DialogTitle,
+                                                            DialogMessage,
+                                                            ExpiryActionName,
+                                                            ExpiryTime,
+                                                            IsBotStopAllowed,
+                                                            IsStopOnContinue,
+                                                            SoundCue,
+                                                            SoundCueIntervalInSeconds);
             }
         }
 
@@ -715,7 +685,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                     new TreeSharp.Action(ret =>
                     {
                         bool    isDialogComplete    = _completionToken.IsComplete;
-                        bool    isProgressing       = UtilIsProgressRequirementsMet(_questId, _questInLogRequirement, _questCompleteRequirement);
+                        bool    isProgressing       = UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
 
                         // We're complete... wrap it up
                         if (isDialogComplete  ||  !isProgressing)
@@ -749,78 +719,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         }
 
         #endregion
-
-
-        public new enum QuestCompleteRequirement
-        {
-            DontCare,
-            Complete,
-            NotComplete,
-        }
-
-        public new enum QuestInLogRequirement
-        {
-            DontCare,
-            InLog,
-            NotInLog,
-        }
-
-        /// <summary>
-        /// Determine whether a behavior should start or continue based on the QuestId, and its required
-        /// presence and completion criteria.
-        /// </summary>
-        /// <param name="questId">provides the reference for which the specified qualifies should be applied</param>
-        /// <param name="questInLogRequirement">the QuestId must meet this specified qualifier for the behavior to proceed.</param>
-        /// <param name="questCompleteRequirement">the QuestId must mee this specified qualifier for the behavior to proceed.</param>
-        /// <returns>true, if the provided QuestId meets the specified qualifiers; otherwise, returns false.</returns>
-        public static bool      UtilIsProgressRequirementsMet(int                          questId,
-                                                              QuestInLogRequirement        questInLogRequirement,
-                                                              QuestCompleteRequirement     questCompleteRequirement)
-        {
-            if (questId == 0)           // QuestId zero always meets our requirements, by definition
-                { return (true); }
-
-
-            PlayerQuest     quest   = StyxWoW.Me.QuestLog.GetQuestById((uint)questId);
-
-            // 'Quest In Log' handling --
-            if ((questInLogRequirement == QuestInLogRequirement.InLog)  &&  (quest == null))
-                { return (false); }
-
-            if ((questInLogRequirement == QuestInLogRequirement.NotInLog)  &&  (quest != null))
-                { return (false); }
-
-
-            // 'Quest Complete' handling --
-            bool    isQuestComplete = (((quest != null)  &&  (quest.IsCompleted))
-                                       || StyxWoW.Me.QuestLog.GetCompletedQuests().Contains((uint)questId));
-
-            if ((questCompleteRequirement == QuestCompleteRequirement.Complete)  &&  !isQuestComplete)
-                { return (false); }
-
-            if ((questCompleteRequirement == QuestCompleteRequirement.NotComplete)  &&  isQuestComplete)
-                { return (false); }
-
-            return (true);
-        }
-
-
-        private TreeSharp.Composite         _behavior;
-        private AsyncCompletionToken        _completionToken;
-        private string                      _dialogTitle;
-        private string                      _dialogMessage;
-        private string                      _expiryActionName;
-        private int                         _expiryTime;
-        private bool                        _isAttributesOkay;
-        private bool                        _isBehaviorDone;
-        private bool                        _isBotStopAllowed;
-        private bool                        _isStopOnContinue;
-        private HonorbuddyConfigSnapshot    _honorbuddyConfigSnapshot;
-        private int                         _questId;
-        private QuestInLogRequirement       _questInLogRequirement;
-        private QuestCompleteRequirement    _questCompleteRequirement;
-        private System.Media.SystemSound    _soundCue;
-        private int                         _soundCueIntervalInSeconds;
     }
 
 
