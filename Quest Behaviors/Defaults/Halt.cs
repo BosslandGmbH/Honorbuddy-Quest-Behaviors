@@ -1,9 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Xml;
 
-using Styx.Helpers;
 using Styx.Logic.Questing;
 using Styx.Logic.BehaviorTree;
 
@@ -35,35 +33,16 @@ namespace Styx.Bot.Quest_Behaviors
         public Halt(Dictionary<string, string> args)
             : base(args)
         {
-			try
-			{
-                Color   color = Color.Black;
-                string  colorName;
-                string  message;
-                int     questId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "Msg",        null },
-                                                    { "QuestId",    null },
-                                                    { "Color",      null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsString("Color", false, "Red", out colorName);
-                _isAttributesOkay &= GetAttributeAsString("Msg", false, "Quest Profile HALT", out message);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-
-                if (!string.IsNullOrEmpty(colorName))
-                    { color = Color.FromName(colorName); }
-
-
-                if (_isAttributesOkay)
-                {
-                    Color = color;
-                    Message = message;
-                    QuestId = (uint)questId;
-                }
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Color   = GetAttributeAsColor("Color", false, null) ?? Color.Red;
+                Message = GetAttributeAsString_NonEmpty("Text", false, new [] { "Msg", "Message" }) ?? "Quest Profile HALT";
+                QuestId = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -76,15 +55,15 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
        }
 
-        public Color    Color { get; set; }
-        public string   Message { get; set; }
-        public uint     QuestId { get; set; }
-
-        private bool    _isAttributesOkay;
+        public Color                    Color { get; private set; }
+        public string                   Message { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
 
         #region Overrides of CustomForcedBehavior
@@ -99,36 +78,25 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (!UtilIsProgressRequirementsMet((int)QuestId, 
-                                                       QuestInLogRequirement.InLog, 
-                                                       QuestCompleteRequirement.NotComplete));
+                return (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                UtilLogMessage("info", "Halting due to profile request.");
+                UtilLogMessage("", Color, "\n\n    " + Message + "\n");
 
-                Logging.Write(Color, "\n{0}", Message);
                 TreeRoot.GoalText = Message;
-
-                if (((IXmlLineInfo)Element).HasLineInfo())
-                    { Logging.Write(Color, "stopped @ line {0}\n", ((IXmlLineInfo)Element).LineNumber); }
-
-                Logging.Write(" ");
                 TreeRoot.Stop();
             }
         }
