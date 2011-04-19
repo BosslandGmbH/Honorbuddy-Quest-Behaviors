@@ -75,20 +75,69 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         public int      VehicleId { get; private set; }
 
         // Private variables for internal state
+        private ConfigMemento               _configMemento;
         private bool                        _isBehaviorDone;
+        private bool                        _isDisposed;
         private bool                        _isInitialized;
         private PlayerQuest                 _quest;
         private readonly Stopwatch          _remountTimer = new Stopwatch();
-        private bool                        _ressAtSpiritHealers;
-        private bool                        _shouldLoot;
 
         // Private properties
         public WoWPetSpell                  AttackSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId); }  }
+        public IEnumerable<WoWUnit>         HealNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                    .Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpcId);
+                                                     } }
         public WoWPetSpell                  HealSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId); } }
         private CircularQueue<WoWPoint>     EndPath { get; set; }       // End Path
+        public IEnumerable<WoWUnit>         KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                    .Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId);
+                                                     } }
         private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
         private CircularQueue<WoWPoint>     Path { get; set; }
         private WoWPoint                    StartPoint { get; set; }    // Start path
+        public WoWUnit                      Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                .FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid);
+                                                    } }
+
+
+        ~AnEndToAllThings()
+        {
+            Dispose(false);
+        }
+
+        public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    if (_configMemento != null)
+                        { _configMemento.Dispose(); }
+
+                    _configMemento = null;
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.Player.OnPlayerDied -= Player_OnPlayerDied;
+                Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+
+        public void    BotEvents_OnBotStop(EventArgs args)
+        {
+             Dispose(true);
+        }
 
 
         public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
@@ -143,12 +192,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         }
 
         /// <summary> The vehicle as a wowunit </summary>
-        public WoWUnit Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid); } }
-
-        public IEnumerable<WoWUnit> KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId); } }
-
-        public IEnumerable<WoWUnit> HealNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpcId); } }
-
         public static void CastPetAction(WoWPetSpell spell)
         {
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
@@ -300,11 +343,8 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
         public override void Dispose()
         {
-            Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-            LevelbotSettings.Instance.LootMobs = _shouldLoot;
-            LevelbotSettings.Instance.RessAtSpiritHealers = _ressAtSpiritHealers;
-
-            BotEvents.Player.OnPlayerDied -= Player_OnPlayerDied;
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 
@@ -325,13 +365,29 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
-                _shouldLoot = LevelbotSettings.Instance.LootMobs;
-                _ressAtSpiritHealers = LevelbotSettings.Instance.RessAtSpiritHealers;
-                LevelbotSettings.Instance.LootMobs = false;
-                LevelbotSettings.Instance.RessAtSpiritHealers = true;
+                // The ConfigMemento() class captures the user's existing configuration.
+                // After its captured, we can change the configuration however needed.
+                // When the memento is dispose'd, the user's original configuration is restored.
+                // More info about how the ConfigMemento applies to saving and restoring user configuration
+                // can be found here...
+                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
+                _configMemento = new ConfigMemento();
 
                 BotEvents.Player.OnPlayerDied += Player_OnPlayerDied;
+                BotEvents.OnBotStop  += BotEvents_OnBotStop;
+                Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
+
+                // Disable any settings that may cause distractions --
+                // When we do this quest, we don't want to be distracted by other things.
+                // NOTE: these settings are restored to their normal values when the behavior completes
+                // or the bot is stopped.
+                LevelbotSettings.Instance.HarvestHerbs = false;
+                LevelbotSettings.Instance.HarvestMinerals = false;
+                LevelbotSettings.Instance.LootChests = false;
+                LevelbotSettings.Instance.LootMobs = false;
+                LevelbotSettings.Instance.NinjaSkin = false;
+                LevelbotSettings.Instance.SkinMobs = false;
+                LevelbotSettings.Instance.RessAtSpiritHealers = true;
 
                 TreeRoot.GoalText = this.GetType().Name + ": In Progress";
             }

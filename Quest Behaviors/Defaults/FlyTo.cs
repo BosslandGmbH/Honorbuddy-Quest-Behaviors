@@ -78,10 +78,9 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
                 if (isExplicitlyInitiatedDispose)
                 {
                     if (_configMemento != null)
-                    {
-                        _configMemento.Dispose();
-                        _configMemento = null;
-                    }
+                        { _configMemento.Dispose(); }
+
+                    _configMemento = null;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -136,7 +135,14 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                // The ConfigMemento() class captures the user's existing configuration.
+                // After its captured, we can change the configuration however needed.
+                // When the memento is dispose'd, the user's original configuration is restored.
+                // More info about how the ConfigMemento applies to saving and restoring user configuration
+                // can be found here...
+                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new ConfigMemento();
+
                 BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
                 // Disable any settings that may cause us to dismount --

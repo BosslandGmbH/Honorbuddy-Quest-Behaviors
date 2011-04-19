@@ -73,12 +73,15 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
         // Private properties
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        private List<WoWUnit>           MobList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                .Where(u => u.Entry == MobId && !u.Dead)
+                                                                                .OrderBy(u => u.Distance).ToList());
+                                                }}
 
 
         ~Escort()
         {
             Dispose(false);
-            GC.SuppressFinalize(this);
         }
 
         public void     Dispose(bool    isExplicitlyInitiatedDispose)
@@ -92,10 +95,9 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 if (isExplicitlyInitiatedDispose)
                 {
                     if (_configMemento != null)
-                    {
-                        _configMemento.Dispose();
-                        _configMemento = null;
-                    }
+                        { _configMemento.Dispose(); }
+
+                    _configMemento = null;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -115,15 +117,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
-        public List<WoWUnit> mobList
-        {
-            get
-            {
-               return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => u.Entry == MobId && !u.Dead)
-                                    .OrderBy(u => u.Distance).ToList());
-            }
-        }
+
 
 
         WoWSpell RangeSpell
@@ -169,7 +163,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                         }))
                                     )),
 
-                           new Decorator(ret => mobList.Count == 0,
+                           new Decorator(ret => MobList.Count == 0,
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                         new Action(ret => Navigator.MoveTo(Location)),
@@ -181,13 +175,13 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                new Action(ret => Me.ClearTarget())),
 
                            new Decorator(
-                               ret => mobList.Count > 0 && mobList[0].IsHostile,
+                               ret => MobList.Count > 0 && MobList[0].IsHostile,
                                new PrioritySelector(
                                    new Decorator(
-                                       ret => Me.CurrentTarget != mobList[0],
+                                       ret => Me.CurrentTarget != MobList[0],
                                        new Action(ret =>
                                            {
-                                               mobList[0].Target();
+                                               MobList[0].Target();
                                                StyxWoW.SleepForLagDuration();
                                            })),
                                    new Decorator(
@@ -200,21 +194,21 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
 
                            new Decorator(
-                               ret => mobList.Count > 0 && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && 
-                                      mobList[0].CurrentTarget == null && mobList[0].DistanceSqr > 5f * 5f,
+                               ret => MobList.Count > 0 && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && 
+                                      MobList[0].CurrentTarget == null && MobList[0].DistanceSqr > 5f * 5f,
                                 new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Following Mob - " + mobList[0].Name + " At X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
-                                            new Action(ret => Navigator.MoveTo(mobList[0].Location)),
+                                            new Action(ret => TreeRoot.StatusText = "Following Mob - " + MobList[0].Name + " At X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
+                                            new Action(ret => Navigator.MoveTo(MobList[0].Location)),
                                             new Action(ret => Thread.Sleep(100))
                                        )
                                 ),
 
-                           new Decorator(ret => mobList.Count > 0 && (Me.Combat || mobList[0].Combat),
+                           new Decorator(ret => MobList.Count > 0 && (Me.Combat || MobList[0].Combat),
                                 new PrioritySelector(
                                     new Decorator(
-                                        ret => Me.CurrentTarget == null && mobList[0].CurrentTarget != null,
+                                        ret => Me.CurrentTarget == null && MobList[0].CurrentTarget != null,
                                         new Sequence(
-                                        new Action(ret => mobList[0].CurrentTarget.Target()),
+                                        new Action(ret => MobList[0].CurrentTarget.Target()),
                                         new Action(ret => StyxWoW.SleepForLagDuration()))),
                                     new Decorator(
                                         ret => !Me.Combat,
@@ -232,6 +226,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         public override void   Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 
@@ -256,7 +251,14 @@ namespace Styx.Bot.Quest_Behaviors.Escort
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                // The ConfigMemento() class captures the user's existing configuration.
+                // After its captured, we can change the configuration however needed.
+                // When the memento is dispose'd, the user's original configuration is restored.
+                // More info about how the ConfigMemento applies to saving and restoring user configuration
+                // can be found here...
+                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new ConfigMemento();
+
                 BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
                 // Disable any settings that may interfere with the escort --

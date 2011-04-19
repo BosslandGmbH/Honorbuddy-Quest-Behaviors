@@ -552,7 +552,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         // Private variables for internal state
         private TreeSharp.Composite         _behavior;
         private AsyncCompletionToken        _completionToken;
-        private HonorbuddyConfigSnapshot    _honorbuddyConfigSnapshot;
+        private ConfigMemento               _configMemento;
         private bool                        _isBehaviorDone;
         private bool                        _isDisposed;
 
@@ -560,7 +560,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         ~UserDialog()
         {
             Dispose(false);
-            GC.SuppressFinalize(this);
         }
 
 
@@ -577,11 +576,11 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                     if (_completionToken != null)
                         { _completionToken.Dispose(); }
 
-                    if (_honorbuddyConfigSnapshot != null)
-                        { _honorbuddyConfigSnapshot.Restore(); }
+                    if (_configMemento != null)
+                        { _configMemento.Dispose(); }
 
                     _completionToken = null;
-                    _honorbuddyConfigSnapshot = null;
+                    _configMemento = null;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -681,6 +680,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         public override void        Dispose()
         {
             Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 
@@ -705,19 +705,21 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText   = "User Attention Required...";
-                TreeRoot.StatusText = "Waiting for user dialog to close";
+                // The ConfigMemento() class captures the user's existing configuration.
+                // After its captured, we can change the configuration however needed.
+                // When the memento is dispose'd, the user's original configuration is restored.
+                // More info about how the ConfigMemento applies to saving and restoring user configuration
+                // can be found here...
+                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop  += BotEvents_OnBotStop;
-
 
                 // We don't want the bot running around harvesting while the user
                 // is manually controlling it trying to get the task completed.
                 // (We've already captured the existing configuration which will
                 //  be restored when this behavior exits, or the bot is stopped.
                 //  So there are no worries about destroying user's configuration.)
-                _honorbuddyConfigSnapshot = new HonorbuddyConfigSnapshot();
-
                 LevelbotSettings.Instance.HarvestHerbs      = false;
                 LevelbotSettings.Instance.HarvestMinerals   = false;
                 LevelbotSettings.Instance.LootChests        = false;
@@ -734,6 +736,9 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                                                             IsStopOnContinue,
                                                             SoundCue,
                                                             SoundCueIntervalInSeconds);
+
+                TreeRoot.GoalText   = "User Attention Required...";
+                TreeRoot.StatusText = "Waiting for user dialog to close";
             }
         }
 
@@ -880,39 +885,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         private PopdownReason       _popdownRequest;
         private PopdownReason       _popdownResponse;
         private readonly object     _stateLock      = new object();
-    }
-
-
-    class HonorbuddyConfigSnapshot
-    {
-        public HonorbuddyConfigSnapshot()
-        {
-            _characterSettings = CharacterSettings.Instance.GetXML();
-            _levelBotSettings  = LevelbotSettings.Instance.GetXML();
-            _styxSettings      = StyxSettings.Instance.GetXML();
-        }
-
-        public void     Restore()
-        {
-            CharacterSettings.Instance.LoadFromXML(_characterSettings);
-            LevelbotSettings.Instance.LoadFromXML(_levelBotSettings);
-            StyxSettings.Instance.LoadFromXML(_styxSettings);
-        }
-
-        public string       GetSettingsAsString()
-        {
-            string      outString   = "";
-                
-            outString += _characterSettings.ToString();
-            outString += _levelBotSettings.ToString();
-            outString += _styxSettings.ToString();
-
-            return (outString);
-        }
-
-        private System.Xml.Linq.XElement        _characterSettings;
-        private System.Xml.Linq.XElement        _levelBotSettings;
-        private System.Xml.Linq.XElement        _styxSettings;             
     }
 
 
