@@ -1,16 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+
 using Styx.Helpers;
+using Styx.Logic;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
-using System.Diagnostics;
-using Styx.Logic.Combat;
-using Styx.Logic;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -28,76 +31,85 @@ namespace Styx.Bot.Quest_Behaviors
     /// 
     public class FindAndBeatNpcs : CustomForcedBehavior
     {
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"MobId",null},
-            {"MobId2",null},
-            {"MobId3",null},
-            {"HealthPercent",null},
-            {"QuestId",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-        };
-        bool success = true;
         public FindAndBeatNpcs(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            int mobID = 0;
-            int mobID2 = 0;
-            int mobID3 = 0;
-            int health = 0;
-            int questId = 0;
-            WoWPoint point = WoWPoint.Empty;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                HealthPercent   = GetAttributeAsInteger("HealthPercent", false, 0, 99, null) ?? 25;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId       = GetAttributeAsMobId("MobId", true, null) ?? 0;
+                MobId2      = GetAttributeAsMobId("MobId2", false, null) ?? 0;
+                MobId3      = GetAttributeAsMobId("MobId3", false, null) ?? 0;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+			}
 
-            success = success && GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobID);
-            success = success && GetAttributeAsInteger("MobId2", false, "0", 0, int.MaxValue, out mobID2);
-            success = success && GetAttributeAsInteger("MobId3", false, "0", 0, int.MaxValue, out mobID3);
-            success = success && GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("HealthPercent", false, "25", 0, int.MaxValue, out health);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out point);
-
-            MobId = mobID;
-            MobId2 = mobID2;
-            MobId3 = mobID3;
-            QuestId = questId;
-            HealthPercent = health;
-            Location = point;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public int MobId { get; private set; }
-        public int MobId2 { get; private set; }
-        public int MobId3 { get; private set; }
-        public int QuestId { get; private set; }
-        public int HealthPercent { get; private set; }
-        public WoWPoint Location { get; private set; }
-        LocalPlayer me = ObjectManager.Me;
-        public WoWUnit Npc
+
+        // Attributes provided by caller
+        public int                      HealthPercent { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MobId { get; private set; }
+        public int                      MobId2 { get; private set; }
+        public int                      MobId3 { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+
+        // Private variables for internal state
+        private bool            _isBehaviorDone;
+        private Composite       _root;
+
+        // Private properties
+        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
+        public WoWUnit          Npc
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true).OrderBy(o => o.Distance)
-                    .FirstOrDefault(o => !o.Dead && !Blacklist.Contains(o.Guid) && 
-                        (!o.GotTarget|| o.IsTargetingMeOrPet) && ((o.Entry == MobId) ||
-                    (MobId2 > 0 && o.Entry == MobId2) || (MobId3 > 0 && o.Entry == MobId3)));
+                return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                     .OrderBy(o => o.Distance)
+                                     .FirstOrDefault(o => !o.Dead
+                                                     && !Blacklist.Contains(o.Guid)
+                                                     && (!o.GotTarget|| o.IsTargetingMeOrPet)
+                                                     && ((o.Entry == MobId)
+                                                         || (MobId2 > 0 && o.Entry == MobId2)
+                                                         || (MobId3 > 0 && o.Entry == MobId3))));
             }
         }
 
+
         #region Overrides of CustomForcedBehavior
-        private Composite root;
+
         protected override Composite CreateBehavior()
         {
-            return root ??
-                (root = new PrioritySelector(
+            return _root ??
+                (_root = new PrioritySelector(
                     new Decorator(c => Npc != null,
                         new Action(c =>
                         {
                             if (!Npc.Attackable)
                                 Styx.Logic.Blacklist.Add(Npc.Guid,new System.TimeSpan(0,5,0));
-                            if ((me.Combat && (me.GotTarget && me.CurrentTarget != Npc && 
-                                (me.CurrentTarget.Entry != MobId || me.CurrentTarget.Entry != MobId2 || me.CurrentTarget.Entry != MobId3 ))
-                                || me.HealthPercent < HealthPercent) || IsDone)
+                            if ((Me.Combat && (Me.GotTarget && Me.CurrentTarget != Npc && 
+                                (Me.CurrentTarget.Entry != MobId || Me.CurrentTarget.Entry != MobId2 || Me.CurrentTarget.Entry != MobId3 ))
+                                || Me.HealthPercent < HealthPercent) || IsDone)
                             {
                                 return RunStatus.Success;
                             }
@@ -121,24 +133,24 @@ namespace Styx.Bot.Quest_Behaviors
                                     Styx.Logic.Inventory.Frames.LootFrame.LootFrame.Instance.IsVisible)
                                 {
                                     Styx.Logic.Inventory.Frames.LootFrame.LootFrame.Instance.LootAll();
-                                    if (me.GotTarget)
-                                        Blacklist.Add(me.CurrentTarget,new System.TimeSpan(1,0,0));
-                                    me.ClearTarget();
+                                    if (Me.GotTarget)
+                                        Blacklist.Add(Me.CurrentTarget,new System.TimeSpan(1,0,0));
+                                    Me.ClearTarget();
                                 }
                                 return RunStatus.Running;
                             }
-                            if (!me.GotTarget || me.CurrentTarget != Npc)
+                            if (!Me.GotTarget || Me.CurrentTarget != Npc)
                                 Npc.Target();
                             if (!Npc.WithinInteractRange)
                             {
                                 TreeRoot.GoalText = string.Format("Moving to {0}", Npc.Name);
-                                Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(me.Location, Npc.Location, 3));
+                                Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, Npc.Location, 3));
                             }
                             else
                             {
-                                if (me.IsMoving)
+                                if (Me.IsMoving)
                                     WoWMovement.MoveStop();
-                                if (!me.IsAutoAttacking || !me.IsSafelyFacing(ObjectManager.Me.CurrentTarget))
+                                if (!Me.IsAutoAttacking || !Me.IsSafelyFacing(ObjectManager.Me.CurrentTarget))
                                 {
                                     TreeRoot.GoalText = string.Format("Bullying {0}", Npc.Name);
                                     Npc.Interact();
@@ -150,30 +162,32 @@ namespace Styx.Bot.Quest_Behaviors
                 ));
         }
 
-        void Err(string format, params object[] args)
-        {
-            Logging.Write(System.Drawing.Color.Red, "FindAndBeatNpcs: " + format, args);
-            TreeRoot.Stop();
-        }
 
-        void Log(string format, params object[] args)
-        {
-            Logging.Write("FindAndBeatNpcs: " + format, args);
-        }
-
-        private bool isDone = false;
         public override bool IsDone
         {
             get
             {
-                var quest = ObjectManager.Me.QuestLog.GetQuestById((uint)QuestId);
-                return isDone || (QuestId > 0 && ((quest != null && quest.IsCompleted) || quest == null));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
+
+
         public override void OnStart()
         {
-            TreeRoot.GoalText = string.Format("Moving to {0} to beatup NPC's that match the following IDs {1}, {2}, {3}",
-                Location,MobId,MobId2,MobId3);
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+               TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
         }
         
          #endregion

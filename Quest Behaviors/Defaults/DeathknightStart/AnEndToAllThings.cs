@@ -2,23 +2,26 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Globalization;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
+
 using Bots.Grind;
+
 using Styx.Helpers;
 using Styx.Logic;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
-using Styx.Logic.Combat;
+
 using Tripper.Tools.Math;
-using System.Globalization;
+
 
 namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 {
@@ -34,77 +37,59 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
     /// </summary>
     public class AnEndToAllThings : CustomForcedBehavior
     {
-        readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"VehicleId",null},
-            {"ItemId",null},
-            {"AttackSpell",null},
-            {"HealSpell",null},
-            {"KillNpc",null},
-            {"HealNpc",null}
-        };
-
-        private readonly bool _success = true;
-
         public AnEndToAllThings(Dictionary<string, string> args) : base(args)
         {
-            CheckForUnrecognizedAttributes(_recognizedAttributes);
-            int vehicleId = 0, attackSpell = 0, healSpell = 0, itemId = 0, killNpc = 0, healNpc = 0;
-
-            _success = _success && GetAttributeAsInteger("VehicleId", true, "0", 0, int.MaxValue, out vehicleId);
-            _success = _success && GetAttributeAsInteger("ItemId", false, "0", 0, int.MaxValue, out itemId);
-            _success = _success && GetAttributeAsInteger("AttackSpell", true, "0", 0, int.MaxValue, out attackSpell);
-            _success = _success && GetAttributeAsInteger("HealSpell", false, "0", 0, int.MaxValue, out healSpell);
-            _success = _success && GetAttributeAsInteger("KillNpc", true, "0", 0, int.MaxValue, out killNpc);
-            _success = _success && GetAttributeAsInteger("HealNpc", true, "0", 0, int.MaxValue, out healNpc);
-
-            if(!_success)
+            try
             {
-                Logging.Write(Color.Red, "Error parsing tag for AnEndToAllThings. {0}", Element);
-                TreeRoot.Stop();
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                AttackSpellId   = GetAttributeAsSpellId("AttackSpellId", true, new [] { "AttackSpell" }) ?? 0;
+                HealNpcId       = GetAttributeAsMobId("HealNpcId", true, new [] { "HealNpc" }) ?? 0;
+                HealSpellId     = GetAttributeAsSpellId("HealSpellId", false, new [] { "HealSpell" }) ?? 0;
+                ItemId          = GetAttributeAsItemId("ItemId", false, null) ?? 0;
+                KillNpcId       = GetAttributeAsMobId("KillNpcId", true, new [] { "KillNpc" }) ?? 0;
+                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+			}
 
-            VehicleId = vehicleId;
-            ItemId = itemId;
-            AttackSpellId = attackSpell;
-            HealSpellId = healSpell;
-            KillNpc = (uint)killNpc;
-            HealNpc = (uint)healNpc;
-
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        /// <summary>Id of the quest. </summary>
-        public int VehicleId { get; private set; }
+        // Attributes provided by caller
+        public int      AttackSpellId { get;  private set; }
+        public int      HealNpcId { get; private set; }
+        public int      HealSpellId { get; private set; }
+        public int      ItemId { get; private set; }
+        public int      KillNpcId { get; private set; }
+        public int      VehicleId { get; private set; }
 
-        /// <summary>Item that summons the big bad dragon! </summary>
-        public int ItemId { get; private set; }
+        // Private variables for internal state
+        private bool                        _isBehaviorDone;
+        private bool                        _isInitialized;
+        private PlayerQuest                 _quest;
+        private readonly Stopwatch          _remountTimer = new Stopwatch();
+        private bool                        _ressAtSpiritHealers;
+        private bool                        _shouldLoot;
 
-        public int AttackSpellId { get;  private set; }
+        // Private properties
+        public WoWPetSpell                  AttackSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId); }  }
+        public WoWPetSpell                  HealSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId); } }
+        private CircularQueue<WoWPoint>     EndPath { get; set; }       // End Path
+        private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
+        private CircularQueue<WoWPoint>     Path { get; set; }
+        private WoWPoint                    StartPoint { get; set; }    // Start path
 
-        public int HealSpellId { get; private set; }
-
-        /// <summary>Id of the attack spell. </summary>
-        public WoWPetSpell AttackSpell
-        {
-            get
-            {
-                return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId);
-            } 
-        }
-
-        /// <summary>Id of the heal spell. </summary>
-        public WoWPetSpell HealSpell 
-        { 
-            get
-            {
-                return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId);
-            } 
-        }
-
-        /// <summary>Ids of npc's to kill. </summary>
-        public uint KillNpc { get; private set; }
-
-        public uint HealNpc { get; private set; }
 
         public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
         {
@@ -127,16 +112,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             return temp;
         }
 
-        /// <summary> The start path. </summary>
-        public WoWPoint StartPoint { get; private set; }
-
-        /// <summary> The end path. </summary>
-        public CircularQueue<WoWPoint> EndPath { get; private set; }
-
-        /// <summary> The path. </summary>
-        public CircularQueue<WoWPoint> Path { get; private set; }
-
-        private bool _isInitialized;
         private void ParsePaths()
         {
             var endPath = new CircularQueue<WoWPoint>();
@@ -158,11 +133,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             _isInitialized = true;
         }
 
-        #region Overrides of CustomForcedBehavior
-
-        private static LocalPlayer Me { get { return StyxWoW.Me; } }
-
-        private PlayerQuest _quest;
         /// <summary> Returns a quest object, 'An end to all things...' </summary>
         private PlayerQuest Quest
         {
@@ -175,21 +145,27 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         /// <summary> The vehicle as a wowunit </summary>
         public WoWUnit Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid); } }
 
-        public IEnumerable<WoWUnit> KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpc); } }
+        public IEnumerable<WoWUnit> KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId); } }
 
-        public IEnumerable<WoWUnit> HealNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpc); } }
-
-        private bool _isDone;
-        /// <summary>Gets a value indicating whether this object is done.</summary>
-        /// <value>true if this object is done, false if not.</value>
-        public override bool IsDone { get { return _isDone; } }
-
-        private readonly Stopwatch _remountTimer = new Stopwatch();
+        public IEnumerable<WoWUnit> HealNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpcId); } }
 
         public static void CastPetAction(WoWPetSpell spell)
         {
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
         }
+
+        private static void Player_OnPlayerDied()
+        {
+            LevelBot.ShouldUseSpiritHealer = true;
+        }
+
+        private static void Instance_RemoveTargetsFilter(List<WoWObject> units)
+        {
+            units.Clear();
+        }
+
+
+        #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
@@ -205,7 +181,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                             new Decorator(ret => ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 29107 && Vehicle.Location.Distance(r.Location) <= 10) != null,
                                 new Sequence(
                                     new Action(ret => Lua.DoString("VehicleExit()")),
-                                    new Action(ret => _isDone = Quest.IsCompleted),
+                                    new Action(ret => _isBehaviorDone = Quest.IsCompleted),
                                     new Action(ret => _remountTimer.Reset())
                                     )),
 
@@ -213,8 +189,8 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                 new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                                     new DecoratorContinue(ret => ret == null,
                                         new Sequence(
-                                            new Action(ret => Logging.Write("Couldn't find item with id: {0}", ItemId)),
-                                            new Action(ret => Logging.Write(Color.Red, "Honorbuddy stopped.")),
+                                            new Action(ret => UtilLogMessage("fatal", string.Format("Unable to find ItemId({0}) in inventory.",
+                                                                                                    ItemId))),
                                             new Action(ret => TreeRoot.Stop())
                                             )),
 
@@ -246,8 +222,8 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                         new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                             new DecoratorContinue(ret => ret == null,
                                 new Sequence( 
-                                    new Action(ret => Logging.Write("Couldn't find item with id: {0}", ItemId)),
-                                    new Action(ret => Logging.Write(Color.Red, "Honorbuddy stopped.")),
+                                    new Action(ret => UtilLogMessage("fatal", string.Format("Unable to locate ItemId({0}) in inventory.",
+                                                                                            ItemId))),
                                     new Action(ret => TreeRoot.Stop())
                                     )),
 
@@ -325,29 +301,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                         )));
         }
 
-        private static void Player_OnPlayerDied()
-        {
-            LevelBot.ShouldUseSpiritHealer = true;
-        }
-
-        private static void Instance_RemoveTargetsFilter(List<WoWObject> units)
-        {
-            units.Clear();
-        }
-
-        private bool _shouldLoot;
-        private bool _ressAtSpiritHealers;
-        public override void OnStart()
-        {
-            Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
-            _shouldLoot = LevelbotSettings.Instance.LootMobs;
-            _ressAtSpiritHealers = LevelbotSettings.Instance.RessAtSpiritHealers;
-            LevelbotSettings.Instance.LootMobs = false;
-            LevelbotSettings.Instance.RessAtSpiritHealers = true;
-
-            BotEvents.Player.OnPlayerDied += Player_OnPlayerDied;
-            TreeRoot.GoalText = "An end to all things";
-        }
 
         public override void Dispose()
         {
@@ -356,6 +309,36 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             LevelbotSettings.Instance.RessAtSpiritHealers = _ressAtSpiritHealers;
 
             BotEvents.Player.OnPlayerDied -= Player_OnPlayerDied;
+        }
+
+
+        public override bool IsDone
+        {
+            get { return (_isBehaviorDone); }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
+                _shouldLoot = LevelbotSettings.Instance.LootMobs;
+                _ressAtSpiritHealers = LevelbotSettings.Instance.RessAtSpiritHealers;
+                LevelbotSettings.Instance.LootMobs = false;
+                LevelbotSettings.Instance.RessAtSpiritHealers = true;
+
+                BotEvents.Player.OnPlayerDied += Player_OnPlayerDied;
+
+                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
+            }
         }
 
         #endregion

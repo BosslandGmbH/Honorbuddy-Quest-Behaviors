@@ -1,17 +1,20 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Common;
 using Styx.Logic.Inventory;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Styx.Logic.Combat;
 
+using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -23,36 +26,45 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class IntotheRealmofShadows : CustomForcedBehavior
     {
-        readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-        };
-
-        bool success = true;
         public IntotheRealmofShadows(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(_recognizedAttributes);
-            WoWPoint point = WoWPoint.Empty;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+			}
 
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out point);
-
-            Location = point;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        private bool IsInVehicle
-        {
-            get { return Lua.GetReturnVal<int>("return UnitIsControlling('player')", 0) == 1; }
-        }
 
-        public WoWPoint Location { get; private set; }
-        LocalPlayer Me { get { return StyxWoW.Me; } }
+        // Attributes provided by caller
+        public WoWPoint         Location { get; private set; }
+
+        // Private variables for internal state
+        private bool            _isBehaviorDone;
+        private Composite       _root;
+
+        // Private properties
+        private bool            IsInVehicle { get { return Lua.GetReturnVal<int>("return UnitIsControlling('player')", 0) == 1; } }
+        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
+
 
         #region Overrides of CustomForcedBehavior
-
-        private Composite _root;
 
         protected override Composite CreateBehavior()
         {
@@ -73,7 +85,7 @@ namespace Styx.Bot.Quest_Behaviors
                         }
                         if (IsInVehicle)
                         {
-                            _isDone = true;
+                            _isBehaviorDone = true;
                             return RunStatus.Success;
                         }
                         WoWUnit Horse = ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 28782).OrderBy(u => u.Distance).FirstOrDefault();
@@ -127,16 +139,29 @@ namespace Styx.Bot.Quest_Behaviors
                 )));
         }
 
-        private bool _isDone;
-        public override bool IsDone { get { return _isDone; } }
-
-        public override void OnStart()
-        {
-            TreeRoot.GoalText = "Completing quest 'Realm of the Shadow'";
-        }
-
         public override void Dispose()
         {
+        }
+
+
+        public override bool IsDone
+        {
+            get { return _isBehaviorDone; }
+        }
+
+
+        public override void OnStart()
+        {            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
+            }
         }
 
         #endregion

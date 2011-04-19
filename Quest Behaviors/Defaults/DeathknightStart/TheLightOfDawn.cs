@@ -1,56 +1,78 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
 
+using TreeSharp;
 using Action = TreeSharp.Action;
-using Styx.Logic.Inventory.Frames.Gossip;
-using System;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class TheLightOfDawn : CustomForcedBehavior
     {
-        readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},
-        };
-
-        private readonly bool _success = true;
-
 		public TheLightOfDawn(Dictionary<string, string> args)
             : base(args)
         {
-		    CheckForUnrecognizedAttributes(_recognizedAttributes);
-
-		    int questId = 0;
-		    _success = _success && GetAttributeAsInteger("QuestId", false, "0", int.MinValue, int.MaxValue, out questId);
-
-            if (!_success)
+            try
             {
-                Logging.Write(Color.Red, "Error parsing tag for AnEndToAllThings. {0}", Element);
-                TreeRoot.Stop();
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+			}
 
-		    QuestId = (uint)questId;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public uint QuestId { get; private set; }
-        private static LocalPlayer Me { get { return StyxWoW.Me; } }
-		private static WoWUnit HighWarlordDarion { get { return ObjectManager.GetObjectsOfType<WoWUnit>(false, false).FirstOrDefault(u => u.Entry == 29173); } }
+
+        // Attributes provided by caller
+        public int                          QuestId { get; private set; }
+        public QuestCompleteRequirement     QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement        QuestRequirementInLog { get; private set; }
+
+        // Private variables for internal state
+        private readonly Helpers.WaitTimer  _afkTimer = new Helpers.WaitTimer(TimeSpan.FromMinutes(2));
+        private Composite                   _root;
+
+        // Private properties
+		private static WoWUnit              HighWarlordDarion { get { return ObjectManager.GetObjectsOfType<WoWUnit>(false, false).FirstOrDefault(u => u.Entry == 29173); } }
+        private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
+
+
+        private void AntiAfk()
+        {
+            if (!_afkTimer.IsFinished) return;
+            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(100));
+            _afkTimer.Reset();
+        }
+
 
         #region Overrides of CustomForcedBehavior
 
         private readonly Styx.Helpers.WaitTimer _waitTimer = new Styx.Helpers.WaitTimer(TimeSpan.FromMinutes(10));
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ??(_root = 
@@ -96,26 +118,29 @@ namespace Styx.Bot.Quest_Behaviors
                     ));
         }
 
-        private readonly Helpers.WaitTimer _afkTimer = new Helpers.WaitTimer(TimeSpan.FromMinutes(2));
-        private void AntiAfk()
-        {
-            if (!_afkTimer.IsFinished) return;
-            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(100));
-            _afkTimer.Reset();
-        }
-
         public override bool IsDone
         {
             get
             {
-                var quest = Me.QuestLog.GetQuestById(QuestId);
-                return quest != null && quest.IsCompleted;
+                return (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
         public override void OnStart()
         {
-            TreeRoot.GoalText = "The Light of Dawn";
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
         }
 
         #endregion
