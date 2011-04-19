@@ -39,126 +39,25 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                int     homeIndex;
-                int     maxRange;
-                int     npcMountId;
-                int     oftenToUse;
-                int     questId;
-                int     spellIndex;
-                int     targetId;
-                int     targetId2;
-                int     targetId3;
-                int     timesToUse;
-                int     typeId;
-                int     vehicleId;
-                int     waitTime;
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                AttackButton = GetAttributeAsHotbarButton("AttackButton", true, new [] { "AttackIndex", "SpellIndex" }) ?? 0;
+                GoHomeButton   = GetAttributeAsHotbarButton("GoHomeButton", false, new [] { "HomeIndex" }) ?? 0;
+                NpcMountId  = GetAttributeAsMobId("NpcMountId", false, null) ?? 1;
+                MaxRange    = GetAttributeAsRange("MaxRange", false, null) ?? 1;
+                MountedPoint = WoWPoint.Empty;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, new [] { "TimesToUse" }) ?? 1;
+                OftenToUse  = GetAttributeAsInteger("OftenToUse", false, 0, int.MaxValue, null) ?? 1000;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                SpellType   = GetAttributeAsInteger("TypeId", false, 0, 4, null) ?? 2;
+                TargetId    = GetAttributeAsMobId("TargetId", true, new [] { "MobId", "NpcId" }) ?? 0;
+                TargetId2   = GetAttributeAsMobId("TargetId2", false, null) ?? 0;
+                TargetId3   = GetAttributeAsMobId("TargetId3", false, null) ?? 0;
+                VehicleId   = GetAttributeAsMobId("VehicleId", false, null) ?? 0;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
 
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "AttackIndex",    null },
-                                                    { "HomeIndex",      null },
-                                                    { "MaxRange",       null },
-                                                    { "MobId",          null },
-                                                    { "NpcId",          null },
-                                                    { "NpcMountId",     null },
-                                                    { "NumOfTimes",     null },
-                                                    { "QuestId",        null },
-                                                    { "OftenToUse",     null },
-                                                    { "SpellIndex",     null },
-                                                    { "TargetId",       null },
-                                                    { "TargetId2",      null },
-                                                    { "TargetId3",      null },
-                                                    { "TimesToUse",     null },
-                                                    { "TypeId",         null },
-                                                    { "VehicleId",      null },
-                                                    { "WaitTime",       null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("HomeIndex", false, "1", 0, int.MaxValue, out homeIndex);
-                _isAttributesOkay &= GetAttributeAsInteger("MaxRange", false, "1", 0, int.MaxValue, out maxRange);
-                _isAttributesOkay &= GetAttributeAsInteger("NpcMountId", false, "1", 0, int.MaxValue, out npcMountId);
-                _isAttributesOkay &= GetAttributeAsInteger("OftenToUse", false, "1000", 0, int.MaxValue, out oftenToUse);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-
-
-                _isAttributesOkay &= GetAttributeAsInteger("AttackIndex", false, "0", 0, int.MaxValue, out spellIndex);
-                if (spellIndex == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("SpellIndex", true, "0", 0, int.MaxValue, out spellIndex); }
-
-
-                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out targetId);
-                if (targetId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", false, "0", 0, int.MaxValue, out targetId); }
-                if (targetId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("TargetId", true, "0", 0, int.MaxValue, out targetId); }
-
-
-                _isAttributesOkay &= GetAttributeAsInteger("TargetId2", false, "0", 0, int.MaxValue, out targetId2);
-                _isAttributesOkay &= GetAttributeAsInteger("TargetId3", false, "0", 0, int.MaxValue, out targetId3);
-
-
-                _isAttributesOkay &= GetAttributeAsInteger("NumOfTimes", false, "0", 0, int.MaxValue, out timesToUse);
-                if (timesToUse == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("TimesToUse", false, "1", 0, int.MaxValue, out timesToUse); }
-
-
-                _isAttributesOkay &= GetAttributeAsInteger("TypeId", false, "2", 0, 4, out typeId);
-                _isAttributesOkay &= GetAttributeAsInteger("VehicleId", false, "0", 0, int.MaxValue, out vehicleId);
-                _isAttributesOkay &= GetAttributeAsInteger("WaitTime", false, "0", 0, int.MaxValue, out waitTime);
-
-
-                // Semantic coherency --
-                if (_isAttributesOkay)
-                {
-                    if (((Args.ContainsKey("AttackIndex") ? 1 : 0)  + (Args.ContainsKey("SpellIndex") ? 1 : 0))  >  1)
-                    {
-                        UtilLogMessage("error", "\"AttackIndex\", and \"SpellIndex\" attributes are mutually exclusive."
-                                                + "   Use \"AttackIndex\" (\"SpellIndex\" is deprecated).");
-                        _isAttributesOkay = false;
-                    }
-
-                    if ((Args.ContainsKey("TargetId") ? 1 : 0) 
-                        + (Args.ContainsKey("MobId") ? 1 : 0)
-                        + (Args.ContainsKey("NpcId") ? 1 : 0)  > 1)
-                    {
-                        UtilLogMessage("error", "\"TargetId\", \"MobId\", and \"NpcId\" attributes are mutually exclusive."
-                                                + "   Use \"TargetId\" (\"MobId\" and \"NpcId\" are deprecated).");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (spellIndex == 0)
-                    {
-                        UtilLogMessage("error", "\"SpellIndex\" may not be zero.");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (targetId == 0)
-                    {
-                        UtilLogMessage("error", "\"TargetId\" may not be zero.");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    QuestId = (uint)questId;
-                    NpcMountID = npcMountId;
-                    SpellType = typeId;
-                    MaxRange = maxRange;
-                    TargetID = targetId;
-                    TargetID2 = targetId2;
-                    TargetID3 = targetId3;
-                    SpellIndex = spellIndex;
-                    HomeIndex = homeIndex;
-                    VehicleID = vehicleId;
-                    TimesToUse = timesToUse;
-                    OftenToUse = oftenToUse;
-                    WaitTime = waitTime;
-
-                    MountedPoint = WoWPoint.Empty;
-                }
+                Counter = 1;
 			}
 
 			catch (Exception except)
@@ -171,77 +70,71 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int      Counter = 1;
-        public int      HomeIndex { get; set; }
-        public WoWPoint LocationDest { get; private set; }
-        public WoWPoint LocationMount { get; private set; }
-        public int      MaxRange = 1;
-        public WoWPoint MountedPoint { get; private set; }
-        public int      NpcMountID { get; set; }
-        public int      OftenToUse { get; set; }
-        public uint     QuestId { get; set; }
-        public int      SpellIndex { get; set; }
-        public int      SpellType { get; set; }
-        public int      TargetID { get; set; }
-        public int      TargetID2 { get; set; }
-        public int      TargetID3 { get; set; }
-        public int      TimesToUse { get; set; }
-        public int      WaitTime { get; set; }
-        public int      VehicleID { get; set; }
+        public int                      GoHomeButton { get; private set; }
+        public WoWPoint                 LocationDest { get; private set; }
+        public WoWPoint                 LocationMount { get; private set; }
+        public int                      MaxRange { get; private set; }
+        public WoWPoint                 MountedPoint { get; private set; }
+        public int                      NpcMountId { get; private set; }
+        public int                      OftenToUse { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      AttackButton { get; private set; }
+        public int                      SpellType { get; private set; }
+        public int                      TargetId { get; private set; }
+        public int                      TargetId2 { get; private set; }
+        public int                      TargetId3 { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      WaitTime { get; private set; }
+        public int                      VehicleId { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool                    _isBehaviorDone;
+        private Composite               _root;
 
-        public static LocalPlayer s_me = ObjectManager.Me;
-
-
-        public List<WoWUnit> NpcList
+        private int                     Counter { get; set; }
+        private bool                    InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
+        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        private List<WoWUnit>           NpcList
         {
             get
             {
                 if (VehicleList.Count > 0)
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => (u.Entry == TargetID || u.Entry == TargetID2 || u.Entry == TargetID3) && VehicleList[0].Location.Distance(u.Location) <= MaxRange)
+                                         .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && VehicleList[0].Location.Distance(u.Location) <= MaxRange)
                                          .OrderBy(u => u.Distance)
                                          .ToList());
                 }
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => (u.Entry == TargetID || u.Entry == TargetID2 || u.Entry == TargetID3) && !u.Dead).OrderBy(u => u.Distance)
+                                     .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && !u.Dead).OrderBy(u => u.Distance)
                                      .ToList());
             }
         }
-
-
-        public List<WoWUnit> VehicleList
+        private List<WoWUnit>           NpcVehicleList
         {
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (ret.Entry == VehicleID) && !ret.Dead)
-                                     .ToList());
-            }
-        }
-
-
-        public List<WoWUnit> NpcVehicleList
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (ret.Entry == NpcMountID) && !ret.Dead)
+                                     .Where(ret => (ret.Entry == NpcMountId) && !ret.Dead)
                                      .OrderBy(u => u.Distance)
                                      .ToList());
             }
         }
-
-        static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
+        private List<WoWUnit>           VehicleList
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                                     .ToList());
+            }
+        }
 
 
         double AimAngle
@@ -272,13 +165,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ??
                 (_root = new PrioritySelector(
-                    new Decorator(c => Counter > TimesToUse,
+                    new Decorator(c => Counter > NumOfTimes,
                         new Action(c =>
                         {
                             TreeRoot.StatusText = "Finished!";
-                            if (HomeIndex > 0)
+                            if (GoHomeButton > 0)
                             {
-                                Lua.DoString("CastPetAction({0})", HomeIndex);
+                                Lua.DoString("CastPetAction({0})", GoHomeButton);
                             }
                             _isBehaviorDone = true;
                             return RunStatus.Success;
@@ -291,12 +184,12 @@ namespace Styx.Bot.Quest_Behaviors
                             if (!NpcVehicleList[0].WithinInteractRange)
                             {
                                 Navigator.MoveTo(NpcVehicleList[0].Location);
-                                TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].Name + " Yards Away: " + NpcVehicleList[0].Location.Distance(s_me.Location);
+                                TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].Name + " Yards Away: " + NpcVehicleList[0].Location.Distance(Me.Location);
                             }
                             else
                             {
                                 NpcVehicleList[0].Interact();
-                                MountedPoint = s_me.Location;
+                                MountedPoint = Me.Location;
                             }
 
                         })
@@ -311,9 +204,9 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             else if (NpcList.Count >= 1 && NpcList[0].Location.Distance(VehicleList[0].Location) <= 15)
                             {
-                                TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + SpellIndex;
+                                TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + AttackButton;
                                 NpcList[0].Target();
-                                Lua.DoString("CastPetAction({0})", SpellIndex);
+                                Lua.DoString("CastPetAction({0})", AttackButton);
                                 Thread.Sleep(WaitTime);
                                 Counter++;
                                 return RunStatus.Success;
@@ -328,16 +221,16 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 Thread.Sleep(OftenToUse);
 
-                                TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + SpellIndex + " Times Used: " + Counter;
+                                TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + AttackButton + " Times Used: " + Counter;
 
-                                if (Counter > TimesToUse || (s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted && QuestId > 0))
+                                if (Counter > NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                 {
                                     Lua.DoString("VehicleExit()");
                                     _isBehaviorDone = true;
                                     return RunStatus.Success;
                                 }
                                 NpcList[0].Target();
-                                Lua.DoString("CastPetAction({0})", SpellIndex);
+                                Lua.DoString("CastPetAction({0})", AttackButton);
                                 LegacySpellManager.ClickRemoteLocation(NpcList[0].Location);
                                 Thread.Sleep(WaitTime);
                                 Counter++;
@@ -353,8 +246,8 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 using (new FrameLock())
                                 {
-                                    TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + SpellIndex + " Times Used: " + Counter;
-                                    if (Counter > TimesToUse || (s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted && QuestId > 0))
+                                    TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + AttackButton + " Times Used: " + Counter;
+                                    if (Counter > NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                     {
                                         Lua.DoString("VehicleExit()");
                                         _isBehaviorDone = true;
@@ -367,7 +260,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     Random rand = new Random();
                                     Lua.DoString("VehicleAimRequestNormAngle({0})", 0.1 + (rand.NextDouble() * (0.6 - 0.1)));
-                                    Lua.DoString("CastPetAction({0})", SpellIndex);
+                                    Lua.DoString("CastPetAction({0})", AttackButton);
                                     Thread.Sleep(WaitTime);
                                     Counter++;
                                     return RunStatus.Running;
@@ -383,7 +276,7 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 using (new FrameLock())
                                 {
-                                    if (Counter > TimesToUse || (s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted && QuestId > 0))
+                                    if (Counter > NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                     {
                                         Lua.DoString("VehicleExit()");
                                         _isBehaviorDone = true;
@@ -391,7 +284,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     }
                                     NpcList[0].Target();
                                     WoWMovement.ClickToMove(NpcList[0].Location);
-                                    Lua.DoString("CastPetAction({0})", SpellIndex);
+                                    Lua.DoString("CastPetAction({0})", AttackButton);
                                     LegacySpellManager.ClickRemoteLocation(NpcList[0].Location);
                                     Counter++;
                                     return RunStatus.Running;
@@ -407,33 +300,26 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = string.Format("{0}: {1}",
-                                                  this.GetType().Name,
-                                                  (quest == null) ? "Running" : ("\"" + quest.Name + "\""));
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

@@ -33,85 +33,19 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                WoWPoint    location;
-                int         mobId;
-                int         mobId2;
-                int         mobId3;
-                int         questId;
-
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "MobId",      null},
-                                                    { "MobId2",     null},
-                                                    { "MobId3",     null},
-                                                    { "NpcID",      null},
-                                                    { "NpcID2",     null},
-                                                    { "NpcID3",     null},
-                                                    { "QuestId",    null},
-                                                    { "X",          null},
-                                                    { "Y",          null},
-                                                    { "Z",          null},
-                                                });
-
-                _isAttributesOkay = true;
-
-                _isAttributesOkay &= GetAttributeAsInteger("NpcID", false, "0", 0, int.MaxValue, out mobId);
-                if (mobId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", false, "0", 0, int.MaxValue, out mobId); }
-
-                _isAttributesOkay &= GetAttributeAsInteger("NpcID2", false, "0", 0, int.MaxValue, out mobId2);
-                if (mobId2 == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId2", false, "0", 0, int.MaxValue, out mobId2); }
-
-                _isAttributesOkay &= GetAttributeAsInteger("NpcID3", false, "0", 0, int.MaxValue, out mobId3);
-                if (mobId3 == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId3", false, "0", 0, int.MaxValue, out mobId3); }
-
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
-
-                // Semantic coherency --
-                if (_isAttributesOkay)
-                {
-                    if (Args.ContainsKey("MobId")  &&  Args.ContainsKey("NpcID"))
-                    {
-                        UtilLogMessage("error", "\"MobId\" and \"NpcID\" attributes are mutually exclusive.   Use \"MobId\" (\"NpcID\" is deprecated).");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (Args.ContainsKey("MobId2")  &&  Args.ContainsKey("NpcID2"))
-                    {
-                        UtilLogMessage("error", "\"MobId2\" and \"NpcID2\" attributes are mutually exclusive.   Use \"MobId2\" (\"NpcID2\" is deprecated).");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (Args.ContainsKey("MobId3")  &&  Args.ContainsKey("NpcID3"))
-                    {
-                        UtilLogMessage("error", "\"MobId3\" and \"NpcID3\" attributes are mutually exclusive.   Use \"MobId3\" (\"NpcID3\" is deprecated).");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (mobId == 0)
-                    {
-                        UtilLogMessage("error", "\"MobId\" may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    Location = location;
-                    MobId = mobId;
-                    MobId2 = mobId2;
-                    MobId3 = mobId3;
-                    QuestId = (uint)questId;
-
-                    Counter = 0;
-                    MovedToLocation = false;
-                    TimesUsedCounter = 1;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter     = 0;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcID" }) ?? 0;
+                MobId2      = GetAttributeAsMobId("MobId2", false, new [] { "NpcID2" }) ?? 0;
+                MobId3      = GetAttributeAsMobId("MobId3", false, new [] { "NpcID3" }) ?? 0;
+                MovedToLocation = false;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                TimesUsedCounter = 1;
 			}
 
 			catch (Exception except)
@@ -124,29 +58,28 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int          Counter { get; set; }
-        public WoWPoint     Location { get; private set; }
-        public int          MobId { get; set; }
-        public int          MobId2 { get; set; }
-        public int          MobId3 { get; set; }
-        public bool         MovedToLocation { get; set; }
-        public int          MoveToNPC { get; set; }
-        public uint         QuestId { get; set; }
-        public int          TimesUsedCounter { get; set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MobId { get; private set; }
+        public int                      MobId2 { get; private set; }
+        public int                      MobId3 { get; private set; }
+        public bool                     MovedToLocation { get; private set; }
+        public int                      MoveToNpc { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      TimesUsedCounter { get; set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        public static LocalPlayer s_me = ObjectManager.Me;
-
-
-        public List<WoWUnit> MobList
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        public List<WoWUnit>        MobList
         {
             get
             {
@@ -160,7 +93,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                switch (s_me.Class)
+                switch (Me.Class)
                 {
                     case Styx.Combat.CombatRoutine.WoWClass.Druid:
                         return SpellManager.Spells["Starfire"];
@@ -184,16 +117,16 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-               return (((s_me.Class == WoWClass.Druid) && 
-                        (SpellManager.HasSpell("balanceSpell") || SpellManager.HasSpell("RestoSpell")))
+               return (((Me.Class == WoWClass.Druid) && 
+                        (SpellManager.HasSpell("BalanceSpell") || SpellManager.HasSpell("RestoSpell")))
                        ||
-                       ((s_me.Class == WoWClass.Shaman) && 
+                       ((Me.Class == WoWClass.Shaman) && 
                         (SpellManager.HasSpell("ElementalSpell") || SpellManager.HasSpell("RestoSpell")))
                        ||
-                       (s_me.Class == WoWClass.Hunter) ||
-                       (s_me.Class == WoWClass.Mage) ||
-                       (s_me.Class == WoWClass.Priest) ||
-                       (s_me.Class == WoWClass.Warlock));
+                       (Me.Class == WoWClass.Hunter) ||
+                       (Me.Class == WoWClass.Mage) ||
+                       (Me.Class == WoWClass.Priest) ||
+                       (Me.Class == WoWClass.Warlock));
             }
         }
 
@@ -213,7 +146,7 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                            new Decorator(ret => (s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                            new Decorator(ret => (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -232,16 +165,16 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
-                           new Decorator(ret => MobList.Count > 0 && !s_me.IsCasting,
+                           new Decorator(ret => MobList.Count > 0 && !Me.IsCasting,
                                 new Sequence(
-                                    new DecoratorContinue(ret => MobList[0].Location.Distance(s_me.Location) > Range,
+                                    new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) > Range,
                                         new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(s_me.Location)),
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                             new Action(ret => Navigator.MoveTo(MobList[0].Location)),
                                             new Action(ret => Thread.Sleep(300))
                                             )
                                     ),
-                                    new DecoratorContinue(ret => MobList[0].Location.Distance(s_me.Location) <= Range,
+                                    new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) <= Range,
                                         new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + MobList[0].Name + " With Spell: " + RangeSpell.Name),
                                         new Action(ret => WoWMovement.MoveStop()),
@@ -260,33 +193,26 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = string.Format("{0}: {1}",
-                                                  this.GetType().Name,
-                                                  (quest == null) ?  "Running" :  ("\"" + quest.Name + "\""));
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

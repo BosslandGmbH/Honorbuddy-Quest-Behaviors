@@ -17,9 +17,11 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
 using System.Media;
 using System.Windows.Forms;
+using System.Xml;
 
 using Styx;
 using Styx.Helpers;
@@ -502,7 +504,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 string                      tmpSoundCueName  = "";
 
 
-                _isBehaviorDone     = false;
 
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
@@ -519,8 +520,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 tmpSoundCueName     = GetAttributeAsString_SpecificValue("SoundCue", false, soundsAllowed.Keys.ToArray(), null) ?? "Asterisk";
                 SoundCue            = soundsAllowed[tmpSoundCueName];
                 SoundCueIntervalInSeconds = GetAttributeAsInteger("SoundCueInterval", false, 0, int.MaxValue, null) ?? 60;
-
-                BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
                 // Note: we don't want to actually create the dialog here, as that will cause it
                 // to popup even if the quest is complete.  This action is properly deferred until
@@ -555,8 +554,47 @@ namespace BuddyWiki.CustomBehavior.UserDialog
 
         private TreeSharp.Composite         _behavior;
         private AsyncCompletionToken        _completionToken;
-        private bool                        _isBehaviorDone;
         private HonorbuddyConfigSnapshot    _honorbuddyConfigSnapshot;
+        private bool                        _isBehaviorDone;
+        private bool                        _isDisposed;
+
+
+        ~UserDialog()
+        {
+            Dispose(false);
+            GC.SuppressFinalize(this);
+        }
+
+
+        public /*virtual*/ void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    if (_completionToken != null)
+                        { _completionToken.Dispose(); }
+
+                    if (_honorbuddyConfigSnapshot != null)
+                        { _honorbuddyConfigSnapshot.Restore(); }
+
+                    _completionToken = null;
+                    _honorbuddyConfigSnapshot = null;
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                BotEvents.OnBotStop  -= BotEvents_OnBotStop;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
 
 
         private void    UserDialogExitProcessing(PopdownReason     popdownReason)
@@ -586,17 +624,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             // Extinguish any stated goal
             TreeRoot.GoalText   = "";
 
-
-            // Restore any settings we may have altered
-            if (_honorbuddyConfigSnapshot != null)
-            {
-                _honorbuddyConfigSnapshot.Restore();
-                _honorbuddyConfigSnapshot = null;
-            }
-
-            // Unhook event handlers
-            BotEvents.OnBotStop  -= BotEvents_OnBotStop;
-
             if (popdownReason.IsBotStop())
                 { TreeRoot.Stop(); }
         }
@@ -605,78 +632,12 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         private void    BotEvents_OnBotStop(EventArgs args)
         {
             UserDialogExitProcessing(PopdownReason.UNKNOWN);
+            Dispose(true);
         }
 
 
         #region Overrides of CustomForcedBehavior
 
-
-        public override void        Dispose()
-        {
-            // Request that the dialog 'pop down', if we're done...
-            if (_completionToken != null)
-            {
-                _completionToken.Dispose();
-                _completionToken = null;
-            }
-
-            base.Dispose();
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-
-                TreeRoot.GoalText   = "User Attention Required...";
-                TreeRoot.StatusText = "Waiting for user dialog to close";
-
-
-                // We don't want the bot running around harvesting while the user
-                // is manually controlling it trying to get the task completed.
-                // (We've already captured the existing configuration which will
-                //  be restored when this behavior exits, or the bot is stopped.
-                //  So there are no worries about destroying user's configuration.)
-                _honorbuddyConfigSnapshot = new HonorbuddyConfigSnapshot();
-
-                LevelbotSettings.Instance.HarvestHerbs      = false;
-                LevelbotSettings.Instance.HarvestMinerals   = false;
-                LevelbotSettings.Instance.LootChests        = false;
-                LevelbotSettings.Instance.LootMobs          = false;
-                LevelbotSettings.Instance.NinjaSkin         = false;
-                LevelbotSettings.Instance.SkinMobs          = false;
-
-                _completionToken = new AsyncCompletionToken(StyxWoW.Me.Name,
-                                                            DialogTitle,
-                                                            DialogMessage,
-                                                            ExpiryActionName,
-                                                            ExpiryTime,
-                                                            IsBotStopAllowed,
-                                                            IsStopOnContinue,
-                                                            SoundCue,
-                                                            SoundCueIntervalInSeconds);
-            }
-        }
-
- 
         protected override TreeSharp.Composite CreateBehavior()
         {
             if (_behavior == null)
@@ -716,6 +677,66 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             }
 
             return (_behavior);
+        }
+
+
+        public override void        Dispose()
+        {
+            Dispose(true);
+        }
+
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText   = "User Attention Required...";
+                TreeRoot.StatusText = "Waiting for user dialog to close";
+
+                BotEvents.OnBotStop  += BotEvents_OnBotStop;
+
+
+                // We don't want the bot running around harvesting while the user
+                // is manually controlling it trying to get the task completed.
+                // (We've already captured the existing configuration which will
+                //  be restored when this behavior exits, or the bot is stopped.
+                //  So there are no worries about destroying user's configuration.)
+                _honorbuddyConfigSnapshot = new HonorbuddyConfigSnapshot();
+
+                LevelbotSettings.Instance.HarvestHerbs      = false;
+                LevelbotSettings.Instance.HarvestMinerals   = false;
+                LevelbotSettings.Instance.LootChests        = false;
+                LevelbotSettings.Instance.LootMobs          = false;
+                LevelbotSettings.Instance.NinjaSkin         = false;
+                LevelbotSettings.Instance.SkinMobs          = false;
+
+                _completionToken = new AsyncCompletionToken(StyxWoW.Me.Name,
+                                                            DialogTitle,
+                                                            DialogMessage,
+                                                            ExpiryActionName,
+                                                            ExpiryTime,
+                                                            IsBotStopAllowed,
+                                                            IsStopOnContinue,
+                                                            SoundCue,
+                                                            SoundCueIntervalInSeconds);
+            }
         }
 
         #endregion

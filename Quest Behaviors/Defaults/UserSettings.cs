@@ -15,10 +15,8 @@
 //                  Also, minor cleanup.
 //  Version 1.0 -- Initial Release (4-Mar-2011, chinajade)
 //
-
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -37,13 +35,13 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		// All other code in this class uses the information contained in the returned presetChangeRequests.
 		// Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
 		// at runtime pointing you directly to the problem.
-		private static Dictionary<string, ConfigurationChangeRequest> UtilBuildPresetChangeRequests(Dictionary<string, ConfigDescriptor> recognizedAttributes,
+		private static Dictionary<string, ConfigurationChangeRequest> UtilBuildPresetChangeRequests(Dictionary<string, ConfigDescriptor> configurationSettings,
 																									  ConfigSnapshot originalConfiguration)
 		{
 			Dictionary<string, ConfigurationChangeRequest> presets = new Dictionary<string, ConfigurationChangeRequest>();
 
             presets.Add("Grind",
-                        new ConfigurationChangeRequest(recognizedAttributes)
+                        new ConfigurationChangeRequest(configurationSettings)
                             .Add("GroundMountFarmingMode", false)
                             .Add("KillBetweenHotspots", true)
                             .Add("PullDistance", 50)
@@ -51,7 +49,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                         );
 
 			presets.Add("HarvestsOff",
-						new ConfigurationChangeRequest(recognizedAttributes)
+						new ConfigurationChangeRequest(configurationSettings)
 							.Add("HarvestHerbs", false)
 							.Add("HarvestMinerals", false)
 							.Add("LootChests", false)
@@ -61,7 +59,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 						);
 
 			presets.Add("HarvestsOn",
-						new ConfigurationChangeRequest(recognizedAttributes)
+						new ConfigurationChangeRequest(configurationSettings)
 							.Add("HarvestHerbs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Herbalism).MaxValue > 0))
 							.Add("HarvestMinerals", (StyxWoW.Me.GetSkill(Styx.SkillLine.Mining).MaxValue > 0))
 							.Add("LootChests", true)
@@ -72,7 +70,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 						);
 
 			presets.Add("NoDistractions",
-						new ConfigurationChangeRequest(recognizedAttributes)
+						new ConfigurationChangeRequest(configurationSettings)
 							.Add("GroundMountFarmingMode", true)
 							.Add("HarvestHerbs", false)
 							.Add("HarvestMinerals", false)
@@ -86,13 +84,13 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 						);
 
             presets.Add("NoTrain",
-                        new ConfigurationChangeRequest(recognizedAttributes)
+                        new ConfigurationChangeRequest(configurationSettings)
                             .Add("TrainNewSkills", false)
                             .Add("FindVendorsAutomatically", false)
                         );
 
 			presets.Add("NormalQuesting",
-						new ConfigurationChangeRequest(recognizedAttributes)
+						new ConfigurationChangeRequest(configurationSettings)
 							.Add("FindMountAutomatically", true)
 							.Add("FindVendorsAutomatically", true)
 							.Add("GroundMountFarmingMode", false)
@@ -127,54 +125,36 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		{
 			try
 			{
-				bool debugShowChangesApplied;
-				Dictionary<string, object> presetNames;
-
-				_recognizedAttributes = UtilBuildRecognizedAttributes();
-				_persistData = new PersistedData(this.GetType().Name, _recognizedAttributes);
-				_userChangeRequest = new ConfigurationChangeRequest(_recognizedAttributes);
+				_configurationSettings = UtilBuildConfigurationSettings();
+				_persistData = new PersistedData(this.GetType().Name, _configurationSettings);
+				_userChangeRequest = new ConfigurationChangeRequest(_configurationSettings);
 
 				// If we've yet to capture the user's original settings, do so now...
 				// We need to do this 'up front' because the "UserOriginal" configuration will
 				// also be captured as a preset.
 				_originalConfiguration = _persistData.OriginalConfiguration;
-				_presetChangeRequests = UtilBuildPresetChangeRequests(_recognizedAttributes,
+				_presetChangeRequests = UtilBuildPresetChangeRequests(_configurationSettings,
 																	  _originalConfiguration);
 
-				presetNames = _presetChangeRequests.ToDictionary(kvp => kvp.Key, kvp => (object)null);
-				presetNames.Add("", null);      // allow an empty preset name for 'do nothing with presets'
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+				bool?   tmpDebugShowChangesApplied;
 
+                tmpDebugShowChangesApplied = GetAttributeAsBoolean("DebugShowChangesApplied", false, null);
+                DebugShowDetails = GetAttributeAsBoolean("DebugShowDetails", false, null) ?? false;
+                DebugShowDiff   = GetAttributeAsBoolean("DebugShowDiff", false, null) ?? false;
+                PresetName      = GetAttributeAsString_SpecificValue("Preset", false, _presetChangeRequests.Keys.ToArray(), null) ?? "";
+                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                IsStopBot       = GetAttributeAsBoolean("StopBot", false, null) ?? false;
 
-				// We're intentionally using booleans with compound assignment (i.e., "&=") here...
-				// 1) C# allows this by design, and
-				// 2) We don't want the evaluation short-circuited as "&&" does.  To do so would nickel-and-dime
-				//    the profile writer with error messages.  Instead, we want him to see all his mistakes at once.
+				_userChangeRequest.GetChangesFromAttributes(this);
 
-				CheckForUnrecognizedAttributes(_recognizedAttributes.ToDictionary(kvp => kvp.Key, kvp => (object)kvp.Value));
-
-				_isAttributesOkay = true;
-				_isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
-				_isAttributesOkay &= GetAttributeAsBoolean("DebugShowChangesApplied", false, "false", out debugShowChangesApplied);
-				_isAttributesOkay &= GetAttributeAsBoolean("DebugShowDetails", false, "false", out _debugShowDetails);
-				_isAttributesOkay &= GetAttributeAsBoolean("DebugShowDiff", false, "false", out _debugShowDiff);
-				_isAttributesOkay &= GetAttributeAsSpecificString("Preset", false, "", presetNames, out _presetName);
-				_isAttributesOkay &= GetAttributeAsBoolean("StopBot", false, "false", out _isStopBot);
-				_isAttributesOkay &= _userChangeRequest.AcquireAll(this);
-
-				if (_isAttributesOkay)
-				{
-					// Transfer any 'debug' requests made by the user into our persistent copy --
-					if (Args.ContainsKey("DebugShowChangesApplied"))
-					{ _persistData.DebugShowChangesApplied = debugShowChangesApplied; }
-
-					// The BotStop handler will put the original configuration settings back in place...
-					// Note, we only want to hook it once for this behavior.
-					if (!_persistData.IsBotStopHooked)
-					{
-						BotEvents.OnBotStop += BotEvents_OnBotStop;
-						_persistData.IsBotStopHooked = true;
-					}
-				}
+			    // Transfer any 'debug' requests made by the user into our persistent copy --
+                if (tmpDebugShowChangesApplied.HasValue)
+                    { _persistData.DebugShowChangesApplied = tmpDebugShowChangesApplied.Value; }
 			}
 
 			catch (Exception except)
@@ -187,9 +167,26 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
 		}
+
+
+		public bool                     DebugShowDetails { get; private set; }
+		public bool                     DebugShowDiff { get; private set; }
+		public bool                     IsBehaviorDone { get; private set; }
+		public bool                     IsStopBot { get; private set; }
+		public string                   PresetName { get; private set; }
+		public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+
+		private Dictionary<string, ConfigDescriptor>            _configurationSettings;
+        private bool                                            _isBehaviorDone;
+		private ConfigSnapshot                                  _originalConfiguration;
+		private PersistedData                                   _persistData;
+		private Dictionary<string, ConfigurationChangeRequest>  _presetChangeRequests;
+		private ConfigurationChangeRequest                      _userChangeRequest;
 
 
 		private void BotEvents_OnBotStop(EventArgs args)
@@ -220,36 +217,40 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 
 		public override bool IsDone
 		{
-			get
-			{
-				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)_questId);
-
-				// Note that a _questId of zero is never complete (by definition).
-				// Instead, it requires the behavior to complete normally.
-				return (_isBehaviorDone                                 // normal completion
-						|| ((_questId != 0) && (quest == null))        // quest not in our log
-						|| ((quest != null) && quest.IsCompleted));    // quest is done
-			}
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
 		}
 
 
 		public override void OnStart()
 		{
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
-				TreeRoot.Stop();
-			}
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
 			{
-				// First, process Preset request, if any...
-				if (!string.IsNullOrEmpty(_presetName))
+				// The BotStop handler will put the original configuration settings back in place...
+				// Note, we only want to hook it once for this behavior.
+				if (!_persistData.IsBotStopHooked)
 				{
-					string tmpString = _presetChangeRequests[_presetName].Apply();
+					BotEvents.OnBotStop += BotEvents_OnBotStop;
+					_persistData.IsBotStopHooked = true;
+				}
+
+				// First, process Preset request, if any...
+				if (!string.IsNullOrEmpty(PresetName))
+				{
+					string tmpString = _presetChangeRequests[PresetName].Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					{ UtilLogMessage("info", string.Format("Using preset '{0}'...\n{1}", _presetName, tmpString)); }
+					{ UtilLogMessage("info", string.Format("Using preset '{0}'...\n{1}", PresetName, tmpString)); }
 				}
 
 				// Second, apply any change requests...
@@ -262,17 +263,17 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 				}
 
 				// Third, show state, if requested...                
-				if (_debugShowDetails)
-				{ UtilLogMessage("info", UtilCurrentConfigAsString(_recognizedAttributes)); }
+				if (DebugShowDetails)
+				    { UtilLogMessage("info", UtilCurrentConfigAsString(_configurationSettings)); }
 
-				if (_debugShowDiff)
+				if (DebugShowDiff)
 				{
 					UtilLogMessage("info", "Changes from original user's settings--\n"
 										   + _originalConfiguration.GetChangesAsString());
 				}
 
 				// Forth, stop the bot, if requested...
-				if (_isStopBot)
+				if (IsStopBot)
 				{
 					UtilLogMessage("info", "Stopping the bot per profile request.");
 					TreeRoot.Stop();
@@ -290,7 +291,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		// the data by moving it into and out of the appropriate properties.
 		// Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
 		// at runtime pointing you directly to the problem.
-		private static Dictionary<string, ConfigDescriptor> UtilBuildRecognizedAttributes()
+		private static Dictionary<string, ConfigDescriptor> UtilBuildConfigurationSettings()
 		{
 			List<string> ignoredPropertyNames = new List<string>()
                                                                               {
@@ -305,15 +306,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                                                                                   "SelectedBotIndex",
                                                                                   "Username",
                                                                               };
-			Dictionary<string, ConfigDescriptor> recognizedAttributes = new Dictionary<string, ConfigDescriptor>();
-
-			// Allowed 'Behavior' attributes--
-			recognizedAttributes.Add("QuestId", null);
-			recognizedAttributes.Add("DebugShowChangesApplied", null);
-			recognizedAttributes.Add("DebugShowDetails", null);
-			recognizedAttributes.Add("DebugShowDiff", null);
-			recognizedAttributes.Add("Preset", null);
-			recognizedAttributes.Add("StopBot", null);
+			Dictionary<string, ConfigDescriptor> configurationSetting = new Dictionary<string, ConfigDescriptor>();
 
 
 			// Allowed 'Configuration' attributes--
@@ -322,7 +315,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 											  where !ignoredPropertyNames.Contains(propertyName)
 											  select propertyName)
 			{
-				recognizedAttributes.Add(configItemName, new ConfigDescriptor(configItemName,
+				configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
 																			  CharacterSettings.Instance,
 																			  null));
 			}
@@ -331,7 +324,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 											  where !ignoredPropertyNames.Contains(propertyName)
 											  select propertyName)
 			{
-				recognizedAttributes.Add(configItemName, new ConfigDescriptor(configItemName,
+				configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
 																			  LevelbotSettings.Instance,
 																			  null));
 			}
@@ -340,7 +333,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 											  where !ignoredPropertyNames.Contains(propertyName)
 											  select propertyName)
 			{
-				recognizedAttributes.Add(configItemName, new ConfigDescriptor(configItemName,
+				configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
 																			  StyxSettings.Instance,
 																			  null));
 			}
@@ -360,7 +353,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 			foreach (KeyValuePair<string, Constraint> kvp in constraints)
 			{
 				// Maintenance error?
-				if (!recognizedAttributes.ContainsKey(kvp.Key))
+				if (!configurationSetting.ContainsKey(kvp.Key))
 				{
 					throw (new ArgumentException(string.Format("Unable to locate configurable '{0}'"
 															   + " in recognizedAttributes for constraint attachment",
@@ -368,10 +361,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 
 				}
 
-				recognizedAttributes[kvp.Key].Constraint = kvp.Value;
+				configurationSetting[kvp.Key].Constraint = kvp.Value;
 			}
 
-			return (recognizedAttributes);
+			return (configurationSetting);
 		}
 
 
@@ -404,18 +397,6 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 
 			return (outString);
 		}
-		private bool _debugShowDetails = false;
-		private bool _debugShowDiff = false;
-		private bool _isAttributesOkay = true;
-		private bool _isBehaviorDone = false;
-		private bool _isStopBot = false;
-		private ConfigSnapshot _originalConfiguration = null;
-		private PersistedData _persistData = null;
-		private Dictionary<string, ConfigurationChangeRequest> _presetChangeRequests = null;
-		private string _presetName = "";
-		private Dictionary<string, ConfigDescriptor> _recognizedAttributes = null;
-		private int _questId = 0;
-		private ConfigurationChangeRequest _userChangeRequest = null;
 	}
 
 
@@ -529,9 +510,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 	/// </summary>
 	abstract class Constraint
 	{
-		public abstract bool AcquireUserInput(CustomForcedBehavior behavior,
-														string configName,
-														out object returnedValue);
+        // The returned object may be null.
+		public abstract object AcquireUserInput(CustomForcedBehavior behavior,
+												string configName);
 
 		public abstract string AsString();
 
@@ -547,17 +528,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 			// empty
 		}
 
-		public override bool AcquireUserInput(CustomForcedBehavior behavior,
-													string configName,
-													out object returnedValue)
+		public override object AcquireUserInput(CustomForcedBehavior behavior,
+													string configName)
 		{
-			bool isSuccess;
-			bool tmpValue;
-
-			isSuccess = behavior.GetAttributeAsBoolean(configName, false, "", out tmpValue);
-			returnedValue = tmpValue;
-
-			return (isSuccess);
+            return (behavior.GetAttributeAsBoolean(configName, false, null));
 		}
 
 		public override string AsString()
@@ -577,17 +551,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 			MaxValue = maxValue;
 		}
 
-		public override bool AcquireUserInput(CustomForcedBehavior behavior,
-													string configName,
-													out object returnedValue)
+		public override object AcquireUserInput(CustomForcedBehavior behavior,
+													string configName)
 		{
-			bool isSuccess;
-			int tmpValue;
-
-			isSuccess = behavior.GetAttributeAsInteger(configName, false, "", MinValue, MaxValue, out tmpValue);
-			returnedValue = tmpValue;
-
-			return (isSuccess);
+            return (behavior.GetAttributeAsInteger(configName, false, MinValue, MaxValue, null));
 		}
 
 		public override string AsString()
@@ -610,17 +577,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 			// empty
 		}
 
-		public override bool AcquireUserInput(CustomForcedBehavior behavior,
-													string configName,
-													out object returnedValue)
+		public override object AcquireUserInput(CustomForcedBehavior behavior,
+													string configName)
 		{
-			bool isSuccess;
-			string tmpValue;
-
-			isSuccess = behavior.GetAttributeAsString(configName, false, "", out tmpValue);
-			returnedValue = tmpValue;
-
-			return (isSuccess);
+            return (behavior.GetAttributeAsString(configName, false, null));
 		}
 
 		public override string AsString()
@@ -637,31 +597,6 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		public ConfigurationChangeRequest(Dictionary<string, ConfigDescriptor> recognizedAttributes)
 		{
 			_recognizedAttributes = recognizedAttributes;
-		}
-
-
-		public bool AcquireAll(CustomForcedBehavior behavior)
-		{
-			var configDescriptors = (from attributeKvp in behavior.Args
-									 from desc in _recognizedAttributes.Values
-									 where (desc != null) && (attributeKvp.Key == desc.Name)
-									 select desc);
-			bool isSuccess = true;
-
-			foreach (ConfigDescriptor configDesc in configDescriptors)
-			{
-				bool isCaptured;
-				object returnedValue;
-
-				isCaptured = configDesc.Constraint.AcquireUserInput(behavior, configDesc.Name, out returnedValue);
-
-				if (isCaptured)
-				{ _changeRequests.Add(configDesc, returnedValue); }
-
-				isSuccess &= isCaptured;
-			}
-
-			return (isSuccess);
 		}
 
 
@@ -703,6 +638,23 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		}
 
 		public int Count { get { return (_changeRequests.Count); } }
+
+
+		public void     GetChangesFromAttributes(CustomForcedBehavior behavior)
+		{
+			var configDescriptors = (from attributeKvp in behavior.Args
+									 from desc in _recognizedAttributes.Values
+									 where (desc != null) && (attributeKvp.Key == desc.Name)
+									 select desc);
+
+			foreach (ConfigDescriptor configDesc in configDescriptors)
+			{
+                object  result  = configDesc.Constraint.AcquireUserInput(behavior, configDesc.Name);
+
+                if (result != null)
+                    { _changeRequests.Add(configDesc, result); }
+			}
+		}
 
 
 		private Dictionary<ConfigDescriptor, object> _changeRequests = new Dictionary<ConfigDescriptor, object>();

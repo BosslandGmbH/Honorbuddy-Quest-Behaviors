@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
+
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
@@ -10,8 +11,10 @@ using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -37,197 +40,78 @@ namespace Styx.Bot.Quest_Behaviors
         public enum ObjectType
         {
             Npc,
-            Gameobject
+            GameObject,
         }
 
         public enum NpcState
         {
             None,
-            Dead,
             Alive,
-            BelowHp
+            BelowHp,
+            Dead,
         }
 
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},
-            {"MobId",null},
-            {"NpcId",null},
-            {"ItemId",null},
-            {"NumOfTimes",null},
-            {"WaitTime",null},
-            {"CollectionDistance",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-            {"HasAura",null},
-            {"NpcState",null},
-            {"HpLeftAmount",null},
-            {"Range",null},
-            {"ObjectType",null}
-        };
 
         public UseItemOn(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                CheckForUnrecognizedAttributes(recognizedAttributes);
-
-                bool error = false;
-
-                uint questId;
-                if (!uint.TryParse(Args["QuestId"], out questId))
-                {
-                    Logging.Write("Parsing attribute 'QuestId' in UseItemOn behavior failed! please check your profile!");
-                    error = true;
-                }
-
-                uint mobId;
-                if (Args.ContainsKey("MobId"))
-                {
-                    if (!uint.TryParse(Args["MobId"], out mobId))
-                    {
-                        Logging.Write("Parsing attribute 'MobId' and 'NpcId' in UseItemOn behavior failed! please check your profile!");
-                        error = true;
-                    }
-                }
-                else if (!uint.TryParse(Args["NpcId"], out mobId))
-                {
-                    Logging.Write("Parsing attribute 'MobId' and 'NpcId' in UseItemOn behavior failed! please check your profile!");
-                    error = true;
-                }
-
-                uint itemId;
-                if (!uint.TryParse(Args["ItemId"], out itemId))
-                {
-                    Logging.Write("Parsing attribute 'ItemId' in UseItemOn behavior failed! please check your profile!");
-                    error = true;
-                }
-
-                int numOfTimes = 1;
-                if (Args.ContainsKey("NumOfTimes"))
-                {
-                    if (!int.TryParse(Args["NumOfTimes"], out numOfTimes))
-                    {
-                        Logging.Write("Parsing attribute 'NumOfTimes' in UseItemOn behavior failed! please check your profile!");
-                        error = true;
-                    }
-                }
-
-                if (Args.ContainsKey("WaitTime"))
-                {
-                    int waitTime;
-                    int.TryParse(Args["WaitTime"], out waitTime);
-                    WaitTime = waitTime != 0 ? waitTime : 1500;
-                }
-
-                if (Args.ContainsKey("CollectionDistance"))
-                {
-                    int distance;
-                    int.TryParse(Args["CollectionDistance"], out distance);
-                    CollectionDistance = distance != 0 ? distance : 100;
-                }
-
-                if (Args.ContainsKey("HasAura"))
-                {
-                    int HasAura;
-                    int.TryParse(Args["HasAura"], out HasAura);
-                    Aura = HasAura != 0 ? HasAura : 0;
-                }
-
-                if (Args.ContainsKey("Range"))
-                {
-                    int range;
-                    int.TryParse(Args["Range"], out range);
-                    Range = range != 0 ? range : 4;
-                }
-                else
-                {
-                    Range = 4;
-                }
-
-                if (!Args.ContainsKey("ObjectType"))
-                {
-                    _ObjectType = ObjectType.Npc;
-                }
-                else
-                {
-                    _ObjectType = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
-                }
-
-                if (!Args.ContainsKey("NpcState"))
-                {
-                    _NpcState = NpcState.None;
-                }
-                else
-                {
-                    _NpcState = (NpcState)Enum.Parse(typeof(NpcState), Args["NpcState"], true);
-                }
-
-                if (Args.ContainsKey("HpLeftAmount"))
-                {
-                    int hpleft = -1;
-                    if (!int.TryParse(Args["HpLeftAmount"], out hpleft))
-                    {
-                        Logging.Write("Parsing attribute 'HpLeftAmount' in UseItemOn behavior failed! please check your profile!");
-                        error = true;
-                    }
-                    HpLeftAmount = hpleft != -1 ? hpleft : 100;
-                }
-
-
-                float x, y, z;
-                if (!float.TryParse(Args["X"], out x))
-                {
-                    Logging.Write("Parsing attribute 'X' in UseItemOn behavior failed! please check your profile!");
-                    error = true;
-                }
-
-                if (!float.TryParse(Args["Y"], out y))
-                {
-                    Logging.Write("Parsing attribute 'Y' in UseItemOn behavior failed! please check your profile!");
-                    error = true;
-                }
-
-                if (!float.TryParse(Args["Z"], out z))
-                {
-                    Logging.Write("Parsing attribute 'Z' in UseItemOn behavior failed! please check your profile!");
-                    error = true;
-                }
-
-                if (error)
-                    TreeRoot.Stop();
-
-                QuestId = questId;
-                NumOfTimes = numOfTimes;
-                MobId = mobId;
-                ItemId = itemId;
-                Location = new WoWPoint(x, y, z);
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
+                HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
+                HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 100;
+                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                _NpcState   = GetAttributeAsEnum<NpcState>("NpcState", false, null) ?? NpcState.None;
+                Range       = GetAttributeAsRange("Range", false, null) ?? 4;
+                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 1500;
             }
-            catch (Exception ex)
-            {
-                Logging.Write("UseItemOn failed");
-                Logging.WriteException(ex);
-            }
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public WoWPoint Location { get; private set; }
-        public int WaitTime { get; private set; }
-        public int Aura { get; private set; }
-        public int Counter { get; private set; }
-        public int Range { get; private set; }
-        public int HpLeftAmount { get; private set; }
-        public uint MobId { get; private set; }
-        public uint ItemId { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public uint QuestId { get; private set; }
-        public ObjectType _ObjectType { get; private set; }
-        public NpcState _NpcState { get; private set; }
-        public int CollectionDistance = 100;
 
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
-        private readonly List<ulong> _npcAuraWait = new List<ulong>();
+        public int                      CollectionDistance { get; private set; }
+        public int                      Counter { get; private set; }
+        public int                      HasAuraId { get; private set; }
+        public int                      HpLeftAmount { get; private set; }
+        public int                      ItemId { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MobId { get; private set; }
+        public ObjectType               MobType { get; private set; }
+        public NpcState                 _NpcState { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      Range { get; private set; }
+        public int                      WaitTime { get; private set; }
+
+        private bool                    _isBehaviorDone;
+        private readonly List<ulong>    _npcAuraWait = new List<ulong>();
+        private readonly List<ulong>    _npcBlacklist = new List<ulong>();
+        private Composite               _root;
+
 
         /// <summary> Current object we should interact with.</summary>
         /// <value> The object.</value>
@@ -236,9 +120,9 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 WoWObject @object = null;
-                switch (_ObjectType)
+                switch (MobType)
                 {
-                    case ObjectType.Gameobject:
+                    case ObjectType.GameObject:
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                             !_npcBlacklist.Contains(obj.Guid) &&
                             obj.Distance < CollectionDistance &&
@@ -247,17 +131,17 @@ namespace Styx.Bot.Quest_Behaviors
                         break;
 
                     case ObjectType.Npc:
-                        if (Aura != 0)
+                        if (HasAuraId != 0)
                         {
                             string tmp;
                             try 
                             { 
-                                tmp = WoWSpell.FromId(Aura).Name; 
+                                tmp = WoWSpell.FromId(HasAuraId).Name; 
                             }
                             catch
                             {
-                                Logging.Write(Color.Red, "Could not find spell with id:{0} for UseItemOn behavior!", Aura);
-                                Logging.Write(Color.Red, "Honorbuddy stopped!");
+                                UtilLogMessage("fatal", string.Format("Could not find spell with id:{0} for UseItemOn behavior!",
+                                                                      HasAuraId));
                                 TreeRoot.Stop();
                                 break;
                             }
@@ -308,9 +192,8 @@ namespace Styx.Bot.Quest_Behaviors
                 }
 
                 if (@object != null)
-                {
-                    Logging.Write(@object.Name);
-                }
+                    { UtilLogMessage("debug", @object.Name); }
+
                 return @object;
             }
         }
@@ -325,14 +208,13 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
             new PrioritySelector(
 
                 new Decorator(ret => Counter >= NumOfTimes,
-                    new Action(ret => _isDone = true)),
+                    new Action(ret => _isBehaviorDone = true)),
 
                     new PrioritySelector(
                         new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr > Range * Range,
@@ -382,38 +264,29 @@ namespace Styx.Bot.Quest_Behaviors
                 ));
         }
 
-        private bool _isDone;
         public override bool IsDone
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-                return
-                    _isDone || Item == null ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest != null)
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                var item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
-                if(item != null)
-                    TreeRoot.GoalText = string.Format("Using item {0} for {1}",
-                    item.Name,
-                    quest.Name);
-                
-                else
-                {
-                    TreeRoot.GoalText = string.Format("Use item {0} times on mob with id:{1} for quest:{2}",
-                        NumOfTimes,
-                        MobId,
-                        quest.Name);    
-                }
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

@@ -1,21 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
-using Bots.Grind;
+
 using Styx.Helpers;
-using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
 {
@@ -76,82 +74,62 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         /// 
         /// </summary>
         /// 
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},
-            {"WaitTime",null},
-            {"MobId",null},
-            {"NpcId",null},
-            {"NumOfTimes",null},
-            {"Combat",null},
-            {"UseCTM", null},
-            {"Range",null},
-        };
-
-        bool success = true;
-
         public RunLikeHell(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            int waitTime = 0;
-            int questId = 0;
-            int mobid = 0;
-            int numberoftimes = 0;
-            bool allowcombat = true;
-            bool usectm = false;
-
-
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("WaitTime", false, "0", 0, int.MaxValue, out waitTime);
-            success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out numberoftimes);
-            success = success && GetAttributeAsBoolean("Combat", false, "true", out allowcombat);
-            success = success && GetAttributeAsBoolean("UseCTM", false, "false", out usectm);
-
-            success = success && GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobid);
-            if (mobid == 0)
-                success = success && GetAttributeAsInteger("MobId", false, "0", 0, int.MaxValue, out mobid);
-
-            Range = 15;
-            if (Args.ContainsKey("Range"))
+            try
             {
-                int range = 15;
-                success = success && GetAttributeAsInteger("Range", false, "15", 0, int.MaxValue, out range);
-                Range = range != 0 ? range : 15;
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                AllowCombat = GetAttributeAsBoolean("AllowCombat", false, new [] { "Combat" }) ?? true;
+                MobId       = GetAttributeAsMobId("MobId", false, new [] { "NpcId" }) ?? 0;
+                NumOfTimes = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsRange("Range", false, null) ?? 15;
+                UseCTM      = GetAttributeAsBoolean("UseCtm", false, new [] { "UseCTM" }) ?? false;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
 
-            if (!success)
-                TreeRoot.Stop();
+                Counter = 0;
+                _lineCount = 0;
+                _lastStateReturn = RunStatus.Success;
+			}
 
-            QuestId = (uint)questId;
-            WaitTime = waitTime;
-            NumberOfTimes = numberoftimes;
-            MobId = mobid;
-            AllowCombat = allowcombat;
-            UseCTM = usectm;
-
-            Counter = 0;
-            lineCount = 0;
-            lastStateReturn = RunStatus.Success;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public int WaitTime { get; set; }
-        public uint QuestId { get; set; }
-        public int MobId { get; set; }
-        public int NumberOfTimes { get; set; }
-        public int Range { get; set; }
-        public int Counter { get; set; }
-        public Queue<WoWPoint> Path { get; set; }
-        public RunStatus lastStateReturn { get; set; }
-        public int lineCount { get; set; }
-        public bool AllowCombat { get; set; }
-        public bool UseCTM { get; set; }
 
-        public static LocalPlayer Me { get { return StyxWoW.Me; } }
+        public bool                     AllowCombat { get; private set; }
+        public int                      MobId { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      Range { get; private set; }
+        public bool                     UseCTM { get; private set; }
+        public int                      WaitTime { get; private set; }
 
-        public WoWUnit Mob
+        private bool                    _isBehaviorDone;
+        private RunStatus               _lastStateReturn { get; set; }
+        private int                     _lineCount { get; set; }
+        private Composite               _root;
+
+        private int                     Counter { get; set; }
+        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        private WoWUnit                 Mob
         {
             get
             {
@@ -160,18 +138,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                        .OrderBy(u => u.Distance).FirstOrDefault();
             }
         }
+        private Queue<WoWPoint>         Path { get; set; }
 
-        public void Log(string msg, params object[] args)
-        {
-            // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Blue, "[RunLikeHell] " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
-        }
-
-        public void DLog(string msg, params object[] args)
-        {
-            // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Blue, "(RunLikeHell) " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
-        }
 
         private bool ParsePath()
         {
@@ -183,6 +151,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             Path = path;
             return true;
         }
+
 
         public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
         {
@@ -208,81 +177,15 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-            ParsePath();        // refresh the list of points
-
-            // find the closest point in path
-            WoWPoint closePt = Path.Peek();
-            double minDist = Me.Location.Distance(closePt);
-
-            foreach (WoWPoint pt in Path)
-            {
-                if (Me.Location.Distance(pt) < minDist )
-                {
-                    minDist = Me.Location.Distance(pt);
-                    closePt = pt;
-                }
-            }
-
-            // set closest point as current
-            while (Path.Any() && closePt != Path.Peek())
-            {
-                Path.Dequeue();
-            }
-
-            Counter = 1;        
-            if (quest != null)
-            {
-                TreeRoot.GoalText = "RunLikeHell - " + quest.Name;
-            }
-            else
-            {
-                TreeRoot.GoalText = "RunLikeHell";
-            }
-
-            if (TreeRoot.Current == null)
-                Log("ERROR - TreeRoot.Current == null");
-            else if (TreeRoot.Current.Root == null)
-                Log("ERROR - TreeRoot.Current.Root == null");
-            else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
-                Log("ERROR - TreeRoot.Current.Root.LastStatus == RunStatus.Running");
-            else
-            {
-                var currentRoot = TreeRoot.Current.Root;    
-                if (!(currentRoot is GroupComposite))
-                    Log("ERROR - !(currentRoot is GroupComposite)");
-                else
-                {
-                    if (currentRoot is Sequence)
-                        lastStateReturn = RunStatus.Failure;
-                    else if (currentRoot is PrioritySelector)
-                        lastStateReturn = RunStatus.Success;
-                    else
-                    {
-                        DLog("unknown type of Group Composite at root");
-                        lastStateReturn = RunStatus.Success;
-                    }
-
-                    var root = (GroupComposite)currentRoot;
-                    root.InsertChild(0, CreateBehavior());
-                    DLog("disabled Combat");
-                }
-            }
-        }
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new Decorator( ret => !IsDone && (!AllowCombat || !Me.Combat),
                     new PrioritySelector(
-                        new Decorator(ret => !Path.Any() && Counter >= NumberOfTimes,
+                        new Decorator(ret => !Path.Any() && Counter >= NumOfTimes,
                             new Action(delegate
                             {
-                                _isDone = true;
+                                _isBehaviorDone = true;
                             })),
                         new Decorator(ret => !Path.Any(),
                             new Action(delegate
@@ -311,7 +214,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             ),
                         new Action(delegate
                         {
-                            if ( NumberOfTimes > 1 )
+                            if ( NumOfTimes > 1 )
                                 TreeRoot.GoalText = "RunLikeHell[Lap " + Counter + "] to " + Path.Peek().ToString();
                             else
                                 TreeRoot.GoalText = "RunLikeHell to " + Path.Peek().ToString();
@@ -321,30 +224,97 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             else
                                 Navigator.MoveTo(Path.Peek());
 
-                            return lastStateReturn;
+                            return _lastStateReturn;
                         })
                     )
                 )
             );
         }
 
-        private bool _isDone;
+
         public override bool IsDone
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-                var result = 
-                    _isDone 
-                    || (quest != null && quest.IsCompleted)         // quest complete
-                    || (quest == null && QuestId != 0)              // don't have quest
-                    || Me.Dead || Me.IsGhost                        // i'm a ghost
-                    || (!Path.Any() && Counter >= NumberOfTimes);   // not hotspots left and all iterations complete
+                bool    result  = (_isBehaviorDone                                 // normal completion
+                                   || (!Path.Any() && Counter >= NumOfTimes)    // no hotspots left and all iterations complete
+                                   || Me.Dead || Me.IsGhost                        // i'm a ghost
+                                   || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
 
                 if (result)
-                    _isDone = true;
+                    _isBehaviorDone = true;
 
                 return result;
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                ParsePath();        // refresh the list of points
+
+                // find the closest point in path
+                WoWPoint closePt = Path.Peek();
+                double minDist = Me.Location.Distance(closePt);
+
+                foreach (WoWPoint pt in Path)
+                {
+                    if (Me.Location.Distance(pt) < minDist )
+                    {
+                        minDist = Me.Location.Distance(pt);
+                        closePt = pt;
+                    }
+                }
+
+                // set closest point as current
+                while (Path.Any() && closePt != Path.Peek())
+                {
+                    Path.Dequeue();
+                }
+
+                Counter = 1;    
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
+                if (TreeRoot.Current == null)
+                    UtilLogMessage("fatal", "TreeRoot.Current == null");
+                else if (TreeRoot.Current.Root == null)
+                    UtilLogMessage("fatal", "TreeRoot.Current.Root == null");
+                else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
+                    UtilLogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
+                else
+                {
+                    var currentRoot = TreeRoot.Current.Root;    
+                    if (!(currentRoot is GroupComposite))
+                        UtilLogMessage("fatal", "!(currentRoot is GroupComposite)");
+                    else
+                    {
+                        if (currentRoot is Sequence)
+                            _lastStateReturn = RunStatus.Failure;
+                        else if (currentRoot is PrioritySelector)
+                            _lastStateReturn = RunStatus.Success;
+                        else
+                        {
+                            UtilLogMessage("debug", "Unknown type of Group Composite at root");
+                            _lastStateReturn = RunStatus.Success;
+                        }
+
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateBehavior());
+                        UtilLogMessage("debug", "Disabled Combat");
+                    }
+                }
             }
         }
 

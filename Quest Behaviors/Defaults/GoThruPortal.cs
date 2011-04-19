@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Threading;
 
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
-using Styx.Logic.BehaviorTree ;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
@@ -44,34 +44,20 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                WoWPoint    location;
-                int         questId;
-                int         timeOut;
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                MovePoint   = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Timeout     = GetAttributeAsInteger("Timeout", false, 1, 60000, null) ?? 10000;
 
+                GetAttributeAsString_NonEmpty("QuestName", false, null);    // not used - documentation purposes only
 
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "QuestId",    null },
-                                                    { "QuestName",  null },
-                                                    { "Timeout",    null },
-                                                    { "X",          null },
-                                                    { "Y",          null },
-                                                    { "Z",          null },
-                                                });
-
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsInteger("Timeout", false, "10000", 1, 60000, out timeOut);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
-
-                if (_isAttributesOkay)
-                {
-                    _zoneText = StyxWoW.Me.ZoneText;
-                    MovePoint = WoWMovement.CalculatePointFrom(location, -15);
-                    QuestId = (uint)questId;
-                    Timeout =  System.Environment.TickCount + timeOut;
-                }
+                Timeout += System.Environment.TickCount;
+                MovePoint   = WoWMovement.CalculatePointFrom(MovePoint, -15);
+                ZoneText    = StyxWoW.Me.ZoneText;
 			}
 
 			catch (Exception except)
@@ -84,23 +70,25 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int      Counter { get; set; }
-        public WoWPoint MovePoint { get; private set; }
-        public uint     QuestId { get; set; }
-        public int      Timeout { get; set; }
+        public WoWPoint                 MovePoint { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      Timeout { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private bool        _isInPortal = false;
-        private Composite   _root;
-        private string      _zoneText;
+        private bool                _isBehaviorDone;
+        private bool                _isInPortal;
+        private Composite           _root;
 
-        public static LocalPlayer s_me = ObjectManager.Me;
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private string              ZoneText { get; set; }
+
 
 
         #region Overrides of CustomForcedBehavior
@@ -130,7 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
                         })),
 
                     // if zone name changed
-                    new Decorator(ret => _zoneText != StyxWoW.Me.ZoneText,
+                    new Decorator(ret => ZoneText != StyxWoW.Me.ZoneText,
                         new Action(ret => _isInPortal = true)),
 
                     // if load screen is visible
@@ -138,13 +126,12 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(ret => _isInPortal = true)),
 
                     // if we are within 2 yards of calculated end point we should never reach
-                    new Decorator(ret => MovePoint.Distance(s_me.Location) < 2,
+                    new Decorator(ret => MovePoint.Distance(Me.Location) < 2,
                         new Action(delegate
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            UtilLogMessage("error", "GoThruPortal: ERROR reached end point. Failed to go through portal.\n"
-                                                    + "Stopping Honorbuddy.");
+                            UtilLogMessage("fatal", "Unable to reach end point.  Failed to go through portal.");
                             TreeRoot.Stop();
                             return RunStatus.Success;
                         })),
@@ -154,8 +141,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            UtilLogMessage("error", string.Format("ERROR timed out after {0} ms. Failed to go through portal\n"
-                                                                  + "Stopping Honorbuddy.",
+                            UtilLogMessage("fatal", string.Format("Timed out after {0} ms.  Failed to go through portal",
                                                                   Timeout));
                             TreeRoot.Stop();
                             return RunStatus.Success;
@@ -178,24 +164,24 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
-        public override void OnStart()
+        public override void    OnStart()
 		{
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText = "Moving through Portal";
 			}
 		}
 

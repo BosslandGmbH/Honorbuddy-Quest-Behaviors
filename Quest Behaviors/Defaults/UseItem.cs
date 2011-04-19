@@ -1,16 +1,16 @@
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -25,80 +25,67 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class UseItem: CustomForcedBehavior
     {
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null},
-            {"ItemId",null},
-            {"NumOfTimes",null},
-            {"WaitTime",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null}
-        };
-
         public UseItem(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            bool error = false;
-
-            uint questId = 0;
-            if (Args.ContainsKey("QuestId") && !uint.TryParse(Args["QuestId"], out questId))
+            try
             {
-                Logging.Write("Parsing attribute 'QuestId' in UseItem behavior failed! please check your profile!");
-                error = true;
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? WoWPoint.Empty;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 1500;
+			}
 
-            uint itemId;
-            if(!uint.TryParse(Args["ItemId"], out itemId))
-            {
-                Logging.Write("Parsing attribute 'ItemId' in UseItem behavior failed! please check your profile!");
-                error = true;
-            }
-
-            int numOfTimes = 1;
-            if (Args.ContainsKey("NumOfTimes") && !int.TryParse(Args["NumOfTimes"], out numOfTimes))
-            {
-                Logging.Write("Parsing attribute 'NumOfTimes' in UseItem behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if(Args.ContainsKey("WaitTime"))
-            {
-                int waitTime;
-                int.TryParse(Args["WaitTime"], out waitTime);
-                WaitTime = waitTime != 0 ? waitTime : 1500;
-            }
-
-            WoWPoint location = WoWPoint.Empty;
-            GetXYZAttributeAsWoWPoint(false, WoWPoint.Empty, out location);
-
-            if (error)
-                TreeRoot.Stop();
-
-            Location = location;
-            QuestId = questId;
-            NumOfTimes = numOfTimes;
-            ItemId = itemId;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public int WaitTime { get; private set; }
-        public int Counter { get; private set; }
-        public WoWPoint Location { get; private set; }
-        public uint ItemId { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public uint QuestId { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      ItemId { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      WaitTime { get; private set; }
+
+        private bool                    _isBehaviorDone;
+        private Composite               _root;
+
+        private int                     Counter { get; set; }
+
+
+        private WoWItem Item
+        {
+            get
+            {
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId);
+            }
+        }
+
 
         #region Overrides of CustomForcedBehavior
-        private Composite _root;
+
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
             new PrioritySelector(
 
                 new Decorator(ret => Counter >= NumOfTimes,
-                    new Action(ret => _isDone = true)),
+                    new Action(ret => _isBehaviorDone = true)),
 
                 new Decorator(
                     ret => Location != WoWPoint.Empty && Location.Distance(StyxWoW.Me.Location) > 2,
@@ -128,42 +115,31 @@ namespace Styx.Bot.Quest_Behaviors
                     }))));
         }
 
-        private WoWItem Item
-        {
-            get
-            {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId);
-            }
-        }
 
-        private bool _isDone;
         public override bool IsDone
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-                return
-                    _isDone || Item == null ||
-                    (quest != null && quest.IsCompleted);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
+
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-            if (Item != null)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                TreeRoot.GoalText = string.Format("Using item {0} for {1}",
-                Item.Name,
-                quest != null ? quest.Name: "");
-            }
-            else
-            {
-                TreeRoot.GoalText = string.Format("Use item {0} times for quest:{1}",
-                    NumOfTimes,
-                    quest != null ? quest.Name : "");
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

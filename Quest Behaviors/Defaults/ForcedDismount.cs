@@ -17,7 +17,7 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class ForcedDismount : CustomForcedBehavior
     {
-        private enum ForcedDismountType
+        public enum ForcedDismountType
         {
             Any,
             Ground,
@@ -43,25 +43,15 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                int                 questId;
-                ForcedDismountType  typeMount;
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                MountType   = GetAttributeAsEnum<ForcedDismountType>("MountType", false, null) ?? ForcedDismountType.Any;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
 
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "QuestId",    null },     // optional quest id (defaults to 0)
-                                                    { "QuestName",  null },     // (doc only - not used)
-                                                    { "MountType",  null },     // ignored currently
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsEnum<ForcedDismountType>("MountType", false, ForcedDismountType.Any, out typeMount);
-
-                if (_isAttributesOkay)
-                {
-                    QuestId = (uint)questId;
-                    MountType = typeMount;
-                }
+                GetAttributeAsString_NonEmpty("QuestName", false, null);     // (doc only - not used)
 			}
 
 			catch (Exception except)
@@ -74,18 +64,20 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public LocalPlayer          Me { get { return ObjectManager.Me; } }
-        private ForcedDismountType  MountType { get; set; }
-        private uint                QuestId { get; set; }
+        public ForcedDismountType       MountType { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool                _isBehaviorDone;
+        private Composite           _root;
+
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 
         private void Dismount()
@@ -150,24 +142,24 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
 		{
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText = "Dismounting";
 			}
 		}
 

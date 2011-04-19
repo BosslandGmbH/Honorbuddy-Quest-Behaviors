@@ -37,24 +37,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                AbandonType     abandonType;
-                int             questId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "QuestId",    null},
-                                                    { "Type",       null},
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsEnum<AbandonType>("Type", true, AbandonType.Incomplete, out abandonType);
-                
-                if (_isAttributesOkay)
-                {
-                    QuestId = (uint)questId;
-                    Type = abandonType;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Type    = GetAttributeAsEnum<AbandonType>("Type", true, null) ?? AbandonType.Incomplete;
             }
 
 			catch (Exception except)
@@ -67,14 +56,16 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
-        public uint         QuestId { get; private set; }
-        public AbandonType  Type { get; private set; }
 
-        private bool    _isAttributesOkay;
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public AbandonType              Type { get; private set; }
+
         private bool    _isBehaviorDone;
 
         
@@ -84,30 +75,27 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-                return (_isBehaviorDone || (quest == null));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-            if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest == null)
-                    { UtilLogMessage("error", string.Format("Cannot find quest {0}.", QuestId)); }
+                    { UtilLogMessage("fatal", string.Format("Cannot find quest with QuestId({0}).", QuestId)); }
 
                 else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
                     { UtilLogMessage("warning", string.Format("Quest \"{0}\"(id: {1}) is Complete!  Skipping abandon.", quest.Name, QuestId)); }
@@ -119,7 +107,7 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     TreeRoot.GoalText = string.Format("Abandoning quest: \"{0}\"", quest.Name);
                     QuestLog ql = new QuestLog();
-                    ql.AbandonQuestById(QuestId);
+                    ql.AbandonQuestById((uint)QuestId);
                     UtilLogMessage("info", string.Format("Quest \"{0}\"(id: {1}) successfully abandoned", quest.Name, QuestId));
                 }
 

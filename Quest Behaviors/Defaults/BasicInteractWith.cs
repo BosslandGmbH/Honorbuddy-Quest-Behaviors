@@ -27,66 +27,32 @@ namespace Styx.Bot.Quest_Behaviors
         /// Faction: The faction the mobs needs to be before interacting
         /// X,Y,Z: The general location where theese objects can be found
         /// </summary>       
-
+        /// 
         public BasicInteractWith(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "Faction",    null },
-                                                    { "LUATarget",  null },
-                                                    { "MoveTo",     null },
-                                                    { "NpcID",      null },
-                                                    { "NpcId",      null },
-                                                    { "QuestId",    null },
-                                                    { "UseCTM",     null },
-                                                });
-
-                int mobId;
-                int useCTM;
-                int luatarget;
-                int usefaction;
-                int questId;
-
-                _isAttributesOkay &= GetAttributeAsInteger("Faction", false, "0", 0, int.MaxValue, out usefaction);
-                _isAttributesOkay &= GetAttributeAsInteger("NpcID", false, "0", 0, int.MaxValue, out mobId);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsInteger("LUATarget", false, "0", 0, int.MaxValue, out luatarget);
-                _isAttributesOkay &= GetAttributeAsInteger("UseCTM", false, "0", 0, int.MaxValue, out useCTM);
-
-                // "NpcID" is allowed for legacy purposes --
-                // If it was not supplied, then its new name "NpcId" is required.
-                if (mobId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("NpcId", true, "0", 0, int.MaxValue, out mobId); }
-
-                // "UseCTM" is allowed for legacy purposes --
-                // If it was not supplied, then we need to check its new name "MoveTo", also.
-                if (useCTM == 0)
-                    {  _isAttributesOkay &= GetAttributeAsInteger("MoveTo", false, "0", 0, int.MaxValue, out useCTM); }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter     = 0;
+                FactionId   = GetAttributeAsInteger("Faction", false, 1, int.MaxValue, null) ?? 0;
+                IsMoveToMob = GetAttributeAsBoolean("MoveTo", false, new [] { "UseCTM" }) ?? false;;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId", "NpcID" })  ?? 0;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                UseLuaTarget = GetAttributeAsBoolean("UseLuaTarget", false, new [] { "LUATarget" }) ?? false;
 
 
-                // Weed out Profile Writer sloppiness --
-                if (_isAttributesOkay)
-                {
-                    if (mobId == 0)
-                    {
-                        UtilLogMessage("error", "MobId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
+                WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                      .Where(unit => unit.Entry == MobId)
+                                      .FirstOrDefault();
 
-
-                if (_isAttributesOkay)
-                {
-                    MobId = mobId;
-                    LUATarget = luatarget;
-                    UseCTM = useCTM;
-                    FactionID = usefaction;
-                    QuestId = (uint)questId;
-                    Counter = 0;
-                }
+                MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
+                            ? mob.Name
+                            : ("Mob(" + MobId + ")");
             }
 
 			catch (Exception except)
@@ -99,34 +65,34 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int      Counter { get; set; }
-        public int      FactionID { get; set; }
-        public int      LUATarget { get; set; }
-        public int      MobId { get; set; }
-        public WoWPoint MovePoint { get; private set; }
-        public uint     QuestId { get; set; }
-        public int      UseCTM { get; set; }
+        public int                      FactionId { get; private set; }
+        public bool                     IsMoveToMob { get; private set; }
+        public int                      MobId { get; private set; }
+        public string                   MobName { get; private set; }
+        public WoWPoint                 MovePoint { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public bool                     UseLuaTarget { get; private set; }
 
-        private bool        _isAttributesOkay = true;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        private static LocalPlayer  s_me = ObjectManager.Me;
-
-
-        public List<WoWUnit> mobList
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private List<WoWUnit>       MobList
         {
             get
             {
-                if (FactionID > 1)
+                if (FactionId > 1)
                 {
                     return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionID)
+                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionId)
                                     .OrderBy(u => u.Distance).ToList(); 
                 }
                 else
@@ -139,7 +105,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        #region Overrides of CustomForcedBehavior.
+        #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
@@ -164,24 +130,24 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
-                             new Decorator(ret => mobList.Count > 0 && !mobList[0].WithinInteractRange && UseCTM > 0,
+                             new Decorator(ret => MobList.Count > 0 && !MobList[0].WithinInteractRange && IsMoveToMob,
                                 new Sequence(
-                                    new DecoratorContinue(ret => UseCTM > 0,
+                                    new DecoratorContinue(ret => IsMoveToMob,
                                         new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + mobList[0].Name + " X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
-                                            new Action(ret => WoWMovement.ClickToMove(mobList[0].Location))
+                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + MobList[0].Name + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
+                                            new Action(ret => WoWMovement.ClickToMove(MobList[0].Location))
                                             )),
 
-                                      new DecoratorContinue(ret => UseCTM == 0,
+                                      new DecoratorContinue(ret => !IsMoveToMob,
                                         new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + mobList[0].Name + " X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
-                                            new Action(ret => Navigator.MoveTo(mobList[0].Location))
+                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + MobList[0].Name + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
+                                            new Action(ret => Navigator.MoveTo(MobList[0].Location))
                                             ))
 
 
                                     )),
 
-                            new Decorator(ret => mobList.Count > 0 && mobList[0].WithinInteractRange,
+                            new Decorator(ret => MobList.Count > 0 && MobList[0].WithinInteractRange,
                                 new Sequence(
                                     new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                         new Action(ret =>
@@ -189,12 +155,12 @@ namespace Styx.Bot.Quest_Behaviors
                                             WoWMovement.MoveStop();
                                             StyxWoW.SleepForLagDuration();
                                         })),
-                                        new Action(ret => mobList[0].Interact()),
+                                        new Action(ret => MobList[0].Interact()),
                                         new Action(ret => Counter++)
                                     )
                             ),
 
-                            new Decorator(ret => mobList.Count > 0 && UseCTM == 0 && LUATarget == 0,
+                            new Decorator(ret => (MobList.Count > 0) && !IsMoveToMob && !UseLuaTarget,
                                 new Sequence(
                                     new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                         new Action(ret =>
@@ -202,12 +168,12 @@ namespace Styx.Bot.Quest_Behaviors
                                             WoWMovement.MoveStop();
                                             StyxWoW.SleepForLagDuration();
                                         })),
-                                        new Action(ret => mobList[0].Interact()),
+                                        new Action(ret => MobList[0].Interact()),
                                         new Action(ret => Counter++)
                                     )
                             ),
 
-                            new Decorator(ret => mobList.Count > 0 && LUATarget > 0,
+                            new Decorator(ret => MobList.Count > 0 && UseLuaTarget,
                                 new Sequence(
                                     new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                         new Action(ret =>
@@ -216,7 +182,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             StyxWoW.SleepForLagDuration();
                                         })),
                                         new Action(ret => Lua.DoString("TargetNearest()")),
-                                        new Action(ret => s_me.CurrentTarget.Interact()),
+                                        new Action(ret => Me.CurrentTarget.Interact()),
                                         new Action(ret => Counter++)
                                     )
                             )
@@ -226,30 +192,26 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return (_isBehaviorDone); }
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
 
         public override void OnStart()
         {
-            if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-                if (quest != null)
-                    { TreeRoot.GoalText = "BasicInteractWith - " + quest.Name; }
-                else
-                    { TreeRoot.GoalText = "BasicInteractWith: Running"; }
+                TreeRoot.GoalText = "Interacting with " + MobName;
             }
         }
 

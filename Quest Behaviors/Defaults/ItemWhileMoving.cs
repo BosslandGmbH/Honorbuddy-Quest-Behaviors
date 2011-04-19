@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.BehaviorTree;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
@@ -30,44 +30,15 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                int         itemId;
-                WoWPoint    location;
-                int         questId;
-
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "ItemId",     null},
-                                                    { "QuestId",    null},
-                                                    { "X",          null},
-                                                    { "Y",          null},
-                                                    { "Z",          null},
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
-
-                // Semantic coherency --
-                if (_isAttributesOkay)
-                {
-                    if (itemId == 0)
-                    {
-                        UtilLogMessage("error", "\"ItemId\" may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    Counter = 0;
-                    ItemID = itemId;
-                    Location = location;
-                    MovedToTarget = false;
-                    QuestId = (uint)questId;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MovedToTarget = false;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -80,23 +51,22 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int          Counter { get; set; }
-        public int          ItemID { get; set; }
-        public WoWPoint     Location { get; private set; }
-        public bool         MovedToTarget;
-        public int          NumberOfTimes { get; set; }
-        public uint         QuestId { get; set; }
+        public int                      ItemId { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public bool                     MovedToTarget { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        public static LocalPlayer   s_me = ObjectManager.Me;
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 
         public WoWItem wowItem
@@ -107,13 +77,14 @@ namespace Styx.Bot.Quest_Behaviors
 
                 foreach (WoWItem item in inventory)
                 {
-                    if (item.Entry == ItemID)
+                    if (item.Entry == ItemId)
                         return item;
                 }
 
                 return inventory[0];
             }
         }
+
 
         #region Overrides of CustomForcedBehavior
 
@@ -122,7 +93,7 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                            new Decorator(ret => (Counter > NumberOfTimes) || (s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                            new Decorator(ret => (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -133,21 +104,21 @@ namespace Styx.Bot.Quest_Behaviors
                                         }))
                                     )),
 
-                            new Decorator(c => Location.Distance(s_me.Location) > 3,
+                            new Decorator(c => Location.Distance(Me.Location) > 3,
                                 new Action(c =>
                                 {
-                                    if (Location.Distance(s_me.Location) <= 3)
+                                    if (Location.Distance(Me.Location) <= 3)
                                     {
                                         _isBehaviorDone = true;
                                         return RunStatus.Success;
                                     }
                                     TreeRoot.StatusText = "Moving To Location: Using Item - " + wowItem.Name;
 
-                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(s_me.Location, Location);
+                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, Location);
 
                                     foreach (WoWPoint p in pathtoDest1)
                                     {
-                                        while (!s_me.Dead && p.Distance(s_me.Location) > 2)
+                                        while (!Me.Dead && p.Distance(Me.Location) > 2)
                                         {
                                             Thread.Sleep(100);
                                             WoWMovement.ClickToMove(p);
@@ -166,35 +137,26 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                if (quest != null)
-                    { TreeRoot.GoalText = string.Format("{0} - \"{1}\"", this.GetType().Name, quest.Name); }
-
-                else
-                    { TreeRoot.GoalText = string.Format("{0}: Running", this.GetType().Name); }
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
             }
         }
 

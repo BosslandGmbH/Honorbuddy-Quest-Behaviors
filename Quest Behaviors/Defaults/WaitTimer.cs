@@ -1,10 +1,15 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
+//
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 
 using Styx.Logic.BehaviorTree;
-using Styx.Helpers;
 using Styx.Logic.Questing;
+using Styx.WoWInternals;
+using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
@@ -17,74 +22,57 @@ namespace Styx.Bot.Quest_Behaviors
     /// WaitTimer by Nesox
     /// Simple behavior that forces hb to wait until the timer runs out.
     /// ##Syntax##
-    /// WaitTime: time in milliseconds to wait. eg; 15000 for 15 seconds.
-    /// Important: this does not have a QuestId attribute and therefor you have to put this inside the body of an If tag!!!
+    /// QuestId[Optional]:
+    /// QuestCompleteRequirement[Optional, Default:NotComplete]:
+    /// QuestInLogRequirement[Optional, Default:InLog]:
+    /// WaitTime: time (in milliseconds) to wait. eg; 15000 for 15 seconds.
+    /// VariantTime[Optional]: a random amount of time between [0..VariantTime] will be selected and added to the WaitTime
     /// </summary>
     public class WaitTimer : CustomForcedBehavior
     {
-        #region Overrides of CustomForcedBehavior
-
-        private readonly Timer _timer;
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"GoalText",null},
-            {"VariantTime",null},
-            {"WaitTime",null},
-            {"QuestId",null},
-        };
-
-        bool success = true;
-        private string      _goalText;
-        private string      _waitTimeAsString;
-
-
         public WaitTimer(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                GoalText    = GetAttributeAsString_NonEmpty("GoalText", false, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0; 
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                WaitTime    = GetAttributeAsInteger("WaitTime", true, 1, int.MaxValue, null) ?? 1000;
+                VariantTime = GetAttributeAsInteger("VariantTime", false, 1, int.MaxValue, null) ?? 0;
+			}
 
-            int waitTime = 0;
-            int variantTime = 0;
-
-            success = success && GetAttributeAsString("GoalText", false, "", out _goalText);
-            success = success && GetAttributeAsInteger("WaitTime", true, "1000", 0, int.MaxValue, out waitTime);
-            success = success && GetAttributeAsInteger("VariantTime", false, "0", 0, int.MaxValue, out variantTime);
-
-            if (variantTime > 0)
-                { waitTime +=  (new Random()).Next(variantTime); }
-
-            _timer = new Timer(new TimeSpan(0, 0, 0, 0, waitTime));
-
-            _waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
+
+        // Attributes provided by caller
+        public string                   GoalText { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      WaitTime { get; private set; }
+        public int                      VariantTime { get; private set; }
+       
+        // Private variables for internal state
+        private Composite       _root;
+        private Timer           _timer;
+        private string          _waitTimeAsString;
         
-
-        public override void OnStart()
-        {
-            _timer.Reset();
-        }
-
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new Decorator(ret => !_timer.IsFinished,
-                    new Sequence(
-                        new Action(ret => TreeRoot.GoalText = (!string.IsNullOrEmpty(_goalText)
-                                                               ? UtilSubstituteInMessage(_goalText)
-                                                               : "Waiting for timer expiration")),
-                        new Action(ret => TreeRoot.StatusText = "Wait time remaining... "
-                                         + UtilBuildTimeAsString(_timer.TimeLeft)
-                                         + "... of "
-                                         + _waitTimeAsString),
-                        new Action(delegate { return RunStatus.Success; }))
-                        )
-                       );
-        }
-
-        public override bool IsDone { get { return _timer.IsFinished; } }
-
 
         private string   UtilSubstituteInMessage(string   message)
         {
@@ -93,6 +81,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             return (message);
         }
+
 
         private static string   UtilBuildTimeAsString(TimeSpan timeSpan)
         {
@@ -110,7 +99,58 @@ namespace Styx.Bot.Quest_Behaviors
                                   timeSpan.Minutes,
                                   timeSpan.Seconds));
         }
+
+
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new Decorator(ret => !_timer.IsFinished,
+                    new Sequence(
+                        new Action(ret => TreeRoot.GoalText = (!string.IsNullOrEmpty(GoalText)
+                                                               ? UtilSubstituteInMessage(GoalText)
+                                                               : "Waiting for timer expiration")),
+                        new Action(ret => TreeRoot.StatusText = "Wait time remaining... "
+                                         + UtilBuildTimeAsString(_timer.TimeLeft)
+                                         + "... of "
+                                         + _waitTimeAsString),
+                        new Action(delegate { return RunStatus.Success; }))
+                        )
+                       );
+        }
+
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (((_timer != null) && _timer.IsFinished)     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                int     waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
+
+                _timer = new Timer(new TimeSpan(0, 0, 0, 0, waitDuration));
+                _waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);
+
+                _timer.Reset();
+            }
+        }
+
         #endregion
     }
 }
-

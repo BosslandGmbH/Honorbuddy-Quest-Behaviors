@@ -2,17 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Inventory.Frames.Gossip;
+using Styx.Logic.Inventory.Frames.LootFrame;
+using Styx.Logic.Inventory.Frames.Merchant;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
-using Styx.Logic.Inventory.Frames.Merchant;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Inventory.Frames.LootFrame;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -42,209 +45,86 @@ namespace Styx.Bot.Quest_Behaviors
         public enum ObjectType
         {
             Npc,
-            Gameobject
+            GameObject,
         }
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null},
-            {"WaitTime",null},
-            {"MobId",null},
-            {"NpcId",null},
-            {"NumOfTimes",null},
-            {"CollectionDistance",null},
-            {"ObjectType",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-            {"BuySlot",null},
-            {"BuyItemId",null},
-            {"BuyItemCount",null},
-            {"GossipOption",null},
-            {"Range",null},
-            {"Loot", null},
-            {"NotMoving", null}
-        };
         
         public InteractWith(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            bool error = false;
-
-            uint questId = 0;
-            if (Args.ContainsKey("QuestId"))
+            try
             {
-                if (!uint.TryParse(Args["QuestId"], out questId))
-                {
-                    Logging.Write(
-                        "Parsing attribute 'QuestId' in InteractWith behavior failed! please check your profile!");
-                    error = true;
-                }
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                BuyItemCount = GetAttributeAsInteger("BuyItemCount", false, 1, 1000, null) ?? 1;
+                BuyItemId   = GetAttributeAsItemId("BuyItemId", false, null) ?? 0;
+                BuySlot     = GetAttributeAsInteger("BuySlot", false, -1, 100, null) ?? -1;
+                CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
+                GossipOptions = GetAttributeAsIntegerArray("GossipOptions", false, -1, 10, new [] { "GossipOption" }) ?? new int[0];
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                Loot        = GetAttributeAsBoolean("Loot", false, null) ?? false;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
+                NotMoving   = GetAttributeAsBoolean("NotMoving", false, null) ?? false;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsRange("Range", false, null) ?? 4;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 3000;
 
-            int waitTime;
-            if (Args.ContainsKey("WaitTime") && !int.TryParse(Args["WaitTime"], out waitTime))
-            {
-                Logging.Write("Parsing attribute 'MobId' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
-            else
-                waitTime = 3000;
+                for (int i = 0;  i < GossipOptions.Length;  ++i)
+                    { GossipOptions[i] -= 1; }
 
-            uint mobId = 0;
-            if (Args.ContainsKey("MobId"))
-            {
-                if (!uint.TryParse(Args["MobId"], out mobId))
-                {
-                    Logging.Write("Parsing attribute 'MobId' in InteractWith behavior failed! please check your profile!");
-                    error = true;
-                }
-            }
-            else if (!uint.TryParse(Args["NpcId"], out mobId))
-            {
-                Logging.Write("Parsing attribute 'NpcId' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
 
-            int numOfTimes = 1;
-            if (Args.ContainsKey("NumOfTimes") && !int.TryParse(Args["NumOfTimes"], out numOfTimes))
-            {
-                Logging.Write("Parsing attribute 'NumOfTimes' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
+                WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                      .Where(unit => unit.Entry == MobId)
+                                      .FirstOrDefault();
 
-            if (Args.ContainsKey("CollectionDistance"))
-            {
-                int distance;
-                int.TryParse(Args["CollectionDistance"], out distance);
-                CollectionDistance = distance != 0 ? distance : 100;
-            }
+                MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
+                            ? mob.Name
+                            : ("Mob(" + MobId + ")");
+			}
 
-            if (!Args.ContainsKey("ObjectType"))
-            {
-                _ObjectType = ObjectType.Npc;
-            }
-            else
-            {
-                _ObjectType = (ObjectType)Enum.Parse(typeof(ObjectType), Args["ObjectType"], true);
-            }
-
-            float x, y, z;
-            if (!float.TryParse(Args["X"], out x))
-            {
-                Logging.Write("Parsing attribute 'X' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if (!float.TryParse(Args["Y"], out y))
-            {
-                Logging.Write("Parsing attribute 'Y' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
-
-            if (!float.TryParse(Args["Z"], out z))
-            {
-                Logging.Write("Parsing attribute 'Z' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
-
-            int bSlot = -1;
-            if (Args.ContainsKey("BuySlot"))
-            {
-                if (!int.TryParse(Args["BuySlot"], out bSlot))
-                {
-                    Logging.Write("Parsing attribute 'BuySlot' in InteractWith behavior failed! please check your profile!");
-                    error = true;
-                }
-                else
-                {
-                    bSlot -= 1;
-                }
-            }
-
-            int bItemId = 0;
-            if (Args.ContainsKey("BuyItemId"))
-            {
-                if (!int.TryParse(Args["BuyItemId"], out bItemId))
-                {
-                    Logging.Write("Parsing attribute 'BuyItemId' in InteractWith behavior failed! please check your profile!");
-                    error = true;
-                }
-            }
-
-            int bItemCount = 1;
-            if (Args.ContainsKey("BuyItemCount"))
-            {
-                if (!int.TryParse(Args["BuyItemCount"], out bItemCount))
-                {
-                    Logging.Write("Parsing attribute 'BuyItemCount' in InteractWith behavior failed! please check your profile!");
-                    error = true;
-                }
-            }
-
-            var gossipOption = new List<int>();
-            if (Args.ContainsKey("GossipOption"))
-            {
-                string gossip = Args["GossipOption"].ToString();
-                foreach (var item in gossip.Split(','))
-                {
-                    int i = 0;
-                    int.TryParse(item, out i);
-                    if (i != 0)
-                        gossipOption.Add(i - 1);
-                }
-            }
-
-            int range = 4;
-            if (Args.ContainsKey("Range") && !int.TryParse(Args["Range"], out range))
-            {
-                Logging.Write("Parsing attribute 'Range' in InteractWith behavior failed! please check your profile!");
-                error = true;
-            }
-
-            bool loot, notMoving;
-            GetAttributeAsBoolean("Loot", false, "false", out loot);
-            GetAttributeAsBoolean("NotMoving", false, "false", out notMoving);
-
-            if (error)
-                TreeRoot.Stop();
-
-            NotMoving = notMoving;
-            Loot = loot;
-            GossipOption = gossipOption;
-            WaitTime = waitTime;
-            QuestId = questId;
-            NumOfTimes = numOfTimes;
-            MobId = mobId;
-            BuySlot = bSlot;
-            BuyItemId = bItemId;
-            BuyItemCount = bItemCount;
-            Range = range;
-            Location = new WoWPoint(x, y, z);
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public bool NotMoving { get; private set; }
-        public bool Loot { get; private set; }
-        public WoWPoint Location { get; private set; }
-        public int Counter { get; set; }
-        public uint MobId { get; set; }
-        public int NumOfTimes { get; set; }
-        public int BuySlot { get; set; }
-        public int BuyItemId { get; set; }
-        public int Range { get; set; }
-        public int BuyItemCount { get; set; }
-        private int WaitTime { get; set; }
-        public uint QuestId { get; private set; }
-        public ObjectType _ObjectType { get; private set; }
-        public int CollectionDistance = 100;
-        public List<int> GossipOption { get; private set; }
+        public int                      BuyItemCount { get; private set; }
+        public int                      BuyItemId { get; private set; }
+        public int                      BuySlot { get; private set; }
+        public int                      CollectionDistance { get; private set; }
+        public int                      Counter { get; private set; }
+        public int[]                    GossipOptions { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public bool                     Loot { get; private set; }
+        public int                      MobId { get; private set; }
+        public string                   MobName { get; private set; }
+        public ObjectType               MobType { get; private set; }
+        public bool                     NotMoving { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      Range { get; private set; }
+        public int                      WaitTime { get; private set; }
 
-        public LocalPlayer Me { get { return StyxWoW.Me; } }
+        private bool                    _isBehaviorDone;
+        private readonly List<ulong>    _npcBlacklist = new List<ulong>();
+        private Composite               _root;
 
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+
 
         /// <summary> Current object we should interact with.</summary>
         /// <value> The object.</value>
@@ -254,9 +134,9 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 bool test = ObjectManager.GetObjectsOfType<WoWGameObject>().Any(delegate(WoWGameObject obj) { return obj.Entry == 191092; });
                 WoWObject @object = null;
-                switch (_ObjectType)
+                switch (MobType)
                 {
-                    case ObjectType.Gameobject:
+                    case ObjectType.GameObject:
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                             !_npcBlacklist.Contains(obj.Guid) &&
                             obj.Distance < CollectionDistance &&
@@ -276,23 +156,22 @@ namespace Styx.Bot.Quest_Behaviors
                 }
 
                 if (@object != null)
-                {
-                    Logging.Write(@object.Name);
-                }
+                    { UtilLogMessage("debug", @object.Name); }
+
                 return @object;
             }
         }
 
+
         #region Overrides of CustomForcedBehavior
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new PrioritySelector(
 
                     new Decorator(ret => Counter >= NumOfTimes,
-                        new Action(ret => _isDone = true)),
+                        new Action(ret => _isBehaviorDone = true)),
 
                         new PrioritySelector(
 
@@ -323,10 +202,10 @@ namespace Styx.Bot.Quest_Behaviors
                                     }),
 
                                     new DecoratorContinue(
-                                        ret => GossipOption.Count > 0,
+                                        ret => GossipOptions.Length > 0,
                                         new Action(ret =>
                                             {
-                                                foreach (var gos in GossipOption)
+                                                foreach (var gos in GossipOptions)
                                                 {
                                                     GossipFrame.Instance.SelectGossipOption(gos);
                                                     Thread.Sleep(1000);
@@ -381,27 +260,30 @@ namespace Styx.Bot.Quest_Behaviors
                     )));
         }
 
-        private bool _isDone;
+
         public override bool IsDone
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-				return
-					_isDone ||
-					(QuestId > 0 && quest == null) ||
-					(quest != null && quest.IsCompleted);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
+
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest != null)
-                TreeRoot.GoalText = string.Format("Interacting with Mob Id:{0} {1} Times for quest:{2}", MobId, NumOfTimes, quest.Name);
-            else
-                TreeRoot.GoalText = "Running: " + GetType().Name;
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText = "Interacting with " + MobName;
+            }
         }
 
         #endregion

@@ -33,69 +33,16 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         {
 			try
 			{
-                WoWPoint    location;
-                int         mobId;
-                int         questId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "NpcId",      null },
-                                                    { "MobId",      null },
-                                                    { "QuestId",    null },
-                                                    { "X",          null },
-                                                    { "Y",          null },
-                                                    { "Z",          null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobId);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
-
-                // "NpcId" is allowed for legacy purposes --
-                // If it was not supplied, then its new name "NpcId" is required.
-                if (mobId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId); }
-
-                // Weed out Profile Writer sloppiness --
-                if (_isAttributesOkay)
-                {
-                    if (mobId == 0)
-                    {
-                        UtilLogMessage("error", "MobId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (questId == 0)
-                    {
-                        UtilLogMessage("error", "QuestId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    QuestId = (uint)questId;
-                    MobId = mobId;
-                    Counter = 1;
-                    MovedToTarget = false;
-                    Location = location;
-
-                    _configSnapshot = new HonorbuddyUserConfigSnapshot();
-                    BotEvents.OnBotStop  += BotEvents_OnBotStop;
-
-                    // Disable any settings that may interfere with the escort --
-                    // When we escort, we don't want to be distracted by other things.
-                    // NOTE: these settings are restored to their normal values when the behavior completes
-                    // or the bot is stopped.
-                    LevelbotSettings.Instance.HarvestHerbs = false;
-                    LevelbotSettings.Instance.HarvestMinerals = false;
-                    LevelbotSettings.Instance.LootChests = false;
-                    LevelbotSettings.Instance.LootMobs = false;
-                    LevelbotSettings.Instance.NinjaSkin = false;
-                    LevelbotSettings.Instance.SkinMobs = false;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter     = 1;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MovedToTarget = false;
+                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -108,47 +55,64 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
-        public int      Counter { get; set; }
-        public WoWPoint Location { get; private set; }
-        public int      MobId { get; set; }
-        public bool     MovedToTarget { get; set; }
-        public uint     QuestId { get; set; }
 
-        private HonorbuddyUserConfigSnapshot    _configSnapshot;
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        public int                      Counter { get; set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MobId { get; private set; }
+        public bool                     MovedToTarget { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        public static LocalPlayer   s_me = ObjectManager.Me;
+        private ConfigMemento           _configMemento;
+        private bool                    _isBehaviorDone;
+        private bool                    _isDisposed;
+        private Composite               _root;
+
+        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
 
 
-        private void    BehaviorCleanup()
+        ~Escort()
         {
-           // Restore any settings we may have altered...
-           if (_configSnapshot != null)
-           {
-                // Restore PullDistance to normal, and anything else we may have changed.
-                _configSnapshot.Restore();
-                _configSnapshot = null;
-           }
-   
-            // Unhook event handler
-           BotEvents.OnBotStop -= BotEvents_OnBotStop;
+            Dispose(false);
+            GC.SuppressFinalize(this);
+        }
+
+        public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    if (_configMemento != null)
+                    {
+                        _configMemento.Dispose();
+                        _configMemento = null;
+                    }
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
         }
 
 
         public void    BotEvents_OnBotStop(EventArgs args)
         {
-             BehaviorCleanup();
-        }
-
-        public override void    Dispose()
-        {
-            BehaviorCleanup();
+             Dispose(true);
         }
 
 
@@ -167,7 +131,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         {
             get
             {
-                switch (s_me.Class)
+                switch (Me.Class)
                 {
                     case Styx.Combat.CombatRoutine.WoWClass.Druid:
                         return SpellManager.Spells["Starfire"];
@@ -188,11 +152,6 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
-        /// <summary>
-        /// A Queue for npc's we need to talk to
-        /// </summary>
-        //private WoWUnit CurrentUnit { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => unit.Distance < 100 && unit.Entry == MobId); } }
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
@@ -200,7 +159,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
             return _root ?? (_root =
                 new PrioritySelector(
 
-                            new Decorator(ret => s_me.QuestLog.GetQuestById(QuestId) != null && s_me.QuestLog.GetQuestById(QuestId).IsCompleted,
+                            new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -219,21 +178,21 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                     )
                                 ),
 
-                           new Decorator(ret => s_me.CurrentTarget != null && s_me.CurrentTarget.IsFriendly,
-                               new Action(ret => s_me.ClearTarget())),
+                           new Decorator(ret => Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly,
+                               new Action(ret => Me.ClearTarget())),
 
                            new Decorator(
                                ret => mobList.Count > 0 && mobList[0].IsHostile,
                                new PrioritySelector(
                                    new Decorator(
-                                       ret => s_me.CurrentTarget != mobList[0],
+                                       ret => Me.CurrentTarget != mobList[0],
                                        new Action(ret =>
                                            {
                                                mobList[0].Target();
                                                StyxWoW.SleepForLagDuration();
                                            })),
                                    new Decorator(
-                                       ret => !s_me.Combat,
+                                       ret => !Me.Combat,
                                        new PrioritySelector(
                                             new Decorator(
                                                 ret => RoutineManager.Current.PullBehavior != null,
@@ -242,7 +201,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
 
                            new Decorator(
-                               ret => mobList.Count > 0 && (!s_me.Combat || s_me.CurrentTarget == null || s_me.CurrentTarget.Dead) && 
+                               ret => mobList.Count > 0 && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && 
                                       mobList[0].CurrentTarget == null && mobList[0].DistanceSqr > 5f * 5f,
                                 new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Following Mob - " + mobList[0].Name + " At X: " + mobList[0].X + " Y: " + mobList[0].Y + " Z: " + mobList[0].Z),
@@ -251,15 +210,15 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                        )
                                 ),
 
-                           new Decorator(ret => mobList.Count > 0 && (s_me.Combat || mobList[0].Combat),
+                           new Decorator(ret => mobList.Count > 0 && (Me.Combat || mobList[0].Combat),
                                 new PrioritySelector(
                                     new Decorator(
-                                        ret => s_me.CurrentTarget == null && mobList[0].CurrentTarget != null,
+                                        ret => Me.CurrentTarget == null && mobList[0].CurrentTarget != null,
                                         new Sequence(
                                         new Action(ret => mobList[0].CurrentTarget.Target()),
                                         new Action(ret => StyxWoW.SleepForLagDuration()))),
                                     new Decorator(
-                                        ret => !s_me.Combat,
+                                        ret => !Me.Combat,
                                         new PrioritySelector(
                                             new Decorator(
                                                 ret => RoutineManager.Current.PullBehavior != null,
@@ -271,67 +230,153 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
+        public override void   Dispose()
+        {
+            Dispose(true);
+        }
+
+
         public override bool IsDone
         {
-            get { return (_isBehaviorDone); }
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                _configMemento = new ConfigMemento();
+                BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
-                if (quest != null)
-                    TreeRoot.GoalText = string.Format("Escorting for \"{0}\"", quest.Name);
+                // Disable any settings that may interfere with the escort --
+                // When we escort, we don't want to be distracted by other things.
+                // NOTE: these settings are restored to their normal values when the behavior completes
+                // or the bot is stopped.
+                LevelbotSettings.Instance.HarvestHerbs = false;
+                LevelbotSettings.Instance.HarvestMinerals = false;
+                LevelbotSettings.Instance.LootChests = false;
+                LevelbotSettings.Instance.LootMobs = false;
+                LevelbotSettings.Instance.NinjaSkin = false;
+                LevelbotSettings.Instance.SkinMobs = false;
+
+                WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                      .Where(unit => unit.Entry == MobId)
+                                      .FirstOrDefault();
+
+                TreeRoot.GoalText = "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")"));
             }
         }
 
+        #endregion
+
+
+        #region Stopgap services (remove when later HBcore drop provides these)
+
+        /// <summary>
+        /// <para>This class captures the current Honorbuddy configuration.  When the memento is Dispose'd
+        /// the configuration that existed when the memento was created is restored.</para>
+        /// <para>More info about how this class applies to saving and restoring user configuration
+        /// can be found here...
+        ///     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
+        /// </para>
+        /// </summary>
+        public new sealed class ConfigMemento
+        {
+            /// <summary>
+            /// Creating a memento captures the Honorbuddy configuration that exists when the memento
+            /// is created.  You can then alter the Honorbuddy configuration as you wish.  To restore
+            /// the configuration to its original state, just Dispose of the memento.
+            /// </summary>
+            public ConfigMemento()
+            {
+                _characterSettings = CharacterSettings.Instance.GetXML();
+                _levelBotSettings  = LevelbotSettings.Instance.GetXML();
+                _styxSettings      = StyxSettings.Instance.GetXML();
+            }
+
+
+            ~ConfigMemento()
+            {
+                Dispose(false);
+            }
+
+            /// <summary>
+            /// Disposing of a memento restores the Honorbuddy configuration that existed when
+            /// the memento was created.
+            /// </summary>
+            public void Dispose()
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
+
+            public /*virtual*/ void     Dispose(bool    isExplicitlyInitiatedDispose)
+            {
+                if (!_isDisposed)
+                {
+                    // NOTE: we should call any Dispose() method for any managed or unmanaged
+                    // resource, if that resource provides a Dispose() method.
+
+                    // Clean up managed resources, if explicit disposal...
+                    if (isExplicitlyInitiatedDispose)
+                    {
+                        if (_characterSettings != null)
+                            { CharacterSettings.Instance.LoadFromXML(_characterSettings); }
+                        if (_levelBotSettings != null)
+                            { LevelbotSettings.Instance.LoadFromXML(_levelBotSettings); }
+                        if (_styxSettings != null)
+                            { StyxSettings.Instance.LoadFromXML(_styxSettings); }
+
+                        _characterSettings = null;
+                        _levelBotSettings = null;
+                        _styxSettings = null;
+                     }
+
+                    // Clean up unmanaged resources (if any) here...
+
+                    // Call parent Dispose() (if it exists) here ...
+                    // base.Dispose();
+                }
+
+                _isDisposed = true;
+            }
+
+   
+            public override string  ToString()
+            {
+                string      outString   = "";
+
+                if (_isDisposed)
+                    { throw (new ObjectDisposedException(this.GetType().Name)); }
+
+                if (_characterSettings != null)
+                    { outString += (_characterSettings.ToString() + "\n"); }
+                if (_levelBotSettings != null)
+                    { outString += (_levelBotSettings.ToString() + "\n"); }
+                if (_styxSettings != null)
+                    { outString += (_styxSettings.ToString() + "\n"); }
+   
+                return (outString);
+            }
+   
+            private System.Xml.Linq.XElement        _characterSettings;
+            bool                                    _isDisposed         = false;
+            private System.Xml.Linq.XElement        _levelBotSettings;
+            private System.Xml.Linq.XElement        _styxSettings;             
+        }
 
         #endregion
-    }
-
-
-    class HonorbuddyUserConfigSnapshot
-    {
-        public HonorbuddyUserConfigSnapshot()
-        {
-            _characterSettings = CharacterSettings.Instance.GetXML();
-            _levelBotSettings  = LevelbotSettings.Instance.GetXML();
-            _styxSettings      = StyxSettings.Instance.GetXML();
-        }
-   
-        public void     Restore()
-        {
-            CharacterSettings.Instance.LoadFromXML(_characterSettings);
-            LevelbotSettings.Instance.LoadFromXML(_levelBotSettings);
-            StyxSettings.Instance.LoadFromXML(_styxSettings);
-        }
-   
-        public string       GetSettingsAsString()
-        {
-            string      outString   = "";
-               
-            outString += _characterSettings.ToString();
-            outString += _levelBotSettings.ToString();
-            outString += _styxSettings.ToString();
-   
-            return (outString);
-        }
-   
-        private System.Xml.Linq.XElement        _characterSettings;
-        private System.Xml.Linq.XElement        _levelBotSettings;
-        private System.Xml.Linq.XElement        _styxSettings;             
     }
 }

@@ -1,27 +1,22 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Styx.Database;
-using Styx.Logic.Combat;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
+
+using Styx.Logic;
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
-using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
-using Styx.Logic;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class UseTransport : CustomForcedBehavior
     {
-        
-
         /// <summary>
         /// Transport by raphus
         /// Allows you to use Transports.
@@ -33,192 +28,73 @@ namespace Styx.Bot.Quest_Behaviors
         /// GetOff: Where you wish to end up at when transport reaches TransportEnd point
         /// StandOn: The point you wish the stand while you are in the transport
         /// </summary>
-        /// 
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"TransportId",null},
-            {"Transport", null},
-            {"Start", null},
-            {"End", null},
-            {"Entry", null},
-            {"Exit", null},
-            {"TransportStartX",null},
-            {"TransportStartY",null},
-            {"TransportStartZ",null},
-            {"TransportEndX",null},
-            {"TransportEndY",null},
-            {"TransportEndZ",null},
-            {"WaitAtX",null},
-            {"WaitAtY",null},
-            {"WaitAtZ",null},
-            {"StandOnX", null},
-            {"StandOnY", null},
-            {"StandOnZ", null},
-            {"GetOffX",null},
-            {"GetOffY",null},
-            {"GetOffZ",null},
-
-        };
-
-        bool success = true;
-
+        ///
         public UseTransport(Dictionary<string, string> args)
             : base(args)
         {
-
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            WoWPoint waitAtLocation = WoWPoint.Empty;
-            WoWPoint getOfflocation = WoWPoint.Empty;
-            WoWPoint startlocation = WoWPoint.Empty;
-            WoWPoint endlocation = WoWPoint.Empty;
-            WoWPoint standLocation = WoWPoint.Empty;
-            int transportId = 0;
-            int transport = 0;
-
-            string entry = "";
-            string exit = "";
-            string start = "";
-            string end = "";
-
-            success = success && GetAttributeAsInteger("TransportId", false, "0", 0, int.MaxValue, out transportId);
-            success = success && GetAttributeAsInteger("Transport", false, "0", 0, int.MaxValue, out transport);
-            success = success && GetXYZAttributeAsWoWPoint("TransportStartX", "TransportStartY", "TransportStartZ", false, WoWPoint.Empty, out startlocation);
-            success = success && GetAttributeAsString("Start", false, "", out start);
-            if (start != "")
+            try
             {
-                var split = start.Split(',');
-                startlocation = new WoWPoint(float.Parse(split[0]), float.Parse(split[1]), float.Parse(split[2]));
-            }
-            success = success && GetXYZAttributeAsWoWPoint("TransportEndX", "TransportEndY", "TransportEndZ", false, WoWPoint.Empty, out endlocation);
-            success = success && GetAttributeAsString("End", false, "", out end);
-            if (end != "")
-            {
-                var split = end.Split(',');
-                endlocation = new WoWPoint(float.Parse(split[0]), float.Parse(split[1]), float.Parse(split[2]));
-            }
-            success = success && GetXYZAttributeAsWoWPoint("WaitAtX", "WaitAtY", "WaitAtZ", false, WoWPoint.Empty, out waitAtLocation);
-            success = success && GetAttributeAsString("Entry", false, "", out entry);
-            if (entry != "")
-            {
-                var split = entry.Split(',');
-                waitAtLocation = new WoWPoint(float.Parse(split[0]), float.Parse(split[1]), float.Parse(split[2]));
-            }
-            success = success && GetXYZAttributeAsWoWPoint("GetOffX", "GetOffY", "GetOffZ", false, WoWPoint.Empty, out getOfflocation);
-            success = success && GetAttributeAsString("Exit", false, "", out exit);
-            if (exit != "")
-            {
-                var split = exit.Split(',');
-                getOfflocation = new WoWPoint(float.Parse(split[0]), float.Parse(split[1]), float.Parse(split[2]));
-            }
-            success = success && GetXYZAttributeAsWoWPoint("StandOnX", "StandOnY", "StandOnZ", false, WoWPoint.Empty, out standLocation);
-            
-            TransportId = transportId != 0 && transportId != int.MaxValue ? transportId : transport;
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                WoWPoint?   legacyEndLocation       = LegacyGetAttributeAsWoWPoint("End", false, null, "TransportEnd");
+                WoWPoint?   legacyGetOffLocation    = LegacyGetAttributeAsWoWPoint("Exit", false, null,"GetOff");
+                WoWPoint?   legacyStartLocation     = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStart");
+                WoWPoint?   legacyWaitAtLocation    = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAt");
 
-            WaitAtLocation = waitAtLocation;
-            GetOffLocation = getOfflocation;
-            StartLocation = startlocation;
-            EndLocation = endlocation;
-            StandLocation = standLocation;
+                Counter         = 0;
+                EndLocation     = GetXYZAttributeAsWoWPoint("TransportEnd", !legacyEndLocation.HasValue, null)
+                                    ?? legacyEndLocation
+                                    ?? WoWPoint.Empty;
+                GetOffLocation  = GetXYZAttributeAsWoWPoint("GetOff", !legacyGetOffLocation.HasValue, null)
+                                    ?? legacyGetOffLocation
+                                    ?? WoWPoint.Empty;
+                StandLocation   = GetXYZAttributeAsWoWPoint("StandOn", false, null) ?? WoWPoint.Empty;
+                StartLocation   = GetXYZAttributeAsWoWPoint("TransportStart", !legacyStartLocation.HasValue, null)
+                                    ?? legacyStartLocation
+                                    ?? WoWPoint.Empty;
+                TransportId     = GetAttributeAsMobId("TransportId", true, new [] { "Transport" }) ?? 0;
+                WaitAtLocation  = GetXYZAttributeAsWoWPoint("WaitAt", !legacyWaitAtLocation.HasValue, null)
+                                    ?? legacyWaitAtLocation
+                                    ?? WoWPoint.Empty;
+			}
 
-            Counter = 0;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public WoWPoint WaitAtLocation { get; private set; }
-        public WoWPoint GetOffLocation { get; private set; }
-        public WoWPoint StartLocation { get; private set; }
-        public WoWPoint EndLocation { get; private set; }
-        public WoWPoint StandLocation { get; private set; }
-        public int Counter { get; set; }
-        public bool MovedOnShip = false;
-        public bool OnShip = false;
-        public bool MovedToTarget = false;
-        public int TransportId { get; set; }
-        public uint QuestId { get; set; }
 
-        public static LocalPlayer me = ObjectManager.Me;
+        public WoWPoint                 WaitAtLocation { get; private set; }
+        public WoWPoint                 GetOffLocation { get; private set; }
+        public WoWPoint                 StartLocation { get; private set; }
+        public WoWPoint                 EndLocation { get; private set; }
+        public WoWPoint                 StandLocation { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      TransportId { get; private set; }
 
-        #region Overrides of CustomForcedBehavior
+        private bool                _isBehaviorDone;
+        private Composite           _root;
+        private bool                _usedTransport;
+        private bool                _wasOnWaitLocation;
 
-        public override void OnStart()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private bool                MovedOnShip { get; set; }
+        private bool                MovedToTarget { get; set; }
+        private bool                OnShip { get; set; }
 
-            if (quest != null)
-            {
-                TreeRoot.GoalText = "UseTransport - " + quest.Name;
-            }
-            else
-            {
-                TreeRoot.GoalText = "UseTransport: Running";
-            }
-        }
-        private bool usedTransport;
-        private bool wasOnWaitLocation;
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(
-                        ret => !wasOnWaitLocation,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => WaitAtLocation.Distance(me.Location) > 2,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving to wait location"),
-                                    new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
-                            new Sequence(
-                                new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                new Action(ret => Mount.Dismount()),
-                                new Action(ret => wasOnWaitLocation = true),
-                                new Action(ret => TreeRoot.StatusText = "Waiting for transport")))),
-                    new Decorator(
-                        ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(EndLocation) < 2 && usedTransport,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => me.Location.Distance(GetOffLocation) > 2,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving out of transport"),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)),
-                                    new Action(ret => StyxWoW.SleepForLagDuration()),
-                                    new DecoratorContinue(
-                                        ret => me.IsOnTransport,
-                                        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(50)))))),
-                            new Action(ret => _isDone = true))),
-                    new Decorator(
-                        ret => me.IsOnTransport && StandLocation != WoWPoint.Empty && !usedTransport,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => me.Location.Distance2D(StandLocation) > 2,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving to stand location"),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
-                            new Sequence(
-                                new Action(ret => usedTransport = true),
-                                new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))
-                        )),
-                    new Decorator(
-                        ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(StartLocation) < 2 && !usedTransport,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => me.Location.Distance2D(TransportLocation) > 2,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving inside transport"),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(TransportLocation)),
-                                    new Action(ret => StyxWoW.SleepForLagDuration()),
-                                    new DecoratorContinue(
-                                        ret => !me.IsOnTransport,
-                                        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(50)))))),
-                            new Sequence(
-                                new Action(ret => usedTransport = true),
-                                new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))))
-                    ));
-        }
 
         private WoWPoint TransportLocation
         {
@@ -237,11 +113,127 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        private bool _isDone;
+
+        #region Legacy XML support
+
+        private WoWPoint?   LegacyGetAttributeAsWoWPoint(string    attributeName,
+                                                         bool      isRequired,
+                                                         string[]  attributeAliases,
+                                                         string     preferredName)
+        {
+            double[]    tmpPoint    = GetAttributeAsDoubleArray(attributeName, isRequired, double.MinValue, double.MaxValue, attributeAliases);
+
+            if (tmpPoint == null)
+                { return (null); }
+
+            UtilLogMessage("warning", string.Format("The attribute '{0}' is DEPRECATED.\n"
+                                                    + "Please modify the profile to use the new '{1}' attribute, instead.",
+                                                    attributeName, preferredName));
+
+            if (tmpPoint.Length != 3)
+            {
+                UtilLogMessage("error", string.Format("The '{0}' attribute's value should have three"
+                                                      + " coordinate contributions (saw '{1}')",
+                                                      attributeName,
+                                                      tmpPoint.Length));
+                IsAttributeProblem = true;
+                return (null);
+            }
+
+            return (new WoWPoint(tmpPoint[0], tmpPoint[1], tmpPoint[2]));
+        }
+
+        #endregion
+
+
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+                    new Decorator(
+                        ret => !_wasOnWaitLocation,
+                        new PrioritySelector(
+                            new Decorator(
+                                ret => WaitAtLocation.Distance(Me.Location) > 2,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Moving to wait location"),
+                                    new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
+                            new Sequence(
+                                new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                new Action(ret => Mount.Dismount()),
+                                new Action(ret => _wasOnWaitLocation = true),
+                                new Action(ret => TreeRoot.StatusText = "Waiting for transport")))),
+                    new Decorator(
+                        ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(EndLocation) < 2 && _usedTransport,
+                        new PrioritySelector(
+                            new Decorator(
+                                ret => Me.Location.Distance(GetOffLocation) > 2,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Moving out of transport"),
+                                    new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)),
+                                    new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new DecoratorContinue(
+                                        ret => Me.IsOnTransport,
+                                        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(50)))))),
+                            new Action(ret => _isBehaviorDone = true))),
+                    new Decorator(
+                        ret => Me.IsOnTransport && StandLocation != WoWPoint.Empty && !_usedTransport,
+                        new PrioritySelector(
+                            new Decorator(
+                                ret => Me.Location.Distance2D(StandLocation) > 2,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Moving to stand location"),
+                                    new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
+                            new Sequence(
+                                new Action(ret => _usedTransport = true),
+                                new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))
+                        )),
+                    new Decorator(
+                        ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(StartLocation) < 2 && !_usedTransport,
+                        new PrioritySelector(
+                            new Decorator(
+                                ret => Me.Location.Distance2D(TransportLocation) > 2,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Moving inside transport"),
+                                    new Action(ret => Navigator.PlayerMover.MoveTowards(TransportLocation)),
+                                    new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new DecoratorContinue(
+                                        ret => !Me.IsOnTransport,
+                                        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(50)))))),
+                            new Sequence(
+                                new Action(ret => _usedTransport = true),
+                                new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))))
+                    ));
+        }
+
+
         public override bool IsDone
         {
-            get { return _isDone; }
+            get { return (_isBehaviorDone); }
         }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
+        }
+
 
         #endregion
     }

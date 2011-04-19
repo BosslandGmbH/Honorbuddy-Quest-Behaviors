@@ -1,16 +1,19 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using Styx.Database;
-using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -23,71 +26,59 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class TalkToAndListenToStory : CustomForcedBehavior
     {
-        #region Overrides of CustomForcedBehavior
-
-        private Composite _root;
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"QuestId",null},
-            {"NpcIds",null},
-            {"MobIds",null}
-        };
-
         public TalkToAndListenToStory(Dictionary<string, string> args)
             : base(args)
         {
-            UtilLogMessage("warning",   "*****\n"
-                                        + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
-                                        + "*\n"
-                                        + "* TalkToAndListenToStory adds _no_ _additonal_ _value_ over the InteractWith behavior (with the \"GossipOption\" attribute).\n"
-                                        + "* Please update the profile to use InteractWith in preference to the TalkToAndListenToStory behavior.\n"
-                                        + "*****");
-
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
-                Logging.Write("Unable to parse value of attribute QuestId!");
-
-            QuestId = questId;
-
-            if (Args.ContainsKey("NpcIds"))
+            try
             {
-                foreach (string s in Args["NpcIds"].Split(' '))
-                {
-                    uint id;
-                    if (uint.TryParse(s, out id))
-                        _npcResults.Enqueue(NpcQueries.GetNpcById(id));
-                    else
-                        Logging.Write("Unable to parse {0} as an integer! check your profile", s);
-                }
-            }
-            else if (Args.ContainsKey("MobIds"))
-            {
-                foreach (string s in Args["MobIds"].Split(' '))
-                {
-                    uint id;
-                    if (uint.TryParse(s, out id))
-                        _npcResults.Enqueue(NpcQueries.GetNpcById(id));
-                    else
-                        Logging.Write("Unable to parse {0} as an integer! check your profile", s);
-                }
-            }
-            else
-            {
-                Logging.Write("Could not find attribute: NpcIds in TalkToAndListenToStory custom behavior!");
-                Thread.CurrentThread.Abort();
-            }
+                int[]       tmpMobIds;
+
+                UtilLogMessage("warning",   "*****\n"
+                                            + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                            + "*\n"
+                                            + "* TalkToAndListenToStory adds _no_ _additonal_ _value_ over the InteractWith behavior (with the \"GossipOption\" attribute).\n"
+                                            + "* Please update the profile to use InteractWith in preference to the TalkToAndListenToStory behavior.\n"
+                                            + "*****");
+
+
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                tmpMobIds   = GetAttributeAsIntegerArray("MobIds", true, 1, int.MaxValue, new [] { "NpcIds" }) ?? new int[0];
+                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+
+
+                foreach (int mobId in tmpMobIds)
+                    { _npcResults.Enqueue(NpcQueries.GetNpcById((uint)mobId)); }
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public uint QuestId;
 
-        /// <summary>
-        /// A Queue for npc's we need to talk to
-        /// </summary>
-        private readonly Queue<NpcResult> _npcResults = new Queue<NpcResult>();
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+
+        private bool                        _isBehaviorDone;
+        private readonly Queue<NpcResult>   _npcResults = new Queue<NpcResult>();   // A Queue for npc's we need to talk to
+        private Composite                   _root;
+
+
+        #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
@@ -95,7 +86,7 @@ namespace Styx.Bot.Quest_Behaviors
                 new PrioritySelector(ret => _npcResults.Count != 0 ? _npcResults.Peek() : null,
 
                     new Decorator(ret => ret == null,
-                        new Action(ret => _isDone = true)),
+                        new Action(ret => _isBehaviorDone = true)),
 
                     // Move to it if we are too far away.
                     new Decorator(ret => ret is NpcResult && ((NpcResult)ret).Location.Distance(StyxWoW.Me.Location) > 3,
@@ -143,22 +134,31 @@ namespace Styx.Bot.Quest_Behaviors
                     ));
         }
 
-        public override void OnStart()
-        {
-            TreeRoot.GoalText = "Running TalkToAndListenToStory behavior";
-        }
 
-        private bool _isDone;
         public override bool IsDone
         {
             get
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
-                return
-                    _isDone ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

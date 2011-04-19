@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading;
 
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -23,71 +22,20 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                WoWPoint    destcoords;
-                WoWPoint    mountcoords;
-                int         mobId;
-                int         questId;
-                int         spellId;
-                int         vehicleId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "DestX",      null },
-                                                    { "DestY",      null },
-                                                    { "DestZ",      null },
-                                                    { "MobId",      null },
-                                                    { "MountX",     null },
-                                                    { "MountY",     null },
-                                                    { "MountZ",     null },
-                                                    { "NpcId",      null },
-                                                    { "QuestId",    null },
-                                                    { "SpellId",    null },
-                                                    { "VehicleId",  null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint("DestX", "DestY", "DestZ", true, WoWPoint.Empty, out destcoords);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint("MountX", "MountY", "MountZ", true, WoWPoint.Empty, out mountcoords);
-                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobId);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsInteger("SpellId", false, "0", 0, int.MaxValue, out spellId);
-                _isAttributesOkay &= GetAttributeAsInteger("VehicleId", true, "0", 0, int.MaxValue, out vehicleId);
-
-                // "NpcId" is allowed for legacy purposes --
-                // If it was not supplied, then its new name "MobId" is required.
-                if (mobId == 0)
-                    _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId);
-
-
-                // Weed out Profile Writer sloppiness --
-                if (_isAttributesOkay)
-                {
-                    if (mobId == 0)
-                    {
-                        UtilLogMessage("error", "MobId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (spellId == 0)
-                    {
-                        UtilLogMessage("error", "SpellId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    Counter = 0;
-                    IsMounted = false;
-                    LocationDest = destcoords;
-                    LocationMount = mountcoords;
-                    MobId = mobId;
-                    MountedPoint = new WoWPoint(0, 0, 0);
-                    QuestId = (uint)questId;
-                    SpellCastId = spellId;
-                    VehicleId = vehicleId;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter         = 0;
+                IsMounted       = false;
+                LocationDest    = GetXYZAttributeAsWoWPoint("Dest", true, null) ?? WoWPoint.Empty;
+                LocationMount   = GetXYZAttributeAsWoWPoint("Mount", true, null) ?? WoWPoint.Empty;
+                MobId           = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MountedPoint    = new WoWPoint(0, 0, 0);
+                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                SpellCastId     = GetAttributeAsSpellId("SpellId", false, null) ?? 0;
+                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -100,27 +48,28 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int      Counter { get; set; }
-        public bool     IsMounted { get; set; }
-        public WoWPoint LocationDest { get; private set; }
-        public WoWPoint LocationMount { get; private set; }
-        public int      MobId { get; set; }
-        public WoWPoint MountedPoint { get; private set; }
-        public uint     QuestId { get; set; }
-        public int      SpellCastId { get; set; }
-        public int      VehicleId { get; set; }
+        public bool                     IsMounted { get; set; }
+        public WoWPoint                 LocationDest { get; private set; }
+        public WoWPoint                 LocationMount { get; private set; }
+        public int                      MobId { get; set; }
+        public WoWPoint                 MountedPoint { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      SpellCastId { get; private set; }
+        public int                      VehicleId { get; private set; }
 
-        private bool            _isAttributesOkay;
-        private bool            _isBehaviorDone;
-        private Composite       _root;
-        private List<WoWUnit>   _vehicleList;
+        private bool                _isBehaviorDone;
+        private Composite           _root;
+        private List<WoWUnit>       _vehicleList;
 
-        private static LocalPlayer  s_me = ObjectManager.Me;
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 
         #region Overrides of CustomForcedBehavior
@@ -135,8 +84,8 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
 
-                    new Decorator(ret => (QuestId != 0 && s_me.QuestLog.GetQuestById(QuestId) != null &&
-                         s_me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                    new Decorator(ret => (QuestId != 0 && Me.QuestLog.GetQuestById((uint)QuestId) != null &&
+                         Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                         new Action(ret => _isBehaviorDone = true)),
 
                     new Decorator(ret => Counter >= 1,
@@ -148,11 +97,11 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ctx =>
                                 {
                                     WoWPoint destination1 = new WoWPoint(LocationMount.X, LocationMount.Y, LocationMount.Z);
-                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(s_me.Location, destination1);
+                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, destination1);
 
                                     foreach (WoWPoint p1 in pathtoDest1)
                                     {
-                                        while (!s_me.Dead && p1.Distance(s_me.Location) > 3)
+                                        while (!Me.Dead && p1.Distance(Me.Location) > 3)
                                         {
                                             Thread.Sleep(100);
                                             WoWMovement.ClickToMove(p1);
@@ -161,7 +110,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     ObjectManager.Update();
                                     _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(ret => (ret.Entry == VehicleId) && !ret.Dead).OrderBy(ret => ret.Location.Distance(s_me.Location)).ToList();
+                                      .Where(ret => (ret.Entry == VehicleId) && !ret.Dead).OrderBy(ret => ret.Location.Distance(Me.Location)).ToList();
 
                                 })
                                 ),
@@ -182,7 +131,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ctx =>
                                 {
 
-                                    MountedPoint = s_me.Location;
+                                    MountedPoint = Me.Location;
                                     _vehicleList[0].Interact();
                                     StyxWoW.SleepForLagDuration();
                                     IsMounted = true;
@@ -217,7 +166,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 })
                                 ),
 
-                            new Action(ret => Logging.Write(""))
+                            new Action(ret => UtilLogMessage("debug", ""))
                         )
                     ));
         }
@@ -225,21 +174,20 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return (_isBehaviorDone); }
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
 
         public override void OnStart()
 		{
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
-
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 		}
 
         #endregion

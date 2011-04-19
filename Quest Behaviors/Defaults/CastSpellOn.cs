@@ -3,12 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
+using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.Combat;
-using Styx.Logic.BehaviorTree;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
@@ -36,82 +36,21 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                int spellId;
-                int mobId;
-                int numberOfTimes;
-                int hpLeftAmount;
-                int minRange;
-                int range;
-                int questId;
-                WoWPoint location;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "HpLeftAmount",   null },
-                                                    { "MinRange",       null },
-                                                    { "Range",          null },
-                                                    { "MobId",          null },
-                                                    { "NpcId",          null },
-                                                    { "NumOfTimes",     null },
-                                                    { "QuestId",        null },
-                                                    { "SpellId",        null },
-                                                    { "X",              null },
-                                                    { "Y",              null },
-                                                    { "Z",              null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("HpLeftAmount", false, "110", 0, int.MaxValue, out hpLeftAmount); ;
-                _isAttributesOkay &= GetAttributeAsInteger("MinRange", false, "3", 0, int.MaxValue, out minRange);
-                _isAttributesOkay &= GetAttributeAsInteger("Range", false, "25", 0, int.MaxValue, out range);
-                _isAttributesOkay &= GetAttributeAsInteger("NumOfTimes", false, "1", 1, int.MaxValue, out numberOfTimes);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsInteger("SpellId", true, "0", 0, int.MaxValue, out spellId);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out location);
-
-                // "NpcId" is allowed for legacy purposes --
-                // If it was not supplied, then its new name "MobId" is required.
-                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobId);
-                if (mobId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId); }
-
-
-                // Weed out Profile Writer sloppiness --
-                if (_isAttributesOkay)
-                {
-                    if (mobId == 0)
-                    {
-                        UtilLogMessage("error", "MobId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (spellId == 0)
-                    {
-                        UtilLogMessage("error", "SpellId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (location == WoWPoint.Empty)
-                    {
-                        UtilLogMessage("error", "X-Y-Z may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    Counter = 1;
-                    HPLeftAmount = hpLeftAmount;
-                    Location = location;
-                    MinRange = minRange;
-                    Range = range;
-                    MobId = mobId;
-                    MovedToTarget = false;
-                    NumberOfTimes = numberOfTimes;
-                    QuestId = (uint)questId;
-                    SpellID = spellId;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter     = 1;
+                HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 110;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MinRange    = GetAttributeAsRange("MinRange", false, null) ?? 3;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MovedToTarget = false;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsRange("Range", false, null) ?? 25;
+                SpellId     = GetAttributeAsSpellId("SpellId", true, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -124,36 +63,36 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int      Counter { get; set; }
-        public int      HPLeftAmount { get; set; }
-        public WoWPoint Location { get; private set; }
-        public int      MinRange { get; set; }
-        public int      Range { get; set; }
-        public int      MobId { get; set; }
-        public bool     MovedToTarget { get; set; }
-        public int      NumberOfTimes { get; set; }
-        public uint     QuestId { get; set; }
-        public int      SpellID { get; set; }
+        public int                      HpLeftAmount { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MinRange { get; private set; }
+        public int                      MobId { get; private set; }
+        public bool                     MovedToTarget { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      Range { get; private set; }
+        public int                      SpellId { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        public static LocalPlayer s_me = ObjectManager.Me;
-
-        public List<WoWUnit> mobList
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        public List<WoWUnit>        MobList
         {
             get
             {
-                if (HPLeftAmount > 0)
+                if (HpLeftAmount > 0)
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => u.Entry == MobId && !u.Dead && u.HealthPercent <= HPLeftAmount)
+                                         .Where(u => u.Entry == MobId && !u.Dead && u.HealthPercent <= HpLeftAmount)
                                          .OrderBy(u => u.Distance).ToList());
                 }
                 else
@@ -174,7 +113,7 @@ namespace Styx.Bot.Quest_Behaviors
                 new Decorator(
                     ret => !IsDone && StyxWoW.Me.IsAlive,
                     new PrioritySelector(
-                        new Decorator(ret => Counter > NumberOfTimes && QuestId == 0,
+                        new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Finished!"),
                                             new WaitContinue(120,
@@ -185,27 +124,27 @@ namespace Styx.Bot.Quest_Behaviors
                                                 }))
                                             )),
 
-                        new Decorator(ret => mobList.Count > 0 && !s_me.IsCasting && SpellManager.CanCast(SpellID),
+                        new Decorator(ret => MobList.Count > 0 && !Me.IsCasting && SpellManager.CanCast(SpellId),
                             new Sequence(
-                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) >= MinRange && mobList[0].Location.Distance(s_me.Location) <= Range && mobList[0].InLineOfSightOCD,
+                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= MinRange && MobList[0].Location.Distance(Me.Location) <= Range && MobList[0].InLineOfSightOCD,
                                     new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellID + " On Mob: " + mobList[0].Name + " Yards Away " + mobList[0].Location.Distance(s_me.Location)),
+                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                         new Action(ret => WoWMovement.MoveStop()),
                                         new Action(ret => Thread.Sleep(300)),
-                                        new Decorator(c => !s_me.IsCasting, CreateSpellBehavior)
+                                        new Decorator(c => !Me.IsCasting, CreateSpellBehavior)
                                         )
                                 ),
-                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) > Range || !mobList[0].InLineOfSightOCD,
+                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) > Range || !MobList[0].InLineOfSightOCD,
                                     new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + mobList[0].Name + " Yards Away: " + mobList[0].Location.Distance(s_me.Location)),
-                                        new Action(ret => Navigator.MoveTo(mobList[0].Location))
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].Name + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => Navigator.MoveTo(MobList[0].Location))
                                         )
                                 ),
 
-                                new DecoratorContinue(ret => mobList[0].Location.Distance(s_me.Location) < MinRange,
+                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) < MinRange,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-                                        new Action(ret => mobList[0].Face()),
+                                        new Action(ret => MobList[0].Face()),
                                         new Action(ret => Thread.Sleep(100)),
                                         new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
                                         new Action(ret => Thread.Sleep(100))
@@ -219,7 +158,7 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
                     
-                        new Decorator(ret => mobList.Count == 0,
+                        new Decorator(ret => MobList.Count == 0,
                             new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                     new Action(ret => Navigator.MoveTo(Location)),
@@ -238,14 +177,14 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 return new Action(c =>
                 {
-                    if (SpellID > 0)
+                    if (SpellId > 0)
                     {
-                        mobList[0].Target();
-                        mobList[0].Face();
+                        MobList[0].Target();
+                        MobList[0].Face();
                         Thread.Sleep(300);
-                        SpellManager.Cast(SpellID);
+                        SpellManager.Cast(SpellId);
 
-                        if (s_me.QuestLog.GetQuestById(QuestId) == null || QuestId == 0)
+                        if (Me.QuestLog.GetQuestById((uint)QuestId) == null || QuestId == 0)
                         {
                             Counter++;
                         }
@@ -264,31 +203,26 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get 
+            get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest != null)
                     {  TreeRoot.GoalText = string.Format("{0} for \"{1}\"", this.GetType().Name, quest.Name); }

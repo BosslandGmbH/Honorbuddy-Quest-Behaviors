@@ -1,20 +1,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
+
+using CommonBehaviors.Actions;
+
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
-using Styx.Database;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
-using CommonBehaviors.Actions;
-using Styx.Logic.BehaviorTree;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -36,23 +36,7 @@ namespace Styx.Bot.Quest_Behaviors
         /// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click 
         /// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 4)
         /// </summary>
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},
-            {"ObjectId",null},
-            {"ItemId", null},
-            {"WaitTime",null},
-            {"UseType",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-            {"ClickToX",null},
-            {"ClickToY",null},
-            {"ClickToZ",null},
-            {"Range",null},
-         
-        };
-
+        /// 
         public enum QBType
         {
             PointToPoint = 0,
@@ -60,68 +44,70 @@ namespace Styx.Bot.Quest_Behaviors
             ToObject = 2
         }
 
-        bool success = true;
-
 
         public UseItemTargetLocation(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                ClickToLocation = GetXYZAttributeAsWoWPoint("ClickTo", false, null) ?? WoWPoint.Empty;
+                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
+                MoveToLocation = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId       = GetAttributeAsMobId("MobId", false, new [] { "ObjectId" }) ?? 0;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsRange("Range", false, null) ?? 4;
+                UseType     = GetAttributeAsEnum<QBType>("UseType", false, null) ?? QBType.PointToPoint;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
+			}
 
-            int questId = 0;
-            int objectId = 0;
-            int itemId = 0;
-            int waitTime = 0;
-            string useType = "";
-            WoWPoint moveToLocation = WoWPoint.Empty;
-            WoWPoint clickToLocation = WoWPoint.Empty;
-            int range = 0;
-
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("ObjectId", false, "0", 0, int.MaxValue, out objectId);
-            success = success && GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
-            success = success && GetAttributeAsInteger("WaitTime", false, "0", 0, int.MaxValue, out waitTime);
-            success = success && GetAttributeAsString("UseType", false, "PointToPoint", out useType);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out moveToLocation);
-            success = success && GetXYZAttributeAsWoWPoint("ClickToX", "ClickToY", "ClickToZ", false, WoWPoint.Empty, out clickToLocation);
-            success = success && GetAttributeAsInteger("Range", false, "4", 0, int.MaxValue, out range);
-
-
-            QuestId = (uint)questId;
-            ObjectId = objectId;
-            ItemId = itemId;
-            WaitTime = waitTime;
-            UseType = (QBType)Enum.Parse(typeof(QBType), useType, true);
-            MoveToLocation = moveToLocation;
-            ClickToLocation = clickToLocation;
-            Range = range;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public uint QuestId { get; set; }
-        public int ObjectId { get; set; }
-        public int ItemId { get; set; }
-        public int WaitTime { get; set; }
-        public QBType UseType { get; set; }
-        public WoWPoint MoveToLocation { get; set; }
-        public WoWPoint ClickToLocation { get; set; }
-        public int Range { get; set; }
 
-        public LocalPlayer Me { get { return StyxWoW.Me; } }
+        public WoWPoint                 ClickToLocation { get; private set; }
+        public int                      ItemId { get; private set; }
+        public int                      MobId { get; private set; }
+        public WoWPoint                 MoveToLocation { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      Range { get; private set; }
+        public QBType                   UseType { get; private set; }
+        public int                      WaitTime { get; private set; }
 
-        private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        private WoWObject UseObject 
+        private WoWItem             Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private WoWObject           UseObject 
         { 
             get 
             {
                 return ObjectManager.GetObjectsOfType<WoWObject>(true, false).
-                    Where(o => o.Entry == ObjectId).OrderBy(o => o.Distance).FirstOrDefault();
+                    Where(o => o.Entry == MobId).OrderBy(o => o.Distance).FirstOrDefault();
             }
         }
 
+
         #region Overrides of CustomForcedBehavior
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -149,7 +135,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ret => Thread.Sleep(WaitTime)),
                                 new DecoratorContinue(
                                     ret => QuestId == 0,
-                                    new Action(ret => _isDone = true)))
+                                    new Action(ret => _isBehaviorDone = true)))
                             )),
 
                     new Decorator(
@@ -172,7 +158,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     new Action(ret => Thread.Sleep(WaitTime)),
                                     new DecoratorContinue(
                                         ret => QuestId == 0,
-                                        new Action(ret => _isDone = true)))),
+                                        new Action(ret => _isBehaviorDone = true)))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
                             )),
 
@@ -197,7 +183,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => Thread.Sleep(WaitTime)),
                                         new DecoratorContinue(
                                             ret => QuestId == 0,
-                                            new Action(ret => _isDone = true))))),
+                                            new Action(ret => _isBehaviorDone = true))))),
                             new Decorator(
                                 ret => Me.Location.Distance(MoveToLocation) > 3,
                                 new Sequence(
@@ -207,20 +193,31 @@ namespace Styx.Bot.Quest_Behaviors
                     ));
         }
 
-        private bool _isDone;
+
         public override bool IsDone
         {
-            get 
+            get
             {
-                if (QuestId != 0)
-                {
-                    var quest = Me.QuestLog.GetQuestById(QuestId);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
-                    if (quest != null)
-                        return quest.IsCompleted;
-                }
 
-                return _isDone; 
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

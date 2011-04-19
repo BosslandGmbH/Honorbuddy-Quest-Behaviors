@@ -29,44 +29,14 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                string  profileName;
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter     = 0;
+                ProfileName = GetAttributeAsString_NonEmpty("ProfileName", true, new [] { "Profile" }) ?? "";
 
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "Profile",        null},
-                                                    { "ProfileName",    null},
-                                                });
-
-                _isAttributesOkay = true;
-
-                _isAttributesOkay &= GetAttributeAsString("Profile", false, "", out profileName);
-                if (string.IsNullOrEmpty(profileName))
-                    _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("ProfileName", true, "1", out profileName);
-
-
-                // Semantic coherency --
-                if (_isAttributesOkay)
-                {
-                    if (Args.ContainsKey("Profile"))
-                        { UtilLogMessage("warning", "Prefer \"ProfileName\" (\"Profile\" is deprecated)."); }
-
-                    if (Args.ContainsKey("ProfileName")  &&  Args.ContainsKey("Profile"))
-                    {
-                        UtilLogMessage("error", "\"ProfileName\" and \"Profile\" attributes are mutually exclusive.   Use \"ProfileName\" (\"Profile\" is deprecated).");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    Counter = 0;
-
-                    if (!profileName.ToLower().EndsWith(".xml"))
-                        { profileName += ".xml"; }
-
-                    ProfileName = profileName;
-                }
+                if (!ProfileName.ToLower().EndsWith(".xml"))
+                    { ProfileName += ".xml"; }
 			}
 
 			catch (Exception except)
@@ -79,19 +49,18 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
-        public int      Counter { get; set; }
-        public String   CurrentProfile { get { return ProfileManager.XmlLocation; } }
-        public String   ProfileName { get; set; }
+        public String               ProfileName { get; private set; }
 
-        public static LocalPlayer Me { get { return ObjectManager.Me; } }
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private int                 Counter { get; set; }
+        private String              CurrentProfile { get { return (ProfileManager.XmlLocation); } }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 
         public String NewProfilePath
@@ -131,25 +100,25 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return (_isBehaviorDone); }
+            get
+            {
+                return (_isBehaviorDone);
+            }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                TreeRoot.GoalText = string.Format("{0}: Running", this.GetType().Name);
+                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
             }
         }
 

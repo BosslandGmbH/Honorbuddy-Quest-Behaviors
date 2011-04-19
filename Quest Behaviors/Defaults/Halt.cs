@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.Drawing;
 
-using Styx.Logic.Questing;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Questing;
 
 using TreeSharp;
 

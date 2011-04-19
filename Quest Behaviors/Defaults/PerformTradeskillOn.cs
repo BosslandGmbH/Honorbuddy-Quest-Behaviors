@@ -24,52 +24,16 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                int castOnItemId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "CastOnItemId",       null },
-                                                    { "NumTimes",           null },
-                                                    { "QuestId",            null },
-                                                    { "TradeSkillId",       null },
-                                                    { "TradeSkillItemId",   null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out QuestId);
-                _isAttributesOkay &= GetAttributeAsInteger("TradeSkillId", true, "0", 0, int.MaxValue, out TradeSkillId);
-                _isAttributesOkay &= GetAttributeAsInteger("TradeSkillItemId", true, "0", 0, int.MaxValue, out TradeSkillItemId);
-                _isAttributesOkay &= GetAttributeAsInteger("NumTimes", false, "1", 1, int.MaxValue, out NumTimes);
-                _isAttributesOkay &= GetAttributeAsInteger("CastOnItemId", false, "0", 0, int.MaxValue, out castOnItemId);
-
-                // Semantic coherency --
-                if (_isAttributesOkay)
-                {
-                    if (QuestId == 0)
-                    {
-                        UtilLogMessage("error", "\"QuestId\" may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (TradeSkillId == 0)
-                    {
-                        UtilLogMessage("error", "\"TradeSkillId\" may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (TradeSkillItemId == 0)
-                    {
-                        UtilLogMessage("error", "\"TradeSkillItemId\" may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    if (castOnItemId > 0)
-                        { CastOnItemId = castOnItemId; }
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                CastOnItemId    = GetAttributeAsItemId("CastOnItemId", false, null) ?? 0;
+                NumOfTimes      = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, new [] { "NumTimes" }) ?? 1;
+                QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                TradeSkillId    = GetAttributeAsSpellId("TradeSkillId", true, null) ?? 0;
+                TradeSkillItemId = GetAttributeAsItemId("TradeSkillItemId", true, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -82,32 +46,26 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
-        public int      QuestId;
 
-        /// <summary> Identifier for the trade skill </summary>
-        public int      TradeSkillId;
-
-        /// <summary> Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window. </summary>
-        public int      TradeSkillItemId;
-
-        /// <summary> If set, an item ID to cast the trade skill on. </summary>
-        public int?     CastOnItemId;
-        
-        /// <summary> Number of times </summary>
-        public int      NumTimes;
+        public int?                     CastOnItemId { get; private set; }  /// If set, an item ID to cast the trade skill on.
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      TradeSkillId { get; private set; }
+        public int                      TradeSkillItemId { get; private set; }  // Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window.
 
 
-        private bool        _isAttributesOkay;
         private bool        _isBehaviorDone;
 
 
         private void PerformTradeSkill()
         {
-            Lua.DoString("DoTradeSkill(" + GetTradeSkillIndex() + ", " + (NumTimes == 0 ? 1 : NumTimes) + ")");
+            Lua.DoString("DoTradeSkill(" + GetTradeSkillIndex() + ", " + (NumOfTimes == 0 ? 1 : NumOfTimes) + ")");
             Thread.Sleep(500);
 
             if (CastOnItemId.HasValue)
@@ -115,8 +73,7 @@ namespace Styx.Bot.Quest_Behaviors
                 var item = StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value);
                 if (item == null)
                 {
-                    UtilLogMessage("error", "COULD NOT FIND ITEM FOR " + GetType().Name 
-                                            + "! Aborting and stopping bot! [Item: " + CastOnItemId.Value + "]");
+                    UtilLogMessage("fatal", string.Format("Could not find ItemId({0}) for {1}.", CastOnItemId.Value, GetType().Name));
                     TreeRoot.Stop();
                     return;
                 }
@@ -180,7 +137,8 @@ namespace Styx.Bot.Quest_Behaviors
 
                     int id = int.Parse(link);
 
-                    Logging.WriteDebug("ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name);
+                    UtilLogMessage("debug", string.Format("ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name));
+
                     if (id == TradeSkillItemId)
                         return i;
                 }
@@ -205,33 +163,26 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone    // normal completion
-                        ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                           QuestInLogRequirement.InLog, 
-                                                           QuestCompleteRequirement.NotComplete));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
 		{
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = string.Format("{0}: {1}",
-                                                  this.GetType().Name,
-                                                  (quest == null) ? "Running" : ("\"" + quest.Name + "\""));
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
 		}
 

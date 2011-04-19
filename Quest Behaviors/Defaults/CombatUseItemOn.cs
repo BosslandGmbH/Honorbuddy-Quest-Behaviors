@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.Combat;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
@@ -38,86 +38,19 @@ namespace Styx.Bot.Quest_Behaviors
 
 			try
 			{
-                int         castingSpellId;
-                int         hasAura;
-                int         itemId;
-                WoWPoint    location;
-                int         mobId;
-                int         npcHasAura;
-                int         npcHPLeft;
-                int         numberoftimes;
-                int         questId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "ItemId",         null },
-                                                    { "NpcId",          null },
-                                                    { "MobId",          null },
-                                                    { "NumOfTimes",     null },
-                                                    { "X",              null },
-                                                    { "Y",              null },
-                                                    { "Z",              null },
-                                                    { "HasAura",        null },
-                                                    { "NpcHPLeft",      null },
-                                                    { "NpcHasAura",     null },
-                                                    { "CastingSpellId", null },
-                                                    { "QuestId",        null },
-                                                });
-
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("ItemId", true, "0", 0, int.MaxValue, out itemId);
-                _isAttributesOkay &= GetAttributeAsInteger("HasAura", false, "0", 0, int.MaxValue, out hasAura);
-                _isAttributesOkay &= GetAttributeAsInteger("NumOfTimes", false, "1", 0, int.MaxValue, out numberoftimes);
-                _isAttributesOkay &= GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-                _isAttributesOkay &= GetAttributeAsInteger("NpcHPLeft", false, "0", 0, int.MaxValue, out npcHPLeft);
-                _isAttributesOkay &= GetAttributeAsInteger("NpcHasAura", false, "0", 0, int.MaxValue, out npcHasAura);
-                _isAttributesOkay &= GetAttributeAsInteger("CastingSpellId", false, "0", 0, int.MaxValue, out castingSpellId);
-                _isAttributesOkay &= GetXYZAttributeAsWoWPoint( true, WoWPoint.Empty, out location);
-
-                // "NpcId" is allowed for legacy purposes --
-                // If it was not supplied, then its new name "MobId" is required.
-                _isAttributesOkay &= GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobId);
-                if (mobId == 0)
-                    { _isAttributesOkay &= GetAttributeAsInteger("MobId", true, "0", 0, int.MaxValue, out mobId); }
-
-
-                // Weed out Profile Writer sloppiness --
-                if (_isAttributesOkay)
-                {
-                    if (itemId == 0)
-                    {
-                        UtilLogMessage("error", "ItemId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (mobId == 0)
-                    {
-                        UtilLogMessage("error", "MobId may not be zero");
-                        _isAttributesOkay = false;
-                    }
-
-                    if (location == WoWPoint.Empty)
-                    {
-                        UtilLogMessage("error", "X-Y-Z may not be zero");
-                        _isAttributesOkay = false;
-                    }
-                }
-
-
-                if (_isAttributesOkay)
-                {
-                    CastingSpellId = castingSpellId;
-                    Counter = 0;
-                    HasAura = hasAura;
-                    ItemID = itemId;
-                    Location = location;
-                    MobId = mobId;
-                    NpcHasAura = npcHasAura;
-                    NpcHPLeft = npcHPLeft;
-                    NumberOfTimes = numberoftimes;
-                    QuestId = (uint)questId;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                CastingSpellId = GetAttributeAsSpellId("CastingSpellId", false, null) ?? 0;
+                Counter     = 0;
+                HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
+                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                NpcHasAuraId = GetAttributeAsSpellId("NpcHasAuraId", false, new [] { "NpcHasAura" }) ?? 0;
+                NpcHpLeft   = GetAttributeAsInteger("NpcHpLeft", false, 0, int.MaxValue, new [] { "NpcHPLeft" }) ?? 0;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -130,44 +63,42 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
-        public int                  CastingSpellId { get; set; }
-        public int                  Counter { get; set; }
-        public int                  HasAura { get; set; }
-        public int                  ItemID { get; set; }
-        public WoWPoint             Location { get; private set; }
-        public static LocalPlayer   Me { get { return StyxWoW.Me; } }
-        public int                  MobId { get; set; }
-        public bool                 MovedToTarget { get; set; }
-        public int                  NpcHasAura { get; set; }
-        public int                  NpcHPLeft { get; set; }
-        public int                  NumberOfTimes { get; set; }
-        public uint                 QuestId { get; set; }
+        public int                      CastingSpellId { get; private set; }
+        public int                      HasAuraId { get; private set; }
+        public int                      ItemId { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MobId { get; private set; }
+        public bool                     MovedToTarget { get; private set; }
+        public int                      NpcHasAuraId { get; private set; }
+        public int                      NpcHpLeft { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
-     
+        private bool                _isBehaviorDone;
+        private Composite           _root;
 
-        public WoWUnit Mob
+        private int                 Counter { get; set; }
+        public WoWItem              Item
+        {
+            get
+            {
+                return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0);
+            }
+        }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        public WoWUnit              Mob
         {
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                      .Where(u => u.Entry == MobId && !u.Dead)
                                      .OrderBy(u => u.Distance).FirstOrDefault());
-            }
-        }
-
-
-        public WoWItem Item
-        {
-            get
-            {
-                return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemID && i.Cooldown == 0);
             }
         }
 
@@ -204,7 +135,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(
                         ret => !_isBehaviorDone && Me.IsAlive,
                         new PrioritySelector(
-                            new Decorator(ret => (Counter >= NumberOfTimes) || (Me.QuestLog.GetQuestById(QuestId) != null && Me.QuestLog.GetQuestById(QuestId).IsCompleted),
+                            new Decorator(ret => (Counter >= NumOfTimes) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -220,9 +151,9 @@ namespace Styx.Bot.Quest_Behaviors
                                 new PrioritySelector(
                                     new Decorator(
                                         ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
-                                               (NpcHasAura != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == NpcHasAura)) ||
-                                               (NpcHPLeft != 0 && Me.CurrentTarget.HealthPercent <= NpcHPLeft) ||
-                                               (HasAura != 0 && Me.Auras.Values.Any(a => a.SpellId == HasAura)),
+                                               (NpcHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == NpcHasAuraId)) ||
+                                               (NpcHpLeft != 0 && Me.CurrentTarget.HealthPercent <= NpcHpLeft) ||
+                                               (HasAuraId != 0 && Me.Auras.Values.Any(a => a.SpellId == HasAuraId)),
                                         new PrioritySelector(
                                             new Decorator(
                                                 ret => Me.CurrentTarget.Distance > 4,
@@ -244,10 +175,8 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                bool    isDone = (_isBehaviorDone    // normal completion
-                                  ||  !UtilIsProgressRequirementsMet((int)QuestId, 
-                                                                     QuestInLogRequirement.InLog, 
-                                                                     QuestCompleteRequirement.NotComplete));
+                bool    isDone  = (_isBehaviorDone     // normal completion
+                                   || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
 
                 if (isDone)
                     { _isBehaviorDone = true; }
@@ -259,24 +188,19 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                if (quest != null)
-                    { TreeRoot.GoalText = string.Format("{0} - \"{1}\"", this.GetType().Name, quest.Name); }
-                else
-                    { TreeRoot.GoalText = string.Format("{0} in progress", this.GetType().Name); }
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
+
 
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {

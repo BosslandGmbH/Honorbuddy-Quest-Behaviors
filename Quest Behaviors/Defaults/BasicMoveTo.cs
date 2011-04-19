@@ -22,8 +22,6 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
         {
             try
             {
-                WoWPoint destination;
-
                 UtilLogMessage("warning",   "*****\n"
                                           + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
                                           + "*\n"
@@ -31,30 +29,17 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                                           + "* Please update the profile to use RunTo in preference to the BasicMoveTo Behavior.\n"
                                           + "*****");
 
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    {"Location",    null},
-                                                    {"Name",        null},
-                                                    {"X",           null},
-                                                    {"Y",           null},
-                                                    {"Z",           null},
-                                                });
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter   =  0;
+                Destination     = LegacyGetAttributeAsWoWPoint("Location", false, null, "X/Y/Z")
+                                    ?? GetXYZAttributeAsWoWPoint("", true, null)
+                                    ?? WoWPoint.Empty;
+                DestinationName = GetAttributeAsString_NonEmpty("DestName", false, new [] { "Name" }) ?? "";
 
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsWoWPoint("Location", false, WoWPoint.Empty, out destination);
-                _isAttributesOkay &= GetAttributeAsString("Name", false, "", out _destinationName);
-
-                // If attribute Location was not present, then X/Y/Z *must* be specified --
-                //  Location is allowed for backward-compatibility, but X/Y/Z is modern and preferred.
-                if (destination == WoWPoint.Empty)
-                    { _isAttributesOkay &= GetXYZAttributeAsWoWPoint(true, WoWPoint.Empty, out destination); }
-
-
-                if (_isAttributesOkay)
-                {
-                    Counter   =  0;
-                    MovePoint =  destination;
-                }
+                if (string.IsNullOrEmpty(DestinationName))
+                    { DestinationName = Destination.ToString(); }
             }
 
 			catch (Exception except)
@@ -67,20 +52,51 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int          Counter { get; set; }
-        public WoWPoint     MovePoint { get; private set; }
+        public WoWPoint     Destination { get; private set; }
+        public string       DestinationName { get; private set; }
 
-        private string      _destinationName;
-        private bool        _isAttributesOkay;
         private bool        _isBehaviorDone;
         private Composite   _root;
 
-        private static LocalPlayer  s_me = ObjectManager.Me;
+        private int                 Counter { get; set; }
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+
+
+        #region Legacy XML support
+
+        private WoWPoint?   LegacyGetAttributeAsWoWPoint(string    attributeName,
+                                                         bool      isRequired,
+                                                         string[]  attributeAliases,
+                                                         string     preferredName)
+        {
+            double[]    tmpPoint    = GetAttributeAsDoubleArray(attributeName, isRequired, double.MinValue, double.MaxValue, attributeAliases);
+
+            if (tmpPoint == null)
+                { return (null); }
+
+            UtilLogMessage("warning", string.Format("The attribute '{0}' is DEPRECATED.\n"
+                                                    + "Please modify the profile to use the new '{1}' attribute, instead.",
+                                                    attributeName, preferredName));
+
+            if (tmpPoint.Length != 3)
+            {
+                UtilLogMessage("error", string.Format("The '{0}' attribute's value should have three"
+                                                      + " coordinate contributions (saw '{1}')",
+                                                      attributeName,
+                                                      tmpPoint.Length));
+                IsAttributeProblem = true;
+                return (null);
+            }
+
+            return (new WoWPoint(tmpPoint[0], tmpPoint[1], tmpPoint[2]));
+        }
+
+        #endregion
 
 
         #region Overrides of CustomForcedBehavior
@@ -99,14 +115,14 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                                 new Action(delegate
                                 {
 
-                                    WoWPoint destination1 = new WoWPoint(MovePoint.X, MovePoint.Y, MovePoint.Z);
-                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(s_me.Location, destination1);
+                                    WoWPoint destination1 = new WoWPoint(Destination.X, Destination.Y, Destination.Z);
+                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, destination1);
 
                                     foreach (WoWPoint p in pathtoDest1)
                                     {
-                                        while (!s_me.Dead && p.Distance(s_me.Location) > 3)
+                                        while (!Me.Dead && p.Distance(Me.Location) > 3)
                                         {
-                                            if (s_me.Combat)
+                                            if (Me.Combat)
                                             {
                                                 break;
                                             }
@@ -114,18 +130,18 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                                             WoWMovement.ClickToMove(p);
                                         }
 
-                                        if (s_me.Combat)
+                                        if (Me.Combat)
                                         {
                                             break;
                                         }
                                     }
 
-                                    if (s_me.Combat)
+                                    if (Me.Combat)
                                     {
                                         
                                         return RunStatus.Success;
                                     }
-                                    else if (!s_me.Combat)
+                                    else if (!Me.Combat)
                                     {
                                         Counter++;
                                         return RunStatus.Success;
@@ -135,7 +151,7 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                                 })
                                 ),
 
-                            new Action(ret => Logging.Write(""))
+                            new Action(ret => UtilLogMessage("debug", ""))
                         )
                     ));
         }
@@ -149,140 +165,20 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
 
         public override void OnStart()
 		{
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                TreeRoot.GoalText = "Moving to " + ((!string.IsNullOrEmpty(_destinationName))
-                                                    ? _destinationName
-                                                    : MovePoint.ToString());
+                TreeRoot.GoalText = this.GetType().Name + ": " + DestinationName;
             }
-        }
-
-        #endregion
-
-
-        #region Legacy XML support
-
-        // The methods below support antiquated (and non-XML-like) Attributes (e.g., Location) --
-        // As such, we don't want them in the CustomForcedBehavior base class.  You may find these methods
-        // in several of the 'old style' behaviors.  To prevent namespace collisions,
-        // we have to assure our namespace is unique, thus we've appended the behavior name to the namespace
-        // that originally existed.
-
-        public bool GetAttributeAsWoWPoint(string attributeName,
-                                           bool isAttributeRequired,
-                                           WoWPoint defaultValue,
-                                           out WoWPoint returnedValue
-                                           )
-        {
-            string  attributeValueAsString;
-            bool    isSuccess;
-
-            returnedValue = new WoWPoint(defaultValue.X, defaultValue.Y, defaultValue.Z);
-
-            isSuccess = UtilFetchAttributeValue(attributeName,
-                                                isAttributeRequired,
-                                                "", // no default value
-                                                out attributeValueAsString);
-            if (!isSuccess)
-                { return (false); }
-
-
-            string[] discreteCoordinates = attributeValueAsString.Split(' ');
-
-            if (discreteCoordinates.Length != 3)
-            {
-                UtilLogMessage("error", string.Format("The '{0}' attribute's value expected 3 space-separated floating point numbers"
-                                                      + "--found {1} (saw '{2}').",
-                                                      attributeName,
-                                                      discreteCoordinates.Length,
-                                                      attributeValueAsString));
-                return (false);
-            }
-
-
-            float   x;
-            float   y;
-            float   z;
-
-            // Report problems with each component that is in error before returning --
-            // This minimizes nickel-and-diming the caller with error messages.
-            isSuccess = true;
-            if (!float.TryParse(discreteCoordinates[0], out x))
-            {
-                UtilReportMalformed(attributeName + "-X", discreteCoordinates[0]);
-                isSuccess = false;
-            }
-
-            if (!float.TryParse(discreteCoordinates[1], out y))
-            {
-                UtilReportMalformed(attributeName + "-Y", discreteCoordinates[1]);
-                isSuccess = false;
-            }
-
-            if (!float.TryParse(discreteCoordinates[2], out z))
-            {
-                UtilReportMalformed(attributeName + "-Z", discreteCoordinates[2]);
-                isSuccess = false;
-            }
-
-            if (isSuccess)
-            {
-                returnedValue.X = x;
-                returnedValue.Y = y;
-                returnedValue.Z = z;
-            }
-
-            return (isSuccess);
-        }
-
-
-        private bool UtilFetchAttributeValue(string attributeName,
-                                             bool isAttributeRequired,
-                                             string defaultValueAsString,
-                                             out string attributeValueAsString)
-        {
-            bool    isAttributePresent = Args.TryGetValue(attributeName, out attributeValueAsString);
-
-
-            // Is required attribute missing?
-            if (isAttributeRequired && !isAttributePresent)
-            {
-                UtilLogMessage("error", string.Format("The '{0}' attribute is required, but missing."
-                                                      + "  (Attribute names are case-sensitive.)",
-                                                      attributeName));
-                return (false);
-            }
-
-            // Attribute is either present, or not required --
-            // If attribute is not present, then use the default value
-            if (!isAttributePresent)
-                { attributeValueAsString = defaultValueAsString; }
-
-
-            return (true);
-        }
-
-
-        private void UtilReportMalformed(string attributeName,
-                                    string attributeValue)
-        {
-            UtilLogMessage("error", string.Format("The '{0}' attribute's value is malformed. (saw '{1}')",
-                                                  attributeName,
-                                                  attributeValue));
         }
 
         #endregion
     }
-
 }
 

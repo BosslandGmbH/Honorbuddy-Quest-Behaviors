@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
-using Styx.Logic.BehaviorTree;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
@@ -26,21 +26,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
 			{
-                int     questId;
-
-                CheckForUnrecognizedAttributes(new Dictionary<string, object>()
-                                                {
-                                                    { "QuestID",    null },
-                                                });
-
-                _isAttributesOkay = true;
-                _isAttributesOkay &= GetAttributeAsInteger("QuestID", true, "0", 0, int.MaxValue, out questId);
-
-                if (_isAttributesOkay)
-                {
-                    Counter = 0;
-                    QuestID = (uint)questId;
-                }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Counter     = 0;
+                QuestId     = GetAttributeAsQuestId("QuestId", true, new [] { "QuestID" }) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -53,19 +45,20 @@ namespace Styx.Bot.Quest_Behaviors
 				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
-				_isAttributesOkay = false;
+				IsAttributeProblem = true;
 			}
         }
 
 
-        public int          Counter { get; set; }
-        public static uint  QuestID { get; set; }
+        public static int               QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        private bool        _isAttributesOkay;
-        private bool        _isBehaviorDone;
-        private Composite   _root;
+        private bool            _isBehaviorDone;
+        private Composite       _root;
 
-        static public int questIndexID { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestID + ")", 0)); } }
+        private int             Counter { get; set; }
+        private int             QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
 
 
         #region Overrides of CustomForcedBehavior
@@ -88,8 +81,8 @@ namespace Styx.Bot.Quest_Behaviors
 
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Completing Log Quest - " + QuestID),
-                                        new Action(ret => Lua.DoString("ShowQuestComplete({0})", questIndexID)),
+                                        new Action(ret => TreeRoot.StatusText = "Completing Log Quest - " + QuestId),
+                                        new Action(ret => Lua.DoString("ShowQuestComplete({0})", QuestIndexId)),
                                         new Action(ret => Thread.Sleep(300)),
                                         new Action(ret => Lua.DoString("CompleteQuest()")),
                                         new Action(ret => Thread.Sleep(300)),
@@ -106,28 +99,29 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return (_isBehaviorDone); }
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
 
         public override void OnStart()
         {
-            if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-                // *Never* want to stop Honorbuddy (e.g., TreeRoot.Stop()) in the constructor --
-                // This would defeat the "ProfileDebuggingMode" configurable that builds an instance of each
-                // used behavior when the profile is loaded.
-				TreeRoot.Stop();
-			}
-
-            else
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestID);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest != null)
-                    { TreeRoot.GoalText = "CompleteLogQuest - " + quest.Name; }
+                    { TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress"); }
 
                 else
                 {

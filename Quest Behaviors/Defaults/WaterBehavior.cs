@@ -2,26 +2,23 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Styx.Database;
-using Styx.Logic.Combat;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
-using Styx.Logic.Questing;
-using Styx.Logic.POI;
+
 using Styx.Combat.CombatRoutine;
+using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
+using Styx.Logic.Pathing;
+using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
-using Styx.Logic.BehaviorTree;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class WaterBehavior : CustomForcedBehavior
     {
-
         /// <summary>
         /// WaterBehavior by Natfoth
         /// Kill/Collect things within the Water
@@ -33,202 +30,97 @@ namespace Styx.Bot.Quest_Behaviors
         /// X,Y,Z: Where you want to be at when you fire.
         /// </summary>
         /// 
-
-        #region Overrides of CustomForcedBehavior.
-
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-
-            {"NpcID",null},
-            {"ObjectID",null},
-            {"ObjectID2",null},
-            {"ObjectID3",null},
-            {"NumberOfTimes",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-            {"QuestId",null},
-
-        };
-
-        bool success = true;
-
         public WaterBehavior(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                NpcId       = GetAttributeAsMobId("NpcId", false, new [] { "NpcID" }) ?? 0;
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, new [] { "NumberOfTimes" }) ?? 0;
+                ObjectId    = GetAttributeAsMobId("ObjectId", false, new [] { "ObjectID" }) ?? 0;
+                ObjectId2   = GetAttributeAsMobId("ObjectId2", false, new [] { "ObjectID2" }) ?? 0;
+                ObjectId3   = GetAttributeAsMobId("ObjectId3", false, new [] { "ObjectID3" }) ?? 0;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
 
-            int npcID = 0;
-            int objectID = 0;
-            int objectID2 = 0;
-            int objectID3 = 0;
-            int numberoftimes = 0;
-            int questId = 0;
-            WoWPoint location = new WoWPoint(0, 0, 0);
-            
-            success = success && GetAttributeAsInteger("NpcID", false, "0", 0, int.MaxValue, out npcID);
-            success = success && GetAttributeAsInteger("ObjectID", false, "0", 0, int.MaxValue, out objectID);
-            success = success && GetAttributeAsInteger("ObjectID2", false, "0", 0, int.MaxValue, out objectID2);
-            success = success && GetAttributeAsInteger("ObjectID3", false, "0", 0, int.MaxValue, out objectID3);
-            success = success && GetAttributeAsInteger("NumberOfTimes", false, "0", 0, int.MaxValue, out numberoftimes);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
+                Counter             = 0;
+                MovedToLocation     = false;
+                TimesUsedCounter    = 1;
+			}
 
-            NPCID = npcID;
-            ObjectID = objectID;
-            ObjectID2 = objectID2;
-            ObjectID3 = objectID3;
-            NumberOfTimes = numberoftimes;
-            QuestId = (uint)questId;
-            Location = location;
-
-            Counter = 0;
-            TimesUsedCounter = 1;
-            MovedToLocation = false;
-
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public WoWPoint Location { get; private set; }
-        public int Counter { get; set; }
-        public int TimesUsedCounter { get; set; }
-        public int NPCID { get; set; }
-        public int ObjectID { get; set; }
-        public int ObjectID2 { get; set; }
-        public int ObjectID3 { get; set; }
-        public bool MovedToLocation { get; set; }
-        public int NumberOfTimes { get; set; }
-        public int MoveToNPC { get; set; }
-        public uint QuestId { get; set; }
 
-        public static LocalPlayer me = ObjectManager.Me;
+        public WoWPoint                 Location { get; private set; }
+        public bool                     MovedToLocation { get; private set; }
+        public int                      MoveToNpc { get; private set; }
+        public int                      NpcId { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      ObjectId { get; private set; }
+        public int                      ObjectId2 { get; private set; }
+        public int                      ObjectId3 { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        public List<WoWUnit> npcList
+        private bool                    _isBehaviorDone;
+        private Composite               _root;
+
+        private int                     Counter { get; set; }
+        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        private int                     TimesUsedCounter { get; set; }
+
+
+        private List<WoWUnit> NpcList
         {
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == NPCID && !u.Dead)
+                                            .Where(u => u.Entry == NpcId && !u.Dead)
                                             .OrderBy(u => u.Distance).ToList();
             }
         }
 
-        public List<WoWUnit> lootList
+        private List<WoWUnit> LootList
         {
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == NPCID && u.Dead && u.Lootable)
+                                            .Where(u => u.Entry == NpcId && u.Dead && u.Lootable)
                                             .OrderBy(u => u.Distance).ToList();
             }
         }
 
-        public List<WoWGameObject> objectList
+        public List<WoWGameObject> ObjectList
         {
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWGameObject>()
-                                        .Where(u => (u.Entry == ObjectID || u.Entry == ObjectID2 || u.Entry == ObjectID3) && !u.InUse && !u.IsDisabled)
+                                        .Where(u => (u.Entry == ObjectId || u.Entry == ObjectId2 || u.Entry == ObjectId3) && !u.InUse && !u.IsDisabled)
                                         .OrderBy(u => u.Distance).ToList();
             }
-        }
-
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-
-                            new Decorator(ret => (me.QuestLog.GetQuestById(QuestId) != null && me.QuestLog.GetQuestById(QuestId).IsCompleted),
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
-
-                            new Decorator(ret => me.GetMirrorTimerInfo(MirrorTimerType.Breath).CurrentTime < 20000 && me.GetMirrorTimerInfo(MirrorTimerType.Breath).CurrentTime != 0,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new Action(ret => WoWMovement.ClickToMove(Location)),
-                                    new Action(ret => Thread.Sleep(100))
-                                )),
-
-                           new Decorator(ret => lootList.Count > 0,
-                                new Sequence(
-                                    new DecoratorContinue(ret => !lootList[0].WithinInteractRange,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving to Loot - " + lootList[0].Name + " Yards Away " + lootList[0].Location.Distance(me.Location)),
-                                            new Action(ret => WoWMovement.ClickToMove(lootList[0].Location)),
-                                            new Action(ret => Thread.Sleep(300))
-                                            )
-                                    ),
-                                    new DecoratorContinue(ret => lootList[0].WithinInteractRange,
-                                        new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Looting - " + lootList[0].Name),
-                                        new Action(ret => WoWMovement.MoveStop()),
-                                        new Action(ret => lootList[0].Interact()),
-                                        new Action(ret => Thread.Sleep(1000))
-                                            ))
-                                    )),
-
-                           new Decorator(ret => npcList.Count == 0 || objectList.Count == 0,
-                                new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
-                                        new Action(ret => Navigator.MoveTo(Location)),
-                                        new Action(ret => Thread.Sleep(100))
-                                    )
-                                ),
-
-                           new Decorator(ret => npcList.Count > 0,
-                                new Sequence(
-                                    new DecoratorContinue(ret => npcList[0].Location.Distance(me.Location) > range,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + npcList[0].Name + " Yards Away " + npcList[0].Location.Distance(me.Location)),
-                                            new Action(ret => WoWMovement.ClickToMove(npcList[0].Location)),
-                                            new Action(ret => Thread.Sleep(300))
-                                            )
-                                    ),
-                                    new DecoratorContinue(ret => npcList[0].Location.Distance(me.Location) <= range,
-                                        new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + npcList[0].Name + " With Spell: " + RangeSpell.Name),
-                                        new Action(ret => WoWMovement.MoveStop()),
-                                        new Action(ret => npcList[0].Target()),
-                                        new Action(ret => npcList[0].Face()),
-                                        new Action(ret => Thread.Sleep(200)),
-                                        new Action(ret => SpellManager.Cast(RangeSpell)),
-                                        new Action(ret => Thread.Sleep(300))
-                                            ))
-                                    )),
-
-                            new Decorator(ret => objectList.Count > 0,
-                                new Sequence(
-                                    new DecoratorContinue(ret => !objectList[0].WithinInteractRange,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Moving to Object - " + objectList[0].Name + " Yards Away " + objectList[0].Location.Distance(me.Location)),
-                                            new Action(ret => WoWMovement.ClickToMove(objectList[0].Location)),
-                                            new Action(ret => Thread.Sleep(300))
-                                            )
-                                    ),
-                                    new DecoratorContinue(ret => objectList[0].WithinInteractRange,
-                                        new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Opening Object - " + objectList[0].Name),
-                                        new Action(ret => WoWMovement.MoveStop()),
-                                        new Action(ret => objectList[0].Interact()),
-                                        new Action(ret => Thread.Sleep(1000)),
-                                        new Action(ret => Counter++)
-                                            ))
-                                    ))
-                    ));
         }
 
         WoWSpell RangeSpell
         {
             get
             {
-                switch (me.Class)
+                switch (Me.Class)
                 {
                     case Styx.Combat.CombatRoutine.WoWClass.Druid:
                         return SpellManager.Spells["Starfire"];
@@ -253,12 +145,12 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-               return (me.Class == WoWClass.Druid && 
+               return (Me.Class == WoWClass.Druid && 
                    (SpellManager.HasSpell("balanceSpell") || SpellManager.HasSpell("RestoSpell"))||
-                   me.Class == WoWClass.Shaman && 
+                   Me.Class == WoWClass.Shaman && 
                    (SpellManager.HasSpell("ElementalSpell") || SpellManager.HasSpell("RestoSpell"))||
-                   me.Class == WoWClass.Hunter || me.Class == WoWClass.Mage || me.Class == WoWClass.Priest ||
-                   me.Class == WoWClass.Warlock);
+                   Me.Class == WoWClass.Hunter || Me.Class == WoWClass.Mage || Me.Class == WoWClass.Priest ||
+                   Me.Class == WoWClass.Warlock);
             }
         }
 
@@ -277,10 +169,126 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        private bool _isDone;
+
+        #region Overrides of CustomForcedBehavior.
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+
+                            new Decorator(ret => (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isBehaviorDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
+
+                            new Decorator(ret => Me.GetMirrorTimerInfo(MirrorTimerType.Breath).CurrentTime < 20000 && Me.GetMirrorTimerInfo(MirrorTimerType.Breath).CurrentTime != 0,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new Action(ret => WoWMovement.ClickToMove(Location)),
+                                    new Action(ret => Thread.Sleep(100))
+                                )),
+
+                           new Decorator(ret => LootList.Count > 0,
+                                new Sequence(
+                                    new DecoratorContinue(ret => !LootList[0].WithinInteractRange,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Loot - " + LootList[0].Name + " Yards Away " + LootList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => WoWMovement.ClickToMove(LootList[0].Location)),
+                                            new Action(ret => Thread.Sleep(300))
+                                            )
+                                    ),
+                                    new DecoratorContinue(ret => LootList[0].WithinInteractRange,
+                                        new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Looting - " + LootList[0].Name),
+                                        new Action(ret => WoWMovement.MoveStop()),
+                                        new Action(ret => LootList[0].Interact()),
+                                        new Action(ret => Thread.Sleep(1000))
+                                            ))
+                                    )),
+
+                           new Decorator(ret => NpcList.Count == 0 || ObjectList.Count == 0,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
+                                        new Action(ret => Navigator.MoveTo(Location)),
+                                        new Action(ret => Thread.Sleep(100))
+                                    )
+                                ),
+
+                           new Decorator(ret => NpcList.Count > 0,
+                                new Sequence(
+                                    new DecoratorContinue(ret => NpcList[0].Location.Distance(Me.Location) > range,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + NpcList[0].Name + " Yards Away " + NpcList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => WoWMovement.ClickToMove(NpcList[0].Location)),
+                                            new Action(ret => Thread.Sleep(300))
+                                            )
+                                    ),
+                                    new DecoratorContinue(ret => NpcList[0].Location.Distance(Me.Location) <= range,
+                                        new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + NpcList[0].Name + " With Spell: " + RangeSpell.Name),
+                                        new Action(ret => WoWMovement.MoveStop()),
+                                        new Action(ret => NpcList[0].Target()),
+                                        new Action(ret => NpcList[0].Face()),
+                                        new Action(ret => Thread.Sleep(200)),
+                                        new Action(ret => SpellManager.Cast(RangeSpell)),
+                                        new Action(ret => Thread.Sleep(300))
+                                            ))
+                                    )),
+
+                            new Decorator(ret => ObjectList.Count > 0,
+                                new Sequence(
+                                    new DecoratorContinue(ret => !ObjectList[0].WithinInteractRange,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Object - " + ObjectList[0].Name + " Yards Away " + ObjectList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => WoWMovement.ClickToMove(ObjectList[0].Location)),
+                                            new Action(ret => Thread.Sleep(300))
+                                            )
+                                    ),
+                                    new DecoratorContinue(ret => ObjectList[0].WithinInteractRange,
+                                        new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Opening Object - " + ObjectList[0].Name),
+                                        new Action(ret => WoWMovement.MoveStop()),
+                                        new Action(ret => ObjectList[0].Interact()),
+                                        new Action(ret => Thread.Sleep(1000)),
+                                        new Action(ret => Counter++)
+                                            ))
+                                    ))
+                    ));
+        }
+
+
         public override bool IsDone
         {
-            get { return _isDone; }
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
         }
 
         #endregion

@@ -32,22 +32,11 @@
 
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using System.Linq.Expressions;
 using System.Threading;
 
-using Styx.Database;
-using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
 
 
 namespace BuddyWiki.CustomBehavior.RunMacro
@@ -57,27 +46,45 @@ namespace BuddyWiki.CustomBehavior.RunMacro
         public RunMacro(Dictionary<string,string> args)
             : base(args)
         {
-			_isBehaviorDone		= false;
-
-			CheckForUnrecognizedAttributes(s_recognizedAttributeNames);
-
-			_isAttributesOkay = true;
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsString("GoalText", false, "", out _goalText); 
-			_isAttributesOkay = _isAttributesOkay && GetAttributeAsString("Macro", true, "", out _macro);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("NumOfTimes", false, "1", 1, 100, out _numOfTimes);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("WaitTime", false, "1500", 0, int.MaxValue, out _waitTime);
-            _isAttributesOkay = _isAttributesOkay && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out _questId);
-
-			if (_isAttributesOkay)
+            try
             {
-                // successful parse, now check content coherency
-				if (string.IsNullOrEmpty(_macro))
-				{
-                    UtilLogMessage("error", "'Macro' attribute may not be empty.");
-					_isAttributesOkay = false;
-                }
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                GoalText    = GetAttributeAsString_NonEmpty("GoalText", false, null) ?? "";
+                Macro       = GetAttributeAsString_NonEmpty("Macro", true, null) ?? "";
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 1500;
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
+
+
+        public string                   GoalText { get; private set; }
+		public string		            Macro { get; private set; }
+		public int			            NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+		public int			            WaitTime { get; private set; }
+
+		private bool		_isBehaviorDone;
+
 
         #region Overrides of CustomForcedBehavior
 
@@ -85,38 +92,35 @@ namespace BuddyWiki.CustomBehavior.RunMacro
         {
             get
             {
-                PlayerQuest        quest = Styx.StyxWoW.Me.QuestLog.GetQuestById((uint)_questId);
-
-                // Note that a _questId of zero is never complete (by definition), it requires the behavior to complete...
-                return (_isBehaviorDone                                                         // normal completion
-                        ||  ((_questId != 0) && (quest == null))                                // quest not in our log
-                        ||  ((_questId != 0) && (quest != null) && quest.IsCompleted));         // quest is done
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
 
         public override void OnStart()
         {
-			if (!_isAttributesOkay)
-			{
-				UtilLogMessage("error", "Stopping Honorbuddy.  Please repair the profile!");
-				TreeRoot.Stop();
-			}
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			else if (!IsDone)
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
 			{
-				for (int counter = 1;   counter <= _numOfTimes;   ++counter)
+				for (int counter = 1;   counter <= NumOfTimes;   ++counter)
 				{
-                    if (!string.IsNullOrEmpty(_goalText))
+                    if (!string.IsNullOrEmpty(GoalText))
                     {
-                        TreeRoot.GoalText = _goalText;
-                        UtilLogMessage("info", _goalText);
+                        TreeRoot.GoalText = GoalText;
+                        UtilLogMessage("info", GoalText);
                     }
 
-                    TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, _numOfTimes);
+                    TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
 
-					Lua.DoString(string.Format("RunMacroText(\"{0}\")", _macro), 0);
-					Thread.Sleep(_waitTime);
+					Lua.DoString(string.Format("RunMacroText(\"{0}\")", Macro), 0);
+					Thread.Sleep(WaitTime);
 				}
 
                 _isBehaviorDone = true;
@@ -124,23 +128,5 @@ namespace BuddyWiki.CustomBehavior.RunMacro
         }
 
         #endregion
-
-        private string      _goalText;
-		private bool		_isAttributesOkay;
-		private bool		_isBehaviorDone;
-		private string		_macro;
-		private int			_numOfTimes;
-        private int         _questId;
-		private int			_waitTime;
-
-		private static Dictionary<string, object>	s_recognizedAttributeNames = new Dictionary<string, object>()
-					   {
-							{ "GoalText",			null },
-							{ "Macro",				null },
-							{ "NumOfTimes",			null },
-							{ "QuestId",		    null },
-							{ "WaitTime",			null },
-					   };
-
     }
 }  
