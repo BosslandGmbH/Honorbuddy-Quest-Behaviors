@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Styx;
-using Styx.Logic.Combat;
+
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
+using Styx.Logic.Combat;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
 {
@@ -30,61 +31,67 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         /// ##Syntax##
         /// QuestId: Id of the quest (default is 0)
         /// [Optional] QuestName: optional quest name (documentation only)
-        /// 
         /// </summary>
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},               //  should be 25299
-            {"QuestName",null},             //  (doc only - not used)
-        };
-
-        public LocalPlayer Me { get { return ObjectManager.Me; } }
-
+        /// 
         public MentalTraining(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            bool error = false;
-            
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
+            try
             {
-                Logging.Write("Parsing attribute 'QuestId' in BaronGeddon behavior failed! please check your profile!");
-                error = true;
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);            // (doc only - not used)
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+			}
 
-            if (error)
-                TreeRoot.Stop();
-
-            QuestId = questId;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public uint QuestId { get; private set; }
 
-        static int lineCount = 0;
+        // Attributes provided by caller
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        public static void Log(string msg, params object[] args)
+        // Private variables for internal state
+        private bool            _isBehaviorDone;
+        private static int      _lineCount;
+        private Composite       _root;
+
+        // Private properties
+        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
+
+
+        public void     Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Green, "[MentalTraining] " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
+            UtilLogMessage("info", Color.Green, string.Format(format + (++_lineCount % 2 == 0 ? "" : " "), args));
         }
 
-        public static void DLog(string msg, params object[] args)
-        {
-            // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Green, "(MentalTraining) " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
-        }
 
         public bool DoWeHaveQuest()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest != null;
         }
 
         public bool IsQuestComplete()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
 
@@ -96,30 +103,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             return aura != null;
         }
 
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
 
-                return
-                    _isDone ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
-            }
-        }
+        #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest != null )
-            {
-                TreeRoot.GoalText = string.Format("Doing quest: {0}", quest.Name);
-            }
-        }
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -137,7 +123,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                     return RunStatus.Success;
                                 })
                             ),
-                            new Action(ret => _isDone = true)
+                            new Action(ret => _isBehaviorDone = true)
                         )
                     ),
 
@@ -150,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
                             if (orb == null)
                             {
-                                Logging.Write("MentalTraining.cs:  ERROR - quest item Orb of Ascension not in inventory");
+                                UtilLogMessage("fatal", "Quest item \"Orb of Ascension\" not in inventory.");
                                 TreeRoot.Stop();
                             }
 
@@ -164,7 +150,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     new Decorator(ret => HasAura(Me, 74008),
                         new Action(delegate
                         {
-                            Log( "Answering YES");
+                            Log("Answering YES");
                             Thread.Sleep( 500 );
                             Lua.DoString("RunMacroText(\"/click BonusActionButton1\")");
                             StyxWoW.SleepForLagDuration();
@@ -176,7 +162,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     new Decorator(ret => HasAura(Me, 74009),
                         new Action(delegate
                         {
-                            Log( "Answering NO");
+                            Log("Answering NO");
                             Thread.Sleep( 500 );
                             Lua.DoString("RunMacroText(\"/click BonusActionButton2\")");
                             StyxWoW.SleepForLagDuration();
@@ -191,10 +177,39 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
           );
         }
 
+
         public override void Dispose()
         {
             base.Dispose();
         }
 
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
+        }
+
+        #endregion
     }
 }

@@ -1,18 +1,17 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
-using Styx.Database;
-using Styx.Logic.Combat;
+
 using Styx.Helpers;
-using System.Drawing;
 using Styx.Logic.BehaviorTree;
-using Styx.Logic.Inventory.Frames.Gossip;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
 
@@ -33,152 +32,81 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         /// ##Syntax##
         /// QuestId: Id of the quest (default is 0)
         /// [Optional] QuestName: optional quest name (documentation only)
-        /// 
         /// </summary>
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
+        /// 
+        public BearsUpThere(Dictionary<string, string> args)
+            : base(args)
         {
-            // {"X",null},
-            // {"Y",null},
-            // {"Z",null},
-            {"QuestId",null},
-            {"QuestName",null}
-        };
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);      // (doc only - not used)
+			}
 
-        public uint QuestId { get; set; }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}            
+        }
+        
 
-        public LocalPlayer Me { get { return ObjectManager.Me; } }
-        bool error = false;
+        // Attributes provided by caller
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+
+        // Private variables for internal state
+        private bool            _isBehaviorDone;
+        private Composite       _root;
+
+        // Private properties
+        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
+
 
         //  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest
-        const int LEVEL_BOTTOM = 1;
-        const int LEVEL_TOP = 5;
-        const int LEVEL_UNKNOWN = 0;
-        int lvlCurrent = LEVEL_UNKNOWN;
+        const int   LEVEL_BOTTOM = 1;
+        const int   LEVEL_TOP = 5;
+        const int   LEVEL_UNKNOWN = 0;
+        int         _lvlCurrent = LEVEL_UNKNOWN;
 
-        const int AURA_CLIMBING_TREE = 74920;
-        const int AURA_IN_TREE = 46598;
-        const int CLIMB_UP = 74922;
-        const int CLIMB_DOWN_AT_TOP = 75070;
-        const int CLIMB_DOWN = 74974;
-        const int CHUCK_A_BEAR = 75139;
+        const int   AURA_CLIMBING_TREE = 74920;
+        const int   AURA_IN_TREE = 46598;
+        const int   CLIMB_UP = 74922;
+        const int   CLIMB_DOWN_AT_TOP = 75070;
+        const int   CLIMB_DOWN = 74974;
+        const int   CHUCK_A_BEAR = 75139;
 
             /*
-RIGHT SIDE:  isontransport:True, rotation:1.356836,  degrees:77.741
-LEFT SIDE:  isontransport:True, rotation:1.612091,  degrees:92.366
-ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
-
+                RIGHT SIDE:  isontransport:True, rotation:1.356836,  degrees:77.741
+                LEFT SIDE:  isontransport:True, rotation:1.612091,  degrees:92.366
+                ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
              */
         // these are values recorded from tree @ 14:33
         //  ..  when taking the right ladder (while facing tree)
         //  ..  angle while on tree level other than top is always 9
         //  ..  if you are on correct tree and correct side
 
-        const double AIM_ANGLE = -0.97389394044876;
-        const double TRAMP_RIGHT_SIDE = 77.741;
-        const double TRAMP_LEFT_SIDE = 92.366;
+        const double    AIM_ANGLE = -0.97389394044876;
+        const double    TRAMP_RIGHT_SIDE = 77.741;
+        const double    TRAMP_LEFT_SIDE = 92.366;
 
 
-        public BearsUpThere(Dictionary<string, string> args)
-            : base(args)
+        public void     Dlog(string format, params object[] args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            // WoWPoint location = new WoWPoint(0, 0, 0);
-            int questId = 0;
-
-            // error = error || !GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, new WoWPoint(0, 0, 0), out location);
-            error = error || !GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-
-            QuestId = (uint)questId;
-            if (DoWeHaveQuest() && !IsQuestComplete() && !InTree())
-            {
-                error = true;
-                Log(  "==================================================================");
-                Elog( "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR");
-                Log(  "==================================================================");
-            }
-            
-            if (error)
-                TreeRoot.Stop();
-        }
-        
-
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-
-                    // check if we left tree/vehicle
-                    new Decorator(ret => !InTree(), new Action(ret => _isDone = true)),
-
-                    // is quest abandoned or complete?
-                    //  ..  move down until we auto-exit vehicle
-                    new Decorator(ret => !DoWeHaveQuest() || IsQuestComplete(), new Action( ret => ClimbDown())),
-
-                    // level unknown and already at top?  set to top then
-                    new Decorator(ret => lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree(), 
-                                    new Action( delegate
-                                        {
-                                            lvlCurrent = LEVEL_TOP;
-                                            return RunStatus.Success;
-                                        })),
-
-                    // level unknown?
-                    //  ..  move to top and establish known level
-                    new Decorator(ret => lvlCurrent == LEVEL_UNKNOWN, new Action(ret => ClimbUp())),
-
-                    // have a bear in inventory?
-                    new Decorator(ret => IsBearCubInBags(), 
-                        new PrioritySelector(
-                            //  ..  below top?  move up
-                            new Decorator(ret => lvlCurrent != LEVEL_TOP, new Action(ret => ClimbUp())),
-                            //  ..  aim trajectory angle
-                            new Decorator(ret => NeedAimAngle(), new Action(ret => AimAngle())),
-                            //  ..  aim direction (left/right)
-                            new Decorator(ret => NeedAimDirection(), new Action(ret => AimDirection())),
-                            //  ..  throw                           
-                            new Action( ret => ChuckBear() )
-                            )
-                        ),
-
-                    // at top with no bear?
-                    //  ..  move down
-                    new Decorator(ret => lvlCurrent == LEVEL_TOP, new Action(ret => ClimbDown())),
-
-                    // lootable bears here?
-                    //  ..  loot a bear
-                    new Decorator(ret => !IsBearCubInBags(), new Action(ret => LootClosestBear())),
-
-                    // can we move down without leaving vehicle?
-                    new Decorator(ret => lvlCurrent > LEVEL_BOTTOM, new Action(ret => ClimbDown())),
-
-                    // move up
-                    new Decorator(ret => lvlCurrent < LEVEL_TOP, new Action(ret => ClimbUp()))
-                    )
-                );
-        }
-
-        public static void Log( Color clr, string msg, params object[] args)
-        {
-            Logging.Write(clr, "[BearsUpThere] " + msg, args);
-        }
-
-        public static void Log(string msg, params object[] args)
-        {
-            Log(Color.Blue, msg, args);
-        }
-
-        public static void Dlog(string msg, params object[] args)
-        {
-            msg = String.Format(msg, args);
-            Logging.WriteDebug(Color.Blue, "/BearsUpThere\\ " + msg, args);
-        }
-
-        public static void Elog(string msg, params object[] args)
-        {
-            msg = String.Format(msg, args);
-            Logging.Write(Color.Red, "[BearsUpThere] ERROR: " + msg, args);
+            UtilLogMessage("debug", Color.Blue, string.Format(format, args));
         }
 
         private void WaitForCurrentSpell()
@@ -221,9 +149,9 @@ ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
             {
                 Dlog("(Climb Up) moved +{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
                 if (!IsClimbingTheTree())
-                    lvlCurrent = LEVEL_TOP;
+                    _lvlCurrent = LEVEL_TOP;
                 else
-                    lvlCurrent++;
+                    _lvlCurrent++;
             }
             else
                 Dlog("(Climb Up) no movement UP occurred");
@@ -251,7 +179,7 @@ ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
 
             if (Me.Location.Distance(lastPos) != 0)
             {
-                lvlCurrent--;
+                _lvlCurrent--;
                 Dlog("(Climb Down) moved -{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
             }
             else
@@ -401,12 +329,12 @@ ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
 
                 if (IsBearCubInBags())
                 {
-                    Log("(Loot Bear) grabbed a bear to throw");
+                    UtilLogMessage("info", "(Loot Bear) grabbed a bear to throw");
                     return RunStatus.Success;
                 }
             }
 
-            Dlog("(Loot Bear) no bear at level {0}", lvlCurrent );
+            Dlog("(Loot Bear) no bear at level {0}", _lvlCurrent );
             return RunStatus.Failure;
         }
 
@@ -422,13 +350,13 @@ ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
 
         public bool DoWeHaveQuest()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest != null;
         }
 
         public bool IsQuestComplete()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted ;
         }
 
@@ -440,23 +368,103 @@ ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
             return aura != null;
         }
 
-        public override void OnStart()
+
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-            if (quest != null)
+            return _root ?? (_root =
+                new PrioritySelector(
+
+                    // check if we left tree/vehicle
+                    new Decorator(ret => !InTree(), new Action(ret => _isBehaviorDone = true)),
+
+                    // is quest abandoned or complete?
+                    //  ..  move down until we auto-exit vehicle
+                    new Decorator(ret => !DoWeHaveQuest() || IsQuestComplete(), new Action( ret => ClimbDown())),
+
+                    // level unknown and already at top?  set to top then
+                    new Decorator(ret => _lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree(), 
+                                    new Action( delegate
+                                        {
+                                            _lvlCurrent = LEVEL_TOP;
+                                            return RunStatus.Success;
+                                        })),
+
+                    // level unknown?
+                    //  ..  move to top and establish known level
+                    new Decorator(ret => _lvlCurrent == LEVEL_UNKNOWN, new Action(ret => ClimbUp())),
+
+                    // have a bear in inventory?
+                    new Decorator(ret => IsBearCubInBags(), 
+                        new PrioritySelector(
+                            //  ..  below top?  move up
+                            new Decorator(ret => _lvlCurrent != LEVEL_TOP, new Action(ret => ClimbUp())),
+                            //  ..  aim trajectory angle
+                            new Decorator(ret => NeedAimAngle(), new Action(ret => AimAngle())),
+                            //  ..  aim direction (left/right)
+                            new Decorator(ret => NeedAimDirection(), new Action(ret => AimDirection())),
+                            //  ..  throw                           
+                            new Action( ret => ChuckBear() )
+                            )
+                        ),
+
+                    // at top with no bear?
+                    //  ..  move down
+                    new Decorator(ret => _lvlCurrent == LEVEL_TOP, new Action(ret => ClimbDown())),
+
+                    // lootable bears here?
+                    //  ..  loot a bear
+                    new Decorator(ret => !IsBearCubInBags(), new Action(ret => LootClosestBear())),
+
+                    // can we move down without leaving vehicle?
+                    new Decorator(ret => _lvlCurrent > LEVEL_BOTTOM, new Action(ret => ClimbDown())),
+
+                    // move up
+                    new Decorator(ret => _lvlCurrent < LEVEL_TOP, new Action(ret => ClimbUp()))
+                    )
+                );
+        }
+
+
+        public override bool IsDone
+        {
+            get
             {
-                TreeRoot.GoalText = string.Format("Doing quest: {0}", quest.Name);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
-        private bool _isDone;
-        public override bool IsDone
+
+        public override void OnStart()
         {
-            get 
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
             {
-                return _isDone;
+                if (DoWeHaveQuest() && !IsQuestComplete() && !InTree())
+                {
+                    UtilLogMessage("fatal", "==================================================================\n"
+                                          + "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
+                                          + "==================================================================");
+                }
+
+                else
+                {
+                    PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                    TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                }
             }
         }
+
+        #endregion
     }
 }
 

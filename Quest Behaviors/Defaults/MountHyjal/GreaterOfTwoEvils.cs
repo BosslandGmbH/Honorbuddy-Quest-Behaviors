@@ -2,18 +2,19 @@
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
-using System.Threading;
-using Styx;
-using Styx.Logic;
-using Styx.Logic.Combat;
+
 using Styx.Helpers;
+using Styx.Logic;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
 {
@@ -32,76 +33,74 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         /// QuestId: Id of the quest (default is 0)
         /// MobId:  Id of the mob to kill
         /// [Optional] QuestName: optional quest name (documentation only)
-        /// 
         /// </summary>
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"QuestId",null},        
-            {"MobId",null},          
-            {"NpcId",null},          
-            {"QuestName",null},             //  (doc only - not used)
-        };
-
-        public LocalPlayer Me { get { return ObjectManager.Me; } }
-
+        /// 
         public GreaterOfTwoEvils(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-
-            bool error = false;
-
-            uint questId;
-            if (!uint.TryParse(Args["QuestId"], out questId))
+            try
             {
-                Logging.Write("Parsing attribute 'QuestId' in GreaterOfTwoEvils behavior failed! please check your profile!");
-                error = true;
-            }
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);      //  (doc only - not used)
+                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+			}
 
-
-            uint mobId;
-            string argName = Args.ContainsKey("MobId") ? "MobId" : "NpcId";
-            if (!uint.TryParse(Args[argName], out mobId))
-            {
-                Logging.Write("Parsing attribute '{0}' in GreaterOfTwoEvils behavior failed! please check your profile!", argName );
-                error = true;
-            }
-
-            if (error)
-                TreeRoot.Stop();
-
-            QuestId = questId;
-            MobId = mobId;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public uint QuestId { get; private set; }
-        public uint MobId { get; private set; }
 
-        static int lineCount = 0;
-        static RunStatus lastStateReturn = RunStatus.Success;
+        // Attributes provided by caller
+        public int                      MobId { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        public static void Log(string msg, params object[] args)
+        // Private variables for internal state
+        private bool                _isBehaviorDone;
+        private static RunStatus    _lastStateReturn = RunStatus.Success;
+        private static int          _lineCount = 0;
+        private Composite           _root;
+
+        // Private properties
+        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+
+
+        public void     Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Blue, "[GreaterOfTwoEvils] " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
+            UtilLogMessage("info", string.Format(format + (++_lineCount % 2 == 0 ? "" : " "), args));
         }
 
-        public static void DLog(string msg, params object[] args)
+        public void     DLog(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            Logging.Write(Color.Blue, "(GreaterOfTwoEvils) " + msg + (++lineCount % 2 == 0 ? "" : " "), args);
+            UtilLogMessage("debug", string.Format(format + (++_lineCount % 2 == 0 ? "" : " "), args));
         }
 
         public bool DoWeHaveQuest()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             
             return quest != null;
         }
 
         public bool IsQuestComplete()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
 
@@ -123,68 +122,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             }
         }
 
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
 
-                return
-                    _isDone ||
-                    (quest != null && quest.IsCompleted) ||
-                    quest == null;
-            }
-        }
+        #region Overrides of CustomForcedBehavior
 
-        public override void OnStart()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-
-            if (quest != null)
-            {
-                TreeRoot.GoalText = "Doing: " + quest.Name;
-            }
-            else
-            {
-                TreeRoot.GoalText = "GreaterOfTwoEvils - ";
-            }
-
-            if (TreeRoot.Current == null)
-                Log("ERROR - TreeRoot.Current == null");
-            else if (TreeRoot.Current.Root == null )
-                Log("ERROR - TreeRoot.Current.Root == null");
-            else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
-                Log("ERROR - TreeRoot.Current.Root.LastStatus == RunStatus.Running");
-            else
-            {
-                var currentRoot = TreeRoot.Current.Root;
-                if (!(currentRoot is GroupComposite))
-                    Log("ERROR - !(currentRoot is GroupComposite)");
-                else 
-                {
-                    if (currentRoot is Sequence)
-                        lastStateReturn = RunStatus.Failure ;
-                    else if (currentRoot is PrioritySelector)
-                        lastStateReturn = RunStatus.Success;
-                    else
-                    {
-                        DLog("unknown type of Group Composite at root");
-                        lastStateReturn = RunStatus.Success;
-                    }
-
-                    var root = (GroupComposite)currentRoot;
-                    root.InsertChild(0, CreateBehavior());
-                }
-            }
-        }
-
-
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
-                new Decorator( ret => !_isDone, 
+                new Decorator( ret => !_isBehaviorDone, 
                     new PrioritySelector(
                         new Decorator(ret => IsQuestComplete(),
                             new PrioritySelector(
@@ -199,7 +143,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                 ),
                                 new Action(delegate
                                 {
-                                    _isDone = true;
+                                    _isBehaviorDone = true;
                                     StyxWoW.SleepForLagDuration();
                                     return RunStatus.Success;
                                 })
@@ -233,7 +177,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                 WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().FirstOrDefault(i => i != null && i.Entry == 54814);
                                 if (item == null)
                                 {
-                                    Log("ERROR - quest item Talisman of Flame Ascendancy not in inventory");
+                                    UtilLogMessage("fatal", "Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
                                     TreeRoot.Stop();
                                 }
 
@@ -285,17 +229,75 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                         new Action(delegate
                         {
                             DLog("Waiting for Cooldown");
-                            return lastStateReturn;
+                            return _lastStateReturn;
                         })
                     )
                 )
             );
         }
 
+
         public override void Dispose()
         {
             base.Dispose();
         }
 
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
+                if (TreeRoot.Current == null)
+                    UtilLogMessage("fatal", "TreeRoot.Current == null");
+                else if (TreeRoot.Current.Root == null )
+                    UtilLogMessage("fatal", "TreeRoot.Current.Root == null");
+                else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
+                    UtilLogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
+                else
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (!(currentRoot is GroupComposite))
+                        UtilLogMessage("fatal", "!(currentRoot is GroupComposite)");
+                    else 
+                    {
+                        if (currentRoot is Sequence)
+                            _lastStateReturn = RunStatus.Failure ;
+                        else if (currentRoot is PrioritySelector)
+                            _lastStateReturn = RunStatus.Success;
+                        else
+                        {
+                            DLog("unknown type of Group Composite at root");
+                            _lastStateReturn = RunStatus.Success;
+                        }
+
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateBehavior());
+                    }
+                }
+            }
+        }
+
+        #endregion
     }
 }
