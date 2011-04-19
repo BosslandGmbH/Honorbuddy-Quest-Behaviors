@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
@@ -11,6 +12,7 @@ using System.Diagnostics;
 using Styx.Logic.Combat;
 
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -34,130 +36,224 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class VehicleMover : CustomForcedBehavior
     {
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"VehicleID",null},
-            {"VehicleID2",null},
-            {"VehicleID3",null},
-            {"QuestId",null},
-            {"UseNavigator",null},
-            {"Precision",null},
-            {"MobID",null},
-            {"NpcId",null},
-            {"MobId",null},
-            {"SpellID",null},
-            {"CastTime",null},
-            {"CastNum",null},
-            {"Hop",null},
-            {"X",null},
-            {"Y",null},
-            {"Z",null},
-        };
-        bool success = true;
         public VehicleMover(Dictionary<string, string> args)
             : base(args)
         {
-            // tba. dictionary format is not documented.
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            int vehicleID = 0;
-            bool useNavigator = true;
-            bool hop = false;
-            bool ignoreCombat = false;
-            int precision = 0;
-            int mobID = 0;
-            int spellID = 0;
-            int castTime = 0;
-            int castNum = 1;
-            int questId = 1;
-            WoWPoint point = WoWPoint.Empty;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                CastNum         = GetAttributeAsInteger("CastNum", false, 0, 1000, null) ?? 1;
+                CastTime        = GetAttributeAsInteger("CastTime", false, 0, 30000, null) ?? 0;
+                Hop             = GetAttributeAsBoolean("Hop", false, null) ?? false;
+                IgnoreCombat    = GetAttributeAsBoolean("IgnoreCombat", false, null) ?? true;
+                Location        = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                MobId           = GetAttributeAsMobId("MobId", false, new [] { "MobID", "NpcId" }) ?? 0;
+                Precision       = GetAttributeAsInteger("Precision", false, 2, 100, null) ?? 4;
+                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                SpellId         = GetAttributeAsSpellId("SpellId", false, new [] { "SpellID" }) ?? 0;
+                UseNavigator    = GetAttributeAsBoolean("UseNavigator", false, null) ?? true;
+                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+                VehicleId2      = GetAttributeAsMobId("VehicleId2", false, null) ?? 0;
+                VehicleId3      = GetAttributeAsMobId("VehicleId3", false, null) ?? 0;
+			}
 
-            success = success && GetAttributeAsInteger("VehicleID", true, "0", 0, int.MaxValue, out vehicleID);
-            VehicleID = vehicleID;
-            success = success && GetAttributeAsInteger("VehicleID2", false, "0", 0, int.MaxValue, out vehicleID);
-            VehicleID2 = vehicleID;
-            success = success && GetAttributeAsInteger("VehicleID3", false, "0", 0, int.MaxValue, out vehicleID);
-            VehicleID3 = vehicleID;
-            success = success && GetAttributeAsBoolean("UseNavigator", false, "true", out useNavigator);
-            success = success && GetAttributeAsInteger("Precision", false, "4", 2, int.MaxValue, out precision);
-            success = success && GetAttributeAsInteger("MobID", false, "0", 0, int.MaxValue, out mobID);
-            success = success && GetAttributeAsInteger("SpellID", false, "0", 0, int.MaxValue, out spellID);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("CastTime", false, "0", 0, int.MaxValue, out castTime);
-            success = success && GetAttributeAsInteger("CastNum", false, "1", 0, int.MaxValue, out castNum);
-            success = success && GetAttributeAsBoolean("IgnoreCombat", false, "true", out ignoreCombat);
-            success = success && GetAttributeAsBoolean("Hop", false, "false", out hop);
-            success = success && GetXYZAttributeAsWoWPoint("X", "Y", "Z", true, WoWPoint.Empty, out point);
-
-            if (mobID == 0)
-                success = success && GetAttributeAsInteger("MobId", false, "0", 0, int.MaxValue, out mobID);
-
-            if (mobID == 0)
-                success = success && GetAttributeAsInteger("NpcId", false, "0", 0, int.MaxValue, out mobID);
-
-            Precision = precision;
-            SpellID = spellID;
-            CastTime = castTime;
-            CastNum = castNum;
-            UseNavigator = useNavigator;
-            IgnoreCombat = ignoreCombat;
-            Hop = hop;
-            MobID = mobID;
-            QuestId = questId;
-            Location = point;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public int VehicleID { get; private set; }
-        public int VehicleID2 { get; private set; }
-        public int VehicleID3 { get; private set; }
-        public int QuestId { get; private set; }
-        public int Precision { get; private set; }
-        public int MobID { get; private set; }
-        public int SpellID { get; private set; }
-        public int CastTime { get; private set; }
-        public int CastNum { get; private set; }
-        public bool UseNavigator { get; private set; }
-        public bool Hop { get; private set; }
-        public bool IgnoreCombat { get; private set; }
-        public WoWPoint Location { get; private set; }
-        public WoWPoint[] Path { get; private set; }
-        Stopwatch pauseSW = new Stopwatch();// add a small pause before casting.. 
-        Stopwatch castSW = new Stopwatch();// cast timer.
-        bool casted = false;
-        int pathIndex = 0;
-        int castCounter = 0;
+
+        public int                      CastNum { get; private set; }
+        public int                      CastTime { get; private set; }
+        public bool                     Hop { get; private set; }
+        public bool                     IgnoreCombat { get; private set; }
+        public WoWPoint                 Location { get; private set; }
+        public int                      MobId { get; private set; }
+        public WoWPoint[]               Path { get; private set; }
+        public int                      Precision { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      SpellId { get; private set; }
+        public bool                     UseNavigator { get; private set; }
+        public int                      VehicleId { get; private set; }
+        public int                      VehicleId2 { get; private set; }
+        public int                      VehicleId3 { get; private set; }
+
+        private int             _castCounter;
+        private bool            _casted = false;
+        private Stopwatch       _castStopwatch = new Stopwatch();// cast timer.
+        private bool            _isBehaviorDone = false;
+        private WoWPoint        _lastPoint;
+        private int             _pathIndex;
+        private Stopwatch       _pauseStopwatch = new Stopwatch();// add a small pause before casting.. 
+        private Composite       _root;
+        private Stopwatch       _stuckTimer = new Stopwatch();
+
+
         bool InVehicle
         {
             get { return Lua.GetReturnVal<int>("return UnitIsControlling('player')", 0) == 1; }
         }
+
+
         public WoWUnit Vehicle
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == VehicleID ||
-                    (VehicleID2 > 0 && o.Entry == VehicleID2) || (VehicleID3 > 0 && o.Entry == VehicleID3)).
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == VehicleId ||
+                    (VehicleId2 > 0 && o.Entry == VehicleId2) || (VehicleId3 > 0 && o.Entry == VehicleId3)).
                     OrderBy(o => o.Distance).FirstOrDefault();
             }
         }
+
+
+        Composite CreateSpellBehavior
+        {
+            get
+            {
+                return new Action(c =>
+                {
+                    if (SpellId > 0)
+                    {
+                        if (!_casted)
+                        {
+                            if (!_pauseStopwatch.IsRunning)
+                                _pauseStopwatch.Start();
+                            if (_pauseStopwatch.ElapsedMilliseconds >= 1000 || CastTime == 0)
+                            {
+                                if (ObjectManager.Me.IsMoving && CastTime > 0)
+                                {
+                                    WoWMovement.MoveStop();
+                                    if (IgnoreCombat)
+                                        return RunStatus.Running;
+                                    else
+                                        return RunStatus.Success;
+                                }
+                                // getting a "Spell not learned" error if using HB's spell casting api..
+                                Lua.DoString("CastSpellByID({0})", SpellId);
+                                _castCounter++;
+                                _casted = true;
+                                if (CastTime == 0)
+                                {
+                                    _isBehaviorDone = true;
+                                    return RunStatus.Success;
+                                }
+                                _pauseStopwatch.Stop();
+                                _pauseStopwatch.Reset();
+                                _castStopwatch.Reset();
+                                _castStopwatch.Start();
+                            }
+                        }
+                        else if (_castStopwatch.ElapsedMilliseconds >= CastTime)
+                        {
+                            if (_castCounter < CastNum)
+                            {
+                                _casted = false;
+                                _castStopwatch.Stop();
+                                _castStopwatch.Reset();
+                            }
+                            else
+                            {
+                                _castStopwatch.Stop();
+                                _castStopwatch.Reset();
+                                _isBehaviorDone = true;
+                                return RunStatus.Success;
+                            }
+                        }
+                        if (IgnoreCombat)
+                            return RunStatus.Running;
+                        else
+                            return RunStatus.Success; ;
+                    }
+                    else 
+                    {
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }
+
+                });
+            }
+        }
+
+
+        WoWPoint moveToLocation
+        {
+            get
+            {
+                if (UseNavigator)
+                {
+                    WoWUnit vehicle = Vehicle;
+                    if (MobId > 0)
+                    {
+                        // target mob and move to it 
+                        WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == MobId).
+                            OrderBy(o => o.Distance).FirstOrDefault();
+                        if (mob != null)
+                        {
+                            if (!ObjectManager.Me.GotTarget || ObjectManager.Me.CurrentTarget != mob)
+                                mob.Target();
+                            if (mob.Location.Distance(Location) > 4)
+                            {
+                                Location = mob.Location;
+                                Path = Navigator.GeneratePath(vehicle.Location, Location);
+                                _pathIndex = 0;
+                                if (Path == null || Path.Length == 0)
+                                    UseNavigator = false;
+                            }
+                        }
+                    }
+                    if (Hop && (!_stuckTimer.IsRunning || _stuckTimer.ElapsedMilliseconds > 2000))
+                    {
+                        _stuckTimer.Reset();
+                        if (!_stuckTimer.IsRunning)
+                            _stuckTimer.Start();
+                        if (_lastPoint.Distance(vehicle.Location) <= 3)
+                        {
+                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend | WoWMovement.MovementDirection.StrafeLeft);
+                            WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend | WoWMovement.MovementDirection.StrafeLeft);
+                        }
+                        _lastPoint = vehicle.Location;
+                    }
+
+                    if (vehicle.Location.Distance(Path[_pathIndex]) <= Precision && _pathIndex < Path.Length - 1)
+                        _pathIndex++;
+                    return Path[_pathIndex];
+                }
+                else
+                    return Location;
+            }
+        }
+
+
         #region Overrides of CustomForcedBehavior
-        private Composite root;
+ 
         protected override Composite CreateBehavior()
         {
-            return root ??
-                (root = new PrioritySelector(
+            return _root ??
+                (_root = new PrioritySelector(
                     new Decorator(c => !ObjectManager.Me.IsAlive, // if we ignore combat and die... 
                         new Action(c =>
                         {
                             return RunStatus.Failure;
                         })),
-                    new Decorator(c => success == false,
-                        new Action(c =>
-                        {
-                            Err("Invalid or missing Attributes, Stopping HB");
-                        })),
                     new Decorator(c => Vehicle == null,
                         new Action(c =>
                         {
-                            Err("No Vehicle matching ID was found, ending QB");
+                            UtilLogMessage("fatal", "No Vehicle matching ID was found, ending QB");
                             return RunStatus.Failure;
                         })),
                     new Action(c =>
@@ -166,7 +262,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             try
                             {
-                                Log("Moving to Vehicle {0}", Vehicle.Name);
+                                UtilLogMessage("info", "Moving to Vehicle {0}", Vehicle.Name);
                                 if (!Vehicle.WithinInteractRange)
                                     Navigator.MoveTo(Vehicle.Location);
                                 else
@@ -185,10 +281,11 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(c =>
                         {
                             WoWUnit vehicle = Vehicle;
-                            Log("Genoratoring Path from {0} to {1}", vehicle.Location, Location);
+                            UtilLogMessage("info", "Generating Path from {0} to {1}", vehicle.Location, Location);
                             Path = Navigator.GeneratePath(vehicle.Location, Location);
                             if (Path == null || Path.Length == 0)
-                                Err("Unable to genorate path to {0}\nStoping HB.", Location);
+                                { UtilLogMessage("fatal", "Unable to genorate path to {0}", Location); }
+
                             if (IgnoreCombat)
                                 return RunStatus.Failure;
                             return RunStatus.Success;
@@ -211,148 +308,35 @@ namespace Styx.Bot.Quest_Behaviors
                ));
         }
 
-        Composite CreateSpellBehavior
-        {
-            get
-            {
-                return new Action(c =>
-                {
-                    if (SpellID > 0)
-                    {
-                        if (!casted)
-                        {
-                            if (!pauseSW.IsRunning)
-                                pauseSW.Start();
-                            if (pauseSW.ElapsedMilliseconds >= 1000 || CastTime == 0)
-                            {
-                                if (ObjectManager.Me.IsMoving && CastTime > 0)
-                                {
-                                    WoWMovement.MoveStop();
-                                    if (IgnoreCombat)
-                                        return RunStatus.Running;
-                                    else
-                                        return RunStatus.Success;
-                                }
-                                // getting a "Spell not learned" error if using HB's spell casting api..
-                                Lua.DoString("CastSpellByID({0})", SpellID);
-                                castCounter++;
-                                casted = true;
-                                if (CastTime == 0)
-                                {
-                                    isDone = true;
-                                    return RunStatus.Success;
-                                }
-                                pauseSW.Stop();
-                                pauseSW.Reset();
-                                castSW.Reset();
-                                castSW.Start();
-                            }
-                        }
-                        else if (castSW.ElapsedMilliseconds >= CastTime)
-                        {
-                            if (castCounter < CastNum)
-                            {
-                                casted = false;
-                                castSW.Stop();
-                                castSW.Reset();
-                            }
-                            else
-                            {
-                                castSW.Stop();
-                                castSW.Reset();
-                                isDone = true;
-                                return RunStatus.Success;
-                            }
-                        }
-                        if (IgnoreCombat)
-                            return RunStatus.Running;
-                        else
-                            return RunStatus.Success; ;
-                    }
-                    else 
-                    {
-                        isDone = true;
-                        return RunStatus.Success;
-                    }
 
-                });
-            }
-        }
-        Stopwatch stuckTimer = new Stopwatch();
-        WoWPoint lastPoint;
-        WoWPoint moveToLocation
-        {
-            get
-            {
-                if (UseNavigator)
-                {
-                    WoWUnit vehicle = Vehicle;
-                    if (MobID > 0)
-                    {
-                        // target mob and move to it 
-                        WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == MobID).
-                            OrderBy(o => o.Distance).FirstOrDefault();
-                        if (mob != null)
-                        {
-                            if (!ObjectManager.Me.GotTarget || ObjectManager.Me.CurrentTarget != mob)
-                                mob.Target();
-                            if (mob.Location.Distance(Location) > 4)
-                            {
-                                Location = mob.Location;
-                                Path = Navigator.GeneratePath(vehicle.Location, Location);
-                                pathIndex = 0;
-                                if (Path == null || Path.Length == 0)
-                                    UseNavigator = false;
-                            }
-                        }
-                    }
-                    if (Hop && (!stuckTimer.IsRunning || stuckTimer.ElapsedMilliseconds > 2000))
-                    {
-                        stuckTimer.Reset();
-                        if (!stuckTimer.IsRunning)
-                            stuckTimer.Start();
-                        if (lastPoint.Distance(vehicle.Location) <= 3)
-                        {
-                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend | WoWMovement.MovementDirection.StrafeLeft);
-                            WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend | WoWMovement.MovementDirection.StrafeLeft);
-                        }
-                        lastPoint = vehicle.Location;
-                    }
-
-                    if (vehicle.Location.Distance(Path[pathIndex]) <= Precision && pathIndex < Path.Length - 1)
-                        pathIndex++;
-                    return Path[pathIndex];
-                }
-                else
-                    return Location;
-            }
-        }
-
-        void Err(string format, params object[] args)
-        {
-            Logging.Write(System.Drawing.Color.Red, "VehicleMover: " + format, args);
-            isDone = true;
-        }
-
-        void Log(string format, params object[] args)
-        {
-            Logging.Write("VehicleMover: " + format, args);
-        }
-
-        private bool isDone = false;
         public override bool IsDone
         {
             get
             {
-                var quest = ObjectManager.Me.QuestLog.GetQuestById((uint)QuestId);
-                return isDone || (QuestId > 0 && ((quest != null && quest.IsCompleted) || quest == null));
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
         public override void OnStart()
         {
-            TreeRoot.GoalText = string.Format("Moving to:{0} while in Vehicle with ID {1} using {2}",
-                Location, VehicleID, UseNavigator ? "Navigator" : "Click-To-Move");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
+                TreeRoot.StatusText = string.Format("{0}: {1} while in Vehicle with ID {2} using {3}",
+                                                    this.GetType().Name,
+                                                    Location, VehicleId, UseNavigator ? "Navigator" : "Click-To-Move");
+            }
         }
 
         #endregion

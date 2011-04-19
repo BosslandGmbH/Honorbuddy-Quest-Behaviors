@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
@@ -12,6 +13,7 @@ using Styx.Logic.Combat;
 using System.Globalization;
 
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -37,311 +39,88 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class FlyingVehicle : CustomForcedBehavior
     {
-        Dictionary<string, object> recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"VehicleId",null},
-            {"NpcList",null},
-            {"ItemId",null},
-            {"QuestId",null},
-            {"Buttons",null},
-            {"HealButton",null},
-            {"HealPercent",null},
-            {"Precision",null},
-            {"StartPath",null},
-            {"Path",null},
-            {"EndPath",null},
-            {"PickUpPassengerButton",null},
-            {"DropPassengerButton",null},
-            {"SpeedButton",null},
-            {"NpcScanRange",null}
-        };
-        bool success = true;
         public FlyingVehicle(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(recognizedAttributes);
-            int vehicleId = 0;
-            int itemId = 0;
-            int precision = 0;
-            int questId = 0;
-            int healbutton = 0;
-            int speedbutton = 0;
-            int pickupButton = 0;
-            int dropButton = 0;
-            int health = 0;
-            int npcRange = 0;
-            string rawStartPath = "";
-            string rawEndPath = "";
-            string rawPath = "";
-            string rawButtons = "";
-            string rawNpcList = "";
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Buttons         = GetAttributeAsIntegerArray("Buttons", false, 1, 12, null) ?? new int[0];
+                DropPassengerButton     = GetAttributeAsHotbarButton("DropPassengerButton", false, null) ?? 0;
+                EndPath         = GetAttributeAsWoWPoints("EndPath", true, null) ?? new WoWPoint[0];
+                HealButton      = GetAttributeAsHotbarButton("HealButton", false, null) ?? 0;
+                HealPercent     = GetAttributeAsInteger("HealPercent", false, 0, 99, null) ?? 35;
+                ItemId          = GetAttributeAsItemId("ItemId", false, null) ?? 0;
+                NpcList         = GetAttributeAsIntegerArray("NpcList", true, 1, int.MaxValue, null) ?? new int[0];
+                NpcScanRange    = GetAttributeAsRange("NpcScanRange", false, null) ?? 10000;
+                Path            = GetAttributeAsWoWPoints("Path", true, null) ?? new WoWPoint[0];
+                PickUpPassengerButton   = GetAttributeAsHotbarButton("PickUpPassengerButton", false, null) ?? 0;
+                Precision       = GetAttributeAsInteger("Precision", false, 2, 100, null) ?? 4;
+                QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                SpeedButton     = GetAttributeAsHotbarButton("SpeedButton", false, null) ?? 0;
+                StartPath       = GetAttributeAsWoWPoints("StartPath", true, null) ?? new WoWPoint[0];
+                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+			}
 
-            success &= GetAttributeAsInteger("VehicleId", true, "0", 0, int.MaxValue, out vehicleId);
-            success &= GetAttributeAsInteger("ItemId", false, "0", 0, int.MaxValue, out itemId);
-            success &= GetAttributeAsInteger("QuestId", true, "0", 0, int.MaxValue, out questId);
-            success &= GetAttributeAsInteger("HealPercent", false, "35", 0, int.MaxValue, out health);
-            success &= GetAttributeAsInteger("HealButton", false, "0", 0, int.MaxValue, out healbutton);
-            success &= GetAttributeAsInteger("PickUpPassengerButton", false, "0", 0, int.MaxValue, out pickupButton);
-            success &= GetAttributeAsInteger("DropPassengerButton", false, "0", 0, int.MaxValue, out dropButton);
-            success &= GetAttributeAsInteger("SpeedButton", false, "0", 0, int.MaxValue, out speedbutton);
-            success &= GetAttributeAsInteger("NpcScanRange", false, "10000", 0, int.MaxValue, out npcRange);
-            success &= GetAttributeAsInteger("Precision", false, "4", 2, int.MaxValue, out precision);
-            success &= GetAttributeAsString("NpcList", true, "", out rawNpcList);
-            success &= GetAttributeAsString("StartPath", true, "", out rawStartPath);
-            success &= GetAttributeAsString("Path", true, "", out rawPath);
-            success &= GetAttributeAsString("EndPath", true, "", out rawEndPath);
-            success &= GetAttributeAsString("Buttons", false, "", out rawButtons);
-
-            StartPath = ParseWoWPointListString(rawStartPath);
-            Path = ParseWoWPointListString(rawPath);
-            EndPath = ParseWoWPointListString(rawEndPath);
-            Buttons = ParseIntString(rawButtons);
-            if (!success || StartPath == null || Path == null || EndPath == null || Buttons == null)
-                Err("There was an error parsing the profile\nStoping HB");
-
-            NpcList = ParseIntString(rawNpcList);
-            VehicleId = vehicleId;
-            ItemId = itemId;
-            Precision = precision;
-            QuestId = questId;
-            HealPercent = health;
-            HealthButton = healbutton;
-            DropPassengerButton = dropButton;
-            PickUpPassengerButton = pickupButton;
-            NpcScanRange = npcRange;
-            SpeedButton = speedbutton;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
+
+ 
+        enum State { liftoff, start, looping, finshed, landing, remount }
+
+        public int[]                    Buttons { get; private set; }
+        public int                      DropPassengerButton { get; private set; }
+        public WoWPoint[]               EndPath { get; private set; }
+        public int                      HealPercent { get; private set; }
+        public int                      HealButton { get; private set; }
+        public int                      ItemId { get; private set; }
+        public int[]                    NpcList { get; private set; }
+        public int                      NpcScanRange { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public WoWPoint[]               Path { get; private set; }
+        public int                      PickUpPassengerButton { get; private set; }
+        public int                      Precision { get; private set; }
+        public int                      SpeedButton { get; private set; }
+        public WoWPoint[]               StartPath { get; private set; }
+        public int                      VehicleId { get; private set; }
+
+        private bool                            _casting = false;
+        private WoWMovement.MovementDirection   _direction;
+        private bool                            _doingUnstuck;
+        private Stopwatch                       _flightStopwatch = new Stopwatch(); // after like 15 minutes the dragon auto dies, so we need to resummon before this
+        private bool                            _isBehaviorDone = false;
+        private WoWPoint                        _lastPoint = WoWPoint.Empty;
+        private Stopwatch                       _liftoffStopwatch = new Stopwatch();
+        private LocalPlayer                     Me = ObjectManager.Me;
+        private int                             _pathIndex = 0;
+        private System.Random                   _rand = new System.Random();
+        private Composite                       _root;
+        private State                           _state = State.liftoff;
+        private Stopwatch                       _stuckTimer = new Stopwatch();
+
 
         bool InVehicle
         {
             get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; }
         }
-        WoWPoint[] ParseWoWPointListString(string points)
-        {
-            try
-            {
-                List<WoWPoint> pointList = new List<WoWPoint>();
-                string[] buf = points.Split('|');
-                float x, y, z;
-                foreach (string rawPoint in buf)
-                {
-                    string[] point = rawPoint.Split(',');
-                    float.TryParse(point[0].Trim(), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
-                        CultureInfo.InvariantCulture, out x);
-                    float.TryParse(point[1].Trim(), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
-                        CultureInfo.InvariantCulture, out y);
-                    float.TryParse(point[2].Trim(), NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingSign,
-                        CultureInfo.InvariantCulture, out z);
-                    pointList.Add(new WoWPoint(x, y, z));
-                }
-                return pointList.ToArray();
-            }
-            catch (System.Exception ex) { Err(ex.ToString()); return null; }
-        }
 
-        int[] ParseIntString(string buttons)
-        {
-            try
-            {
-                List<int> buttonList = new List<int>();
-                string[] buf = buttons.Split(',');
-                int val = 0;
-                foreach (string but in buf)
-                {
-                    int.TryParse(but.Trim(), out val);
-                    buttonList.Add(val); // Possess/vehicle buttons start at 120
-                }
-                return buttonList.ToArray();
-            }
-            catch (System.Exception ex) { Err(ex.ToString()); return null; }
-        }
-
-        enum State { liftoff, start, looping, finshed, landing, remount }
-        State state = State.liftoff;
-
-        public int VehicleId { get; private set; }
-        public int ItemId { get; private set; }
-        public int Precision { get; private set; }
-        public int HealPercent { get; private set; }
-        public int DropPassengerButton { get; private set; }
-        public int PickUpPassengerButton { get; private set; }
-        public int SpeedButton { get; private set; }
-        public int NpcScanRange { get; private set; }
-        public int HealthButton { get; private set; }
-        public int QuestId { get; private set; }
-        public int[] NpcList { get; private set; }
-        public WoWPoint[] StartPath { get; private set; }
-        public WoWPoint[] Path { get; private set; }
-        public WoWPoint[] EndPath { get; private set; }
-        public int[] Buttons { get; private set; }
-        Stopwatch liftoffSw = new Stopwatch();
-        LocalPlayer me = ObjectManager.Me;
-        System.Random rand = new System.Random();
-        int pathIndex = 0;
-        // after like 15 minutes the dragon auto dies, so we need to resummon before this
-        Stopwatch flightSW = new Stopwatch();
-
-        bool casting = false;
-        #region Overrides of CustomForcedBehavior
-        private Composite root;
-        protected override Composite CreateBehavior()
-        {
-            return root ??
-                (root = new PrioritySelector(
-                    new Action(c =>
-                    { // looping since HB becomes unresposive for periods of time if I don't, bugged
-                        while (true)
-                        {
-                            ObjectManager.Update();
-                            WoWUnit npc = GetNpc();
-                            WoWUnit vehicle = GetVehicle();
-                            var quest = me.QuestLog.GetQuestById((uint)QuestId);
-                            WoWPoint waypoint = MoveToLoc;
-                            if (state != State.finshed && state != State.landing && (quest.IsCompleted || flightSW.ElapsedMilliseconds >= 780000))
-                            {
-                                state = State.finshed;
-                                TreeRoot.StatusText = quest.IsCompleted ? "Turning Quest in!" : "Moving to landing spot and resummoning";
-                                pathIndex = 0;
-                            }
-                            switch (state)
-                            {
-                                case State.liftoff:
-                                    bool inVehicle = InVehicle;
-
-                                    if (!liftoffSw.IsRunning || !inVehicle)
-                                    {
-                                        if (ItemId > 0 && !inVehicle && !me.IsFalling && vehicle == null)
-                                        {
-                                            if (!me.IsCasting)
-                                                Lua.DoString("UseItemByName({0})", ItemId);
-                                            return RunStatus.Running;
-                                        }
-                                        else if (inVehicle)
-                                        {
-                                            liftoffSw.Reset();
-                                            liftoffSw.Start();
-                                            TreeRoot.StatusText = "Liftoff!";
-                                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-                                        }
-                                    }
-                                    else if (liftoffSw.ElapsedMilliseconds > 2000)
-                                    {
-                                        TreeRoot.StatusText = "Moving to quest Area";
-                                        WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
-                                        state = !quest.IsCompleted ? State.start : State.landing;
-                                        flightSW.Reset();
-                                        flightSW.Start();
-                                        liftoffSw.Stop();
-                                        liftoffSw.Reset();
-                                    }
-                                    break;
-                                case State.start:
-                                case State.finshed:
-                                    if (waypoint == WoWPoint.Zero)
-                                    {
-                                        state = state == State.start ? State.looping : State.landing;
-                                        pathIndex = 0;
-                                    }
-                                    else
-                                    {
-                                        using (new FrameLock())
-                                        {
-                                            Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
-                                            WoWMovement.ClickToMove(waypoint);
-                                        }
-                                    }
-                                    break;
-                                case State.looping:
-                                    if (StuckCheck())
-                                        break;
-                                    if (PickUpPassengerButton == 0)
-                                    {
-                                        TreeRoot.StatusText = string.Format("Blowing stuff up. {0} mins before resummon is required", ((780000 -flightSW.ElapsedMilliseconds) / 1000) / 60);
-                                        using (new FrameLock())
-                                        {
-                                            if ((vehicle.HealthPercent <= HealPercent || vehicle.ManaPercent <= HealPercent) && HealthButton > 0
-                                                && npc != null && npc.Location.Distance2D(vehicle.Location) < 60)
-                                            {
-                                                TreeRoot.StatusText = string.Format("Using heal button {0} on NPC:{1}, {2} Units away",
-                                                    HealthButton,npc.Name,vehicle.Location.Distance2D(npc.Location));
-                                                Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", HealthButton);
-                                            }
-                                            foreach (int b in Buttons)
-                                            {
-                                                //  Lua.DoString("local a=VehicleAimGetNormAngle() if a < 0.55 then local _,s,_ = GetActionInfo({0}) local c = GetSpellCooldown(s) if c == 0 then CastSpellByID(s) end end", b);
-                                                Lua.DoString("local a=VehicleAimGetNormAngle() if a < 0.55 then if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end  end", b);
-                                            }
-                                            Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
-                                            WoWMovement.ClickToMove(waypoint);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        TreeRoot.StatusText = string.Format("Rescuing NPCs ");
-                                        if (npc != null)
-                                        {
-                                            WoWPoint clickLocation = npc.Location.RayCast(npc.Rotation,6);
-                                            clickLocation.Z += 3;
-                                            if (!me.GotTarget || me.CurrentTarget != npc)
-                                                npc.Target();
-                                            if (TargetIsInVehicle || quest.IsCompleted)
-                                            {
-                                                state = State.finshed;
-                                                TreeRoot.StatusText = quest.IsCompleted ? "Turning Quest in!" : "Returning to base";
-                                                pathIndex = 0;
-                                                break;
-                                            }
-                                            else
-                                            {
-                                                if (npc.Distance > 25)
-                                                    casting = false;
-                                                if (vehicle.Location.Distance(clickLocation) > 5 && !casting)
-                                                {
-                                                    WoWMovement.ClickToMove(clickLocation);
-                                                }
-                                                else
-                                                {
-                                                    WoWMovement.MoveStop();
-                                                    Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", PickUpPassengerButton);
-                                                    casting = true;
-                                                }
-                                                break;
-                                            }
-                                        }
-                                        using (new FrameLock())
-                                        {
-                                            Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
-                                            WoWMovement.ClickToMove(waypoint);
-                                        }
-                                    }
-                                    break;
-                                case State.landing:
-                                    if (PickUpPassengerButton == 0 || quest.IsCompleted)
-                                    {
-                                        Lua.DoString("VehicleExit()");
-                                        if ((me.Combat || !quest.IsCompleted) && ItemId > 0)
-                                        {
-                                            state = State.liftoff;
-                                            TreeRoot.StatusText = "Remounting to drop combat";
-                                        }
-                                        else
-                                            isDone = true;
-                                    }
-                                    else
-                                    {
-                                        WoWMovement.MoveStop();
-                                        Styx.StyxWoW.SleepForLagDuration();
-                                        Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", DropPassengerButton);
-                                        state = State.start;
-                                        pathIndex = 0;
-                                    }
-                                    return RunStatus.Success;
-                            }
-                            System.Threading.Thread.Sleep(100);
-                        }
-                    })
-                ));
-        }
 
         public WoWUnit GetVehicle()
         {
@@ -364,77 +143,78 @@ namespace Styx.Bot.Quest_Behaviors
                 return Lua.GetReturnVal<int>("if UnitInVehicle('target') == 1 then return 1 else return 0 end", 0) == 1;
             }
         }
-        Stopwatch stuckTimer = new Stopwatch();
-        WoWPoint lastPoint = new WoWPoint();
-        bool doingUnstuck =false;
-        WoWMovement.MovementDirection dir;
+
+
         bool StuckCheck()
         {
-            if (!stuckTimer.IsRunning || stuckTimer.ElapsedMilliseconds >= 3000)
+            if (!_stuckTimer.IsRunning || _stuckTimer.ElapsedMilliseconds >= 3000)
             {
-                stuckTimer.Reset();
-                stuckTimer.Start();
+                _stuckTimer.Reset();
+                _stuckTimer.Start();
 
                 WoWUnit veh = GetVehicle();
-                if (veh.Location.Distance(lastPoint)<=5 || doingUnstuck)
+                if (veh.Location.Distance(_lastPoint)<=5 || _doingUnstuck)
                 {
-                    if (!doingUnstuck)
+                    if (!_doingUnstuck)
                     {
-                        Log("Stuck... Doing unstuck routine");
-                        dir = WoWMovement.MovementDirection.JumpAscend |
-                            (rand.Next(0, 2) == 1 ? WoWMovement.MovementDirection.StrafeRight : WoWMovement.MovementDirection.StrafeLeft)
+                        UtilLogMessage("info", "Stuck... Doing unstuck routine");
+                        _direction = WoWMovement.MovementDirection.JumpAscend |
+                            (_rand.Next(0, 2) == 1 ? WoWMovement.MovementDirection.StrafeRight : WoWMovement.MovementDirection.StrafeLeft)
                             | WoWMovement.MovementDirection.Backwards;
-                        WoWMovement.Move(dir);
-                        doingUnstuck = true;
+                        WoWMovement.Move(_direction);
+                        _doingUnstuck = true;
                         return true;
                     }
                     else
                     {
-                        doingUnstuck = false;
-                        WoWMovement.MoveStop(dir);
+                        _doingUnstuck = false;
+                        WoWMovement.MoveStop(_direction);
                     }
                 }
-                lastPoint = veh.Location;
+                _lastPoint = veh.Location;
             }
             return false;
         }
+
+
         WoWPoint MoveToLoc
         {
             get
             {
                 WoWUnit veh = GetVehicle();
-                if (veh == null && state != State.liftoff && state != State.landing)
-                    Err("Something went seriously wrong...");
-                switch (state)
+                if (veh == null && _state != State.liftoff && _state != State.landing)
+                    { UtilLogMessage("fatal", "Something went seriously wrong..."); }
+
+                switch (_state)
                 {
                     case State.start:
-                        if (pathIndex < StartPath.Length)
+                        if (_pathIndex < StartPath.Length)
                         {
-                            if (veh.Location.Distance(StartPath[pathIndex]) <= Precision)
-                                pathIndex++;
-                            if (pathIndex < StartPath.Length)
-                                return StartPath[pathIndex];
+                            if (veh.Location.Distance(StartPath[_pathIndex]) <= Precision)
+                                _pathIndex++;
+                            if (_pathIndex < StartPath.Length)
+                                return StartPath[_pathIndex];
                         }
                         return WoWPoint.Zero;
                     case State.looping:
-                        if (pathIndex < Path.Length)
+                        if (_pathIndex < Path.Length)
                         {
-                            if (veh.Location.Distance(Path[pathIndex]) <= Precision)
+                            if (veh.Location.Distance(Path[_pathIndex]) <= Precision)
                             {
-                                pathIndex++;
+                                _pathIndex++;
                             }
-                            if (pathIndex >= Path.Length)
-                                pathIndex = 0;
-                            return Path[pathIndex];
+                            if (_pathIndex >= Path.Length)
+                                _pathIndex = 0;
+                            return Path[_pathIndex];
                         }
                         return WoWPoint.Zero;
                     case State.finshed:
-                        if (pathIndex < EndPath.Length)
+                        if (_pathIndex < EndPath.Length)
                         {
-                            if (veh.Location.Distance(EndPath[pathIndex]) <= Precision)
-                                pathIndex++;
-                            if (pathIndex < EndPath.Length)
-                                return EndPath[pathIndex];
+                            if (veh.Location.Distance(EndPath[_pathIndex]) <= Precision)
+                                _pathIndex++;
+                            if (_pathIndex < EndPath.Length)
+                                return EndPath[_pathIndex];
                         }
                         return WoWPoint.Zero;
                 }
@@ -442,24 +222,193 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        void Err(string format, params object[] args)
+
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
         {
-            Logging.Write(System.Drawing.Color.Red, "FlyingVehicle: " + format, args);
-            TreeRoot.Stop();
+            return _root ??
+                (_root = new PrioritySelector(
+                    new Action(c =>
+                    { // looping since HB becomes unresposive for periods of time if I don't, bugged
+                        while (true)
+                        {
+                            ObjectManager.Update();
+                            WoWUnit npc = GetNpc();
+                            WoWUnit vehicle = GetVehicle();
+                            var quest = Me.QuestLog.GetQuestById((uint)QuestId);
+                            WoWPoint waypoint = MoveToLoc;
+                            if (_state != State.finshed && _state != State.landing && (quest.IsCompleted || _flightStopwatch.ElapsedMilliseconds >= 780000))
+                            {
+                                _state = State.finshed;
+                                TreeRoot.StatusText = quest.IsCompleted ? "Turning Quest in!" : "Moving to landing spot and resummoning";
+                                _pathIndex = 0;
+                            }
+                            switch (_state)
+                            {
+                                case State.liftoff:
+                                    bool inVehicle = InVehicle;
+
+                                    if (!_liftoffStopwatch.IsRunning || !inVehicle)
+                                    {
+                                        if (ItemId > 0 && !inVehicle && !Me.IsFalling && vehicle == null)
+                                        {
+                                            if (!Me.IsCasting)
+                                                Lua.DoString("UseItemByName({0})", ItemId);
+                                            return RunStatus.Running;
+                                        }
+                                        else if (inVehicle)
+                                        {
+                                            _liftoffStopwatch.Reset();
+                                            _liftoffStopwatch.Start();
+                                            TreeRoot.StatusText = "Liftoff!";
+                                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+                                        }
+                                    }
+                                    else if (_liftoffStopwatch.ElapsedMilliseconds > 2000)
+                                    {
+                                        TreeRoot.StatusText = "Moving to quest Area";
+                                        WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
+                                        _state = !quest.IsCompleted ? State.start : State.landing;
+                                        _flightStopwatch.Reset();
+                                        _flightStopwatch.Start();
+                                        _liftoffStopwatch.Stop();
+                                        _liftoffStopwatch.Reset();
+                                    }
+                                    break;
+                                case State.start:
+                                case State.finshed:
+                                    if (waypoint == WoWPoint.Zero)
+                                    {
+                                        _state = _state == State.start ? State.looping : State.landing;
+                                        _pathIndex = 0;
+                                    }
+                                    else
+                                    {
+                                        using (new FrameLock())
+                                        {
+                                            Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
+                                            WoWMovement.ClickToMove(waypoint);
+                                        }
+                                    }
+                                    break;
+                                case State.looping:
+                                    if (StuckCheck())
+                                        break;
+                                    if (PickUpPassengerButton == 0)
+                                    {
+                                        TreeRoot.StatusText = string.Format("Blowing stuff up. {0} mins before resummon is required", ((780000 -_flightStopwatch.ElapsedMilliseconds) / 1000) / 60);
+                                        using (new FrameLock())
+                                        {
+                                            if ((vehicle.HealthPercent <= HealPercent || vehicle.ManaPercent <= HealPercent) && HealButton > 0
+                                                && npc != null && npc.Location.Distance2D(vehicle.Location) < 60)
+                                            {
+                                                TreeRoot.StatusText = string.Format("Using heal button {0} on NPC:{1}, {2} Units away",
+                                                    HealButton,npc.Name,vehicle.Location.Distance2D(npc.Location));
+                                                Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", HealButton);
+                                            }
+                                            foreach (int b in Buttons)
+                                            {
+                                                //  Lua.DoString("local a=VehicleAimGetNormAngle() if a < 0.55 then local _,s,_ = GetActionInfo({0}) local c = GetSpellCooldown(s) if c == 0 then CastSpellByID(s) end end", b);
+                                                Lua.DoString("local a=VehicleAimGetNormAngle() if a < 0.55 then if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end  end", b);
+                                            }
+                                            Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
+                                            WoWMovement.ClickToMove(waypoint);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        TreeRoot.StatusText = string.Format("Rescuing NPCs ");
+                                        if (npc != null)
+                                        {
+                                            WoWPoint clickLocation = npc.Location.RayCast(npc.Rotation,6);
+                                            clickLocation.Z += 3;
+                                            if (!Me.GotTarget || Me.CurrentTarget != npc)
+                                                npc.Target();
+                                            if (TargetIsInVehicle || quest.IsCompleted)
+                                            {
+                                                _state = State.finshed;
+                                                TreeRoot.StatusText = quest.IsCompleted ? "Turning Quest in!" : "Returning to base";
+                                                _pathIndex = 0;
+                                                break;
+                                            }
+                                            else
+                                            {
+                                                if (npc.Distance > 25)
+                                                    _casting = false;
+                                                if (vehicle.Location.Distance(clickLocation) > 5 && !_casting)
+                                                {
+                                                    WoWMovement.ClickToMove(clickLocation);
+                                                }
+                                                else
+                                                {
+                                                    WoWMovement.MoveStop();
+                                                    Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", PickUpPassengerButton);
+                                                    _casting = true;
+                                                }
+                                                break;
+                                            }
+                                        }
+                                        using (new FrameLock())
+                                        {
+                                            Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
+                                            WoWMovement.ClickToMove(waypoint);
+                                        }
+                                    }
+                                    break;
+                                case State.landing:
+                                    if (PickUpPassengerButton == 0 || quest.IsCompleted)
+                                    {
+                                        Lua.DoString("VehicleExit()");
+                                        if ((Me.Combat || !quest.IsCompleted) && ItemId > 0)
+                                        {
+                                            _state = State.liftoff;
+                                            TreeRoot.StatusText = "Remounting to drop combat";
+                                        }
+                                        else
+                                            _isBehaviorDone = true;
+                                    }
+                                    else
+                                    {
+                                        WoWMovement.MoveStop();
+                                        Styx.StyxWoW.SleepForLagDuration();
+                                        Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", DropPassengerButton);
+                                        _state = State.start;
+                                        _pathIndex = 0;
+                                    }
+                                    return RunStatus.Success;
+                            }
+                            System.Threading.Thread.Sleep(100);
+                        }
+                    })
+                ));
         }
 
-        void Log(string format, params object[] args)
+        public override bool IsDone
         {
-            Logging.Write("FlyingVehicle: " + format, args);
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
-        private bool isDone = false;
-
-        public override bool IsDone { get { return isDone; } }
 
         public override void OnStart()
         {
-            TreeRoot.GoalText = string.Format("Starting FlyingVehicle Sequence");
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
         }
 
         #endregion
