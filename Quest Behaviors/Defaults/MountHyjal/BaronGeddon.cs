@@ -224,9 +224,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
                                     if (Item == null)
                                     {
-                                        UtilLogMessage("fatal", string.Format("Could not locate ItemId({0}) in inventory.",
-                                                                              ItemId));
-                                        TreeRoot.Stop();
+                                        UtilLogMessage("fatal", "Could not locate ItemId({0}) in inventory.", ItemId);
                                         return;
                                     }
 

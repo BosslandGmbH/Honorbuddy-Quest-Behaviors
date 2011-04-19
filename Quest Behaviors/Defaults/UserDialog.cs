@@ -456,11 +456,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             else
                 { formatString = "{0} in {3:D2}s."; }
 
-            return (string.Format(formatString,
-                                  actionName,
-                                  timeSpan.Hours,
-                                  timeSpan.Minutes,
-                                  timeSpan.Seconds));
+            return (string.Format(formatString, actionName, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
 
 
@@ -540,6 +536,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
 			}
         }
 
+        // Attributes provided by caller
         public string                       DialogTitle { get; private set; }
         public string                       DialogMessage { get; private set; }
         public string                       ExpiryActionName { get; private set; }
@@ -552,6 +549,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         public System.Media.SystemSound     SoundCue { get; private set; }
         public int                          SoundCueIntervalInSeconds { get; private set; }
 
+        // Private variables for internal state
         private TreeSharp.Composite         _behavior;
         private AsyncCompletionToken        _completionToken;
         private HonorbuddyConfigSnapshot    _honorbuddyConfigSnapshot;

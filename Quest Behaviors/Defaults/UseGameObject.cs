@@ -47,6 +47,7 @@ namespace Styx.Bot.Quest_Behaviors
 			}
         }
 
+        // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
         public int                      ObjectId { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -55,20 +56,15 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      WaitTime { get; private set; }
 
+        // Private variables for internal state
         private int                     _counter;
         private Composite               _root;
 
-        private WoWGameObject           GameObject
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWGameObject>()
-                                     .Where(u => u.Entry == ObjectId && !u.InUse && !u.IsDisabled)
-                                     .OrderBy(u => u.Distance)
-                                     .FirstOrDefault());
-            }
-        }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        // Private properties
+        private WoWGameObject           GameObject { get { return (ObjectManager.GetObjectsOfType<WoWGameObject>()
+                                                                            .Where(u => u.Entry == ObjectId && !u.InUse && !u.IsDisabled)
+                                                                            .OrderBy(u => u.Distance)
+                                                                            .FirstOrDefault());  }}
 
 
         #region Overrides of CustomForcedBehavior
@@ -99,8 +95,8 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => StyxWoW.SleepForLagDuration()))
                                     )),
 
-                            new Action(ret => UtilLogMessage("info", string.Format("Using Object [{0}] {1} Times out of {2}",
-                                                                                    ((WoWGameObject)ret).Name, _counter + 1, NumOfTimes))),
+                            new Action(ret => UtilLogMessage("info", "Using Object [{0}] {1} Times out of {2}",
+                                                                        ((WoWGameObject)ret).Name, _counter+1, NumOfTimes)),
                             new Action(ret => ((WoWGameObject)ret).Interact()),
                             new Action(ret => StyxWoW.SleepForLagDuration()),
                             new Action(ret => Thread.Sleep(WaitTime)),

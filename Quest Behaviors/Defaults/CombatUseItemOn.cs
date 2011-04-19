@@ -42,7 +42,6 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 CastingSpellId = GetAttributeAsSpellId("CastingSpellId", false, null) ?? 0;
-                Counter     = 0;
                 HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
@@ -67,12 +66,13 @@ namespace Styx.Bot.Quest_Behaviors
 			}
         }
 
+
+        // Attributes provided by caller
         public int                      CastingSpellId { get; private set; }
         public int                      HasAuraId { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public int                      MobId { get; private set; }
-        public bool                     MovedToTarget { get; private set; }
         public int                      NpcHasAuraId { get; private set; }
         public int                      NpcHpLeft { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -80,27 +80,18 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
+        // Private properties
         private int                 Counter { get; set; }
-        public WoWItem              Item
-        {
-            get
-            {
-                return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0);
-            }
-        }
+        public WoWItem              Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public WoWUnit              Mob
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => u.Entry == MobId && !u.Dead)
-                                     .OrderBy(u => u.Distance).FirstOrDefault());
-            }
-        }
+        public WoWUnit              Mob { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                     .Where(u => u.Entry == MobId && !u.Dead)
+                                                                     .OrderBy(u => u.Distance).FirstOrDefault());
+                                        }}
 
 
         #region Overrides of CustomForcedBehavior

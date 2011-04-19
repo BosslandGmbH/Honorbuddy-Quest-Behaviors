@@ -54,6 +54,7 @@ namespace Styx.Bot.Quest_Behaviors
 			}
         }
 
+        // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
         public int                      ItemId { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -62,19 +63,13 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      WaitTime { get; private set; }
 
+        // Private variables for internal state
         private bool                    _isBehaviorDone;
         private Composite               _root;
 
+        // Private properties
         private int                     Counter { get; set; }
-
-
-        private WoWItem Item
-        {
-            get
-            {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId);
-            }
-        }
+        private WoWItem                 Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId)); }}
 
 
         #region Overrides of CustomForcedBehavior

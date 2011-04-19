@@ -31,7 +31,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 1;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MovedToTarget = false;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
@@ -48,6 +47,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                     MobName = !string.IsNullOrEmpty(mob.Name)  ? mob.Name   : ("Mob(" + MobId + ")");
                 }
+
 			}
 
 			catch (Exception except)
@@ -65,6 +65,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      Counter { get; set; }
         public WoWPoint                 Location { get; private set; }
         public bool                     MovedToTarget { get; private set; }
@@ -74,10 +75,12 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private List<WoWUnit>       _npcList;
         private Composite           _root;
 
+        // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 
@@ -97,7 +100,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                         new Action(ret => _isBehaviorDone = true)),
 
-                    new Decorator(ret => Counter > 1,
+                    new Decorator(ret => Counter > 0,
                         new Action(ret => _isBehaviorDone = true)),
 
                         new PrioritySelector(

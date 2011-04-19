@@ -77,6 +77,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public bool                     DoMail { get; private set; }
         public bool                     DoRepair { get; private set; }
         public bool                     DoSell { get; private set; }
@@ -85,6 +86,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private bool    _isBehaviorDone;
 
       

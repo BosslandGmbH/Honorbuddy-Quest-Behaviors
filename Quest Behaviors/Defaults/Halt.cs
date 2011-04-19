@@ -57,8 +57,10 @@ namespace Styx.Bot.Quest_Behaviors
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
-       }
+        }
 
+
+        // Attributes provided by caller
         public Color                    Color { get; private set; }
         public string                   Message { get; private set; }
         public int                      QuestId { get; private set; }

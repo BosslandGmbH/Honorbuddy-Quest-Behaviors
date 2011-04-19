@@ -32,7 +32,6 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter   =  0;
                 Destination     = LegacyGetAttributeAsWoWPoint("Location", false, null, "X/Y/Z")
                                     ?? GetXYZAttributeAsWoWPoint("", true, null)
                                     ?? WoWPoint.Empty;
@@ -57,12 +56,15 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
         }
 
 
+        // Attributes provided by caller
         public WoWPoint     Destination { get; private set; }
         public string       DestinationName { get; private set; }
 
+        // Private variables for internal state
         private bool        _isBehaviorDone;
         private Composite   _root;
 
+        // Private properties
         private int                 Counter { get; set; }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
@@ -79,16 +81,16 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
             if (tmpPoint == null)
                 { return (null); }
 
-            UtilLogMessage("warning", string.Format("The attribute '{0}' is DEPRECATED.\n"
-                                                    + "Please modify the profile to use the new '{1}' attribute, instead.",
-                                                    attributeName, preferredName));
+            UtilLogMessage("warning", "The attribute '{0}' is DEPRECATED.\n"
+                                    + "Please modify the profile to use the new '{1}' attribute, instead.",
+                                    attributeName, preferredName);
 
             if (tmpPoint.Length != 3)
             {
-                UtilLogMessage("error", string.Format("The '{0}' attribute's value should have three"
-                                                      + " coordinate contributions (saw '{1}')",
-                                                      attributeName,
-                                                      tmpPoint.Length));
+                UtilLogMessage("error", "The '{0}' attribute's value should have three"
+                                      + " coordinate contributions (saw '{1}')",
+                                        attributeName,
+                                        tmpPoint.Length);
                 IsAttributeProblem = true;
                 return (null);
             }

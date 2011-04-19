@@ -79,12 +79,14 @@ namespace Styx.Bot.Quest_Behaviors
 			}        }
 
 
+        // Attributes provided by caller
         public int                      ItemId { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      Slot { get; private set; }
 
+        // Private variables for internal state
         private bool        _isBehaviorDone;
         private Composite   _root;
 

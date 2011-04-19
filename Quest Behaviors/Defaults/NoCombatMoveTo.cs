@@ -32,7 +32,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 0;
                 Destination = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 DestinationName = GetAttributeAsString_NonEmpty("DestName", false, null) ?? "";
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
@@ -58,16 +57,18 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public string                   DestinationName { get; private set; }
         public WoWPoint                 Destination { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
-        private int                 Counter { get; set; }
+        // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 

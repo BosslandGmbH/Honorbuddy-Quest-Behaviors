@@ -100,11 +100,11 @@ namespace Styx.Bot.Quest_Behaviors
 			}
         }
 
+        // Attributes provided by caller
         public int                      BuyItemCount { get; private set; }
         public int                      BuyItemId { get; private set; }
         public int                      BuySlot { get; private set; }
         public int                      CollectionDistance { get; private set; }
-        public int                      Counter { get; private set; }
         public int[]                    GossipOptions { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public bool                     Loot { get; private set; }
@@ -119,10 +119,13 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      Range { get; private set; }
         public int                      WaitTime { get; private set; }
 
+        // Private variables for internal state
         private bool                    _isBehaviorDone;
         private readonly List<ulong>    _npcBlacklist = new List<ulong>();
         private Composite               _root;
 
+        // Private properties
+        public int                      Counter { get; private set; }
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
 
 

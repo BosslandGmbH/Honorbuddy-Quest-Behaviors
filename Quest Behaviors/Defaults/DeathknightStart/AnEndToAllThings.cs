@@ -189,9 +189,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                 new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                                     new DecoratorContinue(ret => ret == null,
                                         new Sequence(
-                                            new Action(ret => UtilLogMessage("fatal", string.Format("Unable to find ItemId({0}) in inventory.",
-                                                                                                    ItemId))),
-                                            new Action(ret => TreeRoot.Stop())
+                                            new Action(ret => UtilLogMessage("fatal", "Unable to find ItemId({0}) in inventory.", ItemId))
                                             )),
 
                                     new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
@@ -222,9 +220,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                         new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                             new DecoratorContinue(ret => ret == null,
                                 new Sequence( 
-                                    new Action(ret => UtilLogMessage("fatal", string.Format("Unable to locate ItemId({0}) in inventory.",
-                                                                                            ItemId))),
-                                    new Action(ret => TreeRoot.Stop())
+                                    new Action(ret => UtilLogMessage("fatal", "Unable to locate ItemId({0}) in inventory.", ItemId))
                                     )),
 
                             new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,

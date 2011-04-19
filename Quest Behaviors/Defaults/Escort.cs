@@ -36,10 +36,8 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 1;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
-                MovedToTarget = false;
                 QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -60,19 +58,20 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
-        public int                      Counter { get; set; }
+        // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
         public int                      MobId { get; private set; }
-        public bool                     MovedToTarget { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private ConfigMemento           _configMemento;
         private bool                    _isBehaviorDone;
         private bool                    _isDisposed;
         private Composite               _root;
 
+        // Private properties
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
 
 
@@ -277,104 +276,6 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
                 TreeRoot.GoalText = "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")"));
             }
-        }
-
-        #endregion
-
-
-        #region Stopgap services (remove when later HBcore drop provides these)
-
-        /// <summary>
-        /// <para>This class captures the current Honorbuddy configuration.  When the memento is Dispose'd
-        /// the configuration that existed when the memento was created is restored.</para>
-        /// <para>More info about how this class applies to saving and restoring user configuration
-        /// can be found here...
-        ///     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-        /// </para>
-        /// </summary>
-        public new sealed class ConfigMemento
-        {
-            /// <summary>
-            /// Creating a memento captures the Honorbuddy configuration that exists when the memento
-            /// is created.  You can then alter the Honorbuddy configuration as you wish.  To restore
-            /// the configuration to its original state, just Dispose of the memento.
-            /// </summary>
-            public ConfigMemento()
-            {
-                _characterSettings = CharacterSettings.Instance.GetXML();
-                _levelBotSettings  = LevelbotSettings.Instance.GetXML();
-                _styxSettings      = StyxSettings.Instance.GetXML();
-            }
-
-
-            ~ConfigMemento()
-            {
-                Dispose(false);
-            }
-
-            /// <summary>
-            /// Disposing of a memento restores the Honorbuddy configuration that existed when
-            /// the memento was created.
-            /// </summary>
-            public void Dispose()
-            {
-                Dispose(true);
-                GC.SuppressFinalize(this);
-            }
-
-            public /*virtual*/ void     Dispose(bool    isExplicitlyInitiatedDispose)
-            {
-                if (!_isDisposed)
-                {
-                    // NOTE: we should call any Dispose() method for any managed or unmanaged
-                    // resource, if that resource provides a Dispose() method.
-
-                    // Clean up managed resources, if explicit disposal...
-                    if (isExplicitlyInitiatedDispose)
-                    {
-                        if (_characterSettings != null)
-                            { CharacterSettings.Instance.LoadFromXML(_characterSettings); }
-                        if (_levelBotSettings != null)
-                            { LevelbotSettings.Instance.LoadFromXML(_levelBotSettings); }
-                        if (_styxSettings != null)
-                            { StyxSettings.Instance.LoadFromXML(_styxSettings); }
-
-                        _characterSettings = null;
-                        _levelBotSettings = null;
-                        _styxSettings = null;
-                     }
-
-                    // Clean up unmanaged resources (if any) here...
-
-                    // Call parent Dispose() (if it exists) here ...
-                    // base.Dispose();
-                }
-
-                _isDisposed = true;
-            }
-
-   
-            public override string  ToString()
-            {
-                string      outString   = "";
-
-                if (_isDisposed)
-                    { throw (new ObjectDisposedException(this.GetType().Name)); }
-
-                if (_characterSettings != null)
-                    { outString += (_characterSettings.ToString() + "\n"); }
-                if (_levelBotSettings != null)
-                    { outString += (_levelBotSettings.ToString() + "\n"); }
-                if (_styxSettings != null)
-                    { outString += (_styxSettings.ToString() + "\n"); }
-   
-                return (outString);
-            }
-   
-            private System.Xml.Linq.XElement        _characterSettings;
-            bool                                    _isDisposed         = false;
-            private System.Xml.Linq.XElement        _levelBotSettings;
-            private System.Xml.Linq.XElement        _styxSettings;             
         }
 
         #endregion

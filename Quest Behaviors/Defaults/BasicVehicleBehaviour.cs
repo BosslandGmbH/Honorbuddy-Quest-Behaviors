@@ -25,17 +25,15 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter         = 0;
-                IsMounted       = false;
                 LocationDest    = GetXYZAttributeAsWoWPoint("Dest", true, null) ?? WoWPoint.Empty;
                 LocationMount   = GetXYZAttributeAsWoWPoint("Mount", true, null) ?? WoWPoint.Empty;
-                MobId           = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
-                MountedPoint    = new WoWPoint(0, 0, 0);
                 QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 SpellCastId     = GetAttributeAsSpellId("SpellId", false, null) ?? 0;
                 VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+
+                MountedPoint    = WoWPoint.Empty;
 			}
 
 			catch (Exception except)
@@ -53,23 +51,25 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public bool                     IsMounted { get; set; }
+        // Attributes provided by caller
         public WoWPoint                 LocationDest { get; private set; }
         public WoWPoint                 LocationMount { get; private set; }
-        public int                      MobId { get; set; }
-        public WoWPoint                 MountedPoint { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      SpellCastId { get; private set; }
         public int                      VehicleId { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
         private List<WoWUnit>       _vehicleList;
 
+        // Private properties
         private int                 Counter { get; set; }
+        public bool                 IsMounted { get; set; }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        public WoWPoint             MountedPoint { get; private set; }
 
 
         #region Overrides of CustomForcedBehavior
@@ -162,7 +162,6 @@ namespace Styx.Bot.Quest_Behaviors
                                     Lua.DoString("CastSpellByID(" + SpellCastId + ")");
 
                                     Counter++;
-
                                 })
                                 ),
 

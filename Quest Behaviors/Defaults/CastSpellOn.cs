@@ -39,18 +39,18 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 1;
                 HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 110;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MinRange    = GetAttributeAsRange("MinRange", false, null) ?? 3;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
-                MovedToTarget = false;
                 NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 25;
                 SpellId     = GetAttributeAsSpellId("SpellId", true, null) ?? 0;
+
+                Counter     = 1;
 			}
 
 			catch (Exception except)
@@ -68,11 +68,11 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      HpLeftAmount { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public int                      MinRange { get; private set; }
         public int                      MobId { get; private set; }
-        public bool                     MovedToTarget { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -80,29 +80,26 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      Range { get; private set; }
         public int                      SpellId { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
+        // Private properties
         private int                 Counter { get; set; }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public List<WoWUnit>        MobList
-        {
-            get
-            {
-                if (HpLeftAmount > 0)
-                {
-                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => u.Entry == MobId && !u.Dead && u.HealthPercent <= HpLeftAmount)
-                                         .OrderBy(u => u.Distance).ToList());
-                }
-                else
-                {
-                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => u.Entry == MobId && !u.Dead)
-                                         .OrderBy(u => u.Distance).ToList());
-                }
-            }
-        }
+        public List<WoWUnit>        MobList { get { if (HpLeftAmount > 0)
+                                                    {
+                                                        return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                             .Where(u => u.Entry == MobId && !u.Dead && u.HealthPercent <= HpLeftAmount)
+                                                                             .OrderBy(u => u.Distance).ToList());
+                                                    }
+                                                    else
+                                                    {
+                                                        return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                             .Where(u => u.Entry == MobId && !u.Dead)
+                                                                             .OrderBy(u => u.Distance).ToList());
+                                                    }
+                                                }}
 
 
         #region Overrides of CustomForcedBehavior
@@ -224,10 +221,8 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                if (quest != null)
-                    {  TreeRoot.GoalText = string.Format("{0} for \"{1}\"", this.GetType().Name, quest.Name); }
-                else
-                    { TreeRoot.GoalText = string.Format("{0}: Running", this.GetType().Name); }
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
 
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {

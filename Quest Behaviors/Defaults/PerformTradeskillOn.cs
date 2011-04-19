@@ -51,6 +51,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int?                     CastOnItemId { get; private set; }  /// If set, an item ID to cast the trade skill on.
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
@@ -60,6 +61,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      TradeSkillItemId { get; private set; }  // Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window.
 
 
+        // Private variables for internal state
         private bool        _isBehaviorDone;
 
 
@@ -73,8 +75,7 @@ namespace Styx.Bot.Quest_Behaviors
                 var item = StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value);
                 if (item == null)
                 {
-                    UtilLogMessage("fatal", string.Format("Could not find ItemId({0}) for {1}.", CastOnItemId.Value, GetType().Name));
-                    TreeRoot.Stop();
+                    UtilLogMessage("fatal", "Could not find ItemId({0}).", CastOnItemId.Value);
                     return;
                 }
                 item.Use();
@@ -137,7 +138,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                     int id = int.Parse(link);
 
-                    UtilLogMessage("debug", string.Format("ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name));
+                    UtilLogMessage("debug", "ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name);
 
                     if (id == TradeSkillItemId)
                         return i;

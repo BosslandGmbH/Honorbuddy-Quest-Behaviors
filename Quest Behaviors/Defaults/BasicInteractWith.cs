@@ -36,7 +36,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 0;
                 FactionId   = GetAttributeAsInteger("Faction", false, 1, int.MaxValue, null) ?? 0;
                 IsMoveToMob = GetAttributeAsBoolean("MoveTo", false, new [] { "UseCTM" }) ?? false;;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId", "NpcID" })  ?? 0;
@@ -50,9 +49,9 @@ namespace Styx.Bot.Quest_Behaviors
                                       .Where(unit => unit.Entry == MobId)
                                       .FirstOrDefault();
 
-                MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
-                            ? mob.Name
-                            : ("Mob(" + MobId + ")");
+                MobName     = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
+                                ? mob.Name
+                                : ("Mob(" + MobId + ")");
             }
 
 			catch (Exception except)
@@ -70,39 +69,36 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      FactionId { get; private set; }
         public bool                     IsMoveToMob { get; private set; }
         public int                      MobId { get; private set; }
         public string                   MobName { get; private set; }
-        public WoWPoint                 MovePoint { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public bool                     UseLuaTarget { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
+        // Private properties
         private int                 Counter { get; set; }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>       MobList
-        {
-            get
-            {
-                if (FactionId > 1)
-                {
-                    return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionId)
-                                    .OrderBy(u => u.Distance).ToList(); 
-                }
-                else
-                {
-                    return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == MobId && !u.Dead)
-                                            .OrderBy(u => u.Distance).ToList();
-                }
-            }
-        }
+        private List<WoWUnit>       MobList { get { if (FactionId > 1)
+                                                {
+                                                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionId)
+                                                                    .OrderBy(u => u.Distance).ToList(); 
+                                                }
+                                                else
+                                                {
+                                                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                            .Where(u => u.Entry == MobId && !u.Dead)
+                                                                            .OrderBy(u => u.Distance).ToList();
+                                                }
+                                            }}
 
 
         #region Overrides of CustomForcedBehavior

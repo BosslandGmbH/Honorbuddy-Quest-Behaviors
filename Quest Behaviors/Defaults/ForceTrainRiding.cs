@@ -34,8 +34,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 0;
-                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? WoWPoint.Empty;
                 MobId       = GetAttributeAsMobId("NpcId", true, new [] { "NpcID" }) ?? 0;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -57,33 +55,23 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public WoWPoint                 Location { get; private set; }
+        // Attributes provided by caller
         public int                      MobId { get; private set; }
-        public WoWPoint                 MovePoint { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
+        // Private properties
         public int                  Counter { get; set; }
-        private List<WoWUnit>       MobList
-        {
-            get
-            {
-                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => u.Entry == MobId && !u.Dead)
-                                         .OrderBy(u => u.Distance).ToList());
-            }
-        }
-        private NpcResult           RidingTrainer
-        {
-            get
-            {
-                return (NpcQueries.GetNpcById((uint)MobId));
-            }
-        }
+        private List<WoWUnit>       MobList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                         .Where(u => u.Entry == MobId && !u.Dead)
+                                                                         .OrderBy(u => u.Distance).ToList());
+                                            }}
+        private NpcResult           RidingTrainer { get { return (NpcQueries.GetNpcById((uint)MobId)); } }
 
 
         #region Overrides of CustomForcedBehavior.

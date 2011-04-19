@@ -42,7 +42,6 @@ namespace Styx.Bot.Quest_Behaviors
                 WoWPoint?   legacyStartLocation     = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStart");
                 WoWPoint?   legacyWaitAtLocation    = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAt");
 
-                Counter         = 0;
                 EndLocation     = GetXYZAttributeAsWoWPoint("TransportEnd", !legacyEndLocation.HasValue, null)
                                     ?? legacyEndLocation
                                     ?? WoWPoint.Empty;
@@ -74,26 +73,25 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public WoWPoint                 WaitAtLocation { get; private set; }
-        public WoWPoint                 GetOffLocation { get; private set; }
-        public WoWPoint                 StartLocation { get; private set; }
+        // Attributes provided by caller
         public WoWPoint                 EndLocation { get; private set; }
-        public WoWPoint                 StandLocation { get; private set; }
+        public WoWPoint                 GetOffLocation { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public WoWPoint                 StandLocation { get; private set; }
+        public WoWPoint                 StartLocation { get; private set; }
         public int                      TransportId { get; private set; }
+        public WoWPoint                 WaitAtLocation { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
         private bool                _usedTransport;
         private bool                _wasOnWaitLocation;
 
-        private int                 Counter { get; set; }
+        // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        private bool                MovedOnShip { get; set; }
-        private bool                MovedToTarget { get; set; }
-        private bool                OnShip { get; set; }
 
 
         private WoWPoint TransportLocation
@@ -126,16 +124,16 @@ namespace Styx.Bot.Quest_Behaviors
             if (tmpPoint == null)
                 { return (null); }
 
-            UtilLogMessage("warning", string.Format("The attribute '{0}' is DEPRECATED.\n"
-                                                    + "Please modify the profile to use the new '{1}' attribute, instead.",
-                                                    attributeName, preferredName));
+            UtilLogMessage("warning", "The attribute '{0}' is DEPRECATED.\n"
+                                        + "Please modify the profile to use the new '{1}' attribute, instead.",
+                                        attributeName, preferredName);
 
             if (tmpPoint.Length != 3)
             {
-                UtilLogMessage("error", string.Format("The '{0}' attribute's value should have three"
-                                                      + " coordinate contributions (saw '{1}')",
-                                                      attributeName,
-                                                      tmpPoint.Length));
+                UtilLogMessage("error", "The '{0}' attribute's value should have three"
+                                        + " coordinate contributions (saw '{1}')",
+                                        attributeName,
+                                        tmpPoint.Length);
                 IsAttributeProblem = true;
                 return (null);
             }

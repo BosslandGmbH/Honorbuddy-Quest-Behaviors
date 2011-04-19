@@ -82,13 +82,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public void     Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            UtilLogMessage("info", string.Format(format + (++_lineCount % 2 == 0 ? "" : " "), args));
+            UtilLogMessage("info", format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
         public void     DLog(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            UtilLogMessage("debug", string.Format(format + (++_lineCount % 2 == 0 ? "" : " "), args));
+            UtilLogMessage("debug", format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
         public bool DoWeHaveQuest()

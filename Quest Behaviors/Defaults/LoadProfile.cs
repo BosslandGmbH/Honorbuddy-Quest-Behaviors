@@ -32,7 +32,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 0;
                 ProfileName = GetAttributeAsString_NonEmpty("ProfileName", true, new [] { "Profile" }) ?? "";
 
                 if (!ProfileName.ToLower().EndsWith(".xml"))
@@ -53,24 +52,19 @@ namespace Styx.Bot.Quest_Behaviors
 			}
         }
 
+        // Attributes provided by caller
         public String               ProfileName { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
+        // Private properties
         private int                 Counter { get; set; }
         private String              CurrentProfile { get { return (ProfileManager.XmlLocation); } }
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-
-
-        public String NewProfilePath
-        {
-            get
-            {
-                string directory = Path.GetDirectoryName(CurrentProfile);
-                return (Path.Combine(directory, ProfileName));
-            }
-        }
+        private String              NewProfilePath { get { string directory = Path.GetDirectoryName(CurrentProfile);
+                                                            return (Path.Combine(directory, ProfileName));
+                                                    }}
 
 
         #region Overrides of CustomForcedBehavior
@@ -88,7 +82,7 @@ namespace Styx.Bot.Quest_Behaviors
                            new Decorator(ret => Counter == 0,
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "LoadingProfile - " + NewProfilePath),
-                                        new Action(ret => UtilLogMessage("info", string.Format("Loading profile : \"{0}\"", ProfileName))),
+                                        new Action(ret => UtilLogMessage("info", "Loading profile: \"{0}\"", ProfileName)),
                                         new Action(ret => ProfileManager.LoadNew(NewProfilePath, false)),
                                         new Action(ret => Counter++),
                                         new Action(ret => Thread.Sleep(300))

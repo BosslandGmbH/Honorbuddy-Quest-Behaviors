@@ -36,16 +36,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Counter     = 0;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcID" }) ?? 0;
                 MobId2      = GetAttributeAsMobId("MobId2", false, new [] { "NpcID2" }) ?? 0;
                 MobId3      = GetAttributeAsMobId("MobId3", false, new [] { "NpcID3" }) ?? 0;
-                MovedToLocation = false;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                TimesUsedCounter = 1;
 			}
 
 			catch (Exception except)
@@ -63,31 +60,26 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
         public int                      MobId { get; private set; }
         public int                      MobId2 { get; private set; }
         public int                      MobId3 { get; private set; }
-        public bool                     MovedToLocation { get; private set; }
-        public int                      MoveToNpc { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      TimesUsedCounter { get; set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
-        private int                 Counter { get; set; }
+        // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public List<WoWUnit>        MobList
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => (u.Entry == MobId || u.Entry == MobId2 || u.Entry == MobId3) && !u.Dead)
-                                     .OrderBy(u => u.Distance).ToList());
-            }
-        }
+        public List<WoWUnit>        MobList { get  { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                    .Where(u => (u.Entry == MobId || u.Entry == MobId2 || u.Entry == MobId3) && !u.Dead)
+                                                                    .OrderBy(u => u.Distance).ToList());
+                                            }}
+
 
         WoWSpell RangeSpell
         {

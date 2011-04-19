@@ -91,8 +91,8 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      CollectionDistance { get; private set; }
-        public int                      Counter { get; private set; }
         public int                      HasAuraId { get; private set; }
         public int                      HpLeftAmount { get; private set; }
         public int                      ItemId { get; private set; }
@@ -107,10 +107,14 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      Range { get; private set; }
         public int                      WaitTime { get; private set; }
 
+        // Private variables for internal state
         private bool                    _isBehaviorDone;
         private readonly List<ulong>    _npcAuraWait = new List<ulong>();
         private readonly List<ulong>    _npcBlacklist = new List<ulong>();
         private Composite               _root;
+
+        // Private properties
+        private int                     Counter { get; set; }
 
 
         /// <summary> Current object we should interact with.</summary>
@@ -140,9 +144,7 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             catch
                             {
-                                UtilLogMessage("fatal", string.Format("Could not find spell with id:{0} for UseItemOn behavior!",
-                                                                      HasAuraId));
-                                TreeRoot.Stop();
+                                UtilLogMessage("fatal", "Could not find spell with id:{0} for UseItemOn behavior!", HasAuraId);
                                 break;
                             }
 

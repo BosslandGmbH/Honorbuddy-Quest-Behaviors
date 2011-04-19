@@ -60,6 +60,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public Color                    ColorLog { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -67,6 +68,7 @@ namespace Styx.Bot.Quest_Behaviors
         public string                   Text { get; private set; }
         public bool                     UpdateGoalText { get; private set; }
 
+        // Private variables for internal state
 		private bool		_isBehaviorDone;
 
 

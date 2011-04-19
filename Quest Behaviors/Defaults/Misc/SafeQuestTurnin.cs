@@ -116,10 +116,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInLocation);
 
                 if (QuestTurnIn == null)
-                {
-                    UtilLogMessage("fatal", string.Format("Unable to complete {0}", this.GetType().Name));
-                    TreeRoot.Stop();
-                }
+                    { UtilLogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
 
                 Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
                 QuestTurnIn.OnStart();

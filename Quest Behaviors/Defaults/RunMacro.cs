@@ -75,6 +75,7 @@ namespace BuddyWiki.CustomBehavior.RunMacro
         }
 
 
+        // Attributes provided by caller
         public string                   GoalText { get; private set; }
 		public string		            Macro { get; private set; }
 		public int			            NumOfTimes { get; private set; }
@@ -83,6 +84,7 @@ namespace BuddyWiki.CustomBehavior.RunMacro
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 		public int			            WaitTime { get; private set; }
 
+        // Private variables for internal state
 		private bool		_isBehaviorDone;
 
 

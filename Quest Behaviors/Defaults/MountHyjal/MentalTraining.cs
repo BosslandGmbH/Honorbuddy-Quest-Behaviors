@@ -79,7 +79,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public void     Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            UtilLogMessage("info", Color.Green, string.Format(format + (++_lineCount % 2 == 0 ? "" : " "), args));
+            UtilLogMessage("info", Color.Green, format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
 
@@ -135,10 +135,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             // WoWItem orb =  Me.Inventory.Items.FirstOrDefault( i => i != null && i.Entry == 52828 );
                             WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
                             if (orb == null)
-                            {
-                                UtilLogMessage("fatal", "Quest item \"Orb of Ascension\" not in inventory.");
-                                TreeRoot.Stop();
-                            }
+                                { UtilLogMessage("fatal", "Quest item \"Orb of Ascension\" not in inventory."); }
 
                             orb.Use(true);
                             StyxWoW.SleepForLagDuration();

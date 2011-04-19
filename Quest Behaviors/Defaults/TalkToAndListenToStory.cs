@@ -69,10 +69,12 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
         private bool                        _isBehaviorDone;
         private readonly Queue<NpcResult>   _npcResults = new Queue<NpcResult>();   // A Queue for npc's we need to talk to
         private Composite                   _root;

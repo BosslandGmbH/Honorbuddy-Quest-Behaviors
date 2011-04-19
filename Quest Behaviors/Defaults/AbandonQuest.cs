@@ -61,12 +61,14 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public AbandonType              Type { get; private set; }
 
-        private bool    _isBehaviorDone;
+        // Private variables for internal state
+        private bool        _isBehaviorDone;
 
         
         #region Overrides of CustomForcedBehavior
@@ -95,20 +97,20 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest == null)
-                    { UtilLogMessage("fatal", string.Format("Cannot find quest with QuestId({0}).", QuestId)); }
+                    { UtilLogMessage("fatal", "Cannot find quest with QuestId({0}).", QuestId); }
 
                 else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
-                    { UtilLogMessage("warning", string.Format("Quest \"{0}\"(id: {1}) is Complete!  Skipping abandon.", quest.Name, QuestId)); }
+                    { UtilLogMessage("warning", "Quest({0}, \"{1}\") is Complete!  Skipping abandon.", QuestId, quest.Name); }
 
                 else if ((quest != null)  &&  !quest.IsFailed  &&  (Type == AbandonType.Failed))
-                    { UtilLogMessage("error", string.Format("Quest \"{0}\"(id: {1}) has not Failed!  Skipping abandon.", quest.Name, QuestId)); }
+                    { UtilLogMessage("error", "Quest({0}, \"{1}\") has not Failed!  Skipping abandon.", QuestId, quest.Name); }
 
                 else
                 {
-                    TreeRoot.GoalText = string.Format("Abandoning quest: \"{0}\"", quest.Name);
+                    TreeRoot.GoalText = string.Format("Abandoning QuestId({0}): \"{1}\"", QuestId, quest.Name);
                     QuestLog ql = new QuestLog();
                     ql.AbandonQuestById((uint)QuestId);
-                    UtilLogMessage("info", string.Format("Quest \"{0}\"(id: {1}) successfully abandoned", quest.Name, QuestId));
+                    UtilLogMessage("info", "Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
                 }
 
                 _isBehaviorDone = true;

@@ -184,7 +184,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 
                                 // If we don't have the item stop!
                                 new DecoratorContinue(ctx => ctx == null,
-                                    new Action(ctx => UtilLogMessage("fatal", string.Format("Could not find ItemId({0}) in inventory.", ItemId)))),
+                                    new Action(ctx => UtilLogMessage("fatal", "Could not find ItemId({0}) in inventory.", ItemId))),
 
                                 new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
                                     new Action(ctx => Object.ToUnit().Target())),
@@ -214,7 +214,7 @@ namespace Styx.Bot.Quest_Behaviors
                         )),
 
                     new Sequence(
-                        new Action(ctx => UtilLogMessage("info", string.Format("Moving to {0}", Location))),
+                        new Action(ctx => UtilLogMessage("info", "Moving to {0}", Location)),
                         new Action(ctx => Navigator.MoveTo(Location))
                         )
                  ));

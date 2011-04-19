@@ -102,7 +102,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Action(ret => Navigator.MoveTo(SafespotLocation)))),
                                     
                             new Decorator(c => AvoidNpc != null && AvoidNpc.Distance <= AvoidDistance,
-                                new Action(c => UtilLogMessage("info", string.Format("Waiting on {0} to move {1} distance away", AvoidNpc, AvoidDistance)))),
+                                new Action(c => UtilLogMessage("info", "Waiting on {0} to move {1} distance away", AvoidNpc, AvoidDistance))),
 
                             new Decorator(c => AvoidNpc == null || AvoidNpc.Distance > AvoidDistance,
                                 new Action(c => _isBehaviorDone = true))

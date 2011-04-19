@@ -94,10 +94,7 @@ namespace Styx.Bot.Quest_Behaviors
             else
                 { formatString = "{2:D2}s"; }
 
-            return (string.Format(formatString,
-                                  timeSpan.Hours,
-                                  timeSpan.Minutes,
-                                  timeSpan.Seconds));
+            return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
 
 

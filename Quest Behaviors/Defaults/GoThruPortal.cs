@@ -75,17 +75,19 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public WoWPoint                 MovePoint { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      Timeout { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private bool                _isInPortal;
         private Composite           _root;
 
-        private int                 Counter { get; set; }
+        // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
         private string              ZoneText { get; set; }
 
@@ -132,7 +134,6 @@ namespace Styx.Bot.Quest_Behaviors
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
                             UtilLogMessage("fatal", "Unable to reach end point.  Failed to go through portal.");
-                            TreeRoot.Stop();
                             return RunStatus.Success;
                         })),
 
@@ -141,16 +142,14 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            UtilLogMessage("fatal", string.Format("Timed out after {0} ms.  Failed to go through portal",
-                                                                  Timeout));
-                            TreeRoot.Stop();
+                            UtilLogMessage("fatal", "Timed out after {0} ms.  Failed to go through portal", Timeout);
                             return RunStatus.Success;
                         })),
 
                     new Decorator(ret => !StyxWoW.Me.IsMoving,
                         new Action(delegate
                         {
-                            UtilLogMessage("info", string.Format("Moving to {0}", MovePoint));
+                            UtilLogMessage("info", "Moving to {0}", MovePoint);
                             WoWMovement.ClickToMove(MovePoint);
                             return RunStatus.Success;
                         }))

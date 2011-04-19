@@ -172,6 +172,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		}
 
 
+        // Attributes provided by caller
 		public bool                     DebugShowDetails { get; private set; }
 		public bool                     DebugShowDiff { get; private set; }
 		public bool                     IsBehaviorDone { get; private set; }
@@ -181,6 +182,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
+        // Private variables for internal state
 		private Dictionary<string, ConfigDescriptor>            _configurationSettings;
         private bool                                            _isBehaviorDone;
 		private ConfigSnapshot                                  _originalConfiguration;
@@ -250,7 +252,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 					string tmpString = _presetChangeRequests[PresetName].Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					{ UtilLogMessage("info", string.Format("Using preset '{0}'...\n{1}", PresetName, tmpString)); }
+					{ UtilLogMessage("info", "Using preset '{0}'...\n{1}", PresetName, tmpString); }
 				}
 
 				// Second, apply any change requests...
@@ -259,7 +261,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 					string tmpString = _userChangeRequest.Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					{ UtilLogMessage("info", string.Format("Applied changes...\n{0}", tmpString)); }
+					{ UtilLogMessage("info", "Applied changes...\n{0}", tmpString); }
 				}
 
 				// Third, show state, if requested...                
@@ -709,10 +711,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 			string outString = "";
 
 			foreach (var kvp in changedItems)
-			{ outString += string.Format("    {0}: \"{1}\" (was \"{2}\")\n", kvp.Key.Name, kvp.Key.Value, kvp.Value); }
+			    { outString += string.Format("    {0}: \"{1}\" (was \"{2}\")\n", kvp.Key.Name, kvp.Key.Value, kvp.Value); }
 
 			if (string.IsNullOrEmpty(outString))
-			{ outString = "    No changes from original settings\n"; }
+			    { outString = "    No changes from original settings\n"; }
 
 			return (outString);
 		}

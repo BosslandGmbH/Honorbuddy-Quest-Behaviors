@@ -80,6 +80,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public WoWPoint                 ClickToLocation { get; private set; }
         public int                      ItemId { get; private set; }
         public int                      MobId { get; private set; }
@@ -91,19 +92,17 @@ namespace Styx.Bot.Quest_Behaviors
         public QBType                   UseType { get; private set; }
         public int                      WaitTime { get; private set; }
 
+        // Private variables for internal state
         private bool                _isBehaviorDone;
         private Composite           _root;
 
+        // Private properties
         private WoWItem             Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        private WoWObject           UseObject 
-        { 
-            get 
-            {
-                return ObjectManager.GetObjectsOfType<WoWObject>(true, false).
-                    Where(o => o.Entry == MobId).OrderBy(o => o.Distance).FirstOrDefault();
-            }
-        }
+        private WoWObject           UseObject { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                                                                .Where(o => o.Entry == MobId)
+                                                                .OrderBy(o => o.Distance)
+                                                                .FirstOrDefault(); }}
 
 
         #region Overrides of CustomForcedBehavior

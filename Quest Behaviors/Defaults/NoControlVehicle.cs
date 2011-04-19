@@ -75,9 +75,8 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      GoHomeButton { get; private set; }
-        public WoWPoint                 LocationDest { get; private set; }
-        public WoWPoint                 LocationMount { get; private set; }
         public int                      MaxRange { get; private set; }
         public WoWPoint                 MountedPoint { get; private set; }
         public int                      NpcMountId { get; private set; }
@@ -94,9 +93,11 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      WaitTime { get; private set; }
         public int                      VehicleId { get; private set; }
 
+        // Private variables for internal state
         private bool                    _isBehaviorDone;
         private Composite               _root;
 
+        // Private properties
         private int                     Counter { get; set; }
         private bool                    InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }

@@ -89,11 +89,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 15;
-                UseCTM      = GetAttributeAsBoolean("UseCtm", false, new [] { "UseCTM" }) ?? false;
+                UseCtm      = GetAttributeAsBoolean("UseCtm", false, new [] { "UseCTM" }) ?? false;
                 WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
 
-                Counter = 0;
-                _lineCount = 0;
                 _lastStateReturn = RunStatus.Success;
 			}
 
@@ -112,6 +110,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
+        // Attributes provided by caller
         public bool                     AllowCombat { get; private set; }
         public int                      MobId { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -119,14 +118,15 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      Range { get; private set; }
-        public bool                     UseCTM { get; private set; }
+        public bool                     UseCtm { get; private set; }
         public int                      WaitTime { get; private set; }
 
+        // Private variables for internal state
         private bool                    _isBehaviorDone;
         private RunStatus               _lastStateReturn { get; set; }
-        private int                     _lineCount { get; set; }
         private Composite               _root;
 
+        // Private properties
         private int                     Counter { get; set; }
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
         private WoWUnit                 Mob
@@ -219,7 +219,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             else
                                 TreeRoot.GoalText = "RunLikeHell to " + Path.Peek().ToString();
 
-                            if (UseCTM)
+                            if (UseCtm)
                                 WoWMovement.ClickToMove(Path.Peek());
                             else
                                 Navigator.MoveTo(Path.Peek());

@@ -52,8 +52,6 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 TargetPoint     = GetXYZAttributeAsWoWPoint("TargetLocation", true, null) ?? WoWPoint.Empty;
                 VehicleId       = GetAttributeAsMobId("VehicleId", true, new [] { "VehicleID" }) ?? 0;
-
-                Counter     = 0;
 			}
 
 			catch (Exception except)
