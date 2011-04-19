@@ -1,12 +1,16 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+
 using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
-using TreeSharp;
-using System.Diagnostics;
+using Styx.WoWInternals.WoWObjects;
 
+using TreeSharp;
 using Action = TreeSharp.Action;
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -21,87 +25,100 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class RunLua : CustomForcedBehavior
     {
-        Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>()
-        {
-            {"Lua",null},
-            {"QuestId",null},
-            {"NumOfTimes",null},
-            {"WaitTime",null},
-        };
-        bool success = true;
         public RunLua(Dictionary<string, string> args)
             : base(args)
         {
-            // tba. dictionary format is not documented.
-            // CheckForUnrecognizedAttributes(recognizedAttributes);
-            int numOfTimes = 0;
-            int waitTime = 0;
-            string lua = "";
-            int questId = 0;
-            success = success && GetAttributeAsString("Lua", true, "", out lua);
-            success = success && GetAttributeAsInteger("QuestId", false, "0", 0, int.MaxValue, out questId);
-            success = success && GetAttributeAsInteger("NumOfTimes", false, "1", 1, int.MaxValue, out numOfTimes);
-            success = success && GetAttributeAsInteger("WaitTime", false, "0", 0, int.MaxValue, out waitTime);
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Lua         = GetAttributeAsString_NonEmpty("Lua", true, null) ?? "";
+                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1,1000, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                WaitTime    = GetAttributeAsInteger("WaitTime", false, 0, int.MaxValue, null) ?? 0;
+			}
 
-            Lua = lua;
-            NumOfTimes = numOfTimes;
-            QuestId = questId;
-            WaitTime = waitTime;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+										+ "\nFROM HERE:\n"
+										+ except.StackTrace + "\n");
+				IsAttributeProblem = true;
+			}
         }
 
-        public string Lua { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public int QuestId { get; private set; }
-        public int WaitTime { get; private set; }
 
-        int _counter;
-        readonly Stopwatch _waitSw = new Stopwatch();
+        // Attributes provided by caller
+        public string                   Lua { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public int                      QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      WaitTime { get; private set; }
+
+        // Private variables for internal state
+        private int                 _counter;
+        private Composite           _root;
+        private readonly Stopwatch  _waitStopwatch = new Stopwatch();
+
 
         #region Overrides of CustomForcedBehavior
 
-        private Composite _root;
         protected override Composite CreateBehavior()
         {
             return _root ??
                 (_root = new PrioritySelector(
 
-                    new Decorator(c => !success,
-                        new Action(c => Err("Invalid or missing Attributes, Stopping HB"))),
-
                     new Action(c =>
                     {
-                        if (!_waitSw.IsRunning && WaitTime >0)
-                            _waitSw.Start();
+                        if (!_waitStopwatch.IsRunning && WaitTime >0)
+                            _waitStopwatch.Start();
 
-                        if (_waitSw.ElapsedMilliseconds < WaitTime)
+                        if (_waitStopwatch.ElapsedMilliseconds < WaitTime)
                             return;
 
                         WoWInternals.Lua.DoString(Lua);
                         _counter++;
-                        _waitSw.Reset();
+                        _waitStopwatch.Reset();
                     })
                 ));
-        }
-
-        private static void Err(string format, params object[] args)
-        {
-            Logging.Write(System.Drawing.Color.Red, "RunLua: " + format, args);
-            TreeRoot.Stop();
         }
 
         public override bool IsDone
         {
             get
             {
-                var quest = ObjectManager.Me.QuestLog.GetQuestById((uint)QuestId);
-                return 
-                    _counter >= NumOfTimes || 
-                    (QuestId > 0 && ((quest != null && quest.IsCompleted) || quest == null));
+                return ((_counter >= NumOfTimes)     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
+
+
         public override void OnStart()
         {
-            TreeRoot.GoalText = string.Format("Executing Lua: {0} {1} number of times while waiting {2} inbetween", Lua, NumOfTimes, WaitTime);
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
+                                                    this.GetType().Name, Lua, NumOfTimes, WaitTime);
+            }
         }
 
         #endregion
