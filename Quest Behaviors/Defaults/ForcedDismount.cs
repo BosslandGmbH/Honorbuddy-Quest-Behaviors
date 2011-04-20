@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
+//
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -26,8 +31,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         /// <summary>
-        /// ForcedDismount by Bobby53
-        /// 
         /// forces character to dismount.  additionally forces Druids
         /// to leave Flight Form and Swift Flight Form. if in flight,
         /// will descend straight down before dismount        

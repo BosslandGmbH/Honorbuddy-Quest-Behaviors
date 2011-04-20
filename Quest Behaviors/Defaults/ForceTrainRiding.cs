@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +24,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class ForceTrainRiding : CustomForcedBehavior
     {
         /// <summary>
-        /// ForceTrainRiding by Natfoth
         /// Allows you to Interact with Mobs that are Nearby.
         /// ##Syntax##
         /// QuestId: Id of the quest.

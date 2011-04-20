@@ -1,3 +1,8 @@
+// Behavior originally contributed by Unknown.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UseGameObject
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -77,8 +82,7 @@ namespace Styx.Bot.Quest_Behaviors
                     // Move to the gameobject if it isn't null and we aren't withing interact range.
                     new Decorator(ret => GameObject != null && !GameObject.WithinInteractRange,
                         new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Moving to interact with gameobject: " + GameObject.Name),
-                            new Action(ret => TreeRoot.GoalText = "Use Gameobject: " + GameObject.Name),
+                            new Action(ret => TreeRoot.StatusText = "Interacting with object \"" + GameObject.Name + "\""),
                             new Action(ret => Navigator.MoveTo(GameObject.Location))
                             )
                         ),
@@ -95,7 +99,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => StyxWoW.SleepForLagDuration()))
                                     )),
 
-                            new Action(ret => UtilLogMessage("info", "Using Object [{0}] {1} Times out of {2}",
+                            new Action(ret => UtilLogMessage("info", "Using Object \"{0}\" {1}/{2} times",
                                                                         ((WoWGameObject)ret).Name, _counter+1, NumOfTimes)),
                             new Action(ret => ((WoWGameObject)ret).Interact()),
                             new Action(ret => StyxWoW.SleepForLagDuration()),
@@ -105,8 +109,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                         new Decorator(ret => Location != WoWPoint.Empty,
                             new Sequence(
-                                new Action(ret => TreeRoot.StatusText = "Moving to interact with gameobject"),
-                                new Action(ret => TreeRoot.GoalText = "Use Gameobject"),
+                                new Action(ret => TreeRoot.StatusText = "Moving to location " + Location.ToString()),
                                 new Action(ret => Navigator.MoveTo(Location))
                                 )
                             )
@@ -129,6 +132,15 @@ namespace Styx.Bot.Quest_Behaviors
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
         }
 
         #endregion

@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -17,8 +22,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class GoThruPortal : CustomForcedBehavior
     {
         /// <summary>
-        /// GoThurPortal by Bobby53
-        /// 
         /// Supports walk through portals in a way that does not result
         /// in red error messages in WoW or in the HB log/debug files.
         /// 

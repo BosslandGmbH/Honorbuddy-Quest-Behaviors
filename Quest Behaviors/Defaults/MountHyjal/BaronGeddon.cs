@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -19,8 +24,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
 {
     /// <summary>
-    /// BaronGeddon by Bobby53
-    /// 
     /// Allows safely completing the http://www.wowhead.com/quest=25464 .  Can also be used
     /// on similar quest if one discovered.
     /// 

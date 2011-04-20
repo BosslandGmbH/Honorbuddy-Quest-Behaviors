@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_NoControlVehicle
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +24,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class NoControlVehicle : CustomForcedBehavior
     {
         /// <summary>
-        /// NoControlVehicle by Natfoth
         /// For Vehicles you do not have to move, such as Cannons, Horses, Bombings, and even ground targeting cannons.
         /// ##Syntax##
         /// QuestId: Id of the quest.
@@ -44,7 +48,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 AttackButton = GetAttributeAsHotbarButton("AttackButton", true, new [] { "AttackIndex", "SpellIndex" }) ?? 0;
                 GoHomeButton   = GetAttributeAsHotbarButton("GoHomeButton", false, new [] { "HomeIndex" }) ?? 0;
-                NpcMountId  = GetAttributeAsMobId("NpcMountId", false, null) ?? 1;
                 MaxRange    = GetAttributeAsRange("MaxRange", false, null) ?? 1;
                 MountedPoint = WoWPoint.Empty;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, new [] { "TimesToUse" }) ?? 1;
@@ -55,6 +58,7 @@ namespace Styx.Bot.Quest_Behaviors
                 TargetId2   = GetAttributeAsMobId("TargetId2", false, null) ?? 0;
                 TargetId3   = GetAttributeAsMobId("TargetId3", false, null) ?? 0;
                 VehicleId   = GetAttributeAsMobId("VehicleId", false, null) ?? 0;
+                VehicleMountId  = GetAttributeAsMobId("VehicleMountId", false, new [] { "NpcMountId", "NpcMountID" }) ?? 1;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 0;
 
                 Counter = 1;
@@ -79,7 +83,6 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      GoHomeButton { get; private set; }
         public int                      MaxRange { get; private set; }
         public WoWPoint                 MountedPoint { get; private set; }
-        public int                      NpcMountId { get; private set; }
         public int                      OftenToUse { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -92,6 +95,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      NumOfTimes { get; private set; }
         public int                      WaitTime { get; private set; }
         public int                      VehicleId { get; private set; }
+        public int                      VehicleMountId { get; private set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
@@ -101,41 +105,27 @@ namespace Styx.Bot.Quest_Behaviors
         private int                     Counter { get; set; }
         private bool                    InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>           NpcList
-        {
-            get
-            {
-                if (VehicleList.Count > 0)
-                {
-                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && VehicleList[0].Location.Distance(u.Location) <= MaxRange)
-                                         .OrderBy(u => u.Distance)
-                                         .ToList());
-                }
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && !u.Dead).OrderBy(u => u.Distance)
-                                     .ToList());
-            }
-        }
-        private List<WoWUnit>           NpcVehicleList
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (ret.Entry == NpcMountId) && !ret.Dead)
-                                     .OrderBy(u => u.Distance)
-                                     .ToList());
-            }
-        }
-        private List<WoWUnit>           VehicleList
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
-                                     .ToList());
-            }
-        }
+        private List<WoWUnit>           NpcList {  get { if (VehicleList.Count > 0)
+                                                            {
+                                                                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                     .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && VehicleList[0].Location.Distance(u.Location) <= MaxRange)
+                                                                                     .OrderBy(u => u.Distance)
+                                                                                     .ToList());
+                                                            }
+                                                            return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                 .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && !u.Dead).OrderBy(u => u.Distance)
+                                                                                 .ToList());
+                                                } }
+        private List<WoWUnit>           NpcVehicleList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                     .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
+                                                                                     .OrderBy(u => u.Distance)
+                                                                                     .ToList());
+                                                        } }
+        private List<WoWUnit>           VehicleList {  get {
+                                                            return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                 .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                                                                                 .ToList());
+                                                    } }
 
 
         double AimAngle
@@ -205,7 +195,7 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             else if (NpcList.Count >= 1 && NpcList[0].Location.Distance(VehicleList[0].Location) <= 15)
                             {
-                                TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + AttackButton;
+                                TreeRoot.StatusText = "Attacking: " + NpcList[0].Name + ", AttackButton: " + AttackButton;
                                 NpcList[0].Target();
                                 Lua.DoString("CastPetAction({0})", AttackButton);
                                 Thread.Sleep(WaitTime);
@@ -222,7 +212,7 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 Thread.Sleep(OftenToUse);
 
-                                TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + AttackButton + " Times Used: " + Counter;
+                                TreeRoot.StatusText = "Attacking: " + NpcList[0].Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
 
                                 if (Counter > NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                 {
@@ -247,7 +237,7 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 using (new FrameLock())
                                 {
-                                    TreeRoot.StatusText = "Using Spell Index On - " + NpcList[0].Name + " Spell Index: " + AttackButton + " Times Used: " + Counter;
+                                    TreeRoot.StatusText = "Attacking: " + NpcList[0].Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
                                     if (Counter > NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                     {
                                         Lua.DoString("VehicleExit()");

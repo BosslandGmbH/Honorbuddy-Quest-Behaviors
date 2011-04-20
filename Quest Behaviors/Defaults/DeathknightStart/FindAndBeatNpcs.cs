@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -18,7 +23,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// FindAndBeatNpcs by HighVoltz
     /// Finds Npc's that match MobId,MobId2 or MobId3 and beats them up using AutoAttack. useful for a dk quest
     /// ##Syntax##
     /// MobId: Id of the NPC
@@ -186,7 +190,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-               TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
         

@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_InteractWith
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -20,7 +25,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// InteractWith by Nesox
     /// Allows you to do quests that requires you to interact with nearby objects.
     /// ##Syntax##
     /// [Optional]QuestId: Id of the quest.

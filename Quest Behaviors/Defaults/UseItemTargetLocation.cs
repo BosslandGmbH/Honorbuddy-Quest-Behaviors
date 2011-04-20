@@ -1,3 +1,8 @@
+// Behavior originally contributed by Raphus.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,7 +26,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class UseItemTargetLocation : CustomForcedBehavior
     {
         /// <summary>
-        /// UseItemTargetLocation by raphus
         /// Allows you to use item on an object or at a location
         /// ##Syntax##
         /// [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed

@@ -1,23 +1,26 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using System.Diagnostics;
-using Styx.Logic.Combat;
 
+using TreeSharp;
 using Action = TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// VehicleMover by HighVoltz
     /// Moves to location while in a vehicle
     /// ##Syntax##
     /// VehicleID: ID of the vehicle

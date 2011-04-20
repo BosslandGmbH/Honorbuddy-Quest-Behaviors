@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +25,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class WaterBehavior : CustomForcedBehavior
     {
         /// <summary>
-        /// WaterBehavior by Natfoth
         /// Kill/Collect things within the Water
         /// ##Syntax##
         /// QuestId: Id of the quest.

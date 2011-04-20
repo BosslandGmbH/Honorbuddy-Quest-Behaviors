@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_TalkToAndListenToStory
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -18,7 +23,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// TalkToAndListenToStory by Nesox
     /// Allows you to interact and click thru the gossip of a number of npc's
     /// ##Syntax##
     /// QuestId: Id of the quest.

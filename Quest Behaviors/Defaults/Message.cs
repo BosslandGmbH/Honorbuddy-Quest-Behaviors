@@ -1,3 +1,5 @@
+// Behavior originally contributed by Caytchen.
+//
 // LICENSE:
 // This work is licensed under the 
 //    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -8,12 +10,8 @@
 //    171 Second Street, Suite 300
 //    San Francisco, California, 94105, USA. 
 //
-// Release History:
-//  Version 1.1 -- Built-in error handlers (15-Feb-2011, chinajade)
-//                   Converted to the new buit-in error handlers provided by
-//                   CustomForcedBehavior.
-//                   Now accepts an optional QuestId.
-//  Version 1.0 -- Initial Release created and contributed to the Buddy Wiki by Caytchen
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_Message
 //
 using System;
 using System.Collections.Generic;

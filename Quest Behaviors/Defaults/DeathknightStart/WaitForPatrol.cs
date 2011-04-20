@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -17,7 +22,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// WaitForPatrol by HighVoltz (cleaned up by Nesox)
     /// Waits at a safe location until an NPC is X distance way from you.. Useful for the quest in dk starter area where you have to ninja a horse but have to stay away from the stable master
     /// ##Syntax##
     /// MobId: This is the ID of the bad boy you want to stay clear of 
@@ -135,7 +139,7 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-                TreeRoot.StatusText = string.Format("Moving to safepoint {0} then waiting there until Npc {1} moves {2} distance away",
+                TreeRoot.StatusText = string.Format("Moving to safepoint {0} until MobId({1}) moves {2} yards away.",
                                                     SafespotLocation,
                                                     AvoidMobId,
                                                     AvoidDistance);

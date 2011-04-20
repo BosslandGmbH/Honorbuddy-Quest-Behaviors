@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -26,7 +31,6 @@ using Tripper.Tools.Math;
 namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 {
     /// <summary>
-    /// AnEndToAllThings by Nesox
     /// Moves along a path in a vehicle using spells to inflict damage and to heals itself until the quest is completed.
     /// ##Syntax##
     /// VehicleId: Id of the vehicle

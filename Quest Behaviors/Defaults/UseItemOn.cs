@@ -1,3 +1,8 @@
+// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UseItemOn
+//
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -19,7 +24,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// UseItemOn by Nesox
     /// Allows you to use items on nearby gameobjects/npc's
     /// ##Syntax##
     /// QuestId: The id of the quest.
@@ -45,10 +49,10 @@ namespace Styx.Bot.Quest_Behaviors
 
         public enum NpcState
         {
-            None,
             Alive,
             BelowHp,
             Dead,
+            DontCare,
         }
 
 
@@ -68,9 +72,9 @@ namespace Styx.Bot.Quest_Behaviors
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
                 MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
-                _NpcState   = GetAttributeAsEnum<NpcState>("NpcState", false, null) ?? NpcState.None;
+                _NpcState   = GetAttributeAsEnum<NpcState>("NpcState", false, null) ?? NpcState.DontCare;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 1500;
@@ -144,7 +148,7 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             catch
                             {
-                                UtilLogMessage("fatal", "Could not find spell with id:{0} for UseItemOn behavior!", HasAuraId);
+                                UtilLogMessage("fatal", "Could not find HasAuraId({0}) for UseItemOn behavior!", HasAuraId);
                                 break;
                             }
 
@@ -158,7 +162,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             switch (_NpcState)
                             {
-                                case NpcState.None:
+                                case NpcState.DontCare:
                                     @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                                         !_npcBlacklist.Contains(obj.Guid) &&
                                         obj.Distance < CollectionDistance &&
@@ -221,7 +225,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new PrioritySelector(
                         new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr > Range * Range,
                             new Sequence(
-                                new Action(delegate { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
+                                new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
                                 new Action(ret => Navigator.MoveTo(CurrentObject.Location))
                                 )
                             ),
@@ -238,7 +242,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ret =>
                                 {
                                     bool targeted = false;
-                                    TreeRoot.StatusText = "Using item on - " + CurrentObject.Name;
+                                    TreeRoot.StatusText = "Using item on \"" + CurrentObject.Name + "\"";
                                     if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
                                     {
                                         (CurrentObject as WoWUnit).Target();
@@ -261,7 +265,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     ),
 
                         new Sequence(
-                            new Action(delegate { TreeRoot.StatusText = "Moving towards - " + Location; }),
+                            new Action(delegate { TreeRoot.StatusText = "Moving to location " + Location; }),
                             new Action(ret => Navigator.MoveTo(Location))))
                 ));
         }

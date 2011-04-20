@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -17,7 +22,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class ItemWhileMoving : CustomForcedBehavior
     {
         /// <summary>
-        /// ItemWhileMoving by Natfoth
         /// Will use the same item over and over until a location is reached.
         /// ##Syntax##
         /// QuestId: Id of the quest.

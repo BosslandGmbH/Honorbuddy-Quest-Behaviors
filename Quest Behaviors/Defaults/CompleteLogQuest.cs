@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -15,7 +20,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class CompleteLogQuest : CustomForcedBehavior
     {
         /// <summary>
-        /// CompleteLogQuest by Natfoth
         /// Will complete a "In-The-Field" Quest.
         /// ##Syntax##
         /// QuestId: The Entire purpose of this behavior, so this one is required.

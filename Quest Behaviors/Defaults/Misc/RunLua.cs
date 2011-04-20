@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
@@ -15,7 +20,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// RunLua by HighVoltz
     /// Runs the lua script x amount of times waiting x milliseconds inbetween
     /// ##Syntax##           
     /// Lua: the lua script to run

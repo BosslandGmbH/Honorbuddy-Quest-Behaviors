@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 
@@ -13,8 +18,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class Halt : CustomForcedBehavior
     {
         /// <summary>
-        /// Halt by Bobby53
-        /// 
         /// Stops the Quest Bot.  Will write 'Msg' to the log and Goal Text.
         /// Also write the line number it halted at for easily locating in profile.
         /// 
@@ -39,7 +42,7 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 Color   = GetAttributeAsColor("Color", false, null) ?? Color.Red;
-                Message = GetAttributeAsString_NonEmpty("Text", false, new [] { "Msg", "Message" }) ?? "Quest Profile HALT";
+                Message = GetAttributeAsString_NonEmpty("Message", false, new [] { "Msg", "Text" }) ?? "Quest Profile HALT";
                 QuestId = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;

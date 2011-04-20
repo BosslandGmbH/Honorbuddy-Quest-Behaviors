@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,7 +23,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class LoadProfile : CustomForcedBehavior
     {
         /// <summary>
-        /// ForceLoadProfile by Natfoth
         /// Allows you to load a profile, it needs to be in the same folder as your current profile.
         /// ##Syntax##
         /// ProfileName: The name of the profile with the ".xml" extension.

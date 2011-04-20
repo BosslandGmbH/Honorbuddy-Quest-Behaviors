@@ -1,6 +1,6 @@
-﻿// This work is part of the Buddy Wiki.  You may find it here:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Category:Honorbuddy_CustomBehavior
+﻿// Behavior originally contributed by Chinajade.
 //
+// LICENSE:
 // This work is licensed under the 
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
@@ -10,10 +10,8 @@
 //      171 Second Street, Suite 300
 //      San Francisco, California, 94105, USA. 
 //
-// Release History:
-//  Version 1.1 -- Removed namespace collison possibility (6-Mar-2011, chinajade)
-//                  Also, minor cleanup.
-//  Version 1.0 -- Initial Release (4-Mar-2011, chinajade)
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UserSettings
 //
 using System;
 using System.Collections.Generic;
@@ -252,7 +250,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 					string tmpString = _presetChangeRequests[PresetName].Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					{ UtilLogMessage("info", "Using preset '{0}'...\n{1}", PresetName, tmpString); }
+					    { UtilLogMessage("info", "Using preset '{0}'...\n{1}", PresetName, tmpString); }
 				}
 
 				// Second, apply any change requests...
@@ -261,7 +259,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 					string tmpString = _userChangeRequest.Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					{ UtilLogMessage("info", "Applied changes...\n{0}", tmpString); }
+					    { UtilLogMessage("info", "Applied changes...\n{0}", tmpString); }
 				}
 
 				// Third, show state, if requested...                

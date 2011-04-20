@@ -1,3 +1,8 @@
+// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForceTrain
+//
 using System;
 using System.Collections.Generic;
 
@@ -10,7 +15,6 @@ using Styx.Logic.Questing;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// ForceTrain by Nesox
     /// Allows you to force HB to go train spells. 
     /// ForceSetVendor can also be used to achieve this.
     /// ##Syntax##

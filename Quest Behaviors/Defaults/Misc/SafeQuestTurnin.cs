@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 
@@ -18,7 +23,6 @@ using TreeSharp;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// SafeQuestTurnin by Nesox
     /// Removes all units from targeting while running.
     /// ##Syntax##
     /// QuestId: Id of the quest, duh!

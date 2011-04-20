@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CastSpellOn
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +24,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class CastSpellOn : CustomForcedBehavior
     {
         /// <summary>
-        /// CastSpellOn by Natfoth
         /// Allows you to use a Specific Spell on a Target, useful for Dummies and Starting Quests.
         /// ##Syntax##
         /// QuestId: Id of the quest.
@@ -219,11 +223,6 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-
-
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {
                     var currentRoot = TreeRoot.Current.Root;
@@ -233,6 +232,11 @@ namespace Styx.Bot.Quest_Behaviors
                         root.InsertChild(0, CreateRootBehavior());
                     }
                 }
+
+
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

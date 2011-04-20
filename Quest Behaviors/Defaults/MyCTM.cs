@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_MyCTM
+//
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -17,7 +22,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class MyCTM : CustomForcedBehavior
     {
         /// <summary>
-        /// MyCTM by Natfoth
         /// Allows you to physically click on the screen so that your bot can get around non meshed locations or off objects. *** There is no navigation with this ****
         /// ##Syntax##
         /// QuestId: Id of the quest.

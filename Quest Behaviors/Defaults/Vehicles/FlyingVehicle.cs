@@ -1,24 +1,26 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using Styx.Helpers;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using System.Diagnostics;
-using Styx.Logic.Combat;
-using System.Globalization;
 
+using TreeSharp;
 using Action = TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// FlyingVehicle by HighVoltz
     /// Moves to along a path in a vehicle using the specific actionbar butons until quest is complete
     /// ##Syntax##
     /// VehicleId: ID of the vehicle

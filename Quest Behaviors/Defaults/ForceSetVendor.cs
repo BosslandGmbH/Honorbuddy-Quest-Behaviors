@@ -1,3 +1,8 @@
+// Behavior originally contributed by Unknown.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForceSetVendor
+//
 using System;
 using System.Collections.Generic;
 

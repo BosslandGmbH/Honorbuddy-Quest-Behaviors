@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
+//
 using System;
 using System.Collections.Generic;
 
@@ -16,7 +21,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class SetPullDistance : CustomForcedBehavior
     {
         /// <summary>
-        /// SetPullDistance by Natfoth
         /// Allows you change the Bot Pull Distance so you can turn in a quest safely or leave an area safely
         /// ##Syntax##
         /// QuestId: Id of the quest.

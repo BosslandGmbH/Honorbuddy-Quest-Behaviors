@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -19,7 +24,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// TheGiftThatKeepsOnGiving/UseItemOn by Nesox, rewriten by Highvoltz/re-rewritten by Nesox
     /// Allows you to use items on nearby gameobjects/npc's
     /// ##Syntax##
     /// [Optional]QuestId: The id of the quest.

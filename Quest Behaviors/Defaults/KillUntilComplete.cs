@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +25,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class KillUntilComplete : CustomForcedBehavior
     {
         /// <summary>
-        /// KillUntilComplete by Natfoth
         /// This is only used when you get a quest that Says, Kill anything x times. Or on the chance the wowhead ID is wrong
         /// ##Syntax##
         /// QuestId: Id of the quest.

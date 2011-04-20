@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -20,8 +25,6 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
     public class MentalTraining : CustomForcedBehavior
     {
         /// <summary>
-        /// MentalTraining by Bobby53
-        /// 
         /// Completes the quest http://www.wowhead.com/quest=25299
         /// This behavior completes the quest by correctly responding to
         /// 10 yes/no questions by checking the toons question aura.

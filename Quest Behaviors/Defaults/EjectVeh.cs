@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -16,7 +21,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class EjectVeh : CustomForcedBehavior
     {
         /// <summary>
-        /// EjectVeh by Natfoth
         /// Will Eject from the current vehicle, nothing more and nothing less.
         /// ##Syntax##
         /// Eject: Not required but just incase it messes with the args.

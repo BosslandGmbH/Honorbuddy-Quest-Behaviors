@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by HighVoltz.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -19,7 +24,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// IntotheRealmofShadows by HighVoltz
     /// Into the Realm of Shadows]
     /// ##Syntax##
     /// X,Y,Z: The location where you want to move to

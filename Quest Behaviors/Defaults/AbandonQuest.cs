@@ -1,4 +1,8 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//
+using System;
 using System.Collections.Generic;
 
 using Styx.Logic.BehaviorTree;
@@ -8,7 +12,6 @@ using Styx.Logic.Questing;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// AbandonQuest by Bobby53
     /// Allows you to abandon a quest in your quest log
     /// ##Syntax##
     /// QuestId: The id of the quest.

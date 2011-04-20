@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_MountVehOnly
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +23,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class MountVehOnly : CustomForcedBehavior
     {
         /// <summary>
-        /// MountVehOnly by Natfoth
         /// Only use this when you need to mount a Vehicle but it will require nothing else, wow has to auto dismount you at the end or you use EjectVeh.
         /// ##Syntax##
         /// QuestId: Id of the quest.
@@ -35,10 +39,10 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobMountId  = GetAttributeAsMobId("MobMountId", true, new [] { "NpcMountId" }) ?? 0;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                VehicleId   = GetAttributeAsMobId("VehicleId", true, new [] { "MobMountId", "NpcMountId" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -58,7 +62,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
-        public int                      MobMountId { get; private set; }
+        public int                      VehicleId { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -71,15 +75,10 @@ namespace Styx.Bot.Quest_Behaviors
         public int                  Counter { get; set; }
         private bool                InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>       MobList
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => u.Entry == MobMountId && !u.Dead)
-                                     .OrderBy(u => u.Distance).ToList());
-            }
-        }
+        private List<WoWUnit>       VehicleList {  get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                 .Where(u => u.Entry == VehicleId && !u.Dead)
+                                                                                 .OrderBy(u => u.Distance).ToList());
+                                             } }
 
 
         #region Overrides of CustomForcedBehavior
@@ -106,7 +105,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
-                           new Decorator(ret => MobList.Count == 0,
+                           new Decorator(ret => VehicleList.Count == 0,
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                         new Action(ret => Navigator.MoveTo(Location)),
@@ -114,19 +113,19 @@ namespace Styx.Bot.Quest_Behaviors
                                     )
                                 ),
 
-                           new Decorator(ret => MobList.Count > 0,
+                           new Decorator(ret => VehicleList.Count > 0,
                                 new Sequence(
-                                    new DecoratorContinue(ret => MobList[0].WithinInteractRange,
+                                    new DecoratorContinue(ret => VehicleList[0].WithinInteractRange,
                                         new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Mounting Vehicle - " + MobList[0].Name),
+                                            new Action(ret => TreeRoot.StatusText = "Mounting Vehicle - " + VehicleList[0].Name),
                                             new Action(ret => WoWMovement.MoveStop()),
-                                            new Action(ret => MobList[0].Interact())
+                                            new Action(ret => VehicleList[0].Interact())
                                             )
                                     ),
-                                    new DecoratorContinue(ret => !MobList[0].WithinInteractRange,
+                                    new DecoratorContinue(ret => !VehicleList[0].WithinInteractRange,
                                         new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving To Vehicle - " + MobList[0].Name + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
-                                        new Action(ret => Navigator.MoveTo(MobList[0].Location)),
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Vehicle - " + VehicleList[0].Name + " X: " + VehicleList[0].X + " Y: " + VehicleList[0].Y + " Z: " + VehicleList[0].Z + " Yards Away: " + VehicleList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => Navigator.MoveTo(VehicleList[0].Location)),
                                         new Action(ret => Thread.Sleep(300))
                                             ))
                                     ))

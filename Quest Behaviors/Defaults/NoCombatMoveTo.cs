@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_NoCombatMoveTo
+//
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -17,7 +22,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class NoCombatMoveTo : CustomForcedBehavior
     {
         /// <summary>
-        /// NoCombatMoveTo by Natfoth
         /// Allows you to move to a specific target with engaging in Combat, to avoid endless combat loops.
         /// ##Syntax##
         /// QuestId: Id of the quest.

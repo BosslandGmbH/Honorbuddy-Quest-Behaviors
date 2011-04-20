@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicInteractWith
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +22,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class BasicInteractWith : CustomForcedBehavior
     {
         /// <summary>
-        /// BasicInteractWith by Natfoth
         /// Allows you to Interact with Mobs that are Nearby.
         /// ##Syntax##
         /// QuestId: Id of the quest.
@@ -36,7 +40,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                FactionId   = GetAttributeAsInteger("Faction", false, 1, int.MaxValue, null) ?? 0;
+                FactionId   = GetAttributeAsInteger("FactionId", false, 1, int.MaxValue, new [] { "Faction" }) ?? 0;
                 IsMoveToMob = GetAttributeAsBoolean("MoveTo", false, new [] { "UseCTM" }) ?? false;;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId", "NpcID" })  ?? 0;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;

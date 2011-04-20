@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Unknown.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 
 using Styx.Helpers;
@@ -23,7 +28,7 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 Destination     = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                DestinationName = GetAttributeAsString_NonEmpty("DestinationName", false, new [] { "Name" }) ?? "";
+                DestinationName = GetAttributeAsString_NonEmpty("DestName", false, new [] { "Name" }) ?? "";
                 Distance        = GetAttributeAsDouble("Distance", false, 0.25, double.MaxValue, null) ?? 10.0;
                 QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;

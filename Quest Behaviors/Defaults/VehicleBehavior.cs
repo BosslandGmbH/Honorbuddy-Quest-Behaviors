@@ -1,3 +1,8 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_VehicleBehavior
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +23,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class VehicleBehavior : CustomForcedBehavior
     {
         /// <summary>
-        /// VehicleBehavior by Natfoth
         /// Will control a vehicle and fire on locations/Mobs
         /// ##Syntax##
         /// QuestId: Id of the quest.
@@ -45,13 +49,13 @@ namespace Styx.Bot.Quest_Behaviors
                 FirePoint       = GetXYZAttributeAsWoWPoint("FireLocation", true, null) ?? WoWPoint.Empty;
                 FireHeight      = GetAttributeAsInteger("FireHeight", true, 1, 999, null) ?? 1;
                 FireUntilFinished = GetAttributeAsBoolean("FireUntilFinished", false, new [] { "FireTillFinish" }) ?? false;
-                NpcMountId      = GetAttributeAsMobId("NpcMountId", true, null) ?? 0;
                 PreviousLocation    = GetXYZAttributeAsWoWPoint("PreviousFireLocation", false, null);
                 QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 TargetPoint     = GetXYZAttributeAsWoWPoint("TargetLocation", true, null) ?? WoWPoint.Empty;
                 VehicleId       = GetAttributeAsMobId("VehicleId", true, new [] { "VehicleID" }) ?? 0;
+                VehicleMountId      = GetAttributeAsMobId("VehicleMountId", true, new [] { "NpcMountId", "NpcMountID" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -75,12 +79,12 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint                 FirePoint { get; private set; }
         public bool                     FireUntilFinished { get; set; }
         public WoWPoint?                PreviousLocation { get; private set; }
-        public int                      NpcMountId { get; private set; }
         public int                      QuestId  { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public WoWPoint                 TargetPoint { get; private set; }
         public int                      VehicleId { get; set; }
+        public int                      VehicleMountId { get; private set; }
 
         // Private variables for internal state
         private bool                _isBehaviorDone;
@@ -92,7 +96,7 @@ namespace Styx.Bot.Quest_Behaviors
         private bool                InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
         private List<WoWUnit>       NpcVehicleList { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .Where(ret => (ret.Entry == NpcMountId) && !ret.Dead)
+                                                                                .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
                                                                                 .OrderBy(u => u.Distance)
                                                                                 .ToList(); }}
         private WoWPoint[]          Path { get; set; }

@@ -1,9 +1,15 @@
+// Behavior originally contributed by Natfoth.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicVehicleBehavior
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
 using Styx.Helpers;
+using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -25,7 +31,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                LocationDest    = GetXYZAttributeAsWoWPoint("Dest", true, null) ?? WoWPoint.Empty;
+                LocationDest    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 LocationMount   = GetXYZAttributeAsWoWPoint("Mount", true, null) ?? WoWPoint.Empty;
                 QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -187,6 +193,13 @@ namespace Styx.Bot.Quest_Behaviors
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
+            }
 		}
 
         #endregion

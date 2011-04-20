@@ -1,6 +1,6 @@
-// This work is part of the Buddy Wiki.  You may find it here:
-//    http://www.thebuddyforum.com/mediawiki/index.php?title=Category:Honorbuddy_CustomBehavior
+// Behavior originally contributed by AxaZol.
 //
+// LICENSE:
 // This work is licensed under the 
 //    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
@@ -10,26 +10,9 @@
 //    171 Second Street, Suite 300
 //    San Francisco, California, 94105, USA. 
 //
-// Release History:
-//  Version 1.3 -- Built-in error handlers (15-Feb-2011, chinajade)
-//                   Converted to the new buit-in error handlers provided by
-//                   CustomForcedBehavior.  Eliminated the CustomBehaviorUtils
-//                   class as a consequence. Yay!
-//                   Now accepts an optional QuestId.
-//  Version 1.2 -- More error handling (22-Jan-2011, chinajade)
-//					 Standardized with other Wiki-provided behaviors.  Includes:
-//                   The profile writer will now be told specifically what is at
-//                   fault in a failed call to this behavior.  Stray attributes
-//					 will also be flagged as these are usually spelling or case-sensitive
-//					 errors.
-//					 NumOfTimes is now optional, and defaults to '1'.
-//  Version 1.1 -- Error handling improvements (17-Jan-2011, chinajade)
-//				     Sharpened the error handling for malformed input from Profiles.
-//                   Also, fixed a faulty initialization of WaitTime--it was wrongly
-//                   set to zero, but the design default was 1500 (milliseconds).
-//  Version 1.0 -- Initial release to BuddyWiki (12-Jan-2011, AxaZol)
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_RunMacro
 //
-
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -58,6 +41,9 @@ namespace BuddyWiki.CustomBehavior.RunMacro
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 1500;
+
+                if (string.IsNullOrEmpty(GoalText))
+                    { GoalText = "Running Macro"; }
 			}
 
 			catch (Exception except)
@@ -113,11 +99,8 @@ namespace BuddyWiki.CustomBehavior.RunMacro
 			{
 				for (int counter = 1;   counter <= NumOfTimes;   ++counter)
 				{
-                    if (!string.IsNullOrEmpty(GoalText))
-                    {
-                        TreeRoot.GoalText = GoalText;
-                        UtilLogMessage("info", GoalText);
-                    }
+                    TreeRoot.GoalText = GoalText;
+                    UtilLogMessage("info", "Running macro {0} times", NumOfTimes);
 
                     TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
 

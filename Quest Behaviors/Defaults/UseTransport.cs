@@ -1,3 +1,8 @@
+// Behavior originally contributed by Raphus.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +24,6 @@ namespace Styx.Bot.Quest_Behaviors
     public class UseTransport : CustomForcedBehavior
     {
         /// <summary>
-        /// Transport by raphus
         /// Allows you to use Transports.
         /// ##Syntax##
         /// TransportId: ID of the transport.
@@ -38,10 +42,10 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                WoWPoint?   legacyEndLocation       = LegacyGetAttributeAsWoWPoint("End", false, null, "TransportEnd");
-                WoWPoint?   legacyGetOffLocation    = LegacyGetAttributeAsWoWPoint("Exit", false, null,"GetOff");
-                WoWPoint?   legacyStartLocation     = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStart");
-                WoWPoint?   legacyWaitAtLocation    = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAt");
+                WoWPoint?   legacyEndLocation       = LegacyGetAttributeAsWoWPoint("End", false, null, "TransportEndX/Y/Z");
+                WoWPoint?   legacyGetOffLocation    = LegacyGetAttributeAsWoWPoint("Exit", false, null,"GetOffX/Y/Z");
+                WoWPoint?   legacyStartLocation     = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStartX/Y/Z");
+                WoWPoint?   legacyWaitAtLocation    = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAtX/Y/Z");
 
                 EndLocation     = GetXYZAttributeAsWoWPoint("TransportEnd", !legacyEndLocation.HasValue, null)
                                     ?? legacyEndLocation

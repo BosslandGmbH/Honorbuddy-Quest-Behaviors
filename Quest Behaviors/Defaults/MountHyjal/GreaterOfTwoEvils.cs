@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Bobby53.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
@@ -21,8 +26,6 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
     public class GreaterOfTwoEvils : CustomForcedBehavior
     {
         /// <summary>
-        /// GreaterOfTwoEvils by Bobby53
-        /// 
         /// Completes the quest http://www.wowhead.com/quest=25310
         /// by using the item to enter a vehicle then casting
         /// its attack and shield abilities as needed to defeat the target
@@ -264,10 +267,6 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-
                 if (TreeRoot.Current == null)
                     UtilLogMessage("fatal", "TreeRoot.Current == null");
                 else if (TreeRoot.Current.Root == null )
@@ -287,7 +286,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             _lastStateReturn = RunStatus.Success;
                         else
                         {
-                            DLog("unknown type of Group Composite at root");
+                            DLog("Unknown type of Group Composite at root");
                             _lastStateReturn = RunStatus.Success;
                         }
 
@@ -295,6 +294,10 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                         root.InsertChild(0, CreateBehavior());
                     }
                 }
+
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
 

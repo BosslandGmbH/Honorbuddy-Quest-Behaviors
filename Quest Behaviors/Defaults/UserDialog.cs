@@ -1,8 +1,5 @@
 ﻿// Behavior originally contributed by Chinajade.
 //
-// DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UseItemOn
-//
 // LICENSE:
 // This work is licensed under the 
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -12,6 +9,9 @@
 //      Creative Commons
 //      171 Second Street, Suite 300
 //      San Francisco, California, 94105, USA.
+//
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UserDialog
 //
 using System;
 using System.Collections.Generic;
@@ -504,7 +504,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                DialogMessage       = GetAttributeAsString_NonEmpty("Text", true, null) ?? "";
+                DialogText          = GetAttributeAsString_NonEmpty("Text", true, null) ?? "";
                 DialogTitle         = GetAttributeAsString_NonEmpty("Title", false, null) ?? "Attention Required...";
                 ExpiryActionName    = GetAttributeAsString_SpecificValue("ExpiryAction", false, expiryActionNames, null) ?? "InputEnabled_Continue";
                 ExpiryTime          = GetAttributeAsInteger("ExpiryTime", false, 1, int.MaxValue, null) ?? 0;
@@ -537,8 +537,8 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         }
 
         // Attributes provided by caller
+        public string                       DialogText { get; private set; }
         public string                       DialogTitle { get; private set; }
-        public string                       DialogMessage { get; private set; }
         public string                       ExpiryActionName { get; private set; }
         public int                          ExpiryTime { get; private set; }
         public bool                         IsBotStopAllowed { get; private set; }
@@ -729,7 +729,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
 
                 _completionToken = new AsyncCompletionToken(StyxWoW.Me.Name,
                                                             DialogTitle,
-                                                            DialogMessage,
+                                                            DialogText,
                                                             ExpiryActionName,
                                                             ExpiryTime,
                                                             IsBotStopAllowed,

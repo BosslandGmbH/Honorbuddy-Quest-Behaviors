@@ -1,3 +1,8 @@
+// Behavior originally contributed by Nesox.
+//
+// DOCUMENTATION:
+//     
+//
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +20,6 @@ using Action = TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     /// <summary>
-    /// Original code by Nesox, modified by KaZ
     /// Allows you to use items on nearby gameobjects/npc's
     /// ##Syntax##
     /// QuestId: The id of the quest.

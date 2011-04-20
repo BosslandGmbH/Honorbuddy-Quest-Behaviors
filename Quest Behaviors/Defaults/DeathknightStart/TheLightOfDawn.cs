@@ -1,4 +1,9 @@
-﻿using System;
+﻿// Behavior originally contributed by Unknown.
+//
+// DOCUMENTATION:
+//     
+//
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
