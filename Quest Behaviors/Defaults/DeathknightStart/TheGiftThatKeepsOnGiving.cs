@@ -1,4 +1,4 @@
-﻿// Behavior originally contributed by HighVoltz.
+﻿// Behavior originally contributed by Nesox.
 //
 // DOCUMENTATION:
 //     

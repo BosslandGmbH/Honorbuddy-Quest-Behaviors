@@ -82,7 +82,7 @@ namespace Styx.Bot.Quest_Behaviors
                     // Move to the gameobject if it isn't null and we aren't withing interact range.
                     new Decorator(ret => GameObject != null && !GameObject.WithinInteractRange,
                         new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Interacting with object \"" + GameObject.Name + "\""),
+                            new Action(ret => TreeRoot.StatusText = "Moving to \"" + GameObject.Name + "\" at location " + GameObject.Location),
                             new Action(ret => Navigator.MoveTo(GameObject.Location))
                             )
                         ),

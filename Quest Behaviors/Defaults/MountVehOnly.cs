@@ -42,7 +42,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                VehicleId   = GetAttributeAsMobId("VehicleId", true, new [] { "MobMountId", "NpcMountId" }) ?? 0;
+                VehicleMountId   = GetAttributeAsMobId("VehicleMountId", true, new [] { "MobMountId", "NpcMountId" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -62,10 +62,10 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
-        public int                      VehicleId { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public int                      VehicleMountId { get; private set; }
 
         // Private variables for internal state
         private bool                _isBehaviorDone;
@@ -76,7 +76,7 @@ namespace Styx.Bot.Quest_Behaviors
         private bool                InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
         private List<WoWUnit>       VehicleList {  get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                 .Where(u => u.Entry == VehicleId && !u.Dead)
+                                                                                 .Where(u => u.Entry == VehicleMountId && !u.Dead)
                                                                                  .OrderBy(u => u.Distance).ToList());
                                              } }
 
