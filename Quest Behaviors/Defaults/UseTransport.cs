@@ -157,38 +157,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        #region Legacy XML support
-
-        private WoWPoint?   LegacyGetAttributeAsWoWPoint(string    attributeName,
-                                                         bool      isRequired,
-                                                         string[]  attributeAliases,
-                                                         string     preferredName)
-        {
-            double[]    tmpPoint    = GetAttributeAsDoubleArray(attributeName, isRequired, double.MinValue, double.MaxValue, attributeAliases);
-
-            if (tmpPoint == null)
-                { return (null); }
-
-            UtilLogMessage("warning", "The attribute '{0}' is DEPRECATED.\n"
-                                        + "Please modify the profile to use the new '{1}' attribute, instead.",
-                                        attributeName, preferredName);
-
-            if (tmpPoint.Length != 3)
-            {
-                UtilLogMessage("error", "The '{0}' attribute's value should have three"
-                                        + " coordinate contributions (saw '{1}')",
-                                        attributeName,
-                                        tmpPoint.Length);
-                IsAttributeProblem = true;
-                return (null);
-            }
-
-            return (new WoWPoint(tmpPoint[0], tmpPoint[1], tmpPoint[2]));
-        }
-
-        #endregion
-
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
