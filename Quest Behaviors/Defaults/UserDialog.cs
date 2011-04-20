@@ -629,7 +629,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         private void    BotEvents_OnBotStop(EventArgs args)
         {
             UserDialogExitProcessing(PopdownReason.UNKNOWN);
-            Dispose(true);
+            Dispose();
         }
 
 

@@ -96,7 +96,7 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
 
         public void    BotEvents_OnBotStop(EventArgs args)
         {
-             Dispose(true);
+             Dispose();
         }
 
 

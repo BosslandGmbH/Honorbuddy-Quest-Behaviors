@@ -136,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
         public void    BotEvents_OnBotStop(EventArgs args)
         {
-             Dispose(true);
+             Dispose();
         }
 
 

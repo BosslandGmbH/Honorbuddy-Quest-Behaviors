@@ -131,7 +131,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public void    BotEvents_OnBotStop(EventArgs args)
         {
-             Dispose(true);
+             Dispose();
         }
 
 

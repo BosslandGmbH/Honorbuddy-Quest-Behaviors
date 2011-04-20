@@ -113,7 +113,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
         public void    BotEvents_OnBotStop(EventArgs args)
         {
-             Dispose(true);
+             Dispose();
         }
 
 
