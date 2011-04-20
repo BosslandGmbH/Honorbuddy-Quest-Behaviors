@@ -43,7 +43,7 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                NpcId       = GetAttributeAsMobId("NpcId", false, new [] { "NpcID" }) ?? 0;
+                MobId       = GetAttributeAsMobId("MobId", false, new [] { "NpcId", "NpcID" }) ?? 0;
                 ObjectId    = GetAttributeAsMobId("ObjectId", false, new [] { "ObjectID" }) ?? 0;
                 ObjectId2   = GetAttributeAsMobId("ObjectId2", false, new [] { "ObjectID2" }) ?? 0;
                 ObjectId3   = GetAttributeAsMobId("ObjectId3", false, new [] { "ObjectID3" }) ?? 0;
@@ -69,7 +69,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
-        public int                      NpcId { get; private set; }
+        public int                      MobId { get; private set; }
         public int                      ObjectId { get; private set; }
         public int                      ObjectId2 { get; private set; }
         public int                      ObjectId3 { get; private set; }
@@ -91,7 +91,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == NpcId && !u.Dead)
+                                            .Where(u => u.Entry == MobId && !u.Dead)
                                             .OrderBy(u => u.Distance).ToList();
             }
         }
@@ -101,7 +101,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == NpcId && u.Dead && u.Lootable)
+                                            .Where(u => u.Entry == MobId && u.Dead && u.Lootable)
                                             .OrderBy(u => u.Distance).ToList();
             }
         }
