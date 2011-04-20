@@ -67,13 +67,13 @@ namespace Styx.Bot.Quest_Behaviors
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
                 MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
-                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 _NpcState   = GetAttributeAsEnum<NpcState>("NpcState", false, null) ?? NpcState.None;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
                 QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 1500;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 1500;
             }
 
 			catch (Exception except)

@@ -62,7 +62,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
                 UseType     = GetAttributeAsEnum<QBType>("UseType", false, null) ?? QBType.PointToPoint;
-                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 0;
 			}
 
 			catch (Exception except)

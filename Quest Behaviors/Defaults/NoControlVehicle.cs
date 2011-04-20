@@ -47,7 +47,7 @@ namespace Styx.Bot.Quest_Behaviors
                 NpcMountId  = GetAttributeAsMobId("NpcMountId", false, null) ?? 1;
                 MaxRange    = GetAttributeAsRange("MaxRange", false, null) ?? 1;
                 MountedPoint = WoWPoint.Empty;
-                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, new [] { "TimesToUse" }) ?? 1;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, new [] { "TimesToUse" }) ?? 1;
                 OftenToUse  = GetAttributeAsInteger("OftenToUse", false, 0, int.MaxValue, null) ?? 1000;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 SpellType   = GetAttributeAsInteger("TypeId", false, 0, 4, null) ?? 2;
@@ -55,7 +55,7 @@ namespace Styx.Bot.Quest_Behaviors
                 TargetId2   = GetAttributeAsMobId("TargetId2", false, null) ?? 0;
                 TargetId3   = GetAttributeAsMobId("TargetId3", false, null) ?? 0;
                 VehicleId   = GetAttributeAsMobId("VehicleId", false, null) ?? 0;
-                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 0;
 
                 Counter = 1;
 			}

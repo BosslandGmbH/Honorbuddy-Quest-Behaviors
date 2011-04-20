@@ -60,7 +60,7 @@ namespace Styx.Bot.Quest_Behaviors
                 MobId       = GetAttributeAsMobId("MobId", true, null) ?? 0;
                 MobId2      = GetAttributeAsMobId("MobId2", false, null) ?? 0;
                 MobId3      = GetAttributeAsMobId("MobId3", false, null) ?? 0;
-                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;

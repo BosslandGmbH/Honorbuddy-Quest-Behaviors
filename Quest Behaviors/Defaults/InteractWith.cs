@@ -66,12 +66,12 @@ namespace Styx.Bot.Quest_Behaviors
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
                 MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
                 NotMoving   = GetAttributeAsBoolean("NotMoving", false, null) ?? false;
-                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
-                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 3000;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 3000;
 
                 for (int i = 0;  i < GossipOptions.Length;  ++i)
                     { GossipOptions[i] -= 1; }

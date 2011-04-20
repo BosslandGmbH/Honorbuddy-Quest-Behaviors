@@ -42,8 +42,8 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0; 
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                WaitTime    = GetAttributeAsInteger("WaitTime", true, 1, int.MaxValue, null) ?? 1000;
-                VariantTime = GetAttributeAsInteger("VariantTime", false, 1, int.MaxValue, null) ?? 0;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", true, null) ?? 1000;
+                VariantTime = GetAttributeAsWaitTime("VariantTime", false, null) ?? 0;
 			}
 
 			catch (Exception except)

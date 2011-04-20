@@ -84,13 +84,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // ...and also used for IsDone processing.
                 AllowCombat = GetAttributeAsBoolean("AllowCombat", false, new [] { "Combat" }) ?? true;
                 MobId       = GetAttributeAsMobId("MobId", false, new [] { "NpcId" }) ?? 0;
-                NumOfTimes = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                NumOfTimes = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 15;
                 UseCtm      = GetAttributeAsBoolean("UseCtm", false, new [] { "UseCTM" }) ?? false;
-                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 0;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 0;
 
                 _lastStateReturn = RunStatus.Success;
 			}

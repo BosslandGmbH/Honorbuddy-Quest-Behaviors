@@ -28,7 +28,7 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 CastOnItemId    = GetAttributeAsItemId("CastOnItemId", false, null) ?? 0;
-                NumOfTimes      = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, new [] { "NumTimes" }) ?? 1;
+                NumOfTimes      = GetAttributeAsNumOfTimes("NumOfTimes", false, new [] { "NumTimes" }) ?? 1;
                 QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;

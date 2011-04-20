@@ -48,7 +48,7 @@ namespace Styx.Bot.Quest_Behaviors
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
                 NpcHasAuraId = GetAttributeAsSpellId("NpcHasAuraId", false, new [] { "NpcHasAura" }) ?? 0;
                 NpcHpLeft   = GetAttributeAsInteger("NpcHpLeft", false, 0, int.MaxValue, new [] { "NpcHPLeft" }) ?? 0;
-                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
 			}
 

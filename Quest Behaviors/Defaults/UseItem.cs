@@ -35,9 +35,9 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
                 Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? WoWPoint.Empty;
-                NumOfTimes  = GetAttributeAsInteger("NumOfTimes", false, 1, 1000, null) ?? 1;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                WaitTime    = GetAttributeAsInteger("WaitTime", false, 1, int.MaxValue, null) ?? 1500;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 1500;
 			}
 
 			catch (Exception except)
