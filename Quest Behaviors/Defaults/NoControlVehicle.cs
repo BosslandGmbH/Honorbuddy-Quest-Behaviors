@@ -16,7 +16,9 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;
+using Tripper.Tools.Math;
 using Action = TreeSharp.Action;
+using System.Globalization;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -96,6 +98,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      WaitTime { get; private set; }
         public int                      VehicleId { get; private set; }
         public int                      VehicleMountId { get; private set; }
+        public List<int> NpcIds { get; set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
@@ -246,11 +249,16 @@ namespace Styx.Bot.Quest_Behaviors
                                     }
                                     Random rnd = new Random();
                                     int r = rnd.Next(NpcList.Count);
-                                    NpcList[r].Target();
-                                    WoWMovement.ClickToMove(NpcList[r].Location);
+                                    var npc = NpcList[r];
+                                    npc.Target();
+                                    npc.Face();
 
-                                    Random rand = new Random();
-                                    Lua.DoString("VehicleAimRequestNormAngle({0})", 0.1 + (rand.NextDouble() * (0.6 - 0.1)));
+                                    Vector3 v = npc.Location - StyxWoW.Me.Location;
+                                    v.Normalize();
+                                    Lua.DoString(string.Format(
+                                        "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);",
+                                        Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
+
                                     Lua.DoString("CastPetAction({0})", AttackButton);
                                     Thread.Sleep(WaitTime);
                                     Counter++;

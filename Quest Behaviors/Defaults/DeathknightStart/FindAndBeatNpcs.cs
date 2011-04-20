@@ -110,7 +110,8 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(c =>
                         {
                             if (!Npc.Attackable)
-                                Styx.Logic.Blacklist.Add(Npc.Guid,new System.TimeSpan(0,5,0));
+                                Blacklist.Add(Npc.Guid,new TimeSpan(0,5,0));
+
                             if ((Me.Combat && (Me.GotTarget && Me.CurrentTarget != Npc && 
                                 (Me.CurrentTarget.Entry != MobId || Me.CurrentTarget.Entry != MobId2 || Me.CurrentTarget.Entry != MobId3 ))
                                 || Me.HealthPercent < HealthPercent) || IsDone)
@@ -133,10 +134,10 @@ namespace Styx.Bot.Quest_Behaviors
                                 }
                                 else
                                     lootable.Interact();
-                                if (Styx.Logic.Inventory.Frames.LootFrame.LootFrame.Instance != null &&
-                                    Styx.Logic.Inventory.Frames.LootFrame.LootFrame.Instance.IsVisible)
+                                if (Logic.Inventory.Frames.LootFrame.LootFrame.Instance != null &&
+                                    Logic.Inventory.Frames.LootFrame.LootFrame.Instance.IsVisible)
                                 {
-                                    Styx.Logic.Inventory.Frames.LootFrame.LootFrame.Instance.LootAll();
+                                    Logic.Inventory.Frames.LootFrame.LootFrame.Instance.LootAll();
                                     if (Me.GotTarget)
                                         Blacklist.Add(Me.CurrentTarget,new System.TimeSpan(1,0,0));
                                     Me.ClearTarget();

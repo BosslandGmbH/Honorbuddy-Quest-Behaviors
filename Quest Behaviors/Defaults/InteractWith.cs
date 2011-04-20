@@ -60,6 +60,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
+                WaitForNpcs = GetAttributeAsBoolean("WaitForNpcs", false, null) ?? true;
                 BuyItemCount = GetAttributeAsInteger("BuyItemCount", false, 1, 1000, null) ?? 1;
                 BuyItemId   = GetAttributeAsItemId("BuyItemId", false, null) ?? 0;
                 BuySlot     = GetAttributeAsInteger("BuySlot", false, -1, 100, null) ?? -1;
@@ -122,6 +123,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      Range { get; private set; }
         public int                      WaitTime { get; private set; }
+        public bool                     WaitForNpcs { get; private set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
@@ -261,6 +263,10 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Sequence(
                                     new Action(ret => { TreeRoot.StatusText = "Moving towards - " + Location; }),
                                     new Action(ret => Navigator.MoveTo(Location)))),
+
+                            new Decorator(
+                                ret => !WaitForNpcs && CurrentObject == null,
+                                new Action(ret => _isBehaviorDone = true)),
 
                             new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")
 
