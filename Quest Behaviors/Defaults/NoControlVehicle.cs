@@ -262,56 +262,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             Counter++;
                                             return RunStatus.Success;         
                                         }))))),
-                        //new Action(c =>
-                        //{
-                        //    if (NpcList.Count >= 1)
-                        //    {
-                        //        TreeRoot.StatusText = "Attacking: " + NpcList[0].Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
-                        //        if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
-                        //        {
-                        //            Lua.DoString("VehicleExit()");
-                        //            _isBehaviorDone = true;
-                        //            return RunStatus.Success;
-                        //        }
-
-                        //        var npc = NpcList.OrderBy(u => u.DistanceSqr).FirstOrDefault();
-
-                        //        if (npc == null)
-                        //        {
-                        //            Me.ClearTarget();
-                        //            return RunStatus.Success;
-                        //        }
-
-                        //        if (Me.CurrentTarget == null || Me.CurrentTarget != npc)
-                        //        {
-                        //            npc.Target();
-                        //            StyxWoW.SleepForLagDuration();
-                        //        }
-
-                        //        if (Me.CurrentTarget == null)
-                        //            return RunStatus.Success;
-
-                        //        if (!Me.Transport.IsSafelyFacing(Me.CurrentTarget, 20))
-                        //        {
-                        //            Me.CurrentTarget.Face();
-                        //            return RunStatus.Success;
-                        //        }
-
-                        //        Vector3 v = Me.CurrentTarget.Location - StyxWoW.Me.Location;
-                        //        v.Normalize();
-                        //        Lua.DoString(string.Format(
-                        //            "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);",
-                        //            Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
-
-                        //        Lua.DoString("CastPetAction({0})", AttackButton);
-                        //        StyxWoW.SleepForLagDuration();
-                        //        Thread.Sleep(WaitTime);
-                        //        Counter++;
-                        //        return RunStatus.Success;
-                        //    }
-                        //    return RunStatus.Running;
-                        //})),
-
+          
                     new Decorator(c => InVehicle && SpellType == 4,
                         new Action(c =>
                         {
