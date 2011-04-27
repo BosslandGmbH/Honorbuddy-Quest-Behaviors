@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Inventory.Frames.LootFrame;
@@ -69,7 +68,7 @@ namespace Styx.Bot.Quest_Behaviors
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 Loot        = GetAttributeAsBoolean("Loot", false, null) ?? false;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
-                MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
+                ObjType     = GetAttributeAsEnum<ObjectType>("ObjectType", false, new [] { "MobType" }) ?? ObjectType.Npc;
                 NotMoving   = GetAttributeAsBoolean("NotMoving", false, null) ?? false;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
@@ -115,7 +114,7 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     Loot { get; private set; }
         public int                      MobId { get; private set; }
         public string                   MobName { get; private set; }
-        public ObjectType               MobType { get; private set; }
+        public ObjectType               ObjType { get; private set; }
         public bool                     NotMoving { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
@@ -143,7 +142,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 bool test = ObjectManager.GetObjectsOfType<WoWGameObject>().Any(delegate(WoWGameObject obj) { return obj.Entry == 191092; });
                 WoWObject @object = null;
-                switch (MobType)
+                switch (ObjType)
                 {
                     case ObjectType.GameObject:
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>

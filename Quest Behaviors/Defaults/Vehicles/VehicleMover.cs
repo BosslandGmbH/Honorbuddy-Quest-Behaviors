@@ -60,8 +60,8 @@ namespace Styx.Bot.Quest_Behaviors
                 SpellId         = GetAttributeAsSpellId("SpellId", false, new [] { "SpellID" }) ?? 0;
                 UseNavigator    = GetAttributeAsBoolean("UseNavigator", false, null) ?? true;
                 VehicleId       = GetAttributeAsMobId("VehicleId", true, new [] { "VehicleID"}) ?? 0;
-                VehicleId2      = GetAttributeAsMobId("VehicleId2", false, null) ?? 0;
-                VehicleId3      = GetAttributeAsMobId("VehicleId3", false, null) ?? 0;
+                VehicleId2 = GetAttributeAsMobId("VehicleId2", false, new[] { "VehicleID2" }) ?? 0;
+                VehicleId3 = GetAttributeAsMobId("VehicleId3", false, new[] { "VehicleID3" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -256,7 +256,6 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(c => Vehicle == null,
                         new Action(c =>
                         {
-                            UtilLogMessage("fatal", "No Vehicle matching ID was found, ending QB");
                             return RunStatus.Failure;
                         })),
                     new Action(c =>
@@ -284,7 +283,6 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(c =>
                         {
                             WoWUnit vehicle = Vehicle;
-                            UtilLogMessage("info", "Generating Path from {0} to {1}", vehicle.Location, Location);
                             Path = Navigator.GeneratePath(vehicle.Location, Location);
                             if (Path == null || Path.Length == 0)
                                 { UtilLogMessage("fatal", "Unable to genorate path to {0}", Location); }
