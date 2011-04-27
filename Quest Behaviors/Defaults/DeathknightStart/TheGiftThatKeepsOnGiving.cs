@@ -54,7 +54,7 @@ namespace Styx.Bot.Quest_Behaviors
                 int?    tmpHasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" });
 
                 AuraName    = "";       // populated below
-                CollectionDistance  = GetAttributeAsInteger("CollectionDistance", false, 1, 100000, null) ?? 0;
+                CollectionDistance  = GetAttributeAsInteger("CollectionDistance", false, 1, 100000, null) ?? 100;
                 HasGroundTarget = GetAttributeAsBoolean("HasGroundTarget", false, null) ?? false;
                 InteractRange   = GetAttributeAsDouble("InteractRange", false, 1.0, 100.0, null) ?? 4.5;
                 IsDead      = GetAttributeAsBoolean("IsDead", false, null) ?? false;
@@ -137,7 +137,7 @@ namespace Styx.Bot.Quest_Behaviors
         bool ObjCheck(WoWObject obj, int id)
         {
             bool ret = false;
-            if (obj.Entry == id && obj.Distance <= CollectionDistance &&
+            if (obj.Entry == id && obj.Distance <= CollectionDistance && obj.InLineOfSightOCD &&
                 !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
             {
                 ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit) obj).Dead) &&
