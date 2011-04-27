@@ -148,7 +148,8 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => MobList[0].Face()),
                                         new Action(ret => Thread.Sleep(100)),
                                         new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
-                                        new Action(ret => Thread.Sleep(100))
+                                        new Action(ret => Thread.Sleep(2000)),
+                                        new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards))
                                         ))
                                 ))
                 )));
