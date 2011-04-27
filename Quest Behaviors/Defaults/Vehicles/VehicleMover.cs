@@ -59,7 +59,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 SpellId         = GetAttributeAsSpellId("SpellId", false, new [] { "SpellID" }) ?? 0;
                 UseNavigator    = GetAttributeAsBoolean("UseNavigator", false, null) ?? true;
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+                VehicleId       = GetAttributeAsMobId("VehicleId", true, new [] { "VehicleID"}) ?? 0;
                 VehicleId2      = GetAttributeAsMobId("VehicleId2", false, null) ?? 0;
                 VehicleId3      = GetAttributeAsMobId("VehicleId3", false, null) ?? 0;
 			}
