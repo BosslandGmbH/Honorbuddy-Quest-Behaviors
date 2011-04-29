@@ -1,7 +1,20 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicInteractWith
+//
+// QUICK DOX:
+//     Allows you to Interact with Mobs that are nearby.
+//
+//   Parameters:
+//     MobId: Id of the Mob to interact with.
+//     FactionId[Optional, Default:any faction]: The faction the mobs needs to be before interacting
+//     MoveTo[Optional, Default:false]: Will move to the Mob Location
+//     QuestId[Optional, Default:none]: Id of the quest
+//     QuestCompleteRequirement[Optional, Default:NotComplete]: described in http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//     QuestInLogRequirement[Optional, Default:InLog]: described in http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//     UseLuaTarget[Optional, Default:false]: Should be used for those Mobs that are inside vehicles
+//          and return a location of 0,0,0
 //
 using System;
 using System.Collections.Generic;
@@ -21,17 +34,6 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class BasicInteractWith : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to Interact with Mobs that are Nearby.
-        /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// NpcId: Id of the Mob to interact with.
-        /// UseCTM, MoveTo(Optional): Will move to the Npc Location
-        /// LUATarget: Should be used for those Mobs that are inside vehicles and return a location of 0,0,0
-        /// Faction: The faction the mobs needs to be before interacting
-        /// X,Y,Z: The general location where theese objects can be found
-        /// </summary>       
-        /// 
         public BasicInteractWith(Dictionary<string, string> args)
             : base(args)
         {
