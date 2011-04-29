@@ -31,7 +31,7 @@ namespace Styx.Bot.Quest_Behaviors
         /// QuestId: Id of the quest.
         /// NpcMountID: MobId of the vehicle before it is mounted.
         /// VehicleId: Between 0 - 99 The lower the number the closer to the ground it will be
-        /// TargetId, TargetId2, TargetId3: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
+        /// TargetId, TargetId2, ...TargetIdN: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
         /// SpellIndex: Button bar Number starting from 1 
         /// OftenToUse: This is used for a few quests that the mob is flying but respawns fast, So the bot can fire in the same spot over and over.
         /// TimesToUse: Where you want to be at when you fire.
@@ -56,9 +56,7 @@ namespace Styx.Bot.Quest_Behaviors
                 OftenToUse  = GetAttributeAsInteger("OftenToUse", false, 0, int.MaxValue, null) ?? 1000;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 SpellType   = GetAttributeAsInteger("TypeId", false, 0, 4, null) ?? 2;
-                TargetId    = GetAttributeAsMobId("TargetId", true, new [] { "MobId", "NpcId" }) ?? 0;
-                TargetId2   = GetAttributeAsMobId("TargetId2", false, null) ?? 0;
-                TargetId3   = GetAttributeAsMobId("TargetId3", false, null) ?? 0;
+                TargetIds   = GetNumberedAttributesAsIntegerArray("TargetId", 1, 1, int.MaxValue, new [] { "MobId", "NpcId" }) ?? new int[0];
                 VehicleId   = GetAttributeAsMobId("VehicleId", false, null) ?? 0;
                 VehicleMountId  = GetAttributeAsMobId("VehicleMountId", false, new [] { "NpcMountId", "NpcMountID" }) ?? 1;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 0;
@@ -91,9 +89,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      AttackButton { get; private set; }
         public int                      SpellType { get; private set; }
-        public int                      TargetId { get; private set; }
-        public int                      TargetId2 { get; private set; }
-        public int                      TargetId3 { get; private set; }
+        public int[]                    TargetIds { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      WaitTime { get; private set; }
         public int                      VehicleId { get; private set; }
@@ -115,12 +111,14 @@ namespace Styx.Bot.Quest_Behaviors
                 if (VehicleList.Count > 0)
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && VehicleList[0].Location.Distance(u.Location) <= MaxRange)
+                                            .Where(u => TargetIds.Contains((int)u.Entry)
+                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange))
                                             .OrderBy(u => u.Distance)
                                             .ToList());
                 }
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => (u.Entry == TargetId || u.Entry == TargetId2 || u.Entry == TargetId3) && !u.Dead).OrderBy(u => u.Distance)
+                                        .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
+                                        .OrderBy(u => u.Distance)
                                         .ToList());
             } 
         }

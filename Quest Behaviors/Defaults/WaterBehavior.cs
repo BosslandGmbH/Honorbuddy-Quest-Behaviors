@@ -43,10 +43,8 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobId       = GetAttributeAsMobId("MobId", false, new [] { "NpcId", "NpcID" }) ?? 0;
-                ObjectId    = GetAttributeAsMobId("ObjectId", false, new [] { "ObjectID" }) ?? 0;
-                ObjectId2   = GetAttributeAsMobId("ObjectId2", false, new [] { "ObjectID2" }) ?? 0;
-                ObjectId3   = GetAttributeAsMobId("ObjectId3", false, new [] { "ObjectID3" }) ?? 0;
+                MobId       = GetAttributeAsMobId("MobMountId", false, new [] { "MobId", "NpcId", "NpcID" }) ?? 0;
+                ObjectIds   = GetNumberedAttributesAsIntegerArray("ObjectId", 0, 1, int.MaxValue, new [] { "ObjectID" }) ?? new int[0];
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -70,9 +68,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
         public int                      MobId { get; private set; }
-        public int                      ObjectId { get; private set; }
-        public int                      ObjectId2 { get; private set; }
-        public int                      ObjectId3 { get; private set; }
+        public int[]                    ObjectIds { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -102,7 +98,8 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
                                             .Where(u => u.Entry == MobId && u.Dead && u.Lootable)
-                                            .OrderBy(u => u.Distance).ToList();
+                                            .OrderBy(u => u.Distance)
+                                            .ToList();
             }
         }
 
@@ -111,8 +108,9 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWGameObject>()
-                                        .Where(u => (u.Entry == ObjectId || u.Entry == ObjectId2 || u.Entry == ObjectId3) && !u.InUse && !u.IsDisabled)
-                                        .OrderBy(u => u.Distance).ToList();
+                                        .Where(u => ObjectIds.Contains((int)u.Entry) && !u.InUse && !u.IsDisabled)
+                                        .OrderBy(u => u.Distance)
+                                        .ToList();
             }
         }
 

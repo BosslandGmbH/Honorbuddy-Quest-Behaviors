@@ -23,9 +23,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// <summary>
     /// Moves to location while in a vehicle
     /// ##Syntax##
-    /// VehicleID: ID of the vehicle
-    /// VehicleID2: (optional) ID of  vehicle , usefully if a vehicle has multiple ids
-    /// VehicleID3: (optional) ID of  vehicle , usefully if a vehicle has multiple ids
+    /// VehicleId, VehicleId2, ...VehicleIdN [CountRequired:1]: ID of the vehicle (sometimes the 'same' vehicle may have multiple IDs)
     /// UseNavigator: (optional) true/false. Setting to false will use Click To Move instead of the Navigator. Default true
     /// Precision: (optional) This behavior moves on to the next waypoint when at Precision distance or less to current waypoint. Default 4;
     /// MobID: (optional) NPC ID to cast spell on to cast spell on.. not required even if you specify a spellID
@@ -59,9 +57,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 SpellId         = GetAttributeAsSpellId("SpellId", false, new [] { "SpellID" }) ?? 0;
                 UseNavigator    = GetAttributeAsBoolean("UseNavigator", false, null) ?? true;
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, new [] { "VehicleID"}) ?? 0;
-                VehicleId2 = GetAttributeAsMobId("VehicleId2", false, new[] { "VehicleID2" }) ?? 0;
-                VehicleId3 = GetAttributeAsMobId("VehicleId3", false, new[] { "VehicleID3" }) ?? 0;
+                VehicleIds      = GetNumberedAttributesAsIntegerArray("VehicleId", 1, 1, int.MaxValue, new [] { "VehicleID" }) ?? new int[0];
 			}
 
 			catch (Exception except)
@@ -92,9 +88,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      SpellId { get; private set; }
         public bool                     UseNavigator { get; private set; }
-        public int                      VehicleId { get; private set; }
-        public int                      VehicleId2 { get; private set; }
-        public int                      VehicleId3 { get; private set; }
+        public int[]                    VehicleIds { get; private set; }
 
         private int             _castCounter;
         private bool            _casted = false;
@@ -117,9 +111,10 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == VehicleId ||
-                    (VehicleId2 > 0 && o.Entry == VehicleId2) || (VehicleId3 > 0 && o.Entry == VehicleId3)).
-                    OrderBy(o => o.Distance).FirstOrDefault();
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                    .Where(o => VehicleIds.Contains((int)o.Entry))
+                                    .OrderBy(o => o.Distance)
+                                    .FirstOrDefault();
             }
         }
 
@@ -334,9 +329,9 @@ namespace Styx.Bot.Quest_Behaviors
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
 
-                TreeRoot.StatusText = string.Format("{0}: {1} while in Vehicle with ID {2} using {3}",
+                TreeRoot.StatusText = string.Format("{0}: {1} while in VehicleId({2}) using {3}",
                                                     this.GetType().Name,
-                                                    Location, VehicleId, UseNavigator ? "Navigator" : "Click-To-Move");
+                                                    Location, VehicleIds[0], UseNavigator ? "Navigator" : "Click-To-Move");
             }
         }
 

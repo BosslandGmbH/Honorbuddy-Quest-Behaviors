@@ -25,9 +25,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// <summary>
     /// Finds Npc's that match MobId,MobId2 or MobId3 and beats them up using AutoAttack. useful for a dk quest
     /// ##Syntax##
-    /// MobId: Id of the NPC
-    /// MobId2:(Optional) Id of a NPC
-    /// MobId3:(Optional) Id of a NPC
+    /// MobId, MobId2, ...MobIdN[CountRequired:1]: Id of the NPC
     /// QuestId:Id of the quest to perform this Behavior on. This behavior will finish is the quest is complete. 
     /// HealthPercent(Optional) Health Present to stop autoattack at and let CC take over: Default: 25
     /// X,Y,Z: The location where you want to move to
@@ -45,9 +43,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 HealthPercent   = GetAttributeAsInteger("HealthPercent", false, 0, 99, null) ?? 25;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobId       = GetAttributeAsMobId("MobId", true, null) ?? 0;
-                MobId2      = GetAttributeAsMobId("MobId2", false, null) ?? 0;
-                MobId3      = GetAttributeAsMobId("MobId3", false, null) ?? 0;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, null) ?? new int[0];
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -71,9 +67,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Attributes provided by caller
         public int                      HealthPercent { get; private set; }
         public WoWPoint                 Location { get; private set; }
-        public int                      MobId { get; private set; }
-        public int                      MobId2 { get; private set; }
-        public int                      MobId3 { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -93,9 +87,7 @@ namespace Styx.Bot.Quest_Behaviors
                                      .FirstOrDefault(o => !o.Dead
                                                      && !Blacklist.Contains(o.Guid)
                                                      && (!o.GotTarget|| o.IsTargetingMeOrPet)
-                                                     && ((o.Entry == MobId)
-                                                         || (MobId2 > 0 && o.Entry == MobId2)
-                                                         || (MobId3 > 0 && o.Entry == MobId3))));
+                                                     && MobIds.Contains((int)o.Entry)));
             }
         }
 
@@ -112,8 +104,7 @@ namespace Styx.Bot.Quest_Behaviors
                             if (!Npc.Attackable)
                                 Blacklist.Add(Npc.Guid,new TimeSpan(0,5,0));
 
-                            if ((Me.Combat && (Me.GotTarget && Me.CurrentTarget != Npc && 
-                                (Me.CurrentTarget.Entry != MobId || Me.CurrentTarget.Entry != MobId2 || Me.CurrentTarget.Entry != MobId3 ))
+                            if ((Me.Combat && (Me.GotTarget && Me.CurrentTarget != Npc && !MobIds.Contains((int)Me.CurrentTarget.Entry))
                                 || Me.HealthPercent < HealthPercent) || IsDone)
                             {
                                 return RunStatus.Success;

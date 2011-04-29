@@ -27,9 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// Allows you to use items on nearby gameobjects/npc's
     /// ##Syntax##
     /// [Optional]QuestId: The id of the quest.
-    /// MobId The id of the object.
-    /// [Optional]MobId2: The id of a 2nd object.
-    /// [Optional]MobId3: The id of a 3rd object.
+    /// MobId, MobId2, ...MobIdN [CountRequired:1]: The id of the object.
     /// ItemId: The id of the item to use.
     /// [Optional]NumOfTimes: Number of times to use said item.
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:10000 yards( some NPCs can be view further then 100 yards)
@@ -61,9 +59,7 @@ namespace Styx.Bot.Quest_Behaviors
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MinionCount = GetAttributeAsInteger("MinionCount", false, 0, int.MaxValue, null) ?? 0;
-                MobId       = GetAttributeAsMobId("MobId", true, null) ?? 0;
-                MobId2      = GetAttributeAsMobId("MobId2", false, null) ?? 0;
-                MobId3      = GetAttributeAsMobId("MobId3", false, null) ?? 0;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, null) ?? new int[0];
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -103,9 +99,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public int                      MinionCount { get; private set; }
-        public int                      MobId { get; private set; }
-        public int                      MobId2 { get; private set; }
-        public int                      MobId3 { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -127,17 +121,18 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return
-                    ObjectManager.GetObjectsOfType<WoWObject>(true).Where(
-                    o => ObjCheck(o, MobId) || (MobId2 > 0 && ObjCheck(o, MobId2)) || (MobId3 > 0 && ObjCheck(o, MobId3))).OrderBy(o => 
-                        o.Distance).FirstOrDefault();
+                    ObjectManager.GetObjectsOfType<WoWObject>(true)
+                                .Where(o => ObjCheck(o, MobIds))
+                                .OrderBy(o => o.Distance)
+                                .FirstOrDefault();
             }
         }
 
 
-        bool ObjCheck(WoWObject obj, int id)
+        bool ObjCheck(WoWObject obj, int[] ids)
         {
             bool ret = false;
-            if (obj.Entry == id && obj.Distance <= CollectionDistance && obj.InLineOfSightOCD &&
+            if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSightOCD &&
                 !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
             {
                 ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit) obj).Dead) &&
