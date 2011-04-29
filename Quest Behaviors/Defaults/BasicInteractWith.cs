@@ -41,9 +41,6 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 FactionId   = GetAttributeAsInteger("FactionId", false, 1, int.MaxValue, new [] { "Faction" }) ?? 0;
                 IsMoveToMob = GetAttributeAsBoolean("MoveTo", false, new [] { "UseCTM" }) ?? false;;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId", "NpcID" })  ?? 0;
