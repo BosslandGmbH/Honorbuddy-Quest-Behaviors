@@ -1,6 +1,20 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
+//
+// QUICK DOX:
+//     Allows you to abandon a quest in your quest log.
+// Parameters:
+//     QuestId: The id of the quest.
+//     Type: 
+//         All:        abandon quest if its in log regardless of status
+//         Failed:     abandon quest only if failed
+//         Incomplete: abandon incomplete quests (failed and any not complete)  
+// Examples:   
+//     <CustomBehavior File="AbandonQuest" QuestId="25499" />
+//     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="All" />
+//     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Failed" />
+//     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Incomplete" />
 //
 using System;
 using System.Collections.Generic;
@@ -11,20 +25,6 @@ using Styx.Logic.Questing;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    /// <summary>
-    /// Allows you to abandon a quest in your quest log
-    /// ##Syntax##
-    /// QuestId: The id of the quest.
-    /// Type: 
-    ///     All:        abandon quest if its in log regardless of status
-    ///     Failed:     abandon quest only if failed
-    ///     Incomplete: abandon incomplete quests (failed and any not complete)  
-    ///    
-    ///     <CustomBehavior File="AbandonQuest" QuestId="25499" />
-    ///     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="All" />
-    ///     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Failed" />
-    ///     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Incomplete" />
-    /// </summary>
     public class AbandonQuest : CustomForcedBehavior
     {
         public enum AbandonType
@@ -46,7 +46,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Type    = GetAttributeAsEnum<AbandonType>("Type", true, null) ?? AbandonType.Incomplete;
+                Type    = GetAttributeAsEnum<AbandonType>("Type", false, null) ?? AbandonType.Incomplete;
             }
 
 			catch (Exception except)
