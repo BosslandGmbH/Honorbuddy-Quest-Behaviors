@@ -79,7 +79,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public List<WoWUnit>        MobList { get  { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+        private List<WoWUnit>       MobList { get  { return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                                                     .Where(u => (u.Entry == MobId || u.Entry == MobId2 || u.Entry == MobId3) && !u.Dead)
                                                                     .OrderBy(u => u.Distance).ToList());
                                             }}
