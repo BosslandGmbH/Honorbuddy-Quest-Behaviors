@@ -59,7 +59,6 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                WaitForNpcs = GetAttributeAsBoolean("WaitForNpcs", false, null) ?? true;
                 BuyItemCount = GetAttributeAsInteger("BuyItemCount", false, 1, 1000, null) ?? 1;
                 BuyItemId   = GetAttributeAsItemId("BuyItemId", false, null) ?? 0;
                 BuySlot     = GetAttributeAsInteger("BuySlot", false, -1, 100, null) ?? -1;
@@ -75,6 +74,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
+                WaitForNpcs = GetAttributeAsBoolean("WaitForNpcs", false, null) ?? true;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 3000;
 
                 for (int i = 0;  i < GossipOptions.Length;  ++i)
@@ -121,8 +121,8 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      Range { get; private set; }
-        public int                      WaitTime { get; private set; }
         public bool                     WaitForNpcs { get; private set; }
+        public int                      WaitTime { get; private set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
