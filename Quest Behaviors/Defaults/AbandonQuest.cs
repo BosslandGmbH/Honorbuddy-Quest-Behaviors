@@ -1,16 +1,20 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
 // WIKI DOCUMENTATION:
+//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_AbandonQuest
 //
 // QUICK DOX:
 //     Allows you to abandon a quest in your quest log.
-// Parameters:
+//
+//   Parameters:
 //     QuestId: The id of the quest.
-//     Type: 
+//     Type[Optional, Default:Incomplete]: The state in which the quest must reside for the abandon
+//       to succeed.  The allowed values for this attribute are:
 //         All:        abandon quest if its in log regardless of status
 //         Failed:     abandon quest only if failed
 //         Incomplete: abandon incomplete quests (failed and any not complete)  
-// Examples:   
+//
+//   Examples:   
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="All" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Failed" />
