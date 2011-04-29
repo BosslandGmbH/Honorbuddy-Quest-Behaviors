@@ -8,13 +8,15 @@
 //
 //   Parameters:
 //     MobId: Id of the Mob to interact with.
-//     FactionId[Optional, Default:any faction]: The faction the mobs needs to be before interacting
-//     MoveTo[Optional, Default:false]: Will move to the Mob Location
-//     QuestId[Optional, Default:none]: Id of the quest
-//     QuestCompleteRequirement[Optional, Default:NotComplete]: described in http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-//     QuestInLogRequirement[Optional, Default:InLog]: described in http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//     FactionId[Optional, Default:any faction]: The faction the mobs needs to be before interacting.
+//     MoveTo[Optional, Default:false]: "true" causes the behavior to move to the mob's Location.
+//     QuestId[Optional, Default:none]:
+//     QuestCompleteRequirement[Optional, Default:NotComplete]:
+//     QuestInLogRequirement[Optional, Default:InLog]:
+//          A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //     UseLuaTarget[Optional, Default:false]: Should be used for those Mobs that are inside vehicles
-//          and return a location of 0,0,0
+//          or otherwise return a location near 0,0,0
 //
 using System;
 using System.Collections.Generic;
