@@ -1,7 +1,37 @@
 // Behavior originally contributed by Raphus.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CombatUseItemOn
+//
+// QUICK DOX:
+//      Uses an item on a target while the toon is in combat.   The caller can determine at what point
+//      in combat the item will be used:
+//          * When the target's health drops below a certain percentage
+//          * When the target is casting a particular spell
+//          * When the target gains a particular aura
+//          * When the toon gains a particular aura
+//          * one or more of the above happens
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      ItemId: Id of the item to use on the targets.
+//      MobId: Id of the targets on which to use the item.
+//      X, Y, Z: world-coordinates of the general location where the targets can be found.
+//
+//      CastingSpellId [Default:none]: waits for the target to be casting this spell before using the item.
+//      HasAuraId [Default:none]: waits for the toon to acquire this aura before using the item.
+//      MobHasAuraId [Default:none]: waits for the target to acquire this aura before using the item.
+//      MobHpPercentLeft [Default:0 percent]: waits for the target's hitpoints to fall below this percentage
+//              before using the item.
+//
+//      NumOfTimes [Default:1]: number of times to use the item on a viable target
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//
+//  Notes:
+//      * One or more of CastingSpellId, HasAuraId, MobHasAuraId, or MobHpPercentLeft must be specified.
 //
 using System;
 using System.Collections.Generic;
@@ -22,38 +52,31 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class CombatUseItemOn : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use an Item after you gain an Aura.
-        /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// ItemId: Id of the Item you wish to use once you have an aura.
-        /// HasAura: Aura ID of the aura on you when to use the item
-        /// NpcHasAura: Aura ID of the aura on npc when to use the item
-        /// NpcHPLeft: Hp of the npc when to use the item
-        /// CastingSpellId: Spell ID of the spell that npc is casting when to use the item
-        /// NpcId: NpcID of the mob that will attack you.
-        /// NumOfTimes: How times needed to use the item.
-        /// X,Y,Z: The general location where these objects can be found
-        /// </summary>
-        /// 
         public CombatUseItemOn(Dictionary<string, string> args)
             : base(args)
         {
 
 			try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 CastingSpellId = GetAttributeAsSpellId("CastingSpellId", false, null) ?? 0;
                 HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
-                NpcHasAuraId = GetAttributeAsSpellId("NpcHasAuraId", false, new [] { "NpcHasAura" }) ?? 0;
-                NpcHpLeft   = GetAttributeAsInteger("NpcHpLeft", false, 0, int.MaxValue, new [] { "NpcHPLeft" }) ?? 0;
+                NpcHasAuraId = GetAttributeAsSpellId("MobHasAuraId", false, new [] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
+                NpcHpPercentLeft = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+
+                // semantic coherency checks --
+                if ((CastingSpellId == 0) && (HasAuraId == 0) && (NpcHasAuraId == 0) && (NpcHpPercentLeft == 0))
+                {
+                    UtilLogMessage("error", "One or more of the following attributes must be specified:\n"
+                                            + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
+                    IsAttributeProblem = true;
+                }
 			}
 
 			catch (Exception except)
@@ -78,7 +101,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint                 Location { get; private set; }
         public int                      MobId { get; private set; }
         public int                      NpcHasAuraId { get; private set; }
-        public int                      NpcHpLeft { get; private set; }
+        public int                      NpcHpPercentLeft { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -147,7 +170,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     new Decorator(
                                         ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
                                                (NpcHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == NpcHasAuraId)) ||
-                                               (NpcHpLeft != 0 && Me.CurrentTarget.HealthPercent <= NpcHpLeft) ||
+                                               (NpcHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= NpcHpPercentLeft) ||
                                                (HasAuraId != 0 && Me.Auras.Values.Any(a => a.SpellId == HasAuraId)),
                                         new PrioritySelector(
                                             new Decorator(

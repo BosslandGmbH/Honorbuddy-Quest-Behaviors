@@ -1,7 +1,22 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicVehicleBehavior
+//
+// QUICK DOX:
+//      Allows you to Interact with (e.g., 'right-click') mobs that are nearby.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      MountX, MountY, MountZ:     world-coordinates where the toon should be standing to enter the vehicle
+//      VehicleId:  Id of the Vehicle we seek to mount
+//      X, Y, Z:    world-coordinates for the vehicle's destination.
+//
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      SpellId [Default:none]: Spell to cast (if any) once the vehicle arrives at its destination
 //
 using System;
 using System.Collections.Generic;
@@ -28,9 +43,6 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 LocationDest    = GetXYZAttributeAsWoWPoint("", true, new [] { "Dest" }) ?? WoWPoint.Empty;
                 LocationMount   = GetXYZAttributeAsWoWPoint("Mount", true, null) ?? WoWPoint.Empty;
                 QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;

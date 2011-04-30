@@ -1,7 +1,26 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CastSpellOn
+//
+// QUICK DOX:
+//      Allows you to cast a specific spell on a target.  Useful for training dummies and starting quests.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      MobId: Id of the target (NPC or Object) on which the spell should be cast.
+//      SpellId: Spell that should be used to cast on the target
+//      X,Y,Z: The general location where the targets can be found.
+//
+//      HpLeftAmount [Default:110 hitpoints]: How low the hitpoints on the target should be before attempting
+//              to cast a spell on the target.   Note this is an absolute value, and not a percentage.
+//      MinRange [Default:3 yards]: minimum distance from the target at which a cast attempt shoudl be made.
+//      NumOfTimes [Default:1]: The number of times to perform th casting action on viable targets in the area.
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      Range [Default:25 yards]: maximum distance from the target at which a cast attempt should be made.
 //
 using System;
 using System.Collections.Generic;
@@ -23,26 +42,11 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class CastSpellOn : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use a Specific Spell on a Target, useful for Dummies and Starting Quests.
-        /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// SpellId: Spell you wish to cast on the Target
-        /// NumOfTimes: How many times before the script finishes
-        /// HpLeftAmount: How low the HP should be before casting a spell on it. Such as wounded targets
-        /// MinRange: If the spell has a minRange to it
-        /// Range: Range to cast spell at
-        /// X,Y,Z: The general location where these objects can be found
-        /// </summary>
-        /// 
         public CastSpellOn(Dictionary<string, string> args)
             : base(args)
         {
 			try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 110;
                 Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
                 MinRange    = GetAttributeAsRange("MinRange", false, null) ?? 3;

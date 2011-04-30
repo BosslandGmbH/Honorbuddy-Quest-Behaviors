@@ -1,7 +1,13 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
-//     
+// WIKI DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CompleteLogQuest
+//
+// QUICK DOX:
+//      Allows you to 'turn in' a quest to your quest log.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      QuestId: (required)
 //
 using System;
 using System.Collections.Generic;
@@ -19,23 +25,12 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class CompleteLogQuest : CustomForcedBehavior
     {
-        /// <summary>
-        /// Will complete a "In-The-Field" Quest.
-        /// ##Syntax##
-        /// QuestId: The Entire purpose of this behavior, so this one is required.
-        /// </summary>
-        /// 
         public CompleteLogQuest(Dictionary<string, string> args)
             : base(args)
         {
             try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 QuestId     = GetAttributeAsQuestId("QuestId", true, new [] { "QuestID" }) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.Complete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -55,8 +50,6 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public static int               QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
         private bool            _isBehaviorDone;
@@ -107,8 +100,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                return (_isBehaviorDone);
             }
         }
 
@@ -126,15 +118,20 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
                 if (quest != null)
-                    { TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress"); }
+                {
+                    if (!quest.IsCompleted)
+                    {
+                        UtilLogMessage("fatal", "Quest({0}, \"{1}\") is not complete.", QuestId, quest.Name);
+                        _isBehaviorDone = true;
+                    }
+                }
 
                 else
                 {
-                    //UtilLogMessage("error", string.Format("QuestId {0} could not be located in log.\n"
-                    //                                      + "Stopping Honorbudy.  Please repair the profile.",
-                    //                                      QuestID));
-                    //TreeRoot.Stop();
+                    UtilLogMessage("warning", "Quest({0}) is not in our log--skipping turn in.", QuestId);
                     _isBehaviorDone = true;
                 }
             }

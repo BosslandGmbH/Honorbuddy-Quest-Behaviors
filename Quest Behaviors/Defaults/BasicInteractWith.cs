@@ -4,19 +4,20 @@
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicInteractWith
 //
 // QUICK DOX:
-//     Allows you to Interact with Mobs that are nearby.
+//      Allows you to Interact with (e.g., 'right-click') mobs that are nearby.
 //
-//   Parameters:
-//     MobId: Id of the Mob to interact with.
-//     FactionId[Optional, Default:any faction]: The faction the mobs needs to be before interacting.
-//     MoveTo[Optional, Default:false]: "true" causes the behavior to move to the mob's Location.
-//     QuestId[Optional, Default:none]:
-//     QuestCompleteRequirement[Optional, Default:NotComplete]:
-//     QuestInLogRequirement[Optional, Default:InLog]:
-//          A full discussion of how the Quest* attributes operate is described in
+//  Parameters (required, then optional--both listed alphabetically):
+//      MobId: Id of the mob to interact with.
+//
+//      FactionId [Default:any faction]: The faction the mobs needs to be before interacting.
+//      MoveTo [Default:false]: "true" causes the behavior to move to the mob's Location.
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-//     UseLuaTarget[Optional, Default:false]: Should be used for those Mobs that are inside vehicles
-//          or otherwise return a location near 0,0,0
+//      UseLuaTarget [Default:false]: Should be used for those Mobs that are inside vehicles
+//              or otherwise return a location near 0,0,0
 //
 using System;
 using System.Collections.Generic;

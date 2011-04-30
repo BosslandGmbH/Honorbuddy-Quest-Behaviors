@@ -1,7 +1,16 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicMoveTo
+//
+// QUICK DOX:
+//      Moves the toon to a desired location in the game world.
+//      NOTE: This behavior is deprecated--use the built-in <RunTo> element instead.    
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      X, Y, Z:  World coordinates to which the toon should move.
+//
+//      DestName [Default:"<X,Y,Z>"]:   a human-readable name of the location to which the toon is moving.
 //
 using System;
 using System.Collections.Generic;
@@ -34,9 +43,6 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                                           + "* Please update the profile to use RunTo in preference to the BasicMoveTo Behavior.\n"
                                           + "*****");
 
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 Destination     = LegacyGetAttributeAsWoWPoint("Location", false, null, "X/Y/Z")
                                     ?? GetXYZAttributeAsWoWPoint("", true, null)
                                     ?? WoWPoint.Empty;

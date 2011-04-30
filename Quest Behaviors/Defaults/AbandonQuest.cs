@@ -4,17 +4,18 @@
 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_AbandonQuest
 //
 // QUICK DOX:
-//     Allows you to abandon a quest in your quest log.
+//      Allows you to abandon a quest in your quest log.
 //
-//   Parameters:
-//     QuestId: The id of the quest.
-//     Type[Optional, Default:Incomplete]: The state in which the quest must reside for the abandon
-//       to succeed.  The allowed values for this attribute are:
-//         All:        abandon quest if its in log regardless of status
-//         Failed:     abandon quest only if failed
-//         Incomplete: abandon incomplete quests (failed and any not complete)  
+//  Parameters (required, then optional--both listed alphabetically):
+//      QuestId: The id of the quest.
 //
-//   Examples:   
+//      Type[Default:Incomplete]: The state in which the quest must reside for the abandon
+//              to succeed.  The allowed values for this attribute are:
+//                  All:        abandon quest if its in log regardless of status
+//                  Failed:     abandon quest only if failed
+//                  Incomplete: abandon incomplete quests (failed and any not complete)  
+//
+//  Examples:   
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="All" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Failed" />
@@ -44,12 +45,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 Type    = GetAttributeAsEnum<AbandonType>("Type", false, null) ?? AbandonType.Incomplete;
             }
 
@@ -70,8 +66,6 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public int                      QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public AbandonType              Type { get; private set; }
 
         // Private variables for internal state
@@ -84,8 +78,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                return (_isBehaviorDone);
             }
         }
 
@@ -107,10 +100,10 @@ namespace Styx.Bot.Quest_Behaviors
                     { UtilLogMessage("fatal", "Cannot find quest with QuestId({0}).", QuestId); }
 
                 else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
-                    { UtilLogMessage("warning", "Quest({0}, \"{1}\") is Complete!  Skipping abandon.", QuestId, quest.Name); }
+                    { UtilLogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
 
                 else if ((quest != null)  &&  !quest.IsFailed  &&  (Type == AbandonType.Failed))
-                    { UtilLogMessage("error", "Quest({0}, \"{1}\") has not Failed!  Skipping abandon.", QuestId, quest.Name); }
+                    { UtilLogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name); }
 
                 else
                 {
