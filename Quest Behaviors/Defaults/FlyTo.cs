@@ -115,7 +115,8 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
 
         public override void    Dispose()
         {
-             Dispose(true);
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 
