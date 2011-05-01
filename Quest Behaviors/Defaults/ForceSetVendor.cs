@@ -3,6 +3,11 @@
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForceSetVendor
 //
+// TODO:
+// * Great idea here, don't want to lose it...
+//    http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/25863-quest-behavior-castspellon-help.html#post281838
+//    (We need to build a very small timer into this behavior).
+//
 using System;
 using System.Collections.Generic;
 
