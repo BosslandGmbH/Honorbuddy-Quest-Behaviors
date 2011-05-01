@@ -240,7 +240,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             get
             {
                 bool    result  = (_isBehaviorDone                                 // normal completion
-                                   || (!Path.Any() && Counter >= NumOfTimes)    // no hotspots left and all iterations complete
+                                   || (((Path != null) && !Path.Any()) && Counter >= NumOfTimes)    // no hotspots left and all iterations complete
                                    || Me.Dead || Me.IsGhost                        // i'm a ghost
                                    || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
 
