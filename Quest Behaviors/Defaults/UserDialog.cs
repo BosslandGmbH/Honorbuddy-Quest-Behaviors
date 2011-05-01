@@ -819,13 +819,14 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                                                                      soundCue,
                                                                      soundPeriodInSeconds);
 
-            // Making the main Honorbuddy window the popup's parent--
-            // This will bring the popup window to the front any time Honorbuddy is brought to the front.
-            Form                windowParent    = (Form)Control.FromHandle(Process.GetCurrentProcess().MainWindowHandle);
-          
-            // Popup the window
+            // Popup the window--
+            // We'd *really* like to make this dialog a child of the main Honorbuddy window.
+            // By doing such, the dialog would be 'brought to the front' any time te Honorbuddy main
+            // window was.
+            // Alas, C#/WindowsForms disallows this because the main HB GUI and this dialog are
+            // on separate threads.
             dialogForm.Activate();
-            dialogForm.ShowDialog(windowParent);
+            dialogForm.ShowDialog();
         }
 
 
