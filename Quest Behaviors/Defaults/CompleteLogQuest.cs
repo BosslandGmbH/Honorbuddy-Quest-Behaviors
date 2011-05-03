@@ -86,8 +86,10 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => Lua.DoString("CompleteQuest()")),
                                         new Action(ret => Thread.Sleep(300)),
                                         new Action(ret => Lua.DoString("GetQuestReward({0})", 1)),
-                                        new Action(ret => Thread.Sleep(300)),
-                                        new Action(ret => Lua.DoString("AcceptQuest()")),
+                                        new WaitContinue(
+                                            5,
+                                            ret => _newQuest,
+                                            new Action(ret => Lua.DoString("AcceptQuest"))),
                                         new Action(ret => Counter++)
                                     ))
                                
@@ -134,10 +136,24 @@ namespace Styx.Bot.Quest_Behaviors
                     UtilLogMessage("warning", "Quest({0}) is not in our log--skipping turn in.", QuestId);
                     _isBehaviorDone = true;
                 }
+
+                Lua.Events.AttachEvent("QUEST_DETAIL", HandleQuestDetail);
             }
         }
 
+        public override void Dispose()
+        {
+            Lua.Events.DetachEvent("QUEST_DETAIL", HandleQuestDetail);
+        }
+
+        private bool _newQuest;
+        public void HandleQuestDetail(object obj, LuaEventArgs args)
+        {
+            _newQuest = true;
+        }
+
         #endregion
+
     }
 }
 
