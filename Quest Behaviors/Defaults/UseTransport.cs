@@ -47,6 +47,7 @@ namespace Styx.Bot.Quest_Behaviors
                 WoWPoint?   legacyStartLocation     = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStartX/Y/Z");
                 WoWPoint?   legacyWaitAtLocation    = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAtX/Y/Z");
 
+                DestName        = GetAttributeAsString("DestName", false, null) ?? "";
                 EndLocation     = GetXYZAttributeAsWoWPoint("TransportEnd", !legacyEndLocation.HasValue, null)
                                     ?? legacyEndLocation
                                     ?? WoWPoint.Empty;
@@ -79,6 +80,7 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         // Attributes provided by caller
+        public string                   DestName { get; private set; }
         public WoWPoint                 EndLocation { get; private set; }
         public WoWPoint                 GetOffLocation { get; private set; }
         public int                      QuestId { get; private set; }
@@ -265,7 +267,9 @@ namespace Styx.Bot.Quest_Behaviors
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((!string.IsNullOrEmpty(DestName)) ? DestName :
+                                                                  (quest != null) ? ("\"" + quest.Name + "\"") :
+                                                                  "In Progress");
             }
         }
 
