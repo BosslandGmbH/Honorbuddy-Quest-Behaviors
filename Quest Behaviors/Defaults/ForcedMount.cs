@@ -41,10 +41,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                MountType   = GetAttributeAsEnum<ForcedMountType>("MountType", false, null)
-                                ?? ((Me.IsSwimming && (MountHelper.UnderwaterMounts.Count > 0)) ? ForcedMountType.Water
-                                    : (CanFly()) ? ForcedMountType.Flying
-                                    : ForcedMountType.Ground);
+                MountType   = GetAttributeAsEnum<ForcedMountType>("MountType", false, null) ?? ForcedMountType.Ground;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -104,37 +101,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public bool     CanFly()
-        {
-            bool    flyingCapable   = ((MountHelper.FlyingMounts.Count > 0)
-                                        ||
-                                        ((StyxWoW.Me.Class == WoWClass.Druid)
-                                         && (SpellManager.HasSpell(33943 /*Flight Form*/)
-                                             || SpellManager.HasSpell(40120 /*Swift Flight Form*/)))
-                                      );
-            bool    flyingPermitted = true;
-
-
-            // Location-based permission...
-            if ((Me.MapId == 0 /*EasternKingdoms*/) || (Me.MapId == 1 /*Kalmdor*/) || (Me.MapId ==  646 /*Deepholm*/))
-                { flyingPermitted = SpellManager.HasSpell(90267 /*Flight Master's License*/); }
-
-            else if (Me.MapId == 571 /*Northrend*/)
-                { flyingPermitted = SpellManager.HasSpell(54197 /*Cold Weather Flying*/); }
-
-
-            // Special circumstance permission...
-            if ((Me.Combat || !Me.IsAlive)
-                ||
-                (Me.IsInInstance || Me.IsIndoors || Battlegrounds.IsInsideBattleground))
-            {
-                flyingPermitted = false;
-            }
-
-            return (flyingCapable && flyingPermitted);
-        }
-
-
         private Composite CreateActualBehavior()
         {
             return new PrioritySelector(
@@ -147,7 +113,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new Action(ret => MountHelper.UnderwaterMounts.First().CreatureSpell.Cast())),
 
                 new Decorator(
-                    ret => MountType == ForcedMountType.Flying && CanFly(),
+                    ret => MountType == ForcedMountType.Flying,
                     new Action(ret => MountForFlying()))
                 );
         }
