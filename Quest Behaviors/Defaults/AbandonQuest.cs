@@ -97,7 +97,7 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest == null)
-                    { UtilLogMessage("fatal", "Cannot find quest with QuestId({0}).", QuestId); }
+                    { UtilLogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId); }
 
                 else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
                     { UtilLogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
