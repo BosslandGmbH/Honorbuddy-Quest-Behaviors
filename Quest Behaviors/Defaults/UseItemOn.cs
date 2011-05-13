@@ -27,17 +27,17 @@ namespace Styx.Bot.Quest_Behaviors
     /// Allows you to use items on nearby gameobjects/npc's
     /// ##Syntax##
     /// QuestId: The id of the quest.
-    /// MobId: The id of the object.
+    /// MobId1, MobId2, ...MobIdN: The ids of the mobs.
     /// ItemId: The id of the item to use.
-    /// NumOfTimes: Number of times to use said item.
+    /// [Optional]NumOfTimes: Number of times to use said item.
     /// [Optional]WaitTime: Time to wait after using an item. DefaultValue: 1500 ms
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
     /// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
     /// [Optional]Range: The range to object that it will use the item
-    /// [Optional]NpcState: The state of the npc -> Dead, Alive, BelowHp. None is default
-    /// [Optional]HpLeftAmount: Will only be used when NpcState is BelowHp
+    /// [Optional]MobState: The state of the npc -> Dead, Alive, BelowHp. None is default
+    /// [Optional]MobHpPercentLeft: Will only be used when NpcState is BelowHp
     /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
-    /// X,Y,Z: The general location where theese objects can be found
+    /// [Optional]X,Y,Z: The general location where theese objects can be found
     /// </summary>
     public class UseItemOn : CustomForcedBehavior
     {
@@ -66,13 +66,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
                 HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
-                HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 100;
+                HpLeftAmount = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "HpLeftAmount" }) ?? 100;
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
                 MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
-                _NpcState   = GetAttributeAsEnum<NpcState>("NpcState", false, null) ?? NpcState.DontCare;
+                _NpcState   = GetAttributeAsEnum<NpcState>("MobState", false, new [] { "NpcState" }) ?? NpcState.DontCare;
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -101,7 +101,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      HpLeftAmount { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public ObjectType               MobType { get; private set; }
         public NpcState                 _NpcState { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -119,6 +119,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private properties
         private int                     Counter { get; set; }
+        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
 
 
         /// <summary> Current object we should interact with.</summary>
@@ -134,7 +135,7 @@ namespace Styx.Bot.Quest_Behaviors
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                             !_npcBlacklist.Contains(obj.Guid) &&
                             obj.Distance < CollectionDistance &&
-                            obj.Entry == MobId);
+                            MobIds.Contains((int)obj.Entry));
 
                         break;
 
@@ -156,7 +157,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 !_npcBlacklist.Contains(obj.Guid) &&
                                 obj.Distance < CollectionDistance &&
                                 obj.HasAura(tmp) &&
-                                obj.Entry == MobId);
+                                MobIds.Contains((int)obj.Entry));
                         }
                         else
                         {
@@ -166,21 +167,21 @@ namespace Styx.Bot.Quest_Behaviors
                                     @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                                         !_npcBlacklist.Contains(obj.Guid) &&
                                         obj.Distance < CollectionDistance &&
-                                        obj.Entry == MobId);
+                                        MobIds.Contains((int)obj.Entry));
                                     break;
                                 case NpcState.Dead:
                                     @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                                         !_npcBlacklist.Contains(obj.Guid) &&
                                         obj.Dead &&
                                         obj.Distance < CollectionDistance &&
-                                        obj.Entry == MobId);
+                                        MobIds.Contains((int)obj.Entry));
                                     break;
                                 case NpcState.Alive:
                                     @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                                         !_npcBlacklist.Contains(obj.Guid) &&
                                         obj.IsAlive &&
                                         obj.Distance < CollectionDistance &&
-                                        obj.Entry == MobId);
+                                        MobIds.Contains((int)obj.Entry));
                                     break;
                                 case NpcState.BelowHp:
                                     @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
@@ -188,7 +189,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         obj.HealthPercent <= HpLeftAmount &&
                                         obj.IsAlive &&
                                         obj.Distance < CollectionDistance &&
-                                        obj.Entry == MobId);
+                                        MobIds.Contains((int)obj.Entry));
                                     break;
                             }
                             
