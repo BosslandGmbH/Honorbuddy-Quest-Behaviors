@@ -14,8 +14,7 @@
 //
 //  Parameters (required, then optional--both listed alphabetically):
 //      ItemId: Id of the item to use on the targets.
-//      MobId: Id of the targets on which to use the item.
-//      X, Y, Z: world-coordinates of the general location where the targets can be found.
+//      MobId1, MobId2, ...MobIdN [Required: 1]: Id of the targets on which to use the item.
 //
 //      CastingSpellId [Default:none]: waits for the target to be casting this spell before using the item.
 //      HasAuraId [Default:none]: waits for the toon to acquire this aura before using the item.
@@ -29,6 +28,7 @@
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      X, Y, Z [Default:Toon's current location]: world-coordinates of the general location where the targets can be found.
 //
 //  Notes:
 //      * One or more of CastingSpellId, HasAuraId, MobHasAuraId, or MobHpPercentLeft must be specified.
@@ -61,8 +61,8 @@ namespace Styx.Bot.Quest_Behaviors
                 CastingSpellId = GetAttributeAsSpellId("CastingSpellId", false, null) ?? 0;
                 HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                MobIds       = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
                 NpcHasAuraId = GetAttributeAsSpellId("MobHasAuraId", false, new [] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
                 NpcHpPercentLeft = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
@@ -99,7 +99,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      HasAuraId { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public int                      NpcHasAuraId { get; private set; }
         public int                      NpcHpPercentLeft { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -116,7 +116,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWItem              Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
         public WoWUnit              Mob { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                     .Where(u => u.Entry == MobId && !u.Dead)
+                                                                     .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead)
                                                                      .OrderBy(u => u.Distance).FirstOrDefault());
                                         }}
 
