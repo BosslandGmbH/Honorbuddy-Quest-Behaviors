@@ -27,8 +27,8 @@ namespace Styx.Bot.Quest_Behaviors
     /// Allows you to do quests that requires you to interact with nearby objects.
     /// ##Syntax##
     /// [Optional]QuestId: Id of the quest.
-    /// NpcId: Id of the object to interact with.
-    /// NumOfTimes: Number of times to interact with object.
+    /// MobId1, MobId2, ...MobIdN: Id of the objects to interact with.
+    /// [Optional]NumOfTimes: Number of times to interact with object.
     /// [Optional]GossipOption: The Dialog numbers you wish to choose. Should be seperated with commas. ie. GossipOption="1,1,4,2" or GossipOption="1"
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
     /// [Optional]BuySlot: Buys the item from the slot. Slots are: 1 2
@@ -40,8 +40,8 @@ namespace Styx.Bot.Quest_Behaviors
     /// [Optional]BuyItemId: Buys the item with that id from vendor.
     /// [Optional]BuyItemCount: The amount to buy the item. Default: 1
     /// [Optional]WaitTime: The time to wait once it has interacted with an object. DefaultValue:3000
-    /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
-    /// X,Y,Z: The general location where theese objects can be found
+    /// [Optional]ObjectType: the type of object to interact with, expected value: Npc/Gameobject
+    /// [Optional]X,Y,Z: The general location where theese objects can be found
     /// </summary>
     public class InteractWith : CustomForcedBehavior
     {
@@ -64,9 +64,9 @@ namespace Styx.Bot.Quest_Behaviors
                 BuySlot     = GetAttributeAsInteger("BuySlot", false, -1, 100, null) ?? -1;
                 CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
                 GossipOptions = GetAttributeAsIntegerArray("GossipOptions", false, -1, 10, new [] { "GossipOption" }) ?? new int[0];
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
                 Loot        = GetAttributeAsBoolean("Loot", false, null) ?? false;
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
                 ObjType     = GetAttributeAsEnum<ObjectType>("ObjectType", false, new [] { "MobType" }) ?? ObjectType.Npc;
                 NotMoving   = GetAttributeAsBoolean("NotMoving", false, null) ?? false;
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
@@ -82,12 +82,12 @@ namespace Styx.Bot.Quest_Behaviors
 
 
                 WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(unit => unit.Entry == MobId)
+                                      .Where(unit => MobIds.Contains((int)unit.Entry))
                                       .FirstOrDefault();
 
                 MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
                             ? mob.Name
-                            : ("Mob(" + MobId + ")");
+                            : ("Mob(" + MobIds + ")");
 			}
 
 			catch (Exception except)
@@ -112,7 +112,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int[]                    GossipOptions { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public bool                     Loot { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public string                   MobName { get; private set; }
         public ObjectType               ObjType { get; private set; }
         public bool                     NotMoving { get; private set; }
@@ -148,7 +148,7 @@ namespace Styx.Bot.Quest_Behaviors
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
                             !_npcBlacklist.Contains(obj.Guid) &&
                             obj.Distance < CollectionDistance &&
-                            obj.Entry == MobId);
+                            MobIds.Contains((int)obj.Entry));
 
                         break;
 
@@ -157,7 +157,7 @@ namespace Styx.Bot.Quest_Behaviors
                             !_npcBlacklist.Contains(obj.Guid) &&
                             obj.Distance < CollectionDistance &&
                             (NotMoving ? !obj.IsMoving : true) &&
-                            obj.Entry == MobId);
+                            MobIds.Contains((int)obj.Entry));
 
                         break;
 
