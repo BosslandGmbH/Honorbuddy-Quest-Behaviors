@@ -104,24 +104,20 @@ namespace Styx.Bot.Quest_Behaviors
         private int                     Counter { get; set; }
         private bool                    InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>           NpcList 
-        {  
-            get 
-            { 
-                if (VehicleList.Count > 0)
-                {
-                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => TargetIds.Contains((int)u.Entry)
-                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange))
-                                            .OrderBy(u => u.Distance)
-                                            .ToList());
-                }
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
-                                        .OrderBy(u => u.Distance)
-                                        .ToList());
-            } 
-        }
+        private List<WoWUnit>           NpcList { get { 
+                                                    if (VehicleList.Count > 0)
+                                                    {
+                                                        return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                                .Where(u => TargetIds.Contains((int)u.Entry)
+                                                                                            && (VehicleList[0].Location.Distance(u.Location) <= MaxRange))
+                                                                                .OrderBy(u => u.Distance)
+                                                                                .ToList());
+                                                    }
+                                                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                            .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
+                                                                            .OrderBy(u => u.Distance)
+                                                                            .ToList());
+                                                } }
         private List<WoWUnit>           NpcVehicleList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                                                                      .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
                                                                                      .OrderBy(u => u.Distance)
