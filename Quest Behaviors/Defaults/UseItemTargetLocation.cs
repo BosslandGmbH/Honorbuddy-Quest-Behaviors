@@ -29,14 +29,14 @@ namespace Styx.Bot.Quest_Behaviors
         /// Allows you to use item on an object or at a location
         /// ##Syntax##
         /// [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed
-        /// [Optional] ObjectId: Id of the object/npc that the item will be used on
+        /// [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
         /// ItemId: Id of the item that will be used
         /// [Optional]WaitTime: Time to wait after using the item 
         /// UseType: PointToObject (from X,Y,Z to an object's location)
         ///          PointToPoint  (from X,Y,Z to ClickToX,ClickToY,ClickToZ)
         ///          ToObject      (from range of an object to object's location)
         ///          Default is PointToPoint
-        /// X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
+        /// [Optional]X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
         /// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click 
         /// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 4)
         /// </summary>
@@ -59,8 +59,8 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 ClickToLocation = GetXYZAttributeAsWoWPoint("ClickTo", false, null) ?? WoWPoint.Empty;
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                MoveToLocation = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobId       = GetAttributeAsMobId("MobId", false, new [] { "ObjectId" }) ?? 0;
+                MoveToLocation = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, new [] { "ObjectId" }) ?? new int[0];
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -87,7 +87,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Attributes provided by caller
         public WoWPoint                 ClickToLocation { get; private set; }
         public int                      ItemId { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public WoWPoint                 MoveToLocation { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -104,7 +104,7 @@ namespace Styx.Bot.Quest_Behaviors
         private WoWItem             Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
         private WoWObject           UseObject { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                                .Where(o => o.Entry == MobId)
+                                                                .Where(o => MobIds.Contains((int)o.Entry))
                                                                 .OrderBy(o => o.Distance)
                                                                 .FirstOrDefault(); }}
 
