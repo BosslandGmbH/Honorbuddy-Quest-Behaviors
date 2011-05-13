@@ -256,13 +256,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // We also set PullDistance to its minimum value.
                 // NOTE: these settings are restored to their normal values when the behavior completes
                 // or the bot is stopped.
-                LevelbotSettings.Instance.HarvestHerbs = false;
-                LevelbotSettings.Instance.HarvestMinerals = false;
-                LevelbotSettings.Instance.LootChests = false;
-                LevelbotSettings.Instance.LootMobs = false;
-                LevelbotSettings.Instance.NinjaSkin = false;
-                LevelbotSettings.Instance.SkinMobs = false;
-                LevelbotSettings.Instance.PullDistance = 1;
+                CharacterSettings.Instance.HarvestHerbs = false;
+                CharacterSettings.Instance.HarvestMinerals = false;
+                CharacterSettings.Instance.LootChests = false;
+                CharacterSettings.Instance.LootMobs = false;
+                CharacterSettings.Instance.NinjaSkin = false;
+                CharacterSettings.Instance.SkinMobs = false;
+                CharacterSettings.Instance.PullDistance = 1;
 
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);

@@ -270,12 +270,12 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 // When we escort, we don't want to be distracted by other things.
                 // NOTE: these settings are restored to their normal values when the behavior completes
                 // or the bot is stopped.
-                LevelbotSettings.Instance.HarvestHerbs = false;
-                LevelbotSettings.Instance.HarvestMinerals = false;
-                LevelbotSettings.Instance.LootChests = false;
-                LevelbotSettings.Instance.LootMobs = false;
-                LevelbotSettings.Instance.NinjaSkin = false;
-                LevelbotSettings.Instance.SkinMobs = false;
+                CharacterSettings.Instance.HarvestHerbs = false;
+                CharacterSettings.Instance.HarvestMinerals = false;
+                CharacterSettings.Instance.LootChests = false;
+                CharacterSettings.Instance.LootMobs = false;
+                CharacterSettings.Instance.NinjaSkin = false;
+                CharacterSettings.Instance.SkinMobs = false;
 
                 WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
                                       .Where(unit => unit.Entry == MobId)

@@ -720,12 +720,12 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 // (We've already captured the existing configuration which will
                 //  be restored when this behavior exits, or the bot is stopped.
                 //  So there are no worries about destroying user's configuration.)
-                LevelbotSettings.Instance.HarvestHerbs      = false;
-                LevelbotSettings.Instance.HarvestMinerals   = false;
-                LevelbotSettings.Instance.LootChests        = false;
-                LevelbotSettings.Instance.LootMobs          = false;
-                LevelbotSettings.Instance.NinjaSkin         = false;
-                LevelbotSettings.Instance.SkinMobs          = false;
+                CharacterSettings.Instance.HarvestHerbs = false;
+                CharacterSettings.Instance.HarvestMinerals = false;
+                CharacterSettings.Instance.LootChests = false;
+                CharacterSettings.Instance.LootMobs = false;
+                CharacterSettings.Instance.NinjaSkin = false;
+                CharacterSettings.Instance.SkinMobs = false;
 
                 _completionToken = new AsyncCompletionToken(StyxWoW.Me.Name,
                                                             DialogTitle,

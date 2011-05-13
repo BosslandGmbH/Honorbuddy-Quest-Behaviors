@@ -5,16 +5,10 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Drawing;
-
-using QuestBot.QuestOrder;
-
-using Styx.Helpers;
+using Bots.Quest.QuestOrder;
 using Styx.Logic;
-using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;

@@ -92,8 +92,8 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(c => Me.Location.Distance(SafespotLocation) > 4,
 
                         new PrioritySelector(
-                            
-                            new Decorator(ret => !Me.Mounted && Mount.CanMount() && LevelbotSettings.Instance.UseMount && Me.Location.Distance(SafespotLocation) > 35,
+
+                            new Decorator(ret => !Me.Mounted && Mount.CanMount() && CharacterSettings.Instance.UseMount && Me.Location.Distance(SafespotLocation) > 35,
                                 new Sequence(
                                     new DecoratorContinue(ret => Me.IsMoving,
                                         new Sequence(

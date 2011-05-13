@@ -96,7 +96,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(ret => Counter == 0,
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Setting Distance: " + Distance),
-                                        new Action(ret => LevelbotSettings.Instance.PullDistance = Distance),
+                                        new Action(ret => CharacterSettings.Instance.PullDistance = Distance),
                                         new Action(ret => Counter++)
                                 ))
                     ));

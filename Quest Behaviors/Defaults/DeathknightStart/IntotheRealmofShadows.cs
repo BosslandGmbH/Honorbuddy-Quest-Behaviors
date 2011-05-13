@@ -83,7 +83,7 @@ namespace Styx.Bot.Quest_Behaviors
                         if (Me.HealthPercent < 60 && !Me.IsActuallyInCombat)
                         {
                             WoWItem food = Consumable.GetBestFood(true);
-                            LevelbotSettings.Instance.FoodName = food != null ? food.Name : "";
+                            CharacterSettings.Instance.FoodName = food != null ? food.Name : "";
                             Rest.Feed();
                             return RunStatus.Running;
                         }

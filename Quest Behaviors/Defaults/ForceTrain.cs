@@ -91,7 +91,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 TreeRoot.GoalText = "Scheduled a training run";
 
-                LevelbotSettings.Instance.FindVendorsAutomatically = true;
+                CharacterSettings.Instance.FindVendorsAutomatically = true;
                 Vendors.ForceTrainer = true;
 
                 _isBehaviorDone = true;

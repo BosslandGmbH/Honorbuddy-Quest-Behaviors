@@ -136,11 +136,12 @@ namespace Styx.Bot.Quest_Behaviors
 
                 TreeRoot.GoalText = "Scheduled run for " + string.Join(", ", reasons.ToArray());
 
-                LevelbotSettings.Instance.FindVendorsAutomatically = true;
+                CharacterSettings.Instance.FindVendorsAutomatically = true;
                 Vendors.ForceMail       |= DoMail;
                 Vendors.ForceRepair     |= DoRepair;
                 Vendors.ForceSell       |= DoSell;
                 Vendors.ForceTrainer    |= DoTrain;
+
 
                 _isBehaviorDone = true;
             }
