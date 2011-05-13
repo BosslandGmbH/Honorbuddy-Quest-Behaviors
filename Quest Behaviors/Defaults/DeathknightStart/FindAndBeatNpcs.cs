@@ -72,13 +72,11 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
-        // Private variables for internal state
-        private bool            _isBehaviorDone;
         private Composite       _root;
 
         // Private properties
-        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
-        public WoWUnit          Npc
+        private static LocalPlayer     Me { get { return (ObjectManager.Me); } }
+        public WoWUnit                 Npc
         {
             get
             {
@@ -130,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 {
                                     Logic.Inventory.Frames.LootFrame.LootFrame.Instance.LootAll();
                                     if (Me.GotTarget)
-                                        Blacklist.Add(Me.CurrentTarget,new System.TimeSpan(1,0,0));
+                                        Blacklist.Add(Me.CurrentTarget,new TimeSpan(1,0,0));
                                     Me.ClearTarget();
                                 }
                                 return RunStatus.Running;
@@ -154,7 +152,7 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                             return RunStatus.Running;
                         })),
-                    new Action(c => { Navigator.MoveTo(Location); })
+                    new Action(c => Navigator.MoveTo(Location))
                 ));
         }
 
@@ -163,8 +161,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                return (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
@@ -182,7 +179,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
         
