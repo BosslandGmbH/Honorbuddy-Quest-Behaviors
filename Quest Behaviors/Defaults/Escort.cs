@@ -1,7 +1,23 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_Escort
+//
+// QUICK DOX:
+//      Escorts an NPC by protecting and following him, until the quest is complete.
+//      The Escort behavior will not pick up the quest that initiates the escort.  You must do that with
+//      a separate invocation of the Honorbuddy built-in <Pickup> element.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      MobId:      Id the Mob requiring an escort.
+//      QuestId:    Id of the quest that starts the escort
+//
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      X, Y, Z [Default: toon's current position]: world-coordinates of the general location where
+//              the Mob to be escorted can be found.
 //
 using System;
 using System.Collections.Generic;
@@ -24,24 +40,12 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 {
     public class Escort : CustomForcedBehavior
     {
-        /// <summary>
-        /// Escort by Natfoth
-        /// Allows you to follow and/or defend an NPC until the quest is completed
-        /// ##Syntax##
-        /// QuestId: Required, it is what the bot uses to see if you are done.
-        /// NpcId: Id of the Mob to interact with.
-        /// X,Y,Z: The general location where theese objects can be found
-        /// </summary>
-        /// 
         public Escort(Dictionary<string, string> args)
             : base(args)
         {
 			try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
                 MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
                 QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -120,9 +124,6 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         {
              Dispose();
         }
-
-
-
 
 
         WoWSpell RangeSpell
