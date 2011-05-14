@@ -16,18 +16,16 @@
 //              A full discussion of how the Quest* attributes operate is described in
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //      Slot [Default: first available]: Slot into which the item will be equipped.
-//              Slot Ids are defined on http://www.wowpedia.org/Equipment_slot
-//              However, we allow a couple of extra values, thus the table summarizes as follows:
-//                   -1: "first available"
-//                    0: AmmoSlot           
-//                    1: HeadSlot            9: WristSlot           17: SecondaryHandSlot
-//                    2: NeckSlot           10: HandsSlot           18: RangedSlot
-//                    3: ShoulderSlot       11: Finger0Slot         19: TabardSlot
-//                    4: ShirtSlot          12: Finger1Slot         20: Bag0Slot
-//                    5: ChestSlot          13: Trinket0Slot        21: Bag1Slot
-//                    6: WaistSlot          14: Trinket1Slot        22: Bag2Slot
-//                    7: LegsSlot           15: BackSlot            23: Bag3Slot
-//                    8: FeetSlot           16: MainHandSlot
+//              Slot are defined on http://www.wowpedia.org/Equipment_slot.
+//              The values allowed for this attribute are summarized in the following table:
+//                   None ("first available")   Finger0Slot         SecondaryHandSlot
+//                   AmmoSlot                   Finger1Slot         ShirtSlot
+//                   BackSlot                   HandsSlot           ShoulderSlot
+//                   Bag0Slot                   HeadSlot            TabardSlot
+//                   Bag1Slot                   LegsSlot            Trinket0Slot
+//                   Bag2Slot                   MainHandSlot        Trinket1Slot
+//                   Bag3Slot                   NeckSot             WaistSlot
+//                   ChestSlot                  RangedSlot          WristSlot
 //
 using System;
 using System.Collections.Generic;
