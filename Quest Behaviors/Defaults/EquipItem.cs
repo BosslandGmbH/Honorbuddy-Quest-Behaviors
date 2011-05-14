@@ -1,7 +1,33 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
+//      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_EquipItem
 //     
+// QUICK DOX:
+//      Equips the specified item into a character equipment slot.  You may specify the slot, or allow it to default.
+//      If an item is already occupying the equipment slot, it will be replaced with the specified item.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      ItemId: Id of the item to equip
+//
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      Slot [Default: first available]: Slot into which the item will be equipped.
+//              Slot Ids are defined on http://www.wowpedia.org/Equipment_slot
+//              However, we allow a couple of extra values, thus the table summarizes as follows:
+//                   -1: "first available"
+//                    0: AmmoSlot           
+//                    1: HeadSlot            9: WristSlot           17: SecondaryHandSlot
+//                    2: NeckSlot           10: HandsSlot           18: RangedSlot
+//                    3: ShoulderSlot       11: Finger0Slot         19: TabardSlot
+//                    4: ShirtSlot          12: Finger1Slot         20: Bag0Slot
+//                    5: ChestSlot          13: Trinket0Slot        21: Bag1Slot
+//                    6: WaistSlot          14: Trinket1Slot        22: Bag2Slot
+//                    7: LegsSlot           15: BackSlot            23: Bag3Slot
+//                    8: FeetSlot           16: MainHandSlot
 //
 using System;
 using System.Collections.Generic;
@@ -19,40 +45,7 @@ using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    /// <summary>
-    /// EquipItem by HighVoltz
-    /// Equips an item.. optionally to a specified slot
-    /// ##Syntax##
-    /// ItemId: ID of item to equip
-    /// QuestId: (optional) QuestID that this behavior belongs to;
-    /// Slot: (optional) Slot that the item will go to. Default(equipts item in 1st free slot that it can fit into);
-    /// None = -1,
-    /// AmmoSlot = 0,
-    /// HeadSlot = 1,
-    /// NeckSlot = 2,
-    /// ShoulderSlot = 3,
-    /// ShirtSlot = 4,
-    /// ChestSlot = 5,
-    /// WaistSlot = 6,
-    /// LegsSlot = 7,
-    /// FeetSlot = 8,
-    /// WristSlot = 9,
-    /// HandsSlot = 10,
-    /// Finger0Slot = 11,
-    /// Finger1Slot = 12,
-    /// Trinket0Slot = 13,
-    /// Trinket1Slot = 14,
-    /// BackSlot = 15,
-    /// MainHandSlot = 16,
-    /// SecondaryHandSlot = 17,
-    /// RangedSlot = 18,
-    /// TabardSlot = 19,
-    /// Bag0Slot = 20,
-    /// Bag1Slot = 21,
-    /// Bag2Slot = 22,
-    /// Bag3Slot = 23,
-    /// </summary>
-    /// 
+
     public class EquipItem : CustomForcedBehavior
     {
         public EquipItem(Dictionary<string, string> args)
@@ -60,14 +53,11 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 ItemId  = GetAttributeAsItemId("ItemId", true, null) ?? 0;
                 QuestId = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Slot    = GetAttributeAsInteger("Slot", false, -1, 100, null) ?? -1;
+                Slot    = GetAttributeAsEnum<InventorySlot>("Slot", false, null) ?? InventorySlot.None;
 			}
 
 			catch (Exception except)
@@ -89,7 +79,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      Slot { get; private set; }
+        public InventorySlot            Slot { get; private set; }
 
         // Private variables for internal state
         private bool        _isBehaviorDone;
@@ -104,7 +94,7 @@ namespace Styx.Bot.Quest_Behaviors
                 (_root = new PrioritySelector(
                     new Action(c =>
                     {
-                        if (Slot == (int)InventorySlot.None)
+                        if (Slot == InventorySlot.None)
                         {
                             Lua.DoString("EquipItemByName (\"" + ItemId + "\")");
                         }
@@ -114,7 +104,7 @@ namespace Styx.Bot.Quest_Behaviors
                             if (item != null)
                             {
                                 Lua.DoString("PickupContainerItem({0},{1}) EquipCursorItem({2})",
-                                    item.BagIndex + 1, item.BagSlot + 1, Slot);
+                                    item.BagIndex + 1, item.BagSlot + 1, (int)Slot);
                             }
                         }
                         _isBehaviorDone = true;
@@ -147,7 +137,7 @@ namespace Styx.Bot.Quest_Behaviors
                 WoWItem item = StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
 
                 if (item != null)
-                    { TreeRoot.GoalText = string.Format("Equipping [{0}] Into Slot: {1}", item.Name, (InventorySlot)Slot); }
+                    { TreeRoot.GoalText = string.Format("Equipping [{0}] Into Slot: {1}", item.Name, Slot); }
             }
         }
 
