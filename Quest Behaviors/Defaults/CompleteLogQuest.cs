@@ -7,7 +7,8 @@
 //      Allows you to 'turn in' a quest to your quest log.
 //
 //  Parameters (required, then optional--both listed alphabetically):
-//      QuestId: (required)
+//      QuestId: Id of the quest to turn into your quest log.  It is a _fatal_ error
+//               if the quest is not complete.
 //
 using System;
 using System.Collections.Generic;

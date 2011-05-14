@@ -1,7 +1,18 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
+// WIKI DOCUMENTATION:
+//      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_EjectVeh
 //     
+// QUICK DOX:
+//      Ejects a toon from a vehicle.  If the toon is not in a vehicle, the behavior has no effect.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //
 using System;
 using System.Collections.Generic;
@@ -20,20 +31,11 @@ namespace Styx.Bot.Quest_Behaviors
 {
     public class EjectVeh : CustomForcedBehavior
     {
-        /// <summary>
-        /// Will Eject from the current vehicle, nothing more and nothing less.
-        /// ##Syntax##
-        /// Eject: Not required but just incase it messes with the args.
-        /// </summary>
-        /// 
         public EjectVeh(Dictionary<string, string> args)
             : base(args)
         {
 			try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
