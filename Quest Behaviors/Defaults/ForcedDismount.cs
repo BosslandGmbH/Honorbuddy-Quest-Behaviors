@@ -5,8 +5,11 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
+using Styx.Logic.Combat;
+using Styx.Combat.CombatRoutine;
 using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
@@ -81,45 +84,44 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite           _root;
 
         // Private properties
+        private int                 DruidFlightForm { get { return (33943); } }
+        private int                 DruidSwiftFlightForm { get { return (40120); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
 
         private void Dismount()
         {
-            // if in the air, 
-            if (StyxWoW.Me.IsFlying)
+            // If flying, descend before dismounting
+            if (Me.IsFlying)
             {
                 UtilLogMessage("info", "Descending before dismount");
                 Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend);
-                while (StyxWoW.Me.IsFlying)
+                while (Me.IsFlying)
                     { Thread.Sleep(250); }
 
                 Navigator.PlayerMover.MoveStop();
             }
 
-            if (StyxWoW.Me.Auras.ContainsKey("Flight Form"))
+            // If Druid is 'mounted' via a flight form, cancel the flight form...
+            if (Me.Class == WoWClass.Druid)
             {
-                UtilLogMessage("info", "Cancelling Flight Form");
-                CancelAura("Flight Form");
+                var     flyingAuras  = from aura in Me.Auras.Values
+                                       where ((aura.SpellId == DruidFlightForm) || (aura.SpellId == DruidSwiftFlightForm))
+                                       select aura;
+
+                foreach (WoWAura flyingAura in flyingAuras)
+                {
+                    UtilLogMessage("info", "Cancelling " + flyingAura.Name);
+                    Lua.DoString("CancelUnitBuff('player', '" + flyingAura.Name + "')");   
+                }
             }
 
-            else if (StyxWoW.Me.Auras.ContainsKey("Swift Flight Form"))
-            {
-                UtilLogMessage("info", "Cancelling Swift Flight Form");
-                CancelAura("Swift Flight Form");
-            }
-
-            else
+            // Otherwise, if class is mounted (including Druids), dismount
+            if (Me.Mounted)
             {
                 UtilLogMessage("info", "Dismounting");
                 Mount.Dismount();
             }
-        }
-
-
-        private void CancelAura(string sAura)
-        {
-            Lua.DoString(string.Format("RunMacroText(\"/cancelaura {0}\")", sAura), 0);
         }
 
 
