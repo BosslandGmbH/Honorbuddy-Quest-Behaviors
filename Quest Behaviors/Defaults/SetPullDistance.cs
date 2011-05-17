@@ -32,13 +32,6 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                UtilLogMessage("warning",   "*****\n"
-                                          + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
-                                          + "*\n"
-                                          + "* SetPullDistance adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
-                                          + "* Please update the profile to use the UserSettings behavior.\n"
-                                          + "*****");
-
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
@@ -46,6 +39,16 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0; 
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+
+                UtilLogMessage("warning",   "*****\n"
+                                          + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                          + "*\n"
+                                          + "* SetPullDistance adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
+                                          + "* Please update the profile to use the UserSettings behavior.  You're replacement\n"
+                                          + "* line is:\n"
+                                          + "*     <CustomBehavior File=\"UserSettings\" PullDistance=\"{0}\" />\n"
+                                          + "*****",
+                                          Distance);
             }
 
 			catch (Exception except)
