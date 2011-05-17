@@ -49,8 +49,8 @@ namespace Styx.Bot.Quest_Behaviors
                 CastTime        = GetAttributeAsInteger("CastTime", false, 0, 30000, null) ?? 0;
                 Hop             = GetAttributeAsBoolean("Hop", false, null) ?? false;
                 IgnoreCombat    = GetAttributeAsBoolean("IgnoreCombat", false, null) ?? true;
-                Location        = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MobId           = GetAttributeAsMobId("MobId", false, new [] { "MobID", "NpcId" }) ?? 0;
+                Location        = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                MobIds          = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "MobID", "NpcId" }) ?? new int[0];
                 Precision       = GetAttributeAsInteger("Precision", false, 2, 100, null) ?? 4;
                 QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -80,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     Hop { get; private set; }
         public bool                     IgnoreCombat { get; private set; }
         public WoWPoint                 Location { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public WoWPoint[]               Path { get; private set; }
         public int                      Precision { get; private set; }
         public int                      QuestId { get; private set; }
@@ -99,6 +99,8 @@ namespace Styx.Bot.Quest_Behaviors
         private Stopwatch       _pauseStopwatch = new Stopwatch();// add a small pause before casting.. 
         private Composite       _root;
         private Stopwatch       _stuckTimer = new Stopwatch();
+
+        private static LocalPlayer  Me { get { return (ObjectManager.Me); } }
 
 
         bool InVehicle
@@ -195,10 +197,10 @@ namespace Styx.Bot.Quest_Behaviors
                 if (UseNavigator)
                 {
                     WoWUnit vehicle = Vehicle;
-                    if (MobId > 0)
+                    if (MobIds.Count() > 0)
                     {
                         // target mob and move to it 
-                        WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == MobId).
+                        WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => MobIds.Contains((int)o.Entry)).
                             OrderBy(o => o.Distance).FirstOrDefault();
                         if (mob != null)
                         {
