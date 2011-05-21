@@ -61,12 +61,16 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+                int     tmpMobHasAuraId;
+                int     tmpMobHasAuraMissingId;
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
-                HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
-                HpLeftAmount = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "HpLeftAmount" }) ?? 100;
+                tmpMobHasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
+                tmpMobHasAuraMissingId = GetAttributeAsSpellId("IsMissingAuraId", false, null) ?? 0;
+                MobHpLeftAmount = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "HpLeftAmount" }) ?? 100;
                 ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
                 Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
                 MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
@@ -78,6 +82,9 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 1500;
+
+                MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId)  : null;
+                MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId)  : null;
             }
 
 			catch (Exception except)
@@ -97,10 +104,11 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public int                      CollectionDistance { get; private set; }
-        public int                      HasAuraId { get; private set; }
-        public int                      HpLeftAmount { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
+        public string                   MobAuraName { get; private set; }
+        public string                   MobAuraMissingName { get; private set; }
+        public int                      MobHpLeftAmount { get; private set; }
         public int[]                    MobIds { get; private set; }
         public ObjectType               MobType { get; private set; }
         public NpcState                 _NpcState { get; private set; }
@@ -122,6 +130,26 @@ namespace Styx.Bot.Quest_Behaviors
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
 
 
+        // May return 'null' if auraId is not valid.
+        private string      AuraNameFromId(string   attributeName,
+                                           int      auraId)
+        {
+            string  tmpString   = null;
+
+            try 
+            { 
+                tmpString = WoWSpell.FromId(auraId).Name; 
+            }
+            catch
+            {
+                UtilLogMessage("fatal", "Could not find {0}({0}).", attributeName, auraId);
+                IsAttributeProblem = true;
+            }
+
+            return (tmpString);
+        }
+
+
         /// <summary> Current object we should interact with.</summary>
         /// <value> The object.</value>
         private WoWObject CurrentObject
@@ -129,72 +157,36 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 WoWObject @object = null;
+
                 switch (MobType)
                 {
                     case ObjectType.GameObject:
-                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                            !_npcBlacklist.Contains(obj.Guid) &&
-                            obj.Distance < CollectionDistance &&
-                            MobIds.Contains((int)obj.Entry));
-
+                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>()
+                                                .OrderBy(ret => ret.Distance)
+                                                .FirstOrDefault(obj => !_npcBlacklist.Contains(obj.Guid)
+                                                                        && obj.Distance < CollectionDistance
+                                                                        && MobIds.Contains((int)obj.Entry));
                         break;
 
                     case ObjectType.Npc:
-                        if (HasAuraId != 0)
-                        {
-                            string tmp;
-                            try 
-                            { 
-                                tmp = WoWSpell.FromId(HasAuraId).Name; 
-                            }
-                            catch
-                            {
-                                UtilLogMessage("fatal", "Could not find HasAuraId({0}) for UseItemOn behavior!", HasAuraId);
-                                break;
-                            }
+                        var     baseTargets     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                               .OrderBy(target => target.Distance)
+                                                               .Where(target => !_npcBlacklist.Contains(target.Guid)
+                                                                                && (target.Distance < CollectionDistance)
+                                                                                && MobIds.Contains((int)target.Entry));
 
-                            @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                                !_npcBlacklist.Contains(obj.Guid) &&
-                                obj.Distance < CollectionDistance &&
-                                obj.HasAura(tmp) &&
-                                MobIds.Contains((int)obj.Entry));
-                        }
-                        else
-                        {
-                            switch (_NpcState)
-                            {
-                                case NpcState.DontCare:
-                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                                        !_npcBlacklist.Contains(obj.Guid) &&
-                                        obj.Distance < CollectionDistance &&
-                                        MobIds.Contains((int)obj.Entry));
-                                    break;
-                                case NpcState.Dead:
-                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                                        !_npcBlacklist.Contains(obj.Guid) &&
-                                        obj.Dead &&
-                                        obj.Distance < CollectionDistance &&
-                                        MobIds.Contains((int)obj.Entry));
-                                    break;
-                                case NpcState.Alive:
-                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                                        !_npcBlacklist.Contains(obj.Guid) &&
-                                        obj.IsAlive &&
-                                        obj.Distance < CollectionDistance &&
-                                        MobIds.Contains((int)obj.Entry));
-                                    break;
-                                case NpcState.BelowHp:
-                                    @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                                        !_npcBlacklist.Contains(obj.Guid) &&
-                                        obj.HealthPercent <= HpLeftAmount &&
-                                        obj.IsAlive &&
-                                        obj.Distance < CollectionDistance &&
-                                        MobIds.Contains((int)obj.Entry));
-                                    break;
-                            }
-                            
-                        }
+                        var     auraQualifiedTargets    = baseTargets
+                                                            .Where(target => (((MobAuraName == null) && (MobAuraMissingName == null))
+                                                                              || ((MobAuraName != null) && target.HasAura(MobAuraName))
+                                                                              || ((MobAuraMissingName != null) && !target.HasAura(MobAuraMissingName))));
 
+                        var     npcStateQualifiedTargets = auraQualifiedTargets
+                                                            .Where(target => ((_NpcState == NpcState.DontCare)
+                                                                              || ((_NpcState == NpcState.Dead) && target.Dead)
+                                                                              || ((_NpcState == NpcState.Alive) && target.IsAlive)
+                                                                              || ((_NpcState == NpcState.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpLeftAmount))));
+
+                        @object = npcStateQualifiedTargets.FirstOrDefault();
                         break;
                 }
 
