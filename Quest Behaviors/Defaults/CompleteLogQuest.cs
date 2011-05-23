@@ -91,6 +91,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             5,
                                             ret => _newQuest,
                                             new Action(ret => Lua.DoString("AcceptQuest"))),
+                                        new Action(ret => Lua.DoString("CloseQuest()")),
                                         new Action(ret => Counter++)
                                     ))
                                
