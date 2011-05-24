@@ -59,7 +59,10 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private int             Counter { get; set; }
         private int             QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
-        private readonly string RevisionId { get { return ("$Id$"); } }  // don't edit--populated by SVN
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        private readonly string SubversionId { get { return ("$Revision$"); } }
+        private readonly string SubversionRevision { get { return ("$Id$"); } }
 
 
         #region Overrides of CustomForcedBehavior
