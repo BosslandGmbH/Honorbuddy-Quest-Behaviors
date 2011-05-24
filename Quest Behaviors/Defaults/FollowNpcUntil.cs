@@ -88,6 +88,10 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
         /// <summary>
         /// A Queue for npc's we need to talk to

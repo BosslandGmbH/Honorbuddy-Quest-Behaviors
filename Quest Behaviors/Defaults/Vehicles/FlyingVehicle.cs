@@ -85,6 +85,7 @@ namespace Styx.Bot.Quest_Behaviors
  
         enum State { liftoff, start, looping, finshed, landing, remount }
 
+        // Attributes provided by caller
         public int[]                    Buttons { get; private set; }
         public int                      DropPassengerButton { get; private set; }
         public WoWPoint[]               EndPath { get; private set; }
@@ -103,6 +104,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint[]               StartPath { get; private set; }
         public int                      VehicleId { get; private set; }
 
+        // Private variables for internal state
         private bool                            _casting = false;
         private WoWMovement.MovementDirection   _direction;
         private bool                            _doingUnstuck;
@@ -110,12 +112,18 @@ namespace Styx.Bot.Quest_Behaviors
         private bool                            _isBehaviorDone = false;
         private WoWPoint                        _lastPoint = WoWPoint.Empty;
         private Stopwatch                       _liftoffStopwatch = new Stopwatch();
-        private LocalPlayer                     Me = ObjectManager.Me;
         private int                             _pathIndex = 0;
         private System.Random                   _rand = new System.Random();
         private Composite                       _root;
         private State                           _state = State.liftoff;
         private Stopwatch                       _stuckTimer = new Stopwatch();
+
+        // Private properties
+        private static LocalPlayer  Me { get { return (ObjectManager.Me); } }
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
         bool InVehicle

@@ -72,6 +72,10 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite       _root;
         private Timer           _timer;
         private string          _waitTimeAsString;
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
         
 
         private string   UtilSubstituteInMessage(string   message)

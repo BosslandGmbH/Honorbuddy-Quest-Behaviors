@@ -88,6 +88,10 @@ namespace Styx.Bot.Quest_Behaviors
         private int                 DruidSwiftFlightForm { get { return (40120); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
         private void Dismount()
         {

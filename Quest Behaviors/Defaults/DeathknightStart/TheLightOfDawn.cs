@@ -65,6 +65,11 @@ namespace Styx.Bot.Quest_Behaviors
 		private static WoWUnit              HighWarlordDarion { get { return ObjectManager.GetObjectsOfType<WoWUnit>(false, false).FirstOrDefault(u => u.Entry == 29173); } }
         private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
+
 
         private void AntiAfk()
         {

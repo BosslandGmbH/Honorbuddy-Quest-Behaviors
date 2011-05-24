@@ -73,6 +73,10 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite           _root;
         private readonly Stopwatch  _waitStopwatch = new Stopwatch();
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
         #region Overrides of CustomForcedBehavior
 

@@ -71,6 +71,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int[]                    Buttons { get; private set; }
         public int                      ExitButton { get; private set; }
         public double                   MaxAngle { get; private set; }
@@ -81,10 +82,17 @@ namespace Styx.Bot.Quest_Behaviors
         public List<int>                SpellIds { get; private set; }
         public int                      VehicleId { get; private set; }
 
+        // Private variables for internal state
         private bool                _aimed;
         private bool                _isBehaviorDone;
         private Composite           _root;
         readonly Stopwatch          _thottleTimer = new Stopwatch();
+
+        // Private properties
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
         public WoWObject Vehicle

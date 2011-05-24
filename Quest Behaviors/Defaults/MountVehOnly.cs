@@ -80,6 +80,10 @@ namespace Styx.Bot.Quest_Behaviors
                                                                                  .OrderBy(u => u.Distance).ToList());
                                              } }
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
         #region Overrides of CustomForcedBehavior
 

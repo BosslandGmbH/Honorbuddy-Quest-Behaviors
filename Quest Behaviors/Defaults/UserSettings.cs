@@ -188,6 +188,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		private Dictionary<string, ConfigurationChangeRequest>  _presetChangeRequests;
 		private ConfigurationChangeRequest                      _userChangeRequest;
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
 		private void BotEvents_OnBotStop(EventArgs args)
 		{

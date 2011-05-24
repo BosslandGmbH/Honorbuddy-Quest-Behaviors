@@ -556,6 +556,10 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         private bool                        _isBehaviorDone;
         private bool                        _isDisposed;
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
         ~UserDialog()
         {

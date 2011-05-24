@@ -75,6 +75,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        // Attributes provided by caller
         public int                      CastNum { get; private set; }
         public int                      CastTime { get; private set; }
         public bool                     Hop { get; private set; }
@@ -90,6 +91,7 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     UseNavigator { get; private set; }
         public int[]                    VehicleIds { get; private set; }
 
+        // Private variables for internal state
         private int             _castCounter;
         private bool            _casted = false;
         private Stopwatch       _castStopwatch = new Stopwatch();// cast timer.
@@ -100,7 +102,12 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite       _root;
         private Stopwatch       _stuckTimer = new Stopwatch();
 
+        // Private properties
         private static LocalPlayer  Me { get { return (ObjectManager.Me); } }
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
         bool InVehicle

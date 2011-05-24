@@ -67,6 +67,10 @@ namespace Styx.Bot.Quest_Behaviors
         private bool            IsInVehicle { get { return Lua.GetReturnVal<int>("return UnitIsControlling('player')", 0) == 1; } }
         private LocalPlayer     Me { get { return (ObjectManager.Me); } }
 
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
+
 
         #region Overrides of CustomForcedBehavior
 
