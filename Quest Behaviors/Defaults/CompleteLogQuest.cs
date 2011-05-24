@@ -61,10 +61,6 @@ namespace Styx.Bot.Quest_Behaviors
         private int             QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        private readonly string SubversionId { get { return ("$Revision$"); } }
-        private readonly string SubversionRevision { get { return ("$Id$"); } }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
