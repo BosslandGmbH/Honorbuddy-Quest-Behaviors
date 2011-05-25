@@ -84,8 +84,8 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite           _root;
 
         // Private properties
-        private int                 DruidFlightForm { get { return (33943); } }
-        private int                 DruidSwiftFlightForm { get { return (40120); } }
+        private string              DruidFlightForm { get { return ("Flight Form"); } }
+        private string              DruidSwiftFlightForm { get { return ("Swift Flight Form"); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -106,22 +106,22 @@ namespace Styx.Bot.Quest_Behaviors
                 Navigator.PlayerMover.MoveStop();
             }
 
-            // If Druid is 'mounted' via a flight form, cancel the flight form...
-            if (Me.Class == WoWClass.Druid)
-            {
-                var     flyingAuras  = from aura in Me.Auras.Values
-                                       where ((aura.SpellId == DruidFlightForm) || (aura.SpellId == DruidSwiftFlightForm))
-                                       select aura;
 
-                foreach (WoWAura flyingAura in flyingAuras)
-                {
-                    UtilLogMessage("info", "Cancelling " + flyingAura.Name);
-                    Lua.DoString("CancelUnitBuff('player', '" + flyingAura.Name + "')");   
-                }
+            // If Druid is 'mounted' via a flight form, casting the spell again cancels the flight form...
+            if (Me.Auras.ContainsKey(DruidSwiftFlightForm))
+            {
+                UtilLogMessage("info", "Cancelling {0}", DruidSwiftFlightForm);
+                SpellManager.Cast(DruidSwiftFlightForm);
+            }
+
+            else if (Me.Auras.ContainsKey(DruidFlightForm))
+            {
+                UtilLogMessage("info", "Cancelling {0}", DruidFlightForm);
+                SpellManager.Cast(DruidFlightForm);
             }
 
             // Otherwise, if class is mounted (including Druids), dismount
-            if (Me.Mounted)
+            else if (Me.Mounted)
             {
                 UtilLogMessage("info", "Dismounting");
                 Mount.Dismount();
