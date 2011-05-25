@@ -48,9 +48,9 @@ namespace Styx.Bot.Quest_Behaviors
 			try
 			{
                 HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 110;
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
                 MinRange    = GetAttributeAsRange("MinRange", false, null) ?? 3;
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
                 NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -59,6 +59,23 @@ namespace Styx.Bot.Quest_Behaviors
                 SpellId     = GetAttributeAsSpellId("SpellId", true, null) ?? 0;
 
                 Counter     = 1;
+
+                // Semantic checks
+                if (Range <= MinRange)
+                {
+                    UtilLogMessage("fatal", "\"Range\" attribute must be greater than \"MinRange\" attribute.");
+                    IsAttributeProblem = true;
+                }
+
+                if (!SpellManager.HasSpell(SpellId))
+                {
+                    WoWSpell    spell       = WoWSpell.FromId(SpellId);
+
+                    UtilLogMessage("fatal", "Toon doesn't know SpellId({0}, \"{1}\")",
+                                            SpellId,
+                                            ((spell != null) ? spell.Name : "unknown"));
+                    IsAttributeProblem = true;
+                }
 			}
 
 			catch (Exception except)
@@ -80,7 +97,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      HpLeftAmount { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public int                      MinRange { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                    MobIds { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -98,13 +115,13 @@ namespace Styx.Bot.Quest_Behaviors
         public List<WoWUnit>        MobList { get { if (HpLeftAmount > 0)
                                                     {
                                                         return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                             .Where(u => u.Entry == MobId && !u.Dead && u.HealthPercent <= HpLeftAmount)
+                                                                             .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead && u.HealthPercent <= HpLeftAmount)
                                                                              .OrderBy(u => u.Distance).ToList());
                                                     }
                                                     else
                                                     {
                                                         return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                             .Where(u => u.Entry == MobId && !u.Dead)
+                                                                             .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead)
                                                                              .OrderBy(u => u.Distance).ToList());
                                                     }
                                                 }}
