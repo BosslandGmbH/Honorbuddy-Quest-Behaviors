@@ -95,13 +95,11 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 
 using CommonBehaviors.Actions;
 
 using Styx.Helpers;
-using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
@@ -233,8 +231,8 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                                             }}
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        // public override string      SubversionId { get { return ("$Id$"); } }
-        // public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
         private void    UtilGuiShowProgress(string       completionReason)
@@ -311,19 +309,23 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                     // This keeps it from taking a few steps towards next mob, only to go back to
                     // previous mob and loot it.  This technique can still fail if Honorbddy is slow to update
                     // infomation.  However, this shuts a lot of it down.
-                    new Decorator(ret => (LevelbotSettings.Instance.LootMobs && (LootList.Count() > 0)),
+                    new Decorator(ret => (CharacterSettings.Instance.LootMobs && (LootList.Count() > 0)),
                         new ActionAlwaysSucceed()),
 
 
                     // If no targets in the area, move back to search area anchor --
                     new Decorator(selectedTarget => (selectedTarget == null),
                         new PrioritySelector(
+                            // We find a point 'near' our anchor at which to wait.  This way, if multiple people are using the same
+                            // profile at the same time, they won't be standing on top of each other.
                             new Decorator(ret => (_searchAreaWaitPoint == WoWPoint.Empty),
                                 new Action(delegate { _searchAreaWaitPoint = SearchAreaAnchor.FanOutRandom(CollectionDistance * 0.25); })),
 
+                            // Move to our selected random point...
                             new Decorator(ret => (Me.Location.Distance(_searchAreaWaitPoint) > Navigator.PathPrecision),
                                 new Action(delegate { Navigator.MoveTo(_searchAreaWaitPoint); })),
 
+                            // Tell user what's going on...
                             new Sequence(
                                 new Action(delegate
                                     {
@@ -416,17 +418,17 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
         public LocalBlackList(TimeSpan  maxSweepTime)
         {
             _maxSweepTime = maxSweepTime;
-            _stopWatch.Start();
+            _stopWatchForSweeping.Start();
         }
 
-        private Dictionary<ulong, DateTime>     _blackList      = new Dictionary<ulong, DateTime>();
+        private Dictionary<ulong, DateTime>     _blackList              = new Dictionary<ulong, DateTime>();
         private TimeSpan                        _maxSweepTime;
-        private Stopwatch                       _stopWatch      = new Stopwatch();      
+        private Stopwatch                       _stopWatchForSweeping   = new Stopwatch();      
 
 
         public void     Add(ulong guid,   TimeSpan timeSpan)
         {
-            if (_stopWatch.Elapsed > _maxSweepTime)
+            if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
                 { RemoveExpired(); }
 
             _blackList[guid] = DateTime.Now.Add(timeSpan);
@@ -435,7 +437,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
         public bool     Contains(ulong  guid)
         {
-            if (_stopWatch.Elapsed > _maxSweepTime)
+            if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
                 { RemoveExpired(); }
 
             return (_blackList.ContainsKey(guid));
@@ -453,8 +455,8 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
             foreach (ulong entry in expiredEntries)
                 { _blackList.Remove(entry); }
 
-            _stopWatch.Reset();
-            _stopWatch.Start();
+            _stopWatchForSweeping.Reset();
+            _stopWatchForSweeping.Start();
         }
     }
 
@@ -565,15 +567,13 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
             // random number generator.
             for (tryCount = MAX_TRIES;   tryCount > 0;    --tryCount)
             {
-                double          angle       = TAU * _random.NextDouble();
                 WoWPoint        circlePoint;
-                double          distance    = maxRadius * _random.NextDouble();
                 bool[]          hitResults;
                 WoWPoint[]      hitPoints;
                 int             index;
                 WorldLine[]     traceLines  = new WorldLine[CYLINDER_LINE_COUNT +1];
 
-                candidateDestination = location.AddPolarXY(angle, distance, 0.0);
+                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()),  (maxRadius * _random.NextDouble()),  0.0);
 
                 // Build set of tracelines that can evaluate the candidate destination --
                 // We build a cone of lines with the cone's base at the destination's 'feet',
@@ -585,11 +585,8 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                 traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
                 traceLines[index].End   = candidateDestination.Add(0.0, 0.0, -maxRadius);
 
-                // Cone vectors
-                // Note that each vector's height goes from +maxRadius to -maxRadius.  We want the
-                // SAFE_DISTANCE_BUFFER to apply at 0 height.  Thus, we must double the size of the
-                // SAFE_DISTANCE_BUFFER at the cone's base for this to occur.
-                for (double turnFraction = 0.0;    turnFraction < TAU;    turnFraction += TAU/CYLINDER_LINE_COUNT)
+                // Cylinder vectors
+                for (double turnFraction = 0.0;    turnFraction < TAU;    turnFraction += (TAU / CYLINDER_LINE_COUNT))
                 {
                     ++index;
                     circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
@@ -598,10 +595,10 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                 }
                 
 
-                // Evaluate the cone...
+                // Evaluate the cylinder...
                 // The result for the 'normal' vector (first one) will be the location where the
-                // destination meets the ground.  Before this MassTrace, only the candidate
-                // destination's X/Y values were valid.
+                // destination meets the ground.  Before this MassTrace, only the candidateDestination's
+                // X/Y values were valid.
                 GameWorld.MassTraceLine(traceLines.ToArray(),
                                         GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
                                         out hitResults,
