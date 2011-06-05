@@ -27,7 +27,7 @@
 //               -->
 //              <CustomBehavior File="CollectThings" QuestId="14124"
 //                  ObjectId="195492"
-//                  CollectItemId="48766" CollectUntil="NoMoreInArea" CollectionDistance="25" />
+//                  CollectUntil="NoTargetsInArea" CollectItemId="48766" CollectionDistance="25" />
 //          </While>
 //
 //      It can also be used to simply collect objects in an area:
@@ -38,7 +38,7 @@
 //            -->
 //          <CustomBehavior File="CollectThings" QuestId="24488"
 //              ObjectId="201603"
-//              CollectItemId="49752" CollectItemCount="6" CollectionDistance="1000"
+//              CollectUntil="QuestComplete" CollectItemId="49752" CollectItemCount="6" CollectionDistance="1000"
 //              X="-8426.145" Y="1178.538" Z="40.7015" />
 //
 //      Can also be used for quests where a simple (right-click) interaction is required.
@@ -54,28 +54,36 @@
 //            -->
 //          <CustomBehavior File="CollectThings" QuestId="14069"
 //              MobId="34830"
-//              CollectItemCount="8" />
+//              CollectUntil="QuestComplete" CollectItemCount="8" />
+//
 //
 //  Parameters (required, then optional--both listed alphabetically):
-//      CollectionDistance [Default: 120]: The range from the X/Y/Z location at which
-//              targets (mobs or objects) will be sought.
-//      CollectItemCount [REQUIRED if CollectUntil=RequiredCountReached, Default: 1]:
-//              represents the number of items we must collect for the behavior to terminate.
-//      CollectItemId [REQUIRED if CollectUntil=NoTargetsInArea or RequiredCountReached]:
-//              Identifies the item we are collecting.  The only time this attribute may be omitted
-//              is when we're collecting intangibles such as 'attitudes' or 'liberations' that
-//              will complete the quest.
+//      (***One or more of the following two attributes must be specified***)
+//      MobIdN [REQUIRED if ObjectId is omitted]: Defines the mobs that drop the Items we're after.
+//              N may be omitted, or any numeric value--multiple mobs are supported.
+//      ObjectIdN [REQUIRED if MobId is omitted]: Defines the objects that drop the Items we're after.
+//              N may be omitted, or any numeric value--mulitple objects are supported.
+//
+//      (This attribute is optional, but governs what other attributes are optional)
 //      CollectUntil [Default: RequiredCountReached]: Defines the terminating condition for
 //              this behavior.  Available options include:  NoTargetsInArea, RequiredCountReached, QuestComplete.
 //              "Targets" means mobs or objects--whatever is dropping the items we're after.
-//      MobIdN [REQUIRED if ObjectId is omitted]: Defines the mobs that drop the Items we're after.
-//              N may be omitted, or any numeric value--multiple mobs are supported.
+//
+//      (***These attributes may/may not be optional based on value of CollectUntil attribute***)
+//      CollectItemCount [REQUIRED if CollectUntil=RequiredCountReached; Default: 1]:
+//              represents the number of items we must collect for the behavior to terminate.
+//      CollectItemId [REQUIRED if CollectUntil=NoTargetsInArea or RequiredCountReached; Default:none]:
+//              Identifies the item we are collecting.  The only time this attribute may be omitted
+//              is when we're collecting intangibles such as 'attitudes' or 'liberations' that
+//              will complete the quest.
+//      QuestId [REQUIRED if CollectUntil=QuestComplete; Default:none]:
+//
+//      (***These attibutes are completely optional***)
+//      CollectionDistance [Default: 120]: The range from the anchor location (i.e., X/Y/Z) location at which
+//              targets (mobs or objects) will be sought.
 //      NonCompeteDistance [Default: 25]: If a player is within this distance of a target that looks
 //              interesting to us, we'll ignore the target.  The assumption is that the player may
 //              be going for the same target, and we don't want to draw attention.
-//      ObjectIdN [REQUIRED if MobId is omitted]: Defines the objects that drop the Items we're after.
-//              N may be omitted, or any numeric value--mulitple objects are supported.
-//      QuestId [Default:none]:
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
