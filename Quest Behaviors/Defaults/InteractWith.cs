@@ -76,6 +76,7 @@ namespace Styx.Bot.Quest_Behaviors
                 Range       = GetAttributeAsRange("Range", false, null) ?? 4;
                 WaitForNpcs = GetAttributeAsBoolean("WaitForNpcs", false, null) ?? true;
                 WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 3000;
+                IgnoreCombat = GetAttributeAsBoolean("IgnoreCombat", false, null) ?? false;
 
                 for (int i = 0;  i < GossipOptions.Length;  ++i)
                     { GossipOptions[i] -= 1; }
@@ -123,6 +124,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      Range { get; private set; }
         public bool                     WaitForNpcs { get; private set; }
         public int                      WaitTime { get; private set; }
+        public bool                     IgnoreCombat { get; private set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
@@ -181,99 +183,100 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ?? (_root =
                 new PrioritySelector(
-
-                    new Decorator(ret => Counter >= NumOfTimes,
-                        new Action(ret => _isBehaviorDone = true)),
-
+                    new Decorator(ret => !_isBehaviorDone && !IsDone,
                         new PrioritySelector(
+                            new Decorator(ret => Counter >= NumOfTimes,
+                                new Action(ret => _isBehaviorDone = true)),
 
-                            new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range,
-                                new Sequence(
-                                    new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
-                                    new Action(ret => Navigator.MoveTo(CurrentObject.Location))
-                                    )
-                                ),
+                            new PrioritySelector(
 
-                            new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) <= Range * Range,
-                                new Sequence(
-                                    new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                        new Action(ret =>
-                                            {
-                                                WoWMovement.MoveStop();
-                                                StyxWoW.SleepForLagDuration();
-                                            })),
+                                new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range,
+                                    new Sequence(
+                                        new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
+                                        new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+                                        )
+                                    ),
 
-                                    new Action(ret =>
-                                    {
-                                        TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
-                                        CurrentObject.Interact();
-                                        _npcBlacklist.Add(CurrentObject.Guid);
-
-                                        Thread.Sleep(2000);
-                                        Counter++;
-                                    }),
-
-                                    new DecoratorContinue(
-                                        ret => GossipOptions.Length > 0,
-                                        new Action(ret =>
-                                            {
-                                                foreach (var gos in GossipOptions)
+                                new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) <= Range * Range,
+                                    new Sequence(
+                                        new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
+                                            new Action(ret =>
                                                 {
-                                                    GossipFrame.Instance.SelectGossipOption(gos);
-                                                    Thread.Sleep(1000);
-                                                }
-                                            })),
+                                                    WoWMovement.MoveStop();
+                                                    StyxWoW.SleepForLagDuration();
+                                                })),
 
-                                    new DecoratorContinue(
-                                        ret => Loot && LootFrame.Instance.IsVisible,
-                                        new Action(ret => LootFrame.Instance.LootAll())),
+                                        new Action(ret =>
+                                        {
+                                            TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
+                                            CurrentObject.Interact();
+                                            _npcBlacklist.Add(CurrentObject.Guid);
+
+                                            Thread.Sleep(2000);
+                                            Counter++;
+                                        }),
+
+                                        new DecoratorContinue(
+                                            ret => GossipOptions.Length > 0,
+                                            new Action(ret =>
+                                                {
+                                                    foreach (var gos in GossipOptions)
+                                                    {
+                                                        GossipFrame.Instance.SelectGossipOption(gos);
+                                                        Thread.Sleep(1000);
+                                                    }
+                                                })),
+
+                                        new DecoratorContinue(
+                                            ret => Loot && LootFrame.Instance.IsVisible,
+                                            new Action(ret => LootFrame.Instance.LootAll())),
                                     
-                                    new DecoratorContinue(
-                                        ret => BuyItemId != 0 && MerchantFrame.Instance.IsVisible,
-                                        new Action(ret =>
-                                            {
-                                                var items = MerchantFrame.Instance.GetAllMerchantItems();
-                                                var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (i.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
-
-                                                if (item != null)
+                                        new DecoratorContinue(
+                                            ret => BuyItemId != 0 && MerchantFrame.Instance.IsVisible,
+                                            new Action(ret =>
                                                 {
-                                                    MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
+                                                    var items = MerchantFrame.Instance.GetAllMerchantItems();
+                                                    var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (i.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
+
+                                                    if (item != null)
+                                                    {
+                                                        MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
+                                                        Thread.Sleep(1500);
+                                                    }
+                                                })),
+
+                                        new DecoratorContinue(
+                                            ret => BuySlot != -1 && BuyItemId == 0 && MerchantFrame.Instance.IsVisible,
+                                            new Action(ret =>
+                                            {
+                                                var item = MerchantFrame.Instance.GetMerchantItemByIndex(BuySlot);
+                                                if (item != null && (item.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (item.NumAvailable >= BuyItemCount || item.NumAvailable == -1))
+                                                {
+                                                    MerchantFrame.Instance.BuyItem(BuySlot, BuyItemCount);
                                                     Thread.Sleep(1500);
                                                 }
                                             })),
+                                        new DecoratorContinue(
+                                            ret => Me.CurrentTarget != null && Me.CurrentTarget == CurrentObject,
+                                            new Action(ret => Me.ClearTarget())),
 
-                                    new DecoratorContinue(
-                                        ret => BuySlot != -1 && BuyItemId == 0 && MerchantFrame.Instance.IsVisible,
-                                        new Action(ret =>
-                                        {
-                                            var item = MerchantFrame.Instance.GetMerchantItemByIndex(BuySlot);
-                                            if (item != null && (item.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (item.NumAvailable >= BuyItemCount || item.NumAvailable == -1))
-                                            {
-                                                MerchantFrame.Instance.BuyItem(BuySlot, BuyItemCount);
-                                                Thread.Sleep(1500);
-                                            }
-                                        })),
-                                    new DecoratorContinue(
-                                        ret => Me.CurrentTarget != null && Me.CurrentTarget == CurrentObject,
-                                        new Action(ret => Me.ClearTarget())),
+                                        new Action(ret => Thread.Sleep(WaitTime))
 
-                                    new Action(ret => Thread.Sleep(WaitTime))
+                                    )),
 
-                                )),
+                                new Decorator(
+                                    ret => Location.DistanceSqr(Me.Location) > 2 * 2,
+                                    new Sequence(
+                                        new Action(ret => { TreeRoot.StatusText = "Moving towards - " + Location; }),
+                                        new Action(ret => Navigator.MoveTo(Location)))),
 
-                            new Decorator(
-                                ret => Location.DistanceSqr(Me.Location) > 2 * 2,
-                                new Sequence(
-                                    new Action(ret => { TreeRoot.StatusText = "Moving towards - " + Location; }),
-                                    new Action(ret => Navigator.MoveTo(Location)))),
+                                new Decorator(
+                                    ret => !WaitForNpcs && CurrentObject == null,
+                                    new Action(ret => _isBehaviorDone = true)),
 
-                            new Decorator(
-                                ret => !WaitForNpcs && CurrentObject == null,
-                                new Action(ret => _isBehaviorDone = true)),
+                                new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")
 
-                            new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")
-
-                    )));
+                        )))));
         }
 
 
@@ -299,6 +302,16 @@ namespace Styx.Bot.Quest_Behaviors
             if (!IsDone)
             {
                 TreeRoot.GoalText = "Interacting with " + MobName;
+            }
+
+            if (IgnoreCombat && TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+            {
+                var currentRoot = TreeRoot.Current.Root;
+                if (currentRoot is GroupComposite)
+                {
+                    var root = (GroupComposite)currentRoot;
+                    root.InsertChild(0, CreateBehavior());
+                }
             }
         }
 
