@@ -148,7 +148,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                 CollectionDistance = GetAttributeAsDouble("CollectionDistance", false, 1.0, 10000.0, null) ?? 120.0;
                 SearchAreaAnchor   = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
                 MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, null) ?? new int[0];
-                NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, double.MaxValue, null) ?? 25.0;
+                NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
                 ObjectIds   = GetNumberedAttributesAsIntegerArray("ObjectId", 0, 1, int.MaxValue, null) ?? new int[0];
                 QuestId     = GetAttributeAsQuestId("QuestId", isQuestIdRequired, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
