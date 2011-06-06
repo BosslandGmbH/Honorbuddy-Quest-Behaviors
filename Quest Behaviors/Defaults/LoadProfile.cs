@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 
+using CommonBehaviors.Actions;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
@@ -64,7 +66,6 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite           _root;
 
         // Private properties
-        private int                 Counter { get; set; }
         private String              CurrentProfile { get { return (ProfileManager.XmlLocation); } }
         private String              NewProfilePath { get { string directory = Path.GetDirectoryName(CurrentProfile);
                                                             return (Path.Combine(directory, ProfileName));
@@ -79,22 +80,28 @@ namespace Styx.Bot.Quest_Behaviors
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
+            return (
                 new PrioritySelector(
+                            // If behavior is complete, nothing to do, so bail...
+                            new Decorator(ret => _isBehaviorDone,
+                                new Action(delegate { UtilLogMessage("info", "Behavior complete"); })),
 
-                            new Decorator(ret => Counter > 0,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new Action(ret => _isBehaviorDone = true))),
+                            // If file does not exist, notify of problem...
+                            new Decorator(ret => !File.Exists(NewProfilePath),
+                                new Action(delegate {
+                                    UtilLogMessage("fatal", "Profie '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
+                                    _isBehaviorDone = true;
+                                    })),
 
-                           new Decorator(ret => Counter == 0,
-                                new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "LoadingProfile - " + NewProfilePath),
-                                        new Action(ret => UtilLogMessage("info", "Loading profile: \"{0}\"", ProfileName)),
-                                        new Action(ret => ProfileManager.LoadNew(NewProfilePath, false)),
-                                        new Action(ret => Counter++),
-                                        new Action(ret => Thread.Sleep(300))
-                                    )
+                            // Load the specified profile...
+                            new Sequence(
+                                new Action(delegate {
+                                        TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
+                                        UtilLogMessage("info", "Loading profile '{0}'", ProfileName);
+                                        ProfileManager.LoadNew(NewProfilePath, false);
+                                    }),
+                                new WaitContinueTimeSpan(TimeSpan.FromMilliseconds(300), ret => false, new ActionAlwaysSucceed()),
+                                new Action(delegate { _isBehaviorDone = true; })
                                 )
                     ));
         }
@@ -125,5 +132,17 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         #endregion
+    }
+
+
+    // HBcore granularity on "WaitContinue" is seconds.  This one accepts a TimeSpan, thus
+    // allow for much finer granularity.
+    public class WaitContinueTimeSpan    : WaitContinue
+    {
+        public WaitContinueTimeSpan(TimeSpan timeOut, CanRunDecoratorDelegate decorator, Composite child)
+            : base(1, decorator, child)
+        {
+            Timeout = timeOut;
+        }
     }
 }
