@@ -89,7 +89,7 @@ namespace Styx.Bot.Quest_Behaviors
                             // If file does not exist, notify of problem...
                             new Decorator(ret => !File.Exists(NewProfilePath),
                                 new Action(delegate {
-                                    UtilLogMessage("fatal", "Profie '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
+                                    UtilLogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
                                     _isBehaviorDone = true;
                                     })),
 
