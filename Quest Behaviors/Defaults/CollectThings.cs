@@ -162,6 +162,15 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                     IsAttributeProblem = true;
                 }
 
+                if (CollectionDistance >= (NonCompeteDistance * 2))
+                {
+                    UtilLogMessage("error", "The CollectionDistance (saw '{0}') must be at least twice the size"
+                                            + " of the NonCompeteDistance (saw '{1}').",
+                                            CollectionDistance,
+                                            NonCompeteDistance);
+                    IsAttributeProblem = true;
+                }
+
 
                 // Find the item name --
                 ItemInfo    info    = ItemInfo.FromId((uint)CollectItemId);
