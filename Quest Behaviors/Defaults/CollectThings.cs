@@ -294,22 +294,22 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                         new Action(delegate { UtilGuiShowProgress("quest complete"); })),
 
 
+                    // If we've filled our inventory quota, we're done...
+                    new Decorator(
+                        ret => (CollectedItemCount >= CollectItemCount),
+                        new Action(delegate
+                        {
+                            UtilGuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
+                            _isBehaviorDone = true;
+                        })),
+
+
                     // If we've exhausted mob/object supply in area, and that's our exit criteria, we're done...
                     new Decorator(
                         selectedTarget => ((CollectUntil == CollectUntilType.NoTargetsInArea) && (selectedTarget == null)),
                         new Action(delegate
                         {
                             UtilGuiShowProgress("No more objects/mobs in area");
-                            _isBehaviorDone = true;
-                        })),
-
-
-                    // If we've filled our inventory quota, and that's our exit criteria, we're done...
-                    new Decorator(
-                        ret => ((CollectUntil == CollectUntilType.RequiredCountReached) && (CollectedItemCount >= CollectItemCount)),
-                        new Action(delegate
-                        {
-                            UtilGuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
                             _isBehaviorDone = true;
                         })),
 
