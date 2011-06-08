@@ -146,7 +146,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                 CollectItemCount = GetAttributeAsInteger("CollectItemCount", isCollectItemCountRequired, 1, int.MaxValue, null) ?? 1;
                 CollectItemId = GetAttributeAsItemId("CollectItemId", isCollectItemIdRequired, null) ?? 0;
                 CollectionDistance = GetAttributeAsDouble("CollectionDistance", false, 1.0, 10000.0, null) ?? 120.0;
-                SearchAreaAnchor   = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                HuntingGroundAnchor   = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
                 MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, null) ?? new int[0];
                 NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
                 ObjectIds   = GetNumberedAttributesAsIntegerArray("ObjectId", 0, 1, int.MaxValue, null) ?? new int[0];
@@ -162,7 +162,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                     IsAttributeProblem = true;
                 }
 
-                if (CollectionDistance >= (NonCompeteDistance * 2))
+                if (CollectionDistance < (NonCompeteDistance * 2))
                 {
                     UtilLogMessage("error", "The CollectionDistance (saw '{0}') must be at least twice the size"
                                             + " of the NonCompeteDistance (saw '{1}').",
@@ -203,17 +203,19 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public WoWPoint                 SearchAreaAnchor { get; private set; }
+        public WoWPoint                 HuntingGroundAnchor { get; private set; }
 
         // Private variables for internal state
-        private bool                    _isBehaviorDone                 = false;
-        private readonly TimeSpan       _delay_BlackListExpiry          = TimeSpan.FromMinutes(5);
+        private WoWObject               _currentTarget                  = null;
+        private readonly TimeSpan       _delay_MobConsumedExpiry        = TimeSpan.FromMinutes(7);
         private readonly TimeSpan       _delay_PlayerTooClose           = TimeSpan.FromSeconds(90);
-        private readonly TimeSpan       _delay_RepopWait                = TimeSpan.FromMilliseconds(3000);
+        private readonly TimeSpan       _delay_RepopWait                = TimeSpan.FromMilliseconds(10000);
         private readonly TimeSpan       _delay_WoWClientMobInteract     = TimeSpan.FromMilliseconds(250);
         private readonly TimeSpan       _delay_WoWClientMoveDirectives  = TimeSpan.FromMilliseconds(100);
+        private WoWPoint                _huntingGroundWaitPoint         = WoWPoint.Empty;
+        private bool                    _isBehaviorDone                 = false;
         private readonly string         _itemName                       = string.Empty;
-        private WoWPoint                _searchAreaWaitPoint            = WoWPoint.Empty;
+        private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
 
         // Private properties
         private int                     CollectedItemCount { get {
@@ -236,7 +238,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                                                                         && (target.Distance < CollectionDistance)
                                                                         && !target.IsLocallyBlacklisted()
                                                                         && !UtilBlacklistIfPlayerNearby(target)))
-                                                    .OrderBy(target => Me.Location.SurfaceTravelDistance(target.Location)));
+                                                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
                                             }}
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -281,12 +283,27 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
         }
 
 
+        private static string   UtilBuildTimeAsString(TimeSpan timeSpan)
+        {
+            string      formatString    =  "";
+
+            if (timeSpan.Hours > 0)
+                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
+            else if (timeSpan.Minutes > 0)
+                { formatString = "{1:D2}m:{2:D2}s"; }
+            else
+                { formatString = "{2:D2}s"; }
+
+            return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
+        }
+
+
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
             return (
-                new PrioritySelector(selectedTarget => ViableTargets.FirstOrDefault(),
+                new PrioritySelector(
 
                     // If behavior done, bail...
                     // Note that this is also an implicit "is quest complete" exit criteria, also.
@@ -298,73 +315,90 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                     new Decorator(
                         ret => (CollectedItemCount >= CollectItemCount),
                         new Action(delegate
-                        {
-                            UtilGuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
-                            _isBehaviorDone = true;
-                        })),
+                            {
+                                UtilGuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
+                                _isBehaviorDone = true;
+                            })),
 
 
-                    // If we've exhausted mob/object supply in area, and that's our exit criteria, we're done...
-                    new Decorator(
-                        selectedTarget => ((CollectUntil == CollectUntilType.NoTargetsInArea) && (selectedTarget == null)),
-                        new Action(delegate
-                        {
-                            UtilGuiShowProgress("No more objects/mobs in area");
-                            _isBehaviorDone = true;
-                        })),
+                    // If we don't have a current target, select a new one...
+                    // Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
+                    // from running back and forth between two equidistant targets.
+                    new Decorator(ret => ((_currentTarget == null)
+                                          || !_currentTarget.IsValid
+                                          || _currentTarget.IsBlacklistedLocally()),
+                        new Sequence(
+                            // Try to locate new target...
+                            new Action(delegate { _currentTarget = ViableTargets.FirstOrDefault(); }),
+
+                            // If we still don't have a target, then either we're done, or need to wait for repops...
+                            new Decorator(ret => (_currentTarget == null),
+                                new PrioritySelector(
+
+                                    // If we've exhausted mob/object supply in area, and that's our exit criteria, we're done...
+                                    new Decorator(ret => (CollectUntil == CollectUntilType.NoTargetsInArea),
+                                        new Action(delegate
+                                        {
+                                            UtilGuiShowProgress("No more objects/mobs in area");
+                                            _isBehaviorDone = true;
+                                        })),
+
+                                    // Move back to hunting ground anchor --
+                                    new PrioritySelector(
+                                        // We find a point 'near' our anchor at which to wait...
+                                        // This way, if multiple people are using the same
+                                        // profile at the same time, they won't be standing on top of each other.
+                                        new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
+                                            new Action(delegate
+                                                {
+                                                    _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
+                                                    _repopWaitingTime.Reset();
+                                                    _repopWaitingTime.Start();
+                                                })),
+
+                                        // Move to our selected random point...
+                                        new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
+                                            new Action(delegate { Navigator.MoveTo(_huntingGroundWaitPoint); })),
+
+                                        // Tell user what's going on...
+                                        new Sequence(
+                                            new Action(delegate
+                                                {
+                                                    UtilLogMessage("info", "No targets in area--waiting for repops (CollectionDistance={0}).", CollectionDistance);
+                                                    TreeRoot.GoalText = this.GetType().Name + ": Waiting for Repops";
+                                                    TreeRoot.StatusText = "Waiting for repops -  " + UtilBuildTimeAsString(_repopWaitingTime.Elapsed);
+                                                }),
+                                            new WaitContinueTimeSpan(_delay_RepopWait, ret => false, new ActionAlwaysSucceed()))
+                                    )))
+                                )),
 
 
                     // If there is loot to clean up, wait for it...
                     // This keeps it from taking a few steps towards next mob, only to go back to
                     // previous mob and loot it.  This technique can still fail if Honorbddy is slow to update
                     // infomation.  However, this shuts a lot of it down.
-                    new Decorator(ret => (CharacterSettings.Instance.LootMobs && (LootList.Count() > 0)),
+                    new Decorator(ret => (LevelbotSettings.Instance.LootMobs && (LootList.Count() > 0)),
                         new ActionAlwaysSucceed()),
-
-
-                    // If no targets in the area, move back to search area anchor --
-                    new Decorator(selectedTarget => (selectedTarget == null),
-                        new PrioritySelector(
-                            // We find a point 'near' our anchor at which to wait.  This way, if multiple people are using the same
-                            // profile at the same time, they won't be standing on top of each other.
-                            new Decorator(ret => (_searchAreaWaitPoint == WoWPoint.Empty),
-                                new Action(delegate { _searchAreaWaitPoint = SearchAreaAnchor.FanOutRandom(CollectionDistance * 0.25); })),
-
-                            // Move to our selected random point...
-                            new Decorator(ret => (Me.Location.Distance(_searchAreaWaitPoint) > Navigator.PathPrecision),
-                                new Action(delegate { Navigator.MoveTo(_searchAreaWaitPoint); })),
-
-                            // Tell user what's going on...
-                            new Sequence(
-                                new Action(delegate
-                                    {
-                                        UtilLogMessage("info", "No targets in area--waiting for repops (CollectionDistance={0}).", CollectionDistance);
-                                        TreeRoot.GoalText = this.GetType().Name + ": Waiting for Repops";
-                                    }),
-                                new WaitContinueTimeSpan(_delay_RepopWait, ret => false, new ActionAlwaysSucceed()))
-                        )),
-                    
+     
 
                     // Keep progress updated...
                     new Action(delegate
                         {
-                            _searchAreaWaitPoint = WoWPoint.Empty;
+                            _huntingGroundWaitPoint = WoWPoint.Empty;
                             UtilGuiShowProgress(null);
                             return (RunStatus.Failure);
                         }),
 
 
                     // If we're not at target, move to it...
-                    new Decorator(selectedTarget => (((WoWObject)selectedTarget).Distance > ((WoWObject)selectedTarget).InteractRange),
+                    new Decorator(ret => (_currentTarget.Distance > _currentTarget.InteractRange),
                         new Sequence(
-                            new Action(selectedTarget =>
+                            new Action(delegate
                                 {
-                                    WoWObject   target = (WoWObject)selectedTarget;
-
                                     TreeRoot.StatusText = string.Format("Moving to target '{0}' at distance {1:0.0}",
-                                                                        target.Name,
-                                                                        target.Distance);
-                                    Navigator.MoveTo(target.Location);
+                                                                        _currentTarget.Name,
+                                                                        _currentTarget.Distance);
+                                    Navigator.MoveTo(_currentTarget.Location);
                                 }),
                             new WaitContinueTimeSpan(_delay_WoWClientMoveDirectives, ret => false, new ActionAlwaysSucceed())
                         )),
@@ -372,12 +406,12 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
                     // We're within interact range, collect the object...
                     new Sequence(
-                        new Action(selectedTarget => {
+                        new Action(ret => {
                                 WoWMovement.MoveStop();
-                                ((WoWObject)selectedTarget).Interact();
+                                _currentTarget.Interact();
                             }),
                         new WaitContinueTimeSpan(_delay_WoWClientMobInteract, ret => false, new ActionAlwaysSucceed()),
-                        new Action(selectedTarget => ((WoWObject)selectedTarget).LocallyBlacklist(_delay_BlackListExpiry))
+                        new Action(delegate { _currentTarget.BlacklistLocally(_delay_MobConsumedExpiry); })
                         )
                 )
             );
@@ -621,7 +655,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                 // a plaform or pier).  If there is not solid ground all around us, we reject
                 // the candidate.  Our test for validity is that the walking distance must
                 // not be more than 20% greater than the straight-line distance to the point.
-                int     viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfaceTravelDistance(point) < (Me.Location.Distance(point) * 1.20))
+                int     viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
                                                                       ? 1
                                                                       : 0));
 
@@ -643,7 +677,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
         }
 
 
-        public static double    SurfaceTravelDistance(this WoWPoint     start,
+        public static double    SurfacePathDistance(this WoWPoint     start,
                                                       WoWPoint          destination)
         {
             WoWPoint[]  groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
