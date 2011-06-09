@@ -319,6 +319,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 											  where !ignoredPropertyNames.Contains(propertyName)
 											  select propertyName)
 			{
+                if (configurationSetting.ContainsKey(configItemName))
+                    { continue; }
+
 				configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
 																			  CharacterSettings.Instance,
 																			  null));
@@ -328,6 +331,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 											  where !ignoredPropertyNames.Contains(propertyName)
 											  select propertyName)
 			{
+                if (configurationSetting.ContainsKey(configItemName))
+                    { continue; }
+
 				configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
 																			  LevelbotSettings.Instance,
 																			  null));
@@ -337,6 +343,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 											  where !ignoredPropertyNames.Contains(propertyName)
 											  select propertyName)
 			{
+                if (configurationSetting.ContainsKey(configItemName))
+                    { continue; }
+
 				configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
 																			  StyxSettings.Instance,
 																			  null));
