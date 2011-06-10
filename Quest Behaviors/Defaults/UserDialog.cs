@@ -178,14 +178,14 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             this.textBoxMessage.Multiline = true;
             this.textBoxMessage.Name = "textBoxMessage";
             this.textBoxMessage.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxMessage.Size = new System.Drawing.Size(393, 134);
+            this.textBoxMessage.Size = new System.Drawing.Size(404, 134);
             this.textBoxMessage.TabIndex = 0;
             // 
             // buttonContinueProfile
             // 
             this.buttonContinueProfile.Location = new System.Drawing.Point(315, 152);
             this.buttonContinueProfile.Name = "buttonContinueProfile";
-            this.buttonContinueProfile.Size = new System.Drawing.Size(90, 23);
+            this.buttonContinueProfile.Size = new System.Drawing.Size(101, 23);
             this.buttonContinueProfile.TabIndex = 1;
             this.buttonContinueProfile.Text = "Continue Profile";
             this.buttonContinueProfile.UseVisualStyleBackColor = true;
@@ -194,9 +194,9 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             // buttonStopBot
             // 
             this.buttonStopBot.Enabled = false;
-            this.buttonStopBot.Location = new System.Drawing.Point(234, 152);
+            this.buttonStopBot.Location = new System.Drawing.Point(228, 152);
             this.buttonStopBot.Name = "buttonStopBot";
-            this.buttonStopBot.Size = new System.Drawing.Size(75, 23);
+            this.buttonStopBot.Size = new System.Drawing.Size(81, 23);
             this.buttonStopBot.TabIndex = 2;
             this.buttonStopBot.Text = "Stop Bot";
             this.buttonStopBot.UseVisualStyleBackColor = true;
@@ -242,7 +242,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(417, 204);
+            this.ClientSize = new System.Drawing.Size(428, 204);
             this.Controls.Add(this.labelStatus);
             this.Controls.Add(this.checkBoxAutoDefend);
             this.Controls.Add(this.checkBoxSuppressAudio);
@@ -829,6 +829,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
             // window was.
             // Alas, C#/WindowsForms disallows this because the main HB GUI and this dialog are
             // on separate threads.
+            dialogForm.TopMost = true;
             dialogForm.Activate();
             dialogForm.ShowDialog();
         }
