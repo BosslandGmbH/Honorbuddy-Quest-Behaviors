@@ -51,9 +51,6 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         {
 			try
 			{
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 MaxDismountHeight = GetAttributeAsDouble("MaxDismountHeight", false, 1.0, 75.0, null) ?? 3.0;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
@@ -136,6 +133,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
             private ActionSucceedDelegate       _actionSucceedDelegate;
             private bool                        _hasBeenRun;     
         }
+
 
         // This can go when HB-4620 is archived
         public class WaitContinueTimeSpan       : WaitContinue
