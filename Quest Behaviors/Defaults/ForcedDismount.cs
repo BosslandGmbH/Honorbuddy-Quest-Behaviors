@@ -3,11 +3,30 @@
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
 //
+// QUICK DOX:
+//      Dismounts a toon from a mount (or Druid flying form).  If flying, the behavior will
+//      descend straight down to ground/water level before conducting the dismount.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      MaxDismountHeight [Default: 3.0]: The maximum height above ground/water at which
+//          a toon is allowed to dismount.  If the toon is heigher above the ground/water
+//          than this, then the behavior will descend to this level before attempting
+//          dismount.
+//      QuestId [Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors.
+//
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Threading;
 
+using CommonBehaviors.Actions;
+
+using Styx.Helpers;
 using Styx.Logic.Combat;
 using Styx.Combat.CombatRoutine;
 using Styx.Logic;
@@ -15,35 +34,18 @@ using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
+using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
 {
     public class ForcedDismount : CustomForcedBehavior
     {
-        public enum ForcedDismountType
-        {
-            Any,
-            Ground,
-            Flying,
-            Water
-        }
 
-        /// <summary>
-        /// forces character to dismount.  additionally forces Druids
-        /// to leave Flight Form and Swift Flight Form. if in flight,
-        /// will descend straight down before dismount        
-        /// 
-        /// ##Syntax##
-        /// [Optional] QuestId: The id of the quest (defaults to 0)
-        /// [Optional] QuestName:  documentation only
-        /// [Optional] MountType:  ignored currently
-        /// </summary>
-        /// 
         public ForcedDismount(Dictionary<string, string> args)
             : base(args)
         {
@@ -52,6 +54,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
+                MaxDismountHeight = GetAttributeAsDouble("MaxDismountHeight", false, 1.0, 75.0, null) ?? 3.0;
                 QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -75,76 +78,117 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         // Attributes provided by caller
+        public double                   MaxDismountHeight { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
+        private Composite           _behavior_root;
         private bool                _isBehaviorDone;
-        private Composite           _root;
 
         // Private properties
-        private string              DruidFlightForm { get { return ("Flight Form"); } }
-        private string              DruidSwiftFlightForm { get { return ("Swift Flight Form"); } }
+        private readonly TimeSpan   Delay_WowClientDismount     = TimeSpan.FromMilliseconds(1000);
+        private readonly TimeSpan   Delay_WowClientMovement     = TimeSpan.FromMilliseconds(1000);
+        private const string        DruidFlightForm             = "Flight Form";
+        private const string        DruidSwiftFlightForm        = "Swift Flight Form";
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string      SubversionRevision { get { return ("$Rev$"); } }
 
 
-        private void Dismount()
+        #region Missing HBcore infrastructure
+
+        // Like TreeSharp.Action, but will run the ACTIONDELEGATE just once.
+        // When the delegate has not yet been run, ActionRunOnceContinue returns
+        // the delegate's result.  If delegate as already been run, ActionRunOnceContinue
+        // returns RunStatus.Success.
+        public class ActionRunOnceContinue      : Composite
         {
-            // If flying, descend before dismounting
-            if (Me.IsFlying)
+            public ActionRunOnceContinue(ActionDelegate         actionDelegate)
             {
-                UtilLogMessage("info", "Descending before dismount");
-                Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend);
-                while (Me.IsFlying)
-                    { Thread.Sleep(250); }
-
-                Navigator.PlayerMover.MoveStop();
+                _actionDelegate = actionDelegate;
             }
 
-
-            // If Druid is 'mounted' via a flight form, casting the spell again cancels the flight form...
-            if (Me.Auras.ContainsKey(DruidSwiftFlightForm))
+            public ActionRunOnceContinue(ActionSucceedDelegate  actionSucceedDelegate)
             {
-                UtilLogMessage("info", "Cancelling {0}", DruidSwiftFlightForm);
-                SpellManager.Cast(DruidSwiftFlightForm);
+                _actionSucceedDelegate = actionSucceedDelegate;
             }
 
-            else if (Me.Auras.ContainsKey(DruidFlightForm))
+            protected override IEnumerable<RunStatus>   Execute(object     context)
             {
-                UtilLogMessage("info", "Cancelling {0}", DruidFlightForm);
-                SpellManager.Cast(DruidFlightForm);
+                if (!_hasBeenRun)
+                {
+                    _hasBeenRun = true;
+
+                    if (_actionDelegate != null)
+                        { yield return (_actionDelegate(context)); }
+                    else if (_actionSucceedDelegate != null)
+                        { _actionSucceedDelegate(context); }
+                }
+
+                yield return (RunStatus.Success);
             }
 
-            // Otherwise, if class is mounted (including Druids), dismount
-            else if (Me.Mounted)
-            {
-                UtilLogMessage("info", "Dismounting");
-                Mount.Dismount();
-            }
+            private ActionDelegate              _actionDelegate;
+            private ActionSucceedDelegate       _actionSucceedDelegate;
+            private bool                        _hasBeenRun;     
         }
+        #endregion  // Missing HBcore infrastructure
 
+
+        private bool        IsReadyToDismount()
+        {
+            return (!Me.IsFlying
+                    || Me.Location.IsOverGround(MaxDismountHeight)
+                    || Me.Location.IsOverWater(MaxDismountHeight));
+        }
+                                        
 
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
-            if (_root == null)
-            {
-                _root = new PrioritySelector(
-                    new Decorator(
-                        ret => !Me.Mounted,
-                        new Action(ret => _isBehaviorDone = true)),
-                    new Decorator(
-                        ret => Me.Mounted,
-                        new Action(ret => Dismount()))
-                );
-            }
-            return _root;
+            return (_behavior_root ?? (_behavior_root =
+                new PrioritySelector(
+
+                    // If we're not mounted, nothing to do...
+                    new Decorator(ret => !Me.Mounted,
+                        new Action(delegate { _isBehaviorDone = true; })),
+
+
+                    // If we're flying, we need to descend...
+                    new Decorator(ret => !IsReadyToDismount(),
+                            new Sequence(
+                                new ActionRunOnceContinue(delegate { UtilLogMessage("info", "Descending before dismount"); }),
+                                new Action(delegate { Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend); }),
+                                new WaitContinue(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
+                                )),
+
+
+                    // Otherwise, dismount...
+                    new Sequence(
+                        new DecoratorContinue(ret => (Me.Auras.ContainsKey(DruidSwiftFlightForm)
+                                                      || Me.Auras.ContainsKey(DruidFlightForm)),
+                            new Action(delegate
+                                {
+                                    UtilLogMessage("info", "Cancelling Flight Form");
+                                    Lua.DoString("CancelShapeshiftForm()");
+                                })),
+
+                        new DecoratorContinue(ret => Me.Mounted,
+                            new Action(delegate
+                                {
+                                    UtilLogMessage("info", "Dismounting");
+                                    Mount.Dismount();
+                                })),
+
+                        new WaitContinue(Delay_WowClientDismount, ret => !Me.Mounted, new ActionAlwaysSucceed()),
+                        new Action(delegate { Navigator.PlayerMover.MoveStop(); })
+                        )
+                )));
         }
 
 
@@ -174,5 +218,76 @@ namespace Styx.Bot.Quest_Behaviors
 		}
 
         #endregion
+    }
+
+
+    public static class Chinajade_Extensions_WoWPoint
+    {
+        /// <summary>
+        /// <para>Adds the provided X, Y, and Z offsets to WOWPOINT yielding a new WoWPoint.</para>
+        /// <para>---</para>
+        /// <para>The HBcore only provides a version of this that accepts 'float' values.
+        /// This version accepts 'doubles', because it is inefficient to keep truncating
+        /// data types (to float) that are provided by the Math and other libraries.</para>
+        /// <para>'Double' performance is just as fast as 'Float'.  Internally, modern
+        /// computer architectures calculate using maximum precision (i.e., many bits
+        /// bigger than double), then truncate the result to fit.  The only benefit
+        /// 'float' has over 'double' is storage space, which is negligible unless
+        /// you've a database using billions of them.</para>
+        /// </summary>
+        /// <param name="wowPoint"></param>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        /// <returns>new WoWPoint with adjusted coordinates</returns>
+        public static WoWPoint          Add(this WoWPoint   wowPoint,
+                                            double          x,
+                                            double          y,
+                                            double          z)
+        {
+            return (new WoWPoint(wowPoint.X + x, wowPoint.Y + y, wowPoint.Z + z));
+        }
+
+
+        /// <summary>
+        /// Returns true, if ground is within DISTANCE _below_ you.
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="distance"></param>
+        /// <returns>true, if ground is within DISTANCE _below_ you.</returns>
+        public static bool      IsOverGround(this WoWPoint      location,
+                                             double             distance)
+        {
+            WoWPoint        hitLocation;
+
+            return (GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
+                                        location.Add(0.0, 0.0, -distance),
+                                        GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+                                        out hitLocation));
+        }
+
+
+        /// <summary>
+        /// Returns true, if water is within DISTANCE _below_ you.
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="distance"></param>
+        /// <returns>true, if water is within DISTANCE _below_ you.</returns>
+        public static bool      IsOverWater(this WoWPoint       location,
+                                            double              distance)
+        {
+            WoWPoint        hitLocation;
+            WoWPoint        locationAbove   = location.Add(0.0, 0.0, 1.0);
+            WoWPoint        locationBelow   = location.Add(0.0, 0.0, -distance);
+
+            return (GameWorld.TraceLine(locationAbove,
+                                        locationBelow,
+                                        GameWorld.CGWorldFrameHitFlags.HitTestLiquid,
+                                        out hitLocation)
+                    || GameWorld.TraceLine(locationAbove,
+                                           locationBelow,
+                                           GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
+                                           out hitLocation));
+        }
     }
 }
