@@ -1,7 +1,7 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
 // DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForcedDismount
 //
 // QUICK DOX:
 //      Dismounts a toon from a mount (or Druid flying form).  If flying, the behavior will
@@ -9,7 +9,7 @@
 //
 //  Parameters (required, then optional--both listed alphabetically):
 //      MaxDismountHeight [Default: 3.0]: The maximum height above ground/water at which
-//          a toon is allowed to dismount.  If the toon is heigher above the ground/water
+//          a toon is allowed to dismount.  If the toon is higher above the ground/water
 //          than this, then the behavior will descend to this level before attempting
 //          dismount.
 //      QuestId [Default:none]:
