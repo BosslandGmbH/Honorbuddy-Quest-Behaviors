@@ -326,7 +326,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                     // from running back and forth between two equidistant targets.
                     new Decorator(ret => ((_currentTarget == null)
                                           || !_currentTarget.IsValid
-                                          || _currentTarget.IsBlacklistedLocally()),
+                                          || _currentTarget.IsLocallyBlacklisted()),
                         new Sequence(
                             // Try to locate new target...
                             new Action(delegate { _currentTarget = ViableTargets.FirstOrDefault(); }),
@@ -411,7 +411,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                                 _currentTarget.Interact();
                             }),
                         new WaitContinueTimeSpan(_delay_WoWClientMobInteract, ret => false, new ActionAlwaysSucceed()),
-                        new Action(delegate { _currentTarget.BlacklistLocally(_delay_MobConsumedExpiry); })
+                        new Action(delegate { _currentTarget.LocallyBlacklist(_delay_MobConsumedExpiry); })
                         )
                 )
             );
