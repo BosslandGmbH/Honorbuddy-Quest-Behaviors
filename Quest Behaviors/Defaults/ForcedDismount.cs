@@ -136,6 +136,16 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
             private ActionSucceedDelegate       _actionSucceedDelegate;
             private bool                        _hasBeenRun;     
         }
+
+        // This can go when HB-4620 is archived
+        public class WaitContinueTimeSpan       : WaitContinue
+        {
+            public WaitContinueTimeSpan(TimeSpan timespan, CanRunDecoratorDelegate canRun, Composite action)
+                : base(1, canRun, action)
+            {
+                Timeout = timespan;
+            }
+        }
         #endregion  // Missing HBcore infrastructure
 
 
@@ -164,7 +174,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                             new Sequence(
                                 new ActionRunOnceContinue(delegate { UtilLogMessage("info", "Descending before dismount"); }),
                                 new Action(delegate { Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend); }),
-                                new WaitContinue(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
+                                new WaitContinueTimeSpan(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
                                 )),
 
 
@@ -185,7 +195,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                                     Mount.Dismount();
                                 })),
 
-                        new WaitContinue(Delay_WowClientDismount, ret => !Me.Mounted, new ActionAlwaysSucceed()),
+                        new WaitContinueTimeSpan(Delay_WowClientDismount, ret => !Me.Mounted, new ActionAlwaysSucceed()),
                         new Action(delegate { Navigator.PlayerMover.MoveStop(); })
                         )
                 )));
