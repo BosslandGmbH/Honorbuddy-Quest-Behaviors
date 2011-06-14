@@ -170,6 +170,9 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
                 CharacterSettings.Instance.PullDistance = 1;
 
                 TreeRoot.GoalText = "Flying to " + DestinationName;
+
+                // This information was directly requested by profile writers...
+                UtilLogMessage("debug", "Flying to '{0}': {1}.", DestinationName, Destination);
             }
 		}
 
