@@ -56,6 +56,19 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+                // Warn of deprecated attributes...
+                if (args.ContainsKey("BuySlot"))
+                {
+                    UtilLogMessage("warning",   "*****\n"
+                                              + "* THE BUYSLOT ATTRIBUTE IS DEPRECATED, and may be retired in a near, future release.\n"
+                                              + "*\n"
+                                              + "* BuySlot presents a number of problems.  If a vendor presents 'seasonal' or\n"
+                                              + "* limited-quantity wares, the slot number for the desired item can change.\n"
+                                              + "\n"
+                                              + "* Please update the profile to use *BuyItemId* attribute in preference to BuySlot.\n"
+                                              + "*****");
+                }
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
