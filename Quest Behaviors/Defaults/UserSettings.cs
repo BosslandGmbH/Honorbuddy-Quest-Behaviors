@@ -105,7 +105,6 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 							.Add("RessAtSpiritHealers", false)
 							.Add("SkinMobs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
 							.Add("TrainNewSkills", true)
-							.Add("UseExperimentalStuckHandler", true)
 							.Add("UseFlightPaths", true)
 							.Add("UseMount", true)
 							.Add("UseRandomMount", true)
