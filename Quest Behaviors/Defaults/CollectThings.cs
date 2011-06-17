@@ -14,48 +14,7 @@
 // QUICK DOX:
 //      Collects items from mobs or objects when (right-click) 'interaction' is required.
 //      Most useful for those type of quests where you blow something up,
-//      then you have to collect the pieces.  For example:
-//          <!-- "Liberate the Kaja'mite": Blow up Kaja'mite, then collect results.
-//              A single pass may or may not fulfill the quest quota, so we place it in a loop.
-//            -->
-//          <While Condition="HasQuest() &amp;&amp; !IsQuestComplete()">
-//              <!-- throw the dynamite -->
-//              <CustomBehavior File="UseItemOn" ... />
-//              <!-- Note when collecting we must specify the Object(195492, Kaja'mite Chunk)
-//                  to loot that contains the Item(48766, Kaja'mite Chunk) we want.  Yes,
-//                  the Object and the Item have the same name, but different Ids.
-//               -->
-//              <CustomBehavior File="CollectThings" QuestId="14124"
-//                  ObjectId="195492"
-//                  CollectUntil="NoTargetsInArea" CollectItemId="48766" CollectionDistance="25" />
-//          </While>
-//
-//      It can also be used to simply collect objects in an area:
-//          <!-- "The Replacments": need to collect 6 "Replacement Parts".
-//              Note that we have to specify the Objects(201603, Replacement Parts) which yield
-//              the Items(49752, Replacement Parts) we want.  Yes, the Object and the Item have
-//              the same name but different Ids.
-//            -->
-//          <CustomBehavior File="CollectThings" QuestId="24488"
-//              ObjectId="201603"
-//              CollectUntil="QuestComplete" CollectItemId="49752" CollectItemCount="6" CollectionDistance="1000"
-//              X="-8426.145" Y="1178.538" Z="40.7015" />
-//
-//      Can also be used for quests where a simple (right-click) interaction is required.
-//      In this case the 'thing' is "quest credit", and in this mode, this behavior
-//      may overlap functionality provide by other behaviors.
-//          <!-- "Good Help is Hard to Find": Need to collect 8 "Adjusted Attitudes".
-//              Adjusted Attitudes don't go in the backpack, so we don't speify a
-//              CollectItemId this time.  We depend soly on the quest
-//              to tell us when its done.  For this type of use, if this is only
-//              one part of the quest goals required for completion, you will need
-//              to find another behavior to accomplish your quest.
-//              Note that we specify the Mobs that yield the items we want.
-//            -->
-//          <CustomBehavior File="CollectThings" QuestId="14069"
-//              MobId="34830"
-//              CollectUntil="QuestComplete" CollectItemCount="8" />
-//
+//      then you have to collect the pieces.
 //
 //  Parameters (required, then optional--both listed alphabetically):
 //      (***One or more of the following two attributes must be specified***)
@@ -81,9 +40,14 @@
 //      (***These attibutes are completely optional***)
 //      CollectionDistance [Default: 120]: The range from the anchor location (i.e., X/Y/Z) location at which
 //              targets (mobs or objects) will be sought.
+//      IgnoreMobsInBlackspots [Default: false]: If true, mobs sitting in blackspotted areas will not be
+//              considered as targets.
 //      NonCompeteDistance [Default: 25]: If a player is within this distance of a target that looks
 //              interesting to us, we'll ignore the target.  The assumption is that the player may
 //              be going for the same target, and we don't want to draw attention.
+//      PostInteractDelay [Default: 1000ms]: The number of milliseconds to wait after each interaction.
+//              This is useful if the target requires time for the interaction to complete.
+//              This value must be on the closed interval [0..61000].
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
@@ -92,16 +56,31 @@
 //              which targets (mobs or objects) will be sought.  The hunting ground is defined by
 //              this value coupled with the CollectionDistance.
 // 
+// Exmaples:
+// <CustomBehavior File="CollectThings" ...other args... >
+//     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
+//     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
+//     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
+// </CustomBehavior>
+// 
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Linq;
+using System.Xml;
+using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 
+using Styx.Combat.CombatRoutine;
 using Styx.Helpers;
+using Styx.Logic;
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
+using Styx.Logic.Inventory.Frames.LootFrame;
 using Styx.Logic.Pathing;
+using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
@@ -145,11 +124,13 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
                 CollectItemCount = GetAttributeAsInteger("CollectItemCount", isCollectItemCountRequired, 1, int.MaxValue, null) ?? 1;
                 CollectItemId = GetAttributeAsItemId("CollectItemId", isCollectItemIdRequired, null) ?? 0;
-                CollectionDistance = GetAttributeAsDouble("CollectionDistance", false, 1.0, 10000.0, null) ?? 120.0;
+                CollectionDistance = GetAttributeAsDouble("CollectionDistance", false, 1.0, 200.0, null) ?? 120.0;
                 HuntingGroundAnchor   = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                IgnoreMobsInBlackspots = GetAttributeAsBoolean("IgnoreMobsInBlackspots", false, null) ?? false;
                 MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, null) ?? new int[0];
                 NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
                 ObjectIds   = GetNumberedAttributesAsIntegerArray("ObjectId", 0, 1, int.MaxValue, null) ?? new int[0];
+                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsInteger("PostInteractDelay", false, 0, 61000, null) ?? 1000);
                 QuestId     = GetAttributeAsQuestId("QuestId", isQuestIdRequired, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
@@ -173,9 +154,19 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
 
                 // Find the item name --
-                ItemInfo    info    = ItemInfo.FromId((uint)CollectItemId);
+                ItemInfo    itemInfo    = ItemInfo.FromId((uint)CollectItemId);
 
-                _itemName = (info != null)  ? info.Name  : "Item";
+                ItemName = (itemInfo != null)  ? itemInfo.Name  : string.Format("Item({0})", CollectItemId);
+
+
+                // Sub-behaviors...
+                _behavior_SwimBreath = new SwimBreathBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects));
+                _behavior_TargetSelector = new HuntingGroundTargetBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects),
+                                                                          ViableTargets,
+                                                                          HuntingGroundAnchor,
+                                                                          CollectionDistance,
+                                                                          (CollectUntil == CollectUntilType.NoTargetsInArea));
+                _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects));
 			}
 
 			catch (Exception except)
@@ -192,70 +183,62 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 			}
         }
 
+
         // Attributes provided by caller
         public double                   CollectionDistance { get; private set; }
         public int                      CollectItemCount { get; private set; }
         public int                      CollectItemId { get; private set; }
         public CollectUntilType         CollectUntil { get; private set; }
+        public bool                     IgnoreMobsInBlackspots { get; private set; }
         public int[]                    MobIds { get; private set; }
         public double                   NonCompeteDistance { get; private set; }
         public int[]                    ObjectIds { get; private set; }
+        public TimeSpan                 PostInteractDelay { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public WoWPoint                 HuntingGroundAnchor { get; private set; }
 
-        // Private variables for internal state
-        private WoWObject               _currentTarget                  = null;
-        private readonly TimeSpan       _delay_MobConsumedExpiry        = TimeSpan.FromMinutes(7);
-        private readonly TimeSpan       _delay_PlayerTooClose           = TimeSpan.FromSeconds(90);
-        private readonly TimeSpan       _delay_RepopWait                = TimeSpan.FromMilliseconds(10000);
-        private readonly TimeSpan       _delay_WoWClientMobInteract     = TimeSpan.FromMilliseconds(250);
-        private readonly TimeSpan       _delay_WoWClientMoveDirectives  = TimeSpan.FromMilliseconds(100);
-        private WoWPoint                _huntingGroundWaitPoint         = WoWPoint.Empty;
+        // Private properties and data...
+        private SwimBreathBehavior      _behavior_SwimBreath;
+        private UnderwaterLootingBehavior   _behavior_UnderwaterLooting;
+        private HuntingGroundTargetBehavior  _behavior_TargetSelector;
         private bool                    _isBehaviorDone                 = false;
-        private readonly string         _itemName                       = string.Empty;
-        private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
 
-        // Private properties
+        private WoWObject               CurrentTarget                   { get { return (_behavior_TargetSelector.CurrentTarget); }}
+        private readonly TimeSpan       Delay_MobConsumedExpiry         = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan       Delay_BlacklistPlayerTooClose   = TimeSpan.FromSeconds(90);
+        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(500);
+        private string                  ItemName                        { get; set; }
+        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
+
+        // Private LINQ queries..
         private int                     CollectedItemCount { get {
                                             return ((int)Me.BagItems
                                                         .Where(item => (item.ItemInfo.Id == CollectItemId))
                                                         .Sum(item => item.StackCount));
                                             }}
-        private IEnumerable<WoWUnit>    LootList { get {
-                                                return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                                        .Where(u => u.Dead && u.Lootable));
-                                            }}
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
         private IEnumerable<WoWUnit>    NearbyPlayers { get {
                                             return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                                                     .Where(u => u.IsPlayer &&  (u.Distance < (CollectionDistance + NonCompeteDistance))));                                                             
                                             }}
-        private IEnumerable<WoWObject>  ViableTargets { get {
+        private IEnumerable<WoWObject>  ViableTargets() {
                                             return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                                                     .Where(target => ((MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
                                                                         && (target.Distance < CollectionDistance)
                                                                         && !target.IsLocallyBlacklisted()
-                                                                        && !UtilBlacklistIfPlayerNearby(target)))
+                                                                        && !BlacklistIfPlayerNearby(target)
+                                                                        && (IgnoreMobsInBlackspots
+                                                                            ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
+                                                                                                           target.Location)
+                                                                            : true)))
                                                     .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
-                                            }}
+                                            }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
-
-
-        private void    UtilGuiShowProgress(string       completionReason)
-        {
-            TreeRoot.GoalText = string.Format("{0}: {1}/{2} {3}", this.GetType().Name, CollectedItemCount, CollectItemCount, _itemName);
-
-            if (completionReason != null)
-            {
-                UtilLogMessage("info", "Behavior done (" + completionReason + ")");
-                TreeRoot.GoalText = string.Empty;
-            }
-        }
 
 
         // If player is close to a target that is interesting to us, ignore the target...
@@ -263,7 +246,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
         // We'll blacklist the mob for a bit, in case the player is running around, or following
         // us.  The excaption is ithe player is in our party, then we can freely kill any target
         // close to him.
-        private bool    UtilBlacklistIfPlayerNearby(WoWObject   target)
+        private bool    BlacklistIfPlayerNearby(WoWObject   target)
         {
             WoWUnit     nearestCompetingPlayer   = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                                                     .OrderBy(player => player.Location.Distance(target.Location))
@@ -275,7 +258,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
             if ((nearestCompetingPlayer != null)
                 && (nearestCompetingPlayer.Location.Distance(target.Location) <= NonCompeteDistance))
             {
-                target.LocallyBlacklist(_delay_PlayerTooClose);
+                target.LocallyBlacklist(Delay_BlacklistPlayerTooClose);
                 return (true);
             }
 
@@ -283,18 +266,61 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
         }
 
 
-        private static string   UtilBuildTimeAsString(TimeSpan timeSpan)
+        private void    GuiShowProgress(string       completionReason)
         {
-            string      formatString    =  "";
+            TreeRoot.GoalText = string.Format("{0}: {1}/{2} {3}", this.GetType().Name, CollectedItemCount, CollectItemCount, ItemName);
 
-            if (timeSpan.Hours > 0)
-                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
-            else if (timeSpan.Minutes > 0)
-                { formatString = "{1:D2}m:{2:D2}s"; }
-            else
-                { formatString = "{2:D2}s"; }
+            if (completionReason != null)
+            {
+                UtilLogMessage("info", "Behavior done (" + completionReason + ")");
+                TreeRoot.GoalText = string.Empty;
+            }
+        }
 
-            return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
+
+        private void    ParseHuntingGroundHotspots()
+        {
+            List<WoWPoint>  huntingGroundHotspots   = new List<WoWPoint>();
+
+            foreach (XElement element in Element.Elements().Where(elem => elem.Name == "Hotspot"))
+            {
+                double?     x   = ParseXmlElementDouble(element, "X");
+                double?     y   = ParseXmlElementDouble(element, "Y");
+                double?     z   = ParseXmlElementDouble(element, "Z");
+
+                if (!x.HasValue || !y.HasValue || !z.HasValue)
+                    { continue; }
+
+                huntingGroundHotspots.Add(new WoWPoint(x.Value, y.Value, z.Value));
+            }
+
+            _behavior_TargetSelector.UseHotspots(huntingGroundHotspots);
+        }
+
+
+        public double?  ParseXmlElementDouble(XElement    element,
+                                              string      attributeName)
+        {
+            string      location    = (((IXmlLineInfo)element).HasLineInfo()
+                                        ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
+                                        : string.Empty);
+            double      tmpDouble;
+
+            if (element.Attribute(attributeName) == null)
+            {
+                UtilLogMessage("error", "Hotspot{0} is missing the '{1}' attribute", location, attributeName);
+                IsAttributeProblem = true;
+                return (null);
+            }
+
+            if (!double.TryParse(element.Attribute(attributeName).Value, out tmpDouble))
+            {
+                UtilLogMessage("error", "Hotspot{0} '{1}' attribute is malformed", location, attributeName);
+                IsAttributeProblem = true;
+                return (null);
+            }
+
+            return (tmpDouble);    
         }
 
 
@@ -308,110 +334,64 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                     // If behavior done, bail...
                     // Note that this is also an implicit "is quest complete" exit criteria, also.
                     new Decorator(ret => IsDone,
-                        new Action(delegate { UtilGuiShowProgress("quest complete"); })),
-
+                        new Action(delegate { GuiShowProgress("quest complete"); })),
 
                     // If we've filled our inventory quota, we're done...
                     new Decorator(
                         ret => (CollectedItemCount >= CollectItemCount),
                         new Action(delegate
                             {
-                                UtilGuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
+                                GuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
                                 _isBehaviorDone = true;
                             })),
 
+                    // If swimming, check if we need breath...
+                    _behavior_SwimBreath.CreateBehavior(),
 
-                    // If we don't have a current target, select a new one...
-                    // Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
-                    // from running back and forth between two equidistant targets.
-                    new Decorator(ret => ((_currentTarget == null)
-                                          || !_currentTarget.IsValid
-                                          || _currentTarget.IsLocallyBlacklisted()),
-                        new Sequence(
-                            // Try to locate new target...
-                            new Action(delegate { _currentTarget = ViableTargets.FirstOrDefault(); }),
+                    // If there is loot to clean up...
+                    _behavior_UnderwaterLooting.CreateBehavior(),
 
-                            // If we still don't have a target, then either we're done, or need to wait for repops...
-                            new Decorator(ret => (_currentTarget == null),
-                                new PrioritySelector(
+                    // Find next target...
+                    _behavior_TargetSelector.CreateBehavior(),
 
-                                    // If we've exhausted mob/object supply in area, and that's our exit criteria, we're done...
-                                    new Decorator(ret => (CollectUntil == CollectUntilType.NoTargetsInArea),
-                                        new Action(delegate
-                                        {
-                                            UtilGuiShowProgress("No more objects/mobs in area");
-                                            _isBehaviorDone = true;
-                                        })),
-
-                                    // Move back to hunting ground anchor --
-                                    new PrioritySelector(
-                                        // We find a point 'near' our anchor at which to wait...
-                                        // This way, if multiple people are using the same
-                                        // profile at the same time, they won't be standing on top of each other.
-                                        new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
-                                            new Action(delegate
-                                                {
-                                                    _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
-                                                    _repopWaitingTime.Reset();
-                                                    _repopWaitingTime.Start();
-                                                })),
-
-                                        // Move to our selected random point...
-                                        new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
-                                            new Action(delegate { Navigator.MoveTo(_huntingGroundWaitPoint); })),
-
-                                        // Tell user what's going on...
-                                        new Sequence(
-                                            new Action(delegate
-                                                {
-                                                    UtilLogMessage("info", "No targets in area--waiting for repops (CollectionDistance={0}).", CollectionDistance);
-                                                    TreeRoot.GoalText = this.GetType().Name + ": Waiting for Repops";
-                                                    TreeRoot.StatusText = "Waiting for repops -  " + UtilBuildTimeAsString(_repopWaitingTime.Elapsed);
-                                                }),
-                                            new WaitContinueTimeSpan(_delay_RepopWait, ret => false, new ActionAlwaysSucceed()))
-                                    )))
-                                )),
-
-
-                    // If there is loot to clean up, wait for it...
-                    // This keeps it from taking a few steps towards next mob, only to go back to
-                    // previous mob and loot it.  This technique can still fail if Honorbddy is slow to update
-                    // infomation.  However, this shuts a lot of it down.
-                    new Decorator(ret => (LevelbotSettings.Instance.LootMobs && (LootList.Count() > 0)),
-                        new ActionAlwaysSucceed()),
-     
+                    // If no target and that's our exit criteria, we're done...
+                    new Decorator(ret => ((_behavior_TargetSelector.CurrentTarget == null)
+                                          && (CollectUntil == CollectUntilType.NoTargetsInArea)),
+                        new Action(delegate
+                        {
+                            GuiShowProgress("No more objects/mobs in area");
+                            _isBehaviorDone = true;
+                        })),    
 
                     // Keep progress updated...
                     new Action(delegate
-                        {
-                            _huntingGroundWaitPoint = WoWPoint.Empty;
-                            UtilGuiShowProgress(null);
-                            return (RunStatus.Failure);
-                        }),
-
+                    {
+                        GuiShowProgress(null);
+                        return (RunStatus.Failure);     // Fall through
+                    }),
 
                     // If we're not at target, move to it...
-                    new Decorator(ret => (_currentTarget.Distance > _currentTarget.InteractRange),
+                    new Decorator(ret => (CurrentTarget.Distance > CurrentTarget.InteractRange),
                         new Sequence(
                             new Action(delegate
                                 {
                                     TreeRoot.StatusText = string.Format("Moving to target '{0}' at distance {1:0.0}",
-                                                                        _currentTarget.Name,
-                                                                        _currentTarget.Distance);
-                                    Navigator.MoveTo(_currentTarget.Location);
+                                                                        CurrentTarget.Name,
+                                                                        CurrentTarget.Distance);
+                                    _behavior_TargetSelector.UnderwaterMoveTo(CurrentTarget.Location);
                                 }),
-                            new WaitContinueTimeSpan(_delay_WoWClientMoveDirectives, ret => false, new ActionAlwaysSucceed())
+                            new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
                         )),
-
 
                     // We're within interact range, collect the object...
                     new Sequence(
-                        new Action(ret => {
-                                WoWMovement.MoveStop();
-                                _currentTarget.Interact();
-                            }),
-                        new WaitContinueTimeSpan(_delay_WoWClientMobInteract, ret => false, new ActionAlwaysSucceed()),
-                        new Action(delegate { _currentTarget.LocallyBlacklist(_delay_MobConsumedExpiry); })
+                        new Action(delegate { WoWMovement.MoveStop(); }),
+                        new Action(delegate { _behavior_TargetSelector.MobEngaged(CurrentTarget); }),
+                        new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                        new Action(delegate { CurrentTarget.Interact(); }),
+                        new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                        new WaitContinue(PostInteractDelay, ret => false, new ActionAlwaysSucceed()),
+                        new Action(delegate { CurrentTarget.LocallyBlacklist(Delay_MobConsumedExpiry); })
                         )
                 )
             );
@@ -430,6 +410,12 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
         public override void OnStart()
         {
+            // The XML element didn't exist when the constructor was called...
+            // So we had to defer some final parsing that really should've happened in the constructor
+            // to the OnStart() method.  This will parse the final arguments, and set IsAttributeProblem
+            // correctly, for normal processing.
+            ParseHuntingGroundHotspots();
+
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -443,7 +429,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
 
-                UtilGuiShowProgress(null);
+                GuiShowProgress(null);
             }
         }
 
@@ -451,7 +437,623 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
     }
 
 
+    #region Reusable behaviors
+    // The behaviors in this section were designed to be efficient and robust.
+    // The robustness results in some larger-than-normal, but swift code.
+    // We also designed them to be reused in other behaviors--just copy, paste,
+    // and call them as-needed.
+
+    public class HuntingGroundTargetBehavior
+    {
+        public delegate void                    LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate IEnumerable<WoWObject>  ViableTargetsDelegate();
+
+
+        public HuntingGroundTargetBehavior(LoggerDelegate            loggerDelegate,
+                                           ViableTargetsDelegate     viableTargets,
+                                           WoWPoint                  huntingGroundAnchor,
+                                           double                    collectionDistance,
+                                           bool                      returnIfNoTargets)
+        {
+            CollectionDistance = collectionDistance;
+            HuntingGroundAnchor = huntingGroundAnchor;
+            Logger = loggerDelegate;
+            ReturnIfNoTargets = returnIfNoTargets;
+            ViableTargets = viableTargets;
+
+            UseHotspots(null);
+        }
+
+
+        public void         MobEngaged(WoWObject     wowObject)
+        {
+            if (wowObject == CurrentTarget)
+                { _currentTargetAutoBlacklistTimer.Stop(); }
+        }
+
+
+        // Public properties...
+        public double                   CollectionDistance      { get; private set; }
+        public WoWObject                CurrentTarget           { get; private set; }
+        public Queue<WoWPoint>          Hotspots                { get; set; }
+        public WoWPoint                 HuntingGroundAnchor     { get; private set; }
+        public bool                     ReturnIfNoTargets       { get; private set; }
+
+
+        // Private properties & data...
+        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
+        private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromSeconds(5);
+        private readonly LoggerDelegate Logger;
+        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
+        private const double            MinDistanceToUse_DruidAquaticForm = 27.0;
+        private int                     SpellId_DruidAquaticForm        = 1066;
+        public ViableTargetsDelegate    ViableTargets                   { get; private set; }
+
+        private TimeSpan                _currentTargetAutoBlacklistTime  = TimeSpan.FromSeconds(1);
+        private readonly Stopwatch      _currentTargetAutoBlacklistTimer = new Stopwatch();
+        private Composite               _behaviorRoot;
+        private Queue<WoWPoint>         _hotSpots                       = new Queue<WoWPoint>();
+        private WoWPoint                _huntingGroundWaitPoint;
+        private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
+
+
+        /// <summary>
+        /// The created behavior was meant to be used in a PrioritySelector.
+        /// It may also have uses inside other TreeSharp Composites.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// <para>* RunStatus.Failure, if swim breath is not needed</para>
+        /// <para>* RunStatus.Success, if we're catching our breath, or moving for it</para>
+        /// </returns>
+        ///
+        public Composite    CreateBehavior()
+        {
+            return (_behaviorRoot ?? (_behaviorRoot =
+
+                new PrioritySelector(
+
+                    // If we haven't engaged the mob when the auto-blacklist timer expires, give up on it and move on...
+                    new Decorator(ret => ((CurrentTarget != null)
+                                          && (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
+                        new Action(delegate
+                        {
+                            Logger("warning", "Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                            CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
+                            CurrentTarget = null;
+                        })),
+                
+
+                    // If we don't have a current target, select a new one...
+                    // Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
+                    // from running back and forth between two equidistant targets.
+                    new Decorator(ret => ((CurrentTarget == null)
+                                            || !CurrentTarget.IsValid
+                                            || CurrentTarget.IsLocallyBlacklisted()),
+                        new PrioritySelector(context => CurrentTarget = ViableTargets().FirstOrDefault(),
+
+                            // If we found next target, we're done...
+                            new Decorator(ret => (CurrentTarget != null),
+                                new Action(delegate
+                                {
+                                    _huntingGroundWaitPoint = WoWPoint.Empty;
+
+                                    _currentTargetAutoBlacklistTime = CalculateAutoBlacklistTime(CurrentTarget);
+                                    _currentTargetAutoBlacklistTimer.Reset();
+                                    _currentTargetAutoBlacklistTimer.Start();
+                                })),
+
+                            // If we've exhausted mob/object supply in area, and that's our exit criteria, we're done...
+                            new Decorator(ret => ReturnIfNoTargets,
+                                new ActionAlwaysSucceed()),
+
+                            // Move back to hunting ground anchor --
+                            new PrioritySelector(
+
+                                // If we've more than one hotspot, head to the next one...
+                                new Decorator(ret => (_hotSpots.Count() > 1),
+                                    new Action(delegate
+                                    {
+                                        WoWPoint    nextHotspot = FindNextHotspot();
+                                        TreeRoot.StatusText = "No targets--moving to hotspot " + nextHotspot;
+                                        UnderwaterMoveTo(nextHotspot);
+                                    })),
+
+                                // We find a point 'near' our anchor at which to wait...
+                                // This way, if multiple people are using the same profile at the same time,
+                                // they won't be standing on top of each other.
+                                new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
+                                    new Action(delegate
+                                        {
+                                            _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
+                                            Logger("info", "No targets--Moving to hunting ground anchor point to wait");
+                                            TreeRoot.StatusText = "No targets--Moving to hunting ground anchor point to wait";
+                                            _repopWaitingTime.Reset();
+                                            _repopWaitingTime.Start();
+                                        })),
+
+                                // Move to our selected random point...
+                                new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
+                                    new Action(delegate { UnderwaterMoveTo(_huntingGroundWaitPoint); })),
+
+                                // Tell user what's going on...
+                                new Sequence(
+                                    new Action(delegate
+                                        {
+                                            Logger("info", "No targets in area--waiting for repops (CollectionDistance={0}).", CollectionDistance);
+                                            TreeRoot.GoalText = this.GetType().Name + ": Waiting for Repops";
+                                            TreeRoot.StatusText = "Waiting for repops -  " + BuildTimeAsString(_repopWaitingTime.Elapsed);
+                                        }),
+                                    new WaitContinue(Delay_RepopWait, ret => false, new ActionAlwaysSucceed()))
+                            )))
+                    )));
+        }
+
+
+        private static string   BuildTimeAsString(TimeSpan timeSpan)
+        {
+            string      formatString    =  "";
+
+            if (timeSpan.Hours > 0)
+                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
+            else if (timeSpan.Minutes > 0)
+                { formatString = "{1:D2}m:{2:D2}s"; }
+            else
+                { formatString = "{2:D2}s"; }
+
+            return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
+        }
+
+
+        private TimeSpan    CalculateAutoBlacklistTime(WoWObject    wowObject)
+        {
+            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimSpeed)
+                                           * 2.5);     // factor of safety
+
+            return (TimeSpan.FromSeconds(timeToWowObject));
+        }
+
+
+        public WoWPoint     FindNearestHotspot()
+        {
+            WoWPoint        nearestHotspot  = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
+
+            // Rotate the hotspot queue such that the nearest hotspot is on top...
+            while (_hotSpots.Peek() != nearestHotspot)
+            {
+                WoWPoint    tmpWoWPoint     = _hotSpots.Dequeue();
+
+                _hotSpots.Enqueue(tmpWoWPoint);
+            }
+
+            return (nearestHotspot);
+        }
+
+
+        public WoWPoint     FindNextHotspot()
+        {
+            WoWPoint    currentHotspot      = _hotSpots.Peek();
+
+            // If we haven't reached the current hotspot, it is still the 'next' one...
+            if (Me.Location.Distance(currentHotspot) > Navigator.PathPrecision)
+                { return (currentHotspot); }
+
+            // Otherwise, rotate to the next hotspot in the list...
+            _hotSpots.Enqueue(currentHotspot);
+            _hotSpots.Dequeue();
+
+            return (_hotSpots.Peek());
+        }
+
+
+        public void     UnderwaterMoveTo(WoWPoint     location)
+        {
+            // If we're a Druid, use Aquatic Form if we're going any distance...
+            if (SpellManager.CanCast(SpellId_DruidAquaticForm)
+                && !Me.HasAura(AuraName_DruidAquaticForm)
+                && (Me.Location.Distance(location) > MinDistanceToUse_DruidAquaticForm))
+            {
+                SpellManager.Cast(SpellId_DruidAquaticForm);
+            }
+
+            // Try to use Navigator to get there...
+            MoveResult moveResult   = Navigator.MoveTo(location);
+
+            if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
+                {  WoWMovement.ClickToMove(location); }
+        }
+
+
+        public void         UseHotspots(IEnumerable<WoWPoint>       _hotspots)
+        {
+            _hotspots = _hotspots ?? new WoWPoint[0];
+
+            _hotSpots = new Queue<WoWPoint>(_hotspots);
+
+            if (_hotSpots.Count() <= 0)
+                { _hotSpots.Enqueue(HuntingGroundAnchor); }
+
+            FindNearestHotspot();
+        }
+    }
+
+
+    /// <summary>
+    /// <para>This behavior moves to fill a toon's lungs when needed.  It utilizes skills available
+    /// such as a Warlock's Unending Breath, or a Druid's Aquatic Form in its calculations.
+    /// The behavior looks for nearby air sources (underwater vents, water's surface, etc), and
+    /// bases its time to move upon the distance that needs to be traveled to get to the air source
+    /// and the toon's movement speed in the water.</para>
+    /// <para>This behavior will *not* use engineering and other devices that may allow you to
+    /// breath--as this could interfere with AutoEquip-type plugins.  This behavior will also
+    /// *not* use potions to help you breathe, as that is a 'profile-level' decision that should
+    /// be made.  In other words, you wouldn't want this behavior to burn a potion to collect
+    /// a handful of object from shallow, but swimmable water.  The profile would know the expected
+    /// duration underwater, but there is no way for this behavior to know such information.</para>
+    /// </summary>
+    //
+    // Usage:
+    //  private SwimBreathBehavior   _swimBreathBehavior  = new SwimBreathBehavior((msgType, fmt, args) => UtilLogMessage(msgType,  fmt, args));
+    //  ...
+    //  new PrioritySelector(
+    //      _swimBreathBehavior.CreateBehavior(),
+    //
+    public class SwimBreathBehavior
+    {
+        public delegate void     LoggerDelegate(string messageType, string format, params object[] args);
+
+
+        public SwimBreathBehavior(LoggerDelegate    loggerDelegate)
+        {
+            Logger = loggerDelegate;
+        }
+
+
+        // Private properites & data...
+        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
+        private const string            AuraName_WarlockUnendingBreath  = "Unending Breath";
+        private int                     BreathTimeRemaining             { get { return((Timer_SwimBreath.IsVisible)
+                                                                                       ? (int)Timer_SwimBreath.CurrentTime
+                                                                                       : int.MaxValue);
+                                                                        }}
+        private readonly LoggerDelegate Logger;
+        private int                     MinTime_DruidBreath             = 30000;    // in milliseconds
+        private int                     MinTime_WarlockBreath           = 30000;    // in milliseconds
+        private LocalPlayer             Me                              { get { return (ObjectManager.Me); } }
+        private int                     SpellId_DruidAquaticForm        = 1066;
+        private int                     SpellId_WarlockUnendingBreath   = 5697;
+        private readonly TimeSpan       ThrottleTimer_BreathCheck       = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan       ThrottleTimer_WarlockBreath     = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan       Timer_AuraRefresh_EnduringBreath = TimeSpan.FromMilliseconds(180000);
+        private MirrorTimerInfo         Timer_SwimBreath                { get { return (Me.GetMirrorTimerInfo(MirrorTimerType.Breath)); } }
+        private int[]                   UnderwaterAirSourceObjectIds    = { 177524 /* bubbly fissure */
+                                                                          };
+
+        private Composite               _behaviorRoot;
+        private bool                    _isSwimBreathNeeded;
+        private AirSource               _nearestAirSource;
+
+        // Private structures...
+        private struct AirSource
+        {
+            public WoWPoint     Location;
+            public string       Name;
+
+            public AirSource(WoWPoint location, string name)    { Location = location; Name = name; }
+            public double               Distance                { get { return (Location.Distance(ObjectManager.Me.Location)); }}
+            public static AirSource     Empty                   = new AirSource(WoWPoint.Empty, "NONE");
+        }
+
+        // Private LINQs
+        private IEnumerable<WoWObject>  UnderwaterAirSources    { get { return (
+                                                                    ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                                                                        .OrderBy(target => Me.Location.Distance(target.Location))
+                                                                        .Where(target => UnderwaterAirSourceObjectIds.Contains((int)target.Entry))
+                                                                ); }}
+
+
+        private TimeSpan        AuraTimeLeft(string     auraName)
+        {
+            WoWAura wowAura = Me.GetAuraByName(auraName);
+
+            return ((wowAura != null)  ? wowAura.TimeLeft  : TimeSpan.Zero);
+        }
+
+
+        /// <summary>
+        /// The created behavior was meant to be used in a PrioritySelector.
+        /// It may also have uses inside other TreeSharp Composites.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// <para>* RunStatus.Failure, if swim breath is not needed</para>
+        /// <para>* RunStatus.Success, if we're catching our breath, or moving for it</para>
+        /// </returns>
+        /// 
+        public Composite        CreateBehavior()
+        {
+            return (_behaviorRoot ?? (_behaviorRoot =
+                new Decorator(ret => Me.IsSwimming,
+                    new PrioritySelector(
+
+                        // Moving to, or fetching breath...
+                        new Decorator(ret => _isSwimBreathNeeded,
+                            new PrioritySelector(
+
+                                // If toon is filling lungs, stay put until full...
+                                new Decorator(ret => ((Timer_SwimBreath.ChangePerMillisecond > 0)
+                                                      && (Timer_SwimBreath.CurrentTime < Timer_SwimBreath.MaxValue)),
+                                    new Action(delegate
+                                    {
+                                        WoWMovement.MoveStop();
+                                        TreeRoot.StatusText = "Waiting for full breath";
+                                    })),
+
+                                // If lungs are full, back to work...
+                                new Decorator(ret => (Timer_SwimBreath.CurrentTime >= Timer_SwimBreath.MaxValue),
+                                    new Action(delegate { _isSwimBreathNeeded = false; })),
+
+                                // Move toon to air source, if needed...
+                                new Decorator(ret =>
+                                    {
+                                        _nearestAirSource = GetNearestAirSource();
+                                        return (_nearestAirSource.Distance > Navigator.PathPrecision);
+                                    },
+                                    new Action(delegate
+                                    {   
+                                        TreeRoot.StatusText = string.Format("Moving to {0} for breath. (distance {1:0.0})",
+                                                                            _nearestAirSource.Name,
+                                                                            _nearestAirSource.Distance);
+                                        UnderwaterMoveTo(_nearestAirSource.Location);
+                                    }))
+                            )),
+
+
+                        // If we're a Warlock, refresh Unending Breath as needed...
+                        new DecoratorThrottled(ThrottleTimer_WarlockBreath,
+                            ret => (SpellManager.CanCast(SpellId_WarlockUnendingBreath)
+                                    && (AuraTimeLeft(AuraName_WarlockUnendingBreath) <= Timer_AuraRefresh_EnduringBreath)),
+                            new Action(delegate { SpellManager.Cast(SpellId_WarlockUnendingBreath); })),
+
+
+                        // If time to breathe, do something about it...
+                        new DecoratorThrottled(ThrottleTimer_BreathCheck,
+                            ret => IsBreathNeeded(),
+                            new PrioritySelector(
+
+                                // If we're a Druid, switch to Aquatic form for breath...
+                                new Decorator(ret => (SpellManager.CanCast(SpellId_DruidAquaticForm)
+                                                      && !Me.HasAura(AuraName_DruidAquaticForm)),
+                                    new Action(delegate
+                                    {
+                                        SpellManager.Cast(SpellId_DruidAquaticForm);
+                                        TreeRoot.StatusText = "Switching to Aquatic Form for breath";
+                                        _isSwimBreathNeeded = true;
+                                    })),
+
+
+                                // Otherwise, we need to deal with 'normal' way to catch breath...
+                                new Action(delegate
+                                {
+                                    _nearestAirSource = GetNearestAirSource();
+                                    Logger("info", "Moving to {0} for breath. (distance {1:0.0})",
+                                                    _nearestAirSource.Name, _nearestAirSource.Distance);
+                                    _isSwimBreathNeeded = true;
+                                })
+                            ))
+                    ))));
+        }
+
+
+        private AirSource       GetNearestAirSource()
+        {
+            // Assume water's surface is nearest breath...
+            AirSource   nearestAirSource        = new AirSource(Me.Location.WaterSurface(), "water's surface");
+            WoWObject   underwaterAirSource     = UnderwaterAirSources.FirstOrDefault();
+
+            // If underwater air source exists, and is closer that the water's surface...
+            if ((underwaterAirSource != null)
+                && (Me.Location.Distance(underwaterAirSource.Location) <= nearestAirSource.Distance))
+            {
+                nearestAirSource.Location = underwaterAirSource.Location;
+                nearestAirSource.Name     = underwaterAirSource.Name;
+            }
+
+            return (nearestAirSource);
+        }
+
+
+        private bool            IsBreathNeeded()
+        {
+            int     breathTimeRemaining     = BreathTimeRemaining;
+
+            if (Me.Class == WoWClass.Druid)
+                { return (breathTimeRemaining < MinTime_DruidBreath); }
+
+            else if (Me.Class == WoWClass.Warlock)
+                { return (breathTimeRemaining < MinTime_WarlockBreath); }
+
+            // Calculate time needed to get to an air source...
+            AirSource   airSource   = GetNearestAirSource();
+            double      travelTime;
+
+            travelTime = (((airSource.Location.Distance(Me.Location) / Me.MovementInfo.SwimSpeed)
+                          * 2.75)   // factor of safety
+                          + (3 * ThrottleTimer_BreathCheck.TotalSeconds));
+            travelTime = Math.Min(travelTime, 30.0);    // Hard-minimum of 30secs
+            travelTime *= 1000;     // to milliseconds
+
+            return (breathTimeRemaining <= travelTime);
+        }
+
+
+        private void            UnderwaterMoveTo(WoWPoint     location)
+        {
+            // Try to use Navigator to get there...
+            MoveResult moveResult   = Navigator.MoveTo(location);
+
+            // If Navigator fails, resort to click-to-move...
+            if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
+                {  WoWMovement.ClickToMove(location); }
+        }
+    }
+
+
+    /// <summary>
+    /// This behavior is necessary since Honorbuddy is incapable of moving underwater.
+    /// </summary>
+    //
+    // Usage:
+    //  private UnderwaterLootingBehavior   _underwaterLootingBehavior  = new UnderwaterLootingBehavior((msgType, fmt, args) => UtilLogMessage(msgType,  fmt, args));
+    //  ...
+    //  new PrioritySelector(
+    //      _underwaterLootingBehavior.CreateBehavior(),
+    //
+    public class UnderwaterLootingBehavior
+    {
+        public delegate void     LoggerDelegate(string messageType, string format, params object[] args);
+
+
+        public UnderwaterLootingBehavior(LoggerDelegate    loggerDelegate)
+        {
+            Logger = loggerDelegate;
+        }
+
+
+        // Private properties & data...
+        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
+        private readonly TimeSpan       Delay_BlacklistLootedMob        = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan       Delay_WaitForLootCleanup        = TimeSpan.FromMilliseconds(5000);
+        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private readonly TimeSpan       Delay_WowClientWaitForLootFrame = TimeSpan.FromSeconds(10);
+        private readonly LoggerDelegate Logger;
+        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
+        private int                     SpellId_DruidAquaticForm        = 1066;
+
+        private Composite               _behaviorRoot;
+        private WoWObject               _currentTarget;
+
+        // Private LINQ...
+        private IEnumerable<WoWUnit>    LootList { get {
+                                                return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                                        .Where(target => (target.Dead && target.Lootable
+                                                                          && !target.IsLootingBlacklisted())));
+                                            }}
+
+
+        /// <summary>
+        /// The created behavior was meant to be used in a PrioritySelector.
+        /// It may also have uses inside other TreeSharp Composites.
+        /// </summary>
+        /// 
+        /// <returns>
+        /// <para>* RunStatus.Failure, if looting is not needed</para>
+        /// <para>* RunStatus.Success, if we're in the process of looting things</para>
+        /// </returns>
+        /// 
+        public Composite        CreateBehavior()
+        {
+            return (_behaviorRoot ?? (_behaviorRoot =
+                new Decorator(ret => (CharacterSettings.Instance.LootMobs && (LootList.Count() > 0)),
+                    new PrioritySelector(
+
+                        // If we're swimming, we need to do loot cleanup for ourselves...
+                        new Decorator(ret => Me.IsSwimming,
+                            new PrioritySelector(context => _currentTarget = LootList.FirstOrDefault(),
+
+                                // If not at nearest target, move to it...
+                                new Decorator(ret => (_currentTarget.Distance > _currentTarget.InteractRange),
+                                    new Action(delegate
+                                    {
+                                        TreeRoot.StatusText = string.Format("Moving to loot target '{0}' (distance {1})...",
+                                                                            _currentTarget.Name,
+                                                                            _currentTarget.Distance);
+                                        UnderwaterMoveTo(_currentTarget.Location);
+                                    })),
+
+                                // Within interact range, so loot it...
+                                // NOTE: that we have to locally blacklist looted targets.  They sometimes
+                                // have unique (e.g., quest-starting type) items on them.  If we already have
+                                // have such an item in our inventory, the target remains lootable, but there
+                                // is nothing we can pick up from it.  The blacklist prevents us from getting
+                                // into silly loops because of such mechanics.
+                                new Sequence(
+                                    new Action(delegate { WoWMovement.MoveStop(); }),
+                                    new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                                    new Action(delegate { _currentTarget.Interact(); }),
+                                    new WaitContinue(Delay_WowClientWaitForLootFrame,
+                                                     ret => LootFrame.Instance.IsVisible,
+                                                     new ActionAlwaysSucceed()),
+                                    new DecoratorContinue(ret => LootFrame.Instance.IsVisible,
+                                        new Action(ret => LootFrame.Instance.LootAll())),
+                                    new Action(delegate { _currentTarget.LootingBlacklist(Delay_BlacklistLootedMob); })
+                                    )
+                            )),
+
+                        // We're not swimming, so we want to wait for the 'normal' looting behavior
+                        // to scoop up the loot before allowing other behaviors to continue...
+                        // This keeps it from taking a few steps towards next mob, only to go back to
+                        // previous mob and loot it.  This technique can still fail if Honorbddy is slow to update
+                        // infomation.  However, it shuts a lot of back-tracking.
+                        new WaitContinue(Delay_WaitForLootCleanup, ret => false, new ActionAlwaysSucceed())
+                    )
+                )));
+        }
+
+
+        private void            UnderwaterMoveTo(WoWPoint     location)
+        {
+            // If we're a Druid, use Aquatic Form...
+            if (SpellManager.CanCast(SpellId_DruidAquaticForm) && !Me.HasAura(AuraName_DruidAquaticForm))
+                { SpellManager.Cast(SpellId_DruidAquaticForm); }
+
+            // Try to use Navigator to get there...
+            MoveResult moveResult   = Navigator.MoveTo(location);
+
+            if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
+                {  WoWMovement.ClickToMove(location); }
+        }
+    }
+
+
+
+    #endregion  // Reusable behaviors
+
+
     #region Extensions to HBcore
+
+    public class DecoratorThrottled         : Decorator
+    {
+        public DecoratorThrottled(TimeSpan                  throttleTime,
+                                  CanRunDecoratorDelegate   canRun,
+                                  Composite                 composite)
+            :base(canRun, composite)
+        {
+            _throttleTime = throttleTime;
+
+            _throttle = new Stopwatch();
+            _throttle.Reset();
+            _throttle.Start();
+        }
+
+
+        protected override bool CanRun(object context)
+        {
+            if (_throttle.Elapsed < _throttleTime)
+                { return (false); }
+
+            _throttle.Reset();
+            _throttle.Start();
+
+            return (base.CanRun(context));
+        }
+
+
+        private Stopwatch                   _throttle;
+        private TimeSpan                    _throttleTime;
+    }
+
 
     // The HBcore 'global' blacklist will also prevent looting.  We don't want that.
     // Since the HBcore blacklist is not built to instantiate, we have to roll our
@@ -510,7 +1112,8 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
         // We provide our own 'local' blacklist.  If we use the global one maintained by HBcore,
         // that will prevent us from looting also.
-        private static LocalBlackList   _blackList  = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList   _blackList          = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList   _blackListLooting   = new LocalBlackList(TimeSpan.FromSeconds(30));
 
         public static void      LocallyBlacklist(this WoWObject    wowObject,
                                                  TimeSpan          timeSpan)
@@ -518,34 +1121,21 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
             _blackList.Add(wowObject.Guid, timeSpan);
         }
 
+        public static void      LootingBlacklist(this WoWObject    wowObject,
+                                                 TimeSpan          timeSpan)
+        {
+            _blackListLooting.Add(wowObject.Guid, timeSpan);
+        }
+
 
         public static bool      IsLocallyBlacklisted(this WoWObject    wowObject)
         {
             return (_blackList.Contains(wowObject.Guid));
         }
-    }
 
-
-    // HBcore granularity on "WaitContinue" is seconds.  This one accepts a TimeSpan, thus
-    // allow for much finer granularity.
-    public class WaitContinueTimeSpan    : WaitContinue
-    {
-        public WaitContinueTimeSpan(TimeSpan timeOut, CanRunDecoratorDelegate decorator, Composite child)
-            : base(1, decorator, child)
+        public static bool      IsLootingBlacklisted(this WoWObject    wowObject)
         {
-            Timeout = timeOut;
-        }
-    }
-
-
-    // HBcore granularity on "Wait" is seconds.  This one accepts a TimeSpan, thus
-    // allow for much finer granularity.
-    public class WaitTimeSpan    : Wait
-    {
-        public WaitTimeSpan(TimeSpan timeOut, CanRunDecoratorDelegate decorator, Composite child)
-            : base(1, decorator, child)
-        {
-            Timeout = timeOut;
+            return (_blackListLooting.Contains(wowObject.Guid));
         }
     }
 
@@ -559,7 +1149,6 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
             return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
         }
     }
-
 
 
     public static class WoWPoint_Extensions
@@ -678,7 +1267,7 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
 
 
         public static double    SurfacePathDistance(this WoWPoint     start,
-                                                      WoWPoint          destination)
+                                                    WoWPoint          destination)
         {
             WoWPoint[]  groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
 
@@ -693,6 +1282,27 @@ namespace Styx.Bot.Quest_Behaviors.CollectThings
                 { pathDistance += groundPath[i].Distance(groundPath[i+1]); }
 
             return (pathDistance);
+        }
+
+
+        // Returns WoWPoint.Empty if unable to locate water's surface
+        public static WoWPoint      WaterSurface(this WoWPoint      location)
+        {
+            WoWPoint    hitLocation;
+            bool        hitResult;
+            WoWPoint    locationUpper       = location.Add(0.0, 0.0, 2000.0);
+            WoWPoint    locationLower       = location.Add(0.0, 0.0, -2000.0);
+
+            hitResult = (GameWorld.TraceLine(locationUpper,
+                                             locationLower,
+                                             GameWorld.CGWorldFrameHitFlags.HitTestLiquid,
+                                             out hitLocation)
+                         || GameWorld.TraceLine(locationUpper,
+                                                locationLower,
+                                                GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
+                                                out hitLocation));
+
+            return (hitResult ? hitLocation : WoWPoint.Empty);
         }
     }
 
