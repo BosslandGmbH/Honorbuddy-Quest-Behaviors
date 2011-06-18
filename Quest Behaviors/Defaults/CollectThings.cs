@@ -90,7 +90,7 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.CollectThings
+namespace BuddyWiki.CustomBehavior.CollectThings
 {
     public class CollectThings : CustomForcedBehavior
     {
