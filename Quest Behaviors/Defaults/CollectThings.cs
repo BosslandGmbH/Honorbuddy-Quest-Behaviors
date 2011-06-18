@@ -190,6 +190,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public int                      CollectItemCount { get; private set; }
         public int                      CollectItemId { get; private set; }
         public CollectUntilType         CollectUntil { get; private set; }
+        public WoWPoint                 HuntingGroundAnchor { get; private set; }
         public bool                     IgnoreMobsInBlackspots { get; private set; }
         public int[]                    MobIds { get; private set; }
         public double                   NonCompeteDistance { get; private set; }
@@ -198,7 +199,6 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public WoWPoint                 HuntingGroundAnchor { get; private set; }
 
         // Private properties and data...
         private SwimBreathBehavior      _behavior_SwimBreath;
@@ -454,12 +454,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                            ViableTargetsDelegate     viableTargets,
                                            WoWPoint                  huntingGroundAnchor,
                                            double                    collectionDistance,
-                                           bool                      returnIfNoTargets)
+                                           bool                      behaviorSucceedIfNoTargets)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = huntingGroundAnchor;
             Logger = loggerDelegate;
-            ReturnIfNoTargets = returnIfNoTargets;
+            BehaviorSucceedIfNoTargets = behaviorSucceedIfNoTargets;
             ViableTargets = viableTargets;
 
             UseHotspots(null);
@@ -478,7 +478,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public WoWObject                CurrentTarget           { get; private set; }
         public Queue<WoWPoint>          Hotspots                { get; set; }
         public WoWPoint                 HuntingGroundAnchor     { get; private set; }
-        public bool                     ReturnIfNoTargets       { get; private set; }
+        public bool                     BehaviorSucceedIfNoTargets       { get; private set; }
 
 
         // Private properties & data...
@@ -546,7 +546,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                 })),
 
                             // If we've exhausted mob/object supply in area, and that's our exit criteria, we're done...
-                            new Decorator(ret => ReturnIfNoTargets,
+                            new Decorator(ret => BehaviorSucceedIfNoTargets,
                                 new ActionAlwaysSucceed()),
 
                             // Move back to hunting ground anchor --
