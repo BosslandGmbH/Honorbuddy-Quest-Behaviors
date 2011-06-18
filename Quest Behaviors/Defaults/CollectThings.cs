@@ -125,8 +125,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
                 CollectItemCount = GetAttributeAsInteger("CollectItemCount", isCollectItemCountRequired, 1, int.MaxValue, null) ?? 1;
                 CollectItemId = GetAttributeAsItemId("CollectItemId", isCollectItemIdRequired, null) ?? 0;
-                CollectionDistance = GetAttributeAsDouble("CollectionDistance", false, 1.0, 200.0, null) ?? 120.0;
                 HuntingGroundAnchor   = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                HuntingGroundRadius = GetAttributeAsDouble("HuntingGroundRadius", false, 1.0, 200.0, new [] {"CollectionDistance"}) ?? 120.0;
                 IgnoreMobsInBlackspots = GetAttributeAsBoolean("IgnoreMobsInBlackspots", false, null) ?? false;
                 MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, null) ?? new int[0];
                 NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
@@ -144,11 +144,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                     IsAttributeProblem = true;
                 }
 
-                if (CollectionDistance < (NonCompeteDistance * 2))
+                if (HuntingGroundRadius < (NonCompeteDistance * 2))
                 {
                     UtilLogMessage("error", "The CollectionDistance (saw '{0}') must be at least twice the size"
                                             + " of the NonCompeteDistance (saw '{1}').",
-                                            CollectionDistance,
+                                            HuntingGroundRadius,
                                             NonCompeteDistance);
                     IsAttributeProblem = true;
                 }
@@ -165,7 +165,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 _behavior_TargetSelector = new HuntingGroundTargetBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects),
                                                                           ViableTargets,
                                                                           HuntingGroundAnchor,
-                                                                          CollectionDistance,
+                                                                          HuntingGroundRadius,
                                                                           (CollectUntil == CollectUntilType.NoTargetsInArea));
                 _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects));
 			}
@@ -186,11 +186,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
 
         // Attributes provided by caller
-        public double                   CollectionDistance { get; private set; }
         public int                      CollectItemCount { get; private set; }
         public int                      CollectItemId { get; private set; }
         public CollectUntilType         CollectUntil { get; private set; }
         public WoWPoint                 HuntingGroundAnchor { get; private set; }
+        public double                   HuntingGroundRadius { get; private set; }
         public bool                     IgnoreMobsInBlackspots { get; private set; }
         public int[]                    MobIds { get; private set; }
         public double                   NonCompeteDistance { get; private set; }
@@ -222,12 +222,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                             }}
         private IEnumerable<WoWUnit>    NearbyPlayers { get {
                                             return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                                    .Where(u => u.IsPlayer &&  (u.Distance < (CollectionDistance + NonCompeteDistance))));                                                             
+                                                    .Where(u => u.IsPlayer &&  (u.Distance < (HuntingGroundRadius + NonCompeteDistance))));                                                             
                                             }}
         private IEnumerable<WoWObject>  ViableTargets() {
                                             return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                                                     .Where(target => ((MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
-                                                                        && (target.Distance < CollectionDistance)
+                                                                        && (target.Distance < HuntingGroundRadius)
                                                                         && !target.IsLocallyBlacklisted()
                                                                         && !BlacklistIfPlayerNearby(target)
                                                                         && (IgnoreMobsInBlackspots
