@@ -73,6 +73,7 @@ using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 
+using Styx;
 using Styx.Combat.CombatRoutine;
 using Styx.Helpers;
 using Styx.Logic;
