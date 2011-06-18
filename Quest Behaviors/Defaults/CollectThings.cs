@@ -38,7 +38,7 @@
 //      QuestId [REQUIRED if CollectUntil=QuestComplete; Default:none]:
 //
 //      (***These attibutes are completely optional***)
-//      CollectionDistance [Default: 120]: The range from the anchor location (i.e., X/Y/Z) location at which
+//      HuntingGroundRadius [Default: 120]: The range from the anchor location (i.e., X/Y/Z) location at which
 //              targets (mobs or objects) will be sought.
 //      IgnoreMobsInBlackspots [Default: false]: If true, mobs sitting in blackspotted areas will not be
 //              considered as targets.
