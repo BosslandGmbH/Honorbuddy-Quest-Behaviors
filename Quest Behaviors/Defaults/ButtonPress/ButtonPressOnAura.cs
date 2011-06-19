@@ -1,4 +1,56 @@
-﻿using System;
+﻿// Behavior originally contributed by Chinajade.
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+// DOCUMENTATION:
+//      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ButtonPressOnAura
+//     
+// QUICK DOX:
+//      Collects items from mobs or objects when (right-click) 'interaction' is required.
+//      Most useful for those type of quests where you blow something up,
+//      then you have to collect the pieces.
+//
+//  Parameters (required, then optional--both listed alphabetically):
+//      (***One or more of the following two attributes must be specified***)
+//      MobIdN [REQUIRED if ObjectId is omitted]: Defines the mobs that drop the Items we're after.
+//              N may be omitted, or any positive integral value--multiple mobs are supported.
+//      ButtonMTargetAuraIdN: [one entry REQUIRED] Specifies which button should be pressed when a
+//              particular aura is seen on a target.  The value of M must be between 1 and 12,
+//              and it represents a button position on the hotbar when the quest has replaced
+//              the user's normal hotbar.  N may be omitted, or any positive integer--this
+//              implies that you may have multiple auras associated with the same button.
+//      QuestId [REQUIRED, Default:none]:
+//
+//      (***These attibutes are completely optional***)
+//      ButtonOnQuestComplete [Default: none]: This specifies a button that should be pressed
+//              when the quest complete.  The value for this attribute must be on the closed
+//              interval of [1..12], and represents a button position on the hotbar when the quest
+//              has replaced the user's normal hotbar.
+//      HuntingGroundRadius [Default: 120]: The range from the anchor location (i.e., X/Y/Z) location at which
+//              targets (mobs or objects) will be sought.
+//      IgnoreMobsInBlackspots [Default: false]: If true, mobs sitting in blackspotted areas will not be
+//              considered as targets.
+//      NonCompeteDistance [Default: 25]: If a player is within this distance of a target that looks
+//              interesting to us, we'll ignore the target.  The assumption is that the player may
+//              be going for the same target, and we don't want to draw attention.
+//      PostInteractDelay [Default: 1000ms]: The number of milliseconds to wait after each interaction.
+//              This is useful if the target requires time for the interaction to complete.
+//              This value must be on the closed interval [0..61000].
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      X/Y/Z [Default: Toon's initial position]: Defines the anchor of a search area for
+//              which targets (mobs or objects) will be sought.  The hunting ground is defined by
+//              this value coupled with the CollectionDistance.
+// 
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
