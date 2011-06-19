@@ -45,7 +45,7 @@
 //      NonCompeteDistance [Default: 25]: If a player is within this distance of a target that looks
 //              interesting to us, we'll ignore the target.  The assumption is that the player may
 //              be going for the same target, and we don't want to draw attention.
-//      PostInteractDelay [Default: 1000ms]: The number of milliseconds to wait after each interaction.
+//      PostInteractDelay [Default: 1500ms]: The number of milliseconds to wait after each interaction.
 //              This is useful if the target requires time for the interaction to complete.
 //              This value must be on the closed interval [0..61000].
 //      QuestCompleteRequirement [Default:NotComplete]:
@@ -130,7 +130,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, null) ?? new int[0];
                 NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
                 ObjectIds   = GetNumberedAttributesAsIntegerArray("ObjectId", 0, 1, int.MaxValue, null) ?? new int[0];
-                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsInteger("PostInteractDelay", false, 0, 61000, null) ?? 1000);
+                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsInteger("PostInteractDelay", false, 0, 61000, null) ?? 1500);
                 QuestId     = GetAttributeAsQuestId("QuestId", isQuestIdRequired, null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
