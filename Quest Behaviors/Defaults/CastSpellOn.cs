@@ -66,16 +66,6 @@ namespace Styx.Bot.Quest_Behaviors
                     UtilLogMessage("fatal", "\"Range\" attribute must be greater than \"MinRange\" attribute.");
                     IsAttributeProblem = true;
                 }
-
-                if (!SpellManager.HasSpell(SpellId))
-                {
-                    WoWSpell    spell       = WoWSpell.FromId(SpellId);
-
-                    UtilLogMessage("fatal", "Toon doesn't know SpellId({0}, \"{1}\")",
-                                            SpellId,
-                                            ((spell != null) ? spell.Name : "unknown"));
-                    IsAttributeProblem = true;
-                }
 			}
 
 			catch (Exception except)
@@ -249,6 +239,24 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                // Semantic coherency...
+                // We had to defer this check (from the constructor) until after OnStart() was called.
+                // If this behavior was used as a consequence of a class-specific action, or a quest
+                // that has already been completed, then having this check in the constructor yields
+                // confusing (and wrong) error messages.  Thus, we needed to defer the check until
+                // we actually tried to _use_ the behavior--not just create it.
+                if (!SpellManager.HasSpell(SpellId))
+                {
+                    WoWSpell    spell       = WoWSpell.FromId(SpellId);
+
+                    UtilLogMessage("fatal", "Toon doesn't know SpellId({0}, \"{1}\")",
+                                            SpellId,
+                                            ((spell != null) ? spell.Name : "unknown"));
+                    _isBehaviorDone = true;
+                    return;
+                }
+
+
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {
                     var currentRoot = TreeRoot.Current.Root;
