@@ -73,19 +73,28 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 {
                     string      attributeName   = string.Format("Button{0}Phrase", i);
 
-                    tmpPhrases = GetNumberedAttributesAsStringArray(attributeName, 1, null) ?? new string[0];
+                    tmpPhrases = GetNumberedAttributesAsArray(attributeName, 0, ConstrainAs.StringNonEmpty, null);
                     UtilPopulateMapWithPhrases(SimpleTextToButtonMap, i, tmpPhrases);
                 }
 
-                ButtonOnQuestComplete   = GetAttributeAsHotbarButton("ButtonOnQuestComplete", false, null);
-                DebugShowText   = GetAttributeAsBoolean("DebugShowText", false, null) ?? false;
-                ExitVehicleAtQuestComplete = GetAttributeAsBoolean("ExitVehicleAtQuestComplete", false, null) ?? true;
-                MobId           = GetAttributeAsMobId("MobId", true, null) ?? 0;
-                MonitorStartPhrases = GetNumberedAttributesAsStringArray("MonitorStartPhrase", 0, null) ?? new string[0];
-                MonitorStopPhrases  = GetNumberedAttributesAsStringArray("MonitorStopPhrase", 0, null) ?? new string[0];
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+
+                ButtonOnQuestComplete   = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
+                DebugShowText           = GetAttributeAsNullable<bool>("DebugShowText", false, null, null) ?? false;
+                ExitVehicleAtQuestComplete = GetAttributeAsNullable<bool>("ExitVehicleAtQuestComplete", false, null, null) ?? true;
+                MobId                   = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                MonitorStartPhrases     = GetNumberedAttributesAsArray<string>("MonitorStartPhrase", 0, ConstrainAs.StringNonEmpty, null);
+                MonitorStopPhrases      = GetNumberedAttributesAsArray<string>("MonitorStopPhrase", 0, ConstrainAs.StringNonEmpty, null);
+                QuestId                 = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
+
+                // Semantic coherency...
+                if (SimpleTextToButtonMap.Count() <= 0)
+                {
+                    LogMessage("error", "You must supply at least one 'ButtonNPhraseM' attribute.");
+                    IsAttributeProblem = true;
+                }
 
 
                 // Install our chat handlers...
@@ -104,7 +113,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     { _isMonitoringEnabled = true; }
 
                 // Final initialization...
-                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects),
+                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
                                                                     ViableTargets,
                                                                     Me.Location,
                                                                     1000.0);
@@ -117,9 +126,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
 				// resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -186,7 +195,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         private void    ProcessMessage(string       message)
         {
             if (DebugShowText && !string.IsNullOrEmpty(message))
-                { UtilLogMessage("info", "Saw message '{0}'", message); }
+                { LogMessage("info", "Saw message '{0}'", message); }
 
             // Look for our 'start monitoring' trigger phrase...
             if (!_isMonitoringEnabled && (MonitorStartPhrases.Count() > 0))
@@ -196,7 +205,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
                 if (triggerPhrase != null)
                 {
-                    UtilLogMessage("debug", "Monitoring turned on by trigger phrase '{0}'", triggerPhrase);
+                    LogMessage("debug", "Monitoring turned on by trigger phrase '{0}'", triggerPhrase);
                     _isMonitoringEnabled = true;
                 }
             }
@@ -209,7 +218,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
                 if (triggerPhrase != null)
                 {
-                    UtilLogMessage("debug", "Monitoring turned off by trigger phrase '{0}'", triggerPhrase);
+                    LogMessage("debug", "Monitoring turned off by trigger phrase '{0}'", triggerPhrase);
                     _isMonitoringEnabled = false;
                 }
             }
@@ -240,7 +249,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         {
             if (completionReason != null)
             {
-                UtilLogMessage("info", "Behavior done (" + completionReason + ")");
+                LogMessage("info", "Behavior done (" + completionReason + ")");
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
                 _isBehaviorDone = true;
@@ -263,7 +272,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             {
                 if (phraseToButtonMap.ContainsKey(phrase))
                 {
-                    UtilLogMessage("error", "Phrase({0}) cannot be associated with two buttons."
+                    LogMessage("error", "Phrase({0}) cannot be associated with two buttons."
                                             + "  (Attempted to associate with Button{1} and Button{2}.)",
                                             phrase, phraseToButtonMap[phrase], buttonNum);
                     IsAttributeProblem = true;
@@ -299,7 +308,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                             new DecoratorContinue(ret => ExitVehicleAtQuestComplete,
                                 new Action(delegate
                                 {
-                                    UtilLogMessage("info", "Exiting Vehicle");
+                                    LogMessage("info", "Exiting Vehicle");
                                     Lua.DoString("VehicleExit()");
                                 })),
 
@@ -460,11 +469,11 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     // If this is an alias, warn user...
                     if (!numberedAttributeName.StartsWith(baseNamePrimary))
                     {
-                        UtilLogMessage("warning",
-                                        "The attribute '{0}' is an alias for '{1}N'.\n"
-                                        + "Please modify the profile to use the preferred base name of '{1}', instead.",
-                                        numberedAttributeName,
-                                        baseNamePrimary);
+                        LogMessage("warning",
+                                    "The attribute '{0}' is an alias for '{1}N'.\n"
+                                    + "Please modify the profile to use the preferred base name of '{1}', instead.",
+                                    numberedAttributeName,
+                                    baseNamePrimary);
                     }
 
                     stringList.Add(tmpValue);
@@ -528,13 +537,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
             if (stringList.Count < countRequired)
             {
-                UtilLogMessage("error",
-                                "The attribute '{0}N' must be provided at least {1} times (saw it '{2}' times).\n"
-                                + "(E.g., ButtonText1, ButtonText2, ButtonText3, ...)\n"
-                                + "Please modify the profile to supply {1} attributes with a base name of '{0}'.",
-                                baseName,
-                                countRequired,
-                                stringList.Count);
+                LogMessage("error",
+                            "The attribute '{0}N' must be provided at least {1} times (saw it '{2}' times).\n"
+                            + "(E.g., ButtonText1, ButtonText2, ButtonText3, ...)\n"
+                            + "Please modify the profile to supply {1} attributes with a base name of '{0}'.",
+                            baseName,
+                            countRequired,
+                            stringList.Count);
 
                 return (null);
             }
@@ -806,7 +815,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
         private static string   BuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  "";
+            string      formatString    =  string.Empty;
 
             if (timeSpan.Hours > 0)
                 { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }

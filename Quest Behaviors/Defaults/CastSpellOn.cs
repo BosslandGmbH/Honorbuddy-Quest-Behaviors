@@ -47,23 +47,23 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                HpLeftAmount = GetAttributeAsInteger("HpLeftAmount", false, 0, int.MaxValue, null) ?? 110;
-                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                MinRange    = GetAttributeAsRange("MinRange", false, null) ?? 3;
-                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
-                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsRange("Range", false, null) ?? 25;
-                SpellId     = GetAttributeAsSpellId("SpellId", true, null) ?? 0;
+                Location    = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MinRange    = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 3;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "HpLeftAmount" }) ?? 110;
+                MobIds      = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
+                NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 25;
+                SpellId     = GetAttributeAsNullable<int>("SpellId", true, ConstrainAs.SpellId, null) ?? 0;
 
                 Counter     = 1;
 
                 // Semantic checks
                 if (Range <= MinRange)
                 {
-                    UtilLogMessage("fatal", "\"Range\" attribute must be greater than \"MinRange\" attribute.");
+                    LogMessage("fatal", "\"Range\" attribute must be greater than \"MinRange\" attribute.");
                     IsAttributeProblem = true;
                 }
 			}
@@ -75,24 +75,24 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
 
 
         // Attributes provided by caller
-        public int                      HpLeftAmount { get; private set; }
         public WoWPoint                 Location { get; private set; }
-        public int                      MinRange { get; private set; }
+        public double                   MinRange { get; private set; }
+        public double                   MobHpPercentLeft { get; private set; }
         public int[]                    MobIds { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      Range { get; private set; }
+        public double                   Range { get; private set; }
         public int                      SpellId { get; private set; }
 
         // Private variables for internal state
@@ -102,10 +102,10 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private int                 Counter { get; set; }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public List<WoWUnit>        MobList { get { if (HpLeftAmount > 0)
+        public List<WoWUnit>        MobList { get { if (MobHpPercentLeft > 0)
                                                     {
                                                         return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                             .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead && u.HealthPercent <= HpLeftAmount)
+                                                                             .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead && u.HealthPercent <= MobHpPercentLeft)
                                                                              .OrderBy(u => u.Distance).ToList());
                                                     }
                                                     else
@@ -249,9 +249,9 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     WoWSpell    spell       = WoWSpell.FromId(SpellId);
 
-                    UtilLogMessage("fatal", "Toon doesn't know SpellId({0}, \"{1}\")",
-                                            SpellId,
-                                            ((spell != null) ? spell.Name : "unknown"));
+                    LogMessage("fatal", "Toon doesn't know SpellId({0}, \"{1}\")",
+                                        SpellId,
+                                        ((spell != null) ? spell.Name : "unknown"));
                     _isBehaviorDone = true;
                     return;
                 }

@@ -49,23 +49,23 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Buttons         = GetAttributeAsIntegerArray("Buttons", false, 1, 12, null) ?? new int[0];
-                DropPassengerButton     = GetAttributeAsHotbarButton("DropPassengerButton", false, null) ?? 0;
-                EndPath         = GetAttributeAsWoWPoints("EndPath", true, null) ?? new WoWPoint[0];
-                HealButton      = GetAttributeAsHotbarButton("HealButton", false, null) ?? 0;
-                HealPercent     = GetAttributeAsInteger("HealPercent", false, 0, 99, null) ?? 35;
-                ItemId          = GetAttributeAsItemId("ItemId", false, null) ?? 0;
-                NpcList         = GetAttributeAsIntegerArray("NpcList", true, 1, int.MaxValue, null) ?? new int[0];
-                NpcScanRange    = GetAttributeAsRange("NpcScanRange", false, null) ?? 10000;
-                Path            = GetAttributeAsWoWPoints("Path", true, null) ?? new WoWPoint[0];
-                PickUpPassengerButton   = GetAttributeAsHotbarButton("PickUpPassengerButton", false, null) ?? 0;
-                Precision       = GetAttributeAsInteger("Precision", false, 2, 100, null) ?? 4;
-                QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                SpeedButton     = GetAttributeAsHotbarButton("SpeedButton", false, null) ?? 0;
-                StartPath       = GetAttributeAsWoWPoints("StartPath", true, null) ?? new WoWPoint[0];
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+                Buttons         = GetAttributeAsArray<int>("Buttons", false, ConstrainAs.HotbarButton, null, null);
+                DropPassengerButton     = GetAttributeAsNullable<int>("DropPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                EndPath         = GetAttributeAsArray<WoWPoint>("EndPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                HealButton      = GetAttributeAsNullable<int>("HealButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                HealPercent     = GetAttributeAsNullable<double>("HealPercent", false, ConstrainAs.Percent, null) ?? 35.0;
+                ItemId          = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                NpcList         = GetAttributeAsArray<int>("NpcList", true, ConstrainAs.MobId, null, null);
+                NpcScanRange    = GetAttributeAsNullable<double>("NpcScanRange", false, ConstrainAs.Range, null) ?? 10000.0;
+                Path            = GetAttributeAsArray<WoWPoint>("Path", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                PickUpPassengerButton   = GetAttributeAsNullable<int>("PickUpPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                Precision       = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SpeedButton     = GetAttributeAsNullable<int>("SpeedButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                StartPath       = GetAttributeAsArray<WoWPoint>("StartPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -75,9 +75,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -89,17 +89,17 @@ namespace Styx.Bot.Quest_Behaviors
         public int[]                    Buttons { get; private set; }
         public int                      DropPassengerButton { get; private set; }
         public WoWPoint[]               EndPath { get; private set; }
-        public int                      HealPercent { get; private set; }
+        public double                   HealPercent { get; private set; }
         public int                      HealButton { get; private set; }
         public int                      ItemId { get; private set; }
         public int[]                    NpcList { get; private set; }
-        public int                      NpcScanRange { get; private set; }
+        public double                   NpcScanRange { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public WoWPoint[]               Path { get; private set; }
         public int                      PickUpPassengerButton { get; private set; }
-        public int                      Precision { get; private set; }
+        public double                   Precision { get; private set; }
         public int                      SpeedButton { get; private set; }
         public WoWPoint[]               StartPath { get; private set; }
         public int                      VehicleId { get; private set; }
@@ -167,7 +167,7 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     if (!_doingUnstuck)
                     {
-                        UtilLogMessage("info", "Stuck... Doing unstuck routine");
+                        LogMessage("info", "Stuck... Doing unstuck routine");
                         _direction = WoWMovement.MovementDirection.JumpAscend |
                             (_rand.Next(0, 2) == 1 ? WoWMovement.MovementDirection.StrafeRight : WoWMovement.MovementDirection.StrafeLeft)
                             | WoWMovement.MovementDirection.Backwards;
@@ -193,7 +193,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 WoWUnit veh = GetVehicle();
                 if (veh == null && _state != State.liftoff && _state != State.landing)
-                    { UtilLogMessage("fatal", "Something went seriously wrong..."); }
+                    { LogMessage("fatal", "Something went seriously wrong..."); }
 
                 switch (_state)
                 {

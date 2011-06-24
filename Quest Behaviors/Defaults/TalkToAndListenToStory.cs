@@ -37,21 +37,21 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 int[]       tmpMobIds;
 
-                UtilLogMessage("warning",   "*****\n"
-                                            + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
-                                            + "*\n"
-                                            + "* TalkToAndListenToStory adds _no_ _additonal_ _value_ over the InteractWith behavior (with the \"GossipOption\" attribute).\n"
-                                            + "* Please update the profile to use InteractWith in preference to the TalkToAndListenToStory behavior.\n"
-                                            + "*****");
+                LogMessage("warning",   "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                        + "*\n"
+                                        + "* TalkToAndListenToStory adds _no_ _additonal_ _value_ over the InteractWith behavior (with the \"GossipOption\" attribute).\n"
+                                        + "* Please update the profile to use InteractWith in preference to the TalkToAndListenToStory behavior.\n"
+                                        + "*****");
 
 
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                tmpMobIds   = GetAttributeAsIntegerArray("MobIds", true, 1, int.MaxValue, new [] { "NpcIds" }) ?? new int[0];
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                tmpMobIds   = GetAttributeAsArray<int>("MobIds", true, ConstrainAs.MobId, new [] { "NpcIds" }, null);
+                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
 
                 foreach (int mobId in tmpMobIds)
@@ -65,9 +65,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }

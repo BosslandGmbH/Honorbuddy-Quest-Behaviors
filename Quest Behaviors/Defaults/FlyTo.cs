@@ -27,12 +27,12 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Destination     = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                DestinationName = GetAttributeAsString_NonEmpty("DestName", false, new [] { "Name" }) ?? "";
-                Distance        = GetAttributeAsDouble("Distance", false, 0.25, double.MaxValue, null) ?? 10.0;
-                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Destination     = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new [] { "Name" }) ?? string.Empty;
+                Distance        = GetAttributeAsNullable<double>("Distance", false, new ConstrainTo.Domain<double>(0.25, double.MaxValue), null) ?? 10.0;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 if (string.IsNullOrEmpty(DestinationName))
                     { DestinationName = Destination.ToString(); }
@@ -45,9 +45,9 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -172,7 +172,7 @@ namespace Styx.Bot.Quest_Behaviors.FlyTo
                 TreeRoot.GoalText = "Flying to " + DestinationName;
 
                 // This information was directly requested by profile writers...
-                UtilLogMessage("debug", "Flying to '{0}': {1}.", DestinationName, Destination);
+                LogMessage("debug", "Flying to '{0}': {1}.", DestinationName, Destination);
             }
 		}
 

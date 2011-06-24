@@ -32,13 +32,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                CastOnItemId    = GetAttributeAsItemId("CastOnItemId", false, null) ?? 0;
-                NumOfTimes      = GetAttributeAsNumOfTimes("NumOfTimes", false, new [] { "NumTimes" }) ?? 1;
-                QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                TradeSkillId    = GetAttributeAsSpellId("TradeSkillId", true, null) ?? 0;
-                TradeSkillItemId = GetAttributeAsItemId("TradeSkillItemId", true, null) ?? 0;
+                CastOnItemId    = GetAttributeAsNullable<int>("CastOnItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new [] { "NumTimes" }) ?? 1;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                TradeSkillId    = GetAttributeAsNullable<int>("TradeSkillId", true, ConstrainAs.SpellId, null) ?? 0;
+                TradeSkillItemId = GetAttributeAsNullable<int>("TradeSkillItemId", true, ConstrainAs.ItemId, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -48,9 +48,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -84,7 +84,7 @@ namespace Styx.Bot.Quest_Behaviors
                 var item = StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value);
                 if (item == null)
                 {
-                    UtilLogMessage("fatal", "Could not find ItemId({0}).", CastOnItemId.Value);
+                    LogMessage("fatal", "Could not find ItemId({0}).", CastOnItemId.Value);
                     return;
                 }
                 item.Use();
@@ -147,7 +147,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                     int id = int.Parse(link);
 
-                    UtilLogMessage("debug", "ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name);
+                    LogMessage("debug", "ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name);
 
                     if (id == TradeSkillItemId)
                         return i;

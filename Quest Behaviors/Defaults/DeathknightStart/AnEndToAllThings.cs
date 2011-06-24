@@ -45,15 +45,12 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         {
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                AttackSpellId   = GetAttributeAsSpellId("AttackSpellId", true, new [] { "AttackSpell" }) ?? 0;
-                HealNpcId       = GetAttributeAsMobId("HealNpcId", true, new [] { "HealNpc" }) ?? 0;
-                HealSpellId     = GetAttributeAsSpellId("HealSpellId", false, new [] { "HealSpell" }) ?? 0;
-                ItemId          = GetAttributeAsItemId("ItemId", false, null) ?? 0;
-                KillNpcId       = GetAttributeAsMobId("KillNpcId", true, new [] { "KillNpc" }) ?? 0;
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+                AttackSpellId   = GetAttributeAsNullable<int>("AttackSpellId", true, ConstrainAs.SpellId, new [] { "AttackSpell" }) ?? 0;
+                HealNpcId       = GetAttributeAsNullable<int>("HealNpcId", true, ConstrainAs.MobId, new [] { "HealNpc" }) ?? 0;
+                HealSpellId     = GetAttributeAsNullable<int>("HealSpellId", false, ConstrainAs.SpellId, new [] { "HealSpell" }) ?? 0;
+                ItemId          = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                KillNpcId       = GetAttributeAsNullable<int>("KillNpcId", true, ConstrainAs.MobId, new [] { "KillNpc" }) ?? 0;
+                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -63,9 +60,9 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -240,7 +237,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                 new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                                     new DecoratorContinue(ret => ret == null,
                                         new Sequence(
-                                            new Action(ret => UtilLogMessage("fatal", "Unable to find ItemId({0}) in inventory.", ItemId))
+                                            new Action(ret => LogMessage("fatal", "Unable to find ItemId({0}) in inventory.", ItemId))
                                             )),
 
                                     new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
@@ -271,7 +268,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                         new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                             new DecoratorContinue(ret => ret == null,
                                 new Sequence( 
-                                    new Action(ret => UtilLogMessage("fatal", "Unable to locate ItemId({0}) in inventory.", ItemId))
+                                    new Action(ret => LogMessage("fatal", "Unable to locate ItemId({0}) in inventory.", ItemId))
                                     )),
 
                             new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,

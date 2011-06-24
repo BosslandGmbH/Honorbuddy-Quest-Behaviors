@@ -58,23 +58,23 @@ namespace Styx.Bot.Quest_Behaviors
 
 			try
 			{
-                CastingSpellId = GetAttributeAsSpellId("CastingSpellId", false, null) ?? 0;
-                HasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
-                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                MobIds       = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
-                NpcHasAuraId = GetAttributeAsSpellId("MobHasAuraId", false, new [] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
-                NpcHpPercentLeft = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
-                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                CastingSpellId  = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                HasAuraId       = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" }) ?? 0;
+                ItemId          = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
+                MobHasAuraId    = GetAttributeAsNullable<int>("MobHasAuraId", false, ConstrainAs.AuraId, new [] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
+                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 // semantic coherency checks --
-                if ((CastingSpellId == 0) && (HasAuraId == 0) && (NpcHasAuraId == 0) && (NpcHpPercentLeft == 0))
+                if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0))
                 {
-                    UtilLogMessage("error", "One or more of the following attributes must be specified:\n"
-                                            + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
+                    LogMessage("error", "One or more of the following attributes must be specified:\n"
+                                         + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
                     IsAttributeProblem = true;
                 }
 			}
@@ -86,9 +86,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -99,9 +99,9 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      HasAuraId { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
+        public int                      MobHasAuraId { get; private set; }
+        public double                   MobHpPercentLeft { get; private set; }
         public int[]                    MobIds { get; private set; }
-        public int                      NpcHasAuraId { get; private set; }
-        public int                      NpcHpPercentLeft { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -173,8 +173,8 @@ namespace Styx.Bot.Quest_Behaviors
                                 new PrioritySelector(
                                     new Decorator(
                                         ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
-                                               (NpcHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == NpcHasAuraId)) ||
-                                               (NpcHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= NpcHpPercentLeft) ||
+                                               (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
+                                               (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
                                                (HasAuraId != 0 && Me.Auras.Values.Any(a => a.SpellId == HasAuraId)),
                                         new PrioritySelector(
                                             new Decorator(

@@ -47,7 +47,7 @@ namespace Styx.Bot.Quest_Behaviors
             GameObject,
         }
 
-        public enum NpcState
+        public enum NpcStateType
         {
             Alive,
             BelowHp,
@@ -67,21 +67,21 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
-                tmpMobHasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" }) ?? 0;
-                tmpMobHasAuraMissingId = GetAttributeAsSpellId("IsMissingAuraId", false, null) ?? 0;
-                MobHpLeftAmount = GetAttributeAsInteger("MobHpPercentLeft", false, 0, int.MaxValue, new [] { "HpLeftAmount" }) ?? 100;
-                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
-                MobType     = GetAttributeAsEnum<ObjectType>("MobType", false, new [] { "ObjectType" }) ?? ObjectType.Npc;
-                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
-                _NpcState   = GetAttributeAsEnum<NpcState>("MobState", false, new [] { "NpcState" }) ?? NpcState.DontCare;
-                Range       = GetAttributeAsRange("Range", false, null) ?? 4;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 1500;
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;
+                tmpMobHasAuraId   = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" }) ?? 0;
+                tmpMobHasAuraMissingId = GetAttributeAsNullable<int>("IsMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "HpLeftAmount" }) ?? 100.0;
+                ItemId      = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location    = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds      = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
+                MobType     = GetAttributeAsNullable<ObjectType>("MobType", false, null, new [] { "ObjectType" }) ?? ObjectType.Npc;
+                NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                NpcState    = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new [] { "NpcState" }) ?? NpcStateType.DontCare;
+                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
 
                 MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId)  : null;
                 MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId)  : null;
@@ -94,29 +94,29 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
 
 
         // Attributes provided by caller
-        public int                      CollectionDistance { get; private set; }
+        public double                   CollectionDistance { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public string                   MobAuraName { get; private set; }
         public string                   MobAuraMissingName { get; private set; }
-        public int                      MobHpLeftAmount { get; private set; }
+        public double                   MobHpPercentLeft { get; private set; }
         public int[]                    MobIds { get; private set; }
         public ObjectType               MobType { get; private set; }
-        public NpcState                 _NpcState { get; private set; }
+        public NpcStateType             NpcState { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      Range { get; private set; }
+        public double                   Range { get; private set; }
         public int                      WaitTime { get; private set; }
 
         // Private variables for internal state
@@ -146,7 +146,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
             catch
             {
-                UtilLogMessage("fatal", "Could not find {0}({0}).", attributeName, auraId);
+                LogMessage("fatal", "Could not find {0}({0}).", attributeName, auraId);
                 IsAttributeProblem = true;
             }
 
@@ -185,17 +185,17 @@ namespace Styx.Bot.Quest_Behaviors
                                                                               || ((MobAuraMissingName != null) && !target.HasAura(MobAuraMissingName))));
 
                         var     npcStateQualifiedTargets = auraQualifiedTargets
-                                                            .Where(target => ((_NpcState == NpcState.DontCare)
-                                                                              || ((_NpcState == NpcState.Dead) && target.Dead)
-                                                                              || ((_NpcState == NpcState.Alive) && target.IsAlive)
-                                                                              || ((_NpcState == NpcState.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpLeftAmount))));
+                                                            .Where(target => ((NpcState == NpcStateType.DontCare)
+                                                                              || ((NpcState == NpcStateType.Dead) && target.Dead)
+                                                                              || ((NpcState == NpcStateType.Alive) && target.IsAlive)
+                                                                              || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
 
                         @object = npcStateQualifiedTargets.FirstOrDefault();
                         break;
                 }
 
                 if (@object != null)
-                    { UtilLogMessage("debug", @object.Name); }
+                    { LogMessage("debug", @object.Name); }
 
                 return @object;
             }

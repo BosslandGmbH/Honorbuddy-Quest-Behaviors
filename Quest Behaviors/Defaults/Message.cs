@@ -34,13 +34,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                ColorLog    = GetAttributeAsColor("LogColor", false, null) ?? Color.Black;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Text        = GetAttributeAsString_NonEmpty("Text", true, null) ?? "";
-                UpdateGoalText = GetAttributeAsBoolean("UpdateGoalText", false, null)
-                                    ?? (GetAttributeAsColor("GoalColor", false, null) != null);
+                ColorLog    = Color.FromKnownColor(GetAttributeAsNullable<KnownColor>("LogColor", false, null, null) ?? KnownColor.DarkGray);
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Text        = GetAttributeAs<string>("Text", true, ConstrainAs.StringNonEmpty, null) ?? "";
+                UpdateGoalText = GetAttributeAsNullable<bool>("UpdateGoalText", false, null, null)
+                                    ?? (GetAttributeAsNullable<Color>("GoalColor", false, null, null) != null);
 			}
 
 			catch (Exception except)
@@ -50,9 +50,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }

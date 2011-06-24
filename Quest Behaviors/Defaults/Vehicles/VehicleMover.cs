@@ -45,19 +45,19 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                CastNum         = GetAttributeAsInteger("CastNum", false, 0, 1000, null) ?? 1;
-                CastTime        = GetAttributeAsInteger("CastTime", false, 0, 30000, null) ?? 0;
-                Hop             = GetAttributeAsBoolean("Hop", false, null) ?? false;
-                IgnoreCombat    = GetAttributeAsBoolean("IgnoreCombat", false, null) ?? true;
-                Location        = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                MobIds          = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "MobID", "NpcId" }) ?? new int[0];
-                Precision       = GetAttributeAsInteger("Precision", false, 2, 100, null) ?? 4;
-                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                SpellId         = GetAttributeAsSpellId("SpellId", false, new [] { "SpellID" }) ?? 0;
-                UseNavigator    = GetAttributeAsBoolean("UseNavigator", false, null) ?? true;
-                VehicleIds      = GetNumberedAttributesAsIntegerArray("VehicleId", 1, 1, int.MaxValue, new [] { "VehicleID" }) ?? new int[0];
+                CastNum         = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
+                CastTime        = GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null) ?? 0;
+                Hop             = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
+                IgnoreCombat    = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
+                Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "MobID", "NpcId" });
+                Precision       = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SpellId         = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, new [] { "SpellID" }) ?? 0;
+                UseNavigator    = GetAttributeAsNullable<bool>("UseNavigator", false, null, null) ?? true;
+                VehicleIds      = GetNumberedAttributesAsArray<int>("VehicleId", 1, ConstrainAs.VehicleId, new [] { "VehicleID" });
 			}
 
 			catch (Exception except)
@@ -67,9 +67,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -83,7 +83,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint                 Location { get; private set; }
         public int[]                    MobIds { get; private set; }
         public WoWPoint[]               Path { get; private set; }
-        public int                      Precision { get; private set; }
+        public double                   Precision { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -268,7 +268,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             try
                             {
-                                UtilLogMessage("info", "Moving to Vehicle {0}", Vehicle.Name);
+                                LogMessage("info", "Moving to Vehicle {0}", Vehicle.Name);
                                 if (!Vehicle.WithinInteractRange)
                                     Navigator.MoveTo(Vehicle.Location);
                                 else
@@ -289,7 +289,7 @@ namespace Styx.Bot.Quest_Behaviors
                             WoWUnit vehicle = Vehicle;
                             Path = Navigator.GeneratePath(vehicle.Location, Location);
                             if (Path == null || Path.Length == 0)
-                                { UtilLogMessage("fatal", "Unable to genorate path to {0}", Location); }
+                                { LogMessage("fatal", "Unable to genorate path to {0}", Location); }
 
                             if (IgnoreCombat)
                                 return RunStatus.Failure;

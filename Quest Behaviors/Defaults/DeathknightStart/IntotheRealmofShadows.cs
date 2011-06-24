@@ -35,10 +35,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                Location    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 			}
 
 			catch (Exception except)
@@ -48,9 +45,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -87,7 +84,7 @@ namespace Styx.Bot.Quest_Behaviors
                         if (Me.HealthPercent < 60 && !Me.IsActuallyInCombat)
                         {
                             WoWItem food = Consumable.GetBestFood(true);
-                            CharacterSettings.Instance.FoodName = food != null ? food.Name : "";
+                            CharacterSettings.Instance.FoodName = food != null ? food.Name : string.Empty;
                             Rest.Feed();
                             return RunStatus.Running;
                         }

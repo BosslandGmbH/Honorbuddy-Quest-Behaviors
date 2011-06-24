@@ -38,7 +38,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                ProfileName = GetAttributeAsString_NonEmpty("ProfileName", true, new [] { "Profile" }) ?? "";
+                ProfileName = GetAttributeAs<string>("ProfileName", true, ConstrainAs.StringNonEmpty, new [] { "Profile" }) ?? "";
 
                 if (!ProfileName.ToLower().EndsWith(".xml"))
                     { ProfileName += ".xml"; }
@@ -51,9 +51,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -84,12 +84,12 @@ namespace Styx.Bot.Quest_Behaviors
                 new PrioritySelector(
                             // If behavior is complete, nothing to do, so bail...
                             new Decorator(ret => _isBehaviorDone,
-                                new Action(delegate { UtilLogMessage("info", "Behavior complete"); })),
+                                new Action(delegate { LogMessage("info", "Behavior complete"); })),
 
                             // If file does not exist, notify of problem...
                             new Decorator(ret => !File.Exists(NewProfilePath),
                                 new Action(delegate {
-                                    UtilLogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
+                                    LogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
                                     _isBehaviorDone = true;
                                     })),
 
@@ -97,7 +97,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Sequence(
                                 new Action(delegate {
                                         TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
-                                        UtilLogMessage("info", "Loading profile '{0}'", ProfileName);
+                                        LogMessage("info", "Loading profile '{0}'", ProfileName);
                                         ProfileManager.LoadNew(NewProfilePath, false);
                                     }),
                                 new WaitContinueTimeSpan(TimeSpan.FromMilliseconds(300), ret => false, new ActionAlwaysSucceed()),

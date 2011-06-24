@@ -47,19 +47,19 @@ namespace Styx.Bot.Quest_Behaviors
                 WoWPoint?   legacyStartLocation     = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStartX/Y/Z");
                 WoWPoint?   legacyWaitAtLocation    = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAtX/Y/Z");
 
-                DestName        = GetAttributeAsString("DestName", false, null) ?? "";
-                EndLocation     = GetXYZAttributeAsWoWPoint("TransportEnd", !legacyEndLocation.HasValue, null)
+                DestName        = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
+                EndLocation     = GetAttributeAsNullable<WoWPoint>("TransportEnd", !legacyEndLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
                                     ?? legacyEndLocation
                                     ?? WoWPoint.Empty;
-                GetOffLocation  = GetXYZAttributeAsWoWPoint("GetOff", !legacyGetOffLocation.HasValue, null)
+                GetOffLocation  = GetAttributeAsNullable<WoWPoint>("GetOff", !legacyGetOffLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
                                     ?? legacyGetOffLocation
                                     ?? WoWPoint.Empty;
-                StandLocation   = GetXYZAttributeAsWoWPoint("StandOn", false, null) ?? WoWPoint.Empty;
-                StartLocation   = GetXYZAttributeAsWoWPoint("TransportStart", !legacyStartLocation.HasValue, null)
+                StandLocation   = GetAttributeAsNullable<WoWPoint>("StandOn", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                StartLocation   = GetAttributeAsNullable<WoWPoint>("TransportStart", !legacyStartLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
                                     ?? legacyStartLocation
                                     ?? WoWPoint.Empty;
-                TransportId     = GetAttributeAsMobId("TransportId", true, new [] { "Transport" }) ?? 0;
-                WaitAtLocation  = GetXYZAttributeAsWoWPoint("WaitAt", !legacyWaitAtLocation.HasValue, null)
+                TransportId     = GetAttributeAsNullable<int>("TransportId", true, ConstrainAs.MobId, new [] { "Transport" }) ?? 0;
+                WaitAtLocation  = GetAttributeAsNullable<WoWPoint>("WaitAt", !legacyWaitAtLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
                                     ?? legacyWaitAtLocation
                                     ?? WoWPoint.Empty;
 			}
@@ -71,7 +71,7 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;

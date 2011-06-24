@@ -39,12 +39,12 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AvoidMobId      = GetAttributeAsMobId("AvoidMobId", true, new [] { "MobId" }) ?? 0;
-                AvoidDistance   = GetAttributeAsRange("AvoidDistance", true, new [] { "Distance" }) ?? 0;
-                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                SafespotLocation = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                AvoidMobId      = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new [] { "MobId" }) ?? 0;
+                AvoidDistance   = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new [] { "Distance" }) ?? 0;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 			}
 
 			catch (Exception except)
@@ -54,9 +54,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -64,7 +64,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public int                      AvoidMobId { get; private set; }
-        public int                      AvoidDistance { get; private set; }  // Distance to stay away from 
+        public double                   AvoidDistance { get; private set; }  // Distance to stay away from 
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -110,7 +110,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Action(ret => Navigator.MoveTo(SafespotLocation)))),
                                     
                             new Decorator(c => AvoidNpc != null && AvoidNpc.Distance <= AvoidDistance,
-                                new Action(c => UtilLogMessage("info", "Waiting on {0} to move {1} distance away", AvoidNpc, AvoidDistance))),
+                                new Action(c => LogMessage("info", "Waiting on {0} to move {1} distance away", AvoidNpc, AvoidDistance))),
 
                             new Decorator(c => AvoidNpc == null || AvoidNpc.Distance > AvoidDistance,
                                 new Action(c => _isBehaviorDone = true))

@@ -44,10 +44,10 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);            // (doc only - not used)
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);            // (doc only - not used)
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -57,9 +57,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -86,7 +86,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public void     Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            UtilLogMessage("info", Color.Green, format + (++_lineCount % 2 == 0 ? "" : " "), args);
+            LogMessage("info", Color.Green, format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
 
@@ -142,7 +142,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             // WoWItem orb =  Me.Inventory.Items.FirstOrDefault( i => i != null && i.Entry == 52828 );
                             WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
                             if (orb == null)
-                                { UtilLogMessage("fatal", "Quest item \"Orb of Ascension\" not in inventory."); }
+                                { LogMessage("fatal", "Quest item \"Orb of Ascension\" not in inventory."); }
 
                             orb.Use(true);
                             StyxWoW.SleepForLagDuration();

@@ -45,17 +45,17 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AttackButton    = GetAttributeAsHotbarButton("AttackButton", true, new [] { "SpellIndex" }) ?? 0;
-                FirePoint       = GetXYZAttributeAsWoWPoint("FireLocation", true, null) ?? WoWPoint.Empty;
-                FireHeight      = GetAttributeAsInteger("FireHeight", true, 1, 999, null) ?? 1;
-                FireUntilFinished = GetAttributeAsBoolean("FireUntilFinished", false, new [] { "FireTillFinish" }) ?? false;
-                PreviousLocation    = GetXYZAttributeAsWoWPoint("PreviousFireLocation", false, null);
-                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                TargetPoint     = GetXYZAttributeAsWoWPoint("TargetLocation", true, null) ?? WoWPoint.Empty;
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, new [] { "VehicleID" }) ?? 0;
-                VehicleMountId      = GetAttributeAsMobId("VehicleMountId", true, new [] { "NpcMountId", "NpcMountID" }) ?? 0;
+                AttackButton        = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new [] { "SpellIndex" }) ?? 0;
+                FirePoint           = GetAttributeAsNullable<WoWPoint>("FireLocation", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                FireHeight          = GetAttributeAsNullable<int>("FireHeight", true, new ConstrainTo.Domain<int>(1, 999), null) ?? 1;
+                FireUntilFinished   = GetAttributeAsNullable<bool>("FireUntilFinished", false, null, new [] { "FireTillFinish" }) ?? false;
+                PreviousLocation    = GetAttributeAsNullable<WoWPoint>("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
+                QuestId             = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                TargetPoint         = GetAttributeAsNullable<WoWPoint>("TargetLocation", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                VehicleId           = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, new [] { "VehicleID" }) ?? 0;
+                VehicleMountId      = GetAttributeAsNullable<int>("VehicleMountId", true, ConstrainAs.VehicleId, new [] { "NpcMountId", "NpcMountID" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -65,7 +65,7 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;

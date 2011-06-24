@@ -50,13 +50,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                MovePoint   = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Timeout     = GetAttributeAsInteger("Timeout", false, 1, 60000, null) ?? 10000;
+                MovePoint   = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Timeout     = GetAttributeAsNullable<int>("Timeout", false, new ConstrainTo.Domain<int>(1, 60000), null) ?? 10000;
 
-                GetAttributeAsString_NonEmpty("QuestName", false, null);    // not used - documentation purposes only
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);    // not used - documentation purposes only
 
                 Timeout += System.Environment.TickCount;
                 MovePoint   = WoWMovement.CalculatePointFrom(MovePoint, -15);
@@ -70,9 +70,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -119,7 +119,7 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(delegate
                         {
                             _isBehaviorDone = true;
-                            UtilLogMessage("info", "Went thru portal.");
+                            LogMessage("info", "Went thru portal.");
                             Thread.Sleep(500);
                             WoWMovement.MoveStop();
                             Thread.Sleep(500);
@@ -140,7 +140,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            UtilLogMessage("fatal", "Unable to reach end point.  Failed to go through portal.");
+                            LogMessage("fatal", "Unable to reach end point.  Failed to go through portal.");
                             return RunStatus.Success;
                         })),
 
@@ -149,14 +149,14 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            UtilLogMessage("fatal", "Timed out after {0} ms.  Failed to go through portal", Timeout);
+                            LogMessage("fatal", "Timed out after {0} ms.  Failed to go through portal", Timeout);
                             return RunStatus.Success;
                         })),
 
                     new Decorator(ret => !StyxWoW.Me.IsMoving,
                         new Action(delegate
                         {
-                            UtilLogMessage("info", "Moving to {0}", MovePoint);
+                            LogMessage("info", "Moving to {0}", MovePoint);
                             WoWMovement.ClickToMove(MovePoint);
                             return RunStatus.Success;
                         }))

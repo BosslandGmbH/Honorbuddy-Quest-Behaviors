@@ -57,16 +57,16 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                ClickToLocation = GetXYZAttributeAsWoWPoint("ClickTo", false, null) ?? WoWPoint.Empty;
-                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                MoveToLocation = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, new [] { "ObjectId" }) ?? new int[0];
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsRange("Range", false, null) ?? 4;
-                UseType     = GetAttributeAsEnum<QBType>("UseType", false, null) ?? QBType.PointToPoint;
-                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 0;
+                ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                ItemId      = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds      = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new [] { "ObjectId" });
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
+                UseType     = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
+                WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 			}
 
 			catch (Exception except)
@@ -76,9 +76,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -92,7 +92,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      Range { get; private set; }
+        public double                   Range { get; private set; }
         public QBType                   UseType { get; private set; }
         public int                      WaitTime { get; private set; }
 

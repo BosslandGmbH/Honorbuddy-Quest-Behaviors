@@ -41,11 +41,11 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Color   = GetAttributeAsColor("Color", false, null) ?? Color.Red;
-                Message = GetAttributeAsString_NonEmpty("Message", false, new [] { "Msg", "Text" }) ?? "Quest Profile HALT";
-                QuestId = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Color   = GetAttributeAsNullable<Color>("Color", false, null, null) ?? Color.Red;
+                Message = GetAttributeAs<string>("Message", false, ConstrainAs.StringNonEmpty, new [] { "Msg", "Text" }) ?? "Quest Profile HALT";
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 			}
 
 			catch (Exception except)
@@ -55,9 +55,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -103,7 +103,7 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                UtilLogMessage("", Color, "\n\n    " + Message + "\n");
+                LogMessage("", Color, "\n\n    " + Message + "\n");
 
                 TreeRoot.GoalText = Message;
                 TreeRoot.Stop();

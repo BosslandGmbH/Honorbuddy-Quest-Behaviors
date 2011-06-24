@@ -98,31 +98,31 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                 for (int i = 1;   i <= 12;    ++i)
                 {
                     string      attributeName   = string.Format("Button{0}TargetAuraId", i);
-                    tmpAuras    = GetNumberedAttributesAsIntegerArray(attributeName, 0, 1, int.MaxValue, null) ?? new int[0];
+                    tmpAuras    = GetNumberedAttributesAsArray<int>(attributeName, 0, ConstrainAs.AuraId, null);
                     UtilPopulateMapWithAuras(TargetAuraToButtonMap, i, tmpAuras);
                 }
 
-                ButtonOnQuestComplete   = GetAttributeAsHotbarButton("ButtonOnQuestComplete", false, null);
-                HuntingGroundAnchor     = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                HuntingGroundRadius = GetAttributeAsDouble("HuntingGroundRadius", false, 1.0, 200.0, null) ?? 120.0;
-                IgnoreMobsInBlackspots = GetAttributeAsBoolean("IgnoreMobsInBlackspots", false, null) ?? false;
-                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, null) ?? new int[0];
-                NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
-                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsInteger("PostInteractDelay", false, 0, 61000, null) ?? 1000);
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                ButtonOnQuestComplete   = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
+                HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundRadius     = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), null) ?? 120.0;
+                IgnoreMobsInBlackspots  = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
+                MobIds                  = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+                NonCompeteDistance      = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
+                PostInteractDelay       = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1000);
+                QuestId                 = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
 
                 // Semantic coherency --
                 if ((SelfAuraToButtonMap.Count() == 0) && (TargetAuraToButtonMap.Count() == 0))
                 {
-                    UtilLogMessage("error", "You must specify at least one ButtonNTargetAura attribute.");
+                    LogMessage("error", "You must specify at least one ButtonNTargetAura attribute.");
                     IsAttributeProblem = true;
                 }
 
                 // Final initialization...
-                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects),
+                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
                                                                     ViableTargets,
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
@@ -135,9 +135,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
 				// resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -228,7 +228,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         {
             if (completionReason != null)
             {
-                UtilLogMessage("debug", "Behavior done (" + completionReason + ")");
+                LogMessage("debug", "Behavior done (" + completionReason + ")");
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
                 _isBehaviorDone = true;
@@ -255,9 +255,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
             {
                 if (auraIdToButtonMap.ContainsKey(auraId))
                 {
-                    UtilLogMessage("error", "AuraId({0}) cannot be associated with two buttons."
-                                            + "  (Attempted to associate with Button{1} and Button{2}.)",
-                                            auraId, auraIdToButtonMap[auraId], buttonNum);
+                    LogMessage("error", "AuraId({0}) cannot be associated with two buttons."
+                                        + "  (Attempted to associate with Button{1} and Button{2}.)",
+                                        auraId, auraIdToButtonMap[auraId], buttonNum);
                     IsAttributeProblem = true;
                     break;
                 }
@@ -644,7 +644,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
         private static string   BuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  "";
+            string      formatString    =  string.Empty;
 
             if (timeSpan.Hours > 0)
                 { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }

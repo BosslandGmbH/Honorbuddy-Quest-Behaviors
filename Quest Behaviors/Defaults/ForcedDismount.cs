@@ -51,12 +51,12 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         {
 			try
 			{
-                MaxDismountHeight = GetAttributeAsDouble("MaxDismountHeight", false, 1.0, 75.0, null) ?? 3.0;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                MaxDismountHeight   = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 3.0;
+                QuestId             = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-                GetAttributeAsString_NonEmpty("QuestName", false, null);     // (doc only - not used)
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);     // (doc only - not used)
 			}
 
 			catch (Exception except)
@@ -66,9 +66,9 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -170,7 +170,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                     // If we're flying, we need to descend...
                     new Decorator(ret => !IsReadyToDismount(),
                             new Sequence(
-                                new ActionRunOnceContinue(delegate { UtilLogMessage("info", "Descending before dismount"); }),
+                                new ActionRunOnceContinue(delegate { LogMessage("debug", "Descending before dismount"); }),
                                 new Action(delegate { Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend); }),
                                 new WaitContinueTimeSpan(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
                                 )),
@@ -182,14 +182,14 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                                                       || Me.Auras.ContainsKey(DruidFlightForm)),
                             new Action(delegate
                                 {
-                                    UtilLogMessage("info", "Cancelling Flight Form");
+                                    LogMessage("debug", "Cancelling Flight Form");
                                     Lua.DoString("CancelShapeshiftForm()");
                                 })),
 
                         new DecoratorContinue(ret => Me.Mounted,
                             new Action(delegate
                                 {
-                                    UtilLogMessage("info", "Dismounting");
+                                    LogMessage("debug", "Dismounting");
                                     Mount.Dismount();
                                 })),
 
@@ -204,8 +204,13 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                bool    isDone  = (_isBehaviorDone     // normal completion
+                                   || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+
+                if (isDone)
+                    { TreeRoot.GoalText = string.Empty; }
+
+                return (isDone);
             }
         }
 
@@ -220,9 +225,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
-            {
-                TreeRoot.GoalText = "Dismounting";
-			}
+            { TreeRoot.GoalText = "Dismounting"; }
 		}
 
         #endregion

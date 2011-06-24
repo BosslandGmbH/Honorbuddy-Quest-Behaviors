@@ -112,7 +112,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 bool    isCollectItemIdRequired     = false;
                 bool    isQuestIdRequired           = false;
 
-                CollectUntil = GetAttributeAsEnum<CollectUntilType>("CollectUntil", false, null) ?? CollectUntilType.RequiredCountReached;
+                CollectUntil = GetAttributeAsNullable<CollectUntilType>("CollectUntil", false, null, null) ?? CollectUntilType.RequiredCountReached;
                 if ((CollectUntil == CollectUntilType.NoTargetsInArea)
                     || (CollectUntil == CollectUntilType.RequiredCountReached))
                 {
@@ -122,33 +122,33 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 else if (CollectUntil == CollectUntilType.QuestComplete)
                     { isQuestIdRequired = true; }
 
-                CollectItemCount = GetAttributeAsInteger("CollectItemCount", isCollectItemCountRequired, 1, int.MaxValue, null) ?? 1;
-                CollectItemId = GetAttributeAsItemId("CollectItemId", isCollectItemIdRequired, null) ?? 0;
-                HuntingGroundAnchor   = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
-                HuntingGroundRadius = GetAttributeAsDouble("HuntingGroundRadius", false, 1.0, 200.0, new [] {"CollectionDistance"}) ?? 120.0;
-                IgnoreMobsInBlackspots = GetAttributeAsBoolean("IgnoreMobsInBlackspots", false, null) ?? false;
-                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 0, 1, int.MaxValue, null) ?? new int[0];
-                NonCompeteDistance = GetAttributeAsDouble("NonCompeteDistance", false, 1.0, 150.0, null) ?? 25.0;
-                ObjectIds   = GetNumberedAttributesAsIntegerArray("ObjectId", 0, 1, int.MaxValue, null) ?? new int[0];
-                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsInteger("PostInteractDelay", false, 0, 61000, null) ?? 1500);
-                QuestId     = GetAttributeAsQuestId("QuestId", isQuestIdRequired, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                CollectItemCount        = GetAttributeAsNullable<int>("CollectItemCount", isCollectItemCountRequired, ConstrainAs.CollectionCount, null) ?? 1;
+                CollectItemId           = GetAttributeAsNullable<int>("CollectItemId", isCollectItemIdRequired, ConstrainAs.ItemId, null) ?? 0;
+                HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundRadius     = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), new [] {"CollectionDistance"}) ?? 120.0;
+                IgnoreMobsInBlackspots  = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
+                MobIds                  = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, null);
+                NonCompeteDistance      = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
+                ObjectIds               = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null);
+                PostInteractDelay       = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1500);
+                QuestId                 = GetAttributeAsNullable<int>("QuestId", isQuestIdRequired, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
 
                 // Semantic coherency --
                 if ((MobIds.Count() <= 0)  &&  (ObjectIds.Count() <= 0))
                 {
-                    UtilLogMessage("error", "You must specify one or more MobId(s) or ObjectId(s)");
+                    LogMessage("error", "You must specify one or more MobId(s) or ObjectId(s)");
                     IsAttributeProblem = true;
                 }
 
                 if (HuntingGroundRadius < (NonCompeteDistance * 2))
                 {
-                    UtilLogMessage("error", "The CollectionDistance (saw '{0}') must be at least twice the size"
-                                            + " of the NonCompeteDistance (saw '{1}').",
-                                            HuntingGroundRadius,
-                                            NonCompeteDistance);
+                    LogMessage("error", "The CollectionDistance (saw '{0}') must be at least twice the size"
+                                        + " of the NonCompeteDistance (saw '{1}').",
+                                        HuntingGroundRadius,
+                                        NonCompeteDistance);
                     IsAttributeProblem = true;
                 }
 
@@ -160,12 +160,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
 
                 // Sub-behaviors...
-                _behavior_SwimBreath = new SwimBreathBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects));
-                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects),
+                _behavior_SwimBreath = new SwimBreathBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
+                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
                                                                     ViableTargets,
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
-                _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => UtilLogMessage(messageType, format, argObjects));
+                _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
 			}
 
 			catch (Exception except)
@@ -175,9 +175,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
 				// resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -272,7 +272,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
             if (completionReason != null)
             {
-                UtilLogMessage("debug", "Behavior done (" + completionReason + ")");
+                LogMessage("debug", "Behavior done (" + completionReason + ")");
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
             }
@@ -309,14 +309,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
             if (element.Attribute(attributeName) == null)
             {
-                UtilLogMessage("error", "Hotspot{0} is missing the '{1}' attribute", location, attributeName);
+                LogMessage("error", "Hotspot{0} is missing the '{1}' attribute", location, attributeName);
                 IsAttributeProblem = true;
                 return (null);
             }
 
             if (!double.TryParse(element.Attribute(attributeName).Value, out tmpDouble))
             {
-                UtilLogMessage("error", "Hotspot{0} '{1}' attribute is malformed", location, attributeName);
+                LogMessage("error", "Hotspot{0} '{1}' attribute is malformed", location, attributeName);
                 IsAttributeProblem = true;
                 return (null);
             }
@@ -696,7 +696,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
         private static string   BuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  "";
+            string      formatString    =  string.Empty;
 
             if (timeSpan.Hours > 0)
                 { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
@@ -810,7 +810,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     /// </summary>
     //
     // Usage:
-    //  private SwimBreathBehavior   _swimBreathBehavior  = new SwimBreathBehavior((msgType, fmt, args) => UtilLogMessage(msgType,  fmt, args));
+    //  private SwimBreathBehavior   _swimBreathBehavior  = new SwimBreathBehavior((msgType, fmt, args) => LogMessage(msgType,  fmt, args));
     //  ...
     //  new PrioritySelector(
     //      _swimBreathBehavior.CreateBehavior(),
@@ -1021,7 +1021,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     /// </summary>
     //
     // Usage:
-    //  private UnderwaterLootingBehavior   _underwaterLootingBehavior  = new UnderwaterLootingBehavior((msgType, fmt, args) => UtilLogMessage(msgType,  fmt, args));
+    //  private UnderwaterLootingBehavior   _underwaterLootingBehavior  = new UnderwaterLootingBehavior((msgType, fmt, args) => LogMessage(msgType,  fmt, args));
     //  ...
     //  new PrioritySelector(
     //      _underwaterLootingBehavior.CreateBehavior(),

@@ -47,10 +47,10 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);      // (doc only - not used)
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
 			}
 
 			catch (Exception except)
@@ -60,9 +60,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}            
         }
@@ -115,7 +115,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         public void     Dlog(string format, params object[] args)
         {
-            UtilLogMessage("debug", Color.Blue, string.Format(format, args));
+            LogMessage("debug", Color.Blue, string.Format(format, args));
         }
 
         private void WaitForCurrentSpell()
@@ -338,7 +338,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
                 if (IsBearCubInBags())
                 {
-                    UtilLogMessage("info", "(Loot Bear) grabbed a bear to throw");
+                    LogMessage("info", "(Loot Bear) grabbed a bear to throw");
                     return RunStatus.Success;
                 }
             }
@@ -459,9 +459,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             {
                 if (DoWeHaveQuest() && !IsQuestComplete() && !InTree())
                 {
-                    UtilLogMessage("fatal", "==================================================================\n"
-                                          + "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
-                                          + "==================================================================");
+                    LogMessage("fatal", "==================================================================\n"
+                                        + "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
+                                        + "==================================================================");
                 }
 
                 else

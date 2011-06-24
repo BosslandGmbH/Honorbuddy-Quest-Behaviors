@@ -43,13 +43,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                LocationDest    = GetXYZAttributeAsWoWPoint("", true, new [] { "Dest" }) ?? WoWPoint.Empty;
-                LocationMount   = GetXYZAttributeAsWoWPoint("Mount", true, null) ?? WoWPoint.Empty;
-                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                SpellCastId     = GetAttributeAsSpellId("SpellId", false, null) ?? 0;
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+                LocationDest    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new [] { "Dest" }) ?? WoWPoint.Empty;
+                LocationMount   = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SpellCastId     = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
                 MountedPoint    = WoWPoint.Empty;
 			}
@@ -61,9 +61,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -187,7 +187,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 })
                                 ),
 
-                            new Action(ret => UtilLogMessage("debug", ""))
+                            new Action(ret => LogMessage("debug", string.Empty))
                         )
                     ));
         }

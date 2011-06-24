@@ -31,7 +31,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
 			{
-                QuestId     = GetAttributeAsQuestId("QuestId", true, new [] { "QuestID" }) ?? 0;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new [] { "QuestID" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -41,9 +41,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -132,14 +132,14 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     if (!quest.IsCompleted)
                     {
-                        UtilLogMessage("fatal", "Quest({0}, \"{1}\") is not complete.", QuestId, quest.Name);
+                        LogMessage("fatal", "Quest({0}, \"{1}\") is not complete.", QuestId, quest.Name);
                         _isBehaviorDone = true;
                     }
                 }
 
                 else
                 {
-                    UtilLogMessage("warning", "Quest({0}) is not in our log--skipping turn in.", QuestId);
+                    LogMessage("warning", "Quest({0}) is not in our log--skipping turn in.", QuestId);
                     _isBehaviorDone = true;
                 }
 

@@ -138,14 +138,14 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                 // ...and also used for IsDone processing.
 				bool?   tmpDebugShowChangesApplied;
 
-                tmpDebugShowChangesApplied = GetAttributeAsBoolean("DebugShowChangesApplied", false, null);
-                DebugShowDetails = GetAttributeAsBoolean("DebugShowDetails", false, null) ?? false;
-                DebugShowDiff   = GetAttributeAsBoolean("DebugShowDiff", false, null) ?? false;
-                PresetName      = GetAttributeAsString_SpecificValue("Preset", false, _presetChangeRequests.Keys.ToArray(), null) ?? "";
-                QuestId         = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                IsStopBot       = GetAttributeAsBoolean("StopBot", false, null) ?? false;
+                tmpDebugShowChangesApplied = GetAttributeAsNullable<bool>("DebugShowChangesApplied", false, null, null);
+                DebugShowDetails = GetAttributeAsNullable<bool>("DebugShowDetails", false, null, null) ?? false;
+                DebugShowDiff   = GetAttributeAsNullable<bool>("DebugShowDiff", false, null, null) ?? false;
+                PresetName      = GetAttributeAs<string>("Preset", false, new ConstrainTo.SpecificValues<string>(_presetChangeRequests.Keys.ToArray()), null) ?? "";
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                IsStopBot       = GetAttributeAsNullable<bool>("StopBot", false, null, null) ?? false;
 
 				_userChangeRequest.GetChangesFromAttributes(this);
 
@@ -161,9 +161,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
 		}
@@ -203,7 +203,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 
 				if (_persistData.DebugShowChangesApplied)
 				{
-					UtilLogMessage("info", "Bot stopping.  Original user settings restored as follows...\n" + tmpChanges);
+					LogMessage("info", "Bot stopping.  Original user settings restored as follows...\n" + tmpChanges);
 				}
 
 				// Remove our OnBotStop handler
@@ -253,7 +253,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 					string tmpString = _presetChangeRequests[PresetName].Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					    { UtilLogMessage("info", "Using preset '{0}'...\n{1}", PresetName, tmpString); }
+					    { LogMessage("info", "Using preset '{0}'...\n{1}", PresetName, tmpString); }
 				}
 
 				// Second, apply any change requests...
@@ -262,23 +262,23 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 					string tmpString = _userChangeRequest.Apply();
 
 					if (_persistData.DebugShowChangesApplied)
-					    { UtilLogMessage("info", "Applied changes...\n{0}", tmpString); }
+					    { LogMessage("info", "Applied changes...\n{0}", tmpString); }
 				}
 
 				// Third, show state, if requested...                
 				if (DebugShowDetails)
-				    { UtilLogMessage("info", UtilCurrentConfigAsString(_configurationSettings)); }
+				    { LogMessage("info", UtilCurrentConfigAsString(_configurationSettings)); }
 
 				if (DebugShowDiff)
 				{
-					UtilLogMessage("info", "Changes from original user's settings--\n"
+					LogMessage("info", "Changes from original user's settings--\n"
 										   + _originalConfiguration.GetChangesAsString());
 				}
 
 				// Forth, stop the bot, if requested...
 				if (IsStopBot)
 				{
-					UtilLogMessage("info", "Stopping the bot per profile request.");
+					LogMessage("info", "Stopping the bot per profile request.");
 					TreeRoot.Stop();
 				}
 

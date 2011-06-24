@@ -36,17 +36,17 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
         {
             try
             {
-                UtilLogMessage("warning",   "*****\n"
-                                          + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
-                                          + "*\n"
-                                          + "* BasicMoveTo adds _no_ _additonal_ _value_ over Honorbuddy's built-in RunTo command.\n"
-                                          + "* Please update the profile to use RunTo in preference to the BasicMoveTo Behavior.\n"
-                                          + "*****");
+                LogMessage("warning",   "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                        + "*\n"
+                                        + "* BasicMoveTo adds _no_ _additonal_ _value_ over Honorbuddy's built-in RunTo command.\n"
+                                        + "* Please update the profile to use RunTo in preference to the BasicMoveTo Behavior.\n"
+                                        + "*****");
 
                 Destination     = LegacyGetAttributeAsWoWPoint("Location", false, null, "X/Y/Z")
-                                    ?? GetXYZAttributeAsWoWPoint("", true, null)
+                                    ?? GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null)
                                     ?? WoWPoint.Empty;
-                DestinationName = GetAttributeAsString_NonEmpty("DestName", false, new [] { "Name" }) ?? "";
+                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new [] { "Name" }) ?? string.Empty;
 
                 if (string.IsNullOrEmpty(DestinationName))
                     { DestinationName = Destination.ToString(); }
@@ -59,9 +59,9 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -136,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                                 })
                                 ),
 
-                            new Action(ret => UtilLogMessage("debug", ""))
+                            new Action(ret => LogMessage("debug", string.Empty))
                         )
                     ));
         }

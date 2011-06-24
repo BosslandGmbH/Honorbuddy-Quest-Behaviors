@@ -37,12 +37,12 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestName       = GetAttributeAsString_NonEmpty("QuestName", true, null) ?? "";
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                TurnInId        = GetAttributeAsMobId("TurnInId", true, null) ?? 0;
-                TurnInLocation  = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestName       = GetAttributeAs<string>("QuestName", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                TurnInId        = GetAttributeAsNullable<int>("TurnInId", true, ConstrainAs.MobId, null) ?? 0;
+                TurnInLocation  = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 			}
 
 			catch (Exception except)
@@ -52,9 +52,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -118,7 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInLocation);
 
                 if (QuestTurnIn == null)
-                    { UtilLogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
+                    { LogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
 
                 Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
                 QuestTurnIn.OnStart();

@@ -26,23 +26,23 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
-                UtilLogMessage("warning",   "*****\n"
-                                          + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
-                                          + "*\n"
-                                          + "* Escort is the replacement behavior for FollowNpcUntil.\n"
-                                          + "* Please update the profile to use Escort in preference to this behavior.\n"
-                                          + "*****");
+                LogMessage("warning",   "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                        + "*\n"
+                                        + "* Escort is the replacement behavior for FollowNpcUntil.\n"
+                                        + "* Please update the profile to use Escort in preference to this behavior.\n"
+                                        + "*****");
 
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
+                Location    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 MovedToTarget = false;
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
-                MobName     = GetAttributeAsString_NonEmpty("MobName", false, null) ?? "";
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId" }) ?? 0;
+                MobName     = GetAttributeAs<string>("MobName", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 if (string.IsNullOrEmpty(MobName))
                 {
@@ -62,9 +62,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }

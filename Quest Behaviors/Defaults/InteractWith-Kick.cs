@@ -21,13 +21,14 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.InteractWith2
 {
     /// <summary>
     /// Allows you to do quests that requires you to interact with nearby objects.
     /// ##Syntax##
     /// [Optional]QuestId: Id of the quest.
     /// MobId1, MobId2, ...MobIdN: Id of the objects to interact with.
+    /// [Optional]MobState: State the mob must be in for interaction to occur: DontCare, Alive, Dead
     /// [Optional]NumOfTimes: Number of times to interact with object.
     /// [Optional]GossipOption: The Dialog numbers you wish to choose. Should be seperated with commas. ie. GossipOption="1,1,4,2" or GossipOption="1"
     /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
@@ -45,6 +46,13 @@ namespace Styx.Bot.Quest_Behaviors
     /// </summary>
     public class InteractWith : CustomForcedBehavior
     {
+        public enum MobStateType
+        {
+            Alive,
+            Dead,
+            DontCare,
+        }
+
         public enum ObjectType
         {
             Npc,
@@ -72,24 +80,25 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                BuyItemCount    = GetAttributeAsNullable<int>("BuyItemCount", false, ConstrainAs.CollectionCount, null) ?? 1;
-                BuyItemId       = GetAttributeAsNullable<int>("BuyItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                BuySlot         = GetAttributeAsNullable<int>("BuySlot", false, new ConstrainTo.Domain<int>(-1, 100), null) ?? -1;
-                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-                GossipOptions   = GetAttributeAsArray<int>("GossipOptions", false, new ConstrainTo.Domain<int>(-1, 10), new [] { "GossipOption" }, null);
-                Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                Loot            = GetAttributeAsNullable<bool>("Loot", false, null, null) ?? false;
-                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
-                ObjType         = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new [] { "MobType" }) ?? ObjectType.Npc;
-                NotMoving       = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
-                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                QuestId         = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range           = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
-                WaitForNpcs     = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
-                WaitTime        = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 3000;
-                IgnoreCombat    = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
+                BuyItemCount = GetAttributeAsInteger("BuyItemCount", false, 1, 1000, null) ?? 1;
+                BuyItemId   = GetAttributeAsItemId("BuyItemId", false, null) ?? 0;
+                BuySlot     = GetAttributeAsInteger("BuySlot", false, -1, 100, null) ?? -1;
+                CollectionDistance = GetAttributeAsInteger("CollectionDistance", false, 1, 10000, null) ?? 100;
+                GossipOptions = GetAttributeAsIntegerArray("GossipOptions", false, -1, 10, new [] { "GossipOption" }) ?? new int[0];
+                Location    = GetXYZAttributeAsWoWPoint("", false, null) ?? Me.Location;
+                Loot        = GetAttributeAsBoolean("Loot", false, null) ?? false;
+                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, new [] { "NpcId" }) ?? new int[0];
+                ObjType     = GetAttributeAsEnum<ObjectType>("ObjectType", false, new [] { "MobType" }) ?? ObjectType.Npc;
+                MobState    = GetAttributeAsEnum<MobStateType>("MobState", false, null) ?? MobStateType.DontCare;
+                NotMoving   = GetAttributeAsBoolean("NotMoving", false, null) ?? false;
+                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
+                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsRange("Range", false, null) ?? 4;
+                WaitForNpcs = GetAttributeAsBoolean("WaitForNpcs", false, null) ?? true;
+                WaitTime    = GetAttributeAsWaitTime("WaitTime", false, null) ?? 3000;
+                IgnoreCombat = GetAttributeAsBoolean("IgnoreCombat", false, null) ?? false;
 
                 for (int i = 0;  i < GossipOptions.Length;  ++i)
                     { GossipOptions[i] -= 1; }
@@ -122,19 +131,20 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      BuyItemCount { get; private set; }
         public int                      BuyItemId { get; private set; }
         public int                      BuySlot { get; private set; }
-        public double                   CollectionDistance { get; private set; }
+        public int                      CollectionDistance { get; private set; }
         public int[]                    GossipOptions { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public bool                     Loot { get; private set; }
         public int[]                    MobIds { get; private set; }
         public string                   MobName { get; private set; }
+        public MobStateType             MobState { get; private set; }
         public ObjectType               ObjType { get; private set; }
         public bool                     NotMoving { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public double                   Range { get; private set; }
+        public int                      Range { get; private set; }
         public bool                     WaitForNpcs { get; private set; }
         public int                      WaitTime { get; private set; }
         public bool                     IgnoreCombat { get; private set; }
@@ -164,19 +174,24 @@ namespace Styx.Bot.Quest_Behaviors
                 switch (ObjType)
                 {
                     case ObjectType.GameObject:
-                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                            !_npcBlacklist.Contains(obj.Guid) &&
-                            obj.Distance < CollectionDistance &&
-                            MobIds.Contains((int)obj.Entry));
+                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance)
+                                    .FirstOrDefault(target => MobIds.Contains((int)target.Entry)
+                                                            && !_npcBlacklist.Contains(target.Guid)
+                                                            && target.Distance < CollectionDistance
+                                                            );
 
                         break;
 
                     case ObjectType.Npc:
-                        @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                            !_npcBlacklist.Contains(obj.Guid) &&
-                            obj.Distance < CollectionDistance &&
-                            (NotMoving ? !obj.IsMoving : true) &&
-                            MobIds.Contains((int)obj.Entry));
+                        @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance)
+                                    .FirstOrDefault(target => MobIds.Contains((int)target.Entry)
+                                                             && !_npcBlacklist.Contains(target.Guid)
+                                                             && target.Distance < CollectionDistance
+                                                             && (NotMoving ? !target.IsMoving : true)
+                                                             && ((MobState == MobStateType.DontCare)
+                                                                 || ((MobState == MobStateType.Alive) && target.IsAlive)
+                                                                 || ((MobState == MobStateType.Dead) && !target.IsAlive))
+                                                                );
 
                         break;
 

@@ -49,22 +49,22 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                int?    tmpHasAuraId   = GetAttributeAsSpellId("HasAuraId", false, new [] { "HasAura" });
+                int?    tmpHasAuraId   = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" });
 
-                AuraName    = "";       // populated below
-                CollectionDistance  = GetAttributeAsInteger("CollectionDistance", false, 1, 100000, null) ?? 100;
-                HasGroundTarget = GetAttributeAsBoolean("HasGroundTarget", false, null) ?? false;
-                InteractRange   = GetAttributeAsDouble("InteractRange", false, 1.0, 100.0, null) ?? 4.5;
-                IsDead      = GetAttributeAsBoolean("IsDead", false, null) ?? false;
-                ItemId      = GetAttributeAsItemId("ItemId", true, null) ?? 0;
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;
-                MinionCount = GetAttributeAsInteger("MinionCount", false, 0, int.MaxValue, null) ?? 0;
-                MobIds      = GetNumberedAttributesAsIntegerArray("MobId", 1, 1, int.MaxValue, null) ?? new int[0];
-                NumOfTimes  = GetAttributeAsNumOfTimes("NumOfTimes", false, null) ?? 1;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                StopMovingOnUse = GetAttributeAsBoolean("StopMovingOnUse", false, null) ?? true;
+                AuraName    = string.Empty;       // populated below
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
+                HasGroundTarget = GetAttributeAsNullable<bool>("HasGroundTarget", false, null, null) ?? false;
+                InteractRange   = GetAttributeAsNullable<double>("InteractRange", false, ConstrainAs.Range, null) ?? 4.5;
+                IsDead          = GetAttributeAsNullable<bool>("IsDead", false, null, null) ?? false;
+                ItemId          = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location        = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                MinionCount     = GetAttributeAsNullable<int>("MinionCount", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? 0;
+                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                StopMovingOnUse = GetAttributeAsNullable<bool>("StopMovingOnUse", false, null, null) ?? true;
 
                 if (tmpHasAuraId.HasValue)
                 {
@@ -82,9 +82,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -92,7 +92,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public string                   AuraName { get; private set; }
-        public int                      CollectionDistance { get; private set; }
+        public double                   CollectionDistance { get; private set; }
         public bool                     HasGroundTarget { get; private set; }
         public double                   InteractRange { get; private set; }
         public bool                     IsDead { get; private set; }
@@ -187,7 +187,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 
                                 // If we don't have the item stop!
                                 new DecoratorContinue(ctx => ctx == null,
-                                    new Action(ctx => UtilLogMessage("fatal", "Could not find ItemId({0}) in inventory.", ItemId))),
+                                    new Action(ctx => LogMessage("fatal", "Could not find ItemId({0}) in inventory.", ItemId))),
 
                                 new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
                                     new Action(ctx => Object.ToUnit().Target())),
@@ -217,7 +217,7 @@ namespace Styx.Bot.Quest_Behaviors
                         )),
 
                     new Sequence(
-                        new Action(ctx => UtilLogMessage("info", "Moving to {0}", Location)),
+                        new Action(ctx => LogMessage("info", "Moving to {0}", Location)),
                         new Action(ctx => Navigator.MoveTo(Location))
                         )
                  ));

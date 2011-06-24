@@ -32,23 +32,23 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+                LogMessage("warning",   "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
+                                        + "*\n"
+                                        + "* SetPullDistance adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
+                                        + "* Please update the profile to use the UserSettings behavior.  Your replacement\n"
+                                        + "* line is:\n"
+                                        + "*     <CustomBehavior File=\"UserSettings\" PullDistance=\"{0}\" />\n"
+                                        + "*****",
+                                        Distance);
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Distance    = GetAttributeAsInteger("Distance", true, 1, 75, null) ?? 1;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0; 
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-
-                UtilLogMessage("warning",   "*****\n"
-                                          + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
-                                          + "*\n"
-                                          + "* SetPullDistance adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
-                                          + "* Please update the profile to use the UserSettings behavior.  You're replacement\n"
-                                          + "* line is:\n"
-                                          + "*     <CustomBehavior File=\"UserSettings\" PullDistance=\"{0}\" />\n"
-                                          + "*****",
-                                          Distance);
+                Distance    = GetAttributeAsNullable<int>("Distance", true, new ConstrainTo.Domain<int>(1, 75), null) ?? 1;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0; 
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
             }
 
 			catch (Exception except)
@@ -58,9 +58,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}        
         }

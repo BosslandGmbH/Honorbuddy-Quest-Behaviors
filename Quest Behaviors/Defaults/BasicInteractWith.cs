@@ -42,13 +42,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                FactionId   = GetAttributeAsInteger("FactionId", false, 1, int.MaxValue, new [] { "Faction" }) ?? 0;
-                IsMoveToMob = GetAttributeAsBoolean("MoveTo", false, new [] { "UseCTM" }) ?? false;;
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId", "NpcID" })  ?? 0;
-                QuestId     = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                UseLuaTarget = GetAttributeAsBoolean("UseLuaTarget", false, new [] { "LUATarget" }) ?? false;
+                FactionId   = GetAttributeAsNullable<int>("FactionId", false, ConstrainAs.FactionId, new [] { "Faction" }) ?? 0;
+                IsMoveToMob = GetAttributeAsNullable<bool>("MoveTo", false, null, new [] { "UseCTM" }) ?? false;;
+                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId", "NpcID" })  ?? 0;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                UseLuaTarget = GetAttributeAsNullable<bool>("UseLuaTarget", false, null, new [] { "LUATarget" }) ?? false;
 
 
                 WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
@@ -67,7 +67,7 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;

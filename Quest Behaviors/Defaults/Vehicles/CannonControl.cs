@@ -41,14 +41,14 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Buttons         = GetAttributeAsIntegerArray("Buttons", true, -1, 12, null) ?? new int[0];
-                ExitButton      = GetAttributeAsHotbarButton("ExitButton", true, null) ?? 0; 
-                MaxAngle        = GetAttributeAsDouble("MaxAngle", true, 0.0, 1.5, null) ?? 0;
-                MinAngle        = GetAttributeAsDouble("MinAngle", true, 0.0, 1.5, null) ?? 0;
-                QuestId         = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                VehicleId       = GetAttributeAsMobId("VehicleId", true, null) ?? 0;
+                Buttons         = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(-1, 12), null, null);
+                ExitButton      = GetAttributeAsNullable<int>("ExitButton", true, ConstrainAs.HotbarButton, null) ?? 0; 
+                MaxAngle        = GetAttributeAsNullable<double>("MaxAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
+                MinAngle        = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
+                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
                 ExitButton += 120;
 
@@ -63,7 +63,7 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
@@ -117,7 +117,7 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root = 
                 new PrioritySelector(
                     new Decorator(c => Vehicle == null,
-                            new Action(c => UtilLogMessage("fatal", "No cannons found."))
+                            new Action(c => LogMessage("fatal", "No cannons found."))
                         ),
 
                     new Decorator(c => Vehicle != null && !IsInVehicle,
@@ -126,7 +126,7 @@ namespace Styx.Bot.Quest_Behaviors
                             if (!Vehicle.WithinInteractRange)
                             {
                                 Navigator.MoveTo(Vehicle.Location);
-                                UtilLogMessage("info", "Moving to Cannon");
+                                LogMessage("info", "Moving to Cannon");
                             }
                             else
                                 Vehicle.Interact();

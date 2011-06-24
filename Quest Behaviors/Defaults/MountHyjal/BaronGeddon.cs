@@ -57,17 +57,17 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AuraId      = GetAttributeAsSpellId("AuraId", false, null) ?? 74813;        // should be 74813 - Inferno - http://www.wowhead.com/spell=74813
-                CollectionDistance  = GetAttributeAsRange("CollectionDistance", false, null) ?? 100;    // dist from point to search for mob
-                ItemId      = GetAttributeAsItemId("ItemId", false, null) ?? 54463;         // should be 54463 - Flameseer's Staff
-                Location    = GetXYZAttributeAsWoWPoint("", true, null) ?? WoWPoint.Empty;  // point to start at/run to when mob has AuraId
+                AuraId      = GetAttributeAsNullable<int>("AuraId", false, ConstrainAs.AuraId, null) ?? 74813;        // should be 74813 - Inferno - http://www.wowhead.com/spell=74813
+                CollectionDistance  = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;    // dist from point to search for mob
+                ItemId      = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 54463;         // should be 54463 - Flameseer's Staff
+                Location    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;  // point to start at/run to when mob has AuraId
                                                                                             // ...also used as center point for mob search area
-                MobId       = GetAttributeAsMobId("MobId", false, null) ?? 40147;           //  should be 40147 - Baron Geddon
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;            // should be 25464 for http://www.wowhead.com/quest=25464
-                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);      // (doc only - not used)
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsRange("Range", false, null) ?? 18;              // should be 18 or less (see http://www.wowhead.com/spell=75192)
+                MobId       = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 40147;           //  should be 40147 - Baron Geddon
+                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;            // should be 25464 for http://www.wowhead.com/quest=25464
+                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range       = GetAttributeAsNullable("Range", false, ConstrainAs.Range, null) ?? 18;              // should be 18 or less (see http://www.wowhead.com/spell=75192)
                                                                                             // note: wowhead says 10, but actual testing shows 18+ which decreases damage taken
 
                 _bombWait = new Stopwatch();
@@ -82,7 +82,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
@@ -92,14 +92,14 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         // Attributes provided by caller
         public int                      AuraId { get; private set; }
-        public int                      CollectionDistance { get; private set; }
+        public double                   CollectionDistance { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public int                      MobId { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      Range { get; private set; }
+        public double                   Range { get; private set; }
 
         // Private variables for internal state
         private Stopwatch               _bombWait;
@@ -118,7 +118,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                                                                             && obj.Distance < CollectionDistance
                                                                                             && obj.Entry == MobId));
                                                         if (@object != null)
-                                                            { UtilLogMessage("debug", @object.Name); }
+                                                            { LogMessage("debug", @object.Name); }
                                                         return @object; } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -214,7 +214,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                     new Action(delegate 
                                     { 
                                         TreeRoot.StatusText = "Moving in - " + Mob.Name;
-                                        Navigator.MoveTo(WoWMovement.CalculatePointFrom(Mob.Location, Range - 1));
+                                        Navigator.MoveTo(WoWMovement.CalculatePointFrom(Mob.Location, (float)(Range - 1)));
                                     })),
                                 new Decorator(ret => Me.IsMoving,
                                     new Action(delegate
@@ -231,7 +231,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
                                     if (Item == null)
                                     {
-                                        UtilLogMessage("fatal", "Could not locate ItemId({0}) in inventory.", ItemId);
+                                        LogMessage("fatal", "Could not locate ItemId({0}) in inventory.", ItemId);
                                         return;
                                     }
 

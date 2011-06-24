@@ -45,8 +45,8 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                Type    = GetAttributeAsEnum<AbandonType>("Type", false, null) ?? AbandonType.Incomplete;
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                Type    = GetAttributeAsNullable<AbandonType>("Type", false, null, null) ?? AbandonType.Incomplete;
             }
 
 			catch (Exception except)
@@ -56,9 +56,9 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -101,20 +101,20 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest == null)
-                    { UtilLogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId); }
+                    { LogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId); }
 
                 else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
-                    { UtilLogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
+                    { LogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
 
                 else if ((quest != null)  &&  !quest.IsFailed  &&  (Type == AbandonType.Failed))
-                    { UtilLogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name); }
+                    { LogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name); }
 
                 else
                 {
                     TreeRoot.GoalText = string.Format("Abandoning QuestId({0}): \"{1}\"", QuestId, quest.Name);
                     QuestLog ql = new QuestLog();
                     ql.AbandonQuestById((uint)QuestId);
-                    UtilLogMessage("info", "Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
+                    LogMessage("info", "Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
                 }
 
                 _isBehaviorDone = true;

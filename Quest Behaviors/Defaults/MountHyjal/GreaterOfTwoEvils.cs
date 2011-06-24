@@ -46,9 +46,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId     = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                /* */         GetAttributeAsString_NonEmpty("QuestName", false, null);      //  (doc only - not used)
-                MobId       = GetAttributeAsMobId("MobId", true, new [] { "NpcId" }) ?? 0;
+                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      //  (doc only - not used)
+                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId" }) ?? 0;
 			}
 
 			catch (Exception except)
@@ -58,9 +58,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -89,13 +89,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public void     Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            UtilLogMessage("info", format + (++_lineCount % 2 == 0 ? "" : " "), args);
+            LogMessage("info", format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
         public void     DLog(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            UtilLogMessage("debug", format + (++_lineCount % 2 == 0 ? "" : " "), args);
+            LogMessage("debug", format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
         public bool DoWeHaveQuest()
@@ -184,7 +184,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                 WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().FirstOrDefault(i => i != null && i.Entry == 54814);
                                 if (item == null)
                                 {
-                                    UtilLogMessage("fatal", "Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
+                                    LogMessage("fatal", "Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
                                     TreeRoot.Stop();
                                 }
 
@@ -272,16 +272,16 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             if (!IsDone)
             {
                 if (TreeRoot.Current == null)
-                    UtilLogMessage("fatal", "TreeRoot.Current == null");
+                    LogMessage("fatal", "TreeRoot.Current == null");
                 else if (TreeRoot.Current.Root == null )
-                    UtilLogMessage("fatal", "TreeRoot.Current.Root == null");
+                    LogMessage("fatal", "TreeRoot.Current.Root == null");
                 else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
-                    UtilLogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
+                    LogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
                 else
                 {
                     var currentRoot = TreeRoot.Current.Root;
                     if (!(currentRoot is GroupComposite))
-                        UtilLogMessage("fatal", "!(currentRoot is GroupComposite)");
+                        LogMessage("fatal", "!(currentRoot is GroupComposite)");
                     else 
                     {
                         if (currentRoot is Sequence)

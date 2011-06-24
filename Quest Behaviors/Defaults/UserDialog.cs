@@ -504,18 +504,18 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                DialogText          = GetAttributeAsString_NonEmpty("Text", true, null) ?? "";
-                DialogTitle         = GetAttributeAsString_NonEmpty("Title", false, null) ?? "Attention Required...";
-                ExpiryActionName    = GetAttributeAsString_SpecificValue("ExpiryAction", false, expiryActionNames, null) ?? "InputEnabled_Continue";
-                ExpiryTime          = GetAttributeAsInteger("ExpiryTime", false, 1, int.MaxValue, null) ?? 0;
-                IsBotStopAllowed    = GetAttributeAsBoolean("AllowBotStop", false, null) ?? false;
-                IsStopOnContinue    = GetAttributeAsBoolean("StopOnContinue", false, null) ?? false;
-                QuestId             = GetAttributeAsQuestId("QuestId", false, null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsEnum<QuestCompleteRequirement>("QuestCompleteRequirement", false, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsEnum<QuestInLogRequirement>("QuestInLogRequirement", false, null) ?? QuestInLogRequirement.InLog;
-                tmpSoundCueName     = GetAttributeAsString_SpecificValue("SoundCue", false, soundsAllowed.Keys.ToArray(), null) ?? "Asterisk";
+                DialogText          = GetAttributeAs<string>("Text", true, ConstrainAs.StringNonEmpty, null) ?? "";
+                DialogTitle         = GetAttributeAs<string>("Title", false, ConstrainAs.StringNonEmpty, null) ?? "Attention Required...";
+                ExpiryActionName    = GetAttributeAs<string>("ExpiryAction", false, new ConstrainTo.SpecificValues<string>(expiryActionNames), null) ?? "InputEnabled_Continue";
+                ExpiryTime          = GetAttributeAsNullable<int>("ExpiryTime", false, new ConstrainTo.Domain<int>(1, int.MaxValue), null) ?? 0;
+                IsBotStopAllowed    = GetAttributeAsNullable<bool>("AllowBotStop", false, null, null) ?? false;
+                IsStopOnContinue    = GetAttributeAsNullable<bool>("StopOnContinue", false, null, null) ?? false;
+                QuestId             = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                tmpSoundCueName     = GetAttributeAs<string>("SoundCue", false, new ConstrainTo.SpecificValues<string>(soundsAllowed.Keys.ToArray()), null) ?? "Asterisk";
                 SoundCue            = soundsAllowed[tmpSoundCueName];
-                SoundCueIntervalInSeconds = GetAttributeAsInteger("SoundCueInterval", false, 0, int.MaxValue, null) ?? 60;
+                SoundCueIntervalInSeconds = GetAttributeAsNullable<int>("SoundCueInterval", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? 60;
 
                 // Note: we don't want to actually create the dialog here, as that will cause it
                 // to popup even if the quest is complete.  This action is properly deferred until
@@ -529,9 +529,9 @@ namespace BuddyWiki.CustomBehavior.UserDialog
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+									+ "\nFROM HERE:\n"
+									+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
 			}
         }
@@ -618,7 +618,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                                                                      directiveRequester);
 
                 TreeRoot.StatusText = terminationMessage;
-                UtilLogMessage(messageType, terminationMessage);
+                LogMessage(messageType, terminationMessage);
             }
 
 
