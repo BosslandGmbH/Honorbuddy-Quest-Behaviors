@@ -159,7 +159,6 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 }
 
 
-
                 // Install our chat handlers...
                 WoWChat.MonsterEmote += HandleChatMonster;
                 WoWChat.MonsterParty += HandleChatMonster;

@@ -189,8 +189,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                                             }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id:$"); } }
-        public override string      SubversionRevision { get { return ("$Rev:$"); } }
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ButtonPressOnAura()
