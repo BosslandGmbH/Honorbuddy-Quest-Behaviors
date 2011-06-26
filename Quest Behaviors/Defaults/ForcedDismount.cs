@@ -51,7 +51,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         {
 			try
 			{
-                MaxDismountHeight   = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 3.0;
+                MaxDismountHeight   = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
                 QuestId             = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
