@@ -382,7 +382,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                     _behavior_SwimBreath.CreateBehavior(),
 
                     // If there is loot to clean up...
-                    _behavior_UnderwaterLooting.CreateBehavior(),
+                    _behavior_UnderwaterLooting.CreateBehavior(() => true),
 
                     // Find next target...
                     _behavior_HuntingGround.CreateBehavior_SelectTarget(() => (CollectUntil == CollectUntilType.NoTargetsInArea)),
@@ -1067,7 +1067,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     //
     public class UnderwaterLootingBehavior
     {
-        public delegate void     LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate bool    ForceLootDelegate();
+        public delegate void    LoggerDelegate(string messageType, string format, params object[] args);
 
 
         public UnderwaterLootingBehavior(LoggerDelegate    loggerDelegate)
@@ -1107,14 +1108,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         /// <para>* RunStatus.Success, if we're in the process of looting things</para>
         /// </returns>
         /// 
-        public Composite        CreateBehavior()
+        public Composite        CreateBehavior(ForceLootDelegate    forceLoot)
         {
             return (_behaviorRoot ?? (_behaviorRoot =
-                new Decorator(ret => (CharacterSettings.Instance.LootMobs && (LootList.Count() > 0)),
+                new Decorator(ret => ((CharacterSettings.Instance.LootMobs || forceLoot()) && (LootList.Count() > 0)),
                     new PrioritySelector(
 
                         // If we're swimming, we need to do loot cleanup for ourselves...
-                        new Decorator(ret => Me.IsSwimming,
+                        new Decorator(ret => (Me.IsSwimming || forceLoot()),
                             new PrioritySelector(context => _currentTarget = LootList.FirstOrDefault(),
 
                                 // If not at nearest target, move to it...
