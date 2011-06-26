@@ -582,7 +582,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		public override object AcquireUserInput(CustomForcedBehavior behavior,
 													string configName)
 		{
-            return (behavior.GetAttributeAsBoolean(configName, false, null));
+            return (behavior.GetAttributeAsNullable<bool>(configName, false, null, null));
 		}
 
 		public override string AsString()
@@ -605,7 +605,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		public override object AcquireUserInput(CustomForcedBehavior behavior,
 													string configName)
 		{
-            return (behavior.GetAttributeAsInteger(configName, false, MinValue, MaxValue, null));
+            return (behavior.GetAttributeAsNullable<int>(configName, false, new CustomForcedBehavior.ConstrainTo.Domain<int>(MinValue, MaxValue), null));
 		}
 
 		public override string AsString()
@@ -631,7 +631,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 		public override object AcquireUserInput(CustomForcedBehavior behavior,
 													string configName)
 		{
-            return (behavior.GetAttributeAsString(configName, false, null));
+            return (behavior.GetAttributeAs<string>(configName, false, null, null));
 		}
 
 		public override string AsString()
