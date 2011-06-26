@@ -1,4 +1,6 @@
-﻿// Behavior originally contributed by Chinajade.
+﻿// THIS BEHAVIOR IS INCOMPLETE--DO NOT USE YET
+
+// Behavior originally contributed by Chinajade.
 //
 // LICENSE:
 // This work is licensed under the
@@ -66,6 +68,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         {
             try
             {
+                int             tmpItemId;
                 string[]        tmpPhrases;
 
                 // Look for these phrases in the captured text...
@@ -78,10 +81,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 }
 
 
+                ButtonFeedbackFail      = GetNumberedAttributesAsArray<string>("ButtonFeedbackFail", 0, ConstrainAs.StringNonEmpty, null);
+                ButtonFeedbackSuccess   = GetNumberedAttributesAsArray<string>("ButtonFeedbackSuccess", 0, ConstrainAs.StringNonEmpty, null);
                 ButtonOnQuestComplete   = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
                 DebugShowText           = GetAttributeAsNullable<bool>("DebugShowText", false, null, null) ?? false;
                 ExitVehicleAtQuestComplete = GetAttributeAsNullable<bool>("ExitVehicleAtQuestComplete", false, null, null) ?? true;
+                tmpItemId               = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
                 MobId                   = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 MonitorStartPhrases     = GetNumberedAttributesAsArray<string>("MonitorStartPhrase", 0, ConstrainAs.StringNonEmpty, null);
                 MonitorStopPhrases      = GetNumberedAttributesAsArray<string>("MonitorStopPhrase", 0, ConstrainAs.StringNonEmpty, null);
                 QuestId                 = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
@@ -93,6 +100,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 if (SimpleTextToButtonMap.Count() <= 0)
                 {
                     LogMessage("error", "You must supply at least one 'ButtonNPhraseM' attribute.");
+                    IsAttributeProblem = true;
+                }
+
+                if ((MobId != 0) && (tmpItemId != 0))
+                {
+                    LogMessage("error", "ItemId and MobId are mutually exclusive--please specify one, but not both.");
                     IsAttributeProblem = true;
                 }
 
@@ -113,9 +126,19 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     { _isMonitoringEnabled = true; }
 
                 // Final initialization...
+                if (tmpItemId > 0)
+                {
+                    Item = Me.CarriedItems.FirstOrDefault(i => i.Entry == tmpItemId);
+                    if (Item == null)
+                    {
+                        LogMessage("error", "ItemId({0}) is not in our inventory", tmpItemId);
+                        IsAttributeProblem = true; 
+                    }
+                }
+
                 _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
                                                                     ViableTargets,
-                                                                    Me.Location,
+                                                                    HuntingGroundAnchor,
                                                                     1000.0);
 			}
 
@@ -135,9 +158,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
 
         // Attributes provided by caller...
+        public string[]                 ButtonFeedbackFail { get; private set; }
+        public string[]                 ButtonFeedbackSuccess { get; private set; }
         public int?                     ButtonOnQuestComplete { get; private set; }
         public bool                     DebugShowText { get; private set; }
         public bool                     ExitVehicleAtQuestComplete { get; private set; }
+        public WoWPoint                 HuntingGroundAnchor { get; private set; }
+        public WoWItem                  Item { get; private set; }
         public int                      MobId { get; private set; }
         public string[]                 MonitorStartPhrases { get; private set; }
         public string[]                 MonitorStopPhrases { get; private set; }
@@ -146,7 +173,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
         // Private Properties & data...
-        private const int               BonusActionButtonOffset         = 120;
+        private const int               BonusActionButtonOffset         = (12 /*buttons_per_hotbar*/ * 10 /*hotbars*/);
         private WoWObject               CurrentTarget                   { get { return (_behavior_HuntingGround.CurrentTarget); }}
         private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private TimeSpan                Delay_InputResponse             { get { return (TimeSpan.FromMilliseconds(_rand.NextDouble() * 2000)); }}                                                             
@@ -158,8 +185,10 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         private KeyValuePair<string, int>?  _buttonAction;
         private bool                        _isBehaviorInProgress;
         private bool                        _isBehaviorDone;
-        private bool                        _isInteractingWithMob;
+        private bool                        _isDisposed;
+        private bool                        _isInteracting;
         private bool                        _isMonitoringEnabled;
+        private Queue<string>               _messagesPending        = new Queue<string>();
         private Random                      _rand                   = new Random();
 
         // Private LINQ queries...  
@@ -173,6 +202,37 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         public override string      SubversionId { get { return ("$Id:$"); } }
         public override string      SubversionRevision { get { return ("$Rev:$"); } }
 
+
+        ~ButtonPressOnChat()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+		
 
         private void    HandleChatMonster(WoWChat.ChatMonsterEventArgs  args)
         {
@@ -189,6 +249,43 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         private void    HandleChatSimpleMessage(WoWChat.ChatSimpleMessageEventArgs args)
         {
             ProcessMessage(args.Message);
+        }
+
+
+        private void    GuiShowProgress(string       completionReason)
+        {
+            if (completionReason != null)
+            {
+                LogMessage("info", "Behavior done (" + completionReason + ")");
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+                _isBehaviorDone = true;
+            }
+        }
+
+
+        public bool     IsQuestComplete()
+        {
+            return (UtilIsProgressRequirementsMet(QuestId,
+                                                  QuestInLogRequirement.InLog,
+                                                  QuestCompleteRequirement.Complete));
+        }
+
+
+        private void    PendMessage(string      message)
+        {
+            // The server sometimes send empty messages, just ignore them...
+            if (string.IsNullOrEmpty(message))
+                { return; }
+
+            _messagesPending.Enqueue(message);
+        }
+
+
+        private void    PressButton(int     buttonNumber)
+        {
+            Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ",
+                         buttonNumber + BonusActionButtonOffset);
         }
 
 
@@ -226,41 +323,27 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             // Does phrase match a button-push action?
             if (_isMonitoringEnabled)
             {
-                string  phraseMatch     = SimpleTextToButtonMap.Keys
-                                            .FirstOrDefault(phrase => message.Contains(phrase));
+                string  phraseFail      = ButtonFeedbackFail.FirstOrDefault(phrase => message.Contains(phrase));
+                string  phraseMatch     = SimpleTextToButtonMap.Keys.FirstOrDefault(phrase => message.Contains(phrase));
+                string  phraseSucceed   = ButtonFeedbackSuccess.FirstOrDefault(phrase => message.Contains(phrase));
 
                 if (phraseMatch != null)
+                    { _buttonAction = new KeyValuePair<string, int>(phraseMatch, SimpleTextToButtonMap[phraseMatch]); }
+
+                if (_buttonAction.HasValue && (phraseFail != null))
                 {
-                    _buttonAction = new KeyValuePair<string, int>(phraseMatch, SimpleTextToButtonMap[phraseMatch]);
+                    LogMessage("debug", "Phrase '{0}' failed with Button {1}.",
+                                        _buttonAction.Value.Key, _buttonAction.Value.Value);
+                    _buttonAction = null;
+                }
+
+                if (_buttonAction.HasValue && (phraseSucceed != null))
+                {
+                    LogMessage("debug", "Phrase '{0}' succeeded with Button {1}.",
+                                        _buttonAction.Value.Key, _buttonAction.Value.Value);
+                    _buttonAction = null;
                 }
             }
-        }
-
-
-        public bool     IsQuestComplete()
-        {
-            return (UtilIsProgressRequirementsMet(QuestId,
-                                                  QuestInLogRequirement.InLog,
-                                                  QuestCompleteRequirement.Complete));
-        }
-
-
-        private void    GuiShowProgress(string       completionReason)
-        {
-            if (completionReason != null)
-            {
-                LogMessage("info", "Behavior done (" + completionReason + ")");
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-                _isBehaviorDone = true;
-            }
-        }
-
-
-        private void        PressButton(int     buttonNumber)
-        {
-            Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ",
-                         buttonNumber + BonusActionButtonOffset);
         }
 
 
@@ -321,8 +404,36 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                             })
                             )),
 
+                    // If we're to use an item, move to destination, and use it...
+                    new Decorator(ret => (!_isInteracting && (Item != null)),
+                        new PrioritySelector(
+                            // Move to destination...
+                            _behavior_HuntingGround.CreateBehavior_MoveToLocation(() => HuntingGroundAnchor),
+
+                            // If the item is on cooldown, wait for it...
+                            new Decorator(ret => (Item.Cooldown > 0),
+                                new Action(delegate
+                                {
+                                    TreeRoot.StatusText = string.Format("Waiting for {0} cooldown in {1:0} seconds.",
+                                                                        Item.Name, Item.Cooldown);
+                                })),
+
+
+                            // Use the item...
+                            new Sequence(
+                                new Action(delegate { WoWMovement.MoveStop(); }),
+                                new WaitContinue(Delay_WowClientLagTime, ret=> false, new ActionAlwaysSucceed()),
+                                new Action(delegate
+                                {
+                                    TreeRoot.StatusText = string.Format("Using Item '{0}'", Item.Name);
+                                    Item.UseContainerItem();
+                                    _isInteracting = true;
+                                })
+                            )                           
+                        )),
+
                     // If we haven't interacted with the mob, move to it, and interact...
-                    new Decorator(ret => !_isInteractingWithMob,
+                    new Decorator(ret => !_isInteracting & (MobId > 0),
                         new PrioritySelector(
 
                             // Select and move to target...
@@ -339,11 +450,15 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 new Action(delegate
                                 {
                                     CurrentTarget.Interact();
-                                    _isInteractingWithMob = true;
+                                    _isInteracting = true;
                                 }),
                                 new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed())
                                 )
                             )),
+
+                    // Process any new messages that have arrived...
+                    new Decorator(ret => (_messagesPending.Count() > 0),
+                        new Action(delegate { ProcessMessage(_messagesPending.Dequeue()); })),
 
                     // If we've a button to press, take action...
                     new Decorator(ret => _buttonAction.HasValue,
@@ -361,6 +476,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                             })
                         ))
                 )));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 

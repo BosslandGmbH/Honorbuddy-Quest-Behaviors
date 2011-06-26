@@ -70,6 +70,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private variables for internal state
         private int                 _counter;
+        private bool                _isDisposed;
         private Composite           _root;
         private readonly Stopwatch  _waitStopwatch = new Stopwatch();
 
@@ -77,6 +78,37 @@ namespace Styx.Bot.Quest_Behaviors
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
+
+        ~RunLua()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+		
 
         #region Overrides of CustomForcedBehavior
 
@@ -100,7 +132,14 @@ namespace Styx.Bot.Quest_Behaviors
                 ));
         }
 
-        public override bool IsDone
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        public override bool    IsDone
         {
             get
             {
@@ -110,7 +149,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void OnStart()
+        public override void    OnStart()
         {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's

@@ -14,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using CommonBehaviors.Actions;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -32,6 +34,12 @@ namespace Styx.Bot.Quest_Behaviors
             try
 			{
                 QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new [] { "QuestID" }) ?? 0;
+
+
+                // Final initialization...
+                PlayerQuest     quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+                QuestName = (quest != null)  ? quest.Name  : string.Format("QuestId({0})", QuestId);
 			}
 
 			catch (Exception except)
@@ -54,53 +62,96 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private variables for internal state
         private bool            _isBehaviorDone;
+        private bool            _isDisposed;
+        private bool            _newQuest;
         private Composite       _root;
 
         // Private properties
-        private int             Counter { get; set; }
-        private int             QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
+        private TimeSpan            Delay_WaitForNewQuestOfferred   = TimeSpan.FromMilliseconds(5000);
+        private TimeSpan            Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private int                 QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
+        private string              QuestName                       { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
+        ~CompleteLogQuest()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                Lua.Events.DetachEvent("QUEST_DETAIL", HandleQuestDetail);
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+
+        public void HandleQuestDetail(object obj, LuaEventArgs args)
+        {
+            _newQuest = true;
+        }
+
+
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
+            return (_root ?? (_root =
                 new PrioritySelector(
 
-                    new Decorator(ret => Counter > 0,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
+                    new Decorator(ret => _isBehaviorDone,
+                        new ActionAlwaysSucceed()),
 
-                           new Decorator(ret => Counter == 0,
-                                new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Completing Log Quest - " + QuestId),
-                                        new Action(ret => Lua.DoString("ShowQuestComplete({0})", QuestIndexId)),
-                                        new Action(ret => Thread.Sleep(300)),
-                                        new Action(ret => Lua.DoString("CompleteQuest()")),
-                                        new Action(ret => Thread.Sleep(300)),
-                                        new Action(ret => Lua.DoString("GetQuestReward({0})", 1)),
-                                        new WaitContinue(
-                                            5,
-                                            ret => _newQuest,
-                                            new Action(ret => Lua.DoString("AcceptQuest"))),
-                                        new Action(ret => Lua.DoString("CloseQuest()")),
-                                        new Action(ret => Counter++)
-                                    ))
-                               
-                        )
-                    );
+                    new Sequence(
+                            new Action(delegate
+                            {
+                                TreeRoot.StatusText = "Completing Log Quest: " + QuestName;
+                                Lua.DoString("ShowQuestComplete({0})", QuestIndexId);
+                            }),
+                            new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                            new Action(delegate { Lua.DoString("CompleteQuest()"); }),
+                            new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                            new Action(delegate { Lua.DoString("GetQuestReward({0})", 1); }),
+                            new WaitContinue(Delay_WaitForNewQuestOfferred, ret => _newQuest,
+                                                new Action(ret => Lua.DoString("AcceptQuest"))),
+                            new Action(delegate
+                            {
+                                Lua.DoString("CloseQuest()");
+                                TreeRoot.StatusText = "Finished!";
+                                _isBehaviorDone = true;
+                            })
+                        ))         
+                    ));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 
@@ -126,13 +177,13 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = this.GetType().Name + ": " + QuestName;
 
                 if (quest != null)
                 {
                     if (!quest.IsCompleted)
                     {
-                        LogMessage("fatal", "Quest({0}, \"{1}\") is not complete.", QuestId, quest.Name);
+                        LogMessage("fatal", "Quest({0}, \"{1}\") is not complete.", QuestId, QuestName);
                         _isBehaviorDone = true;
                     }
                 }
@@ -147,19 +198,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        public override void Dispose()
-        {
-            Lua.Events.DetachEvent("QUEST_DETAIL", HandleQuestDetail);
-        }
-
-        private bool _newQuest;
-        public void HandleQuestDetail(object obj, LuaEventArgs args)
-        {
-            _newQuest = true;
-        }
-
         #endregion
-
     }
 }
 

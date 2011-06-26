@@ -97,6 +97,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private variables for internal state
         private bool                _isBehaviorDone;
+        private bool                _isDisposed;
         private Composite           _root;
 
         // Private properties
@@ -121,7 +122,66 @@ namespace Styx.Bot.Quest_Behaviors
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
-        #region Overrides of CustomForcedBehavior
+        ~CastSpellOn()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+
+        Composite CreateSpellBehavior
+        {
+            get
+            {
+                return new Action(c =>
+                {
+                    if (SpellId > 0)
+                    {
+                        MobList[0].Target();
+                        MobList[0].Face();
+                        Thread.Sleep(300);
+                        SpellManager.Cast(SpellId);
+
+                        if (Me.QuestLog.GetQuestById((uint)QuestId) == null || QuestId == 0)
+                        {
+                            Counter++;
+                        }
+                        Thread.Sleep(300);
+                        return RunStatus.Success;
+                    }
+                    else
+                    {
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }
+                });
+            }
+        }
+
 
         private Composite CreateRootBehavior()
         {
@@ -170,6 +230,9 @@ namespace Styx.Bot.Quest_Behaviors
                 )));
         }
 
+
+        #region Overrides of CustomForcedBehavior
+
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -188,33 +251,10 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        Composite CreateSpellBehavior
+        public override void    Dispose()
         {
-            get
-            {
-                return new Action(c =>
-                {
-                    if (SpellId > 0)
-                    {
-                        MobList[0].Target();
-                        MobList[0].Face();
-                        Thread.Sleep(300);
-                        SpellManager.Cast(SpellId);
-
-                        if (Me.QuestLog.GetQuestById((uint)QuestId) == null || QuestId == 0)
-                        {
-                            Counter++;
-                        }
-                        Thread.Sleep(300);
-                        return RunStatus.Success;
-                    }
-                    else
-                    {
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }
-                });
-            }
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 

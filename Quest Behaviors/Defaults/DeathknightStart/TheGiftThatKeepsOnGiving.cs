@@ -107,6 +107,7 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     StopMovingOnUse { get; private set; }
 
         // Private variables for internal state
+        private bool                    _isDisposed;
         private readonly List<ulong>    _npcBlacklist = new List<ulong>();
         private Composite               _root;
         private readonly Stopwatch      _waitTimer = new Stopwatch();
@@ -119,6 +120,37 @@ namespace Styx.Bot.Quest_Behaviors
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
+
+        ~TheGiftThatKeepsOnGiving()
+        {
+            Dispose(false);
+        }	
+
+
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+		
 
         public WoWObject Object
         {
@@ -221,6 +253,13 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(ctx => Navigator.MoveTo(Location))
                         )
                  ));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 

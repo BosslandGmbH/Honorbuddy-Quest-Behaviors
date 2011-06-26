@@ -18,6 +18,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using CommonBehaviors.Actions;
+
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -65,42 +67,79 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private variables for internal state
         private bool                _isBehaviorDone;
+        private bool                _isDisposed;
         private Composite           _root;
 
         // Private properties
-        public int                  Counter { get; set; }
+        private TimeSpan            Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
+        ~EjectVeh()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
+            return (_root ?? (_root =
                 new PrioritySelector(
 
-                    new Decorator(ret => Counter > 0,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Vehicle eject complete"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
+                    new Decorator(ret => _isBehaviorDone,
+                        new ActionAlwaysSucceed()),
 
-                           new Decorator(ret => Counter == 0,
-                                new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Ejecting from vehicle"),
-                                        new Action(ret => Lua.DoString("VehicleExit()")),
-                                        new Action(ret => Thread.Sleep(300)),
-                                        new Action(ret => Counter++)
-                                    ))
-                    ));
+                    new Sequence(
+                            new Action(delegate
+                            {
+                                TreeRoot.StatusText = "Ejecting from vehicle";
+                                Lua.DoString("VehicleExit()");
+                            }),
+                            new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                            new Action(delegate
+                            {
+                                TreeRoot.StatusText = "Vehicle eject complete";
+                                _isBehaviorDone = true;
+                            })
+                            )
+                    )));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 

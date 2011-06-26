@@ -589,6 +589,8 @@ namespace BuddyWiki.CustomBehavior.UserDialog
 
                 // Clean up unmanaged resources (if any) here...
                 BotEvents.OnBotStop  -= BotEvents_OnBotStop;
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
 
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
@@ -620,10 +622,6 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 TreeRoot.StatusText = terminationMessage;
                 LogMessage(messageType, terminationMessage);
             }
-
-
-            // Extinguish any stated goal
-            TreeRoot.GoalText   = "";
 
             if (popdownReason.IsBotStop())
                 { TreeRoot.Stop(); }

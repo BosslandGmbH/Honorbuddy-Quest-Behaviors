@@ -130,6 +130,8 @@ namespace Styx.Bot.Quest_Behaviors
 
                 // Clean up unmanaged resources (if any) here...
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
 
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
@@ -225,6 +227,13 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
                                 new Action(ret => TreeRoot.StatusText = "Waiting for the end location"))))
                     ));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 

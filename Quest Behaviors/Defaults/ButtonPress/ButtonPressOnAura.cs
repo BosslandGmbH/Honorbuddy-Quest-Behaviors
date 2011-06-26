@@ -169,6 +169,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         private Composite               _behaviorRoot;
         private bool                    _isBehaviorInProgress;
         private bool                    _isBehaviorDone;
+        private bool                    _isDisposed;
+
 
         // Private LINQ queries...
         private IEnumerable<WoWObject>  ViableTargets() {
@@ -189,6 +191,37 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id:$"); } }
         public override string      SubversionRevision { get { return ("$Rev:$"); } }
+
+
+        ~ButtonPressOnAura()
+        {
+            Dispose(false);
+        }	
+
+
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
 
 
         // If player is close to a target that is interesting to us, ignore the target...
@@ -336,6 +369,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                             )
                         )
             )));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 

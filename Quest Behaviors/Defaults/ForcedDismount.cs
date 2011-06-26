@@ -83,6 +83,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         // Private variables for internal state
         private Composite           _behavior_root;
         private bool                _isBehaviorDone;
+        private bool                _isDisposed;
 
         // Private properties
         private readonly TimeSpan   Delay_WowClientDismount     = TimeSpan.FromMilliseconds(1000);
@@ -94,6 +95,37 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Rev$"); } }
+
+
+        ~ForcedDismount()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
 
 
         #region Missing HBcore infrastructure
@@ -134,16 +166,6 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
             private bool                        _hasBeenRun;     
         }
 
-
-        // This can go when HB-4620 is archived
-        public class WaitContinueTimeSpan       : WaitContinue
-        {
-            public WaitContinueTimeSpan(TimeSpan timespan, CanRunDecoratorDelegate canRun, Composite action)
-                : base(1, canRun, action)
-            {
-                Timeout = timespan;
-            }
-        }
         #endregion  // Missing HBcore infrastructure
 
 
@@ -172,7 +194,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                             new Sequence(
                                 new ActionRunOnceContinue(delegate { LogMessage("debug", "Descending before dismount"); }),
                                 new Action(delegate { Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend); }),
-                                new WaitContinueTimeSpan(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
+                                new WaitContinue(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
                                 )),
 
 
@@ -193,10 +215,19 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                                     Mount.Dismount();
                                 })),
 
-                        new WaitContinueTimeSpan(Delay_WowClientDismount, ret => !Me.Mounted, new ActionAlwaysSucceed()),
+                        new WaitContinue(Delay_WowClientDismount, ret => !Me.Mounted, new ActionAlwaysSucceed()),
                         new Action(delegate { Navigator.PlayerMover.MoveStop(); })
                         )
                 )));
+        }
+
+
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
 
@@ -204,13 +235,8 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         {
             get
             {
-                bool    isDone  = (_isBehaviorDone     // normal completion
-                                   || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-
-                if (isDone)
-                    { TreeRoot.GoalText = string.Empty; }
-
-                return (isDone);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 

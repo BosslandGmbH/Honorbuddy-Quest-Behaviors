@@ -69,6 +69,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      VariantTime { get; private set; }
        
         // Private variables for internal state
+        private bool            _isDisposed;
         private Composite       _root;
         private Timer           _timer;
         private string          _waitTimeAsString;
@@ -77,6 +78,37 @@ namespace Styx.Bot.Quest_Behaviors
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
         
+
+        ~WaitTimer()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
 
         private string   UtilSubstituteInMessage(string   message)
         {
@@ -122,20 +154,19 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
         public override bool IsDone
         {
             get
             {
-                bool    isDone  = (((_timer != null) && _timer.IsFinished)     // normal completion
-                                   || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-
-                if (isDone)
-                {
-                    TreeRoot.GoalText = string.Empty;
-                    TreeRoot.StatusText = string.Empty;
-                }
-
-                return (isDone);
+                return (((_timer != null) && _timer.IsFinished)     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 

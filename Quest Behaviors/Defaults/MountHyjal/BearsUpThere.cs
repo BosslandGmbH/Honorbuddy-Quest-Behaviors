@@ -75,6 +75,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         // Private variables for internal state
         private bool            _isBehaviorDone;
+        private bool            _isDisposed;
         private Composite       _root;
 
         // Private properties
@@ -111,6 +112,37 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         const double    AIM_ANGLE = -0.97389394044876;
         const double    TRAMP_RIGHT_SIDE = 77.741;
         const double    TRAMP_LEFT_SIDE = 92.366;
+
+
+        ~BearsUpThere()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
 
 
         public void     Dlog(string format, params object[] args)
@@ -435,6 +467,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 );
         }
 
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+		
 
         public override bool IsDone
         {

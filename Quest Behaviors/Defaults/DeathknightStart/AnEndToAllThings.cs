@@ -131,6 +131,9 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                 BotEvents.Player.OnPlayerDied -= Player_OnPlayerDied;
                 Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
 
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
             }

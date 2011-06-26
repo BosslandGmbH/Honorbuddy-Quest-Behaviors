@@ -97,6 +97,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
             Dispose(false);
         }
 
+
         public void     Dispose(bool    isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
@@ -115,6 +116,8 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
                 // Clean up unmanaged resources (if any) here...
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
 
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();

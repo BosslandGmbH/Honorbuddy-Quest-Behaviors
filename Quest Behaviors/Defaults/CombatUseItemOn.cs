@@ -109,6 +109,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private variables for internal state
         private bool                _isBehaviorDone;
+        private bool                _isDisposed;
         private Composite           _root;
 
         // Private properties
@@ -125,30 +126,36 @@ namespace Styx.Bot.Quest_Behaviors
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
 
-        #region Overrides of CustomForcedBehavior
-
-        protected override Composite CreateBehavior()
+        ~CombatUseItemOn()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(
-                        ret => !Me.Combat,
-                            new PrioritySelector(
-                                new Decorator(
-                                    ret => Mob == null,
-                                    new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving to location"),
-                                        new Action(ret => Navigator.MoveTo(Location)))),
-                                new Decorator(
-                                    ret => Me.CurrentTarget == null,
-                                    new Action(ret => Mob.Target())),
-                                new Decorator(
-                                    ret => RoutineManager.Current.PullBehavior != null,
-                                    RoutineManager.Current.PullBehavior),
-                                new Action(ret => RoutineManager.Current.Pull()))),
-                    RootCompositeOverride()
-                ));
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
         }
+
 
         private Composite RootCompositeOverride()
         {
@@ -193,17 +200,45 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+                    new Decorator(
+                        ret => !Me.Combat,
+                            new PrioritySelector(
+                                new Decorator(
+                                    ret => Mob == null,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving to location"),
+                                        new Action(ret => Navigator.MoveTo(Location)))),
+                                new Decorator(
+                                    ret => Me.CurrentTarget == null,
+                                    new Action(ret => Mob.Target())),
+                                new Decorator(
+                                    ret => RoutineManager.Current.PullBehavior != null,
+                                    RoutineManager.Current.PullBehavior),
+                                new Action(ret => RoutineManager.Current.Pull()))),
+                    RootCompositeOverride()
+                ));
+        }
+
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+	
+
         public override bool IsDone
         {
             get
             {
-                bool    isDone  = (_isBehaviorDone     // normal completion
-                                   || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-
-                if (isDone)
-                    { _isBehaviorDone = true; }
-
-                return (isDone);
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 

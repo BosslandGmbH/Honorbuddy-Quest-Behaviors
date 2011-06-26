@@ -39,6 +39,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
 			try
 			{
+                // Deprecation warnings...
+                if (args.ContainsKey("VendorType"))
+                {
+                    LogMessage("warning", "The VendorType attribute has been deprecated.\n"
+                                          + "Please replace it with DoMail/DoRepair/DoSell/DoTrain='true'");
+                }
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
@@ -97,14 +104,53 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private bool    _isBehaviorDone;
+        private bool            _isBehaviorDone;
+        private bool            _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
         public override string      SubversionRevision { get { return ("$Revision$"); } }
 
-      
+ 
+        ~ForceSetVendor()
+        {
+            Dispose(false);
+        }	
+
+		
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    // empty, for now
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+     
         #region Overrides of CustomForcedBehavior
+
+        public override void    Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
 
         public override bool IsDone
         {
