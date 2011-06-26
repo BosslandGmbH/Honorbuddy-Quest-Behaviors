@@ -577,17 +577,19 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    if (_completionToken != null)
-                        { _completionToken.Dispose(); }
-
-                    if (_configMemento != null)
-                        { _configMemento.Dispose(); }
-
-                    _completionToken = null;
-                    _configMemento = null;
+                    // empty, for now
                 }
 
                 // Clean up unmanaged resources (if any) here...
+                if (_completionToken != null)
+                    { _completionToken.Dispose(); }
+
+                if (_configMemento != null)
+                    { _configMemento.Dispose(); }
+
+                _completionToken = null;
+                _configMemento = null;
+
                 BotEvents.OnBotStop  -= BotEvents_OnBotStop;
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;

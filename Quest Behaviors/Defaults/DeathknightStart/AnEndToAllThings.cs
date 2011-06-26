@@ -120,13 +120,15 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    if (_configMemento != null)
-                        { _configMemento.Dispose(); }
-
-                    _configMemento = null;
+                    // empty, for now
                 }
 
                 // Clean up unmanaged resources (if any) here...
+                if (_configMemento != null)
+                    { _configMemento.Dispose(); }
+
+                _configMemento = null;
+
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
                 BotEvents.Player.OnPlayerDied -= Player_OnPlayerDied;
                 Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
