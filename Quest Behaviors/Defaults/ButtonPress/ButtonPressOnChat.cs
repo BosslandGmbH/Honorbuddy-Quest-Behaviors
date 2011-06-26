@@ -81,8 +81,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 }
 
 
-                ButtonFeedbackFail      = GetNumberedAttributesAsArray<string>("ButtonFeedbackFail", 0, ConstrainAs.StringNonEmpty, null);
-                ButtonFeedbackSuccess   = GetNumberedAttributesAsArray<string>("ButtonFeedbackSuccess", 0, ConstrainAs.StringNonEmpty, null);
+                ButtonFeedbackFailures  = GetNumberedAttributesAsArray<string>("ButtonFeedbackFail", 0, ConstrainAs.StringNonEmpty, null);
+                ButtonFeedbackSuccesses = GetNumberedAttributesAsArray<string>("ButtonFeedbackSuccess", 0, ConstrainAs.StringNonEmpty, null);
                 ButtonOnQuestComplete   = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
                 DebugShowText           = GetAttributeAsNullable<bool>("DebugShowText", false, null, null) ?? false;
                 ExitVehicleAtQuestComplete = GetAttributeAsNullable<bool>("ExitVehicleAtQuestComplete", false, null, null) ?? true;
@@ -93,7 +93,10 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 MonitorStopPhrases      = GetNumberedAttributesAsArray<string>("MonitorStopPhrase", 0, ConstrainAs.StringNonEmpty, null);
                 QuestId                 = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog   = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SupportedLocales        = GetNumberedAttributesAsArray<string>("SupportedLocale", 0, ConstrainAs.StringNonEmpty, null);
+                if (SupportedLocales.Count() == 0)
+                    { SupportedLocales = new [] { "enUS" }; }
 
 
                 // Semantic coherency...
@@ -109,6 +112,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     IsAttributeProblem = true;
                 }
 
+                GetAttributeAsBoolean("xxx", false, null);
+
 
                 // Install our chat handlers...
                 WoWChat.MonsterEmote += HandleChatMonster;
@@ -122,6 +127,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 WoWChat.System += HandleChatSimpleMessage;
 
                 // If no MonitoringStartPhrases, we start 'hot'...
+                _buttonAction = ButtonEmpty;
                 if (MonitorStartPhrases.Count() <= 0)
                     { _isMonitoringEnabled = true; }
 
@@ -140,6 +146,10 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                                                     ViableTargets,
                                                                     HuntingGroundAnchor,
                                                                     1000.0);
+                _wowClientLocale = GetWoWClientLocale();
+
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                QuestName = (quest != null)  ? quest.Name  : string.Format("QuestId({0})", QuestId);
 			}
 
 			catch (Exception except)
@@ -158,8 +168,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
 
         // Attributes provided by caller...
-        public string[]                 ButtonFeedbackFail { get; private set; }
-        public string[]                 ButtonFeedbackSuccess { get; private set; }
+        public string[]                 ButtonFeedbackFailures { get; private set; }
+        public string[]                 ButtonFeedbackSuccesses { get; private set; }
         public int?                     ButtonOnQuestComplete { get; private set; }
         public bool                     DebugShowText { get; private set; }
         public bool                     ExitVehicleAtQuestComplete { get; private set; }
@@ -171,18 +181,21 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public string[]                 SupportedLocales { get; private set; }
 
         // Private Properties & data...
-        private const int               BonusActionButtonOffset         = (12 /*buttons_per_hotbar*/ * 10 /*hotbars*/);
-        private WoWObject               CurrentTarget                   { get { return (_behavior_HuntingGround.CurrentTarget); }}
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private TimeSpan                Delay_InputResponse             { get { return (TimeSpan.FromMilliseconds(_rand.NextDouble() * 2000)); }}                                                             
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
+        private const int                   BonusActionButtonOffset     = (12 /*buttons_per_hotbar*/ * 10 /*hotbars*/);
+        private KeyValuePair<string, int>   ButtonEmpty                 = new KeyValuePair<string, int>(string.Empty, 0);
+        private WoWObject                   CurrentTarget               { get { return (_behavior_HuntingGround.CurrentTarget); }}
+        private TimeSpan                    Delay_WowClientLagTime      { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private TimeSpan                    Delay_InputResponse         { get { return (TimeSpan.FromMilliseconds((_rand.NextDouble() * 900) + 450)); }}                                                             
+        private static LocalPlayer          Me                          { get { return (ObjectManager.Me); } }
+        private string                      QuestName                   { get; set; }
         private readonly Dictionary<string, int> SimpleTextToButtonMap  = new Dictionary<string, int>();
 
         private Composite                   _behaviorRoot;
         private HuntingGroundBehavior       _behavior_HuntingGround;
-        private KeyValuePair<string, int>?  _buttonAction;
+        private KeyValuePair<string, int>   _buttonAction;
         private bool                        _isBehaviorInProgress;
         private bool                        _isBehaviorDone;
         private bool                        _isDisposed;
@@ -190,6 +203,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         private bool                        _isMonitoringEnabled;
         private Queue<string>               _messagesPending        = new Queue<string>();
         private Random                      _rand                   = new Random();
+        private readonly string             _wowClientLocale;
 
         // Private LINQ queries...  
        private IEnumerable<WoWObject>  ViableTargets() {
@@ -199,8 +213,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                             }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id:$"); } }
-        public override string      SubversionRevision { get { return ("$Rev:$"); } }
+        public override string      SubversionId { get { return ("$Id$"); } }
+        public override string      SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ButtonPressOnChat()
@@ -233,6 +247,49 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             _isDisposed = true;
         }
 		
+
+        private void    CheckPhrases()
+        {
+            List<KeyValuePair<string, string>>  allPhrases  = new List<KeyValuePair<string, string>>();
+
+            foreach (var phrase in ButtonFeedbackFailures)
+                { allPhrases.Add(new KeyValuePair<string, string>("ButtonFeedbackFail", phrase)); }
+
+            foreach (var phrase in ButtonFeedbackSuccesses)
+                { allPhrases.Add(new KeyValuePair<string, string>("ButtonFeedbackSuccess", phrase)); }
+
+            foreach (var phrase in MonitorStartPhrases)
+                { allPhrases.Add(new KeyValuePair<string, string>("MonitorStartPhrase", phrase)); }
+
+            foreach (var phrase in MonitorStopPhrases)
+                { allPhrases.Add(new KeyValuePair<string, string>("MonitorStopPhrase", phrase)); }
+
+            foreach (var kvp in SimpleTextToButtonMap)
+                { allPhrases.Add(new KeyValuePair<string, string>(string.Format("Button{0}Phrase", kvp.Value), kvp.Key)); }
+
+
+            var     distinctPhrases     = allPhrases.Select(kvp => kvp.Value).Distinct();
+        
+            foreach (var phrase in distinctPhrases)
+            {
+                var     phraseSources   = allPhrases.Where(kvp => (kvp.Value == phrase)).Select(kvp => kvp.Key);
+
+                if (phraseSources.Count() <= 1)
+                    { continue; }
+
+                LogMessage("error", "You may only use a phrase for one trigger condition.\n"
+                                    + "The phrase \"{0}\" was used for the following: {1}.\n",
+                                    phrase, ("'" + string.Join("', '", phraseSources.ToArray()) + "'"));
+                IsAttributeProblem = true;
+            }
+        }
+
+
+        private string  GetWoWClientLocale()
+        {
+            return (Lua.GetReturnVal<string>("return GetLocale()", 0));
+        }
+
 
         private void    HandleChatMonster(WoWChat.ChatMonsterEventArgs  args)
         {
@@ -323,25 +380,23 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             // Does phrase match a button-push action?
             if (_isMonitoringEnabled)
             {
-                string  phraseFail      = ButtonFeedbackFail.FirstOrDefault(phrase => message.Contains(phrase));
+                string  phraseFail      = ButtonFeedbackFailures.FirstOrDefault(phrase => message.Contains(phrase));
                 string  phraseMatch     = SimpleTextToButtonMap.Keys.FirstOrDefault(phrase => message.Contains(phrase));
-                string  phraseSucceed   = ButtonFeedbackSuccess.FirstOrDefault(phrase => message.Contains(phrase));
+                string  phraseSucceed   = ButtonFeedbackSuccesses.FirstOrDefault(phrase => message.Contains(phrase));
 
                 if (phraseMatch != null)
                     { _buttonAction = new KeyValuePair<string, int>(phraseMatch, SimpleTextToButtonMap[phraseMatch]); }
 
-                if (_buttonAction.HasValue && (phraseFail != null))
+                if ((_buttonAction.Value > 0) && (phraseFail != null))
                 {
-                    LogMessage("debug", "Phrase '{0}' failed with Button {1}.",
-                                        _buttonAction.Value.Key, _buttonAction.Value.Value);
-                    _buttonAction = null;
+                    LogMessage("debug", "Phrase '{0}' failed with Button {1}.", _buttonAction.Key, _buttonAction.Value);
+                    _buttonAction = ButtonEmpty;
                 }
 
-                if (_buttonAction.HasValue && (phraseSucceed != null))
+                if ((_buttonAction.Value > 0) && (phraseSucceed != null))
                 {
-                    LogMessage("debug", "Phrase '{0}' succeeded with Button {1}.",
-                                        _buttonAction.Value.Key, _buttonAction.Value.Value);
-                    _buttonAction = null;
+                    LogMessage("debug", "Phrase '{0}' succeeded with Button {1}.", _buttonAction.Key, _buttonAction.Value);
+                    _buttonAction = ButtonEmpty;
                 }
             }
         }
@@ -355,11 +410,15 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             {
                 if (phraseToButtonMap.ContainsKey(phrase))
                 {
-                    LogMessage("error", "Phrase({0}) cannot be associated with two buttons."
-                                            + "  (Attempted to associate with Button{1} and Button{2}.)",
+                    if (phraseToButtonMap[phrase] != buttonNum)
+                    {
+                        LogMessage("error", "Phrase(\"{0}\") cannot be associated with two different buttons."
+                                            + "  (Attempted to associate with Button{1}Phrase and Button{2}Phrase.)",
                                             phrase, phraseToButtonMap[phrase], buttonNum);
-                    IsAttributeProblem = true;
-                    break;
+                        IsAttributeProblem = true;
+                    }
+
+                    continue;
                 }
 
                 phraseToButtonMap.Add(phrase, buttonNum);
@@ -425,7 +484,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 new WaitContinue(Delay_WowClientLagTime, ret=> false, new ActionAlwaysSucceed()),
                                 new Action(delegate
                                 {
-                                    TreeRoot.StatusText = string.Format("Using Item '{0}'", Item.Name);
+                                    TreeRoot.StatusText = string.Format("Using Item '{0}' to initiate interaction", Item.Name);
                                     Item.UseContainerItem();
                                     _isInteracting = true;
                                 })
@@ -461,7 +520,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                         new Action(delegate { ProcessMessage(_messagesPending.Dequeue()); })),
 
                     // If we've a button to press, take action...
-                    new Decorator(ret => _buttonAction.HasValue,
+                    new Decorator(ret => (_buttonAction.Value > 0),
                         new Sequence(
                             // Need to give the WoWserver time to accept our response to the input...
                             // It also needs to have some variance, so it doesn't look like a bot's doing it.
@@ -469,10 +528,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                             new Action(delegate
                             {
                                 TreeRoot.StatusText = string.Format("Pressing button {0} due to phrase '{1}'",
-                                                                    _buttonAction.Value.Value,
-                                                                    _buttonAction.Value.Key);
-                                PressButton(_buttonAction.Value.Value);
-                                _buttonAction = null;
+                                                                    _buttonAction.Value,
+                                                                    _buttonAction.Key);
+                                PressButton(_buttonAction.Value);
                             })
                         ))
                 )));
@@ -510,6 +568,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
         public override void OnStart()
         {
+            // We needed to defer this from constructor due to lack of Element (location) information...
+            CheckPhrases();
+
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -523,159 +584,30 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
 
+                // Check locale
+                if (!SupportedLocales.Contains(_wowClientLocale))
+                {
+                    LogMessage("fatal", "This profile does not support the locale of your WoWClient ({0}),"
+                                        + " and will be unable to continue.  Supported locales include: {1}.\n"
+                                        + "Your choices are:\n"
+                                        + " 1) complete Quest \"{2}\" by hand, and restart the profile after its complete, or\n"
+                                        + " 2) Ask the profile writer to support your WoWclient's locale ({0})",
+                                        _wowClientLocale,
+                                        ("'" + string.Join("', '", SupportedLocales) + "'"),
+                                        QuestName);
+                    TreeRoot.Stop();
+                    _isBehaviorDone = true;
+                    return;
+                }
+
+
                 _isBehaviorInProgress = true;
                 GuiShowProgress(null);
             }
         }
 
         #endregion      // Overrides of CustomForcedBehavior
-
-
-
-        #region Mods needed for CustomForcedBehavior
-        //***** CustomForcedBehavior extensions --
-
-
-        // NO COPY BACK: Dummy stub...
-        private string UtilLocateKey(bool isAttributeRequired,
-                                    string primaryName,
-                                    string[] aliasNames)
-        {
-            return (primaryName);
-        }
-
-
-
-        // NO COPY BACK:
-        // Return true if attibuteName is composed of baseName plus an integer, or consists just of baseName.
-        // Examples:    (baseName)   (attributeName)     (return value)
-        //              MobId           MobId               true
-        //              MobId           MobId27             true
-        //              MobId           MobId27n            false
-        //              MobId           MobIds              false
-        private bool IsNumberedAttribute(string baseName,
-                                         string attributeName)
-        {
-            if (!attributeName.StartsWith(baseName))
-            { return (false); }
-
-            string suffix = attributeName.Substring(baseName.Length);
-
-            // If the attributeName exactly matches the baseName, we consider it a 'match'...
-            if (suffix.Length == 0)
-            { return (true); }
-
-            // Try to convert the suffix to an integral number.  If we fail, no match...
-            int tmpResult;
-
-            if (int.TryParse(suffix, out tmpResult))
-            { return (true); }
-
-            return (false);
-        }
-
-
-        // COPY BACK:
-        // Support method for GetNumberedAttributesAsStringArray().
-        private void    AddNumberedAttributeToStringArray(IEnumerable<string> numberedAttributeNames,
-                                                          string baseNamePrimary,
-                                                          ref List<string> stringList)
-        {
-            foreach (string numberedAttributeName in numberedAttributeNames)
-            {
-                string  keyName     = UtilLocateKey(false, numberedAttributeName, null);
-                string  tmpValue    = Args[keyName];
-
-                if (tmpValue != null)
-                {
-                    // If this is an alias, warn user...
-                    if (!numberedAttributeName.StartsWith(baseNamePrimary))
-                    {
-                        LogMessage("warning",
-                                    "The attribute '{0}' is an alias for '{1}N'.\n"
-                                    + "Please modify the profile to use the preferred base name of '{1}', instead.",
-                                    numberedAttributeName,
-                                    baseNamePrimary);
-                    }
-
-                    stringList.Add(tmpValue);
-                }
-                else
-                { IsAttributeProblem = true; }
-            }
-        }
-
-
-        // COPY BACK:
-        /// <summary>
-        /// <para>This method looks for attributes with a prefix specified as <paramref name="baseName"/>
-        /// followed by an integer value (e.g., MobId1, MobId2, MobId3).  Such located parameters are collected
-        /// and returned as an integer array.  An argument consisting of just the prefix and no following number
-        /// (e.g., MobId) is considered as part of the acceptable set of parameters found.  An argument that does not
-        /// fit the form of prefix-followed-by-number will be ignored (e.g., MobId3n, MobIds, etc).</para>
-        /// <para>Attributes are also looked for under prefixes specified by <paramref name="aliasBaseNames"/></para>
-        /// <para>Any found arguments must fall within the closed interval specified by <paramref name="minValue"/>
-        /// and <paramref name="maxValue"/>.</para>
-        /// <para>The <paramref name="countRequired"/> argument determines how many of the similarly-named attributes
-        /// must be found; otherwise, an error is reported and nothing is returned.</para>
-        /// </summary>
-        /// <param name="baseName">a prefix used for the primary name of the arguments sought</param>
-        /// <param name="countRequired">the number of similarly-named arguments that must be encountered for success</param>
-        /// <param name="minValue">the minimum value the encountered argument is allowed to assume.  If the argument
-        /// is smaller than minValue, an error will be reported.</param>
-        /// <param name="maxValue">the maximum value an encountered argument is allowed to assume.  If the argument
-        /// exceeds the maxValue, an error will be reported.</param>
-        /// <param name="aliasBaseNames">alternative prefixes under which to look for acceptable attributes</param>
-        /// <returns>an integer array comprised of the values of all located arguments.  This value will be null
-        /// if no such parameters could be located, or the <paramref name="countRequired"/> number of arguments
-        /// was not encountered.</returns>
-        ///
-        public string[]     GetNumberedAttributesAsStringArray(string baseName,
-                                                                int countRequired,
-                                                                string[] aliasBaseNames)
-        {
-            List<string> stringList = new List<string>();
-
-            // Search for primary names first --
-            var primaryAttributeNames = from attributeName in Args.Keys
-                                        where IsNumberedAttribute(baseName, attributeName)
-                                        select attributeName;
-
-            AddNumberedAttributeToStringArray(primaryAttributeNames, baseName, ref stringList);
-
-            // Search using alias names --
-            if (aliasBaseNames != null)
-            {
-                var aliasAttributeNames = from aliasBaseName in aliasBaseNames
-                                          from attributeName in Args.Keys
-                                          where IsNumberedAttribute(aliasBaseName, attributeName)
-                                          select attributeName;
-
-                AddNumberedAttributeToStringArray(aliasAttributeNames, baseName, ref stringList);
-            }
-
-            if (stringList.Count == 0)
-                { return (null); }
-
-            if (stringList.Count < countRequired)
-            {
-                LogMessage("error",
-                            "The attribute '{0}N' must be provided at least {1} times (saw it '{2}' times).\n"
-                            + "(E.g., ButtonText1, ButtonText2, ButtonText3, ...)\n"
-                            + "Please modify the profile to supply {1} attributes with a base name of '{0}'.",
-                            baseName,
-                            countRequired,
-                            stringList.Count);
-
-                return (null);
-            }
-
-
-            return (stringList.ToArray());
-        }
     }
-
-    #endregion  // Mods needed for CustomForcedBehavior
 
 
     #region Reusable behaviors
@@ -725,6 +657,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         // Private properties & data...
         private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
         private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan       Delay_PositionUpdateThrottle    = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
@@ -804,8 +737,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 // If we've more than one hotspot, head to the next one...
                                 new Decorator(ret => (_hotSpots.Count() > 1),
                                     new Sequence(context => FindNextHotspot(),
-                                        new Action(nextHotspot => TreeRoot.StatusText = "No targets--moving to hotspot "
-                                                                                        + (WoWPoint)nextHotspot),
+                                        new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
+                                            new Action(nextHotspot => TreeRoot.StatusText = "No targets--moving to hotspot "
+                                                                                         + (WoWPoint)nextHotspot)),
                                         CreateBehavior_InternalMoveTo(() => FindNextHotspot())
                                         )),
 
@@ -815,8 +749,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
                                     new Action(delegate
                                         {
-                                            _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
                                             TreeRoot.StatusText = "No targets--moving near hunting ground anchor point to wait";
+                                            _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
                                             _repopWaitingTime.Reset();
                                             _repopWaitingTime.Start();
                                         })),
@@ -853,12 +787,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // If we're too far from target, move closer...
                 new Decorator(wowObject => (((WoWObject)wowObject).Distance > maxRange()),
                     new Sequence(
-                        new Action(wowObject =>
-                        {
-                            TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-                                                                ((WoWObject)wowObject).Name,
-                                                                ((WoWObject)wowObject).Distance);
-                        }),
+                        new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
+                            new Action(wowObject =>
+                            {
+                                TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
+                                                                    ((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).Distance);
+                            })),
 
                         CreateBehavior_InternalMoveTo(() => target().Location)
                     )),
@@ -901,8 +836,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // If we're not at location, move to it...
                 new Decorator(wowPoint => (Me.Location.Distance((WoWPoint)wowPoint) > Navigator.PathPrecision),
                     new Sequence(
-                        new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint),
-
+                        new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
+                            new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint)),
                         CreateBehavior_InternalMoveTo(() => location())
                     ))
             ));
@@ -922,13 +857,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // If we're not at target, move to it...
                 new Decorator(wowObject => (((WoWObject)wowObject).Distance > ((WoWObject)wowObject).InteractRange),
                     new Sequence(
-                        new Action(wowObject =>
-                        {
-                            TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-                                                                ((WoWObject)wowObject).Name,
-                                                                ((WoWObject)wowObject).Distance);
-                        }),
-
+                        new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
+                            new Action(wowObject =>
+                            {
+                                TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
+                                                                    ((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).Distance);
+                            })),
                         CreateBehavior_InternalMoveTo(() => target().Location)
                     ))
             ));
@@ -1039,6 +974,38 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
 
     #region Extensions to HBcore
+
+    public class DecoratorContinueThrottled     : DecoratorContinue
+    {
+        public DecoratorContinueThrottled(TimeSpan                  throttleTime,
+                                          CanRunDecoratorDelegate   canRun,
+                                          Composite                 composite)
+            :base(canRun, composite)
+        {
+            _throttleTime = throttleTime;
+
+            _throttle = new Stopwatch();
+            _throttle.Reset();
+            _throttle.Start();
+        }
+
+
+        protected override bool CanRun(object context)
+        {
+            if (_throttle.Elapsed < _throttleTime)
+                { return (false); }
+
+            _throttle.Reset();
+            _throttle.Start();
+
+            return (base.CanRun(context));
+        }
+
+
+        private Stopwatch                   _throttle;
+        private TimeSpan                    _throttleTime;
+    }
+
 
     public class DecoratorThrottled         : Decorator
     {
