@@ -50,7 +50,7 @@ namespace Styx.Bot.Quest_Behaviors
                 Hop             = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
                 IgnoreCombat    = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
                 Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "MobID", "NpcId" });
+                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new [] { "MobID", "NpcId" });
                 Precision       = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
                 QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
