@@ -100,7 +100,11 @@ namespace Styx.Bot.Quest_Behaviors
 
                 // Clean up unmanaged resources (if any) here...
                 Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-                QuestTurnIn.Dispose();
+                if (QuestTurnIn != null)
+                {
+                    QuestTurnIn.Dispose();
+                    QuestTurnIn = null;
+                }
 
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
