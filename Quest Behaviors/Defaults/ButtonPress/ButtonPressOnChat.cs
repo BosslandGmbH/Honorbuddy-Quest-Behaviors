@@ -52,7 +52,7 @@
 //              pressed as a consequence of responding to the target's query.
 //              The behavior will continue to spam the identified button until either the
 //              success or failure feedback phrase is encountered.
-//      InputResponseDelay [Default: 5000ms]: the maximum delay that should be used when
+//      InputResponseDelay [Default: 3000ms]: the maximum delay that should be used when
 //              responding to the target's query.  To appear more human-like, the delay
 //              between the target-issued query and the behavior's response is randomized
 //              with this value.
@@ -125,7 +125,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 ExitVehicleAtQuestComplete = GetAttributeAsNullable<bool>("ExitVehicleAtQuestComplete", false, null, null) ?? true;
                 FeedbackPhraseFailures  = GetNumberedAttributesAsArray<string>("FeedbackPhraseFail", 0, ConstrainAs.StringNonEmpty, null);
                 FeedbackPhraseSuccesses = GetNumberedAttributesAsArray<string>("FeedbackPhraseSuccess", 0, ConstrainAs.StringNonEmpty, null);
-                InputResponseDelay      = GetAttributeAsNullable<int>("InputResponseDelay", false, new ConstrainTo.Domain<int>(500, 15000), null) ?? 5000;
+                InputResponseDelay      = GetAttributeAsNullable<int>("InputResponseDelay", false, new ConstrainTo.Domain<int>(500, 15000), null) ?? 3000;
                 tmpItemId               = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
                 MobId                   = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 0;
                 HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
