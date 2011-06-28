@@ -58,26 +58,28 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 // "VendorType" attribute is required if no Do* attribute is specified
-                //Bugged Right Now
-                /*VendorType  type    = GetAttributeAsNullable<VendorType>("VendorType", !(DoMail || DoRepair || DoSell || DoTrain), null, null) ?? VendorType.Repair;
-                switch (type)
+                VendorType? type    = GetAttributeAsNullable<VendorType>("VendorType", !(DoMail || DoRepair || DoSell || DoTrain), null, null);
+                if (type.HasValue)
                 {
-                  case VendorType.Mail:
-                    DoMail = true;
-                    break;
-                  case VendorType.Repair:
-                    DoRepair = true;
-                    break;
-                  case VendorType.Sell:
-                    DoSell = true;
-                    break;
-                  case VendorType.Train:
-                    DoTrain = true;
-                    break;
-                  default:
-                    IsAttributeProblem = true;
-                    throw (new NotImplementedException("Unexpected VendorType"));
-                }*/
+                    switch (type.Value)
+                    {
+                      case VendorType.Mail:
+                        DoMail = true;
+                        break;
+                      case VendorType.Repair:
+                        DoRepair = true;
+                        break;
+                      case VendorType.Sell:
+                        DoSell = true;
+                        break;
+                      case VendorType.Train:
+                        DoTrain = true;
+                        break;
+                      default:
+                        IsAttributeProblem = true;
+                        throw (new NotImplementedException("Unexpected VendorType"));
+                    }
+                }
 			}
 
 			catch (Exception except)
