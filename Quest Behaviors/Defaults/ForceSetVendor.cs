@@ -58,7 +58,8 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 // "VendorType" attribute is required if no Do* attribute is specified
-                VendorType  type    = GetAttributeAsNullable<VendorType>("VendorType", !(DoMail || DoRepair || DoSell || DoTrain), null, null) ?? VendorType.Repair;
+                //Bugged Right Now
+                /*VendorType  type    = GetAttributeAsNullable<VendorType>("VendorType", !(DoMail || DoRepair || DoSell || DoTrain), null, null) ?? VendorType.Repair;
                 switch (type)
                 {
                   case VendorType.Mail:
@@ -76,7 +77,7 @@ namespace Styx.Bot.Quest_Behaviors
                   default:
                     IsAttributeProblem = true;
                     throw (new NotImplementedException("Unexpected VendorType"));
-                }
+                }*/
 			}
 
 			catch (Exception except)

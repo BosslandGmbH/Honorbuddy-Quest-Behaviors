@@ -193,7 +193,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ??
                 (_root = new PrioritySelector(
-                    new Decorator(c => Counter > NumOfTimes && QuestId == 0,
+                    new Decorator(c => Counter > NumOfTimes,
                         new Action(c =>
                         {
                             TreeRoot.StatusText = "Finished!";

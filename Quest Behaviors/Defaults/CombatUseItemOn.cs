@@ -59,6 +59,7 @@ namespace Styx.Bot.Quest_Behaviors
 			try
 			{
                 CastingSpellId  = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                MaxRange        = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
                 HasAuraId       = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" }) ?? 0;
                 ItemId          = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
                 Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
@@ -96,6 +97,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public int                      CastingSpellId { get; private set; }
+        public double                      MaxRange { get; private set; }
         public int                      HasAuraId { get; private set; }
         public int                      ItemId { get; private set; }
         public WoWPoint                 Location { get; private set; }
@@ -176,17 +178,17 @@ namespace Styx.Bot.Quest_Behaviors
                                     )),
 
                             new Decorator(
-                                ret => Me.CurrentTarget != null && Item != null && Me.Combat,
+                                ret => Me.CurrentTarget != null && Item != null,
                                 new PrioritySelector(
+                                    new Sequence(
                                     new Decorator(
                                         ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
                                                (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
                                                (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
-                                               (HasAuraId != 0 && Me.Auras.Values.Any(a => a.SpellId == HasAuraId)),
+                                               (HasAuraId != 0 && Me.HasAura(Styx.Logic.Combat.WoWSpell.FromId(HasAuraId).Name)),
                                         new PrioritySelector(
                                             new Decorator(
-                                                ret => Me.CurrentTarget.Distance > 4,
-                                                new Action(ret => Navigator.MoveTo(Me.CurrentTarget.Location))),
+                                                
                                             new Sequence(
                                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
                                                 new Action(ret => StyxWoW.SleepForLagDuration()),
@@ -194,9 +196,9 @@ namespace Styx.Bot.Quest_Behaviors
                                                 new Action(ret => Item.UseContainerItem()),
                                                 new DecoratorContinue(
                                                     ret => QuestId == 0,
-                                                    new Action(ret => Counter++)))))))
+                                                    new Action(ret => Counter++))))))))
 
-                    )));
+                    ))));
         }
 
 
@@ -215,7 +217,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                         new Action(ret => Navigator.MoveTo(Location)))),
                                 new Decorator(
-                                    ret => Me.CurrentTarget == null,
+                                    ret => Me.CurrentTarget == null && Mob.Distance <= MaxRange,
                                     new Action(ret => Mob.Target())),
                                 new Decorator(
                                     ret => RoutineManager.Current.PullBehavior != null,
