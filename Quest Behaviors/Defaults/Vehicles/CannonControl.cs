@@ -88,6 +88,7 @@ namespace Styx.Bot.Quest_Behaviors
         private bool                _isDisposed;
         private Composite           _root;
         readonly Stopwatch          _thottleTimer = new Stopwatch();
+        Random rand = new Random();
 
         // Private properties
 
@@ -180,23 +181,24 @@ namespace Styx.Bot.Quest_Behaviors
                                     _isBehaviorDone = true;
                                     return RunStatus.Success;
                                 }
-                                
-                                if (!_aimed)
-                                {
-                                    Lua.DoString("VehicleAimRequestNormAngle({0})", MinAngle);
-                                    _aimed = true;
-                                }
                                 else
                                 {
-                                    Lua.DoString("VehicleAimRequestNormAngle({0})", MaxAngle);
-                                    _aimed = false;
+
+                                    using (new FrameLock())
+                                    {
+
+                                        Lua.DoString("VehicleAimRequestNormAngle({0})",
+                                            MinAngle + (rand.NextDouble() * (MaxAngle - MinAngle)));
+                                        foreach (int b in Buttons)
+                                        {
+                                            //Lua.DoString("local _,s,_ = GetActionInfo({0}) local c = GetSpellCooldown(s) if c == 0 then CastSpellByID(s) end ", b);
+                                            //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
+                                            Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
+                                        }
+                                        //}
+                                    }
+                                    System.Threading.Thread.Sleep(1000);
                                 }
-                                foreach (int s in Buttons)
-                                {
-                                    Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", s);
-                                }
-                                   
-                                Thread.Sleep(100);
                                 
                                 _thottleTimer.Reset();
                                 _thottleTimer.Start();
