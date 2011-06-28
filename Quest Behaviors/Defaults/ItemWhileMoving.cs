@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Threading;
 
 using Styx.Logic.BehaviorTree;
+using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -61,6 +62,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public int                      ItemId { get; private set; }
+        public bool                     UseGroundTarget { get; private set; }
         public WoWPoint                 Location { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -164,6 +166,9 @@ namespace Styx.Bot.Quest_Behaviors
                                             Thread.Sleep(100);
                                             WoWMovement.ClickToMove(p);
                                             wowItem.Interact();
+                                            Thread.Sleep(200);
+                                            LegacySpellManager.ClickRemoteLocation(Me.Location);
+                                            Thread.Sleep(500);
                                         }
                                     }
 

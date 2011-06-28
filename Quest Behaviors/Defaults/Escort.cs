@@ -46,7 +46,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 			try
 			{
                 Location    = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId" }) ?? 0;
+                MobId       = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
                 QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -69,7 +69,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
         // Attributes provided by caller
         public WoWPoint                 Location { get; private set; }
-        public int                      MobId { get; private set; }
+        public int[]                      MobId { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -83,7 +83,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         // Private properties
         private LocalPlayer             Me { get { return (ObjectManager.Me); } }
         private List<WoWUnit>           MobList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .Where(u => u.Entry == MobId && !u.Dead)
+                                                                                .Where(u => MobId.Contains((int)u.Entry) && !u.Dead)
                                                                                 .OrderBy(u => u.Distance).ToList());
                                                 }}
 
@@ -288,7 +288,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 CharacterSettings.Instance.SkinMobs = false;
 
                 WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(unit => unit.Entry == MobId)
+                                      .Where(unit => MobId.Contains((int)unit.Entry))
                                       .FirstOrDefault();
 
                 TreeRoot.GoalText = "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")"));
