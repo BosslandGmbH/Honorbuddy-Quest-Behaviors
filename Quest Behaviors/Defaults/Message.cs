@@ -40,7 +40,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 Text        = GetAttributeAs<string>("Text", true, ConstrainAs.StringNonEmpty, null) ?? "";
                 UpdateGoalText = GetAttributeAsNullable<bool>("UpdateGoalText", false, null, null)
-                                    ?? (GetAttributeAsNullable<Color>("GoalColor", false, null, null) != null);
+                                    ?? (GetAttributeAsNullable<KnownColor>("GoalColor", false, null, null) != null);
 			}
 
 			catch (Exception except)
