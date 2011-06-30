@@ -10,6 +10,8 @@ using System.Threading;
 
 using CommonBehaviors.Actions;
 
+using Styx;
+using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
@@ -65,6 +67,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
+                MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
                 UseType     = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
                 WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 			}
@@ -93,6 +96,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public double                   Range { get; private set; }
+        public double                   MinRange { get; private set; }
         public QBType                   UseType { get; private set; }
         public int                      WaitTime { get; private set; }
 
@@ -181,10 +185,16 @@ namespace Styx.Bot.Quest_Behaviors
                         ret => UseType == QBType.PointToObject,
                         new PrioritySelector(
                             new Decorator(
-                                ret => Me.Location.Distance(MoveToLocation) > 3,
+                                ret => Me.Location.Distance(MoveToLocation) >= MinRange,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new Action(ret => Navigator.MoveTo(MoveToLocation)))),
+                            new Decorator(
+                                ret => Me.Location.Distance(MoveToLocation) < MinRange,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
+                                    new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointBehind(Me.Location,Me.Rotation, (float)(MinRange - (double)MoveToLocation.Distance(Me.Location)))))
+                                    )),
                             new Decorator(
                                 ret => UseObject != null,
                                 new Sequence(

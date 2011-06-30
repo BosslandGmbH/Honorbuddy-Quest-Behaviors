@@ -77,6 +77,7 @@ namespace Styx.Bot.Quest_Behaviors
                 MobType     = GetAttributeAsNullable<ObjectType>("MobType", false, null, new [] { "ObjectType" }) ?? ObjectType.Npc;
                 NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 NpcState    = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new [] { "NpcState" }) ?? NpcStateType.DontCare;
+                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
                 Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
@@ -117,6 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public double                   Range { get; private set; }
+        public bool                     WaitForNpcs { get; private set; }
         public int                      WaitTime { get; private set; }
 
         // Private variables for internal state
@@ -286,17 +288,26 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     StyxWoW.SleepForLagDuration();
                                     Counter++;
-                                    Thread.Sleep(WaitTime);
 
-                                    if (targeted)
-                                        StyxWoW.Me.ClearTarget();
+                                    if (WaitTime < 100)
+                                        WaitTime = 100;
+
+                                    if (WaitTime > 100)
+                                    {
+                                        if (targeted)
+                                            StyxWoW.Me.ClearTarget();
+                                    }
+
+                                    Thread.Sleep(WaitTime);
                                 }))
                                     ),
 
-                        new Sequence(
-                            new Action(delegate { TreeRoot.StatusText = "Moving to location " + Location; }),
-                            new Action(ret => Navigator.MoveTo(Location))))
-                ));
+                             new Decorator(
+                                 ret => !WaitForNpcs && CurrentObject == null,
+                                 new Action(ret => _isBehaviorDone = true)),
+
+                            new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")
+                )));
         }
 
 

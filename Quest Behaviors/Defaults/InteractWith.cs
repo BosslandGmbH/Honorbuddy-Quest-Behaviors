@@ -50,6 +50,14 @@ namespace Styx.Bot.Quest_Behaviors
             Npc,
             GameObject,
         }
+
+        public enum NpcStateType
+        {
+            Alive,
+            BelowHp,
+            Dead,
+            DontCare,
+        }
         
         public InteractWith(Dictionary<string, string> args)
             : base(args)
@@ -81,6 +89,8 @@ namespace Styx.Bot.Quest_Behaviors
                 Loot            = GetAttributeAsNullable<bool>("Loot", false, null, null) ?? false;
                 MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
                 ObjType         = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new [] { "MobType" }) ?? ObjectType.Npc;
+                NpcState        = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 NotMoving       = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
                 NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId         = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
@@ -128,6 +138,7 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     Loot { get; private set; }
         public int[]                    MobIds { get; private set; }
         public string                   MobName { get; private set; }
+        public NpcStateType NpcState { get; private set; }
         public ObjectType               ObjType { get; private set; }
         public bool                     NotMoving { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -138,6 +149,7 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     WaitForNpcs { get; private set; }
         public int                      WaitTime { get; private set; }
         public bool                     IgnoreCombat { get; private set; }
+        public double                   MobHpPercentLeft { get; private set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
@@ -204,11 +216,22 @@ namespace Styx.Bot.Quest_Behaviors
                         break;
 
                     case ObjectType.Npc:
-                        @object = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                            !_npcBlacklist.Contains(obj.Guid) &&
-                            obj.Distance < CollectionDistance &&
-                            (NotMoving ? !obj.IsMoving : true) &&
-                            MobIds.Contains((int)obj.Entry));
+
+                        var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                               .OrderBy(obj => obj.Distance)
+                                                               .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
+                                                               obj.Distance < CollectionDistance &&
+                                                               (NotMoving ? !obj.IsMoving : true) &&
+                                                                MobIds.Contains((int)obj.Entry));
+
+                        var npcStateQualifiedTargets = baseTargets
+                                                            .Where(target => ((NpcState == NpcStateType.DontCare)
+                                                                              || ((NpcState == NpcStateType.Dead) && target.Dead)
+                                                                              || ((NpcState == NpcStateType.Alive) && target.IsAlive)
+                                                                              || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
+
+
+                        @object = npcStateQualifiedTargets.FirstOrDefault();
 
                         break;
 
