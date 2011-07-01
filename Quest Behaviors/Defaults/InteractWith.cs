@@ -58,6 +58,13 @@ namespace Styx.Bot.Quest_Behaviors
             Dead,
             DontCare,
         }
+
+        public enum NavigationType
+        {
+            Mesh,
+            CTM,
+            None,
+        }
         
         public InteractWith(Dictionary<string, string> args)
             : base(args)
@@ -90,6 +97,7 @@ namespace Styx.Bot.Quest_Behaviors
                 MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
                 ObjType         = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new [] { "MobType" }) ?? ObjectType.Npc;
                 NpcState        = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 NotMoving       = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
                 NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
@@ -138,7 +146,8 @@ namespace Styx.Bot.Quest_Behaviors
         public bool                     Loot { get; private set; }
         public int[]                    MobIds { get; private set; }
         public string                   MobName { get; private set; }
-        public NpcStateType NpcState { get; private set; }
+        public NpcStateType             NpcState { get; private set; }
+        public NavigationType           NavigationState { get; private set; }
         public ObjectType               ObjType { get; private set; }
         public bool                     NotMoving { get; private set; }
         public int                      NumOfTimes { get; private set; }
@@ -220,7 +229,8 @@ namespace Styx.Bot.Quest_Behaviors
                         var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
                                                                .OrderBy(obj => obj.Distance)
                                                                .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
-                                                               obj.Distance < CollectionDistance &&
+                                                               obj.Distance < CollectionDistance && 
+                                                               !Me.Minions.Contains(obj) && 
                                                                (NotMoving ? !obj.IsMoving : true) &&
                                                                 MobIds.Contains((int)obj.Entry));
 
@@ -260,8 +270,20 @@ namespace Styx.Bot.Quest_Behaviors
 
                                 new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range,
                                     new Sequence(
-                                        new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
-                                        new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+                                        new Decorator(ret => NavigationState == NavigationType.Mesh,
+                                            new Sequence(
+                                                new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
+                                                new Action(ret => Navigator.MoveTo(CurrentObject.Location)))),
+
+                                       new Decorator(ret => NavigationState == NavigationType.CTM,
+                                            new Sequence(
+                                                new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
+                                                new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location)))),
+
+                                       new Decorator(ret => NavigationState == NavigationType.None,
+                                            new Sequence(
+                                                new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
+                                                new Action(ret => _isBehaviorDone = true)))
                                         )
                                     ),
 

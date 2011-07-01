@@ -217,7 +217,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                         new Action(ret => Navigator.MoveTo(Location)))),
                                 new Decorator(
-                                    ret => Me.CurrentTarget != null && Mob.Distance > MaxRange,
+                                    ret => Mob != null && Mob.Distance > MaxRange,
                                     new Action(ret => Navigator.MoveTo(Mob.Location))),
                                 new Decorator(
                                     ret => Me.CurrentTarget == null && Mob.Distance <= MaxRange,

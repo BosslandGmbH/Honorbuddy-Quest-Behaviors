@@ -83,7 +83,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      VehicleId { get; private set; }
 
         // Private variables for internal state
-        private bool                _aimed;
+        //private bool                _aimed;
         private bool                _isBehaviorDone;
         private bool                _isDisposed;
         private Composite           _root;

@@ -64,7 +64,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private variables for internal state
         private bool                _isBehaviorDone;
         private bool                _isDisposed;
-        private Composite           _root;
+       // private Composite           _root;
 
         // Private properties
         private String              CurrentProfile { get { return (ProfileManager.XmlLocation); } }

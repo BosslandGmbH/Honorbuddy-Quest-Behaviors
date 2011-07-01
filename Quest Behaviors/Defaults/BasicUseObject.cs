@@ -43,7 +43,7 @@ namespace Styx.Bot.Quest_Behaviors
 				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
 				// In any case, we pinpoint the source of the problem area here, and hopefully it
 				// can be quickly resolved.
-				UtilLogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
 										+ "\nFROM HERE:\n"
 										+ except.StackTrace + "\n");
 				IsAttributeProblem = true;
@@ -105,7 +105,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public void UseGameObjectFunc()
         {
-            UtilLogMessage("info", "Using ObjectId({0})", ObjectId);
+            LogMessage("info", "Using ObjectId({0})", ObjectId);
             _objectList[0].Interact();
             StyxWoW.SleepForLagDuration();
             Counter++;
