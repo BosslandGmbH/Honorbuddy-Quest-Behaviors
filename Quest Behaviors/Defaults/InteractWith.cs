@@ -235,6 +235,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                                 MobIds.Contains((int)obj.Entry));
 
                         var npcStateQualifiedTargets = baseTargets
+                                                            .OrderBy(obj => obj.Distance)
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
                                                                               || ((NpcState == NpcStateType.Dead) && target.Dead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
@@ -268,22 +269,24 @@ namespace Styx.Bot.Quest_Behaviors
 
                             new PrioritySelector(
 
-                                new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range,
+                                new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range && NavigationState == NavigationType.Mesh,
                                     new Sequence(
-                                        new Decorator(ret => NavigationState == NavigationType.Mesh,
-                                            new Sequence(
                                                 new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
-                                                new Action(ret => Navigator.MoveTo(CurrentObject.Location)))),
+                                                new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+                                        )
+                                    ),
 
-                                       new Decorator(ret => NavigationState == NavigationType.CTM,
-                                            new Sequence(
+                            new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range && NavigationState == NavigationType.CTM,
+                                    new Sequence(
                                                 new Action(ret => { TreeRoot.StatusText = "Moving to interact with - " + CurrentObject.Name; }),
-                                                new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location)))),
+                                                new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
+                                        )
+                                    ),
 
-                                       new Decorator(ret => NavigationState == NavigationType.None,
-                                            new Sequence(
+                            new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) > Range * Range && NavigationState == NavigationType.None,
+                                    new Sequence(
                                                 new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
-                                                new Action(ret => _isBehaviorDone = true)))
+                                                new Action(ret => _isBehaviorDone = true)
                                         )
                                     ),
 
