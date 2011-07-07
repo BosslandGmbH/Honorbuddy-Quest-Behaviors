@@ -72,6 +72,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public bool RunningBehavior = true;
 
         // Private variables for internal state
         private bool            _isBehaviorDone;
@@ -147,7 +148,12 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         public void     Dlog(string format, params object[] args)
         {
-            LogMessage("debug", Color.Blue, string.Format(format, args));
+            LogMessage("debug", Color.CornflowerBlue, string.Format(format, args));
+        }
+
+        private static bool IsInVehicle
+        {
+            get { return Lua.GetReturnVal<bool>("return UnitInVehicle('player')", 0); }
         }
 
         private void WaitForCurrentSpell()
@@ -381,7 +387,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         public bool InTree()
         {
-            return HasAura(AURA_IN_TREE) || IsClimbingTheTree();
+            RunningBehavior = Me.Transport != null;
+            //Dlog("Checking Tree: HasAura: " + IsInVehicle + " Is Climbing Tree: " + IsClimbingTheTree());
+            return Me.Transport != null || IsClimbingTheTree();
         }
 
         public bool IsClimbingTheTree()
@@ -406,7 +414,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             WoWAura aura = (from a in Me.Auras
                             where a.Value.SpellId == auraId 
                             select a.Value).FirstOrDefault();
-            return aura != null;
+
+            return Me.HasAura(Styx.Logic.Combat.WoWSpell.FromId(auraId).Name);
         }
 
 
@@ -479,8 +488,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                return (!RunningBehavior && (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)));
             }
         }
 
