@@ -77,7 +77,7 @@ namespace Styx.Bot.Quest_Behaviors
                 MobType     = GetAttributeAsNullable<ObjectType>("MobType", false, null, new [] { "ObjectType" }) ?? ObjectType.Npc;
                 NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 NpcState    = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new [] { "NpcState" }) ?? NpcStateType.DontCare;
-                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
+                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
                 Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
@@ -302,8 +302,14 @@ namespace Styx.Bot.Quest_Behaviors
                                 }))
                                     ),
 
-                             new Decorator(
-                                 ret => !WaitForNpcs && CurrentObject == null,
+                            new Decorator(
+                                ret => !WaitForNpcs && CurrentObject == null,
+                                new Sequence(
+                                new Action(delegate { TreeRoot.StatusText = "Moving to location " + Location; }),
+                                new Action(ret => Navigator.MoveTo(Location)))),
+
+                            new Decorator(
+                                 ret => WaitForNpcs && CurrentObject == null,
                                  new Action(ret => _isBehaviorDone = true)),
 
                             new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")

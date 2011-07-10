@@ -50,6 +50,20 @@ namespace Styx.Bot.Quest_Behaviors
             ToObject = 2
         }
 
+        public enum ObjectType
+        {
+            Npc,
+            GameObject,
+        }
+
+        public enum NpcStateType
+        {
+            Alive,
+            BelowHp,
+            Dead,
+            DontCare,
+        }
+
 
         public UseItemTargetLocation(Dictionary<string, string> args)
             : base(args)
@@ -60,9 +74,14 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 ItemId      = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
                 MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 MobIds      = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new [] { "ObjectId" });
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
+                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                ObjType     = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -70,6 +89,8 @@ namespace Styx.Bot.Quest_Behaviors
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
                 UseType     = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
                 WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+
+                Counter = 1;
 			}
 
 			catch (Exception except)
@@ -89,9 +110,14 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public WoWPoint                 ClickToLocation { get; private set; }
+        public double                   CollectionDistance { get; private set; }
         public int                      ItemId { get; private set; }
         public int[]                    MobIds { get; private set; }
+        public double                   MobHpPercentLeft { get; private set; }
         public WoWPoint                 MoveToLocation { get; private set; }
+        public NpcStateType             NpcState { get; private set; }
+        public int                      NumOfTimes { get; private set; }
+        public ObjectType               ObjType { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -106,12 +132,59 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite           _root;
 
         // Private properties
+        public int                  Counter { get; private set; }
         private WoWItem             Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        private WoWObject           UseObject { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        /*private WoWObject           UseObject1 { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                                                                 .Where(o => MobIds.Contains((int)o.Entry))
                                                                 .OrderBy(o => o.Distance)
-                                                                .FirstOrDefault(); }}
+                                                                .FirstOrDefault(); }}*/
+
+        private WoWObject UseObject
+        {
+            get
+            {
+                WoWObject @object = null;
+                switch (ObjType)
+                {
+                    case ObjectType.GameObject:
+                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
+                            !_npcBlacklist.Contains(obj.Guid) &&
+                            obj.Distance < CollectionDistance &&
+                            MobIds.Contains((int)obj.Entry));
+
+                        break;
+
+                    case ObjectType.Npc:
+
+                        var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                               .OrderBy(obj => obj.Distance)
+                                                               .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
+                                                               obj.Distance < CollectionDistance &&
+                                                               !Me.Minions.Contains(obj) &&
+                                                                MobIds.Contains((int)obj.Entry));
+
+                        var npcStateQualifiedTargets = baseTargets
+                                                            .OrderBy(obj => obj.Distance)
+                                                            .Where(target => ((NpcState == NpcStateType.DontCare)
+                                                                              || ((NpcState == NpcStateType.Dead) && target.Dead)
+                                                                              || ((NpcState == NpcStateType.Alive) && target.IsAlive)
+                                                                              || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
+
+
+                        @object = npcStateQualifiedTargets.FirstOrDefault();
+
+                        break;
+
+                }
+
+                if (@object != null)
+                { LogMessage("debug", @object.Name); }
+
+                return @object;
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
@@ -159,13 +232,16 @@ namespace Styx.Bot.Quest_Behaviors
                         ret => Item == null,
                         new ActionAlwaysSucceed()),
 
+                    new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
+                        new Action(ret => _isBehaviorDone = true)),
+
                     new Decorator(
                         ret => UseType == QBType.PointToPoint,
                         new PrioritySelector(
                             new Decorator(
                                 ret => Me.Location.Distance(MoveToLocation) > 3,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving to location"),
+                                    new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
                                     new Action(ret => Navigator.MoveTo(MoveToLocation)))),
                             new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Using Item"),
@@ -174,11 +250,9 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => Item.UseContainerItem()),
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
+                                new Action(ret => Counter++),
                                 new Action(ret => LegacySpellManager.ClickRemoteLocation(ClickToLocation)),
-                                new Action(ret => Thread.Sleep(WaitTime)),
-                                new DecoratorContinue(
-                                    ret => QuestId == 0,
-                                    new Action(ret => _isBehaviorDone = true)))
+                                new Action(ret => Thread.Sleep(WaitTime)))
                             )),
 
                     new Decorator(
@@ -198,16 +272,15 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(
                                 ret => UseObject != null,
                                 new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Using Item"),
+                                    new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
                                     new Action(ret => Navigator.PlayerMover.MoveStop()),
                                     new Action(ret => StyxWoW.SleepForLagDuration()),
                                     new Action(ret => Item.UseContainerItem()),
+                                    new Action(ret => Counter++),
                                     new Action(ret => StyxWoW.SleepForLagDuration()),
                                     new Action(ret => LegacySpellManager.ClickRemoteLocation(UseObject.Location)),
-                                    new Action(ret => Thread.Sleep(WaitTime)),
-                                    new DecoratorContinue(
-                                        ret => QuestId == 0,
-                                        new Action(ret => _isBehaviorDone = true)))),
+                                    new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
+                                    new Action(ret => Thread.Sleep(WaitTime)))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
                             )),
 
@@ -223,16 +296,15 @@ namespace Styx.Bot.Quest_Behaviors
                                             new Action(ret => TreeRoot.StatusText = "Moving to object's range"),
                                             new Action(ret => Navigator.MoveTo(UseObject.Location)))),
                                     new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Using Item"),
+                                        new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => Item.UseContainerItem()),
+                                        new Action(ret => Counter++),
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => LegacySpellManager.ClickRemoteLocation(UseObject.Location)),
-                                        new Action(ret => Thread.Sleep(WaitTime)),
-                                        new DecoratorContinue(
-                                            ret => QuestId == 0,
-                                            new Action(ret => _isBehaviorDone = true))))),
+                                        new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
+                                        new Action(ret => Thread.Sleep(WaitTime))))),
                             new Decorator(
                                 ret => Me.Location.Distance(MoveToLocation) > 3,
                                 new Sequence(
