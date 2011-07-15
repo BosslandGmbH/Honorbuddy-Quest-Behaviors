@@ -113,13 +113,13 @@ namespace Styx.Bot.Quest_Behaviors
                     { GossipOptions[i] -= 1; }
 
 
-                WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(unit => MobIds.Contains((int)unit.Entry))
-                                      .FirstOrDefault();
+                IEnumerable<WoWUnit>    mobs    = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                                    .Where(unit => MobIds.Contains((int)unit.Entry));
 
-                MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
-                            ? mob.Name
-                            : ("Mob(" + MobIds + ")");
+                MobNames = string.Join(", ", mobs.Select(mob => (!string.IsNullOrEmpty(mob.Name)
+                                                                ? mob.Name
+                                                                : ("Mob(" + mob.Entry.ToString() + ")")))
+                                                 .ToArray());
 			}
 
 			catch (Exception except)
@@ -145,7 +145,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint                 Location { get; private set; }
         public bool                     Loot { get; private set; }
         public int[]                    MobIds { get; private set; }
-        public string                   MobName { get; private set; }
+        public string                   MobNames { get; private set; }
         public NpcStateType             NpcState { get; private set; }
         public NavigationType           NavigationState { get; private set; }
         public ObjectType               ObjType { get; private set; }
@@ -401,7 +401,7 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = "Interacting with " + MobName;
+                TreeRoot.GoalText = "Interacting with " + MobNames;
             }
 
             if (IgnoreCombat && TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
