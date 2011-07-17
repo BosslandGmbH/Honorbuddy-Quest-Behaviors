@@ -42,6 +42,9 @@
 //              targets (mobs or objects) will be sought.
 //      IgnoreMobsInBlackspots [Default: false]: If true, mobs sitting in blackspotted areas will not be
 //              considered as targets.
+//      MobState [Default: DontCare]: Identifies the state in which the Mob must be to be considered
+//              as a target.  The MobState only applies if the target is some form of NPC.  The MobState
+//              Valid values are Alive/Dead/DontCare.
 //      NonCompeteDistance [Default: 25]: If a player is within this distance of a target that looks
 //              interesting to us, we'll ignore the target.  The assumption is that the player may
 //              be going for the same target, and we don't want to draw attention.
@@ -83,6 +86,7 @@ using Styx.Logic.Inventory.Frames.LootFrame;
 using Styx.Logic.Pathing;
 using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
+using Styx.Plugins;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
@@ -102,6 +106,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             QuestComplete,
         }
 
+        public enum MobStateType
+        {
+            Alive,
+            Dead,
+            DontCare,
+        }
 
         public CollectThings(Dictionary<string, string> args)
             : base(args)
@@ -128,6 +138,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 HuntingGroundRadius     = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), new [] {"CollectionDistance"}) ?? 120.0;
                 IgnoreMobsInBlackspots  = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
                 MobIds                  = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, null);
+                MobState                = GetAttributeAsNullable<MobStateType>("MobState", false, null, null) ?? MobStateType.DontCare;
                 NonCompeteDistance      = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
                 ObjectIds               = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null);
                 PostInteractDelay       = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1500);
@@ -162,7 +173,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // Sub-behaviors...
                 _behavior_SwimBreath = new SwimBreathBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
                 _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
-                                                                    ViableTargets,
+                                                                    IsViableTarget,
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
                 _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
@@ -191,6 +202,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public double                   HuntingGroundRadius { get; private set; }
         public bool                     IgnoreMobsInBlackspots { get; private set; }
         public int[]                    MobIds { get; private set; }
+        public MobStateType             MobState { get; private set; }
         public double                   NonCompeteDistance { get; private set; }
         public int[]                    ObjectIds { get; private set; }
         public TimeSpan                 PostInteractDelay { get; private set; }
@@ -201,9 +213,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         // Private properties and data...
         private HuntingGroundBehavior   _behavior_HuntingGround;
         private SwimBreathBehavior      _behavior_SwimBreath;
-        private UnderwaterLootingBehavior   _behavior_UnderwaterLooting;
+        private UnderwaterLootingBehavior _behavior_UnderwaterLooting;
         private bool                    _isBehaviorDone                 = false;
         private bool                    _isDisposed;
+        private PluginContainer         _pluginAntiDrown;
+        private bool                    _pluginAntiDrownWasEnabled;
 
         private WoWObject               CurrentTarget                   { get { return (_behavior_HuntingGround.CurrentTarget); }}
         private readonly TimeSpan       Delay_MobConsumedExpiry         = TimeSpan.FromMinutes(7);
@@ -219,23 +233,6 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                                         .Where(item => (item.ItemInfo.Id == CollectItemId))
                                                         .Sum(item => item.StackCount));
                                             }}
-        private IEnumerable<WoWUnit>    NearbyPlayers { get {
-                                            return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                                    .Where(u => u.IsPlayer &&  (u.Distance < (HuntingGroundRadius + NonCompeteDistance))));                                                             
-                                            }}
-        private IEnumerable<WoWObject>  ViableTargets() {
-                                            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                    .Where(target => (target.IsValid
-                                                                        && (MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
-                                                                        && (target.Distance < HuntingGroundRadius)
-                                                                        && !target.IsLocallyBlacklisted()
-                                                                        && !BlacklistIfPlayerNearby(target)
-                                                                        && (IgnoreMobsInBlackspots
-                                                                            ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
-                                                                                                           target.Location)
-                                                                            : true)))
-                                                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
-                                            }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
@@ -262,6 +259,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 }
 
                 // Clean up unmanaged resources (if any) here...
+                if (_pluginAntiDrown != null)
+                {
+                    _pluginAntiDrown.Enabled = _pluginAntiDrownWasEnabled;
+                    _pluginAntiDrown = null;
+                }
+
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -308,6 +311,36 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
             }
+        }
+
+
+        public bool      IsViableTarget(WoWObject   target)
+        {
+            bool        isViable;
+
+            if (target == null)
+                { return (false); }
+
+            isViable = (target.IsValid
+                        && (MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
+                        && (target.Distance < HuntingGroundRadius)
+                        && !target.IsLocallyBlacklisted()
+                        && !BlacklistIfPlayerNearby(target)
+                        && (IgnoreMobsInBlackspots
+                            ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
+                                                            target.Location)
+                            : true));
+
+            if (isViable && (target is WoWUnit))
+            {
+                WoWUnit     wowUnit     = target.ToUnit();
+
+                isViable = ((wowUnit.IsAlive && (MobState == MobStateType.Alive))
+                            || (wowUnit.Dead && (MobState == MobStateType.Dead))
+                            || (MobState == MobStateType.DontCare));
+            }
+
+            return (isViable);                                                         
         }
 
 
@@ -363,7 +396,6 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         {
             return (
                 new PrioritySelector(
-
                     // If behavior done, bail...
                     // Note that this is also an implicit "is quest complete" exit criteria, also.
                     new Decorator(ret => IsDone,
@@ -377,6 +409,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                 GuiShowProgress(string.Format("{0}/{1} items collected", CollectedItemCount, CollectItemCount));
                                 _isBehaviorDone = true;
                             })),
+
+                    // If we're dead, the behavior can't function so bail until alive...
+                    new Decorator(ret => Me.Dead, new ActionAlwaysSucceed()),
 
                     // If swimming, check if we need breath...
                     _behavior_SwimBreath.CreateBehavior(),
@@ -394,9 +429,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                         {
                             GuiShowProgress("No more objects/mobs in area");
                             _isBehaviorDone = true;
-                        })),    
+                        })),
 
-                    // Target the unit of interest...
+                    // Otherwise, keep the unit of interest targeted...
                     new Decorator(ret => ((Me.CurrentTarget != CurrentTarget) && (CurrentTarget is WoWUnit)),
                         new Action(delegate
                         {
@@ -464,6 +499,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                // Disable the AntiDrown plugin if present, as it interferes with our anti-drown prevention...
+                _pluginAntiDrown = PluginManager.Plugins.FirstOrDefault(plugin => (plugin.Name == "Anti-Drown"));
+                if (_pluginAntiDrown != null)
+                {
+                    _pluginAntiDrownWasEnabled = _pluginAntiDrown.Enabled;
+                    _pluginAntiDrown.Enabled = false;
+                }
+
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
@@ -486,21 +529,21 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     {
         public delegate bool                    BehaviorFailIfNoTargetsDelegate();
         public delegate double                  DistanceDelegate();
+        public delegate bool                    IsViableTargetDelegate(WoWObject target);
         public delegate WoWPoint                LocationDelegate();
         public delegate void                    LoggerDelegate(string messageType, string format, params object[] args);
-        public delegate IEnumerable<WoWObject>  ViableTargetsDelegate();
         public delegate WoWObject               WoWObjectDelegate();
 
 
         public HuntingGroundBehavior(LoggerDelegate            loggerDelegate,
-                                     ViableTargetsDelegate     viableTargets,
+                                     IsViableTargetDelegate     isViableTarget,
                                      WoWPoint                  huntingGroundAnchor,
                                      double                    collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = huntingGroundAnchor;
+            IsViableTarget = isViableTarget;
             Logger = loggerDelegate;
-            ViableTargets = viableTargets;
 
             UseHotspots(null);
         }
@@ -518,19 +561,27 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public WoWObject                CurrentTarget                   { get; private set; }
         public Queue<WoWPoint>          Hotspots                        { get; set; }
         public WoWPoint                 HuntingGroundAnchor             { get; private set; }
+        public IsViableTargetDelegate   IsViableTarget                  { get; private set; }
 
 
         // Private properties & data...
         private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
         private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
         private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan       Delay_StatusUpdateThrottle      = TimeSpan.FromMilliseconds(3000);
         private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate Logger;
         private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
         private const double            MinDistanceToUse_DruidAquaticForm = 27.0;
         private int                     SpellId_DruidAquaticForm        = 1066;
-        public ViableTargetsDelegate    ViableTargets                   { get; private set; }
+        private IEnumerable<WoWObject>  ViableTargets() {
+                                            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                                                    .Where(target => IsViableTarget(target))
+                                                    .OrderBy(target => (Me.IsSwimming
+                                                                        ? target.Distance
+                                                                        : Me.Location.SurfacePathDistance(target.Location))));
+                                            }
 
         private TimeSpan                _currentTargetAutoBlacklistTime  = TimeSpan.FromSeconds(1);
         private readonly Stopwatch      _currentTargetAutoBlacklistTimer = new Stopwatch();
@@ -576,7 +627,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // from running back and forth between two equidistant targets.
                 new Decorator(ret => ((CurrentTarget == null)
                                       || !CurrentTarget.IsValid
-                                      || CurrentTarget.IsLocallyBlacklisted()),
+                                      || CurrentTarget.IsLocallyBlacklisted()
+                                      || !IsViableTarget(CurrentTarget)),
                     new PrioritySelector(context => CurrentTarget = ViableTargets().FirstOrDefault(),
 
                         // If we found next target, we're done...
@@ -651,12 +703,13 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // If we're too far from target, move closer...
                 new Decorator(wowObject => (((WoWObject)wowObject).Distance > maxRange()),
                     new Sequence(
-                        new Action(wowObject =>
-                        {
-                            TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-                                                                ((WoWObject)wowObject).Name,
-                                                                ((WoWObject)wowObject).Distance);
-                        }),
+                        new DecoratorThrottled(Delay_StatusUpdateThrottle, ret => true,
+                            new Action(wowObject =>
+                            {
+                                TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
+                                                                    ((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).Distance);
+                            })),
 
                         CreateBehavior_InternalMoveTo(() => target().Location)
                     )),
@@ -699,7 +752,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // If we're not at location, move to it...
                 new Decorator(wowPoint => (Me.Location.Distance((WoWPoint)wowPoint) > Navigator.PathPrecision),
                     new Sequence(
-                        new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint),
+                        new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,
+                            new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint)),
 
                         CreateBehavior_InternalMoveTo(() => location())
                     ))
@@ -720,12 +774,13 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // If we're not at target, move to it...
                 new Decorator(wowObject => (((WoWObject)wowObject).Distance > ((WoWObject)wowObject).InteractRange),
                     new Sequence(
-                        new Action(wowObject =>
-                        {
-                            TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-                                                                ((WoWObject)wowObject).Name,
-                                                                ((WoWObject)wowObject).Distance);
-                        }),
+                        new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,
+                            new Action(wowObject =>
+                            {
+                                TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
+                                                                    ((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).Distance);
+                            })),
 
                         CreateBehavior_InternalMoveTo(() => target().Location)
                     ))
@@ -872,6 +927,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                                                                        ? (int)Timer_SwimBreath.CurrentTime
                                                                                        : int.MaxValue);
                                                                         }}
+        private readonly TimeSpan       Delay_StatusUpdateThrottle      = TimeSpan.FromMilliseconds(3000);
         private readonly LoggerDelegate Logger;
         private int                     MinTime_DruidBreath             = 30000;    // in milliseconds
         private int                     MinTime_WarlockBreath           = 30000;    // in milliseconds
@@ -955,13 +1011,18 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                         _nearestAirSource = GetNearestAirSource();
                                         return (_nearestAirSource.Distance > Navigator.PathPrecision);
                                     },
-                                    new Action(delegate
-                                    {   
-                                        TreeRoot.StatusText = string.Format("Moving to {0} for breath. (distance {1:0.0})",
-                                                                            _nearestAirSource.Name,
-                                                                            _nearestAirSource.Distance);
-                                        UnderwaterMoveTo(_nearestAirSource.Location);
-                                    }))
+                                    new Sequence(
+                                        new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,
+                                            new Action(delegate
+                                            {   
+                                                TreeRoot.StatusText = string.Format("Moving to {0} for breath. (distance {1:0.0})",
+                                                                                    _nearestAirSource.Name,
+                                                                                    _nearestAirSource.Distance);
+                                            })),
+
+                                        new Action(delegate { UnderwaterMoveTo(_nearestAirSource.Location); })
+                                        )
+                                    )
                             )),
 
 
@@ -1172,12 +1233,42 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
     }
 
-
-
     #endregion  // Reusable behaviors
 
 
     #region Extensions to HBcore
+
+    public class DecoratorContinueThrottled         : DecoratorContinue
+    {
+        public DecoratorContinueThrottled(TimeSpan                  throttleTime,
+                                          CanRunDecoratorDelegate   canRun,
+                                          Composite                 composite)
+            :base(canRun, composite)
+        {
+            _throttleTime = throttleTime;
+
+            _throttle = new Stopwatch();
+            _throttle.Reset();
+            _throttle.Start();
+        }
+
+
+        protected override bool CanRun(object context)
+        {
+            if (_throttle.Elapsed < _throttleTime)
+                { return (false); }
+
+            _throttle.Reset();
+            _throttle.Start();
+
+            return (base.CanRun(context));
+        }
+
+
+        private Stopwatch                   _throttle;
+        private TimeSpan                    _throttleTime;
+    }
+
 
     public class DecoratorThrottled         : Decorator
     {
