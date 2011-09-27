@@ -303,13 +303,13 @@ namespace Styx.Bot.Quest_Behaviors
                                     ),
 
                             new Decorator(
-                                ret => !WaitForNpcs && CurrentObject == null,
+                                ret => Location.DistanceSqr(Me.Location) > 2 * 2,
                                 new Sequence(
-                                new Action(delegate { TreeRoot.StatusText = "Moving to location " + Location; }),
-                                new Action(ret => Navigator.MoveTo(Location)))),
+                                    new Action(delegate { TreeRoot.StatusText = "Moving to location " + Location; }),
+                                    new Action(ret => Navigator.MoveTo(Location)))),
 
                             new Decorator(
-                                 ret => WaitForNpcs && CurrentObject == null,
+                                 ret => !WaitForNpcs && CurrentObject == null,
                                  new Action(ret => _isBehaviorDone = true)),
 
                             new Action(ret => TreeRoot.StatusText = "Waiting for object to spawn")
