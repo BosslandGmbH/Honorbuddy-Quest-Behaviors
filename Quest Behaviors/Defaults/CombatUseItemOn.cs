@@ -36,7 +36,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
@@ -68,7 +68,8 @@ namespace Styx.Bot.Quest_Behaviors
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
                 NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-			    UseOnce         = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true;
+                UseOnce         = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true; 
+                WaitTime        = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 500;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
@@ -108,6 +109,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public bool                     UseOnce { get; private set; }
+        public int                      WaitTime { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
@@ -197,6 +199,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                 new Action(ret => TreeRoot.StatusText = "Using item"),
                                                 new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
                                                 new Action(ret => Item.UseContainerItem()),
+                                                new Action(ret => Thread.Sleep(WaitTime)),
                                                 new DecoratorContinue(
                                                     ret => QuestId == 0,
                                                     new Action(ret => Counter++))))))))
