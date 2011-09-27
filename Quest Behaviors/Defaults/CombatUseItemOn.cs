@@ -68,6 +68,7 @@ namespace Styx.Bot.Quest_Behaviors
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
                 NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+			    UseOnce         = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
@@ -106,6 +107,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int[]                    MobIds { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
+        public bool                     UseOnce { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
@@ -158,7 +160,7 @@ namespace Styx.Bot.Quest_Behaviors
             _isDisposed = true;
         }
 
-
+        private ulong _lastMobGuid;
         private Composite RootCompositeOverride()
         {
             return
@@ -178,14 +180,14 @@ namespace Styx.Bot.Quest_Behaviors
                                     )),
 
                             new Decorator(
-                                ret => Me.CurrentTarget != null && Item != null,
+                                ret => Me.CurrentTarget != null && Item != null && (!UseOnce || Me.CurrentTarget.Guid != _lastMobGuid),
                                 new PrioritySelector(
                                     new Sequence(
                                     new Decorator(
                                         ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
                                                (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
                                                (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
-                                               (HasAuraId != 0 && Me.HasAura(Styx.Logic.Combat.WoWSpell.FromId(HasAuraId).Name)),
+                                               (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name)),
                                         new PrioritySelector(
                                             new Decorator(
                                                 
@@ -193,6 +195,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
                                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                                 new Action(ret => TreeRoot.StatusText = "Using item"),
+                                                new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
                                                 new Action(ret => Item.UseContainerItem()),
                                                 new DecoratorContinue(
                                                     ret => QuestId == 0,
