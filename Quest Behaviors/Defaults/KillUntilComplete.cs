@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors
                     case Styx.Combat.CombatRoutine.WoWClass.Hunter:
                         return SpellManager.Spells["Arcane Shot"];
                     case Styx.Combat.CombatRoutine.WoWClass.Mage:
-                        return SpellManager.Spells["Frost Bolt"];
+                        return SpellManager.Spells["FrostBolt"];
                     case Styx.Combat.CombatRoutine.WoWClass.Priest:
                         return SpellManager.Spells["Shoot"];
                     case Styx.Combat.CombatRoutine.WoWClass.Shaman:
