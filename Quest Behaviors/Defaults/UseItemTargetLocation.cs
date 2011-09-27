@@ -85,7 +85,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
+                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
                 UseType     = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
                 WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
@@ -259,28 +259,35 @@ namespace Styx.Bot.Quest_Behaviors
                         ret => UseType == QBType.PointToObject,
                         new PrioritySelector(
                             new Decorator(
-                                ret => Me.Location.Distance(MoveToLocation) >= MinRange,
+                                ret => UseObject == null && Me.Location.DistanceSqr(MoveToLocation) >= 2 * 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new Action(ret => Navigator.MoveTo(MoveToLocation)))),
                             new Decorator(
-                                ret => Me.Location.Distance(MoveToLocation) < MinRange,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-                                    new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointBehind(Me.Location,Me.Rotation, (float)(MinRange - (double)MoveToLocation.Distance(Me.Location)))))
-                                    )),
-                            new Decorator(
                                 ret => UseObject != null,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
-                                    new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                    new Action(ret => StyxWoW.SleepForLagDuration()),
-                                    new Action(ret => Item.UseContainerItem()),
-                                    new Action(ret => Counter++),
-                                    new Action(ret => StyxWoW.SleepForLagDuration()),
-                                    new Action(ret => LegacySpellManager.ClickRemoteLocation(UseObject.Location)),
-                                    new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
-                                    new Action(ret => Thread.Sleep(WaitTime)))),
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ret => UseObject.DistanceSqr >= Range*Range,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Moving closer to the object"),
+                                            new Action(ret => Navigator.MoveTo(UseObject.Location)))),
+                                    new Decorator(
+                                        ret => UseObject.DistanceSqr < MinRange*MinRange,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
+                                            new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
+                                            )),
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
+                                        new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                        new Action(ret => Me.SetFacing(UseObject.Location)),
+                                        new Action(ret => StyxWoW.SleepForLagDuration()),
+                                        new Action(ret => Item.UseContainerItem()),
+                                        new Action(ret => Counter++),
+                                        new Action(ret => StyxWoW.SleepForLagDuration()),
+                                        new Action(ret => LegacySpellManager.ClickRemoteLocation(UseObject.Location)),
+                                        new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
+                                        new Action(ret => Thread.Sleep(WaitTime))))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
                             )),
 
@@ -291,13 +298,20 @@ namespace Styx.Bot.Quest_Behaviors
                                 ret => UseObject != null,
                                 new PrioritySelector(
                                     new Decorator(
-                                        ret => UseObject.Distance > Range,
+                                        ret => UseObject.DistanceSqr >= Range*Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving to object's range"),
                                             new Action(ret => Navigator.MoveTo(UseObject.Location)))),
+                                    new Decorator(
+                                        ret => UseObject.DistanceSqr < MinRange*MinRange,
+                                        new Sequence(
+                                            new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
+                                            new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
+                                            )),
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                        new Action(ret => Me.SetFacing(UseObject.Location)),
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => Item.UseContainerItem()),
                                         new Action(ret => Counter++),
@@ -306,7 +320,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ret => Thread.Sleep(WaitTime))))),
                             new Decorator(
-                                ret => Me.Location.Distance(MoveToLocation) > 3,
+                                ret => Me.Location.DistanceSqr(MoveToLocation) > 2*2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new Action(ret => Navigator.MoveTo(MoveToLocation))))
