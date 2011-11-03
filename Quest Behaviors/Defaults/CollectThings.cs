@@ -142,6 +142,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 NonCompeteDistance      = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
                 ObjectIds               = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null);
                 PostInteractDelay       = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1500);
+                RandomizeStartingHotspot= GetAttributeAsNullable<bool>("RandomizeStartingHotspot", false, null, null) ?? false;
                 QuestId                 = GetAttributeAsNullable<int>("QuestId", isQuestIdRequired, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -206,6 +207,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public double                   NonCompeteDistance { get; private set; }
         public int[]                    ObjectIds { get; private set; }
         public TimeSpan                 PostInteractDelay { get; private set; }
+        public bool                     RandomizeStartingHotspot { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
@@ -323,7 +325,6 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
             isViable = (target.IsValid
                         && (MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
-                        && (target.Distance < HuntingGroundRadius)
                         && !target.IsLocallyBlacklisted()
                         && !BlacklistIfPlayerNearby(target)
                         && (IgnoreMobsInBlackspots
@@ -344,28 +345,62 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private void    ParseHuntingGroundHotspots()
+        private void    ParseHuntingGroundHotspots(bool     randomizeStartingHotspot)
         {
-            List<WoWPoint>  huntingGroundHotspots   = new List<WoWPoint>();
+            List<WoWPointNamed>  huntingGroundHotspots   = new List<WoWPointNamed>();
 
-            foreach (XElement element in Element.Elements().Where(elem => elem.Name == "Hotspot"))
+            foreach (XElement element in Element.Elements().Where(elem => (elem.Name == "Hotspot")))
             {
-                double?     x   = ParseXmlElementDouble(element, "X");
-                double?     y   = ParseXmlElementDouble(element, "Y");
-                double?     z   = ParseXmlElementDouble(element, "Z");
+                double?     x           = ParseXmlElementDouble(element, "X", true);
+                double?     y           = ParseXmlElementDouble(element, "Y", true);
+                double?     z           = ParseXmlElementDouble(element, "Z", true);
 
                 if (!x.HasValue || !y.HasValue || !z.HasValue)
                     { continue; }
 
-                huntingGroundHotspots.Add(new WoWPoint(x.Value, y.Value, z.Value));
+                bool        isStarting  = ParseXmlElementBool(element, "StartPoint", false) ?? false;
+                string      name        = ParseXmlElementString(element, "Name", false);
+
+                huntingGroundHotspots.Add(new WoWPointNamed(new WoWPoint(x.Value, y.Value, z.Value), name, isStarting));
             }
 
-            _behavior_HuntingGround.UseHotspots(huntingGroundHotspots);
+            _behavior_HuntingGround.UseHotspots(huntingGroundHotspots, randomizeStartingHotspot);
         }
 
 
-        public double?  ParseXmlElementDouble(XElement    element,
-                                              string      attributeName)
+        private bool?   ParseXmlElementBool(XElement    element,
+                                            string      attributeName,
+                                            bool        isRequired)
+        {
+            string      location    = (((IXmlLineInfo)element).HasLineInfo()
+                                        ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
+                                        : string.Empty);
+            bool        tmpBool;
+
+            if (element.Attribute(attributeName) == null)
+            {
+                if (isRequired)
+                {
+                    LogMessage("error", "Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
+                    IsAttributeProblem = true;
+                }
+                return (null);
+            }
+
+            if (!bool.TryParse(element.Attribute(attributeName).Value, out tmpBool))
+            {
+                LogMessage("error", "Hotspot{0} '{1}' attribute is malformed", location, attributeName);
+                IsAttributeProblem = true;
+                return (null);
+            }
+
+            return (tmpBool);    
+        }
+
+
+        private double? ParseXmlElementDouble(XElement  element,
+                                              string    attributeName,
+                                              bool      isRequired)
         {
             string      location    = (((IXmlLineInfo)element).HasLineInfo()
                                         ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
@@ -374,8 +409,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
             if (element.Attribute(attributeName) == null)
             {
-                LogMessage("error", "Hotspot{0} is missing the '{1}' attribute", location, attributeName);
-                IsAttributeProblem = true;
+                if (isRequired)
+                {
+                    LogMessage("error", "Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
+                    IsAttributeProblem = true;
+                }
                 return (null);
             }
 
@@ -387,6 +425,28 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             }
 
             return (tmpDouble);    
+        }
+
+
+        private string  ParseXmlElementString(XElement  element,
+                                              string    attributeName,
+                                              bool      isRequired)
+        {
+            string      location    = (((IXmlLineInfo)element).HasLineInfo()
+                                        ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
+                                        : string.Empty);
+
+            if (element.Attribute(attributeName) == null)
+            {
+                if (isRequired)
+                {
+                    LogMessage("error", "Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
+                    IsAttributeProblem = true;
+                }
+                return (null);
+            }
+
+            return (element.Attribute(attributeName).Value);
         }
 
 
@@ -488,7 +548,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             // So we had to defer some final parsing that really should've happened in the constructor
             // to the OnStart() method.  This will parse the final arguments, and set IsAttributeProblem
             // correctly, for normal processing.
-            ParseHuntingGroundHotspots();
+            ParseHuntingGroundHotspots(RandomizeStartingHotspot);
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -519,6 +579,43 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     }
 
 
+    public class    WoWPointNamed
+    {
+        public WoWPointNamed(WoWPoint   location,
+                             string     name,
+                             bool       isStarting)
+        {
+            Location = location;
+            Name = (!string.IsNullOrEmpty(name) ? name : location.ToString());
+            IsStarting = isStarting;
+        }
+
+
+        public WoWPointNamed(WoWPoint   location,
+                             string     name)
+            : this(location, name, false)
+        {
+            // empty
+        }
+
+        public WoWPointNamed(WoWPoint   location)
+            : this(location, null, false)
+        {
+            // empty
+        }
+
+        public WoWPointNamed()
+            : this(WoWPoint.Empty, null, false)
+        {
+            // empty
+        }
+
+        public WoWPoint     Location        { get; set; }
+        public string       Name            { get; set; }
+        public bool         IsStarting      { get; set; }
+    }
+
+
     #region Reusable behaviors
     // The behaviors in this section were designed to be efficient and robust.
     // The robustness results in some larger-than-normal, but swift code.
@@ -530,22 +627,22 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public delegate bool                    BehaviorFailIfNoTargetsDelegate();
         public delegate double                  DistanceDelegate();
         public delegate bool                    IsViableTargetDelegate(WoWObject target);
-        public delegate WoWPoint                LocationDelegate();
+        public delegate WoWPointNamed           LocationDelegate();
         public delegate void                    LoggerDelegate(string messageType, string format, params object[] args);
         public delegate WoWObject               WoWObjectDelegate();
 
 
         public HuntingGroundBehavior(LoggerDelegate            loggerDelegate,
-                                     IsViableTargetDelegate     isViableTarget,
+                                     IsViableTargetDelegate    isViableTarget,
                                      WoWPoint                  huntingGroundAnchor,
                                      double                    collectionDistance)
         {
             CollectionDistance = collectionDistance;
-            HuntingGroundAnchor = huntingGroundAnchor;
+            HuntingGroundAnchor = new WoWPointNamed(huntingGroundAnchor, "Hunting Ground Anchor", true);
             IsViableTarget = isViableTarget;
             Logger = loggerDelegate;
 
-            UseHotspots(null);
+            // UseHotspots(null, false);
         }
 
 
@@ -560,7 +657,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public double                   CollectionDistance              { get; private set; }
         public WoWObject                CurrentTarget                   { get; private set; }
         public Queue<WoWPoint>          Hotspots                        { get; set; }
-        public WoWPoint                 HuntingGroundAnchor             { get; private set; }
+        public WoWPointNamed            HuntingGroundAnchor             { get; private set; }
         public IsViableTargetDelegate   IsViableTarget                  { get; private set; }
 
 
@@ -568,7 +665,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
         private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
         private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromMilliseconds(500);
-        private readonly TimeSpan       Delay_StatusUpdateThrottle      = TimeSpan.FromMilliseconds(3000);
+        private readonly TimeSpan       Delay_StatusUpdateThrottle      = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate Logger;
@@ -577,7 +674,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         private int                     SpellId_DruidAquaticForm        = 1066;
         private IEnumerable<WoWObject>  ViableTargets() {
                                             return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                    .Where(target => IsViableTarget(target))
+                                                    .Where(target => IsViableTarget(target)
+                                                                     && (target.Distance < CollectionDistance))
                                                     .OrderBy(target => (Me.IsSwimming
                                                                         ? target.Distance
                                                                         : Me.Location.SurfacePathDistance(target.Location))));
@@ -585,8 +683,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
         private TimeSpan                _currentTargetAutoBlacklistTime  = TimeSpan.FromSeconds(1);
         private readonly Stopwatch      _currentTargetAutoBlacklistTimer = new Stopwatch();
-        private Queue<WoWPoint>         _hotSpots                       = new Queue<WoWPoint>();
-        private WoWPoint                _huntingGroundWaitPoint;
+        private Queue<WoWPointNamed>    _hotSpots                       = new Queue<WoWPointNamed>();
+        private WoWPointNamed           _huntingGroundWaitPoint         = new WoWPointNamed(WoWPoint.Empty,
+                                                                                            "Hunting Ground Wait Point");
         private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
 
 
@@ -635,7 +734,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                         new Decorator(ret => (CurrentTarget != null),
                             new Action(delegate
                             {
-                                _huntingGroundWaitPoint = WoWPoint.Empty;
+                                _huntingGroundWaitPoint.Location = WoWPoint.Empty;
 
                                 if (CurrentTarget is WoWUnit)
                                     { CurrentTarget.ToUnit().Target(); }
@@ -654,25 +753,25 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                 // If we've more than one hotspot, head to the next one...
                                 new Decorator(ret => (_hotSpots.Count() > 1),
                                     new Sequence(context => FindNextHotspot(),
-                                        new Action(nextHotspot => TreeRoot.StatusText = "No targets--moving to hotspot "
-                                                                                        + (WoWPoint)nextHotspot),
-                                        CreateBehavior_InternalMoveTo(() => FindNextHotspot())
+                                        new Action(nextHotspot => TreeRoot.StatusText = "No targets--moving to "
+                                                                                        + ((WoWPointNamed)nextHotspot).Name),
+                                        CreateBehavior_InternalMoveTo(() =>  FindNextHotspot())
                                         )),
 
                                 // We find a point 'near' our anchor at which to wait...
                                 // This way, if multiple people are using the same profile at the same time,
                                 // they won't be standing on top of each other.
-                                new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
+                                new Decorator(ret => (_huntingGroundWaitPoint.Location == WoWPoint.Empty),
                                     new Action(delegate
                                         {
-                                            _huntingGroundWaitPoint = HuntingGroundAnchor.FanOutRandom(CollectionDistance * 0.25);
-                                            TreeRoot.StatusText = "No targets--moving near hunting ground anchor point to wait";
+                                            _huntingGroundWaitPoint.Location = HuntingGroundAnchor.Location.FanOutRandom(CollectionDistance * 0.25);
+                                            TreeRoot.StatusText = "No targets--moving to wait near " + _huntingGroundWaitPoint.Name;
                                             _repopWaitingTime.Reset();
                                             _repopWaitingTime.Start();
                                         })),
 
                                 // Move to our selected random point...
-                                new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
+                                new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint.Location) > Navigator.PathPrecision),
                                     CreateBehavior_InternalMoveTo(() => _huntingGroundWaitPoint)),
 
                                 // Tell user what's going on...
@@ -711,7 +810,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                                                     ((WoWObject)wowObject).Distance);
                             })),
 
-                        CreateBehavior_InternalMoveTo(() => target().Location)
+                        CreateBehavior_InternalMoveTo(() => new WoWPointNamed(target().Location))
                     )),
 
                 // If we're too close to target, back up...
@@ -747,13 +846,13 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         public Composite    CreateBehavior_MoveToLocation(LocationDelegate  location)
         {
             return (
-            new PrioritySelector(context => location(),
+            new PrioritySelector(
 
                 // If we're not at location, move to it...
                 new Decorator(wowPoint => (Me.Location.Distance((WoWPoint)wowPoint) > Navigator.PathPrecision),
                     new Sequence(
                         new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,
-                            new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint)),
+                            new Action(wowPoint => TreeRoot.StatusText = "Moving to " + location().Name)),
 
                         CreateBehavior_InternalMoveTo(() => location())
                     ))
@@ -766,10 +865,24 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             return (CreateBehavior_MoveToTarget(() => CurrentTarget));
         }
 
+
         public Composite    CreateBehavior_MoveToTarget(WoWObjectDelegate   target)
         {
             return (
             new PrioritySelector(context => target(),
+
+                // If we 'pass by' the current hotspot on the way to the target, advance to next hotspot...
+                // This prevents bot-like 'back tracking'.
+                new Decorator(ret => (Me.Location.Distance(_hotSpots.Peek().Location) < (CollectionDistance / 2)),
+                    new Action(delegate
+                    {
+                        // Rotate to the next hotspot in the list...
+                        _hotSpots.Enqueue(_hotSpots.Peek());
+                        _hotSpots.Dequeue();
+
+                        return (RunStatus.Failure);     // Fall through to next
+                    })),
+
 
                 // If we're not at target, move to it...
                 new Decorator(wowObject => (((WoWObject)wowObject).Distance > ((WoWObject)wowObject).InteractRange),
@@ -782,8 +895,18 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                                                     ((WoWObject)wowObject).Distance);
                             })),
 
-                        CreateBehavior_InternalMoveTo(() => target().Location)
-                    ))
+                        CreateBehavior_InternalMoveTo(() => new WoWPointNamed(target().Location))
+                    )),
+
+
+                // Update status...
+                new Action(wowObject =>
+                    {
+                        TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
+                                                            ((WoWObject)wowObject).Name,
+                                                            ((WoWObject)wowObject).Distance);
+                        return (RunStatus.Failure);
+                    })
             ));
         }
 
@@ -805,9 +928,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
         private TimeSpan        CalculateAutoBlacklistTime(WoWObject    wowObject)
         {
-            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimSpeed)
-                                           * 2.5);     // factor of safety
+            double      timeToWowObject;
 
+            if (Me.IsSwimming)
+                { timeToWowObject = Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimSpeed; }
+            else
+	            { timeToWowObject = Me.Location.SurfacePathDistance(wowObject.Location) / Me.MovementInfo.RunSpeed; }
+
+            timeToWowObject *= 2.5;     // factor of safety
             timeToWowObject = Math.Max(timeToWowObject, 20.0);  // 20sec hard lower-limit
 
             return (TimeSpan.FromSeconds(timeToWowObject));
@@ -822,19 +950,19 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // Druids, switch to Aquatic Form if swimming and distance dictates...
                 new DecoratorContinue(ret => (SpellManager.CanCast(SpellId_DruidAquaticForm)
                                                 && !Me.HasAura(AuraName_DruidAquaticForm)
-                                                && (Me.Location.Distance(locationDelegate()) > MinDistanceToUse_DruidAquaticForm)),
+                                                && (Me.Location.Distance(locationDelegate().Location) > MinDistanceToUse_DruidAquaticForm)),
                     new Action(delegate { SpellManager.Cast(SpellId_DruidAquaticForm); })),
 
                 // Move...
                 new Action(delegate
                 { 
                     // Try to use Navigator to get there...
-                    WoWPoint    location    = locationDelegate();
-                    MoveResult  moveResult  = Navigator.MoveTo(location);
+                    WoWPointNamed   destination = locationDelegate();
+                    MoveResult      moveResult  = Navigator.MoveTo(destination.Location);
 
                     // If Navigator fails, fall back to click-to-move...
                     if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                        {  WoWMovement.ClickToMove(location); }
+                        {  WoWMovement.ClickToMove(destination.Location); }
                 }),
 
                 new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
@@ -843,48 +971,64 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private WoWPoint        FindNearestHotspot()
+        private WoWPointNamed   FindStartingHotspot(bool    randomStartingHotspot)
         {
-            WoWPoint        nearestHotspot  = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
+            IEnumerable<WoWPointNamed>  hotspotsByDistance;
+            IEnumerable<WoWPointNamed>  hotspotsStarting;
+            Random                      random      = new Random((int)DateTime.Now.Ticks);
 
-            // Rotate the hotspot queue such that the nearest hotspot is on top...
-            while (_hotSpots.Peek() != nearestHotspot)
+            hotspotsByDistance = (Me.IsSwimming
+                                  ? _hotSpots.OrderBy(hotspot => hotspot.Location.Distance(Me.Location))
+                                  : _hotSpots.OrderBy(hotspot => hotspot.Location.SurfacePathDistance(Me.Location)));
+
+            hotspotsStarting = hotspotsByDistance.Where(hotspot => (hotspot.IsStarting == true));
+            if (hotspotsStarting.Count() <= 0)
             {
-                WoWPoint    tmpWoWPoint     = _hotSpots.Dequeue();
-
-                _hotSpots.Enqueue(tmpWoWPoint);
+                hotspotsStarting = hotspotsByDistance;
+                Logger("debug", "No explicit starting hotspot(s)--considering all");
             }
 
-            return (nearestHotspot);
-        }
+            Logger("debug", "Hotspot count: {0} ({1})", hotspotsByDistance.Count(),
+                        (randomStartingHotspot ? "randomized" : "starting at nearest"));
 
+            WoWPoint    startingLocation     = (randomStartingHotspot
+                                                ? hotspotsStarting.OrderBy(ret => random.Next()).FirstOrDefault().Location
+                                                : hotspotsStarting.FirstOrDefault().Location);
 
-        private WoWPoint        FindNextHotspot()
-        {
-            WoWPoint    currentHotspot      = _hotSpots.Peek();
+            // Rotate the hotspot queue such that the nearest hotspot is on top...
+            while (_hotSpots.Peek().Location != startingLocation)
+                { _hotSpots.Enqueue(_hotSpots.Dequeue()); }
 
-            // If we haven't reached the current hotspot, it is still the 'next' one...
-            if (Me.Location.Distance(currentHotspot) > Navigator.PathPrecision)
-                { return (currentHotspot); }
-
-            // Otherwise, rotate to the next hotspot in the list...
-            _hotSpots.Enqueue(currentHotspot);
-            _hotSpots.Dequeue();
-
+            Logger("debug", "Starting hotspot is {0}", _hotSpots.Peek().Name);
+            
             return (_hotSpots.Peek());
         }
 
 
-        public void         UseHotspots(IEnumerable<WoWPoint>       _hotspots)
+        private WoWPointNamed   FindNextHotspot()
         {
-            _hotspots = _hotspots ?? new WoWPoint[0];
+            WoWPointNamed   currentHotspot      = _hotSpots.Peek();
 
-            _hotSpots = new Queue<WoWPoint>(_hotspots);
+            // If we haven't reached the current hotspot, it is still the 'next' one...
+            if (Me.Location.Distance(currentHotspot.Location) > Navigator.PathPrecision)
+                { return (currentHotspot); }
+
+            // Otherwise, rotate to the next hotspot in the list...
+            _hotSpots.Enqueue(_hotSpots.Dequeue());
+            
+            return (_hotSpots.Peek());
+        }
+
+
+        public void         UseHotspots(IEnumerable<WoWPointNamed>  hotspots,
+                                        bool                        randomizeStartingHotspot)
+        {
+            _hotSpots = new Queue<WoWPointNamed>(hotspots ?? new WoWPointNamed[0]);
 
             if (_hotSpots.Count() <= 0)
                 { _hotSpots.Enqueue(HuntingGroundAnchor); }
 
-            FindNearestHotspot();
+            FindStartingHotspot(randomizeStartingHotspot);
         }
     }
 
