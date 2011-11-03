@@ -61,9 +61,9 @@
 // 
 // Exmaples:
 // <CustomBehavior File="CollectThings" ...other args... >
-//     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
-//     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
-//     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
+//     <Hotspot Name="Cathedral Square fishing dock" X="4554.003" Y="-4718.743" Z="883.0464" StartPoint="true" />
+//     <Hotspot Name="The Shady Lady" X="4578.725" Y="-4721.257" Z="882.8724" />
+//     <Hotspot Name="The Blue Recluse" X="4584.166" Y="-4693.487" Z="882.7331" StartPoint="true" />
 // </CustomBehavior>
 // 
 using System;
