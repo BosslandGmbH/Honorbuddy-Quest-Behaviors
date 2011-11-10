@@ -5,6 +5,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using Styx.Helpers;
@@ -15,11 +16,12 @@ using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
+using CommonBehaviors.Actions;
 using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
 {
     /// <summary>
     /// Waits at a safe location until an NPC is X distance way from you.. Useful for the quest in dk starter area where you have to ninja a horse but have to stay away from the stable master
@@ -45,6 +47,9 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+
+                // Internal use --
+                MobName = (AvoidNpc != null) ? AvoidNpc.Name : string.Format("MobId({0})", AvoidMobId);
 			}
 
 			catch (Exception except)
@@ -76,11 +81,14 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite           _root;
 
         // Private properties
-        private WoWObject       AvoidNpc { get { return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
-                                                                      .Where(o => o.Entry == AvoidMobId)
-                                                                      .OrderBy(o => o.Distance)
-                                                                      .FirstOrDefault()); } }
-        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
+        private WoWUnit                     AvoidNpc { get { return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                                                                  .Where(o => o.Entry == AvoidMobId)
+                                                                                  .OrderBy(o => o.Distance)
+                                                                                  .FirstOrDefault()); } }
+        private static readonly TimeSpan    LagDuration = TimeSpan.FromMilliseconds((2 * StyxWoW.WoWClient.Latency) + 150);
+        private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
+        private string                      MobName { get; set; }
+        private static readonly TimeSpan    Throttle_UserStatusUpdate   = TimeSpan.FromSeconds(1);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
@@ -122,32 +130,77 @@ namespace Styx.Bot.Quest_Behaviors
 
         protected override Composite CreateBehavior()
         {
-            return _root ??(_root = 
-                new PrioritySelector(
-                    
-                    new Decorator(c => Me.Location.Distance(SafespotLocation) > 4,
+            return (_root ?? (_root = 
+                new PrioritySelector(avoidNpc => AvoidNpc,
 
+                    // Move to our 'safe' spot, if needed...
+                    new Decorator(c => Me.Location.Distance(SafespotLocation) > Navigator.PathPrecision,
                         new PrioritySelector(
-
-                            new Decorator(ret => !Me.Mounted && Mount.CanMount() && CharacterSettings.Instance.UseMount && Me.Location.Distance(SafespotLocation) > 35,
+                            new Decorator(c => (!Me.Mounted
+                                                && Mount.CanMount()
+                                                && CharacterSettings.Instance.UseMount
+                                                && (Me.Location.Distance(SafespotLocation) > CharacterSettings.Instance.MountDistance)),
                                 new Sequence(
-                                    new DecoratorContinue(ret => Me.IsMoving,
+                                    new DecoratorContinue(c => Me.IsMoving,
                                         new Sequence(
-                                            new Action(ret => WoWMovement.MoveStop()),
-                                            new Action(ret => StyxWoW.SleepForLagDuration()) 
+                                            new Action(c => WoWMovement.MoveStop()),
+                                            new WaitContinue(LagDuration, c => false, new ActionAlwaysSucceed())
                                                 )),
 
                                     new Action(ret => Mount.MountUp()))),
 
-                            new Action(ret => Navigator.MoveTo(SafespotLocation)))),
-                                    
-                            new Decorator(c => AvoidNpc != null && AvoidNpc.Distance <= AvoidDistance,
-                                new Action(c => LogMessage("info", "Waiting on {0} to move {1} distance away", AvoidNpc, AvoidDistance))),
+                            new CompositeThrottle(Throttle_UserStatusUpdate,
+                                new Action(delegate {
+                                    TreeRoot.StatusText = string.Format("Moving to safe spot {0:F1} yards away.",
+                                                    Me.Location.Distance(SafespotLocation));
+                                    return (RunStatus.Failure);     // Fall through
+                                })),
 
-                            new Decorator(c => AvoidNpc == null || AvoidNpc.Distance > AvoidDistance,
-                                new Action(c => _isBehaviorDone = true))
-                            )
-                );
+                            new Action(c => Navigator.MoveTo(SafespotLocation))
+                            )),
+                                   
+                    // Wait for mob to move the prescribed distance away...
+                    new Decorator(avoidNpc => (((WoWUnit)avoidNpc) != null)
+                                                && (((WoWUnit)avoidNpc).Distance <= AvoidDistance),
+                        new CompositeThrottle(Throttle_UserStatusUpdate,
+                            new Sequence(
+                                // Set focus to the mob we're watching (for user-feedback purposes)...
+                                new DecoratorContinue(avoidNpc => (Me.FocusedUnitGuid != ((WoWUnit)avoidNpc).Guid),
+                                    new Action(avoidNpc => {
+                                        Me.SetFocus(((WoWUnit)avoidNpc).Guid);
+                                        return (RunStatus.Failure);         // fall through
+                                        })),
+
+                                new DecoratorContinue(avoidNpc => !Me.IsSafelyFacing((WoWUnit)avoidNpc),
+                                    new Action(avoidNpc => {
+                                        ((WoWUnit)avoidNpc).Face();
+                                        return (RunStatus.Failure);         // fall through
+                                        })),
+
+                                new Action(avoidNpc => {
+                                    TreeRoot.StatusText = string.Format(
+                                                            "Waiting on '{0}' (at {1:F1} yards) to move {2:F1} yards away",
+                                                            ((WoWUnit)avoidNpc).Name,
+                                                            ((WoWUnit)avoidNpc).Distance,
+                                                            AvoidDistance);
+                                    })
+                                ))),
+
+                    // We're at safe spot, and mob is prescribed distance away.  We're done...
+                    new Decorator(avoidNpc => (((WoWUnit)avoidNpc) == null)
+                                                || (((WoWUnit)avoidNpc).Distance > AvoidDistance),
+                        new Action(avoidNpc => {
+                            Me.SetFocus(0);
+                            TreeRoot.StatusText = string.Format(
+                                                    "'{0}' is {1} (needed {2:F1} yards).  Behavior done.",
+                                                    MobName,
+                                                    ((avoidNpc != null)
+                                                     ? string.Format("{0:F1} yards away", ((WoWUnit)avoidNpc).Distance)
+                                                     : "clear"),
+                                                    AvoidDistance);
+                            _isBehaviorDone = true;
+                            }))
+                    )));
         }
 
 
@@ -182,13 +235,47 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-                TreeRoot.StatusText = string.Format("Moving to safepoint {0} until MobId({1}) moves {2} yards away.",
-                                                    SafespotLocation,
-                                                    AvoidMobId,
-                                                    AvoidDistance);
+
+                LogMessage("info", "Moving to safe spot {0} until '{1}' moves {2} yards away.",
+                            SafespotLocation,
+                            MobName,
+                            AvoidDistance);
             }
         }
 
         #endregion
+    }
+
+
+    public class CompositeThrottle         : DecoratorContinue
+    {
+        public CompositeThrottle(TimeSpan       throttleTime,
+                                 Composite      composite)
+            :base(composite)
+        {
+            _hasRunOnce     = false;
+            _throttle       = new Stopwatch();
+            _throttleTime   = throttleTime;
+
+            _throttle.Reset();
+            _throttle.Start();
+        }
+
+
+        protected override bool CanRun(object context)
+        {
+            if (_hasRunOnce && (_throttle.Elapsed < _throttleTime))
+                { return (false); }
+
+            _hasRunOnce = true;
+            _throttle.Reset();
+            _throttle.Start();
+
+            return (true);
+        }
+
+        private bool        _hasRunOnce;
+        private Stopwatch   _throttle;
+        private TimeSpan    _throttleTime;
     }
 }
