@@ -124,7 +124,7 @@ namespace Styx.Bot.Quest_Behaviors
                 switch (Me.Class)
                 {
                     case Styx.Combat.CombatRoutine.WoWClass.Druid:
-                        return SpellManager.Spells["Starfire"];
+                        return SpellManager.Spells["Wrath"];
                     case Styx.Combat.CombatRoutine.WoWClass.Hunter:
                         return SpellManager.Spells["Arcane Shot"];
                     case Styx.Combat.CombatRoutine.WoWClass.Mage:
@@ -162,7 +162,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (IsRanged ? 25 : 3);
+                return (IsRanged ? 29 : 3);
             }
         }
 

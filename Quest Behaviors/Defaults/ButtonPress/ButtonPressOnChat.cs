@@ -261,8 +261,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                             }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Rev$"); } }
+        public override string      SubversionId { get { return ("$Id: ButtonPressOnChat.cs 186 2011-06-27 20:07:39Z chinajade $"); } }
+        public override string      SubversionRevision { get { return ("$Rev: 186 $"); } }
 
 
         ~ButtonPressOnChat()
@@ -984,7 +984,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
         private TimeSpan        CalculateAutoBlacklistTime(WoWObject    wowObject)
         {
-            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimSpeed)
+            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed)
                                            * 2.5);     // factor of safety
 
             timeToWowObject = Math.Max(timeToWowObject, 20.0);  // 20sec hard lower-limit

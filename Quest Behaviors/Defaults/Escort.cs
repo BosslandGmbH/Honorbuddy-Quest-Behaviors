@@ -283,8 +283,11 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         {
             get
             {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
                 return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)
+                        || quest != null && quest.IsFailed);
             }
         }
 

@@ -189,8 +189,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                                             }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Rev$"); } }
+        public override string      SubversionId { get { return ("$Id: ButtonPressOnAura.cs 184 2011-06-26 21:59:04Z chinajade $"); } }
+        public override string      SubversionRevision { get { return ("$Rev: 184 $"); } }
 
 
         ~ButtonPressOnAura()
@@ -699,7 +699,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
         private TimeSpan        CalculateAutoBlacklistTime(WoWObject    wowObject)
         {
-            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimSpeed)
+            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed)
                                            * 2.5);     // factor of safety
 
             timeToWowObject = Math.Max(timeToWowObject, 20.0);  // 20sec hard lower-limit

@@ -931,7 +931,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             double      timeToWowObject;
 
             if (Me.IsSwimming)
-                { timeToWowObject = Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimSpeed; }
+                { timeToWowObject = Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed ; }
             else
 	            { timeToWowObject = Me.Location.SurfacePathDistance(wowObject.Location) / Me.MovementInfo.RunSpeed; }
 
@@ -1238,7 +1238,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             AirSource   airSource   = GetNearestAirSource();
             double      travelTime;
 
-            travelTime = (((airSource.Location.Distance(Me.Location) / Me.MovementInfo.SwimSpeed)
+            travelTime = (((airSource.Location.Distance(Me.Location) / Me.MovementInfo.SwimmingForwardSpeed )
                           * 2.75)   // factor of safety
                           + (3 * ThrottleTimer_BreathCheck.TotalSeconds));
             travelTime = Math.Min(travelTime, 30.0);    // Hard-minimum of 30secs
