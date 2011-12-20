@@ -55,6 +55,12 @@ namespace Styx.Bot.Quest_Behaviors
             DontCare,
         }
 
+        public enum NavigationType
+        {
+            Mesh,
+            CTM,
+            None,
+        }
 
         public UseItemOn(Dictionary<string, string> args)
             : base(args)
@@ -76,7 +82,8 @@ namespace Styx.Bot.Quest_Behaviors
                 MobIds      = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
                 MobType     = GetAttributeAsNullable<ObjectType>("MobType", false, null, new [] { "ObjectType" }) ?? ObjectType.Npc;
                 NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                NpcState    = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new [] { "NpcState" }) ?? NpcStateType.DontCare;
+                NpcState    = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
                 Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
@@ -113,6 +120,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int[]                    MobIds { get; private set; }
         public ObjectType               MobType { get; private set; }
         public NpcStateType             NpcState { get; private set; }
+        public NavigationType           NavigationState { get; private set; }
         public int                      NumOfTimes { get; private set; }
         public int                      QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -255,11 +263,25 @@ namespace Styx.Bot.Quest_Behaviors
 
                     new PrioritySelector(
                         new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr > Range * Range,
-                            new Sequence(
-                                new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
-                                new Action(ret => Navigator.MoveTo(CurrentObject.Location))
-                                )
-                            ),
+                            new Switch<NavigationType>(ret => NavigationState,
+                                new SwitchArgument<NavigationType>(
+                                    NavigationType.CTM,
+                                    new Sequence(
+                                        new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
+                                        new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
+                                    )),
+                                new SwitchArgument<NavigationType>(
+                                    NavigationType.Mesh,
+                                    new Sequence(
+                                        new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
+                                        new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+                                        )),
+                                new SwitchArgument<NavigationType>(
+                                    NavigationType.None,
+                                    new Sequence(
+                                        new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
+                                        new Action(ret => _isBehaviorDone = true)
+                                    )))),
 
                         new Decorator(ret => CurrentObject != null && CurrentObject.DistanceSqr <= Range * Range && Item != null && Item.Cooldown == 0,
                             new Sequence(
