@@ -190,7 +190,7 @@ namespace Styx.Bot.Quest_Behaviors
                         ret => TransportLocation != WoWPoint.Empty && TransportLocation.Distance(EndLocation) < 2 && _usedTransport,
                         new PrioritySelector(
                             new Decorator(
-                                ret => Me.Location.Distance(GetOffLocation) > 2,
+                                ret => Me.Location.Distance(GetOffLocation) > 2 && StyxWoW.Me.IsOnTransport,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving out of transport"),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)),

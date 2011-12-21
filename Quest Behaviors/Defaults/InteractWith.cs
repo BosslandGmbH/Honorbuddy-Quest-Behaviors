@@ -212,30 +212,29 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                bool test = ObjectManager.GetObjectsOfType<WoWGameObject>().Any(delegate(WoWGameObject obj) { return obj.Entry == 191092; });
                 WoWObject @object = null;
                 switch (ObjType)
                 {
                     case ObjectType.GameObject:
-                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
+                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().Where(obj =>
                             !_npcBlacklist.Contains(obj.Guid) &&
-                            obj.Distance < CollectionDistance &&
-                            MobIds.Contains((int)obj.Entry));
+                            obj.DistanceSqr < CollectionDistance * CollectionDistance &&
+                            MobIds.Contains((int)obj.Entry)).OrderBy(ret => ret.DistanceSqr).FirstOrDefault();
 
                         break;
 
                     case ObjectType.Npc:
 
                         var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                               .OrderBy(obj => obj.Distance)
                                                                .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
-                                                               obj.Distance < CollectionDistance && 
-                                                               !Me.Minions.Contains(obj) && 
-                                                               (NotMoving ? !obj.IsMoving : true) &&
-                                                                MobIds.Contains((int)obj.Entry));
+                                                                   (NotMoving ? !obj.IsMoving : true) &&
+                                                                    MobIds.Contains((int)obj.Entry) &&
+                                                                   !Me.Minions.Contains(obj) && 
+                                                                   obj.DistanceSqr < CollectionDistance * CollectionDistance)
+                                                               .OrderBy(obj => obj.DistanceSqr);
 
                         var npcStateQualifiedTargets = baseTargets
-                                                            .OrderBy(obj => obj.Distance)
+                                                            .OrderBy(obj => obj.DistanceSqr)
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
                                                                               || ((NpcState == NpcStateType.Dead) && target.Dead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
