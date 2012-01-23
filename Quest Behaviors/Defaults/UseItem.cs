@@ -11,6 +11,7 @@ using System.Threading;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;
@@ -42,6 +43,9 @@ namespace Styx.Bot.Quest_Behaviors
                 NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+                TargetNearest = GetAttributeAsNullable<bool>("TargetNearest", false, null, new[] { "TargetClosest" }) ?? false;
+
+
 			}
 
 			catch (Exception except)
@@ -66,6 +70,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
         public int                      WaitTime { get; private set; }
+        public bool                     TargetNearest { get; private set; }
 
         // Private variables for internal state
         private bool                    _isBehaviorDone;
@@ -111,7 +116,6 @@ namespace Styx.Bot.Quest_Behaviors
             _isDisposed = true;
         }
 
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
@@ -135,6 +139,15 @@ namespace Styx.Bot.Quest_Behaviors
                             Navigator.PlayerMover.MoveStop();
                             StyxWoW.SleepForLagDuration();
                         })),
+
+                new Decorator(
+                    ret => TargetNearest,
+                    new Action(ret =>
+                    {
+                        Lua.DoString("TargetNearest()");
+                        StyxWoW.SleepForLagDuration();
+                        return RunStatus.Failure;
+                    })),
 
                 new Decorator(
                     ret => Item != null && Item.Cooldown == 0,

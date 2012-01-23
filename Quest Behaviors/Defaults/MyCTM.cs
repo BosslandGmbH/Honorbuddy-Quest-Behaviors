@@ -6,7 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-
+using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
@@ -14,6 +14,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using TreeSharp;
+using Tripper.Tools.Math;
 using Action = TreeSharp.Action;
 
 
@@ -41,6 +42,11 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                UseRealitiveLocation = GetAttributeAsNullable<bool>("UseRelative", false, null, new[] { "useRelative" }) ?? false;
+
+                OrigDestination = Destination;
+
+			    IsConverted = false;
 
                 if (string.IsNullOrEmpty(DestinationName))
                     { DestinationName = Destination.ToString(); }
@@ -63,8 +69,10 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public string                   DestinationName { get; private set; }
+        public WoWPoint                 OrigDestination { get; private set; }
         public WoWPoint                 Destination { get; private set; }
         public int                      QuestId { get; private set; }
+        public bool                     UseRealitiveLocation { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
 
@@ -76,6 +84,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         public int                  Counter { get; set; }
         private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        public bool                 IsConverted { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string      SubversionId { get { return ("$Id$"); } }
@@ -119,6 +128,22 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ?? (_root =
                  new PrioritySelector(
+
+                     new Decorator(ret => UseRealitiveLocation,
+                                new Sequence(
+                                    new Action(delegate
+                                                   {
+
+                                                       Vector3 relLoc = OrigDestination;
+
+                                                       Vector3 worldLoc = Vector3.Transform(relLoc, Me.Transport.GetWorldMatrix());
+
+                                                       Destination = worldLoc;
+
+
+                                                       return RunStatus.Failure;
+                                            }
+                                       ))),
 
                             new Decorator(ret => Destination.Distance(Me.Location) <= 3,
                                 new Sequence(
