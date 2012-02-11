@@ -41,68 +41,84 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
     /// </summary>
     public class AnEndToAllThings : CustomForcedBehavior
     {
-        public AnEndToAllThings(Dictionary<string, string> args) : base(args)
+        public AnEndToAllThings(Dictionary<string, string> args)
+            : base(args)
         {
             try
             {
-                AttackSpellId   = GetAttributeAsNullable<int>("AttackSpellId", true, ConstrainAs.SpellId, new [] { "AttackSpell" }) ?? 0;
-                HealNpcId       = GetAttributeAsNullable<int>("HealNpcId", true, ConstrainAs.MobId, new [] { "HealNpc" }) ?? 0;
-                HealSpellId     = GetAttributeAsNullable<int>("HealSpellId", false, ConstrainAs.SpellId, new [] { "HealSpell" }) ?? 0;
-                ItemId          = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                KillNpcId       = GetAttributeAsNullable<int>("KillNpcId", true, ConstrainAs.MobId, new [] { "KillNpc" }) ?? 0;
-                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
-			}
+                AttackSpellId = GetAttributeAsNullable<int>("AttackSpellId", true, ConstrainAs.SpellId, new[] { "AttackSpell" }) ?? 0;
+                HealNpcId = GetAttributeAsNullable<int>("HealNpcId", true, ConstrainAs.MobId, new[] { "HealNpc" }) ?? 0;
+                HealSpellId = GetAttributeAsNullable<int>("HealSpellId", false, ConstrainAs.SpellId, new[] { "HealSpell" }) ?? 0;
+                ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                KillNpcId = GetAttributeAsNullable<int>("KillNpcId", true, ConstrainAs.MobId, new[] { "KillNpc" }) ?? 0;
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
         // Attributes provided by caller
-        public int      AttackSpellId { get;  private set; }
-        public int      HealNpcId { get; private set; }
-        public int      HealSpellId { get; private set; }
-        public int      ItemId { get; private set; }
-        public int      KillNpcId { get; private set; }
-        public int      VehicleId { get; private set; }
+        public int AttackSpellId { get; private set; }
+        public int HealNpcId { get; private set; }
+        public int HealSpellId { get; private set; }
+        public int ItemId { get; private set; }
+        public int KillNpcId { get; private set; }
+        public int VehicleId { get; private set; }
 
         // Private variables for internal state
-        private ConfigMemento               _configMemento;
-        private bool                        _isBehaviorDone;
-        private bool                        _isDisposed;
-        private bool                        _isInitialized;
-        private PlayerQuest                 _quest;
-        private readonly Stopwatch          _remountTimer = new Stopwatch();
+        private ConfigMemento _configMemento;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private bool _isInitialized;
+        private PlayerQuest _quest;
+        private readonly Stopwatch _remountTimer = new Stopwatch();
 
         // Private properties
-        public WoWPetSpell                  AttackSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId); }  }
-        public IEnumerable<WoWUnit>         HealNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                    .Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpcId);
-                                                     } }
-        public WoWPetSpell                  HealSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId); } }
-        private CircularQueue<WoWPoint>     EndPath { get; set; }       // End Path
-        public IEnumerable<WoWUnit>         KillNpcs { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                    .Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId);
-                                                     } }
-        private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
-        private CircularQueue<WoWPoint>     Path { get; set; }
-        private WoWPoint                    StartPoint { get; set; }    // Start path
-        public WoWUnit                      Vehicle { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid);
-                                                    } }
+        public WoWPetSpell AttackSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId); } }
+        public IEnumerable<WoWUnit> HealNpcs
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                       .Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpcId);
+            }
+        }
+        public WoWPetSpell HealSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId); } }
+        private CircularQueue<WoWPoint> EndPath { get; set; }       // End Path
+        public IEnumerable<WoWUnit> KillNpcs
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                       .Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId);
+            }
+        }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private CircularQueue<WoWPoint> Path { get; set; }
+        private WoWPoint StartPoint { get; set; }    // Start path
+        public WoWUnit Vehicle
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                    .FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid);
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~AnEndToAllThings()
@@ -110,7 +126,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
             Dispose(false);
         }
 
-        public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -125,7 +141,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                    { _configMemento.Dispose(); }
+                { _configMemento.Dispose(); }
 
                 _configMemento = null;
 
@@ -144,9 +160,9 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         }
 
 
-        public void    BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStop(EventArgs args)
         {
-             Dispose();
+            Dispose();
         }
 
 
@@ -154,7 +170,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
         {
             var temp = new List<WoWPoint>();
 
-            foreach(XElement element in elements)
+            foreach (XElement element in elements)
             {
                 XAttribute xAttribute, yAttribute, zAttribute;
                 xAttribute = element.Attribute("X");
@@ -222,7 +238,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
 
         protected override Composite CreateBehavior()
         {
-            return 
+            return
                 new PrioritySelector(
 
                     new Decorator(ret => !_isInitialized,
@@ -246,7 +262,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                             )),
 
                                     new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                                        // Use the item
+                // Use the item
                                         new Sequence(
                                             new Action(ret => ((WoWItem)ret).UseContainerItem()),
                                             new Action(ret => ParsePaths()))
@@ -272,19 +288,19 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                     new Decorator(ret => Vehicle == null,
                         new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
                             new DecoratorContinue(ret => ret == null,
-                                new Sequence( 
+                                new Sequence(
                                     new Action(ret => LogMessage("fatal", "Unable to locate ItemId({0}) in inventory.", ItemId))
                                     )),
 
                             new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                                // Use the item
+                // Use the item
                                 new Sequence(
                                     new Action(ret => ParsePaths()),
                                     new Action(ret => ((WoWItem)ret).UseContainerItem()))
                                 ),
 
                             // Wait until we are in the vehicle
-                            new WaitContinue(5, ret => Vehicle != null, 
+                            new WaitContinue(5, ret => Vehicle != null,
                                 new Sequence(
                                     new Action(ret => _remountTimer.Reset()),
                                     new Action(ret => _remountTimer.Start()),
@@ -293,7 +309,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                 ))),
 
                     new Decorator(ret => Vehicle != null,
-                        
+
                         new PrioritySelector(
                             new Decorator(ret => !_remountTimer.IsRunning,
                                 new Action(ret => _remountTimer.Start())),
@@ -322,7 +338,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                         new PrioritySelector(
                                             new Decorator(
                                                 ret => ((WoWUnit)ret).Location.Distance(Vehicle.Location) > 15,
-                                                new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0,0,10)))),
+                                                new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0, 0, 10)))),
                                             new Action(ret =>
                                             {
                                                 WoWMovement.MoveStop();
@@ -339,7 +355,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                                 Vector3 v = ((WoWUnit)ret).Location - StyxWoW.Me.Location;
                                                 v.Normalize();
                                                 Lua.DoString(string.Format(
-                                                    "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);", 
+                                                    "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);",
                                                     Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
                                             }),
                                         new Action(ret => CastPetAction(AttackSpell)),
@@ -384,7 +400,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                 _configMemento = new ConfigMemento();
 
                 BotEvents.Player.OnPlayerDied += Player_OnPlayerDied;
-                BotEvents.OnBotStop  += BotEvents_OnBotStop;
+                BotEvents.OnBotStop += BotEvents_OnBotStop;
                 Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
 
                 // Disable any settings that may cause distractions --

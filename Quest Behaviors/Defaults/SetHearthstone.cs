@@ -33,7 +33,8 @@ namespace Styx.Bot.Quest_Behaviors
 
         private bool _done;
 
-        public SetHearthstone(Dictionary<string, string> args) : base(args)
+        public SetHearthstone(Dictionary<string, string> args)
+            : base(args)
         {
             CheckForUnrecognizedAttributes(_recognizedAttributes);
 
@@ -153,22 +154,22 @@ namespace Styx.Bot.Quest_Behaviors
                     ret => InnKeeper != null,
                     new PrioritySelector(
                         ctx => InnKeeper,
-                        // Found the Innkeeper, but its a bit far away. Get within interact distance!
+                // Found the Innkeeper, but its a bit far away. Get within interact distance!
                         new Decorator(
                             ret => ((WoWUnit)ret).Distance > 4.5f,
                             new Action(ret => Navigator.MoveTo(((WoWUnit)ret).Location))),
-                        // Now, we open up the gossip frame, and see if we can find a 'set my location' option
+                // Now, we open up the gossip frame, and see if we can find a 'set my location' option
                         new Sequence(
-                            // First, interact.
+                // First, interact.
                             new Action(ret => ((WoWUnit)ret).Interact()),
-                            // Some inn keepers offer the option to select "make this your home",
-                            // while others just throw the popup at you. This should ensure both are handled!
+                // Some inn keepers offer the option to select "make this your home",
+                // while others just throw the popup at you. This should ensure both are handled!
                             new Wait(
                                 5, ret => GossipFrameActive() || StaticPopupActive(),
                                 new PrioritySelector(
-                                    // If we even made it here, it means we have a window open.
-                                    // The next part is trivial at best. FIRST, we deal with selecting
-                                    // The "Make this my home" gossip option.
+                // If we even made it here, it means we have a window open.
+                // The next part is trivial at best. FIRST, we deal with selecting
+                // The "Make this my home" gossip option.
                                     new Decorator(
                                         ret => GossipFrameActive(),
                                         new Action(ret => SelectSetLocationGossipOption())),

@@ -24,9 +24,9 @@ namespace Styx.Bot.Quest_Behaviors
         public FollowNpcUntil(Dictionary<string, string> args)
             : base(args)
         {
-			try
-			{
-                LogMessage("warning",   "*****\n"
+            try
+            {
+                LogMessage("warning", "*****\n"
                                         + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
                                         + "*\n"
                                         + "* Escort is the replacement behavior for FollowNpcUntil.\n"
@@ -36,71 +36,71 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 MovedToTarget = false;
-                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId" }) ?? 0;
-                MobName     = GetAttributeAs<string>("MobName", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
+                MobName = GetAttributeAs<string>("MobName", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 if (string.IsNullOrEmpty(MobName))
                 {
-                    WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                    WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>()
                                           .Where(unit => unit.Entry == MobId)
                                           .FirstOrDefault();
 
-                    MobName = !string.IsNullOrEmpty(mob.Name)  ? mob.Name   : ("Mob(" + MobId + ")");
+                    MobName = !string.IsNullOrEmpty(mob.Name) ? mob.Name : ("Mob(" + MobId + ")");
                 }
 
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      Counter { get; set; }
-        public WoWPoint                 Location { get; private set; }
-        public bool                     MovedToTarget { get; private set; }
-        public int                      MobId { get; private set; }
-        public string                   MobName { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int Counter { get; set; }
+        public WoWPoint Location { get; private set; }
+        public bool MovedToTarget { get; private set; }
+        public int MobId { get; private set; }
+        public string MobName { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private List<WoWUnit>       _npcList;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private List<WoWUnit> _npcList;
+        private Composite _root;
 
         // Private properties
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~FollowNpcUntil()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -131,8 +131,8 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ?? (_root =
                 new PrioritySelector(
-				
-				new Decorator(ret => (QuestId != 0 && Me.QuestLog.GetQuestById((uint)QuestId) != null &&
+
+                new Decorator(ret => (QuestId != 0 && Me.QuestLog.GetQuestById((uint)QuestId) != null &&
                                         Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                         new Action(ret => _isBehaviorDone = true)),
 
@@ -177,14 +177,14 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
 
-        public override bool    IsDone
+        public override bool IsDone
         {
             get
             {
@@ -194,8 +194,8 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    OnStart()
-		{
+        public override void OnStart()
+        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -207,7 +207,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 TreeRoot.GoalText = "Following " + MobName;
             }
-		}
+        }
 
         #endregion
     }

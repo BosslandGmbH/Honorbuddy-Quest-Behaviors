@@ -53,59 +53,64 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         public Escort(Dictionary<string, string> args)
             : base(args)
         {
-			try
-			{
+            try
+            {
                 EscortUntil = GetAttributeAsNullable<EscortUntilType>("EscortUntil", false, null, null) ?? EscortUntilType.QuestComplete;
 
-                EscortDestination   = GetAttributeAsNullable<WoWPoint>("EscortDest", (EscortUntil == EscortUntilType.DestinationReached), ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                Location    = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobId       = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
-                QuestId     = GetAttributeAsNullable<int>("QuestId", (EscortUntil == EscortUntilType.QuestComplete), ConstrainAs.QuestId(this), null) ?? 0;
+                EscortDestination = GetAttributeAsNullable<WoWPoint>("EscortDest", (EscortUntil == EscortUntilType.DestinationReached), ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobId = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                QuestId = GetAttributeAsNullable<int>("QuestId", (EscortUntil == EscortUntilType.QuestComplete), ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-			}
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public WoWPoint                 EscortDestination { get; private set; }
-        public EscortUntilType          EscortUntil { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public int[]                    MobId { get; private set; }
-        public int                      QuestId { get; private set; }
+        public WoWPoint EscortDestination { get; private set; }
+        public EscortUntilType EscortUntil { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int[] MobId { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private ConfigMemento           _configMemento;
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
-        private Composite               _root;
+        private ConfigMemento _configMemento;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private const double            DestinationTolerance            = 5.0;
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>           MobList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .Where(u => MobId.Contains((int)u.Entry) && !u.Dead)
-                                                                                .OrderBy(u => u.Distance).ToList());
-                                                }}
+        private const double DestinationTolerance = 5.0;
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private List<WoWUnit> MobList
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                        .Where(u => MobId.Contains((int)u.Entry) && !u.Dead)
+                                        .OrderBy(u => u.Distance).ToList());
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~Escort()
@@ -114,7 +119,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
-        public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -129,7 +134,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                    { _configMemento.Dispose(); }
+                { _configMemento.Dispose(); }
 
                 _configMemento = null;
 
@@ -145,13 +150,13 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
-        public void    BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStop(EventArgs args)
         {
-             Dispose();
+            Dispose();
         }
 
 
-        public bool     IsQuestComplete()
+        public bool IsQuestComplete()
         {
             return (UtilIsProgressRequirementsMet(QuestId,
                                                   QuestInLogRequirement.InLog,
@@ -191,7 +196,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
             return _root ?? (_root =
 
                 new PrioritySelector(
-                    // If we've arrived at the destination, we're done...
+                // If we've arrived at the destination, we're done...
                     new Decorator(ret => ((EscortUntil == EscortUntilType.DestinationReached)
                                           && (Me.Location.Distance(EscortDestination) <= DestinationTolerance)),
                         new Action(delegate
@@ -243,7 +248,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
 
                     new Decorator(
-                        ret => MobList.Count > 0 && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && 
+                        ret => MobList.Count > 0 && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) &&
                                 MobList[0].CurrentTarget == null && MobList[0].DistanceSqr > 5f * 5f,
                         new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Following Mob - " + MobList[0].Name + " At X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
@@ -272,7 +277,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         }
 
 
-        public override void   Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -311,7 +316,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new ConfigMemento();
 
-                BotEvents.OnBotStop  += BotEvents_OnBotStop;
+                BotEvents.OnBotStop += BotEvents_OnBotStop;
 
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
@@ -324,7 +329,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
 
-                WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>()
                                       .Where(unit => MobId.Contains((int)unit.Entry))
                                       .FirstOrDefault();
 

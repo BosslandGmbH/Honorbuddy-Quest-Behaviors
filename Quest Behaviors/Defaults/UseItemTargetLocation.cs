@@ -75,66 +75,66 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-                ItemId      = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
                 MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobIds      = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new [] { "ObjectId" });
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "ObjectId" });
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                ObjType     = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
-                UseType     = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
-                WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                UseType = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 
                 Counter = 1;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public WoWPoint                 ClickToLocation { get; private set; }
-        public double                   CollectionDistance { get; private set; }
-        public int                      ItemId { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public double                   MobHpPercentLeft { get; private set; }
-        public WoWPoint                 MoveToLocation { get; private set; }
-        public NpcStateType             NpcState { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public ObjectType               ObjType { get; private set; }
-        public int                      QuestId { get; private set; }
+        public WoWPoint ClickToLocation { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public int ItemId { get; private set; }
+        public int[] MobIds { get; private set; }
+        public double MobHpPercentLeft { get; private set; }
+        public WoWPoint MoveToLocation { get; private set; }
+        public NpcStateType NpcState { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public ObjectType ObjType { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public double                   Range { get; private set; }
-        public double                   MinRange { get; private set; }
-        public QBType                   UseType { get; private set; }
-        public int                      WaitTime { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public double Range { get; private set; }
+        public double MinRange { get; private set; }
+        public QBType UseType { get; private set; }
+        public int WaitTime { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        public int                  Counter { get; private set; }
-        private WoWItem             Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        public int Counter { get; private set; }
+        private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
         /*private WoWObject           UseObject1 { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                                                                 .Where(o => MobIds.Contains((int)o.Entry))
@@ -187,17 +187,17 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseItemTargetLocation()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -267,12 +267,12 @@ namespace Styx.Bot.Quest_Behaviors
                                 ret => UseObject != null,
                                 new PrioritySelector(
                                     new Decorator(
-                                        ret => UseObject.DistanceSqr >= Range*Range,
+                                        ret => UseObject.DistanceSqr >= Range * Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving closer to the object"),
                                             new Action(ret => Navigator.MoveTo(UseObject.Location)))),
                                     new Decorator(
-                                        ret => UseObject.DistanceSqr < MinRange*MinRange,
+                                        ret => UseObject.DistanceSqr < MinRange * MinRange,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
                                             new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
@@ -298,12 +298,12 @@ namespace Styx.Bot.Quest_Behaviors
                                 ret => UseObject != null,
                                 new PrioritySelector(
                                     new Decorator(
-                                        ret => UseObject.DistanceSqr >= Range*Range,
+                                        ret => UseObject.DistanceSqr >= Range * Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving to object's range"),
                                             new Action(ret => Navigator.MoveTo(UseObject.Location)))),
                                     new Decorator(
-                                        ret => UseObject.DistanceSqr < MinRange*MinRange,
+                                        ret => UseObject.DistanceSqr < MinRange * MinRange,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
                                             new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
@@ -320,7 +320,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ret => Thread.Sleep(WaitTime))))),
                             new Decorator(
-                                ret => Me.Location.DistanceSqr(MoveToLocation) > 2*2,
+                                ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new Action(ret => Navigator.MoveTo(MoveToLocation))))
@@ -329,7 +329,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

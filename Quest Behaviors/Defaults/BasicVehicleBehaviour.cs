@@ -43,65 +43,65 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                LocationDest    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new [] { "Dest" }) ?? WoWPoint.Empty;
-                LocationMount   = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                LocationDest = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new[] { "Dest" }) ?? WoWPoint.Empty;
+                LocationMount = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                SpellCastId     = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
-                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SpellCastId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-                MountedPoint    = WoWPoint.Empty;
-			}
+                MountedPoint = WoWPoint.Empty;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public WoWPoint                 LocationDest { get; private set; }
-        public WoWPoint                 LocationMount { get; private set; }
-        public int                      QuestId { get; private set; }
+        public WoWPoint LocationDest { get; private set; }
+        public WoWPoint LocationMount { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      SpellCastId { get; private set; }
-        public int                      VehicleId { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int SpellCastId { get; private set; }
+        public int VehicleId { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private Composite           _root;
-        private List<WoWUnit>       _vehicleList;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
+        private List<WoWUnit> _vehicleList;
 
         // Private properties
-        private int                 Counter { get; set; }
-        public bool                 IsMounted { get; set; }
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public WoWPoint             MountedPoint { get; private set; }
+        private int Counter { get; set; }
+        public bool IsMounted { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        public WoWPoint MountedPoint { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~BasicVehicleBehaviour()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -223,9 +223,9 @@ namespace Styx.Bot.Quest_Behaviors
                         )
                     ));
         }
-		
 
-        public override void    Dispose()
+
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -243,7 +243,7 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         public override void OnStart()
-		{
+        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -255,7 +255,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 TreeRoot.GoalText = this.GetType().Name + ": In Progress";
             }
-		}
+        }
 
         #endregion
     }

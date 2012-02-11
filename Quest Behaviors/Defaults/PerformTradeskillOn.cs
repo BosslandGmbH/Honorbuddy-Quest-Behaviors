@@ -25,63 +25,64 @@ namespace Styx.Bot.Quest_Behaviors
 {
     class PerformTradeskillOn : CustomForcedBehavior
     {
-        public PerformTradeskillOn(Dictionary<string, string> args) : base(args)
+        public PerformTradeskillOn(Dictionary<string, string> args)
+            : base(args)
         {
-			try
-			{
+            try
+            {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                CastOnItemId    = GetAttributeAsNullable<int>("CastOnItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new [] { "NumTimes" }) ?? 1;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                CastOnItemId = GetAttributeAsNullable<int>("CastOnItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new[] { "NumTimes" }) ?? 1;
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                TradeSkillId    = GetAttributeAsNullable<int>("TradeSkillId", true, ConstrainAs.SpellId, null) ?? 0;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                TradeSkillId = GetAttributeAsNullable<int>("TradeSkillId", true, ConstrainAs.SpellId, null) ?? 0;
                 TradeSkillItemId = GetAttributeAsNullable<int>("TradeSkillItemId", true, ConstrainAs.ItemId, null) ?? 0;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int?                     CastOnItemId { get; private set; }  /// If set, an item ID to cast the trade skill on.
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int? CastOnItemId { get; private set; }  /// If set, an item ID to cast the trade skill on.
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      TradeSkillId { get; private set; }
-        public int                      TradeSkillItemId { get; private set; }  // Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window.
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int TradeSkillId { get; private set; }
+        public int TradeSkillItemId { get; private set; }  // Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window.
 
 
         // Private variables for internal state
-        private bool            _isBehaviorDone;
-        private bool            _isDisposed;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~PerformTradeskillOn()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -128,7 +129,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             Thread.Sleep(500);
 
-            while(StyxWoW.Me.IsCasting)
+            while (StyxWoW.Me.IsCasting)
             {
                 Thread.Sleep(100);
             }
@@ -140,19 +141,19 @@ namespace Styx.Bot.Quest_Behaviors
 
         private Composite CreateTradeSkillCast()
         {
-            return 
+            return
                 new PrioritySelector(
                     new Decorator(ret => Lua.GetReturnVal<bool>("return StaticPopup1:IsVisible()", 0),
                         new Action(ret => Lua.DoString("StaticPopup1Button1:Click()"))
                     ),
-                
-                    new Decorator(ret=>!Lua.GetReturnVal<bool>("return TradeSkillFrame:IsVisible()", 0),
-                        new Action(ret=>WoWSpell.FromId((int)TradeSkillId).Cast())),
 
-                    new Decorator(ret=>StyxWoW.Me.IsCasting,
+                    new Decorator(ret => !Lua.GetReturnVal<bool>("return TradeSkillFrame:IsVisible()", 0),
+                        new Action(ret => WoWSpell.FromId((int)TradeSkillId).Cast())),
+
+                    new Decorator(ret => StyxWoW.Me.IsCasting,
                         new ActionAlwaysSucceed()),
 
-                new Action(ret=>PerformTradeSkill()));
+                new Action(ret => PerformTradeSkill()));
         }
 
 
@@ -194,14 +195,14 @@ namespace Styx.Bot.Quest_Behaviors
         protected override Composite CreateBehavior()
         {
             return new PrioritySelector(
-                new Decorator(ret=>StyxWoW.Me.IsMoving,
-                    new Action(ret=>Navigator.PlayerMover.MoveStop())),
+                new Decorator(ret => StyxWoW.Me.IsMoving,
+                    new Action(ret => Navigator.PlayerMover.MoveStop())),
 
                 CreateTradeSkillCast());
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -219,7 +220,7 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         public override void OnStart()
-		{
+        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -233,7 +234,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-		}
+        }
 
         #endregion
     }

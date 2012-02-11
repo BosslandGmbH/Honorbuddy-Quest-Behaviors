@@ -49,91 +49,91 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Buttons         = GetAttributeAsArray<int>("Buttons", false, ConstrainAs.HotbarButton, null, null);
-                DropPassengerButton     = GetAttributeAsNullable<int>("DropPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-                EndPath         = GetAttributeAsArray<WoWPoint>("EndPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
-                HealButton      = GetAttributeAsNullable<int>("HealButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-                HealPercent     = GetAttributeAsNullable<double>("HealPercent", false, ConstrainAs.Percent, null) ?? 35.0;
-                ItemId          = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                NpcList         = GetAttributeAsArray<int>("NpcList", true, ConstrainAs.MobId, null, null);
-                NpcScanRange    = GetAttributeAsNullable<double>("NpcScanRange", false, ConstrainAs.Range, null) ?? 10000.0;
-                Path            = GetAttributeAsArray<WoWPoint>("Path", true, ConstrainAs.WoWPointNonEmpty, null, null);
-                PickUpPassengerButton   = GetAttributeAsNullable<int>("PickUpPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-                Precision       = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                Buttons = GetAttributeAsArray<int>("Buttons", false, ConstrainAs.HotbarButton, null, null);
+                DropPassengerButton = GetAttributeAsNullable<int>("DropPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                EndPath = GetAttributeAsArray<WoWPoint>("EndPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                HealButton = GetAttributeAsNullable<int>("HealButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                HealPercent = GetAttributeAsNullable<double>("HealPercent", false, ConstrainAs.Percent, null) ?? 35.0;
+                ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                NpcList = GetAttributeAsArray<int>("NpcList", true, ConstrainAs.MobId, null, null);
+                NpcScanRange = GetAttributeAsNullable<double>("NpcScanRange", false, ConstrainAs.Range, null) ?? 10000.0;
+                Path = GetAttributeAsArray<WoWPoint>("Path", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                PickUpPassengerButton = GetAttributeAsNullable<int>("PickUpPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                Precision = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                SpeedButton     = GetAttributeAsNullable<int>("SpeedButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-                StartPath       = GetAttributeAsArray<WoWPoint>("StartPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
-                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
-			}
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SpeedButton = GetAttributeAsNullable<int>("SpeedButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                StartPath = GetAttributeAsArray<WoWPoint>("StartPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
- 
+
         enum State { liftoff, start, looping, finshed, landing, remount }
 
         // Attributes provided by caller
-        public int[]                    Buttons { get; private set; }
-        public int                      DropPassengerButton { get; private set; }
-        public WoWPoint[]               EndPath { get; private set; }
-        public double                   HealPercent { get; private set; }
-        public int                      HealButton { get; private set; }
-        public int                      ItemId { get; private set; }
-        public int[]                    NpcList { get; private set; }
-        public double                   NpcScanRange { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int[] Buttons { get; private set; }
+        public int DropPassengerButton { get; private set; }
+        public WoWPoint[] EndPath { get; private set; }
+        public double HealPercent { get; private set; }
+        public int HealButton { get; private set; }
+        public int ItemId { get; private set; }
+        public int[] NpcList { get; private set; }
+        public double NpcScanRange { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public WoWPoint[]               Path { get; private set; }
-        public int                      PickUpPassengerButton { get; private set; }
-        public double                   Precision { get; private set; }
-        public int                      SpeedButton { get; private set; }
-        public WoWPoint[]               StartPath { get; private set; }
-        public int                      VehicleId { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public WoWPoint[] Path { get; private set; }
+        public int PickUpPassengerButton { get; private set; }
+        public double Precision { get; private set; }
+        public int SpeedButton { get; private set; }
+        public WoWPoint[] StartPath { get; private set; }
+        public int VehicleId { get; private set; }
 
         // Private variables for internal state
-        private bool                            _casting = false;
-        private WoWMovement.MovementDirection   _direction;
-        private bool                            _doingUnstuck;
-        private Stopwatch                       _flightStopwatch = new Stopwatch(); // after like 15 minutes the dragon auto dies, so we need to resummon before this
-        private bool                            _isBehaviorDone = false;
-        private bool                            _isDisposed;
-        private WoWPoint                        _lastPoint = WoWPoint.Empty;
-        private Stopwatch                       _liftoffStopwatch = new Stopwatch();
-        private int                             _pathIndex = 0;
-        private System.Random                   _rand = new System.Random();
-        private Composite                       _root;
-        private State                           _state = State.liftoff;
-        private Stopwatch                       _stuckTimer = new Stopwatch();
+        private bool _casting = false;
+        private WoWMovement.MovementDirection _direction;
+        private bool _doingUnstuck;
+        private Stopwatch _flightStopwatch = new Stopwatch(); // after like 15 minutes the dragon auto dies, so we need to resummon before this
+        private bool _isBehaviorDone = false;
+        private bool _isDisposed;
+        private WoWPoint _lastPoint = WoWPoint.Empty;
+        private Stopwatch _liftoffStopwatch = new Stopwatch();
+        private int _pathIndex = 0;
+        private System.Random _rand = new System.Random();
+        private Composite _root;
+        private State _state = State.liftoff;
+        private Stopwatch _stuckTimer = new Stopwatch();
 
         // Private properties
-        private static LocalPlayer  Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~FlyingVehicle()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -195,7 +195,7 @@ namespace Styx.Bot.Quest_Behaviors
                 _stuckTimer.Start();
 
                 WoWUnit veh = GetVehicle();
-                if (veh.Location.Distance(_lastPoint)<=5 || _doingUnstuck)
+                if (veh.Location.Distance(_lastPoint) <= 5 || _doingUnstuck)
                 {
                     if (!_doingUnstuck)
                     {
@@ -225,7 +225,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 WoWUnit veh = GetVehicle();
                 if (veh == null && _state != State.liftoff && _state != State.landing)
-                    { LogMessage("fatal", "Something went seriously wrong..."); }
+                { LogMessage("fatal", "Something went seriously wrong..."); }
 
                 switch (_state)
                 {
@@ -339,14 +339,14 @@ namespace Styx.Bot.Quest_Behaviors
                                         break;
                                     if (PickUpPassengerButton == 0)
                                     {
-                                        TreeRoot.StatusText = string.Format("Blowing stuff up. {0} mins before resummon is required", ((780000 -_flightStopwatch.ElapsedMilliseconds) / 1000) / 60);
+                                        TreeRoot.StatusText = string.Format("Blowing stuff up. {0} mins before resummon is required", ((780000 - _flightStopwatch.ElapsedMilliseconds) / 1000) / 60);
                                         using (new FrameLock())
                                         {
                                             if ((vehicle.HealthPercent <= HealPercent || vehicle.ManaPercent <= HealPercent) && HealButton > 0
                                                 && npc != null && npc.Location.Distance2D(vehicle.Location) < 60)
                                             {
                                                 TreeRoot.StatusText = string.Format("Using heal button {0} on NPC:{1}, {2} Units away",
-                                                    HealButton,npc.Name,vehicle.Location.Distance2D(npc.Location));
+                                                    HealButton, npc.Name, vehicle.Location.Distance2D(npc.Location));
                                                 Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", HealButton);
                                             }
                                             foreach (int b in Buttons)
@@ -363,7 +363,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         TreeRoot.StatusText = string.Format("Rescuing NPCs ");
                                         if (npc != null)
                                         {
-                                            WoWPoint clickLocation = npc.Location.RayCast(npc.Rotation,6);
+                                            WoWPoint clickLocation = npc.Location.RayCast(npc.Rotation, 6);
                                             clickLocation.Z += 3;
                                             if (!Me.GotTarget || Me.CurrentTarget != npc)
                                                 npc.Target();
@@ -427,12 +427,12 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-		
+
 
         public override bool IsDone
         {

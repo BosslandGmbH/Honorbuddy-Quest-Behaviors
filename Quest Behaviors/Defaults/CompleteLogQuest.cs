@@ -32,58 +32,58 @@ namespace Styx.Bot.Quest_Behaviors
             : base(args)
         {
             try
-			{
-                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new [] { "QuestID" }) ?? 0;
+            {
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new[] { "QuestID" }) ?? 0;
 
 
                 // Final initialization...
-                PlayerQuest     quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                QuestName = (quest != null)  ? quest.Name  : string.Format("QuestId({0})", QuestId);
-			}
+                QuestName = (quest != null) ? quest.Name : string.Format("QuestId({0})", QuestId);
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public static int               QuestId { get; private set; }
+        public static int QuestId { get; private set; }
 
         // Private variables for internal state
-        private bool            _isBehaviorDone;
-        private bool            _isDisposed;
-        private bool            _newQuest;
-        private Composite       _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private bool _newQuest;
+        private Composite _root;
 
         // Private properties
-        private TimeSpan            Delay_WaitForNewQuestOfferred   = TimeSpan.FromMilliseconds(5000);
-        private TimeSpan            Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private int                 QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
-        private string              QuestName                       { get; set; }
+        private TimeSpan Delay_WaitForNewQuestOfferred = TimeSpan.FromMilliseconds(5000);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private int QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
+        private string QuestName { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CompleteLogQuest()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -143,12 +143,12 @@ namespace Styx.Bot.Quest_Behaviors
                                 TreeRoot.StatusText = "Finished!";
                                 _isBehaviorDone = true;
                             })
-                        ))         
+                        ))
                     ));
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

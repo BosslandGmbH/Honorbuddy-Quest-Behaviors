@@ -47,81 +47,82 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
-			}
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                /* */
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}            
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
-        
+
 
         // Attributes provided by caller
-        public int                      QuestId { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public bool RunningBehavior = true;
 
         // Private variables for internal state
-        private bool            _isBehaviorDone;
-        private bool            _isDisposed;
-        private Composite       _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private LocalPlayer     Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         //  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest
-        const int   LEVEL_BOTTOM = 1;
-        const int   LEVEL_TOP = 5;
-        const int   LEVEL_UNKNOWN = 0;
-        int         _lvlCurrent = LEVEL_UNKNOWN;
+        const int LEVEL_BOTTOM = 1;
+        const int LEVEL_TOP = 5;
+        const int LEVEL_UNKNOWN = 0;
+        int _lvlCurrent = LEVEL_UNKNOWN;
 
-        const int   AURA_CLIMBING_TREE = 74920;
-        const int   AURA_IN_TREE = 46598;
-        const int   CLIMB_UP = 74922;
-        const int   CLIMB_DOWN_AT_TOP = 75070;
-        const int   CLIMB_DOWN = 74974;
-        const int   CHUCK_A_BEAR = 75139;
+        const int AURA_CLIMBING_TREE = 74920;
+        const int AURA_IN_TREE = 46598;
+        const int CLIMB_UP = 74922;
+        const int CLIMB_DOWN_AT_TOP = 75070;
+        const int CLIMB_DOWN = 74974;
+        const int CHUCK_A_BEAR = 75139;
 
-            /*
-                RIGHT SIDE:  isontransport:True, rotation:1.356836,  degrees:77.741
-                LEFT SIDE:  isontransport:True, rotation:1.612091,  degrees:92.366
-                ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
-             */
+        /*
+            RIGHT SIDE:  isontransport:True, rotation:1.356836,  degrees:77.741
+            LEFT SIDE:  isontransport:True, rotation:1.612091,  degrees:92.366
+            ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
+         */
         // these are values recorded from tree @ 14:33
         //  ..  when taking the right ladder (while facing tree)
         //  ..  angle while on tree level other than top is always 9
         //  ..  if you are on correct tree and correct side
 
-        const double    AIM_ANGLE = -0.97389394044876;
-        const double    TRAMP_RIGHT_SIDE = 77.741;
-        const double    TRAMP_LEFT_SIDE = 92.366;
+        const double AIM_ANGLE = -0.97389394044876;
+        const double TRAMP_RIGHT_SIDE = 77.741;
+        const double TRAMP_LEFT_SIDE = 92.366;
 
 
         ~BearsUpThere()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -146,7 +147,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
-        public void     Dlog(string format, params object[] args)
+        public void Dlog(string format, params object[] args)
         {
             LogMessage("debug", Color.CornflowerBlue, string.Format(format, args));
         }
@@ -159,12 +160,12 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         private void WaitForCurrentSpell()
         {
             while (StyxWoW.GlobalCooldown)
-                Thread.Sleep( 100);
+                Thread.Sleep(100);
             while (StyxWoW.Me.IsCasting)
                 Thread.Sleep(100);
         }
 
-        private bool CanCastNow( int spellId )
+        private bool CanCastNow(int spellId)
         {
 #if  FIGUERED_OUT_VEHICLE_SPELLS
             if (!SpellManager.HasSpell(spellId))
@@ -222,7 +223,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             WaitForCurrentSpell();
 
             // wait longer if at top due to UI skin change
-            Thread.Sleep( spellId == CLIMB_DOWN_AT_TOP ? 3000 : 2000);
+            Thread.Sleep(spellId == CLIMB_DOWN_AT_TOP ? 3000 : 2000);
 
             if (Me.Location.Distance(lastPos) != 0)
             {
@@ -231,7 +232,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             }
             else
                 Dlog("(Climb Down) no movement DOWN occurred");
-            
+
             return RunStatus.Success;
         }
 
@@ -315,9 +316,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                StyxWoW.SleepForLagDuration();
 #else
             // doing LUA calls these because WoWMovement API doesn't stop turning quickly enough
-            Lua.DoString( dirCmd + "Start()");
+            Lua.DoString(dirCmd + "Start()");
             Thread.Sleep(10);
-            Lua.DoString( dirCmd + "Stop()");
+            Lua.DoString(dirCmd + "Stop()");
 #endif
             return RunStatus.Success;
         }
@@ -325,7 +326,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         private RunStatus ChuckBear()
         {
             Dlog("(Chuck-A-Bear) threw bear at trampoline");
-            bool canCast = CanCastNow(CHUCK_A_BEAR );
+            bool canCast = CanCastNow(CHUCK_A_BEAR);
             Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
             WaitForCurrentSpell();
             Thread.Sleep(4000);
@@ -381,7 +382,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 }
             }
 
-            Dlog("(Loot Bear) no bear at level {0}", _lvlCurrent );
+            Dlog("(Loot Bear) no bear at level {0}", _lvlCurrent);
             return RunStatus.Failure;
         }
 
@@ -394,7 +395,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         public bool IsClimbingTheTree()
         {
-            return HasAura( AURA_CLIMBING_TREE );
+            return HasAura(AURA_CLIMBING_TREE);
         }
 
         public bool DoWeHaveQuest()
@@ -406,13 +407,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public bool IsQuestComplete()
         {
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted ;
+            return quest == null || quest.IsCompleted;
         }
 
         public bool HasAura(int auraId)
         {
             WoWAura aura = (from a in Me.Auras
-                            where a.Value.SpellId == auraId 
+                            where a.Value.SpellId == auraId
                             select a.Value).FirstOrDefault();
 
             return Me.HasAura(Styx.Logic.Combat.WoWSpell.FromId(auraId).Name);
@@ -430,41 +431,41 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     new Decorator(ret => !InTree(), new Action(ret => _isBehaviorDone = true)),
 
                     // is quest abandoned or complete?
-                    //  ..  move down until we auto-exit vehicle
-                    new Decorator(ret => !DoWeHaveQuest() || IsQuestComplete(), new Action( ret => ClimbDown())),
+                //  ..  move down until we auto-exit vehicle
+                    new Decorator(ret => !DoWeHaveQuest() || IsQuestComplete(), new Action(ret => ClimbDown())),
 
                     // level unknown and already at top?  set to top then
-                    new Decorator(ret => _lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree(), 
-                                    new Action( delegate
+                    new Decorator(ret => _lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree(),
+                                    new Action(delegate
                                         {
                                             _lvlCurrent = LEVEL_TOP;
                                             return RunStatus.Success;
                                         })),
 
                     // level unknown?
-                    //  ..  move to top and establish known level
+                //  ..  move to top and establish known level
                     new Decorator(ret => _lvlCurrent == LEVEL_UNKNOWN, new Action(ret => ClimbUp())),
 
                     // have a bear in inventory?
-                    new Decorator(ret => IsBearCubInBags(), 
+                    new Decorator(ret => IsBearCubInBags(),
                         new PrioritySelector(
-                            //  ..  below top?  move up
+                //  ..  below top?  move up
                             new Decorator(ret => _lvlCurrent != LEVEL_TOP, new Action(ret => ClimbUp())),
-                            //  ..  aim trajectory angle
+                //  ..  aim trajectory angle
                             new Decorator(ret => NeedAimAngle(), new Action(ret => AimAngle())),
-                            //  ..  aim direction (left/right)
+                //  ..  aim direction (left/right)
                             new Decorator(ret => NeedAimDirection(), new Action(ret => AimDirection())),
-                            //  ..  throw                           
-                            new Action( ret => ChuckBear() )
+                //  ..  throw                           
+                            new Action(ret => ChuckBear())
                             )
                         ),
 
                     // at top with no bear?
-                    //  ..  move down
+                //  ..  move down
                     new Decorator(ret => _lvlCurrent == LEVEL_TOP, new Action(ret => ClimbDown())),
 
                     // lootable bears here?
-                    //  ..  loot a bear
+                //  ..  loot a bear
                     new Decorator(ret => !IsBearCubInBags(), new Action(ret => LootClosestBear())),
 
                     // can we move down without leaving vehicle?
@@ -477,12 +478,12 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-		
+
 
         public override bool IsDone
         {

@@ -85,55 +85,55 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AllowCombat = GetAttributeAsNullable<bool>("AllowCombat", false, null, new [] { "Combat" }) ?? true;
-                MobId       = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, new [] { "NpcId" }) ?? 0;
-                NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                AllowCombat = GetAttributeAsNullable<bool>("AllowCombat", false, null, new[] { "Combat" }) ?? true;
+                MobId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 15;
-                UseCTM      = GetAttributeAsNullable<bool>("UseCTM", false, null, null) ?? false;
-                WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 15;
+                UseCTM = GetAttributeAsNullable<bool>("UseCTM", false, null, null) ?? false;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 
                 _lastStateReturn = RunStatus.Success;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public bool                     AllowCombat { get; private set; }
-        public int                      MobId { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
+        public bool AllowCombat { get; private set; }
+        public int MobId { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public double                   Range { get; private set; }
-        public bool                     UseCTM { get; private set; }
-        public int                      WaitTime { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public double Range { get; private set; }
+        public bool UseCTM { get; private set; }
+        public int WaitTime { get; private set; }
 
         // Private variables for internal state
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
-        private RunStatus               _lastStateReturn { get; set; }
-        private Composite               _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private RunStatus _lastStateReturn { get; set; }
+        private Composite _root;
 
         // Private properties
-        private int                     Counter { get; set; }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
-        private WoWUnit                 Mob
+        private int Counter { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private WoWUnit Mob
         {
             get
             {
@@ -142,20 +142,20 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                        .OrderBy(u => u.Distance).FirstOrDefault();
             }
         }
-        private Queue<WoWPoint>         Path { get; set; }
+        private Queue<WoWPoint> Path { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~RunLikeHell()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -219,7 +219,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
-                new Decorator( ret => !IsDone && (!AllowCombat || !Me.Combat),
+                new Decorator(ret => !IsDone && (!AllowCombat || !Me.Combat),
                     new PrioritySelector(
                         new Decorator(ret => !Path.Any() && Counter >= NumOfTimes,
                             new Action(delegate
@@ -253,7 +253,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             ),
                         new Action(delegate
                         {
-                            if ( NumOfTimes > 1 )
+                            if (NumOfTimes > 1)
                                 TreeRoot.GoalText = "RunLikeHell[Lap " + Counter + "] to " + Path.Peek().ToString();
                             else
                                 TreeRoot.GoalText = "RunLikeHell to " + Path.Peek().ToString();
@@ -271,7 +271,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -282,7 +282,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         {
             get
             {
-                bool    result  = (_isBehaviorDone                                 // normal completion
+                bool result = (_isBehaviorDone                                 // normal completion
                                    || (((Path != null) && !Path.Any()) && Counter >= NumOfTimes)    // no hotspots left and all iterations complete
                                    || Me.Dead || Me.IsGhost                        // i'm a ghost
                                    || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
@@ -316,7 +316,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
                 foreach (WoWPoint pt in Path)
                 {
-                    if (Me.Location.Distance(pt) < minDist )
+                    if (Me.Location.Distance(pt) < minDist)
                     {
                         minDist = Me.Location.Distance(pt);
                         closePt = pt;
@@ -329,7 +329,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     Path.Dequeue();
                 }
 
-                Counter = 1;    
+                Counter = 1;
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
 
@@ -341,7 +341,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     LogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
                 else
                 {
-                    var currentRoot = TreeRoot.Current.Root;    
+                    var currentRoot = TreeRoot.Current.Root;
                     if (!(currentRoot is GroupComposite))
                         LogMessage("fatal", "!(currentRoot is GroupComposite)");
                     else

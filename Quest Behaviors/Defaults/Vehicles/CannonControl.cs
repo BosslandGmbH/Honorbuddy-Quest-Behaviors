@@ -41,69 +41,69 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Buttons         = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(-1, 12), null, null);
-                ExitButton      = GetAttributeAsNullable<int>("ExitButton", true, ConstrainAs.HotbarButton, null) ?? 0; 
-                MaxAngle        = GetAttributeAsNullable<double>("MaxAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
-                MinAngle        = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(-1, 12), null, null);
+                ExitButton = GetAttributeAsNullable<int>("ExitButton", true, ConstrainAs.HotbarButton, null) ?? 0;
+                MaxAngle = GetAttributeAsNullable<double>("MaxAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
+                MinAngle = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                VehicleId       = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
                 ExitButton += 120;
 
-                for (int i = 0;  i < Buttons.Length;  ++i)
-                    { Buttons[i] += 120; }
-			}
+                for (int i = 0; i < Buttons.Length; ++i)
+                { Buttons[i] += 120; }
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                        + "\nFROM HERE:\n"
+                                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int[]                    Buttons { get; private set; }
-        public int                      ExitButton { get; private set; }
-        public double                   MaxAngle { get; private set; }
-        public double                   MinAngle { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int[] Buttons { get; private set; }
+        public int ExitButton { get; private set; }
+        public double MaxAngle { get; private set; }
+        public double MinAngle { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public List<int>                SpellIds { get; private set; }
-        public int                      VehicleId { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public List<int> SpellIds { get; private set; }
+        public int VehicleId { get; private set; }
 
         // Private variables for internal state
         //private bool                _aimed;
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private Composite           _root;
-        readonly Stopwatch          _thottleTimer = new Stopwatch();
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
+        readonly Stopwatch _thottleTimer = new Stopwatch();
         Random rand = new Random();
 
         // Private properties
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CannonControl()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -147,7 +147,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = 
+            return _root ?? (_root =
                 new PrioritySelector(
                     new Decorator(c => Vehicle == null,
                             new Action(c => LogMessage("fatal", "No cannons found."))
@@ -199,7 +199,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     }
                                     System.Threading.Thread.Sleep(1000);
                                 }
-                                
+
                                 _thottleTimer.Reset();
                                 _thottleTimer.Start();
                             }
@@ -208,13 +208,13 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
-	
+
         public override bool IsDone
         {
             get

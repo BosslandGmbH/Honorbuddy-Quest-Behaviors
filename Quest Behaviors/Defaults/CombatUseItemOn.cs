@@ -56,22 +56,22 @@ namespace Styx.Bot.Quest_Behaviors
             : base(args)
         {
 
-			try
-			{
-                CastingSpellId  = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
-                MaxRange        = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
-                HasAuraId       = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" }) ?? 0;
-                ItemId          = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
-                MobHasAuraId    = GetAttributeAsNullable<int>("MobHasAuraId", false, ConstrainAs.AuraId, new [] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
-                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
-                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                UseOnce         = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true; 
-                WaitTime        = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 500;
+            try
+            {
+                CastingSpellId = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
+                HasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
+                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                MobHasAuraId = GetAttributeAsNullable<int>("MobHasAuraId", false, ConstrainAs.AuraId, new[] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                UseOnce = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 500;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 // semantic coherency checks --
                 if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0))
@@ -80,65 +80,70 @@ namespace Styx.Bot.Quest_Behaviors
                                          + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
                     IsAttributeProblem = true;
                 }
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      CastingSpellId { get; private set; }
-        public double                      MaxRange { get; private set; }
-        public int                      HasAuraId { get; private set; }
-        public int                      ItemId { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public int                      MobHasAuraId { get; private set; }
-        public double                   MobHpPercentLeft { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
-        public bool                     UseOnce { get; private set; }
-        public int                      WaitTime { get; private set; }
+        public int CastingSpellId { get; private set; }
+        public double MaxRange { get; private set; }
+        public int HasAuraId { get; private set; }
+        public int ItemId { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int MobHasAuraId { get; private set; }
+        public double MobHpPercentLeft { get; private set; }
+        public int[] MobIds { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
+        public bool UseOnce { get; private set; }
+        public int WaitTime { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private int                 Counter { get; set; }
-        public WoWItem              Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        public WoWUnit              Mob { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                     .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead)
-                                                                     .OrderBy(u => u.Distance).FirstOrDefault());
-                                        }}
+        private int Counter { get; set; }
+        public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        public WoWUnit Mob
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead)
+                                     .OrderBy(u => u.Distance).FirstOrDefault());
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CombatUseItemOn()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -192,7 +197,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name)),
                                         new PrioritySelector(
                                             new Decorator(
-                                                
+
                                             new Sequence(
                                                 new Action(ret => Navigator.PlayerMover.MoveStop()),
                                                 new Action(ret => StyxWoW.SleepForLagDuration()),
@@ -237,12 +242,12 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-	
+
 
         public override bool IsDone
         {

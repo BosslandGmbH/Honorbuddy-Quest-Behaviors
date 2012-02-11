@@ -49,61 +49,61 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         public ForcedDismount(Dictionary<string, string> args)
             : base(args)
         {
-			try
-			{
-                MaxDismountHeight   = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
-                QuestId             = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+            try
+            {
+                MaxDismountHeight = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);     // (doc only - not used)
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public double                   MaxDismountHeight { get; private set; }
-        public int                      QuestId { get; private set; }
+        public double MaxDismountHeight { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private Composite           _behavior_root;
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
+        private Composite _behavior_root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
 
         // Private properties
-        private readonly TimeSpan   Delay_WowClientDismount     = TimeSpan.FromMilliseconds(1000);
-        private readonly TimeSpan   Delay_WowClientMovement     = TimeSpan.FromMilliseconds(1000);
-        private const string        DruidFlightForm             = "Flight Form";
-        private const string        DruidSwiftFlightForm        = "Swift Flight Form";
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private readonly TimeSpan Delay_WowClientDismount = TimeSpan.FromMilliseconds(1000);
+        private readonly TimeSpan Delay_WowClientMovement = TimeSpan.FromMilliseconds(1000);
+        private const string DruidFlightForm = "Flight Form";
+        private const string DruidSwiftFlightForm = "Swift Flight Form";
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Rev$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ForcedDismount()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -134,48 +134,48 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         // When the delegate has not yet been run, ActionRunOnceContinue returns
         // the delegate's result.  If delegate as already been run, ActionRunOnceContinue
         // returns RunStatus.Success.
-        public class ActionRunOnceContinue      : Composite
+        public class ActionRunOnceContinue : Composite
         {
-            public ActionRunOnceContinue(ActionDelegate         actionDelegate)
+            public ActionRunOnceContinue(ActionDelegate actionDelegate)
             {
                 _actionDelegate = actionDelegate;
             }
 
-            public ActionRunOnceContinue(ActionSucceedDelegate  actionSucceedDelegate)
+            public ActionRunOnceContinue(ActionSucceedDelegate actionSucceedDelegate)
             {
                 _actionSucceedDelegate = actionSucceedDelegate;
             }
 
-            protected override IEnumerable<RunStatus>   Execute(object     context)
+            protected override IEnumerable<RunStatus> Execute(object context)
             {
                 if (!_hasBeenRun)
                 {
                     _hasBeenRun = true;
 
                     if (_actionDelegate != null)
-                        { yield return (_actionDelegate(context)); }
+                    { yield return (_actionDelegate(context)); }
                     else if (_actionSucceedDelegate != null)
-                        { _actionSucceedDelegate(context); }
+                    { _actionSucceedDelegate(context); }
                 }
 
                 yield return (RunStatus.Success);
             }
 
-            private ActionDelegate              _actionDelegate;
-            private ActionSucceedDelegate       _actionSucceedDelegate;
-            private bool                        _hasBeenRun;     
+            private ActionDelegate _actionDelegate;
+            private ActionSucceedDelegate _actionSucceedDelegate;
+            private bool _hasBeenRun;
         }
 
         #endregion  // Missing HBcore infrastructure
 
 
-        private bool        IsReadyToDismount()
+        private bool IsReadyToDismount()
         {
             return (!Me.IsFlying
                     || Me.Location.IsOverGround(MaxDismountHeight)
                     || Me.Location.IsOverWater(MaxDismountHeight));
         }
-                                        
+
 
         #region Overrides of CustomForcedBehavior
 
@@ -224,7 +224,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
 
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -242,7 +242,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
 
 
         public override void OnStart()
-		{
+        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -252,7 +252,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             { TreeRoot.GoalText = "Dismounting"; }
-		}
+        }
 
         #endregion
     }
@@ -277,10 +277,10 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         /// <param name="y"></param>
         /// <param name="z"></param>
         /// <returns>new WoWPoint with adjusted coordinates</returns>
-        public static WoWPoint          Add(this WoWPoint   wowPoint,
-                                            double          x,
-                                            double          y,
-                                            double          z)
+        public static WoWPoint Add(this WoWPoint wowPoint,
+                                            double x,
+                                            double y,
+                                            double z)
         {
             return (new WoWPoint(wowPoint.X + x, wowPoint.Y + y, wowPoint.Z + z));
         }
@@ -292,10 +292,10 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         /// <param name="location"></param>
         /// <param name="distance"></param>
         /// <returns>true, if ground is within DISTANCE _below_ you.</returns>
-        public static bool      IsOverGround(this WoWPoint      location,
-                                             double             distance)
+        public static bool IsOverGround(this WoWPoint location,
+                                             double distance)
         {
-            WoWPoint        hitLocation;
+            WoWPoint hitLocation;
 
             return (GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
                                         location.Add(0.0, 0.0, -distance),
@@ -310,12 +310,12 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         /// <param name="location"></param>
         /// <param name="distance"></param>
         /// <returns>true, if water is within DISTANCE _below_ you.</returns>
-        public static bool      IsOverWater(this WoWPoint       location,
-                                            double              distance)
+        public static bool IsOverWater(this WoWPoint location,
+                                            double distance)
         {
-            WoWPoint        hitLocation;
-            WoWPoint        locationAbove   = location.Add(0.0, 0.0, 1.0);
-            WoWPoint        locationBelow   = location.Add(0.0, 0.0, -distance);
+            WoWPoint hitLocation;
+            WoWPoint locationAbove = location.Add(0.0, 0.0, 1.0);
+            WoWPoint locationBelow = location.Add(0.0, 0.0, -distance);
 
             return (GameWorld.TraceLine(locationAbove,
                                         locationBelow,

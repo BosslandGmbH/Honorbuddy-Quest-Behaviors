@@ -46,54 +46,55 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      //  (doc only - not used)
-                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId" }) ?? 0;
-			}
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                /* */
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      //  (doc only - not used)
+                MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      MobId { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int MobId { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private static RunStatus    _lastStateReturn = RunStatus.Success;
-        private static int          _lineCount = 0;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private static RunStatus _lastStateReturn = RunStatus.Success;
+        private static int _lineCount = 0;
+        private Composite _root;
 
         // Private properties
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~GreaterOfTwoEvils()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -118,13 +119,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
-        public void     Log(string format, params object[] args)
+        public void Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
             LogMessage("info", format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
-        public void     DLog(string format, params object[] args)
+        public void DLog(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
             LogMessage("debug", format + (++_lineCount % 2 == 0 ? "" : " "), args);
@@ -133,7 +134,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         public bool DoWeHaveQuest()
         {
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            
+
             return quest != null;
         }
 
@@ -156,7 +157,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .Where(u => u.Entry == MobId && !u.Dead )
+                                       .Where(u => u.Entry == MobId && !u.Dead)
                                        .OrderBy(u => u.Distance).FirstOrDefault();
             }
         }
@@ -167,15 +168,15 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
-                new Decorator( ret => !_isBehaviorDone, 
+                new Decorator(ret => !_isBehaviorDone,
                     new PrioritySelector(
                         new Decorator(ret => IsQuestComplete(),
                             new PrioritySelector(
                                 new Decorator(ret => Me.HasAura("Flame Ascendancy"),
-                                    new Action(delegate 
-                                    { 
-                                        DLog( "Quest complete - cancelling Flame Ascendancy");
-                					    Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")");
+                                    new Action(delegate
+                                    {
+                                        DLog("Quest complete - cancelling Flame Ascendancy");
+                                        Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")");
                                         StyxWoW.SleepForLagDuration();
                                         return RunStatus.Success;
                                     })
@@ -220,7 +221,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                     TreeRoot.Stop();
                                 }
 
-                                Log("Use: {0}", item.Name );
+                                Log("Use: {0}", item.Name);
                                 item.Use(true);
                                 StyxWoW.SleepForLagDuration();
                                 return RunStatus.Success;
@@ -276,7 +277,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -306,7 +307,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             {
                 if (TreeRoot.Current == null)
                     LogMessage("fatal", "TreeRoot.Current == null");
-                else if (TreeRoot.Current.Root == null )
+                else if (TreeRoot.Current.Root == null)
                     LogMessage("fatal", "TreeRoot.Current.Root == null");
                 else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
                     LogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
@@ -315,10 +316,10 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     var currentRoot = TreeRoot.Current.Root;
                     if (!(currentRoot is GroupComposite))
                         LogMessage("fatal", "!(currentRoot is GroupComposite)");
-                    else 
+                    else
                     {
                         if (currentRoot is Sequence)
-                            _lastStateReturn = RunStatus.Failure ;
+                            _lastStateReturn = RunStatus.Failure;
                         else if (currentRoot is PrioritySelector)
                             _lastStateReturn = RunStatus.Success;
                         else

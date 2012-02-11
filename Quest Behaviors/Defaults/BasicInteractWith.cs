@@ -42,83 +42,88 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                FactionId   = GetAttributeAsNullable<int>("FactionId", false, ConstrainAs.FactionId, new [] { "Faction" }) ?? 0;
-                IsMoveToMob = GetAttributeAsNullable<bool>("MoveTo", false, null, new [] { "UseCTM" }) ?? false;;
-                MobId       = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new [] { "NpcId", "NpcID" })  ?? 0;
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                FactionId = GetAttributeAsNullable<int>("FactionId", false, ConstrainAs.FactionId, new[] { "Faction" }) ?? 0;
+                IsMoveToMob = GetAttributeAsNullable<bool>("MoveTo", false, null, new[] { "UseCTM" }) ?? false; ;
+                MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new[] { "NpcId", "NpcID" }) ?? 0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                UseLuaTarget = GetAttributeAsNullable<bool>("UseLuaTarget", false, null, new [] { "LUATarget" }) ?? false;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                UseLuaTarget = GetAttributeAsNullable<bool>("UseLuaTarget", false, null, new[] { "LUATarget" }) ?? false;
 
 
-                WoWUnit     mob     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>()
                                       .Where(unit => unit.Entry == MobId)
                                       .FirstOrDefault();
 
-                MobName     = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
+                MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
                                 ? mob.Name
                                 : ("Mob(" + MobId + ")");
             }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                        + "\nFROM HERE:\n"
+                                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      FactionId { get; private set; }
-        public bool                     IsMoveToMob { get; private set; }
-        public int                      MobId { get; private set; }
-        public string                   MobName { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int FactionId { get; private set; }
+        public bool IsMoveToMob { get; private set; }
+        public int MobId { get; private set; }
+        public string MobName { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public bool                     UseLuaTarget { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public bool UseLuaTarget { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private int                 Counter { get; set; }
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>       MobList { get { if (FactionId > 1)
-                                                {
-                                                    return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionId)
-                                                                    .OrderBy(u => u.Distance).ToList(); 
-                                                }
-                                                else
-                                                {
-                                                    return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                            .Where(u => u.Entry == MobId && !u.Dead)
-                                                                            .OrderBy(u => u.Distance).ToList();
-                                                }
-                                            }}
+        private int Counter { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private List<WoWUnit> MobList
+        {
+            get
+            {
+                if (FactionId > 1)
+                {
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionId)
+                                    .OrderBy(u => u.Distance).ToList();
+                }
+                else
+                {
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                            .Where(u => u.Entry == MobId && !u.Dead)
+                                            .OrderBy(u => u.Distance).ToList();
+                }
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~BasicInteractWith()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -226,9 +231,9 @@ namespace Styx.Bot.Quest_Behaviors
                             )
                     )));
         }
-		
 
-        public override void    Dispose()
+
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

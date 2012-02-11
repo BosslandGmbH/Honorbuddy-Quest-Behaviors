@@ -41,43 +41,43 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                HealthPercent   = GetAttributeAsNullable<double>("HealthPercent", false, ConstrainAs.Percent, null) ?? 25;
-                Location        = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
-                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                HealthPercent = GetAttributeAsNullable<double>("HealthPercent", false, ConstrainAs.Percent, null) ?? 25;
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-			}
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public double                   HealthPercent { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public int                      QuestId { get; private set; }
+        public double HealthPercent { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int[] MobIds { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-        private bool            _isDisposed;
-        private Composite       _root;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private static LocalPlayer     Me { get { return (ObjectManager.Me); } }
-        public WoWUnit                 Npc
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        public WoWUnit Npc
         {
             get
             {
@@ -85,23 +85,23 @@ namespace Styx.Bot.Quest_Behaviors
                                      .OrderBy(o => o.Distance)
                                      .FirstOrDefault(o => !o.Dead
                                                      && !Blacklist.Contains(o.Guid)
-                                                     && (!o.GotTarget|| o.IsTargetingMeOrPet)
+                                                     && (!o.GotTarget || o.IsTargetingMeOrPet)
                                                      && MobIds.Contains((int)o.Entry)));
             }
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-       ~FindAndBeatNpcs()
+        ~FindAndBeatNpcs()
         {
             Dispose(false);
-        }	
+        }
 
 
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -136,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(c =>
                         {
                             if (!Npc.Attackable)
-                                Blacklist.Add(Npc.Guid,new TimeSpan(0,5,0));
+                                Blacklist.Add(Npc.Guid, new TimeSpan(0, 5, 0));
 
                             if ((Me.Combat && (Me.GotTarget && Me.CurrentTarget != Npc && !MobIds.Contains((int)Me.CurrentTarget.Entry))
                                 || Me.HealthPercent < HealthPercent) || IsDone)
@@ -164,7 +164,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 {
                                     Logic.Inventory.Frames.LootFrame.LootFrame.Instance.LootAll();
                                     if (Me.GotTarget)
-                                        Blacklist.Add(Me.CurrentTarget,new TimeSpan(1,0,0));
+                                        Blacklist.Add(Me.CurrentTarget, new TimeSpan(1, 0, 0));
                                     Me.ClearTarget();
                                 }
                                 return RunStatus.Running;
@@ -193,7 +193,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -225,7 +225,7 @@ namespace Styx.Bot.Quest_Behaviors
                 TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
-        
-         #endregion
+
+        #endregion
     }
 }

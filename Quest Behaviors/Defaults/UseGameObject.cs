@@ -31,61 +31,67 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                ObjectId    = GetAttributeAsNullable<int>("ObjectId", true, ConstrainAs.ObjectId, null) ?? 0;
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                ObjectId = GetAttributeAsNullable<int>("ObjectId", true, ConstrainAs.ObjectId, null) ?? 0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                WaitTime    = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-			}
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
         // Attributes provided by caller
-        public WoWPoint                 Location { get; private set; }
-        public int                      ObjectId { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int ObjectId { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      WaitTime { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int WaitTime { get; private set; }
 
         // Private variables for internal state
-        private int                     _counter;
-        private bool                    _isDisposed;
-        private Composite               _root;
+        private int _counter;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private WoWGameObject           GameObject { get { return (ObjectManager.GetObjectsOfType<WoWGameObject>()
-                                                                            .Where(u => u.Entry == ObjectId && !u.InUse && !u.IsDisabled)
-                                                                            .OrderBy(u => u.Distance)
-                                                                            .FirstOrDefault());  }}
+        private WoWGameObject GameObject
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWGameObject>()
+                                 .Where(u => u.Entry == ObjectId && !u.InUse && !u.IsDisabled)
+                                 .OrderBy(u => u.Distance)
+                                 .FirstOrDefault());
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseGameObject()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -127,7 +133,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                     // Interact etc. 
                     new Decorator(ret => GameObject != null && GameObject.WithinInteractRange,
-                        // Set the context to the gameobject
+                // Set the context to the gameobject
                         new Sequence(ret => GameObject,
 
                             new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
@@ -138,7 +144,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     )),
 
                             new Action(ret => LogMessage("info", "Using Object \"{0}\" {1}/{2} times",
-                                                                 ((WoWGameObject)ret).Name, _counter+1, NumOfTimes)),
+                                                                 ((WoWGameObject)ret).Name, _counter + 1, NumOfTimes)),
                             new Action(ret => ((WoWGameObject)ret).Interact()),
                             new Action(ret => StyxWoW.SleepForLagDuration()),
                             new Action(ret => Thread.Sleep(WaitTime)),
@@ -155,7 +161,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

@@ -65,7 +65,7 @@ namespace Styx.Bot.Quest_Behaviors
             CTM,
             None,
         }
-        
+
         public InteractWith(Dictionary<string, string> args)
             : base(args)
         {
@@ -74,7 +74,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Warn of deprecated attributes...
                 if (args.ContainsKey("BuySlot"))
                 {
-                    LogMessage("warning",   "*****\n"
+                    LogMessage("warning", "*****\n"
                                             + "* THE BUYSLOT ATTRIBUTE IS DEPRECATED, and may be retired in a near, future release.\n"
                                             + "*\n"
                                             + "* BuySlot presents a number of problems.  If a vendor presents 'seasonal' or\n"
@@ -87,101 +87,101 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                BuyItemCount    = GetAttributeAsNullable<int>("BuyItemCount", false, ConstrainAs.CollectionCount, null) ?? 1;
-                BuyItemId       = GetAttributeAsNullable<int>("BuyItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                BuySlot         = GetAttributeAsNullable<int>("BuySlot", false, new ConstrainTo.Domain<int>(-1, 100), null) ?? -1;
+                BuyItemCount = GetAttributeAsNullable<int>("BuyItemCount", false, ConstrainAs.CollectionCount, null) ?? 1;
+                BuyItemId = GetAttributeAsNullable<int>("BuyItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                BuySlot = GetAttributeAsNullable<int>("BuySlot", false, new ConstrainTo.Domain<int>(-1, 100), null) ?? -1;
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-                GossipOptions   = GetAttributeAsArray<int>("GossipOptions", false, new ConstrainTo.Domain<int>(-1, 10), new [] { "GossipOption" }, null);
-                Location        = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                Loot            = GetAttributeAsNullable<bool>("Loot", false, null, null) ?? false;
-                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
-                ObjType         = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new [] { "MobType" }) ?? ObjectType.Npc;
-                NpcState        = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                GossipOptions = GetAttributeAsArray<int>("GossipOptions", false, new ConstrainTo.Domain<int>(-1, 10), new[] { "GossipOption" }, null);
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                Loot = GetAttributeAsNullable<bool>("Loot", false, null, null) ?? false;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
+                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-                NotMoving       = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
-                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                QuestId         = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                NotMoving = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range           = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
-                WaitForNpcs     = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
-                WaitTime        = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 3000;
-                IgnoreCombat    = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
+                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 3000;
+                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
 
-                for (int i = 0;  i < GossipOptions.Length;  ++i)
-                    { GossipOptions[i] -= 1; }
+                for (int i = 0; i < GossipOptions.Length; ++i)
+                { GossipOptions[i] -= 1; }
 
 
-                IEnumerable<WoWUnit>    mobs    = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                IEnumerable<WoWUnit> mobs = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                                                     .Where(unit => MobIds.Contains((int)unit.Entry));
 
                 MobNames = string.Join(", ", mobs.Select(mob => (!string.IsNullOrEmpty(mob.Name)
                                                                 ? mob.Name
                                                                 : ("Mob(" + mob.Entry.ToString() + ")")))
                                                  .ToArray());
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
         // Attributes provided by caller
-        public int                      BuyItemCount { get; private set; }
-        public int                      BuyItemId { get; private set; }
-        public int                      BuySlot { get; private set; }
-        public double                   CollectionDistance { get; private set; }
-        public int[]                    GossipOptions { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public bool                     Loot { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public string                   MobNames { get; private set; }
-        public NpcStateType             NpcState { get; private set; }
-        public NavigationType           NavigationState { get; private set; }
-        public ObjectType               ObjType { get; private set; }
-        public bool                     NotMoving { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int BuyItemCount { get; private set; }
+        public int BuyItemId { get; private set; }
+        public int BuySlot { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public int[] GossipOptions { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public bool Loot { get; private set; }
+        public int[] MobIds { get; private set; }
+        public string MobNames { get; private set; }
+        public NpcStateType NpcState { get; private set; }
+        public NavigationType NavigationState { get; private set; }
+        public ObjectType ObjType { get; private set; }
+        public bool NotMoving { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public double                   Range { get; private set; }
-        public bool                     WaitForNpcs { get; private set; }
-        public int                      WaitTime { get; private set; }
-        public bool                     IgnoreCombat { get; private set; }
-        public double                   MobHpPercentLeft { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public double Range { get; private set; }
+        public bool WaitForNpcs { get; private set; }
+        public int WaitTime { get; private set; }
+        public bool IgnoreCombat { get; private set; }
+        public double MobHpPercentLeft { get; private set; }
 
         // Private variables for internal state
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
-        private readonly List<ulong>    _npcBlacklist = new List<ulong>();
-        private Composite               _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private Composite _root;
 
         // Private properties
-        public int                      Counter { get; private set; }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        public int Counter { get; private set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~InteractWith()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -229,7 +229,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                                .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
                                                                    (NotMoving ? !obj.IsMoving : true) &&
                                                                     MobIds.Contains((int)obj.Entry) &&
-                                                                   !Me.Minions.Contains(obj) && 
+                                                                   !Me.Minions.Contains(obj) &&
                                                                    obj.DistanceSqr < CollectionDistance * CollectionDistance)
                                                                .OrderBy(obj => obj.DistanceSqr);
 
@@ -248,7 +248,7 @@ namespace Styx.Bot.Quest_Behaviors
                 }
 
                 if (@object != null)
-                    { LogMessage("debug", @object.Name); }
+                { LogMessage("debug", @object.Name); }
 
                 return @object;
             }
@@ -321,7 +321,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new DecoratorContinue(
                                             ret => Loot && LootFrame.Instance.IsVisible,
                                             new Action(ret => LootFrame.Instance.LootAll())),
-                                    
+
                                         new DecoratorContinue(
                                             ret => BuyItemId != 0 && MerchantFrame.Instance.IsVisible,
                                             new Action(ret =>
@@ -371,14 +371,14 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
 
-        public override bool    IsDone
+        public override bool IsDone
         {
             get
             {

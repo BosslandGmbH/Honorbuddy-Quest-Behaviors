@@ -38,54 +38,54 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                GoalText    = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0; 
+                GoalText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                WaitTime    = GetAttributeAsNullable<int>("WaitTime", true, ConstrainAs.Milliseconds, null) ?? 1000;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", true, ConstrainAs.Milliseconds, null) ?? 1000;
                 VariantTime = GetAttributeAsNullable<int>("VariantTime", false, ConstrainAs.Milliseconds, null) ?? 0;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
         // Attributes provided by caller
-        public string                   GoalText { get; private set; }
-        public int                      QuestId { get; private set; }
+        public string GoalText { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      WaitTime { get; private set; }
-        public int                      VariantTime { get; private set; }
-       
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int WaitTime { get; private set; }
+        public int VariantTime { get; private set; }
+
         // Private variables for internal state
-        private bool            _isDisposed;
-        private Composite       _root;
-        private Timer           _timer;
-        private string          _waitTimeAsString;
+        private bool _isDisposed;
+        private Composite _root;
+        private Timer _timer;
+        private string _waitTimeAsString;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
-        
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
 
         ~WaitTimer()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -110,7 +110,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        private string   UtilSubstituteInMessage(string   message)
+        private string UtilSubstituteInMessage(string message)
         {
             message = message.Replace("{TimeRemaining}", UtilBuildTimeAsString(_timer.TimeLeft));
             message = message.Replace("{TimeDuration}", _waitTimeAsString);
@@ -119,16 +119,16 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        private static string   UtilBuildTimeAsString(TimeSpan timeSpan)
+        private static string UtilBuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  "";
+            string formatString = "";
 
             if (timeSpan.Hours > 0)
-                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
+            { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
             else if (timeSpan.Minutes > 0)
-                { formatString = "{1:D2}m:{2:D2}s"; }
+            { formatString = "{1:D2}m:{2:D2}s"; }
             else
-                { formatString = "{2:D2}s"; }
+            { formatString = "{2:D2}s"; }
 
             return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
@@ -154,7 +154,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -182,7 +182,7 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                int     waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
+                int waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
 
                 _timer = new Timer(new TimeSpan(0, 0, 0, 0, waitDuration));
                 _waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);

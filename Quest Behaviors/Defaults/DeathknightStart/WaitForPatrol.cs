@@ -41,67 +41,73 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AvoidMobId      = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new [] { "MobId" }) ?? 0;
-                AvoidDistance   = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new [] { "Distance" }) ?? 0;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                AvoidMobId = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
+                AvoidDistance = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new[] { "Distance" }) ?? 0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
                 // Internal use --
                 MobName = (AvoidNpc != null) ? AvoidNpc.Name : string.Format("MobId({0})", AvoidMobId);
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      AvoidMobId { get; private set; }
-        public double                   AvoidDistance { get; private set; }  // Distance to stay away from 
-        public int                      QuestId { get; private set; }
+        public int AvoidMobId { get; private set; }
+        public double AvoidDistance { get; private set; }  // Distance to stay away from 
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public WoWPoint                 SafespotLocation { get; private set; }  // Safespot
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public WoWPoint SafespotLocation { get; private set; }  // Safespot
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private WoWUnit                     AvoidNpc { get { return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
-                                                                                  .Where(o => o.Entry == AvoidMobId)
-                                                                                  .OrderBy(o => o.Distance)
-                                                                                  .FirstOrDefault()); } }
-        private static readonly TimeSpan    LagDuration = TimeSpan.FromMilliseconds((2 * StyxWoW.WoWClient.Latency) + 150);
-        private LocalPlayer                 Me { get { return (ObjectManager.Me); } }
-        private string                      MobName { get; set; }
-        private static readonly TimeSpan    Throttle_UserStatusUpdate   = TimeSpan.FromSeconds(1);
+        private WoWUnit AvoidNpc
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                     .Where(o => o.Entry == AvoidMobId)
+                                     .OrderBy(o => o.Distance)
+                                     .FirstOrDefault());
+            }
+        }
+        private static readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((2 * StyxWoW.WoWClient.Latency) + 150);
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private string MobName { get; set; }
+        private static readonly TimeSpan Throttle_UserStatusUpdate = TimeSpan.FromSeconds(1);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~WaitForPatrol()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -124,13 +130,13 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
             _isDisposed = true;
         }
-		
+
 
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
-            return (_root ?? (_root = 
+            return (_root ?? (_root =
                 new PrioritySelector(avoidNpc => AvoidNpc,
 
                     // Move to our 'safe' spot, if needed...
@@ -150,46 +156,51 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                     new Action(ret => Mount.MountUp()))),
 
                             new CompositeThrottle(Throttle_UserStatusUpdate,
-                                new Action(delegate {
-                                    TreeRoot.StatusText = string.Format("Moving to safe spot {0:F1} yards away.",
-                                                    Me.Location.Distance(SafespotLocation));
-                                    return (RunStatus.Failure);     // Fall through
-                                })),
+                                new Action(delegate
+            {
+                TreeRoot.StatusText = string.Format("Moving to safe spot {0:F1} yards away.",
+                                Me.Location.Distance(SafespotLocation));
+                return (RunStatus.Failure);     // Fall through
+            })),
 
                             new Action(c => Navigator.MoveTo(SafespotLocation))
                             )),
-                                   
+
                     // Wait for mob to move the prescribed distance away...
                     new Decorator(avoidNpc => (((WoWUnit)avoidNpc) != null)
                                                 && (((WoWUnit)avoidNpc).Distance <= AvoidDistance),
                         new CompositeThrottle(Throttle_UserStatusUpdate,
                             new Sequence(
-                                // Set focus to the mob we're watching (for user-feedback purposes)...
+                // Set focus to the mob we're watching (for user-feedback purposes)...
                                 new DecoratorContinue(avoidNpc => (Me.FocusedUnitGuid != ((WoWUnit)avoidNpc).Guid),
-                                    new Action(avoidNpc => {
+                                    new Action(avoidNpc =>
+                                    {
                                         Me.SetFocus(((WoWUnit)avoidNpc).Guid);
                                         return (RunStatus.Failure);         // fall through
-                                        })),
+                                    })),
 
                                 new DecoratorContinue(avoidNpc => !Me.IsSafelyFacing((WoWUnit)avoidNpc),
-                                    new Action(avoidNpc => {
+                                    new Action(avoidNpc =>
+                                    {
                                         ((WoWUnit)avoidNpc).Face();
                                         return (RunStatus.Failure);         // fall through
-                                        })),
+                                    })),
 
-                                new Action(avoidNpc => {
+                                new Action(avoidNpc =>
+                                {
                                     TreeRoot.StatusText = string.Format(
                                                             "Waiting on '{0}' (at {1:F1} yards) to move {2:F1} yards away",
                                                             ((WoWUnit)avoidNpc).Name,
                                                             ((WoWUnit)avoidNpc).Distance,
                                                             AvoidDistance);
-                                    })
+                                })
                                 ))),
 
                     // We're at safe spot, and mob is prescribed distance away.  We're done...
                     new Decorator(avoidNpc => (((WoWUnit)avoidNpc) == null)
                                                 || (((WoWUnit)avoidNpc).Distance > AvoidDistance),
-                        new Action(avoidNpc => {
+                        new Action(avoidNpc =>
+                        {
                             Me.SetFocus(0);
                             TreeRoot.StatusText = string.Format(
                                                     "'{0}' is {1} (needed {2:F1} yards).  Behavior done.",
@@ -199,12 +210,12 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                                      : "clear"),
                                                     AvoidDistance);
                             _isBehaviorDone = true;
-                            }))
+                        }))
                     )));
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -247,15 +258,15 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
     }
 
 
-    public class CompositeThrottle         : DecoratorContinue
+    public class CompositeThrottle : DecoratorContinue
     {
-        public CompositeThrottle(TimeSpan       throttleTime,
-                                 Composite      composite)
-            :base(composite)
+        public CompositeThrottle(TimeSpan throttleTime,
+                                 Composite composite)
+            : base(composite)
         {
-            _hasRunOnce     = false;
-            _throttle       = new Stopwatch();
-            _throttleTime   = throttleTime;
+            _hasRunOnce = false;
+            _throttle = new Stopwatch();
+            _throttleTime = throttleTime;
 
             _throttle.Reset();
             _throttle.Start();
@@ -265,7 +276,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
         protected override bool CanRun(object context)
         {
             if (_hasRunOnce && (_throttle.Elapsed < _throttleTime))
-                { return (false); }
+            { return (false); }
 
             _hasRunOnce = true;
             _throttle.Reset();
@@ -274,8 +285,8 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
             return (true);
         }
 
-        private bool        _hasRunOnce;
-        private Stopwatch   _throttle;
-        private TimeSpan    _throttleTime;
+        private bool _hasRunOnce;
+        private Stopwatch _throttle;
+        private TimeSpan _throttleTime;
     }
 }

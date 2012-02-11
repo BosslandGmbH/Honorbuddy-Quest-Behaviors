@@ -67,91 +67,91 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
-                int     tmpMobHasAuraId;
-                int     tmpMobHasAuraMissingId;
+                int tmpMobHasAuraId;
+                int tmpMobHasAuraMissingId;
 
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;
-                tmpMobHasAuraId   = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" }) ?? 0;
+                tmpMobHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
                 tmpMobHasAuraMissingId = GetAttributeAsNullable<int>("IsMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
-                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new [] { "HpLeftAmount" }) ?? 100.0;
-                ItemId      = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                Location    = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobIds      = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new [] { "NpcId" });
-                MobType     = GetAttributeAsNullable<ObjectType>("MobType", false, null, new [] { "ObjectType" }) ?? ObjectType.Npc;
-                NumOfTimes  = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                NpcState    = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
+                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                MobType = GetAttributeAsNullable<ObjectType>("MobType", false, null, new[] { "ObjectType" }) ?? ObjectType.Npc;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
-                Range       = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
-                QuestId     = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                WaitTime    = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
 
-                MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId)  : null;
-                MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId)  : null;
+                MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId) : null;
+                MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId) : null;
             }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public double                   CollectionDistance { get; private set; }
-        public int                      ItemId { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public string                   MobAuraName { get; private set; }
-        public string                   MobAuraMissingName { get; private set; }
-        public double                   MobHpPercentLeft { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public ObjectType               MobType { get; private set; }
-        public NpcStateType             NpcState { get; private set; }
-        public NavigationType           NavigationState { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public int ItemId { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public string MobAuraName { get; private set; }
+        public string MobAuraMissingName { get; private set; }
+        public double MobHpPercentLeft { get; private set; }
+        public int[] MobIds { get; private set; }
+        public ObjectType MobType { get; private set; }
+        public NpcStateType NpcState { get; private set; }
+        public NavigationType NavigationState { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public double                   Range { get; private set; }
-        public bool                     WaitForNpcs { get; private set; }
-        public int                      WaitTime { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public double Range { get; private set; }
+        public bool WaitForNpcs { get; private set; }
+        public int WaitTime { get; private set; }
 
         // Private variables for internal state
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
-        private readonly List<ulong>    _npcAuraWait = new List<ulong>();
-        private readonly List<ulong>    _npcBlacklist = new List<ulong>();
-        private Composite               _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private readonly List<ulong> _npcAuraWait = new List<ulong>();
+        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private Composite _root;
 
         // Private properties
-        private int                     Counter { get; set; }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        private int Counter { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseItemOn()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -177,14 +177,14 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         // May return 'null' if auraId is not valid.
-        private string      AuraNameFromId(string   attributeName,
-                                           int      auraId)
+        private string AuraNameFromId(string attributeName,
+                                           int auraId)
         {
-            string  tmpString   = null;
+            string tmpString = null;
 
-            try 
-            { 
-                tmpString = WoWSpell.FromId(auraId).Name; 
+            try
+            {
+                tmpString = WoWSpell.FromId(auraId).Name;
             }
             catch
             {
@@ -215,18 +215,18 @@ namespace Styx.Bot.Quest_Behaviors
                         break;
 
                     case ObjectType.Npc:
-                        var     baseTargets     = ObjectManager.GetObjectsOfType<WoWUnit>()
+                        var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
                                                                .OrderBy(target => target.Distance)
                                                                .Where(target => !_npcBlacklist.Contains(target.Guid)
                                                                                 && (target.Distance < CollectionDistance)
                                                                                 && MobIds.Contains((int)target.Entry));
 
-                        var     auraQualifiedTargets    = baseTargets
+                        var auraQualifiedTargets = baseTargets
                                                             .Where(target => (((MobAuraName == null) && (MobAuraMissingName == null))
                                                                               || ((MobAuraName != null) && target.HasAura(MobAuraName))
                                                                               || ((MobAuraMissingName != null) && !target.HasAura(MobAuraMissingName))));
 
-                        var     npcStateQualifiedTargets = auraQualifiedTargets
+                        var npcStateQualifiedTargets = auraQualifiedTargets
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
                                                                               || ((NpcState == NpcStateType.Dead) && target.Dead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
@@ -237,7 +237,7 @@ namespace Styx.Bot.Quest_Behaviors
                 }
 
                 if (@object != null)
-                    { LogMessage("debug", @object.Name); }
+                { LogMessage("debug", @object.Name); }
 
                 return @object;
             }
@@ -302,7 +302,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         targeted = true;
                                         StyxWoW.SleepForLagDuration();
                                     }
-                                        
+
                                     WoWMovement.Face(CurrentObject.Guid);
 
                                     Item.UseContainerItem();
@@ -339,7 +339,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

@@ -46,44 +46,44 @@ namespace Styx.Bot.Quest_Behaviors
             try
             {
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                Type    = GetAttributeAsNullable<AbandonType>("Type", false, null, null) ?? AbandonType.Incomplete;
+                Type = GetAttributeAsNullable<AbandonType>("Type", false, null, null) ?? AbandonType.Incomplete;
             }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      QuestId { get; private set; }
-        public AbandonType              Type { get; private set; }
+        public int QuestId { get; private set; }
+        public AbandonType Type { get; private set; }
 
         // Private variables for internal state
-        private bool            _isBehaviorDone;
-        private bool            _isDisposed;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-        
+
         ~AbandonQuest()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -110,7 +110,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -140,13 +140,13 @@ namespace Styx.Bot.Quest_Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest == null)
-                    { LogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId); }
+                { LogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId); }
 
-                else if ((quest != null)  &&  quest.IsCompleted  &&  (Type != AbandonType.All))
-                    { LogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
+                else if ((quest != null) && quest.IsCompleted && (Type != AbandonType.All))
+                { LogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
 
-                else if ((quest != null)  &&  !quest.IsFailed  &&  (Type == AbandonType.Failed))
-                    { LogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name); }
+                else if ((quest != null) && !quest.IsFailed && (Type == AbandonType.Failed))
+                { LogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name); }
 
                 else
                 {

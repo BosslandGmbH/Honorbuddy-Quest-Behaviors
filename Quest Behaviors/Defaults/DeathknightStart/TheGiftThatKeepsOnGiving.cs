@@ -49,85 +49,85 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                int?    tmpHasAuraId   = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new [] { "HasAura" });
+                int? tmpHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" });
 
-                AuraName    = string.Empty;       // populated below
+                AuraName = string.Empty;       // populated below
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 HasGroundTarget = GetAttributeAsNullable<bool>("HasGroundTarget", false, null, null) ?? false;
-                InteractRange   = GetAttributeAsNullable<double>("InteractRange", false, ConstrainAs.Range, null) ?? 4.5;
-                IsDead          = GetAttributeAsNullable<bool>("IsDead", false, null, null) ?? false;
-                ItemId          = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                Location        = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                MinionCount     = GetAttributeAsNullable<int>("MinionCount", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? 0;
-                MobIds          = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
-                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                InteractRange = GetAttributeAsNullable<double>("InteractRange", false, ConstrainAs.Range, null) ?? 4.5;
+                IsDead = GetAttributeAsNullable<bool>("IsDead", false, null, null) ?? false;
+                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                MinionCount = GetAttributeAsNullable<int>("MinionCount", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? 0;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 StopMovingOnUse = GetAttributeAsNullable<bool>("StopMovingOnUse", false, null, null) ?? true;
 
                 if (tmpHasAuraId.HasValue)
                 {
-                    WoWSpell    spell = WoWSpell.FromId(tmpHasAuraId.Value);
+                    WoWSpell spell = WoWSpell.FromId(tmpHasAuraId.Value);
 
                     if (spell != null)
-                        { AuraName = spell.Name; }
+                    { AuraName = spell.Name; }
                 }
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public string                   AuraName { get; private set; }
-        public double                   CollectionDistance { get; private set; }
-        public bool                     HasGroundTarget { get; private set; }
-        public double                   InteractRange { get; private set; }
-        public bool                     IsDead { get; private set; }
-        public int                      ItemId { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public int                      MinionCount { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      QuestId { get; private set; }
+        public string AuraName { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public bool HasGroundTarget { get; private set; }
+        public double InteractRange { get; private set; }
+        public bool IsDead { get; private set; }
+        public int ItemId { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int MinionCount { get; private set; }
+        public int[] MobIds { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public bool                     StopMovingOnUse { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public bool StopMovingOnUse { get; private set; }
 
         // Private variables for internal state
-        private bool                    _isDisposed;
-        private readonly List<ulong>    _npcBlacklist = new List<ulong>();
-        private Composite               _root;
-        private readonly Stopwatch      _waitTimer = new Stopwatch();
+        private bool _isDisposed;
+        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private Composite _root;
+        private readonly Stopwatch _waitTimer = new Stopwatch();
 
         // Private properties
-        private int                     Counter { get; set; }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
+        private int Counter { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~TheGiftThatKeepsOnGiving()
         {
             Dispose(false);
-        }	
+        }
 
 
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -150,7 +150,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             _isDisposed = true;
         }
-		
+
 
         public WoWObject Object
         {
@@ -171,8 +171,8 @@ namespace Styx.Bot.Quest_Behaviors
             if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSightOCD &&
                 !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
             {
-                ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit) obj).Dead) &&
-                      (IsDead || !(obj is WoWUnit) || !((WoWUnit) obj).Dead);
+                ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit)obj).Dead) &&
+                      (IsDead || !(obj is WoWUnit) || !((WoWUnit)obj).Dead);
             }
             // temp fix to HB killing targets without letting us using item...
             if (ret && obj is WoWUnit)
@@ -195,7 +195,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = 
+            return _root ?? (_root =
 
                 new PrioritySelector(ctx => Object,
 
@@ -214,16 +214,16 @@ namespace Styx.Bot.Quest_Behaviors
                                     )),
 
                             new Sequence(ctx => StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId),
-                                // Set the status text.
+                // Set the status text.
                                 new Action(ctx => TreeRoot.StatusText = "Using item on " + Object.Name),
-                                
+
                                 // If we don't have the item stop!
                                 new DecoratorContinue(ctx => ctx == null,
                                     new Action(ctx => LogMessage("fatal", "Could not find ItemId({0}) in inventory.", ItemId))),
 
                                 new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
                                     new Action(ctx => Object.ToUnit().Target())),
-                                
+
                                 // Face the object.
                                 new Action(ctx => WoWMovement.Face(Object.Guid)),
 
@@ -233,7 +233,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new DecoratorContinue(ctx => HasGroundTarget,
                                     new Action(ctx => LegacySpellManager.ClickRemoteLocation(Object.Location))),
 
-                                new WaitContinue(6, ctx => false, 
+                                new WaitContinue(6, ctx => false,
                                     new Sequence(
                                         new Action(ctx => StyxWoW.SleepForLagDuration()),
                                         new Action(ctx => _npcBlacklist.Add(Object.Guid)),
@@ -256,7 +256,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -268,7 +268,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ((Counter >= NumOfTimes)     // normal completion
-                        || (MinionCount > 0  &&  (MinionCount <= Me.Minions.Count))
+                        || (MinionCount > 0 && (MinionCount <= Me.Minions.Count))
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }

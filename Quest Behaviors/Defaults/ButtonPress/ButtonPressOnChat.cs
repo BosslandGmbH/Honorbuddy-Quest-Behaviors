@@ -100,43 +100,43 @@ using Action = TreeSharp.Action;
 
 namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 {
-    public class ButtonPressOnChat     : CustomForcedBehavior
+    public class ButtonPressOnChat : CustomForcedBehavior
     {
         public ButtonPressOnChat(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                int             tmpItemId;
-                string[]        tmpPhrases;
+                int tmpItemId;
+                string[] tmpPhrases;
 
                 // Look for these phrases in the captured text...
-                for (int i = 1;   i <= 12;    ++i)
+                for (int i = 1; i <= 12; ++i)
                 {
-                    string      attributeName   = string.Format("Button{0}Phrase", i);
+                    string attributeName = string.Format("Button{0}Phrase", i);
 
                     tmpPhrases = GetNumberedAttributesAsArray(attributeName, 0, ConstrainAs.StringNonEmpty, null);
                     UtilPopulateMapWithPhrases(SimpleTextToButtonMap, i, tmpPhrases);
                 }
 
 
-                ButtonOnQuestComplete   = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
-                DebugShowText           = GetAttributeAsNullable<bool>("DebugShowText", false, null, null) ?? false;
+                ButtonOnQuestComplete = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
+                DebugShowText = GetAttributeAsNullable<bool>("DebugShowText", false, null, null) ?? false;
                 ExitVehicleAtQuestComplete = GetAttributeAsNullable<bool>("ExitVehicleAtQuestComplete", false, null, null) ?? true;
-                FeedbackPhraseFailures  = GetNumberedAttributesAsArray<string>("FeedbackPhraseFail", 0, ConstrainAs.StringNonEmpty, null);
+                FeedbackPhraseFailures = GetNumberedAttributesAsArray<string>("FeedbackPhraseFail", 0, ConstrainAs.StringNonEmpty, null);
                 FeedbackPhraseSuccesses = GetNumberedAttributesAsArray<string>("FeedbackPhraseSuccess", 0, ConstrainAs.StringNonEmpty, null);
-                InputResponseDelay      = GetAttributeAsNullable<int>("InputResponseDelay", false, new ConstrainTo.Domain<int>(500, 15000), null) ?? 3000;
-                tmpItemId               = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                MobId                   = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 0;
-                HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MonitorStartPhrases     = GetNumberedAttributesAsArray<string>("MonitorStartPhrase", 0, ConstrainAs.StringNonEmpty, null);
-                MonitorStopPhrases      = GetNumberedAttributesAsArray<string>("MonitorStopPhrase", 0, ConstrainAs.StringNonEmpty, null);
-                QuestId                 = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                InputResponseDelay = GetAttributeAsNullable<int>("InputResponseDelay", false, new ConstrainTo.Domain<int>(500, 15000), null) ?? 3000;
+                tmpItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                MobId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 0;
+                HuntingGroundAnchor = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MonitorStartPhrases = GetNumberedAttributesAsArray<string>("MonitorStartPhrase", 0, ConstrainAs.StringNonEmpty, null);
+                MonitorStopPhrases = GetNumberedAttributesAsArray<string>("MonitorStopPhrase", 0, ConstrainAs.StringNonEmpty, null);
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog   = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                SupportedLocales        = GetNumberedAttributesAsArray<string>("SupportedLocale", 0, ConstrainAs.StringNonEmpty, null);
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SupportedLocales = GetNumberedAttributesAsArray<string>("SupportedLocale", 0, ConstrainAs.StringNonEmpty, null);
                 if (SupportedLocales.Count() == 0)
-                    { SupportedLocales = new [] { "enUS" }; }
+                { SupportedLocales = new[] { "enUS" }; }
 
 
                 // Semantic coherency...
@@ -173,7 +173,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // If no MonitoringStartPhrases, we start 'hot'...
                 _buttonAction = ButtonEmpty;
                 if (MonitorStartPhrases.Count() <= 0)
-                    { _isMonitoringEnabled = true; }
+                { _isMonitoringEnabled = true; }
 
                 // Final initialization...
                 if (tmpItemId > 0)
@@ -182,7 +182,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     if (Item == null)
                     {
                         LogMessage("error", "ItemId({0}) is not in our inventory", tmpItemId);
-                        IsAttributeProblem = true; 
+                        IsAttributeProblem = true;
                     }
                 }
 
@@ -193,85 +193,86 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 _wowClientLocale = GetWoWClientLocale();
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                QuestName = (quest != null)  ? quest.Name  : string.Format("QuestId({0})", QuestId);
-			}
+                QuestName = (quest != null) ? quest.Name : string.Format("QuestId({0})", QuestId);
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-				// resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
+                // resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller...
-        public string[]                 FeedbackPhraseFailures { get; private set; }
-        public string[]                 FeedbackPhraseSuccesses { get; private set; }
-        public int?                     ButtonOnQuestComplete { get; private set; }
-        public bool                     DebugShowText { get; private set; }
-        public bool                     ExitVehicleAtQuestComplete { get; private set; }
-        public WoWPoint                 HuntingGroundAnchor { get; private set; }
-        public int                      InputResponseDelay { get; private set; }
-        public WoWItem                  Item { get; private set; }
-        public int                      MobId { get; private set; }
-        public string[]                 MonitorStartPhrases { get; private set; }
-        public string[]                 MonitorStopPhrases { get; private set; }
-        public int                      QuestId { get; private set; }
+        public string[] FeedbackPhraseFailures { get; private set; }
+        public string[] FeedbackPhraseSuccesses { get; private set; }
+        public int? ButtonOnQuestComplete { get; private set; }
+        public bool DebugShowText { get; private set; }
+        public bool ExitVehicleAtQuestComplete { get; private set; }
+        public WoWPoint HuntingGroundAnchor { get; private set; }
+        public int InputResponseDelay { get; private set; }
+        public WoWItem Item { get; private set; }
+        public int MobId { get; private set; }
+        public string[] MonitorStartPhrases { get; private set; }
+        public string[] MonitorStopPhrases { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public string[]                 SupportedLocales { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public string[] SupportedLocales { get; private set; }
 
         // Private Properties & data...
-        private const int                   BonusActionButtonOffset     = (12 /*buttons_per_hotbar*/ * 10 /*hotbars*/);
-        private KeyValuePair<string, int>   ButtonEmpty                 = new KeyValuePair<string, int>(string.Empty, 0);
-        private WoWObject                   CurrentTarget               { get { return (_behavior_HuntingGround.CurrentTarget); }}
-        private TimeSpan                    Delay_WowClientLagTime      { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private TimeSpan                    Delay_InputResponse         { get { return (TimeSpan.FromMilliseconds((_rand.NextDouble() * InputResponseDelay) + 450)); }}                                                             
-        private static LocalPlayer          Me                          { get { return (ObjectManager.Me); } }
-        private string                      QuestName                   { get; set; }
-        private readonly Dictionary<string, int> SimpleTextToButtonMap  = new Dictionary<string, int>();
+        private const int BonusActionButtonOffset = (12 /*buttons_per_hotbar*/ * 10 /*hotbars*/);
+        private KeyValuePair<string, int> ButtonEmpty = new KeyValuePair<string, int>(string.Empty, 0);
+        private WoWObject CurrentTarget { get { return (_behavior_HuntingGround.CurrentTarget); } }
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private TimeSpan Delay_InputResponse { get { return (TimeSpan.FromMilliseconds((_rand.NextDouble() * InputResponseDelay) + 450)); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private string QuestName { get; set; }
+        private readonly Dictionary<string, int> SimpleTextToButtonMap = new Dictionary<string, int>();
 
-        private Composite                   _behaviorRoot;
-        private HuntingGroundBehavior       _behavior_HuntingGround;
-        private KeyValuePair<string, int>   _buttonAction;
-        private ConfigMemento               _configMemento;
-        private bool                        _isBehaviorInProgress;
-        private bool                        _isBehaviorDone;
-        private bool                        _isDisposed;
-        private bool                        _isInteracting;
-        private bool                        _isMonitoringEnabled;
-        private Queue<string>               _messagesPending        = new Queue<string>();
-        private Random                      _rand                   = new Random();
-        private readonly string             _wowClientLocale;
+        private Composite _behaviorRoot;
+        private HuntingGroundBehavior _behavior_HuntingGround;
+        private KeyValuePair<string, int> _buttonAction;
+        private ConfigMemento _configMemento;
+        private bool _isBehaviorInProgress;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private bool _isInteracting;
+        private bool _isMonitoringEnabled;
+        private Queue<string> _messagesPending = new Queue<string>();
+        private Random _rand = new Random();
+        private readonly string _wowClientLocale;
 
         // Private LINQ queries...  
-       private IEnumerable<WoWObject>  ViableTargets() {
-                                            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                    .Where(target => (target.IsValid
-                                                                      && (target.Entry == MobId)
-                                                                      && !target.IsLocallyBlacklisted()))
-                                                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
-                                            }
+        private IEnumerable<WoWObject> ViableTargets()
+        {
+            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                    .Where(target => (target.IsValid
+                                      && (target.Entry == MobId)
+                                      && !target.IsLocallyBlacklisted()))
+                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id: ButtonPressOnChat.cs 186 2011-06-27 20:07:39Z chinajade $"); } }
-        public override string      SubversionRevision { get { return ("$Rev: 186 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ButtonPressOnChat()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -286,7 +287,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                    { _configMemento.Dispose(); }
+                { _configMemento.Dispose(); }
 
                 _configMemento = null;
 
@@ -299,38 +300,38 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
             _isDisposed = true;
         }
-		
+
 
         // The same phrase must no be used for multiple roles...
         // We enforce the constraint here.
-        private void    CheckPhrases()
+        private void CheckPhrases()
         {
-            List<KeyValuePair<string, string>>  allPhrases  = new List<KeyValuePair<string, string>>();
+            List<KeyValuePair<string, string>> allPhrases = new List<KeyValuePair<string, string>>();
 
             foreach (var phrase in FeedbackPhraseFailures)
-                { allPhrases.Add(new KeyValuePair<string, string>("ButtonFeedbackFail", phrase)); }
+            { allPhrases.Add(new KeyValuePair<string, string>("ButtonFeedbackFail", phrase)); }
 
             foreach (var phrase in FeedbackPhraseSuccesses)
-                { allPhrases.Add(new KeyValuePair<string, string>("ButtonFeedbackSuccess", phrase)); }
+            { allPhrases.Add(new KeyValuePair<string, string>("ButtonFeedbackSuccess", phrase)); }
 
             foreach (var phrase in MonitorStartPhrases)
-                { allPhrases.Add(new KeyValuePair<string, string>("MonitorStartPhrase", phrase)); }
+            { allPhrases.Add(new KeyValuePair<string, string>("MonitorStartPhrase", phrase)); }
 
             foreach (var phrase in MonitorStopPhrases)
-                { allPhrases.Add(new KeyValuePair<string, string>("MonitorStopPhrase", phrase)); }
+            { allPhrases.Add(new KeyValuePair<string, string>("MonitorStopPhrase", phrase)); }
 
             foreach (var kvp in SimpleTextToButtonMap)
-                { allPhrases.Add(new KeyValuePair<string, string>(string.Format("Button{0}Phrase", kvp.Value), kvp.Key)); }
+            { allPhrases.Add(new KeyValuePair<string, string>(string.Format("Button{0}Phrase", kvp.Value), kvp.Key)); }
 
 
-            var     distinctPhrases     = allPhrases.Select(kvp => kvp.Value).Distinct();
-        
+            var distinctPhrases = allPhrases.Select(kvp => kvp.Value).Distinct();
+
             foreach (var phrase in distinctPhrases)
             {
-                var     phraseSources   = allPhrases.Where(kvp => (kvp.Value == phrase)).Select(kvp => kvp.Key);
+                var phraseSources = allPhrases.Where(kvp => (kvp.Value == phrase)).Select(kvp => kvp.Key);
 
                 if (phraseSources.Count() <= 1)
-                    { continue; }
+                { continue; }
 
                 LogMessage("error", "You may only use a phrase for one trigger condition.\n"
                                     + "The phrase \"{0}\" was used for the following: {1}.\n",
@@ -340,31 +341,31 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private string  GetWoWClientLocale()
+        private string GetWoWClientLocale()
         {
             return (Lua.GetReturnVal<string>("return GetLocale()", 0));
         }
 
 
-        private void    HandleChatMonster(WoWChat.ChatMonsterEventArgs  args)
+        private void HandleChatMonster(WoWChat.ChatMonsterEventArgs args)
         {
             ProcessMessage(args.Message);
         }
 
 
-        private void    HandleChatLanguageSpecific(WoWChat.ChatLanguageSpecificEventArgs    args)
+        private void HandleChatLanguageSpecific(WoWChat.ChatLanguageSpecificEventArgs args)
         {
             ProcessMessage(args.Message);
         }
 
 
-        private void    HandleChatSimpleMessage(WoWChat.ChatSimpleMessageEventArgs args)
+        private void HandleChatSimpleMessage(WoWChat.ChatSimpleMessageEventArgs args)
         {
             ProcessMessage(args.Message);
         }
 
 
-        private void    GuiShowProgress(string       completionReason)
+        private void GuiShowProgress(string completionReason)
         {
             if (completionReason != null)
             {
@@ -376,7 +377,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public bool     IsQuestComplete()
+        public bool IsQuestComplete()
         {
             return (UtilIsProgressRequirementsMet(QuestId,
                                                   QuestInLogRequirement.InLog,
@@ -384,32 +385,32 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private void    PendMessage(string      message)
+        private void PendMessage(string message)
         {
             // The server sometimes send empty messages, just ignore them...
             if (string.IsNullOrEmpty(message))
-                { return; }
+            { return; }
 
             _messagesPending.Enqueue(message);
         }
 
 
-        private void    PressButton(int     buttonNumber)
+        private void PressButton(int buttonNumber)
         {
             Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ",
                          buttonNumber + BonusActionButtonOffset);
         }
 
 
-        private void    ProcessMessage(string       message)
+        private void ProcessMessage(string message)
         {
             if (DebugShowText && !string.IsNullOrEmpty(message))
-                { LogMessage("info", "Saw message '{0}'", message); }
+            { LogMessage("info", "Saw message '{0}'", message); }
 
             // Look for our 'start monitoring' trigger phrase...
             if (!_isMonitoringEnabled && (MonitorStartPhrases.Count() > 0))
             {
-                string      triggerPhrase    = MonitorStartPhrases
+                string triggerPhrase = MonitorStartPhrases
                                                 .FirstOrDefault(phrase => message.Contains(phrase));
 
                 if (triggerPhrase != null)
@@ -422,7 +423,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             // Look for our 'stop monitoring' trigger phrase...
             if (_isMonitoringEnabled && (MonitorStopPhrases.Count() > 0))
             {
-                string      triggerPhrase    = MonitorStopPhrases
+                string triggerPhrase = MonitorStopPhrases
                                                 .FirstOrDefault(phrase => message.Contains(phrase));
 
                 if (triggerPhrase != null)
@@ -435,12 +436,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
             // Does phrase match a button-push action?
             if (_isMonitoringEnabled)
             {
-                string  phraseFail      = FeedbackPhraseFailures.FirstOrDefault(phrase => message.Contains(phrase));
-                string  phraseMatch     = SimpleTextToButtonMap.Keys.FirstOrDefault(phrase => message.Contains(phrase));
-                string  phraseSucceed   = FeedbackPhraseSuccesses.FirstOrDefault(phrase => message.Contains(phrase));
+                string phraseFail = FeedbackPhraseFailures.FirstOrDefault(phrase => message.Contains(phrase));
+                string phraseMatch = SimpleTextToButtonMap.Keys.FirstOrDefault(phrase => message.Contains(phrase));
+                string phraseSucceed = FeedbackPhraseSuccesses.FirstOrDefault(phrase => message.Contains(phrase));
 
                 if (phraseMatch != null)
-                    { _buttonAction = new KeyValuePair<string, int>(phraseMatch, SimpleTextToButtonMap[phraseMatch]); }
+                { _buttonAction = new KeyValuePair<string, int>(phraseMatch, SimpleTextToButtonMap[phraseMatch]); }
 
                 if ((_buttonAction.Value > 0) && (phraseFail != null))
                 {
@@ -457,9 +458,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private void        UtilPopulateMapWithPhrases(Dictionary<string, int>  phraseToButtonMap,
-                                                       int                      buttonNum,
-                                                       string[]                 phrases)
+        private void UtilPopulateMapWithPhrases(Dictionary<string, int> phraseToButtonMap,
+                                                       int buttonNum,
+                                                       string[] phrases)
         {
             foreach (string phrase in phrases)
             {
@@ -501,7 +502,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                     }),
                                     new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed())
                                     )),
-                                    
+
                             new DecoratorContinue(ret => ExitVehicleAtQuestComplete,
                                 new Action(delegate
                                 {
@@ -510,7 +511,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 })),
 
                             // If behavior done, bail...
-                            // Note that this is also an implicit "is quest complete" exit criteria, also.
+                // Note that this is also an implicit "is quest complete" exit criteria, also.
                             new Action(delegate
                             {
                                 GuiShowProgress("quest complete");
@@ -521,7 +522,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     // If we're to use an item, move to destination, and use it...
                     new Decorator(ret => (!_isInteracting && (Item != null)),
                         new PrioritySelector(
-                            // Move to destination...
+                // Move to destination...
                             _behavior_HuntingGround.CreateBehavior_MoveToLocation(() => HuntingGroundAnchor),
 
                             // If the item is on cooldown, wait for it...
@@ -536,14 +537,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                             // Use the item...
                             new Sequence(
                                 new Action(delegate { WoWMovement.MoveStop(); }),
-                                new WaitContinue(Delay_WowClientLagTime, ret=> false, new ActionAlwaysSucceed()),
+                                new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
                                 new Action(delegate
                                 {
                                     TreeRoot.StatusText = string.Format("Using Item '{0}' to initiate interaction", Item.Name);
                                     Item.UseContainerItem();
                                     _isInteracting = true;
                                 })
-                            )                           
+                            )
                         )),
 
                     // If we haven't interacted with the mob, move to it, and interact...
@@ -560,7 +561,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 new DecoratorContinue(ret => !Me.IsSafelyFacing(CurrentTarget),
                                     new Action(delegate { WoWMovement.Face(CurrentTarget.Guid); })),
                                 new Action(delegate { _behavior_HuntingGround.MobEngaged(CurrentTarget); }),
-                                new WaitContinue(Delay_WowClientLagTime, ret=> false, new ActionAlwaysSucceed()),
+                                new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
                                 new Action(delegate
                                 {
                                     CurrentTarget.Interact();
@@ -577,8 +578,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                     // If we've a button to press, take action...
                     new Decorator(ret => (_buttonAction.Value > 0),
                         new Sequence(
-                            // Need to give the WoWserver time to accept our response to the input...
-                            // It also needs to have some variance, so it doesn't look like a bot's doing it.
+                // Need to give the WoWserver time to accept our response to the input...
+                // It also needs to have some variance, so it doesn't look like a bot's doing it.
                             new WaitContinue(Delay_InputResponse, ret => false, new ActionAlwaysSucceed()),
 
                             // If the action is still valid, act on it...
@@ -595,7 +596,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -606,7 +607,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         {
             get
             {
-                bool    isDone      = _isBehaviorDone;
+                bool isDone = _isBehaviorDone;
 
                 // Once the behavior starts, the behavior alone needs to make the determination
                 // of when it is completes...
@@ -683,18 +684,18 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     public class HuntingGroundBehavior
     {
-        public delegate bool                    BehaviorFailIfNoTargetsDelegate();
-        public delegate double                  DistanceDelegate();
-        public delegate WoWPoint                LocationDelegate();
-        public delegate void                    LoggerDelegate(string messageType, string format, params object[] args);
-        public delegate IEnumerable<WoWObject>  ViableTargetsDelegate();
-        public delegate WoWObject               WoWObjectDelegate();
+        public delegate bool BehaviorFailIfNoTargetsDelegate();
+        public delegate double DistanceDelegate();
+        public delegate WoWPoint LocationDelegate();
+        public delegate void LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate IEnumerable<WoWObject> ViableTargetsDelegate();
+        public delegate WoWObject WoWObjectDelegate();
 
 
-        public HuntingGroundBehavior(LoggerDelegate            loggerDelegate,
-                                     ViableTargetsDelegate     viableTargets,
-                                     WoWPoint                  huntingGroundAnchor,
-                                     double                    collectionDistance)
+        public HuntingGroundBehavior(LoggerDelegate loggerDelegate,
+                                     ViableTargetsDelegate viableTargets,
+                                     WoWPoint huntingGroundAnchor,
+                                     double collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = huntingGroundAnchor;
@@ -705,38 +706,38 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public void         MobEngaged(WoWObject     wowObject)
+        public void MobEngaged(WoWObject wowObject)
         {
             if (wowObject == CurrentTarget)
-                { _currentTargetAutoBlacklistTimer.Stop(); }
+            { _currentTargetAutoBlacklistTimer.Stop(); }
         }
 
 
         // Public properties...
-        public double                   CollectionDistance              { get; private set; }
-        public WoWObject                CurrentTarget                   { get; private set; }
-        public Queue<WoWPoint>          Hotspots                        { get; set; }
-        public WoWPoint                 HuntingGroundAnchor             { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public WoWObject CurrentTarget { get; private set; }
+        public Queue<WoWPoint> Hotspots { get; set; }
+        public WoWPoint HuntingGroundAnchor { get; private set; }
 
 
         // Private properties & data...
-        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
-        private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
-        private readonly TimeSpan       Delay_PositionUpdateThrottle    = TimeSpan.FromMilliseconds(3000);
-        private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromMilliseconds(500);
-        private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private const string AuraName_DruidAquaticForm = "Aquatic Form";
+        private readonly TimeSpan Delay_AutoBlacklist = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan Delay_PositionUpdateThrottle = TimeSpan.FromMilliseconds(3000);
+        private readonly TimeSpan Delay_RepopWait = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate LogMessage;
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
-        private const double            MinDistanceToUse_DruidAquaticForm = 27.0;
-        private int                     SpellId_DruidAquaticForm        = 1066;
-        public ViableTargetsDelegate    ViableTargets                   { get; private set; }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private const double MinDistanceToUse_DruidAquaticForm = 27.0;
+        private int SpellId_DruidAquaticForm = 1066;
+        public ViableTargetsDelegate ViableTargets { get; private set; }
 
-        private TimeSpan                _currentTargetAutoBlacklistTime  = TimeSpan.FromSeconds(1);
-        private readonly Stopwatch      _currentTargetAutoBlacklistTimer = new Stopwatch();
-        private Queue<WoWPoint>         _hotSpots                       = new Queue<WoWPoint>();
-        private WoWPoint                _huntingGroundWaitPoint;
-        private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
+        private TimeSpan _currentTargetAutoBlacklistTime = TimeSpan.FromSeconds(1);
+        private readonly Stopwatch _currentTargetAutoBlacklistTimer = new Stopwatch();
+        private Queue<WoWPoint> _hotSpots = new Queue<WoWPoint>();
+        private WoWPoint _huntingGroundWaitPoint;
+        private readonly Stopwatch _repopWaitingTime = new Stopwatch();
 
 
         /// <summary>
@@ -750,12 +751,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         /// <para>* RunStatus.Success, if acquiring a target (or waiting for them to repop)</para>
         /// </returns>
         ///
-        public Composite    CreateBehavior_SelectTarget()
+        public Composite CreateBehavior_SelectTarget()
         {
             return (CreateBehavior_SelectTarget(() => false));
         }
 
-        public Composite    CreateBehavior_SelectTarget(BehaviorFailIfNoTargetsDelegate failIfNoTargets)
+        public Composite CreateBehavior_SelectTarget(BehaviorFailIfNoTargetsDelegate failIfNoTargets)
         {
             return (
             new PrioritySelector(
@@ -769,7 +770,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                         CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
                         CurrentTarget = null;
                     })),
-                
+
 
                 // If we don't have a current target, select a new one...
                 // Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
@@ -790,9 +791,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 // Combat changes the target, so we use this to determine if we need more time
                                 // before auto-blacklisting something.
                                 if (CurrentTarget is WoWUnit)
-                                    { CurrentTarget.ToUnit().Target(); }
+                                { CurrentTarget.ToUnit().Target(); }
                                 else
-                                    { Me.ClearTarget(); }
+                                { Me.ClearTarget(); }
 
                                 _currentTargetAutoBlacklistTime = CalculateAutoBlacklistTime(CurrentTarget);
                                 _currentTargetAutoBlacklistTimer.Reset();
@@ -815,8 +816,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                         )),
 
                                 // We find a point 'near' our anchor at which to wait...
-                                // This way, if multiple people are using the same profile at the same time,
-                                // they won't be standing on top of each other.
+                // This way, if multiple people are using the same profile at the same time,
+                // they won't be standing on top of each other.
                                 new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
                                     new Action(delegate
                                         {
@@ -831,8 +832,11 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                                 new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
                                     new Sequence(
                                         new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
-                                            new Action(delegate { TreeRoot.StatusText = string.Format("No targets--moving near hunting ground anchor point to wait (distance {0})",
-                                                                                                    Me.Location.Distance(_huntingGroundWaitPoint)); })),
+                                            new Action(delegate
+            {
+                TreeRoot.StatusText = string.Format("No targets--moving near hunting ground anchor point to wait (distance {0})",
+                                                  Me.Location.Distance(_huntingGroundWaitPoint));
+            })),
                                         CreateBehavior_InternalMoveTo(() => _huntingGroundWaitPoint)
                                         )),
 
@@ -850,7 +854,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // Re-select target, if it was changed (perhaps, due to combat)...
                 new Action(delegate
                 {
-                    bool    isWoWUnit   = (CurrentTarget is WoWUnit);
+                    bool isWoWUnit = (CurrentTarget is WoWUnit);
 
                     // If target is not what we set it to be, then we've been in combat, and need to
                     // refresh the auto-blacklist timer.
@@ -858,9 +862,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                         || (!isWoWUnit && (Me.CurrentTarget != null)))
                     {
                         if (isWoWUnit)
-                            { CurrentTarget.ToUnit().Target(); }
+                        { CurrentTarget.ToUnit().Target(); }
                         else
-                            { Me.ClearTarget(); }
+                        { Me.ClearTarget(); }
 
                         LogMessage("debug", "Auto-blacklist timer restarted due to combat.");
                         _currentTargetAutoBlacklistTime = CalculateAutoBlacklistTime(CurrentTarget);
@@ -874,9 +878,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public Composite    CreateBehavior_MoveNearTarget(WoWObjectDelegate     target,
-                                                          DistanceDelegate      minRange,
-                                                          DistanceDelegate      maxRange)
+        public Composite CreateBehavior_MoveNearTarget(WoWObjectDelegate target,
+                                                          DistanceDelegate minRange,
+                                                          DistanceDelegate maxRange)
         {
             return (
             new PrioritySelector(context => target(),
@@ -925,7 +929,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public Composite    CreateBehavior_MoveToLocation(LocationDelegate  location)
+        public Composite CreateBehavior_MoveToLocation(LocationDelegate location)
         {
             return (
             new PrioritySelector(context => location(),
@@ -941,12 +945,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public Composite    CreateBehavior_MoveToTarget()
+        public Composite CreateBehavior_MoveToTarget()
         {
             return (CreateBehavior_MoveToTarget(() => CurrentTarget));
         }
 
-        public Composite    CreateBehavior_MoveToTarget(WoWObjectDelegate   target)
+        public Composite CreateBehavior_MoveToTarget(WoWObjectDelegate target)
         {
             return (
             new PrioritySelector(context => target(),
@@ -967,24 +971,24 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private static string   BuildTimeAsString(TimeSpan timeSpan)
+        private static string BuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  string.Empty;
+            string formatString = string.Empty;
 
             if (timeSpan.Hours > 0)
-                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
+            { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
             else if (timeSpan.Minutes > 0)
-                { formatString = "{1:D2}m:{2:D2}s"; }
+            { formatString = "{1:D2}m:{2:D2}s"; }
             else
-                { formatString = "{2:D2}s"; }
+            { formatString = "{2:D2}s"; }
 
             return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
 
 
-        private TimeSpan        CalculateAutoBlacklistTime(WoWObject    wowObject)
+        private TimeSpan CalculateAutoBlacklistTime(WoWObject wowObject)
         {
-            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed)
+            double timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed)
                                            * 2.5);     // factor of safety
 
             timeToWowObject = Math.Max(timeToWowObject, 20.0);  // 20sec hard lower-limit
@@ -993,7 +997,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private Composite       CreateBehavior_InternalMoveTo(LocationDelegate  locationDelegate)
+        private Composite CreateBehavior_InternalMoveTo(LocationDelegate locationDelegate)
         {
             return (
             new Sequence(context => locationDelegate(),
@@ -1006,14 +1010,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
                 // Move...
                 new Action(delegate
-                { 
+                {
                     // Try to use Navigator to get there...
-                    WoWPoint    location    = locationDelegate();
-                    MoveResult  moveResult  = Navigator.MoveTo(location);
+                    WoWPoint location = locationDelegate();
+                    MoveResult moveResult = Navigator.MoveTo(location);
 
                     // If Navigator fails, fall back to click-to-move...
                     if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                        {  WoWMovement.ClickToMove(location); }
+                    { WoWMovement.ClickToMove(location); }
                 }),
 
                 new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
@@ -1022,14 +1026,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private WoWPoint        FindNearestHotspot()
+        private WoWPoint FindNearestHotspot()
         {
-            WoWPoint        nearestHotspot  = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
+            WoWPoint nearestHotspot = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
 
             // Rotate the hotspot queue such that the nearest hotspot is on top...
             while (_hotSpots.Peek() != nearestHotspot)
             {
-                WoWPoint    tmpWoWPoint     = _hotSpots.Dequeue();
+                WoWPoint tmpWoWPoint = _hotSpots.Dequeue();
 
                 _hotSpots.Enqueue(tmpWoWPoint);
             }
@@ -1038,13 +1042,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private WoWPoint        FindNextHotspot()
+        private WoWPoint FindNextHotspot()
         {
-            WoWPoint    currentHotspot      = _hotSpots.Peek();
+            WoWPoint currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
             if (Me.Location.Distance(currentHotspot) > Navigator.PathPrecision)
-                { return (currentHotspot); }
+            { return (currentHotspot); }
 
             // Otherwise, rotate to the next hotspot in the list...
             _hotSpots.Enqueue(currentHotspot);
@@ -1054,14 +1058,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        public void         UseHotspots(IEnumerable<WoWPoint>       _hotspots)
+        public void UseHotspots(IEnumerable<WoWPoint> _hotspots)
         {
             _hotspots = _hotspots ?? new WoWPoint[0];
 
             _hotSpots = new Queue<WoWPoint>(_hotspots);
 
             if (_hotSpots.Count() <= 0)
-                { _hotSpots.Enqueue(HuntingGroundAnchor); }
+            { _hotSpots.Enqueue(HuntingGroundAnchor); }
 
             FindNearestHotspot();
         }
@@ -1072,12 +1076,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     #region Extensions to HBcore
 
-    public class DecoratorContinueThrottled     : DecoratorContinue
+    public class DecoratorContinueThrottled : DecoratorContinue
     {
-        public DecoratorContinueThrottled(TimeSpan                  throttleTime,
-                                          CanRunDecoratorDelegate   canRun,
-                                          Composite                 composite)
-            :base(canRun, composite)
+        public DecoratorContinueThrottled(TimeSpan throttleTime,
+                                          CanRunDecoratorDelegate canRun,
+                                          Composite composite)
+            : base(canRun, composite)
         {
             _throttleTime = throttleTime;
 
@@ -1090,7 +1094,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         protected override bool CanRun(object context)
         {
             if (_throttle.Elapsed < _throttleTime)
-                { return (false); }
+            { return (false); }
 
             _throttle.Reset();
             _throttle.Start();
@@ -1099,17 +1103,17 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private Stopwatch                   _throttle;
-        private TimeSpan                    _throttleTime;
+        private Stopwatch _throttle;
+        private TimeSpan _throttleTime;
     }
 
 
-    public class DecoratorThrottled         : Decorator
+    public class DecoratorThrottled : Decorator
     {
-        public DecoratorThrottled(TimeSpan                  throttleTime,
-                                  CanRunDecoratorDelegate   canRun,
-                                  Composite                 composite)
-            :base(canRun, composite)
+        public DecoratorThrottled(TimeSpan throttleTime,
+                                  CanRunDecoratorDelegate canRun,
+                                  Composite composite)
+            : base(canRun, composite)
         {
             _throttleTime = throttleTime;
 
@@ -1122,7 +1126,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         protected override bool CanRun(object context)
         {
             if (_throttle.Elapsed < _throttleTime)
-                { return (false); }
+            { return (false); }
 
             _throttle.Reset();
             _throttle.Start();
@@ -1131,8 +1135,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private Stopwatch                   _throttle;
-        private TimeSpan                    _throttleTime;
+        private Stopwatch _throttle;
+        private TimeSpan _throttleTime;
     }
 
 
@@ -1141,45 +1145,45 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
     // own.  <sigh>
     public class LocalBlackList
     {
-        public LocalBlackList(TimeSpan  maxSweepTime)
+        public LocalBlackList(TimeSpan maxSweepTime)
         {
             _maxSweepTime = maxSweepTime;
             _stopWatchForSweeping.Start();
         }
 
-        private Dictionary<ulong, DateTime>     _blackList              = new Dictionary<ulong, DateTime>();
-        private TimeSpan                        _maxSweepTime;
-        private Stopwatch                       _stopWatchForSweeping   = new Stopwatch();      
+        private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+        private TimeSpan _maxSweepTime;
+        private Stopwatch _stopWatchForSweeping = new Stopwatch();
 
 
-        public void     Add(ulong guid,   TimeSpan timeSpan)
+        public void Add(ulong guid, TimeSpan timeSpan)
         {
             if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                { RemoveExpired(); }
+            { RemoveExpired(); }
 
             _blackList[guid] = DateTime.Now.Add(timeSpan);
         }
 
 
-        public bool     Contains(ulong  guid)
+        public bool Contains(ulong guid)
         {
             if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                { RemoveExpired(); }
+            { RemoveExpired(); }
 
             return (_blackList.ContainsKey(guid));
         }
 
 
-        public void     RemoveExpired()
+        public void RemoveExpired()
         {
-            DateTime    now     = DateTime.Now;
+            DateTime now = DateTime.Now;
 
-            List<ulong> expiredEntries  = (from key in _blackList.Keys
-                                            where (_blackList[key] < now)
-                                            select key).ToList();
+            List<ulong> expiredEntries = (from key in _blackList.Keys
+                                          where (_blackList[key] < now)
+                                          select key).ToList();
 
             foreach (ulong entry in expiredEntries)
-                { _blackList.Remove(entry); }
+            { _blackList.Remove(entry); }
 
             _stopWatchForSweeping.Reset();
             _stopWatchForSweeping.Start();
@@ -1189,32 +1193,32 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     public static class WoWObject_Extensions
     {
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // We provide our own 'local' blacklist.  If we use the global one maintained by HBcore,
         // that will prevent us from looting also.
-        private static LocalBlackList   _blackList          = new LocalBlackList(TimeSpan.FromSeconds(30));
-        private static LocalBlackList   _blackListLooting   = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList _blackList = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList _blackListLooting = new LocalBlackList(TimeSpan.FromSeconds(30));
 
-        public static void      LocallyBlacklist(this WoWObject    wowObject,
-                                                 TimeSpan          timeSpan)
+        public static void LocallyBlacklist(this WoWObject wowObject,
+                                                 TimeSpan timeSpan)
         {
             _blackList.Add(wowObject.Guid, timeSpan);
         }
 
-        public static void      LootingBlacklist(this WoWObject    wowObject,
-                                                 TimeSpan          timeSpan)
+        public static void LootingBlacklist(this WoWObject wowObject,
+                                                 TimeSpan timeSpan)
         {
             _blackListLooting.Add(wowObject.Guid, timeSpan);
         }
 
 
-        public static bool      IsLocallyBlacklisted(this WoWObject    wowObject)
+        public static bool IsLocallyBlacklisted(this WoWObject wowObject)
         {
             return (_blackList.Contains(wowObject.Guid));
         }
 
-        public static bool      IsLootingBlacklisted(this WoWObject    wowObject)
+        public static bool IsLootingBlacklisted(this WoWObject wowObject)
         {
             return (_blackListLooting.Contains(wowObject.Guid));
         }
@@ -1223,9 +1227,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     public static class WoWUnit_Extensions
     {
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
-        public static bool      IsInOurParty(this WoWUnit  wowUnit)
+        public static bool IsInOurParty(this WoWUnit wowUnit)
         {
             return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
         }
@@ -1234,25 +1238,25 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     public static class WoWPoint_Extensions
     {
-        public static Random            _random     = new Random((int)DateTime.Now.Ticks);
+        public static Random _random = new Random((int)DateTime.Now.Ticks);
 
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
-        public const double             TAU         = (2 * Math.PI);    // See http://tauday.com/
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
 
-        public static WoWPoint  Add(this WoWPoint   wowPoint,
-                                    double          x,
-                                    double          y,
-                                    double          z)
+        public static WoWPoint Add(this WoWPoint wowPoint,
+                                    double x,
+                                    double y,
+                                    double z)
         {
             return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
         }
 
 
-        public static WoWPoint  AddPolarXY(this WoWPoint  wowPoint,
-                                           double         xyHeadingInRadians,
-                                           double         distance,
-                                           double         zModifier)
+        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
+                                           double xyHeadingInRadians,
+                                           double distance,
+                                           double zModifier)
         {
             return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
                                  (Math.Sin(xyHeadingInRadians) * distance),
@@ -1264,29 +1268,29 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         // (e.g., boat, mob repops, etc). This allows multiple people running
         // the same profile to not stand on top of each other while waiting for
         // something.
-        public static WoWPoint     FanOutRandom(this WoWPoint  location,
-                                                double         maxRadius)
+        public static WoWPoint FanOutRandom(this WoWPoint location,
+                                                double maxRadius)
         {
-            const int           CYLINDER_LINE_COUNT     =  12;
-            const int           MAX_TRIES               =  50;
-            const double        SAFE_DISTANCE_BUFFER    =   1.75;
+            const int CYLINDER_LINE_COUNT = 12;
+            const int MAX_TRIES = 50;
+            const double SAFE_DISTANCE_BUFFER = 1.75;
 
-            WoWPoint            candidateDestination  = location;
-            int                 tryCount;
+            WoWPoint candidateDestination = location;
+            int tryCount;
 
             // Most of the time we'll find a viable spot in less than 2 tries...
             // However, if you're standing on a pier, or small platform a
             // viable alternative may take 10-15 tries--its all up to the
             // random number generator.
-            for (tryCount = MAX_TRIES;   tryCount > 0;    --tryCount)
+            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
             {
-                WoWPoint        circlePoint;
-                bool[]          hitResults;
-                WoWPoint[]      hitPoints;
-                int             index;
-                WorldLine[]     traceLines  = new WorldLine[CYLINDER_LINE_COUNT +1];
+                WoWPoint circlePoint;
+                bool[] hitResults;
+                WoWPoint[] hitPoints;
+                int index;
+                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()),  (maxRadius * _random.NextDouble()),  0.0);
+                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
 
                 // Build set of tracelines that can evaluate the candidate destination --
                 // We build a cone of lines with the cone's base at the destination's 'feet',
@@ -1296,17 +1300,17 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // 'Normal' vector
                 index = 0;
                 traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End   = candidateDestination.Add(0.0, 0.0, -maxRadius);
+                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
 
                 // Cylinder vectors
-                for (double turnFraction = 0.0;    turnFraction < TAU;    turnFraction += (TAU / CYLINDER_LINE_COUNT))
+                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
                 {
                     ++index;
                     circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
                     traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End   = circlePoint.Add(0.0, 0.0, -maxRadius);
+                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
                 }
-                
+
 
                 // Evaluate the cylinder...
                 // The result for the 'normal' vector (first one) will be the location where the
@@ -1325,54 +1329,54 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
                 // a plaform or pier).  If there is not solid ground all around us, we reject
                 // the candidate.  Our test for validity is that the walking distance must
                 // not be more than 20% greater than the straight-line distance to the point.
-                int     viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
+                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
                                                                       ? 1
                                                                       : 0));
 
-                if (viableVectorCount < (CYLINDER_LINE_COUNT +1))
-                    { continue; }
+                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
+                { continue; }
 
                 // If new destination is 'too close' to our current position, try again...
                 if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                    { continue; }
+                { continue; }
 
                 break;
             }
 
             // If we exhausted our tries, just go with simple destination --
             if (tryCount <= 0)
-                { candidateDestination = location; }
-            
+            { candidateDestination = location; }
+
             return (candidateDestination);
         }
 
 
-        public static double    SurfacePathDistance(this WoWPoint     start,
-                                                    WoWPoint          destination)
+        public static double SurfacePathDistance(this WoWPoint start,
+                                                    WoWPoint destination)
         {
-            WoWPoint[]  groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
+            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
 
             // We define an invalid path to be of 'infinite' length
             if (groundPath.Length <= 0)
-                { return (double.MaxValue); }
+            { return (double.MaxValue); }
 
- 
-            double      pathDistance = start.Distance(groundPath[0]);
 
-            for (int i = 0;    i < (groundPath.Length - 1);    ++i)
-                { pathDistance += groundPath[i].Distance(groundPath[i+1]); }
+            double pathDistance = start.Distance(groundPath[0]);
+
+            for (int i = 0; i < (groundPath.Length - 1); ++i)
+            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
 
             return (pathDistance);
         }
 
 
         // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint      WaterSurface(this WoWPoint      location)
+        public static WoWPoint WaterSurface(this WoWPoint location)
         {
-            WoWPoint    hitLocation;
-            bool        hitResult;
-            WoWPoint    locationUpper       = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint    locationLower       = location.Add(0.0, 0.0, -2000.0);
+            WoWPoint hitLocation;
+            bool hitResult;
+            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
+            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
             hitResult = (GameWorld.TraceLine(locationUpper,
                                              locationLower,

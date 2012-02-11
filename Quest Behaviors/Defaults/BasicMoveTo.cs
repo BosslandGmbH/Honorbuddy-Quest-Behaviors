@@ -36,62 +36,62 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
         {
             try
             {
-                LogMessage("warning",   "*****\n"
+                LogMessage("warning", "*****\n"
                                         + "* THIS BEHAVIOR IS DEPRECATED, and may be retired in a near, future release.\n"
                                         + "*\n"
                                         + "* BasicMoveTo adds _no_ _additonal_ _value_ over Honorbuddy's built-in RunTo command.\n"
                                         + "* Please update the profile to use RunTo in preference to the BasicMoveTo Behavior.\n"
                                         + "*****");
 
-                Destination     = LegacyGetAttributeAsWoWPoint("Location", false, null, "X/Y/Z")
+                Destination = LegacyGetAttributeAsWoWPoint("Location", false, null, "X/Y/Z")
                                     ?? GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null)
                                     ?? WoWPoint.Empty;
-                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new [] { "Name" }) ?? string.Empty;
+                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? string.Empty;
 
                 if (string.IsNullOrEmpty(DestinationName))
-                    { DestinationName = Destination.ToString(); }
+                { DestinationName = Destination.ToString(); }
             }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public WoWPoint     Destination { get; private set; }
-        public string       DestinationName { get; private set; }
+        public WoWPoint Destination { get; private set; }
+        public string DestinationName { get; private set; }
 
         // Private variables for internal state
-        private bool        _isBehaviorDone;
-        private bool            _isDisposed;
-        private Composite   _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private int                 Counter { get; set; }
-        private LocalPlayer         Me { get { return (ObjectManager.Me); } }
+        private int Counter { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-		
+
         ~BasicMoveTo()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -155,7 +155,7 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
 
                                     if (Me.Combat)
                                     {
-                                        
+
                                         return RunStatus.Success;
                                     }
                                     else if (!Me.Combat)
@@ -172,9 +172,9 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
                         )
                     ));
         }
-	
 
-        public override void    Dispose()
+
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -188,7 +188,7 @@ namespace Styx.Bot.Quest_Behaviors.BasicMoveTo
 
 
         public override void OnStart()
-		{
+        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.

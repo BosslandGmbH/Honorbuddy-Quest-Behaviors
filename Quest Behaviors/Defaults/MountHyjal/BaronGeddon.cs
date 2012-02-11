@@ -57,83 +57,90 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AuraId      = GetAttributeAsNullable<int>("AuraId", false, ConstrainAs.AuraId, null) ?? 74813;        // should be 74813 - Inferno - http://www.wowhead.com/spell=74813
-                CollectionDistance  = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;    // dist from point to search for mob
-                ItemId      = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 54463;         // should be 54463 - Flameseer's Staff
-                Location    = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;  // point to start at/run to when mob has AuraId
-                                                                                            // ...also used as center point for mob search area
-                MobId       = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 40147;           //  should be 40147 - Baron Geddon
-                QuestId     = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;            // should be 25464 for http://www.wowhead.com/quest=25464
-                /* */         GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
+                AuraId = GetAttributeAsNullable<int>("AuraId", false, ConstrainAs.AuraId, null) ?? 74813;        // should be 74813 - Inferno - http://www.wowhead.com/spell=74813
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;    // dist from point to search for mob
+                ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 54463;         // should be 54463 - Flameseer's Staff
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;  // point to start at/run to when mob has AuraId
+                // ...also used as center point for mob search area
+                MobId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 40147;           //  should be 40147 - Baron Geddon
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;            // should be 25464 for http://www.wowhead.com/quest=25464
+                /* */
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range       = GetAttributeAsNullable("Range", false, ConstrainAs.Range, null) ?? 18;              // should be 18 or less (see http://www.wowhead.com/spell=75192)
-                                                                                            // note: wowhead says 10, but actual testing shows 18+ which decreases damage taken
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                Range = GetAttributeAsNullable("Range", false, ConstrainAs.Range, null) ?? 18;              // should be 18 or less (see http://www.wowhead.com/spell=75192)
+                // note: wowhead says 10, but actual testing shows 18+ which decreases damage taken
 
                 _bombWait = new Stopwatch();
                 _castTime = new Stopwatch();
                 _isBehaviorDone = IsQuestComplete();
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                        + "\nFROM HERE:\n"
+                                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      AuraId { get; private set; }
-        public double                   CollectionDistance { get; private set; }
-        public int                      ItemId { get; private set; }
-        public WoWPoint                 Location { get; private set; }
-        public int                      MobId { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int AuraId { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public int ItemId { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int MobId { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public double                   Range { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public double Range { get; private set; }
 
         // Private variables for internal state
-        private Stopwatch               _bombWait;
-        private Stopwatch               _castTime;
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
-        private bool                    _moveToCoordYet;
-        private readonly List<ulong>    _npcBlacklist = new List<ulong>();
-        private Composite               _root;
+        private Stopwatch _bombWait;
+        private Stopwatch _castTime;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private bool _moveToCoordYet;
+        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private Composite _root;
 
         // Private properties
-        private WoWItem                 Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId)); } }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
-        private WoWUnit                 Mob  { get { WoWUnit @object = (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                            .OrderBy(ret => ret.Distance)
-                                                                            .FirstOrDefault(obj => !_npcBlacklist.Contains(obj.Guid)
-                                                                                            && obj.Distance < CollectionDistance
-                                                                                            && obj.Entry == MobId));
-                                                        if (@object != null)
-                                                            { LogMessage("debug", @object.Name); }
-                                                        return @object; } }
+        private WoWItem Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId)); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private WoWUnit Mob
+        {
+            get
+            {
+                WoWUnit @object = (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                       .OrderBy(ret => ret.Distance)
+                                       .FirstOrDefault(obj => !_npcBlacklist.Contains(obj.Guid)
+                                                       && obj.Distance < CollectionDistance
+                                                       && obj.Entry == MobId));
+                if (@object != null)
+                { LogMessage("debug", @object.Name); }
+                return @object;
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~BaronGeddon()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -185,22 +192,22 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         {
             return _root ?? (_root =
                 new PrioritySelector(
-                    // done with QB?
+                // done with QB?
                     new Decorator(ret => IsQuestComplete(),
                         new PrioritySelector(
                             new Decorator(ret => Location.Distance(Me.Location) > 3,
                                 new Action(ret => Navigator.MoveTo(Location))),
                             new Decorator(ret => !HasAura(Me, 82924) && 1000 < _bombWait.ElapsedMilliseconds && _bombWait.ElapsedMilliseconds > 12000,
-                                new Action( ret => _isBehaviorDone = true )),
-                            new Action( delegate
+                                new Action(ret => _isBehaviorDone = true)),
+                            new Action(delegate
                                 {
                                     TreeRoot.StatusText = "Waiting for Living Bomb - " + Location;
-                                    if ( !_bombWait.IsRunning )
+                                    if (!_bombWait.IsRunning)
                                         _bombWait.Start();
                                 })
                             )
                         ),
-                    // move to safe spot initially
+                // move to safe spot initially
                     new Decorator(ret => !_moveToCoordYet,
                         new PrioritySelector(
                             new Decorator(ret => Location.Distance(Me.Location) < 3,
@@ -210,18 +217,18 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                 new Action(ret => Navigator.MoveTo(Location)))
                             )
                         ),
-                    // have current mob
-                    new Decorator( ret => Mob != null,
-                        new PrioritySelector( 
+                // have current mob
+                    new Decorator(ret => Mob != null,
+                        new PrioritySelector(
 
                             // target quest mob
-                            new Decorator( ret => Mob != null && Mob != Me.CurrentTarget,
+                            new Decorator(ret => Mob != null && Mob != Me.CurrentTarget,
                                 new Action(ret => (Mob as WoWUnit).Target())),
 
                             // need to move ( timer or aura )
-                            new Decorator( ret => _castTime.ElapsedMilliseconds > 5000 || HasAura(Mob as WoWUnit, AuraId),
+                            new Decorator(ret => _castTime.ElapsedMilliseconds > 5000 || HasAura(Mob as WoWUnit, AuraId),
                                 new PrioritySelector(
-                                    // if at safe spot then wait
+                // if at safe spot then wait
                                     new Decorator(ret => Location.Distance(Me.Location) < 3,
                                         new Action(delegate
                                         {
@@ -233,18 +240,18 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                                 _castTime.Reset();   // clear timer now that we see aura
                                             }
                                         })),
-                                    new Action(delegate 
-                                    { 
-                                        TreeRoot.StatusText = "Move away to - " + Location; 
+                                    new Action(delegate
+                                    {
+                                        TreeRoot.StatusText = "Move away to - " + Location;
                                         Navigator.MoveTo(Location);
                                     }))
                                 ),
 
                             // need to attack
                             new PrioritySelector(
-                                new Decorator( ret => Mob.Distance > Range,
-                                    new Action(delegate 
-                                    { 
+                                new Decorator(ret => Mob.Distance > Range,
+                                    new Action(delegate
+                                    {
                                         TreeRoot.StatusText = "Moving in - " + Mob.Name;
                                         Navigator.MoveTo(WoWMovement.CalculatePointFrom(Mob.Location, (float)(Range - 1)));
                                     })),
@@ -254,8 +261,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                         WoWMovement.MoveStop();
                                         StyxWoW.SleepForLagDuration();
                                     })),
-                                new Decorator( ret=> _castTime.IsRunning,
-                                    new Action( ret => 0 )),
+                                new Decorator(ret => _castTime.IsRunning,
+                                    new Action(ret => 0)),
                                 new Action(delegate
                                 {
                                     TreeRoot.StatusText = "Using item on - " + Mob.Name;
@@ -275,13 +282,13 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                 })
                                 )
                             )
-                        )                    
+                        )
                     )
                 );
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

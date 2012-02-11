@@ -116,7 +116,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return ( !Me.IsSwimming || _isBehaviorDone); }
+            get { return (!Me.IsSwimming || _isBehaviorDone); }
         }
 
 

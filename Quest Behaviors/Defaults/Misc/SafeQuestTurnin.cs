@@ -38,54 +38,54 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                QuestId         = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestName       = GetAttributeAs<string>("QuestName", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestName = GetAttributeAs<string>("QuestName", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                TurnInId        = GetAttributeAsNullable<int>("TurnInId", true, ConstrainAs.MobId, null) ?? 0;
-                TurnInLocation  = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-			}
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                TurnInId = GetAttributeAsNullable<int>("TurnInId", true, ConstrainAs.MobId, null) ?? 0;
+                TurnInLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      QuestId { get; private set; }
-        public string                   QuestName { get; private set; }
+        public int QuestId { get; private set; }
+        public string QuestName { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      TurnInId { get; private set; }
-        public WoWPoint                 TurnInLocation { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int TurnInId { get; private set; }
+        public WoWPoint TurnInLocation { get; private set; }
 
         // Private properties
-        private ForcedQuestTurnIn       QuestTurnIn { get; set; }
+        private ForcedQuestTurnIn QuestTurnIn { get; set; }
 
-        private bool                _isDisposed;
+        private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~SafeQuestTurnin()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -115,7 +115,7 @@ namespace Styx.Bot.Quest_Behaviors
 
             _isDisposed = true;
         }
-		
+
 
         private static void Instance_RemoveTargetsFilter(List<WoWObject> units)
         {
@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors
         protected override Composite CreateBehavior() { return QuestTurnIn.Branch; }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -159,7 +159,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInLocation);
 
                 if (QuestTurnIn == null)
-                    { LogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
+                { LogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
 
                 Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
                 QuestTurnIn.OnStart();

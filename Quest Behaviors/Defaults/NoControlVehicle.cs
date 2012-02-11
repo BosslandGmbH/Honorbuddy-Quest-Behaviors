@@ -43,104 +43,117 @@ namespace Styx.Bot.Quest_Behaviors
         public NoControlVehicle(Dictionary<string, string> args)
             : base(args)
         {
-			try
-			{
+            try
+            {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AttackButton    = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new [] { "AttackIndex", "SpellIndex" }) ?? 0;
-                GoHomeButton    = GetAttributeAsNullable<int>("GoHomeButton", false, ConstrainAs.HotbarButton, new [] { "HomeIndex" }) ?? 0;
-                MaxRange        = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 1;
-                MountedPoint    = WoWPoint.Empty;
-                NumOfTimes      = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new [] { "TimesToUse" }) ?? 1;
-                OftenToUse      = GetAttributeAsNullable<int>("OftenToUse", false, ConstrainAs.Milliseconds, null) ?? 1000;
-                QuestId         = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                SpellType       = GetAttributeAsNullable<int>("TypeId", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 2;
-                TargetIds       = GetNumberedAttributesAsArray<int>("TargetId", 1, ConstrainAs.MobId, new [] { "MobId", "NpcId" });
-                VehicleId       = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
-                VehicleMountId  = GetAttributeAsNullable<int>("VehicleMountId", false, ConstrainAs.VehicleId, new [] { "NpcMountId", "NpcMountID" }) ?? 1;
-                WaitTime        = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                AttackButton = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new[] { "AttackIndex", "SpellIndex" }) ?? 0;
+                GoHomeButton = GetAttributeAsNullable<int>("GoHomeButton", false, ConstrainAs.HotbarButton, new[] { "HomeIndex" }) ?? 0;
+                MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 1;
+                MountedPoint = WoWPoint.Empty;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new[] { "TimesToUse" }) ?? 1;
+                OftenToUse = GetAttributeAsNullable<int>("OftenToUse", false, ConstrainAs.Milliseconds, null) ?? 1000;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                SpellType = GetAttributeAsNullable<int>("TypeId", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 2;
+                TargetIds = GetNumberedAttributesAsArray<int>("TargetId", 1, ConstrainAs.MobId, new[] { "MobId", "NpcId" });
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
+                VehicleMountId = GetAttributeAsNullable<int>("VehicleMountId", false, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 1;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 
                 Counter = 1;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      AttackButton { get; private set; }
-        public int                      GoHomeButton { get; private set; }
-        public double                   MaxRange { get; private set; }
-        public WoWPoint                 MountedPoint { get; private set; }
-        public int                      OftenToUse { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int AttackButton { get; private set; }
+        public int GoHomeButton { get; private set; }
+        public double MaxRange { get; private set; }
+        public WoWPoint MountedPoint { get; private set; }
+        public int OftenToUse { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public int                      SpellType { get; private set; }
-        public int[]                    TargetIds { get; private set; }
-        public int                      NumOfTimes { get; private set; }
-        public int                      WaitTime { get; private set; }
-        public int                      VehicleId { get; private set; }
-        public int                      VehicleMountId { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int SpellType { get; private set; }
+        public int[] TargetIds { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int WaitTime { get; private set; }
+        public int VehicleId { get; private set; }
+        public int VehicleMountId { get; private set; }
 
         // Private variables for internal state
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
-        private Composite               _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
         // Private properties
-        private int                     Counter { get; set; }
-        private bool                    InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
-        private LocalPlayer             Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit>           NpcList { get { 
-                                                    if (VehicleList.Count > 0)
-                                                    {
-                                                        return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .Where(u => TargetIds.Contains((int)u.Entry)
-                                                                                            && (VehicleList[0].Location.Distance(u.Location) <= MaxRange))
-                                                                                .OrderBy(u => u.Distance)
-                                                                                .ToList());
-                                                    }
-                                                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                            .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
-                                                                            .OrderBy(u => u.Distance)
-                                                                            .ToList());
-                                                } }
-        private List<WoWUnit>           NpcVehicleList { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                     .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
-                                                                                     .OrderBy(u => u.Distance)
-                                                                                     .ToList());
-                                                        } }
-        private List<WoWUnit>           VehicleList {  get {
-                                                            return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                 .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
-                                                                                 .ToList());
-                                                    } }
+        private int Counter { get; set; }
+        private bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private List<WoWUnit> NpcList
+        {
+            get
+            {
+                if (VehicleList.Count > 0)
+                {
+                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                            .Where(u => TargetIds.Contains((int)u.Entry)
+                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange))
+                                            .OrderBy(u => u.Distance)
+                                            .ToList());
+                }
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                        .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
+                                        .OrderBy(u => u.Distance)
+                                        .ToList());
+            }
+        }
+        private List<WoWUnit> NpcVehicleList
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                      .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
+                                      .OrderBy(u => u.Distance)
+                                      .ToList());
+            }
+        }
+        private List<WoWUnit> VehicleList
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                                     .ToList());
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~NoControlVehicle()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -170,24 +183,24 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 if (NpcList[0].Location.Distance(MountedPoint) < 10)
-                    { return 0; }
+                { return 0; }
 
                 else if (NpcList[0].Location.Distance(MountedPoint) >= 10 && NpcList[0].Location.Distance(MountedPoint) < 20)
-                    { return 0.2; }
+                { return 0.2; }
 
                 else if (NpcList[0].Location.Distance(MountedPoint) >= 20 && NpcList[0].Location.Distance(MountedPoint) < 30)
-                    { return 0.4; }
+                { return 0.4; }
 
                 else if (NpcList[0].Location.Distance(MountedPoint) >= 40 && NpcList[0].Location.Distance(MountedPoint) < 60)
-                    { return 0.5; }
+                { return 0.5; }
 
                 else
-                    { return 0.2; }
+                { return 0.2; }
             }
         }
 
 
-       #region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
@@ -262,7 +275,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 LegacySpellManager.ClickRemoteLocation(NpcList[0].Location);
                                 Thread.Sleep(WaitTime);
                                 Counter++;
-                                return RunStatus.Running;                                
+                                return RunStatus.Running;
                             }
                             return RunStatus.Running;
                         })),
@@ -277,7 +290,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         ret => Me.CurrentTarget == null || Me.CurrentTarget != (WoWUnit)ret,
                                         new Action(ret => ((WoWUnit)ret).Target())),
                                     new Decorator(
-                                        ret => !Me.Transport.IsSafelyFacing(((WoWUnit)ret),10),
+                                        ret => !Me.Transport.IsSafelyFacing(((WoWUnit)ret), 10),
                                         new Action(ret => Me.CurrentTarget.Face())),
                                     new Action(ret =>
                                         {
@@ -289,9 +302,9 @@ namespace Styx.Bot.Quest_Behaviors
 
                                             Thread.Sleep(WaitTime);
                                             Counter++;
-                                            return RunStatus.Success;         
+                                            return RunStatus.Success;
                                         }))))),
-          
+
                     new Decorator(c => InVehicle && SpellType == 4,
                         new Action(c =>
                         {
@@ -319,7 +332,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

@@ -48,73 +48,73 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AttackButton        = GetAttributeAsNullable("AttackButton", true, ConstrainAs.HotbarButton, new [] { "SpellIndex" }) ?? 0;
-                FirePoint           = GetAttributeAsNullable("FireLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                AttackButton = GetAttributeAsNullable("AttackButton", true, ConstrainAs.HotbarButton, new[] { "SpellIndex" }) ?? 0;
+                FirePoint = GetAttributeAsNullable("FireLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 FireHeight = GetAttributeAsNullable("FireHeight", false, new ConstrainTo.Domain<int>(1, 999), null) ?? 1;
                 FireUntilFinished = GetAttributeAsNullable<bool>("FireUntilFinished", false, null, new[] { "FireTillFinish" }) ?? false;
-                PreviousLocation    = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
-                QuestId             = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                PreviousLocation = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 TargetPoint = GetAttributeAsNullable("TargetLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                VehicleId           = GetAttributeAsNullable("VehicleId", true, ConstrainAs.VehicleId, new [] { "VehicleID" }) ?? 0;
-                VehicleMountId      = GetAttributeAsNullable("VehicleMountId", true, ConstrainAs.VehicleId, new [] { "NpcMountId", "NpcMountID" }) ?? 0;
+                VehicleId = GetAttributeAsNullable("VehicleId", true, ConstrainAs.VehicleId, new[] { "VehicleID" }) ?? 0;
+                VehicleMountId = GetAttributeAsNullable("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 0;
 
                 StartObjectivePoint = GetAttributeAsNullable("StartObjectivePoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                NPCIds              = GetNumberedAttributesAsArray("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" });
+                NPCIds = GetNumberedAttributesAsArray("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" });
                 EndPoint = GetAttributeAsNullable("EndPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 StartPoint = GetAttributeAsNullable("StartPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
                 VehicleType = GetAttributeAsNullable("VehicleType", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 0;
                 Counter = 0;
 
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-										+ "\nFROM HERE:\n"
-										+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                        + "\nFROM HERE:\n"
+                                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      AttackButton { get; set; }
+        public int AttackButton { get; set; }
 
-        public int                      FireHeight { get; private set; }
-        public WoWPoint                 FirePoint { get; private set; }
-        public bool                     FireUntilFinished { get; set; }
-        public WoWPoint?                PreviousLocation { get; private set; }
-        public int                      QuestId  { get; private set; }
+        public int FireHeight { get; private set; }
+        public WoWPoint FirePoint { get; private set; }
+        public bool FireUntilFinished { get; set; }
+        public WoWPoint? PreviousLocation { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public WoWPoint                 TargetPoint { get; private set; }
-        public int                      VehicleId { get; set; }
-        public int[]                    NPCIds { get; set; }
-        public int                      VehicleMountId { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public WoWPoint TargetPoint { get; private set; }
+        public int VehicleId { get; set; }
+        public int[] NPCIds { get; set; }
+        public int VehicleMountId { get; private set; }
 
-        public WoWPoint                 StartObjectivePoint { get; private set; }
-        public int                      VehicleType { get; set; }
+        public WoWPoint StartObjectivePoint { get; private set; }
+        public int VehicleType { get; set; }
 
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-        private bool                _isInitialized;
-        private int                 _pathIndex;
-        private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private bool _isInitialized;
+        private int _pathIndex;
+        private Composite _root;
 
         // Private properties
-        private int                 Counter { get; set; }
-        private bool         InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
-        private LocalPlayer  Me { get { return (ObjectManager.Me); } }
+        private int Counter { get; set; }
+        private bool InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         private List<WoWUnit> NpcAttackList
         {
@@ -128,47 +128,55 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        private List<WoWUnit>       NpcVehicleList { get { return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
-                                                                                .OrderBy(u => u.Distance)
-                                                                                .ToList(); }}
-        private WoWPoint[]          Path { get; set; }
+        private List<WoWUnit> NpcVehicleList
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
+                                     .OrderBy(u => u.Distance)
+                                     .ToList();
+            }
+        }
+        private WoWPoint[] Path { get; set; }
         private CircularQueue<WoWPoint> PathCircle { get; set; }
         private WoWPoint StartPoint { get; set; }    // Start point Where Mount Is
-        private WoWPoint EndPoint { get; set; } 
+        private WoWPoint EndPoint { get; set; }
 
-        private WoWUnit             _vehicle;
-        private List<WoWUnit>       VehicleList { get
+        private WoWUnit _vehicle;
+        private List<WoWUnit> VehicleList
         {
-            if (PreviousLocation.HasValue)
-                                                        {
-                                                            return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                                .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
-                                                                                .OrderBy(u => u.Location.Distance(PreviousLocation.Value))
-                                                                                .ToList();
-                                                        }
-            return ObjectManager.GetObjectsOfType<WoWUnit>()
-                .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
-                .OrderBy(u => u.Distance)
-                .ToList();
-        }
+            get
+            {
+                if (PreviousLocation.HasValue)
+                {
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                        .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                                        .OrderBy(u => u.Location.Distance(PreviousLocation.Value))
+                                        .ToList();
+                }
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                    .OrderBy(u => u.Distance)
+                    .ToList();
+            }
         }
 
         // Styx.Logic.Profiles.Quest.ProfileHelperFunctionsBase
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~VehicleBehavior()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -208,7 +216,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-            
+
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
@@ -237,7 +245,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 Navigator.MoveTo(StartPoint);
                                 TreeRoot.StatusText = "Moving To Vehicle Location - " + " Yards Away: " + StartPoint.Distance(Me.Location);
                                 return RunStatus.Success;
-                                
+
 
                             })
                         ),
@@ -256,7 +264,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     NpcVehicleList[0].Interact();
                                     PreviousLocation = Me.Location;
-                                    
+
                                 }
 
                                 return RunStatus.Success;
@@ -311,19 +319,19 @@ namespace Styx.Bot.Quest_Behaviors
                                     {
                                         WoWMovement.ClickToMove(NpcAttackList[0].Location);
 
-                                        if(Me.CurrentTarget != NpcAttackList[0])
+                                        if (Me.CurrentTarget != NpcAttackList[0])
                                             NpcAttackList[0].Target();
 
                                         return RunStatus.Success;
                                     }
 
-                                   
+
                                     Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
                                     Lua.DoString("CastPetAction({0})", AttackButton);
                                     Counter++;
                                     Thread.Sleep(1000);
-                                  
-                                    
+
+
 
                                     return RunStatus.Success;
                                 }
@@ -334,11 +342,11 @@ namespace Styx.Bot.Quest_Behaviors
                                     bool testfly = StyxWoW.Me.MovementInfo.CanFly;
 
                                     Logging.Write("" + testfly);
-                                    
+
 
                                     Flightor.MoveTo(StartObjectivePoint);
 
-                                   // WoWMovement.ClickToMove(StartObjectivePoint);
+                                    // WoWMovement.ClickToMove(StartObjectivePoint);
 
                                     _vehicle.Target();
                                 }
@@ -362,7 +370,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     }
                                     return RunStatus.Success;
                                 }
-                                    
+
 
                                 if (PathCircle.Count == 0)
                                 {
@@ -370,8 +378,8 @@ namespace Styx.Bot.Quest_Behaviors
                                     ParsePaths();
                                     return RunStatus.Running;
                                 }
-                                
-                                if(PathCircle.Peek().Distance(Me.Location) > 5)
+
+                                if (PathCircle.Peek().Distance(Me.Location) > 5)
                                 {
                                     Flightor.MoveTo(PathCircle.Peek());
                                     return RunStatus.Running;
@@ -380,7 +388,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 Thread.Sleep(400);
 
                                 if (NpcAttackList[0] != null)
-                                   WoWMovement.ClickToMove(NpcAttackList[0].Location);
+                                    WoWMovement.ClickToMove(NpcAttackList[0].Location);
 
                                 WoWMovement.MoveStop();
                                 Thread.Sleep(400);
@@ -391,7 +399,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                 return RunStatus.Running;
                             }))
-                                   
+
                     ));
         }
 
@@ -432,7 +440,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

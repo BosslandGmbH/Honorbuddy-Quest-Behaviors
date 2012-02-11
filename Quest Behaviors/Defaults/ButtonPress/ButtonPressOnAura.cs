@@ -76,14 +76,14 @@ using Action = TreeSharp.Action;
 
 namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 {
-    public class ButtonPressOnAura     : CustomForcedBehavior
+    public class ButtonPressOnAura : CustomForcedBehavior
     {
         public ButtonPressOnAura(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                int[]       tmpAuras;
+                int[] tmpAuras;
 
                 // FOR FUTURE IMPLEMENTATION...
                 // Self Auras --
@@ -95,23 +95,23 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                 //}
 
                 // Target Auras --
-                for (int i = 1;   i <= 12;    ++i)
+                for (int i = 1; i <= 12; ++i)
                 {
-                    string      attributeName   = string.Format("Button{0}TargetAuraId", i);
-                    tmpAuras    = GetNumberedAttributesAsArray<int>(attributeName, 0, ConstrainAs.AuraId, null);
+                    string attributeName = string.Format("Button{0}TargetAuraId", i);
+                    tmpAuras = GetNumberedAttributesAsArray<int>(attributeName, 0, ConstrainAs.AuraId, null);
                     UtilPopulateMapWithAuras(TargetAuraToButtonMap, i, tmpAuras);
                 }
 
-                ButtonOnQuestComplete   = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
-                HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                HuntingGroundRadius     = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), null) ?? 120.0;
-                IgnoreMobsInBlackspots  = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
-                MobIds                  = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
-                NonCompeteDistance      = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
-                PostInteractDelay       = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1000);
-                QuestId                 = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                ButtonOnQuestComplete = GetAttributeAsNullable<int>("ButtonOnQuestComplete", false, ConstrainAs.HotbarButton, null);
+                HuntingGroundAnchor = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundRadius = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), null) ?? 120.0;
+                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
+                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1000);
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
 
                 // Semantic coherency --
@@ -126,80 +126,81 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                                                                     ViableTargets,
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-				// resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
+                // resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller...
-        public int?                     ButtonOnQuestComplete { get; private set; }
-        public WoWPoint                 HuntingGroundAnchor { get; private set; }
-        public double                   HuntingGroundRadius { get; private set; }
-        public bool                     IgnoreMobsInBlackspots { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public double                   NonCompeteDistance { get; private set; }
-        public TimeSpan                 PostInteractDelay { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int? ButtonOnQuestComplete { get; private set; }
+        public WoWPoint HuntingGroundAnchor { get; private set; }
+        public double HuntingGroundRadius { get; private set; }
+        public bool IgnoreMobsInBlackspots { get; private set; }
+        public int[] MobIds { get; private set; }
+        public double NonCompeteDistance { get; private set; }
+        public TimeSpan PostInteractDelay { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private Properties & data...
-        private WoWUnit                 CurrentTarget                   { get { return ((WoWUnit)_behavior_HuntingGround.CurrentTarget); }}
-        private readonly TimeSpan       Delay_BlacklistPlayerTooClose   = TimeSpan.FromSeconds(90);
-        private readonly TimeSpan       Delay_MobConsumedExpiry         = TimeSpan.FromMinutes(7);
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private IEnumerable<WoWAura>    EmptyAuras                      = new List<WoWAura>();
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
-        private readonly Dictionary<int, int>   SelfAuraToButtonMap     = new Dictionary<int, int>();
-        private readonly Dictionary<int, int>   TargetAuraToButtonMap   = new Dictionary<int, int>();
+        private WoWUnit CurrentTarget { get { return ((WoWUnit)_behavior_HuntingGround.CurrentTarget); } }
+        private readonly TimeSpan Delay_BlacklistPlayerTooClose = TimeSpan.FromSeconds(90);
+        private readonly TimeSpan Delay_MobConsumedExpiry = TimeSpan.FromMinutes(7);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private IEnumerable<WoWAura> EmptyAuras = new List<WoWAura>();
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private readonly Dictionary<int, int> SelfAuraToButtonMap = new Dictionary<int, int>();
+        private readonly Dictionary<int, int> TargetAuraToButtonMap = new Dictionary<int, int>();
 
-        private HuntingGroundBehavior   _behavior_HuntingGround;
-        private Composite               _behaviorRoot;
-        private bool                    _isBehaviorInProgress;
-        private bool                    _isBehaviorDone;
-        private bool                    _isDisposed;
+        private HuntingGroundBehavior _behavior_HuntingGround;
+        private Composite _behaviorRoot;
+        private bool _isBehaviorInProgress;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
 
 
         // Private LINQ queries...
-        private IEnumerable<WoWObject>  ViableTargets() {
-                                            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                    .Where(target => (target.IsValid
-                                                                      && MobIds.Contains((int)target.Entry)
-                                                                      && (TargetAurasShowing(target, TargetAuraToButtonMap).Count() > 0)
-                                                                      && (target.Distance < HuntingGroundRadius)
-                                                                      && !target.IsLocallyBlacklisted()
-                                                                      && !BlacklistIfPlayerNearby(target)
-                                                                      && (IgnoreMobsInBlackspots
-                                                                          ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
-                                                                                                         target.Location)
-                                                                          : true)))
-                                                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
-                                            }
+        private IEnumerable<WoWObject> ViableTargets()
+        {
+            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                    .Where(target => (target.IsValid
+                                      && MobIds.Contains((int)target.Entry)
+                                      && (TargetAurasShowing(target, TargetAuraToButtonMap).Count() > 0)
+                                      && (target.Distance < HuntingGroundRadius)
+                                      && !target.IsLocallyBlacklisted()
+                                      && !BlacklistIfPlayerNearby(target)
+                                      && (IgnoreMobsInBlackspots
+                                          ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
+                                                                         target.Location)
+                                          : true)))
+                    .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id: ButtonPressOnAura.cs 184 2011-06-26 21:59:04Z chinajade $"); } }
-        public override string      SubversionRevision { get { return ("$Rev: 184 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ButtonPressOnAura()
         {
             Dispose(false);
-        }	
+        }
 
 
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -229,9 +230,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         // We'll blacklist the mob for a bit, in case the player is running around, or following
         // us.  The excaption is ithe player is in our party, then we can freely kill any target
         // close to him.
-        private bool    BlacklistIfPlayerNearby(WoWObject   target)
+        private bool BlacklistIfPlayerNearby(WoWObject target)
         {
-            WoWUnit     nearestCompetingPlayer   = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+            WoWUnit nearestCompetingPlayer = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                                                     .OrderBy(player => player.Location.Distance(target.Location))
                                                     .FirstOrDefault(player => player.IsPlayer
                                                                                 && player.IsAlive
@@ -249,7 +250,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        public bool     IsQuestComplete()
+        public bool IsQuestComplete()
         {
             return (UtilIsProgressRequirementsMet(QuestId,
                                                   QuestInLogRequirement.InLog,
@@ -257,7 +258,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private void    GuiShowProgress(string       completionReason)
+        private void GuiShowProgress(string completionReason)
         {
             if (completionReason != null)
             {
@@ -269,20 +270,20 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private IEnumerable<WoWAura>    TargetAurasShowing(WoWObject              target,
-                                                           Dictionary<int, int>   auraMap)
+        private IEnumerable<WoWAura> TargetAurasShowing(WoWObject target,
+                                                           Dictionary<int, int> auraMap)
         {
             if (!(target is WoWUnit))
-                { return (EmptyAuras); }
+            { return (EmptyAuras); }
 
             return (target.ToUnit().Auras.Values
                     .Where(aura => auraMap.Keys.Contains(aura.SpellId)));
         }
 
 
-        private void        UtilPopulateMapWithAuras(Dictionary<int, int>   auraIdToButtonMap,
-                                                     int                    buttonNum,
-                                                     int[]                  auraIds)
+        private void UtilPopulateMapWithAuras(Dictionary<int, int> auraIdToButtonMap,
+                                                     int buttonNum,
+                                                     int[] auraIds)
         {
             foreach (int auraId in auraIds)
             {
@@ -319,7 +320,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                                 })),
 
                             // If behavior done, bail...
-                            // Note that this is also an implicit "is quest complete" exit criteria, also.
+                // Note that this is also an implicit "is quest complete" exit criteria, also.
                             new Action(delegate
                             {
                                 GuiShowProgress("quest complete");
@@ -344,19 +345,19 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                             })),
 
                         // Push the button associated with the next aura shown...
-                        // We assume the target may have multiple auras that need redress, so we don't
-                        // blacklist the target reacting to one aura.
+                // We assume the target may have multiple auras that need redress, so we don't
+                // blacklist the target reacting to one aura.
                         new Sequence(
                             new Action(delegate { WoWMovement.MoveStop(); }),
                             new DecoratorContinue(ret => (Me.CurrentTarget != CurrentTarget),
-                                new Action(delegate { CurrentTarget.Target();})),
+                                new Action(delegate { CurrentTarget.Target(); })),
                             new DecoratorContinue(ret => !Me.IsSafelyFacing(CurrentTarget),
                                 new Action(delegate { CurrentTarget.Face(); })),
                             new Action(delegate { _behavior_HuntingGround.MobEngaged(CurrentTarget); }),
-                            new WaitContinue(Delay_WowClientLagTime, ret=> false, new ActionAlwaysSucceed()),
+                            new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
                             new Action(auraShowing =>
                             {
-                                WoWAura     aura    = (WoWAura)auraShowing;
+                                WoWAura aura = (WoWAura)auraShowing;
                                 TreeRoot.StatusText = string.Format("Pressing Button {0} on {1} for Aura({2}).",
                                                                     TargetAuraToButtonMap[aura.SpellId],
                                                                     CurrentTarget.Name,
@@ -372,7 +373,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -383,7 +384,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         {
             get
             {
-                bool    isDone      = _isBehaviorDone;
+                bool isDone = _isBehaviorDone;
 
                 // Once the behavior starts, the behavior alone needs to make the determination
                 // of when it is completes...
@@ -433,18 +434,18 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
     public class HuntingGroundBehavior
     {
-        public delegate bool                    BehaviorFailIfNoTargetsDelegate();
-        public delegate double                  DistanceDelegate();
-        public delegate WoWPoint                LocationDelegate();
-        public delegate void                    LoggerDelegate(string messageType, string format, params object[] args);
-        public delegate IEnumerable<WoWObject>  ViableTargetsDelegate();
-        public delegate WoWObject               WoWObjectDelegate();
+        public delegate bool BehaviorFailIfNoTargetsDelegate();
+        public delegate double DistanceDelegate();
+        public delegate WoWPoint LocationDelegate();
+        public delegate void LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate IEnumerable<WoWObject> ViableTargetsDelegate();
+        public delegate WoWObject WoWObjectDelegate();
 
 
-        public HuntingGroundBehavior(LoggerDelegate            loggerDelegate,
-                                     ViableTargetsDelegate     viableTargets,
-                                     WoWPoint                  huntingGroundAnchor,
-                                     double                    collectionDistance)
+        public HuntingGroundBehavior(LoggerDelegate loggerDelegate,
+                                     ViableTargetsDelegate viableTargets,
+                                     WoWPoint huntingGroundAnchor,
+                                     double collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = huntingGroundAnchor;
@@ -455,37 +456,37 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        public void         MobEngaged(WoWObject     wowObject)
+        public void MobEngaged(WoWObject wowObject)
         {
             if (wowObject == CurrentTarget)
-                { _currentTargetAutoBlacklistTimer.Stop(); }
+            { _currentTargetAutoBlacklistTimer.Stop(); }
         }
 
 
         // Public properties...
-        public double                   CollectionDistance              { get; private set; }
-        public WoWObject                CurrentTarget                   { get; private set; }
-        public Queue<WoWPoint>          Hotspots                        { get; set; }
-        public WoWPoint                 HuntingGroundAnchor             { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public WoWObject CurrentTarget { get; private set; }
+        public Queue<WoWPoint> Hotspots { get; set; }
+        public WoWPoint HuntingGroundAnchor { get; private set; }
 
 
         // Private properties & data...
-        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
-        private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
-        private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromMilliseconds(500);
-        private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private const string AuraName_DruidAquaticForm = "Aquatic Form";
+        private readonly TimeSpan Delay_AutoBlacklist = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan Delay_RepopWait = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate Logger;
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
-        private const double            MinDistanceToUse_DruidAquaticForm = 27.0;
-        private int                     SpellId_DruidAquaticForm        = 1066;
-        public ViableTargetsDelegate    ViableTargets                   { get; private set; }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private const double MinDistanceToUse_DruidAquaticForm = 27.0;
+        private int SpellId_DruidAquaticForm = 1066;
+        public ViableTargetsDelegate ViableTargets { get; private set; }
 
-        private TimeSpan                _currentTargetAutoBlacklistTime  = TimeSpan.FromSeconds(1);
-        private readonly Stopwatch      _currentTargetAutoBlacklistTimer = new Stopwatch();
-        private Queue<WoWPoint>         _hotSpots                       = new Queue<WoWPoint>();
-        private WoWPoint                _huntingGroundWaitPoint;
-        private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
+        private TimeSpan _currentTargetAutoBlacklistTime = TimeSpan.FromSeconds(1);
+        private readonly Stopwatch _currentTargetAutoBlacklistTimer = new Stopwatch();
+        private Queue<WoWPoint> _hotSpots = new Queue<WoWPoint>();
+        private WoWPoint _huntingGroundWaitPoint;
+        private readonly Stopwatch _repopWaitingTime = new Stopwatch();
 
 
         /// <summary>
@@ -499,12 +500,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         /// <para>* RunStatus.Success, if acquiring a target (or waiting for them to repop)</para>
         /// </returns>
         ///
-        public Composite    CreateBehavior_SelectTarget()
+        public Composite CreateBehavior_SelectTarget()
         {
             return (CreateBehavior_SelectTarget(() => false));
         }
 
-        public Composite    CreateBehavior_SelectTarget(BehaviorFailIfNoTargetsDelegate failIfNoTargets)
+        public Composite CreateBehavior_SelectTarget(BehaviorFailIfNoTargetsDelegate failIfNoTargets)
         {
             return (
             new PrioritySelector(
@@ -518,7 +519,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                         CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
                         CurrentTarget = null;
                     })),
-                
+
 
                 // If we don't have a current target, select a new one...
                 // Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
@@ -535,7 +536,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                                 _huntingGroundWaitPoint = WoWPoint.Empty;
 
                                 if (CurrentTarget is WoWUnit)
-                                    { CurrentTarget.ToUnit().Target(); }
+                                { CurrentTarget.ToUnit().Target(); }
 
                                 _currentTargetAutoBlacklistTime = CalculateAutoBlacklistTime(CurrentTarget);
                                 _currentTargetAutoBlacklistTimer.Reset();
@@ -557,8 +558,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                                         )),
 
                                 // We find a point 'near' our anchor at which to wait...
-                                // This way, if multiple people are using the same profile at the same time,
-                                // they won't be standing on top of each other.
+                // This way, if multiple people are using the same profile at the same time,
+                // they won't be standing on top of each other.
                                 new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
                                     new Action(delegate
                                         {
@@ -585,14 +586,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
                 // Re-select target, if it was lost (perhaps, due to combat)...
                 new Decorator(ret => ((CurrentTarget is WoWUnit) && (Me.CurrentTarget != CurrentTarget)),
-                    new Action(delegate { CurrentTarget.ToUnit().Target();}))
+                    new Action(delegate { CurrentTarget.ToUnit().Target(); }))
                 ));
         }
 
 
-        public Composite    CreateBehavior_MoveNearTarget(WoWObjectDelegate     target,
-                                                          DistanceDelegate      minRange,
-                                                          DistanceDelegate      maxRange)
+        public Composite CreateBehavior_MoveNearTarget(WoWObjectDelegate target,
+                                                          DistanceDelegate minRange,
+                                                          DistanceDelegate maxRange)
         {
             return (
             new PrioritySelector(context => target(),
@@ -640,7 +641,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        public Composite    CreateBehavior_MoveToLocation(LocationDelegate  location)
+        public Composite CreateBehavior_MoveToLocation(LocationDelegate location)
         {
             return (
             new PrioritySelector(context => location(),
@@ -656,12 +657,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        public Composite    CreateBehavior_MoveToTarget()
+        public Composite CreateBehavior_MoveToTarget()
         {
             return (CreateBehavior_MoveToTarget(() => CurrentTarget));
         }
 
-        public Composite    CreateBehavior_MoveToTarget(WoWObjectDelegate   target)
+        public Composite CreateBehavior_MoveToTarget(WoWObjectDelegate target)
         {
             return (
             new PrioritySelector(context => target(),
@@ -682,24 +683,24 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private static string   BuildTimeAsString(TimeSpan timeSpan)
+        private static string BuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  string.Empty;
+            string formatString = string.Empty;
 
             if (timeSpan.Hours > 0)
-                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
+            { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
             else if (timeSpan.Minutes > 0)
-                { formatString = "{1:D2}m:{2:D2}s"; }
+            { formatString = "{1:D2}m:{2:D2}s"; }
             else
-                { formatString = "{2:D2}s"; }
+            { formatString = "{2:D2}s"; }
 
             return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
 
 
-        private TimeSpan        CalculateAutoBlacklistTime(WoWObject    wowObject)
+        private TimeSpan CalculateAutoBlacklistTime(WoWObject wowObject)
         {
-            double      timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed)
+            double timeToWowObject = ((Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed)
                                            * 2.5);     // factor of safety
 
             timeToWowObject = Math.Max(timeToWowObject, 20.0);  // 20sec hard lower-limit
@@ -708,7 +709,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private Composite       CreateBehavior_InternalMoveTo(LocationDelegate  locationDelegate)
+        private Composite CreateBehavior_InternalMoveTo(LocationDelegate locationDelegate)
         {
             return (
             new Sequence(context => locationDelegate(),
@@ -721,14 +722,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
                 // Move...
                 new Action(delegate
-                { 
+                {
                     // Try to use Navigator to get there...
-                    WoWPoint    location    = locationDelegate();
-                    MoveResult  moveResult  = Navigator.MoveTo(location);
+                    WoWPoint location = locationDelegate();
+                    MoveResult moveResult = Navigator.MoveTo(location);
 
                     // If Navigator fails, fall back to click-to-move...
                     if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                        {  WoWMovement.ClickToMove(location); }
+                    { WoWMovement.ClickToMove(location); }
                 }),
 
                 new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
@@ -737,14 +738,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private WoWPoint        FindNearestHotspot()
+        private WoWPoint FindNearestHotspot()
         {
-            WoWPoint        nearestHotspot  = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
+            WoWPoint nearestHotspot = _hotSpots.OrderBy(hotspot => Me.Location.Distance(hotspot)).FirstOrDefault();
 
             // Rotate the hotspot queue such that the nearest hotspot is on top...
             while (_hotSpots.Peek() != nearestHotspot)
             {
-                WoWPoint    tmpWoWPoint     = _hotSpots.Dequeue();
+                WoWPoint tmpWoWPoint = _hotSpots.Dequeue();
 
                 _hotSpots.Enqueue(tmpWoWPoint);
             }
@@ -753,13 +754,13 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private WoWPoint        FindNextHotspot()
+        private WoWPoint FindNextHotspot()
         {
-            WoWPoint    currentHotspot      = _hotSpots.Peek();
+            WoWPoint currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
             if (Me.Location.Distance(currentHotspot) > Navigator.PathPrecision)
-                { return (currentHotspot); }
+            { return (currentHotspot); }
 
             // Otherwise, rotate to the next hotspot in the list...
             _hotSpots.Enqueue(currentHotspot);
@@ -769,14 +770,14 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        public void         UseHotspots(IEnumerable<WoWPoint>       _hotspots)
+        public void UseHotspots(IEnumerable<WoWPoint> _hotspots)
         {
             _hotspots = _hotspots ?? new WoWPoint[0];
 
             _hotSpots = new Queue<WoWPoint>(_hotspots);
 
             if (_hotSpots.Count() <= 0)
-                { _hotSpots.Enqueue(HuntingGroundAnchor); }
+            { _hotSpots.Enqueue(HuntingGroundAnchor); }
 
             FindNearestHotspot();
         }
@@ -787,12 +788,12 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
     #region Extensions to HBcore
 
-    public class DecoratorThrottled         : Decorator
+    public class DecoratorThrottled : Decorator
     {
-        public DecoratorThrottled(TimeSpan                  throttleTime,
-                                  CanRunDecoratorDelegate   canRun,
-                                  Composite                 composite)
-            :base(canRun, composite)
+        public DecoratorThrottled(TimeSpan throttleTime,
+                                  CanRunDecoratorDelegate canRun,
+                                  Composite composite)
+            : base(canRun, composite)
         {
             _throttleTime = throttleTime;
 
@@ -805,7 +806,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         protected override bool CanRun(object context)
         {
             if (_throttle.Elapsed < _throttleTime)
-                { return (false); }
+            { return (false); }
 
             _throttle.Reset();
             _throttle.Start();
@@ -814,8 +815,8 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         }
 
 
-        private Stopwatch                   _throttle;
-        private TimeSpan                    _throttleTime;
+        private Stopwatch _throttle;
+        private TimeSpan _throttleTime;
     }
 
 
@@ -824,45 +825,45 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
     // own.  <sigh>
     public class LocalBlackList
     {
-        public LocalBlackList(TimeSpan  maxSweepTime)
+        public LocalBlackList(TimeSpan maxSweepTime)
         {
             _maxSweepTime = maxSweepTime;
             _stopWatchForSweeping.Start();
         }
 
-        private Dictionary<ulong, DateTime>     _blackList              = new Dictionary<ulong, DateTime>();
-        private TimeSpan                        _maxSweepTime;
-        private Stopwatch                       _stopWatchForSweeping   = new Stopwatch();      
+        private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+        private TimeSpan _maxSweepTime;
+        private Stopwatch _stopWatchForSweeping = new Stopwatch();
 
 
-        public void     Add(ulong guid,   TimeSpan timeSpan)
+        public void Add(ulong guid, TimeSpan timeSpan)
         {
             if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                { RemoveExpired(); }
+            { RemoveExpired(); }
 
             _blackList[guid] = DateTime.Now.Add(timeSpan);
         }
 
 
-        public bool     Contains(ulong  guid)
+        public bool Contains(ulong guid)
         {
             if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                { RemoveExpired(); }
+            { RemoveExpired(); }
 
             return (_blackList.ContainsKey(guid));
         }
 
 
-        public void     RemoveExpired()
+        public void RemoveExpired()
         {
-            DateTime    now     = DateTime.Now;
+            DateTime now = DateTime.Now;
 
-            List<ulong> expiredEntries  = (from key in _blackList.Keys
-                                            where (_blackList[key] < now)
-                                            select key).ToList();
+            List<ulong> expiredEntries = (from key in _blackList.Keys
+                                          where (_blackList[key] < now)
+                                          select key).ToList();
 
             foreach (ulong entry in expiredEntries)
-                { _blackList.Remove(entry); }
+            { _blackList.Remove(entry); }
 
             _stopWatchForSweeping.Reset();
             _stopWatchForSweeping.Start();
@@ -872,32 +873,32 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
     public static class WoWObject_Extensions
     {
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // We provide our own 'local' blacklist.  If we use the global one maintained by HBcore,
         // that will prevent us from looting also.
-        private static LocalBlackList   _blackList          = new LocalBlackList(TimeSpan.FromSeconds(30));
-        private static LocalBlackList   _blackListLooting   = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList _blackList = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList _blackListLooting = new LocalBlackList(TimeSpan.FromSeconds(30));
 
-        public static void      LocallyBlacklist(this WoWObject    wowObject,
-                                                 TimeSpan          timeSpan)
+        public static void LocallyBlacklist(this WoWObject wowObject,
+                                                 TimeSpan timeSpan)
         {
             _blackList.Add(wowObject.Guid, timeSpan);
         }
 
-        public static void      LootingBlacklist(this WoWObject    wowObject,
-                                                 TimeSpan          timeSpan)
+        public static void LootingBlacklist(this WoWObject wowObject,
+                                                 TimeSpan timeSpan)
         {
             _blackListLooting.Add(wowObject.Guid, timeSpan);
         }
 
 
-        public static bool      IsLocallyBlacklisted(this WoWObject    wowObject)
+        public static bool IsLocallyBlacklisted(this WoWObject wowObject)
         {
             return (_blackList.Contains(wowObject.Guid));
         }
 
-        public static bool      IsLootingBlacklisted(this WoWObject    wowObject)
+        public static bool IsLootingBlacklisted(this WoWObject wowObject)
         {
             return (_blackListLooting.Contains(wowObject.Guid));
         }
@@ -906,9 +907,9 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
     public static class WoWUnit_Extensions
     {
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
-        public static bool      IsInOurParty(this WoWUnit  wowUnit)
+        public static bool IsInOurParty(this WoWUnit wowUnit)
         {
             return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
         }
@@ -917,25 +918,25 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
 
     public static class WoWPoint_Extensions
     {
-        public static Random            _random     = new Random((int)DateTime.Now.Ticks);
+        public static Random _random = new Random((int)DateTime.Now.Ticks);
 
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
-        public const double             TAU         = (2 * Math.PI);    // See http://tauday.com/
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
 
-        public static WoWPoint  Add(this WoWPoint   wowPoint,
-                                    double          x,
-                                    double          y,
-                                    double          z)
+        public static WoWPoint Add(this WoWPoint wowPoint,
+                                    double x,
+                                    double y,
+                                    double z)
         {
             return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
         }
 
 
-        public static WoWPoint  AddPolarXY(this WoWPoint  wowPoint,
-                                           double         xyHeadingInRadians,
-                                           double         distance,
-                                           double         zModifier)
+        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
+                                           double xyHeadingInRadians,
+                                           double distance,
+                                           double zModifier)
         {
             return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
                                  (Math.Sin(xyHeadingInRadians) * distance),
@@ -947,29 +948,29 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
         // (e.g., boat, mob repops, etc). This allows multiple people running
         // the same profile to not stand on top of each other while waiting for
         // something.
-        public static WoWPoint     FanOutRandom(this WoWPoint  location,
-                                                double         maxRadius)
+        public static WoWPoint FanOutRandom(this WoWPoint location,
+                                                double maxRadius)
         {
-            const int           CYLINDER_LINE_COUNT     =  12;
-            const int           MAX_TRIES               =  50;
-            const double        SAFE_DISTANCE_BUFFER    =   1.75;
+            const int CYLINDER_LINE_COUNT = 12;
+            const int MAX_TRIES = 50;
+            const double SAFE_DISTANCE_BUFFER = 1.75;
 
-            WoWPoint            candidateDestination  = location;
-            int                 tryCount;
+            WoWPoint candidateDestination = location;
+            int tryCount;
 
             // Most of the time we'll find a viable spot in less than 2 tries...
             // However, if you're standing on a pier, or small platform a
             // viable alternative may take 10-15 tries--its all up to the
             // random number generator.
-            for (tryCount = MAX_TRIES;   tryCount > 0;    --tryCount)
+            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
             {
-                WoWPoint        circlePoint;
-                bool[]          hitResults;
-                WoWPoint[]      hitPoints;
-                int             index;
-                WorldLine[]     traceLines  = new WorldLine[CYLINDER_LINE_COUNT +1];
+                WoWPoint circlePoint;
+                bool[] hitResults;
+                WoWPoint[] hitPoints;
+                int index;
+                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()),  (maxRadius * _random.NextDouble()),  0.0);
+                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
 
                 // Build set of tracelines that can evaluate the candidate destination --
                 // We build a cone of lines with the cone's base at the destination's 'feet',
@@ -979,17 +980,17 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                 // 'Normal' vector
                 index = 0;
                 traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End   = candidateDestination.Add(0.0, 0.0, -maxRadius);
+                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
 
                 // Cylinder vectors
-                for (double turnFraction = 0.0;    turnFraction < TAU;    turnFraction += (TAU / CYLINDER_LINE_COUNT))
+                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
                 {
                     ++index;
                     circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
                     traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End   = circlePoint.Add(0.0, 0.0, -maxRadius);
+                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
                 }
-                
+
 
                 // Evaluate the cylinder...
                 // The result for the 'normal' vector (first one) will be the location where the
@@ -1008,54 +1009,54 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
                 // a plaform or pier).  If there is not solid ground all around us, we reject
                 // the candidate.  Our test for validity is that the walking distance must
                 // not be more than 20% greater than the straight-line distance to the point.
-                int     viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
+                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
                                                                       ? 1
                                                                       : 0));
 
-                if (viableVectorCount < (CYLINDER_LINE_COUNT +1))
-                    { continue; }
+                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
+                { continue; }
 
                 // If new destination is 'too close' to our current position, try again...
                 if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                    { continue; }
+                { continue; }
 
                 break;
             }
 
             // If we exhausted our tries, just go with simple destination --
             if (tryCount <= 0)
-                { candidateDestination = location; }
-            
+            { candidateDestination = location; }
+
             return (candidateDestination);
         }
 
 
-        public static double    SurfacePathDistance(this WoWPoint     start,
-                                                    WoWPoint          destination)
+        public static double SurfacePathDistance(this WoWPoint start,
+                                                    WoWPoint destination)
         {
-            WoWPoint[]  groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
+            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
 
             // We define an invalid path to be of 'infinite' length
             if (groundPath.Length <= 0)
-                { return (double.MaxValue); }
+            { return (double.MaxValue); }
 
- 
-            double      pathDistance = start.Distance(groundPath[0]);
 
-            for (int i = 0;    i < (groundPath.Length - 1);    ++i)
-                { pathDistance += groundPath[i].Distance(groundPath[i+1]); }
+            double pathDistance = start.Distance(groundPath[0]);
+
+            for (int i = 0; i < (groundPath.Length - 1); ++i)
+            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
 
             return (pathDistance);
         }
 
 
         // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint      WaterSurface(this WoWPoint      location)
+        public static WoWPoint WaterSurface(this WoWPoint location)
         {
-            WoWPoint    hitLocation;
-            bool        hitResult;
-            WoWPoint    locationUpper       = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint    locationLower       = location.Add(0.0, 0.0, -2000.0);
+            WoWPoint hitLocation;
+            bool hitResult;
+            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
+            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
             hitResult = (GameWorld.TraceLine(locationUpper,
                                              locationLower,

@@ -33,57 +33,62 @@ namespace Styx.Bot.Quest_Behaviors
         public LoadProfile(Dictionary<string, string> args)
             : base(args)
         {
-			try
-			{
+            try
+            {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                ProfileName = GetAttributeAs<string>("ProfileName", true, ConstrainAs.StringNonEmpty, new [] { "Profile" }) ?? "";
+                ProfileName = GetAttributeAs<string>("ProfileName", true, ConstrainAs.StringNonEmpty, new[] { "Profile" }) ?? "";
 
                 if (!ProfileName.ToLower().EndsWith(".xml"))
-                    { ProfileName += ".xml"; }
-			}
+                { ProfileName += ".xml"; }
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
         // Attributes provided by caller
-        public String               ProfileName { get; private set; }
+        public String ProfileName { get; private set; }
 
         // Private variables for internal state
-        private bool                _isBehaviorDone;
-        private bool                _isDisposed;
-       // private Composite           _root;
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        // private Composite           _root;
 
         // Private properties
-        private String              CurrentProfile { get { return (ProfileManager.XmlLocation); } }
-        private String              NewProfilePath { get { string directory = Path.GetDirectoryName(CurrentProfile);
-                                                            return (Path.Combine(directory, ProfileName));
-                                                    }}
+        private String CurrentProfile { get { return (ProfileManager.XmlLocation); } }
+        private String NewProfilePath
+        {
+            get
+            {
+                string directory = Path.GetDirectoryName(CurrentProfile);
+                return (Path.Combine(directory, ProfileName));
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~LoadProfile()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -113,24 +118,26 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return (
                 new PrioritySelector(
-                            // If behavior is complete, nothing to do, so bail...
+                // If behavior is complete, nothing to do, so bail...
                             new Decorator(ret => _isBehaviorDone,
                                 new Action(delegate { LogMessage("info", "Behavior complete"); })),
 
                             // If file does not exist, notify of problem...
                             new Decorator(ret => !File.Exists(NewProfilePath),
-                                new Action(delegate {
-                                    LogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
-                                    _isBehaviorDone = true;
-                                    })),
+                                new Action(delegate
+            {
+                LogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
+                _isBehaviorDone = true;
+            })),
 
                             // Load the specified profile...
                             new Sequence(
-                                new Action(delegate {
-                                        TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
-                                        LogMessage("info", "Loading profile '{0}'", ProfileName);
-                                        ProfileManager.LoadNew(NewProfilePath, false);
-                                    }),
+                                new Action(delegate
+            {
+                TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
+                LogMessage("info", "Loading profile '{0}'", ProfileName);
+                ProfileManager.LoadNew(NewProfilePath, false);
+            }),
                                 new WaitContinue(TimeSpan.FromMilliseconds(300), ret => false, new ActionAlwaysSucceed()),
                                 new Action(delegate { _isBehaviorDone = true; })
                                 )
@@ -138,7 +145,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public override void    Dispose()
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);

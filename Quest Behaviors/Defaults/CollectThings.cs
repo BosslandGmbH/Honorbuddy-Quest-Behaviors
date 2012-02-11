@@ -118,9 +118,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         {
             try
             {
-                bool    isCollectItemCountRequired  = false;
-                bool    isCollectItemIdRequired     = false;
-                bool    isQuestIdRequired           = false;
+                bool isCollectItemCountRequired = false;
+                bool isCollectItemIdRequired = false;
+                bool isQuestIdRequired = false;
 
                 CollectUntil = GetAttributeAsNullable<CollectUntilType>("CollectUntil", false, null, null) ?? CollectUntilType.RequiredCountReached;
                 if ((CollectUntil == CollectUntilType.NoTargetsInArea)
@@ -130,26 +130,26 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                     isCollectItemIdRequired = true;
                 }
                 else if (CollectUntil == CollectUntilType.QuestComplete)
-                    { isQuestIdRequired = true; }
+                { isQuestIdRequired = true; }
 
-                CollectItemCount        = GetAttributeAsNullable<int>("CollectItemCount", isCollectItemCountRequired, ConstrainAs.CollectionCount, null) ?? 1;
-                CollectItemId           = GetAttributeAsNullable<int>("CollectItemId", isCollectItemIdRequired, ConstrainAs.ItemId, null) ?? 0;
-                HuntingGroundAnchor     = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                HuntingGroundRadius     = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), new [] {"CollectionDistance"}) ?? 120.0;
-                IgnoreMobsInBlackspots  = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
-                MobIds                  = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, null);
-                MobState                = GetAttributeAsNullable<MobStateType>("MobState", false, null, null) ?? MobStateType.DontCare;
-                NonCompeteDistance      = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
-                ObjectIds               = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null);
-                PostInteractDelay       = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1500);
-                RandomizeStartingHotspot= GetAttributeAsNullable<bool>("RandomizeStartingHotspot", false, null, null) ?? false;
-                QuestId                 = GetAttributeAsNullable<int>("QuestId", isQuestIdRequired, ConstrainAs.QuestId(this), null) ?? 0;
+                CollectItemCount = GetAttributeAsNullable<int>("CollectItemCount", isCollectItemCountRequired, ConstrainAs.CollectionCount, null) ?? 1;
+                CollectItemId = GetAttributeAsNullable<int>("CollectItemId", isCollectItemIdRequired, ConstrainAs.ItemId, null) ?? 0;
+                HuntingGroundAnchor = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                HuntingGroundRadius = GetAttributeAsNullable<double>("HuntingGroundRadius", false, new ConstrainTo.Domain<double>(1.0, 200.0), new[] { "CollectionDistance" }) ?? 120.0;
+                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? false;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, null);
+                MobState = GetAttributeAsNullable<MobStateType>("MobState", false, null, null) ?? MobStateType.DontCare;
+                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 150.0), null) ?? 25.0;
+                ObjectIds = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null);
+                PostInteractDelay = TimeSpan.FromMilliseconds(GetAttributeAsNullable<int>("PostInteractDelay", false, new ConstrainTo.Domain<int>(0, 61000), null) ?? 1500);
+                RandomizeStartingHotspot = GetAttributeAsNullable<bool>("RandomizeStartingHotspot", false, null, null) ?? false;
+                QuestId = GetAttributeAsNullable<int>("QuestId", isQuestIdRequired, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog    = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
 
                 // Semantic coherency --
-                if ((MobIds.Count() <= 0)  &&  (ObjectIds.Count() <= 0))
+                if ((MobIds.Count() <= 0) && (ObjectIds.Count() <= 0))
                 {
                     LogMessage("error", "You must specify one or more MobId(s) or ObjectId(s)");
                     IsAttributeProblem = true;
@@ -166,9 +166,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
 
                 // Find the item name --
-                ItemInfo    itemInfo    = ItemInfo.FromId((uint)CollectItemId);
+                ItemInfo itemInfo = ItemInfo.FromId((uint)CollectItemId);
 
-                ItemName = (itemInfo != null)  ? itemInfo.Name  : string.Format("Item({0})", CollectItemId);
+                ItemName = (itemInfo != null) ? itemInfo.Name : string.Format("Item({0})", CollectItemId);
 
 
                 // Sub-behaviors...
@@ -178,76 +178,80 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
                 _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-				// resolved.
-				LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-									+ "\nFROM HERE:\n"
-									+ except.StackTrace + "\n");
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
+                // resolved.
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
+                IsAttributeProblem = true;
+            }
         }
 
 
         // Attributes provided by caller
-        public int                      CollectItemCount { get; private set; }
-        public int                      CollectItemId { get; private set; }
-        public CollectUntilType         CollectUntil { get; private set; }
-        public WoWPoint                 HuntingGroundAnchor { get; private set; }
-        public double                   HuntingGroundRadius { get; private set; }
-        public bool                     IgnoreMobsInBlackspots { get; private set; }
-        public int[]                    MobIds { get; private set; }
-        public MobStateType             MobState { get; private set; }
-        public double                   NonCompeteDistance { get; private set; }
-        public int[]                    ObjectIds { get; private set; }
-        public TimeSpan                 PostInteractDelay { get; private set; }
-        public bool                     RandomizeStartingHotspot { get; private set; }
-        public int                      QuestId { get; private set; }
+        public int CollectItemCount { get; private set; }
+        public int CollectItemId { get; private set; }
+        public CollectUntilType CollectUntil { get; private set; }
+        public WoWPoint HuntingGroundAnchor { get; private set; }
+        public double HuntingGroundRadius { get; private set; }
+        public bool IgnoreMobsInBlackspots { get; private set; }
+        public int[] MobIds { get; private set; }
+        public MobStateType MobState { get; private set; }
+        public double NonCompeteDistance { get; private set; }
+        public int[] ObjectIds { get; private set; }
+        public TimeSpan PostInteractDelay { get; private set; }
+        public bool RandomizeStartingHotspot { get; private set; }
+        public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private properties and data...
-        private HuntingGroundBehavior   _behavior_HuntingGround;
-        private SwimBreathBehavior      _behavior_SwimBreath;
+        private HuntingGroundBehavior _behavior_HuntingGround;
+        private SwimBreathBehavior _behavior_SwimBreath;
         private UnderwaterLootingBehavior _behavior_UnderwaterLooting;
-        private bool                    _isBehaviorDone                 = false;
-        private bool                    _isDisposed;
-        private PluginContainer         _pluginAntiDrown;
-        private bool                    _pluginAntiDrownWasEnabled;
+        private bool _isBehaviorDone = false;
+        private bool _isDisposed;
+        private PluginContainer _pluginAntiDrown;
+        private bool _pluginAntiDrownWasEnabled;
 
-        private WoWObject               CurrentTarget                   { get { return (_behavior_HuntingGround.CurrentTarget); }}
-        private readonly TimeSpan       Delay_MobConsumedExpiry         = TimeSpan.FromMinutes(7);
-        private readonly TimeSpan       Delay_BlacklistPlayerTooClose   = TimeSpan.FromSeconds(90);
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(500);
-        private string                  ItemName                        { get; set; }
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
+        private WoWObject CurrentTarget { get { return (_behavior_HuntingGround.CurrentTarget); } }
+        private readonly TimeSpan Delay_MobConsumedExpiry = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan Delay_BlacklistPlayerTooClose = TimeSpan.FromSeconds(90);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(500);
+        private string ItemName { get; set; }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // Private LINQ queries..
-        private int                     CollectedItemCount { get {
-                                            return ((int)Me.BagItems
-                                                        .Where(item => (item.ItemInfo.Id == CollectItemId))
-                                                        .Sum(item => item.StackCount));
-                                            }}
+        private int CollectedItemCount
+        {
+            get
+            {
+                return ((int)Me.BagItems
+                            .Where(item => (item.ItemInfo.Id == CollectItemId))
+                            .Sum(item => item.StackCount));
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string      SubversionId { get { return ("$Id$"); } }
-        public override string      SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CollectThings()
         {
             Dispose(false);
-        }	
+        }
 
-		
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -283,9 +287,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         // We'll blacklist the mob for a bit, in case the player is running around, or following
         // us.  The excaption is ithe player is in our party, then we can freely kill any target
         // close to him.
-        private bool    BlacklistIfPlayerNearby(WoWObject   target)
+        private bool BlacklistIfPlayerNearby(WoWObject target)
         {
-            WoWUnit     nearestCompetingPlayer   = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+            WoWUnit nearestCompetingPlayer = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                                                     .OrderBy(player => player.Location.Distance(target.Location))
                                                     .FirstOrDefault(player => player.IsPlayer
                                                                                 && player.IsAlive
@@ -303,7 +307,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private void    GuiShowProgress(string       completionReason)
+        private void GuiShowProgress(string completionReason)
         {
             TreeRoot.GoalText = string.Format("{0}: {1}/{2} {3}", this.GetType().Name, CollectedItemCount, CollectItemCount, ItemName);
 
@@ -316,12 +320,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        public bool      IsViableTarget(WoWObject   target)
+        public bool IsViableTarget(WoWObject target)
         {
-            bool        isViable;
+            bool isViable;
 
             if (target == null)
-                { return (false); }
+            { return (false); }
 
             isViable = (target.IsValid
                         && (MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
@@ -334,32 +338,32 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
             if (isViable && (target is WoWUnit))
             {
-                WoWUnit     wowUnit     = target.ToUnit();
+                WoWUnit wowUnit = target.ToUnit();
 
                 isViable = ((wowUnit.IsAlive && (MobState == MobStateType.Alive))
                             || (wowUnit.Dead && (MobState == MobStateType.Dead))
                             || (MobState == MobStateType.DontCare));
             }
 
-            return (isViable);                                                         
+            return (isViable);
         }
 
 
-        private void    ParseHuntingGroundHotspots(bool     randomizeStartingHotspot)
+        private void ParseHuntingGroundHotspots(bool randomizeStartingHotspot)
         {
-            List<WoWPointNamed>  huntingGroundHotspots   = new List<WoWPointNamed>();
+            List<WoWPointNamed> huntingGroundHotspots = new List<WoWPointNamed>();
 
             foreach (XElement element in Element.Elements().Where(elem => (elem.Name == "Hotspot")))
             {
-                double?     x           = ParseXmlElementDouble(element, "X", true);
-                double?     y           = ParseXmlElementDouble(element, "Y", true);
-                double?     z           = ParseXmlElementDouble(element, "Z", true);
+                double? x = ParseXmlElementDouble(element, "X", true);
+                double? y = ParseXmlElementDouble(element, "Y", true);
+                double? z = ParseXmlElementDouble(element, "Z", true);
 
                 if (!x.HasValue || !y.HasValue || !z.HasValue)
-                    { continue; }
+                { continue; }
 
-                bool        isStarting  = ParseXmlElementBool(element, "StartPoint", false) ?? false;
-                string      name        = ParseXmlElementString(element, "Name", false);
+                bool isStarting = ParseXmlElementBool(element, "StartPoint", false) ?? false;
+                string name = ParseXmlElementString(element, "Name", false);
 
                 huntingGroundHotspots.Add(new WoWPointNamed(new WoWPoint(x.Value, y.Value, z.Value), name, isStarting));
             }
@@ -368,14 +372,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private bool?   ParseXmlElementBool(XElement    element,
-                                            string      attributeName,
-                                            bool        isRequired)
+        private bool? ParseXmlElementBool(XElement element,
+                                            string attributeName,
+                                            bool isRequired)
         {
-            string      location    = (((IXmlLineInfo)element).HasLineInfo()
+            string location = (((IXmlLineInfo)element).HasLineInfo()
                                         ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
                                         : string.Empty);
-            bool        tmpBool;
+            bool tmpBool;
 
             if (element.Attribute(attributeName) == null)
             {
@@ -394,18 +398,18 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 return (null);
             }
 
-            return (tmpBool);    
+            return (tmpBool);
         }
 
 
-        private double? ParseXmlElementDouble(XElement  element,
-                                              string    attributeName,
-                                              bool      isRequired)
+        private double? ParseXmlElementDouble(XElement element,
+                                              string attributeName,
+                                              bool isRequired)
         {
-            string      location    = (((IXmlLineInfo)element).HasLineInfo()
+            string location = (((IXmlLineInfo)element).HasLineInfo()
                                         ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
                                         : string.Empty);
-            double      tmpDouble;
+            double tmpDouble;
 
             if (element.Attribute(attributeName) == null)
             {
@@ -424,15 +428,15 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 return (null);
             }
 
-            return (tmpDouble);    
+            return (tmpDouble);
         }
 
 
-        private string  ParseXmlElementString(XElement  element,
-                                              string    attributeName,
-                                              bool      isRequired)
+        private string ParseXmlElementString(XElement element,
+                                              string attributeName,
+                                              bool isRequired)
         {
-            string      location    = (((IXmlLineInfo)element).HasLineInfo()
+            string location = (((IXmlLineInfo)element).HasLineInfo()
                                         ? (" @line " + ((IXmlLineInfo)element).LineNumber.ToString())
                                         : string.Empty);
 
@@ -456,8 +460,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         {
             return (
                 new PrioritySelector(
-                    // If behavior done, bail...
-                    // Note that this is also an implicit "is quest complete" exit criteria, also.
+                // If behavior done, bail...
+                // Note that this is also an implicit "is quest complete" exit criteria, also.
                     new Decorator(ret => IsDone,
                         new Action(delegate { GuiShowProgress("quest complete"); })),
 
@@ -498,7 +502,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                             CurrentTarget.ToUnit().Target();
                             return (RunStatus.Failure);     // Fall through
                         })),
-                    
+
                     // Keep progress updated...
                     new Action(delegate
                     {
@@ -523,9 +527,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 )
             );
         }
-		
 
-        public override void    Dispose()
+
+        public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
@@ -579,11 +583,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     }
 
 
-    public class    WoWPointNamed
+    public class WoWPointNamed
     {
-        public WoWPointNamed(WoWPoint   location,
-                             string     name,
-                             bool       isStarting)
+        public WoWPointNamed(WoWPoint location,
+                             string name,
+                             bool isStarting)
         {
             Location = location;
             Name = (!string.IsNullOrEmpty(name) ? name : location.ToString());
@@ -591,14 +595,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        public WoWPointNamed(WoWPoint   location,
-                             string     name)
+        public WoWPointNamed(WoWPoint location,
+                             string name)
             : this(location, name, false)
         {
             // empty
         }
 
-        public WoWPointNamed(WoWPoint   location)
+        public WoWPointNamed(WoWPoint location)
             : this(location, null, false)
         {
             // empty
@@ -610,9 +614,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             // empty
         }
 
-        public WoWPoint     Location        { get; set; }
-        public string       Name            { get; set; }
-        public bool         IsStarting      { get; set; }
+        public WoWPoint Location { get; set; }
+        public string Name { get; set; }
+        public bool IsStarting { get; set; }
     }
 
 
@@ -624,18 +628,18 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     public class HuntingGroundBehavior
     {
-        public delegate bool                    BehaviorFailIfNoTargetsDelegate();
-        public delegate double                  DistanceDelegate();
-        public delegate bool                    IsViableTargetDelegate(WoWObject target);
-        public delegate WoWPointNamed           LocationDelegate();
-        public delegate void                    LoggerDelegate(string messageType, string format, params object[] args);
-        public delegate WoWObject               WoWObjectDelegate();
+        public delegate bool BehaviorFailIfNoTargetsDelegate();
+        public delegate double DistanceDelegate();
+        public delegate bool IsViableTargetDelegate(WoWObject target);
+        public delegate WoWPointNamed LocationDelegate();
+        public delegate void LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate WoWObject WoWObjectDelegate();
 
 
-        public HuntingGroundBehavior(LoggerDelegate            loggerDelegate,
-                                     IsViableTargetDelegate    isViableTarget,
-                                     WoWPoint                  huntingGroundAnchor,
-                                     double                    collectionDistance)
+        public HuntingGroundBehavior(LoggerDelegate loggerDelegate,
+                                     IsViableTargetDelegate isViableTarget,
+                                     WoWPoint huntingGroundAnchor,
+                                     double collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = new WoWPointNamed(huntingGroundAnchor, "Hunting Ground Anchor", true);
@@ -646,47 +650,48 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        public void         MobEngaged(WoWObject     wowObject)
+        public void MobEngaged(WoWObject wowObject)
         {
             if (wowObject == CurrentTarget)
-                { _currentTargetAutoBlacklistTimer.Stop(); }
+            { _currentTargetAutoBlacklistTimer.Stop(); }
         }
 
 
         // Public properties...
-        public double                   CollectionDistance              { get; private set; }
-        public WoWObject                CurrentTarget                   { get; private set; }
-        public Queue<WoWPoint>          Hotspots                        { get; set; }
-        public WoWPointNamed            HuntingGroundAnchor             { get; private set; }
-        public IsViableTargetDelegate   IsViableTarget                  { get; private set; }
+        public double CollectionDistance { get; private set; }
+        public WoWObject CurrentTarget { get; private set; }
+        public Queue<WoWPoint> Hotspots { get; set; }
+        public WoWPointNamed HuntingGroundAnchor { get; private set; }
+        public IsViableTargetDelegate IsViableTarget { get; private set; }
 
 
         // Private properties & data...
-        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
-        private readonly TimeSpan       Delay_AutoBlacklist             = TimeSpan.FromMinutes(7);
-        private readonly TimeSpan       Delay_RepopWait                 = TimeSpan.FromMilliseconds(500);
-        private readonly TimeSpan       Delay_StatusUpdateThrottle      = TimeSpan.FromMilliseconds(1000);
-        private readonly TimeSpan       Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private const string AuraName_DruidAquaticForm = "Aquatic Form";
+        private readonly TimeSpan Delay_AutoBlacklist = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan Delay_RepopWait = TimeSpan.FromMilliseconds(500);
+        private readonly TimeSpan Delay_StatusUpdateThrottle = TimeSpan.FromMilliseconds(1000);
+        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate Logger;
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
-        private const double            MinDistanceToUse_DruidAquaticForm = 27.0;
-        private int                     SpellId_DruidAquaticForm        = 1066;
-        private IEnumerable<WoWObject>  ViableTargets() {
-                                            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                    .Where(target => IsViableTarget(target)
-                                                                     && (target.Distance < CollectionDistance))
-                                                    .OrderBy(target => (Me.IsSwimming
-                                                                        ? target.Distance
-                                                                        : Me.Location.SurfacePathDistance(target.Location))));
-                                            }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private const double MinDistanceToUse_DruidAquaticForm = 27.0;
+        private int SpellId_DruidAquaticForm = 1066;
+        private IEnumerable<WoWObject> ViableTargets()
+        {
+            return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                    .Where(target => IsViableTarget(target)
+                                     && (target.Distance < CollectionDistance))
+                    .OrderBy(target => (Me.IsSwimming
+                                        ? target.Distance
+                                        : Me.Location.SurfacePathDistance(target.Location))));
+        }
 
-        private TimeSpan                _currentTargetAutoBlacklistTime  = TimeSpan.FromSeconds(1);
-        private readonly Stopwatch      _currentTargetAutoBlacklistTimer = new Stopwatch();
-        private Queue<WoWPointNamed>    _hotSpots                       = new Queue<WoWPointNamed>();
-        private WoWPointNamed           _huntingGroundWaitPoint         = new WoWPointNamed(WoWPoint.Empty,
+        private TimeSpan _currentTargetAutoBlacklistTime = TimeSpan.FromSeconds(1);
+        private readonly Stopwatch _currentTargetAutoBlacklistTimer = new Stopwatch();
+        private Queue<WoWPointNamed> _hotSpots = new Queue<WoWPointNamed>();
+        private WoWPointNamed _huntingGroundWaitPoint = new WoWPointNamed(WoWPoint.Empty,
                                                                                             "Hunting Ground Wait Point");
-        private readonly Stopwatch      _repopWaitingTime               = new Stopwatch();
+        private readonly Stopwatch _repopWaitingTime = new Stopwatch();
 
 
         /// <summary>
@@ -700,12 +705,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         /// <para>* RunStatus.Success, if acquiring a target (or waiting for them to repop)</para>
         /// </returns>
         ///
-        public Composite    CreateBehavior_SelectTarget()
+        public Composite CreateBehavior_SelectTarget()
         {
             return (CreateBehavior_SelectTarget(() => false));
         }
 
-        public Composite    CreateBehavior_SelectTarget(BehaviorFailIfNoTargetsDelegate failIfNoTargets)
+        public Composite CreateBehavior_SelectTarget(BehaviorFailIfNoTargetsDelegate failIfNoTargets)
         {
             return (
             new PrioritySelector(
@@ -719,7 +724,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                         CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
                         CurrentTarget = null;
                     })),
-                
+
 
                 // If we don't have a current target, select a new one...
                 // Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
@@ -737,7 +742,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                 _huntingGroundWaitPoint.Location = WoWPoint.Empty;
 
                                 if (CurrentTarget is WoWUnit)
-                                    { CurrentTarget.ToUnit().Target(); }
+                                { CurrentTarget.ToUnit().Target(); }
 
                                 _currentTargetAutoBlacklistTime = CalculateAutoBlacklistTime(CurrentTarget);
                                 _currentTargetAutoBlacklistTimer.Reset();
@@ -755,12 +760,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                     new Sequence(context => FindNextHotspot(),
                                         new Action(nextHotspot => TreeRoot.StatusText = "No targets--moving to "
                                                                                         + ((WoWPointNamed)nextHotspot).Name),
-                                        CreateBehavior_InternalMoveTo(() =>  FindNextHotspot())
+                                        CreateBehavior_InternalMoveTo(() => FindNextHotspot())
                                         )),
 
                                 // We find a point 'near' our anchor at which to wait...
-                                // This way, if multiple people are using the same profile at the same time,
-                                // they won't be standing on top of each other.
+                // This way, if multiple people are using the same profile at the same time,
+                // they won't be standing on top of each other.
                                 new Decorator(ret => (_huntingGroundWaitPoint.Location == WoWPoint.Empty),
                                     new Action(delegate
                                         {
@@ -787,14 +792,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
                 // Re-select target, if it was lost (perhaps, due to combat)...
                 new Decorator(ret => ((CurrentTarget is WoWUnit) && (Me.CurrentTarget != CurrentTarget)),
-                    new Action(delegate { CurrentTarget.ToUnit().Target();}))
+                    new Action(delegate { CurrentTarget.ToUnit().Target(); }))
                 ));
         }
 
 
-        public Composite    CreateBehavior_MoveNearTarget(WoWObjectDelegate     target,
-                                                          DistanceDelegate      minRange,
-                                                          DistanceDelegate      maxRange)
+        public Composite CreateBehavior_MoveNearTarget(WoWObjectDelegate target,
+                                                          DistanceDelegate minRange,
+                                                          DistanceDelegate maxRange)
         {
             return (
             new PrioritySelector(context => target(),
@@ -843,7 +848,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        public Composite    CreateBehavior_MoveToLocation(LocationDelegate  location)
+        public Composite CreateBehavior_MoveToLocation(LocationDelegate location)
         {
             return (
             new PrioritySelector(
@@ -860,13 +865,13 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        public Composite    CreateBehavior_MoveToTarget()
+        public Composite CreateBehavior_MoveToTarget()
         {
             return (CreateBehavior_MoveToTarget(() => CurrentTarget));
         }
 
 
-        public Composite    CreateBehavior_MoveToTarget(WoWObjectDelegate   target)
+        public Composite CreateBehavior_MoveToTarget(WoWObjectDelegate target)
         {
             return (
             new PrioritySelector(context => target(),
@@ -911,29 +916,29 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private static string   BuildTimeAsString(TimeSpan timeSpan)
+        private static string BuildTimeAsString(TimeSpan timeSpan)
         {
-            string      formatString    =  string.Empty;
+            string formatString = string.Empty;
 
             if (timeSpan.Hours > 0)
-                { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
+            { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
             else if (timeSpan.Minutes > 0)
-                { formatString = "{1:D2}m:{2:D2}s"; }
+            { formatString = "{1:D2}m:{2:D2}s"; }
             else
-                { formatString = "{2:D2}s"; }
+            { formatString = "{2:D2}s"; }
 
             return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
 
 
-        private TimeSpan        CalculateAutoBlacklistTime(WoWObject    wowObject)
+        private TimeSpan CalculateAutoBlacklistTime(WoWObject wowObject)
         {
-            double      timeToWowObject;
+            double timeToWowObject;
 
             if (Me.IsSwimming)
-                { timeToWowObject = Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed ; }
+            { timeToWowObject = Me.Location.Distance(wowObject.Location) / Me.MovementInfo.SwimmingForwardSpeed; }
             else
-	            { timeToWowObject = Me.Location.SurfacePathDistance(wowObject.Location) / Me.MovementInfo.RunSpeed; }
+            { timeToWowObject = Me.Location.SurfacePathDistance(wowObject.Location) / Me.MovementInfo.RunSpeed; }
 
             timeToWowObject *= 2.5;     // factor of safety
             timeToWowObject = Math.Max(timeToWowObject, 20.0);  // 20sec hard lower-limit
@@ -942,7 +947,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private Composite       CreateBehavior_InternalMoveTo(LocationDelegate  locationDelegate)
+        private Composite CreateBehavior_InternalMoveTo(LocationDelegate locationDelegate)
         {
             return (
             new Sequence(context => locationDelegate(),
@@ -955,14 +960,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
                 // Move...
                 new Action(delegate
-                { 
+                {
                     // Try to use Navigator to get there...
-                    WoWPointNamed   destination = locationDelegate();
-                    MoveResult      moveResult  = Navigator.MoveTo(destination.Location);
+                    WoWPointNamed destination = locationDelegate();
+                    MoveResult moveResult = Navigator.MoveTo(destination.Location);
 
                     // If Navigator fails, fall back to click-to-move...
                     if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                        {  WoWMovement.ClickToMove(destination.Location); }
+                    { WoWMovement.ClickToMove(destination.Location); }
                 }),
 
                 new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
@@ -971,11 +976,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private WoWPointNamed   FindStartingHotspot(bool    randomStartingHotspot)
+        private WoWPointNamed FindStartingHotspot(bool randomStartingHotspot)
         {
-            IEnumerable<WoWPointNamed>  hotspotsByDistance;
-            IEnumerable<WoWPointNamed>  hotspotsStarting;
-            Random                      random      = new Random((int)DateTime.Now.Ticks);
+            IEnumerable<WoWPointNamed> hotspotsByDistance;
+            IEnumerable<WoWPointNamed> hotspotsStarting;
+            Random random = new Random((int)DateTime.Now.Ticks);
 
             hotspotsByDistance = (Me.IsSwimming
                                   ? _hotSpots.OrderBy(hotspot => hotspot.Location.Distance(Me.Location))
@@ -991,42 +996,42 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             Logger("debug", "Hotspot count: {0} ({1})", hotspotsByDistance.Count(),
                         (randomStartingHotspot ? "randomized" : "starting at nearest"));
 
-            WoWPoint    startingLocation     = (randomStartingHotspot
+            WoWPoint startingLocation = (randomStartingHotspot
                                                 ? hotspotsStarting.OrderBy(ret => random.Next()).FirstOrDefault().Location
                                                 : hotspotsStarting.FirstOrDefault().Location);
 
             // Rotate the hotspot queue such that the nearest hotspot is on top...
             while (_hotSpots.Peek().Location != startingLocation)
-                { _hotSpots.Enqueue(_hotSpots.Dequeue()); }
+            { _hotSpots.Enqueue(_hotSpots.Dequeue()); }
 
             Logger("debug", "Starting hotspot is {0}", _hotSpots.Peek().Name);
-            
+
             return (_hotSpots.Peek());
         }
 
 
-        private WoWPointNamed   FindNextHotspot()
+        private WoWPointNamed FindNextHotspot()
         {
-            WoWPointNamed   currentHotspot      = _hotSpots.Peek();
+            WoWPointNamed currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
             if (Me.Location.Distance(currentHotspot.Location) > Navigator.PathPrecision)
-                { return (currentHotspot); }
+            { return (currentHotspot); }
 
             // Otherwise, rotate to the next hotspot in the list...
             _hotSpots.Enqueue(_hotSpots.Dequeue());
-            
+
             return (_hotSpots.Peek());
         }
 
 
-        public void         UseHotspots(IEnumerable<WoWPointNamed>  hotspots,
-                                        bool                        randomizeStartingHotspot)
+        public void UseHotspots(IEnumerable<WoWPointNamed> hotspots,
+                                        bool randomizeStartingHotspot)
         {
             _hotSpots = new Queue<WoWPointNamed>(hotspots ?? new WoWPointNamed[0]);
 
             if (_hotSpots.Count() <= 0)
-                { _hotSpots.Enqueue(HuntingGroundAnchor); }
+            { _hotSpots.Enqueue(HuntingGroundAnchor); }
 
             FindStartingHotspot(randomizeStartingHotspot);
         }
@@ -1055,64 +1060,75 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     //
     public class SwimBreathBehavior
     {
-        public delegate void     LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate void LoggerDelegate(string messageType, string format, params object[] args);
 
 
-        public SwimBreathBehavior(LoggerDelegate    loggerDelegate)
+        public SwimBreathBehavior(LoggerDelegate loggerDelegate)
         {
             Logger = loggerDelegate;
         }
 
 
         // Private properites & data...
-        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
-        private const string            AuraName_WarlockUnendingBreath  = "Unending Breath";
-        private int                     BreathTimeRemaining             { get { return((Timer_SwimBreath.IsVisible)
-                                                                                       ? (int)Timer_SwimBreath.CurrentTime
-                                                                                       : int.MaxValue);
-                                                                        }}
-        private readonly TimeSpan       Delay_StatusUpdateThrottle      = TimeSpan.FromMilliseconds(3000);
+        private const string AuraName_DruidAquaticForm = "Aquatic Form";
+        private const string AuraName_WarlockUnendingBreath = "Unending Breath";
+        private int BreathTimeRemaining
+        {
+            get
+            {
+                return ((Timer_SwimBreath.IsVisible)
+                       ? (int)Timer_SwimBreath.CurrentTime
+                       : int.MaxValue);
+            }
+        }
+        private readonly TimeSpan Delay_StatusUpdateThrottle = TimeSpan.FromMilliseconds(3000);
         private readonly LoggerDelegate Logger;
-        private int                     MinTime_DruidBreath             = 30000;    // in milliseconds
-        private int                     MinTime_WarlockBreath           = 30000;    // in milliseconds
-        private LocalPlayer             Me                              { get { return (ObjectManager.Me); } }
-        private int                     SpellId_DruidAquaticForm        = 1066;
-        private int                     SpellId_WarlockUnendingBreath   = 5697;
-        private readonly TimeSpan       ThrottleTimer_BreathCheck       = TimeSpan.FromSeconds(5);
-        private readonly TimeSpan       ThrottleTimer_WarlockBreath     = TimeSpan.FromSeconds(30);
-        private readonly TimeSpan       Timer_AuraRefresh_EnduringBreath = TimeSpan.FromMilliseconds(180000);
-        private MirrorTimerInfo         Timer_SwimBreath                { get { return (Me.GetMirrorTimerInfo(MirrorTimerType.Breath)); } }
-        private int[]                   UnderwaterAirSourceObjectIds    = { 177524 /* bubbly fissure */
+        private int MinTime_DruidBreath = 30000;    // in milliseconds
+        private int MinTime_WarlockBreath = 30000;    // in milliseconds
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private int SpellId_DruidAquaticForm = 1066;
+        private int SpellId_WarlockUnendingBreath = 5697;
+        private readonly TimeSpan ThrottleTimer_BreathCheck = TimeSpan.FromSeconds(5);
+        private readonly TimeSpan ThrottleTimer_WarlockBreath = TimeSpan.FromSeconds(30);
+        private readonly TimeSpan Timer_AuraRefresh_EnduringBreath = TimeSpan.FromMilliseconds(180000);
+        private MirrorTimerInfo Timer_SwimBreath { get { return (Me.GetMirrorTimerInfo(MirrorTimerType.Breath)); } }
+        private int[] UnderwaterAirSourceObjectIds = { 177524 /* bubbly fissure */
                                                                           };
 
-        private Composite               _behaviorRoot;
-        private bool                    _isSwimBreathNeeded;
-        private AirSource               _nearestAirSource;
+        private Composite _behaviorRoot;
+        private bool _isSwimBreathNeeded;
+        private AirSource _nearestAirSource;
 
         // Private structures...
         private struct AirSource
         {
-            public WoWPoint     Location;
-            public string       Name;
+            public WoWPoint Location;
+            public string Name;
 
-            public AirSource(WoWPoint location, string name)    { Location = location; Name = name; }
-            public double               Distance                { get { return (Location.Distance(ObjectManager.Me.Location)); }}
-            public static AirSource     Empty                   = new AirSource(WoWPoint.Empty, "NONE");
+            public AirSource(WoWPoint location, string name) { Location = location; Name = name; }
+            public double Distance { get { return (Location.Distance(ObjectManager.Me.Location)); } }
+            public static AirSource Empty = new AirSource(WoWPoint.Empty, "NONE");
         }
 
         // Private LINQs
-        private IEnumerable<WoWObject>  UnderwaterAirSources    { get { return (
-                                                                    ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                                        .OrderBy(target => Me.Location.Distance(target.Location))
-                                                                        .Where(target => UnderwaterAirSourceObjectIds.Contains((int)target.Entry))
-                                                                ); }}
+        private IEnumerable<WoWObject> UnderwaterAirSources
+        {
+            get
+            {
+                return (
+                    ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                .OrderBy(target => Me.Location.Distance(target.Location))
+                .Where(target => UnderwaterAirSourceObjectIds.Contains((int)target.Entry))
+                    );
+            }
+        }
 
 
-        private TimeSpan        AuraTimeLeft(string     auraName)
+        private TimeSpan AuraTimeLeft(string auraName)
         {
             WoWAura wowAura = Me.GetAuraByName(auraName);
 
-            return ((wowAura != null)  ? wowAura.TimeLeft  : TimeSpan.Zero);
+            return ((wowAura != null) ? wowAura.TimeLeft : TimeSpan.Zero);
         }
 
 
@@ -1126,7 +1142,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         /// <para>* RunStatus.Success, if we're catching our breath, or moving for it</para>
         /// </returns>
         /// 
-        public Composite        CreateBehavior()
+        public Composite CreateBehavior()
         {
             return (_behaviorRoot ?? (_behaviorRoot =
                 new Decorator(ret => Me.IsSwimming,
@@ -1158,7 +1174,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                     new Sequence(
                                         new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,
                                             new Action(delegate
-                                            {   
+                                            {
                                                 TreeRoot.StatusText = string.Format("Moving to {0} for breath. (distance {1:0.0})",
                                                                                     _nearestAirSource.Name,
                                                                                     _nearestAirSource.Distance);
@@ -1206,39 +1222,39 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private AirSource       GetNearestAirSource()
+        private AirSource GetNearestAirSource()
         {
             // Assume water's surface is nearest breath...
-            AirSource   nearestAirSource        = new AirSource(Me.Location.WaterSurface(), "water's surface");
-            WoWObject   underwaterAirSource     = UnderwaterAirSources.FirstOrDefault();
+            AirSource nearestAirSource = new AirSource(Me.Location.WaterSurface(), "water's surface");
+            WoWObject underwaterAirSource = UnderwaterAirSources.FirstOrDefault();
 
             // If underwater air source exists, and is closer that the water's surface...
             if ((underwaterAirSource != null)
                 && (Me.Location.Distance(underwaterAirSource.Location) <= nearestAirSource.Distance))
             {
                 nearestAirSource.Location = underwaterAirSource.Location;
-                nearestAirSource.Name     = underwaterAirSource.Name;
+                nearestAirSource.Name = underwaterAirSource.Name;
             }
 
             return (nearestAirSource);
         }
 
 
-        private bool            IsBreathNeeded()
+        private bool IsBreathNeeded()
         {
-            int     breathTimeRemaining     = BreathTimeRemaining;
+            int breathTimeRemaining = BreathTimeRemaining;
 
             if (Me.Class == WoWClass.Druid)
-                { return (breathTimeRemaining < MinTime_DruidBreath); }
+            { return (breathTimeRemaining < MinTime_DruidBreath); }
 
             else if (Me.Class == WoWClass.Warlock)
-                { return (breathTimeRemaining < MinTime_WarlockBreath); }
+            { return (breathTimeRemaining < MinTime_WarlockBreath); }
 
             // Calculate time needed to get to an air source...
-            AirSource   airSource   = GetNearestAirSource();
-            double      travelTime;
+            AirSource airSource = GetNearestAirSource();
+            double travelTime;
 
-            travelTime = (((airSource.Location.Distance(Me.Location) / Me.MovementInfo.SwimmingForwardSpeed )
+            travelTime = (((airSource.Location.Distance(Me.Location) / Me.MovementInfo.SwimmingForwardSpeed)
                           * 2.75)   // factor of safety
                           + (3 * ThrottleTimer_BreathCheck.TotalSeconds));
             travelTime = Math.Min(travelTime, 30.0);    // Hard-minimum of 30secs
@@ -1248,14 +1264,14 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private void            UnderwaterMoveTo(WoWPoint     location)
+        private void UnderwaterMoveTo(WoWPoint location)
         {
             // Try to use Navigator to get there...
-            MoveResult moveResult   = Navigator.MoveTo(location);
+            MoveResult moveResult = Navigator.MoveTo(location);
 
             // If Navigator fails, resort to click-to-move...
             if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                {  WoWMovement.ClickToMove(location); }
+            { WoWMovement.ClickToMove(location); }
         }
     }
 
@@ -1272,35 +1288,39 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     //
     public class UnderwaterLootingBehavior
     {
-        public delegate bool    ForceLootDelegate();
-        public delegate void    LoggerDelegate(string messageType, string format, params object[] args);
+        public delegate bool ForceLootDelegate();
+        public delegate void LoggerDelegate(string messageType, string format, params object[] args);
 
 
-        public UnderwaterLootingBehavior(LoggerDelegate    loggerDelegate)
+        public UnderwaterLootingBehavior(LoggerDelegate loggerDelegate)
         {
             Logger = loggerDelegate;
         }
 
 
         // Private properties & data...
-        private const string            AuraName_DruidAquaticForm       = "Aquatic Form";
-        private readonly TimeSpan       Delay_BlacklistLootedMob        = TimeSpan.FromMinutes(7);
-        private readonly TimeSpan       Delay_WaitForLootCleanup        = TimeSpan.FromMilliseconds(5000);
-        private TimeSpan                Delay_WowClientLagTime          { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private readonly TimeSpan       Delay_WowClientWaitForLootFrame = TimeSpan.FromSeconds(10);
+        private const string AuraName_DruidAquaticForm = "Aquatic Form";
+        private readonly TimeSpan Delay_BlacklistLootedMob = TimeSpan.FromMinutes(7);
+        private readonly TimeSpan Delay_WaitForLootCleanup = TimeSpan.FromMilliseconds(5000);
+        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
+        private readonly TimeSpan Delay_WowClientWaitForLootFrame = TimeSpan.FromSeconds(10);
         private readonly LoggerDelegate Logger;
-        private static LocalPlayer      Me                              { get { return (ObjectManager.Me); } }
-        private int                     SpellId_DruidAquaticForm        = 1066;
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private int SpellId_DruidAquaticForm = 1066;
 
-        private Composite               _behaviorRoot;
-        private WoWObject               _currentTarget;
+        private Composite _behaviorRoot;
+        private WoWObject _currentTarget;
 
         // Private LINQ...
-        private IEnumerable<WoWUnit>    LootList { get {
-                                                return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                                        .Where(target => (target.Dead && target.Lootable
-                                                                          && !target.IsLootingBlacklisted())));
-                                            }}
+        private IEnumerable<WoWUnit> LootList
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                        .Where(target => (target.Dead && target.Lootable
+                                          && !target.IsLootingBlacklisted())));
+            }
+        }
 
 
         /// <summary>
@@ -1313,7 +1333,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         /// <para>* RunStatus.Success, if we're in the process of looting things</para>
         /// </returns>
         /// 
-        public Composite        CreateBehavior(ForceLootDelegate    forceLoot)
+        public Composite CreateBehavior(ForceLootDelegate forceLoot)
         {
             return (_behaviorRoot ?? (_behaviorRoot =
                 new Decorator(ret => ((CharacterSettings.Instance.LootMobs || forceLoot()) && (LootList.Count() > 0)),
@@ -1334,11 +1354,11 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                                     })),
 
                                 // Within interact range, so loot it...
-                                // NOTE: that we have to locally blacklist looted targets.  They sometimes
-                                // have unique (e.g., quest-starting type) items on them.  If we already have
-                                // have such an item in our inventory, the target remains lootable, but there
-                                // is nothing we can pick up from it.  The blacklist prevents us from getting
-                                // into silly loops because of such mechanics.
+                // NOTE: that we have to locally blacklist looted targets.  They sometimes
+                // have unique (e.g., quest-starting type) items on them.  If we already have
+                // have such an item in our inventory, the target remains lootable, but there
+                // is nothing we can pick up from it.  The blacklist prevents us from getting
+                // into silly loops because of such mechanics.
                                 new Sequence(
                                     new Action(delegate { WoWMovement.MoveStop(); }),
                                     new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
@@ -1353,27 +1373,27 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                             )),
 
                         // We're not swimming, so we want to wait for the 'normal' looting behavior
-                        // to scoop up the loot before allowing other behaviors to continue...
-                        // This keeps it from taking a few steps towards next mob, only to go back to
-                        // previous mob and loot it.  This technique can still fail if Honorbddy is slow to update
-                        // infomation.  However, it shuts a lot of back-tracking.
+                // to scoop up the loot before allowing other behaviors to continue...
+                // This keeps it from taking a few steps towards next mob, only to go back to
+                // previous mob and loot it.  This technique can still fail if Honorbddy is slow to update
+                // infomation.  However, it shuts a lot of back-tracking.
                         new WaitContinue(Delay_WaitForLootCleanup, ret => false, new ActionAlwaysSucceed())
                     )
                 )));
         }
 
 
-        private void            UnderwaterMoveTo(WoWPoint     location)
+        private void UnderwaterMoveTo(WoWPoint location)
         {
             // If we're a Druid, use Aquatic Form...
             if (SpellManager.CanCast(SpellId_DruidAquaticForm) && !Me.HasAura(AuraName_DruidAquaticForm))
-                { SpellManager.Cast(SpellId_DruidAquaticForm); }
+            { SpellManager.Cast(SpellId_DruidAquaticForm); }
 
             // Try to use Navigator to get there...
-            MoveResult moveResult   = Navigator.MoveTo(location);
+            MoveResult moveResult = Navigator.MoveTo(location);
 
             if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                {  WoWMovement.ClickToMove(location); }
+            { WoWMovement.ClickToMove(location); }
         }
     }
 
@@ -1382,12 +1402,12 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     #region Extensions to HBcore
 
-    public class DecoratorContinueThrottled         : DecoratorContinue
+    public class DecoratorContinueThrottled : DecoratorContinue
     {
-        public DecoratorContinueThrottled(TimeSpan                  throttleTime,
-                                          CanRunDecoratorDelegate   canRun,
-                                          Composite                 composite)
-            :base(canRun, composite)
+        public DecoratorContinueThrottled(TimeSpan throttleTime,
+                                          CanRunDecoratorDelegate canRun,
+                                          Composite composite)
+            : base(canRun, composite)
         {
             _throttleTime = throttleTime;
 
@@ -1400,7 +1420,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         protected override bool CanRun(object context)
         {
             if (_throttle.Elapsed < _throttleTime)
-                { return (false); }
+            { return (false); }
 
             _throttle.Reset();
             _throttle.Start();
@@ -1409,17 +1429,17 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private Stopwatch                   _throttle;
-        private TimeSpan                    _throttleTime;
+        private Stopwatch _throttle;
+        private TimeSpan _throttleTime;
     }
 
 
-    public class DecoratorThrottled         : Decorator
+    public class DecoratorThrottled : Decorator
     {
-        public DecoratorThrottled(TimeSpan                  throttleTime,
-                                  CanRunDecoratorDelegate   canRun,
-                                  Composite                 composite)
-            :base(canRun, composite)
+        public DecoratorThrottled(TimeSpan throttleTime,
+                                  CanRunDecoratorDelegate canRun,
+                                  Composite composite)
+            : base(canRun, composite)
         {
             _throttleTime = throttleTime;
 
@@ -1432,7 +1452,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         protected override bool CanRun(object context)
         {
             if (_throttle.Elapsed < _throttleTime)
-                { return (false); }
+            { return (false); }
 
             _throttle.Reset();
             _throttle.Start();
@@ -1441,8 +1461,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         }
 
 
-        private Stopwatch                   _throttle;
-        private TimeSpan                    _throttleTime;
+        private Stopwatch _throttle;
+        private TimeSpan _throttleTime;
     }
 
 
@@ -1451,45 +1471,45 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     // own.  <sigh>
     public class LocalBlackList
     {
-        public LocalBlackList(TimeSpan  maxSweepTime)
+        public LocalBlackList(TimeSpan maxSweepTime)
         {
             _maxSweepTime = maxSweepTime;
             _stopWatchForSweeping.Start();
         }
 
-        private Dictionary<ulong, DateTime>     _blackList              = new Dictionary<ulong, DateTime>();
-        private TimeSpan                        _maxSweepTime;
-        private Stopwatch                       _stopWatchForSweeping   = new Stopwatch();      
+        private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+        private TimeSpan _maxSweepTime;
+        private Stopwatch _stopWatchForSweeping = new Stopwatch();
 
 
-        public void     Add(ulong guid,   TimeSpan timeSpan)
+        public void Add(ulong guid, TimeSpan timeSpan)
         {
             if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                { RemoveExpired(); }
+            { RemoveExpired(); }
 
             _blackList[guid] = DateTime.Now.Add(timeSpan);
         }
 
 
-        public bool     Contains(ulong  guid)
+        public bool Contains(ulong guid)
         {
             if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                { RemoveExpired(); }
+            { RemoveExpired(); }
 
             return (_blackList.ContainsKey(guid));
         }
 
 
-        public void     RemoveExpired()
+        public void RemoveExpired()
         {
-            DateTime    now     = DateTime.Now;
+            DateTime now = DateTime.Now;
 
-            List<ulong> expiredEntries  = (from key in _blackList.Keys
-                                            where (_blackList[key] < now)
-                                            select key).ToList();
+            List<ulong> expiredEntries = (from key in _blackList.Keys
+                                          where (_blackList[key] < now)
+                                          select key).ToList();
 
             foreach (ulong entry in expiredEntries)
-                { _blackList.Remove(entry); }
+            { _blackList.Remove(entry); }
 
             _stopWatchForSweeping.Reset();
             _stopWatchForSweeping.Start();
@@ -1499,32 +1519,32 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     public static class WoWObject_Extensions
     {
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         // We provide our own 'local' blacklist.  If we use the global one maintained by HBcore,
         // that will prevent us from looting also.
-        private static LocalBlackList   _blackList          = new LocalBlackList(TimeSpan.FromSeconds(30));
-        private static LocalBlackList   _blackListLooting   = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList _blackList = new LocalBlackList(TimeSpan.FromSeconds(30));
+        private static LocalBlackList _blackListLooting = new LocalBlackList(TimeSpan.FromSeconds(30));
 
-        public static void      LocallyBlacklist(this WoWObject    wowObject,
-                                                 TimeSpan          timeSpan)
+        public static void LocallyBlacklist(this WoWObject wowObject,
+                                                 TimeSpan timeSpan)
         {
             _blackList.Add(wowObject.Guid, timeSpan);
         }
 
-        public static void      LootingBlacklist(this WoWObject    wowObject,
-                                                 TimeSpan          timeSpan)
+        public static void LootingBlacklist(this WoWObject wowObject,
+                                                 TimeSpan timeSpan)
         {
             _blackListLooting.Add(wowObject.Guid, timeSpan);
         }
 
 
-        public static bool      IsLocallyBlacklisted(this WoWObject    wowObject)
+        public static bool IsLocallyBlacklisted(this WoWObject wowObject)
         {
             return (_blackList.Contains(wowObject.Guid));
         }
 
-        public static bool      IsLootingBlacklisted(this WoWObject    wowObject)
+        public static bool IsLootingBlacklisted(this WoWObject wowObject)
         {
             return (_blackListLooting.Contains(wowObject.Guid));
         }
@@ -1533,9 +1553,9 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     public static class WoWUnit_Extensions
     {
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
 
-        public static bool      IsInOurParty(this WoWUnit  wowUnit)
+        public static bool IsInOurParty(this WoWUnit wowUnit)
         {
             return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
         }
@@ -1544,25 +1564,25 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     public static class WoWPoint_Extensions
     {
-        public static Random            _random     = new Random((int)DateTime.Now.Ticks);
+        public static Random _random = new Random((int)DateTime.Now.Ticks);
 
-        private static LocalPlayer      Me { get { return (ObjectManager.Me); } }
-        public const double             TAU         = (2 * Math.PI);    // See http://tauday.com/
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
 
-        public static WoWPoint  Add(this WoWPoint   wowPoint,
-                                    double          x,
-                                    double          y,
-                                    double          z)
+        public static WoWPoint Add(this WoWPoint wowPoint,
+                                    double x,
+                                    double y,
+                                    double z)
         {
             return (new WoWPoint((wowPoint.X + x), (wowPoint.Y + y), (wowPoint.Z + z)));
         }
 
 
-        public static WoWPoint  AddPolarXY(this WoWPoint  wowPoint,
-                                           double         xyHeadingInRadians,
-                                           double         distance,
-                                           double         zModifier)
+        public static WoWPoint AddPolarXY(this WoWPoint wowPoint,
+                                           double xyHeadingInRadians,
+                                           double distance,
+                                           double zModifier)
         {
             return (wowPoint.Add((Math.Cos(xyHeadingInRadians) * distance),
                                  (Math.Sin(xyHeadingInRadians) * distance),
@@ -1574,29 +1594,29 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         // (e.g., boat, mob repops, etc). This allows multiple people running
         // the same profile to not stand on top of each other while waiting for
         // something.
-        public static WoWPoint     FanOutRandom(this WoWPoint  location,
-                                                double         maxRadius)
+        public static WoWPoint FanOutRandom(this WoWPoint location,
+                                                double maxRadius)
         {
-            const int           CYLINDER_LINE_COUNT     =  12;
-            const int           MAX_TRIES               =  50;
-            const double        SAFE_DISTANCE_BUFFER    =   1.75;
+            const int CYLINDER_LINE_COUNT = 12;
+            const int MAX_TRIES = 50;
+            const double SAFE_DISTANCE_BUFFER = 1.75;
 
-            WoWPoint            candidateDestination  = location;
-            int                 tryCount;
+            WoWPoint candidateDestination = location;
+            int tryCount;
 
             // Most of the time we'll find a viable spot in less than 2 tries...
             // However, if you're standing on a pier, or small platform a
             // viable alternative may take 10-15 tries--its all up to the
             // random number generator.
-            for (tryCount = MAX_TRIES;   tryCount > 0;    --tryCount)
+            for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
             {
-                WoWPoint        circlePoint;
-                bool[]          hitResults;
-                WoWPoint[]      hitPoints;
-                int             index;
-                WorldLine[]     traceLines  = new WorldLine[CYLINDER_LINE_COUNT +1];
+                WoWPoint circlePoint;
+                bool[] hitResults;
+                WoWPoint[] hitPoints;
+                int index;
+                WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()),  (maxRadius * _random.NextDouble()),  0.0);
+                candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
 
                 // Build set of tracelines that can evaluate the candidate destination --
                 // We build a cone of lines with the cone's base at the destination's 'feet',
@@ -1606,17 +1626,17 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // 'Normal' vector
                 index = 0;
                 traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
-                traceLines[index].End   = candidateDestination.Add(0.0, 0.0, -maxRadius);
+                traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
 
                 // Cylinder vectors
-                for (double turnFraction = 0.0;    turnFraction < TAU;    turnFraction += (TAU / CYLINDER_LINE_COUNT))
+                for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
                 {
                     ++index;
                     circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
                     traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
-                    traceLines[index].End   = circlePoint.Add(0.0, 0.0, -maxRadius);
+                    traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
                 }
-                
+
 
                 // Evaluate the cylinder...
                 // The result for the 'normal' vector (first one) will be the location where the
@@ -1635,54 +1655,54 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 // a plaform or pier).  If there is not solid ground all around us, we reject
                 // the candidate.  Our test for validity is that the walking distance must
                 // not be more than 20% greater than the straight-line distance to the point.
-                int     viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
+                int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathDistance(point) < (Me.Location.Distance(point) * 1.20))
                                                                       ? 1
                                                                       : 0));
 
-                if (viableVectorCount < (CYLINDER_LINE_COUNT +1))
-                    { continue; }
+                if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
+                { continue; }
 
                 // If new destination is 'too close' to our current position, try again...
                 if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-                    { continue; }
+                { continue; }
 
                 break;
             }
 
             // If we exhausted our tries, just go with simple destination --
             if (tryCount <= 0)
-                { candidateDestination = location; }
-            
+            { candidateDestination = location; }
+
             return (candidateDestination);
         }
 
 
-        public static double    SurfacePathDistance(this WoWPoint     start,
-                                                    WoWPoint          destination)
+        public static double SurfacePathDistance(this WoWPoint start,
+                                                    WoWPoint destination)
         {
-            WoWPoint[]  groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
+            WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
 
             // We define an invalid path to be of 'infinite' length
             if (groundPath.Length <= 0)
-                { return (double.MaxValue); }
+            { return (double.MaxValue); }
 
- 
-            double      pathDistance = start.Distance(groundPath[0]);
 
-            for (int i = 0;    i < (groundPath.Length - 1);    ++i)
-                { pathDistance += groundPath[i].Distance(groundPath[i+1]); }
+            double pathDistance = start.Distance(groundPath[0]);
+
+            for (int i = 0; i < (groundPath.Length - 1); ++i)
+            { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
 
             return (pathDistance);
         }
 
 
         // Returns WoWPoint.Empty if unable to locate water's surface
-        public static WoWPoint      WaterSurface(this WoWPoint      location)
+        public static WoWPoint WaterSurface(this WoWPoint location)
         {
-            WoWPoint    hitLocation;
-            bool        hitResult;
-            WoWPoint    locationUpper       = location.Add(0.0, 0.0, 2000.0);
-            WoWPoint    locationLower       = location.Add(0.0, 0.0, -2000.0);
+            WoWPoint hitLocation;
+            bool hitResult;
+            WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
+            WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
             hitResult = (GameWorld.TraceLine(locationUpper,
                                              locationLower,
