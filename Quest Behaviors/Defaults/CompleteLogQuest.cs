@@ -136,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
                             new Action(delegate { Lua.DoString("GetQuestReward({0})", 1); }),
                             new WaitContinue(Delay_WaitForNewQuestOfferred, ret => _newQuest,
-                                                new Action(ret => Lua.DoString("AcceptQuest"))),
+                                                new Action(ret => Lua.DoString("AcceptQuest()"))),
                             new Action(delegate
                             {
                                 Lua.DoString("CloseQuest()");
