@@ -53,7 +53,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
 
@@ -102,7 +101,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ?? (_root =
                 new PrioritySelector(
-                    new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(50)))
+                    new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(100)))
                     ));
         }
 
@@ -116,7 +115,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return (!Me.IsSwimming || _isBehaviorDone); }
+            get { return !Me.IsSwimming; }
         }
 
 

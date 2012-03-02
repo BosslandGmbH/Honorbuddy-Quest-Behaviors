@@ -142,7 +142,7 @@ namespace Styx.Bot.Quest_Behaviors
             return new PrioritySelector(
                 new Decorator(
                     ret => MountType == ForcedMountType.Ground,
-                    new Action(ret => Mount.MountUp())),
+                    new Action(ret => Mount.MountUp(() => WoWPoint.Zero))),
 
                 new Decorator(
                     ret => MountType == ForcedMountType.Water && MountHelper.UnderwaterMounts.Count != 0 && StyxWoW.Me.IsSwimming,

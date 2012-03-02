@@ -142,18 +142,10 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     // Move to our 'safe' spot, if needed...
                     new Decorator(c => Me.Location.Distance(SafespotLocation) > Navigator.PathPrecision,
                         new PrioritySelector(
-                            new Decorator(c => (!Me.Mounted
-                                                && Mount.CanMount()
-                                                && CharacterSettings.Instance.UseMount
-                                                && (Me.Location.Distance(SafespotLocation) > CharacterSettings.Instance.MountDistance)),
-                                new Sequence(
-                                    new DecoratorContinue(c => Me.IsMoving,
-                                        new Sequence(
-                                            new Action(c => WoWMovement.MoveStop()),
-                                            new WaitContinue(LagDuration, c => false, new ActionAlwaysSucceed())
-                                                )),
-
-                                    new Action(ret => Mount.MountUp()))),
+                            new Decorator(c => (!Me.Mounted &&
+                                                Mount.ShouldMount(SafespotLocation) &&
+                                                Mount.MountUp(() => true, () => SafespotLocation)),
+                                new ActionAlwaysSucceed()),
 
                             new CompositeThrottle(Throttle_UserStatusUpdate,
                                 new Action(delegate

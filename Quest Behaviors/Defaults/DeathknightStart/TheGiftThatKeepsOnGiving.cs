@@ -168,7 +168,7 @@ namespace Styx.Bot.Quest_Behaviors
         bool ObjCheck(WoWObject obj, int[] ids)
         {
             bool ret = false;
-            if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSightOCD &&
+            if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSight &&
                 !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
             {
                 ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit)obj).Dead) &&
@@ -199,7 +199,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 new PrioritySelector(ctx => Object,
 
-                    new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSightOCD),
+                    new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSight),
                         new Sequence(
                             new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).Name),
                             new Action(ctx => Navigator.MoveTo(((WoWObject)ctx).Location)))),

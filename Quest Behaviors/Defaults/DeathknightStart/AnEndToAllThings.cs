@@ -334,7 +334,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                  new PrioritySelector(
                                     ret => HealNpcs.Where(n => Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                     new Decorator(
-                                        ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD,
+                                        ret => ret != null && ((WoWUnit)ret).InLineOfSight,
                                         new PrioritySelector(
                                             new Decorator(
                                                 ret => ((WoWUnit)ret).Location.Distance(Vehicle.Location) > 15,
@@ -348,7 +348,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                             new Sequence(
                                 ret => KillNpcs.Where(n => n.Distance2DSqr > 20 * 20 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                 new DecoratorContinue(
-                                    ret => ret != null && ((WoWUnit)ret).InLineOfSightOCD && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
+                                    ret => ret != null && ((WoWUnit)ret).InLineOfSight && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
                                     new Sequence(
                                         new Action(ret =>
                                             {
