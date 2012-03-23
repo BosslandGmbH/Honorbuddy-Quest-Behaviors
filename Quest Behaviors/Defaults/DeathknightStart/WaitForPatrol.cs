@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Threading;
 using Styx.Helpers;
 using Styx.Logic;
 using Styx.Logic.BehaviorTree;
@@ -41,12 +41,14 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AvoidMobId = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
+                AvoidMobId = GetAttributeAsNullable<int>("AvoidMobId", false, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
+                MoveToMobId = GetAttributeAsNullable<int>("MoveToMobId", false, ConstrainAs.MobId, new[] { "MoveToMobID" }) ?? 0;
                 AvoidDistance = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new[] { "Distance" }) ?? 0;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                MoveToMob = GetAttributeAsNullable<bool>("MoveToMob", false, null, new[] { "MoveMob" }) ?? false;
 
                 // Internal use --
                 MobName = (AvoidNpc != null) ? AvoidNpc.Name : string.Format("MobId({0})", AvoidMobId);
@@ -69,11 +71,13 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
         // Attributes provided by caller
         public int AvoidMobId { get; private set; }
+        public int MoveToMobId { get; private set; }
         public double AvoidDistance { get; private set; }  // Distance to stay away from 
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public WoWPoint SafespotLocation { get; private set; }  // Safespot
+        public bool MoveToMob { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -91,10 +95,22 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                      .FirstOrDefault());
             }
         }
-        private static readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((2 * StyxWoW.WoWClient.Latency) + 150);
+
+        private WoWUnit MoveToNpc
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                     .Where(o => o.Entry == MoveToMobId)
+                                     .OrderBy(o => o.Distance)
+                                     .FirstOrDefault());
+            }
+        }
+
+
         private LocalPlayer Me { get { return (ObjectManager.Me); } }
         private string MobName { get; set; }
-        private static readonly TimeSpan Throttle_UserStatusUpdate = TimeSpan.FromSeconds(1);
+        private static readonly TimeSpan ThrottleUserStatusUpdate = TimeSpan.FromSeconds(1);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -137,33 +153,59 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
         protected override Composite CreateBehavior()
         {
             return (_root ?? (_root =
-                new PrioritySelector(avoidNpc => AvoidNpc,
+                new PrioritySelector(
 
-                    // Move to our 'safe' spot, if needed...
-                    new Decorator(c => Me.Location.Distance(SafespotLocation) > Navigator.PathPrecision,
+                    new Decorator(ret => MoveToMob,
                         new PrioritySelector(
-                            new Decorator(c => (!Me.Mounted &&
+
+                         new Decorator(ret => MoveToNpc != null && MoveToNpc.Distance > 5,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + MoveToNpc.Location.X + " Y: " + MoveToNpc.Location.Y),
+                                        new Action(ret => WoWMovement.ClickToMove(MoveToNpc.Location))
+                                    )
+                                ),
+
+                         new Decorator(ret => MoveToNpc != null && MoveToNpc.Distance <= 5 && Me.Mounted,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Dismounting"),
+                                        new Action(ret => Flightor.MountHelper.Dismount())
+                                    )
+                                ),
+
+                         new Decorator(ret => MoveToNpc == null,
+                                new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Waiting for Mob to Appear")
+                                    )
+                                ))),
+
+                    new Decorator(avoidNpc => !MoveToMob,
+                        new PrioritySelector(
+
+                        // Move to our 'safe' spot, if needed...
+                        new Decorator(c => Me.Location.Distance(SafespotLocation) > Navigator.PathPrecision,
+                            new PrioritySelector(
+                                new Decorator(c => (!Me.Mounted &&
                                                 Mount.ShouldMount(SafespotLocation) &&
                                                 Mount.MountUp(() => true, () => SafespotLocation)),
                                 new ActionAlwaysSucceed()),
 
-                            new CompositeThrottle(Throttle_UserStatusUpdate,
+                            new CompositeThrottle(ThrottleUserStatusUpdate,
                                 new Action(delegate
-            {
-                TreeRoot.StatusText = string.Format("Moving to safe spot {0:F1} yards away.",
-                                Me.Location.Distance(SafespotLocation));
-                return (RunStatus.Failure);     // Fall through
-            })),
+                                {
+                                    TreeRoot.StatusText = string.Format("Moving to safe spot {0:F1} yards away.",
+                                                    Me.Location.Distance(SafespotLocation));
+                                    return (RunStatus.Failure);     // Fall through
+                                })),
 
                             new Action(c => Navigator.MoveTo(SafespotLocation))
                             )),
 
-                    // Wait for mob to move the prescribed distance away...
-                    new Decorator(avoidNpc => (((WoWUnit)avoidNpc) != null)
+                        // Wait for mob to move the prescribed distance away...
+                        new Decorator(avoidNpc => (((WoWUnit)avoidNpc) != null)
                                                 && (((WoWUnit)avoidNpc).Distance <= AvoidDistance),
-                        new CompositeThrottle(Throttle_UserStatusUpdate,
+                        new CompositeThrottle(ThrottleUserStatusUpdate,
                             new Sequence(
-                // Set focus to the mob we're watching (for user-feedback purposes)...
+                        // Set focus to the mob we're watching (for user-feedback purposes)...
                                 new DecoratorContinue(avoidNpc => (Me.FocusedUnitGuid != ((WoWUnit)avoidNpc).Guid),
                                     new Action(avoidNpc =>
                                     {
@@ -203,7 +245,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                                     AvoidDistance);
                             _isBehaviorDone = true;
                         }))
-                    )));
+                    )))));
         }
 
 
@@ -237,7 +279,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
 
                 LogMessage("info", "Moving to safe spot {0} until '{1}' moves {2} yards away.",
                             SafespotLocation,
@@ -278,7 +320,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
         }
 
         private bool _hasRunOnce;
-        private Stopwatch _throttle;
-        private TimeSpan _throttleTime;
+        private readonly Stopwatch _throttle;
+        private readonly TimeSpan _throttleTime;
     }
 }
