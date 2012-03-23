@@ -49,14 +49,16 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 AttackButton = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new[] { "AttackIndex", "SpellIndex" }) ?? 0;
+                AttackButton2 = GetAttributeAsNullable<int>("AttackButtonSecondary", false, ConstrainAs.HotbarButton, new[] { "AttackIndexSecondary", "SpellIndexSecondary" }) ?? 0;
                 GoHomeButton = GetAttributeAsNullable<int>("GoHomeButton", false, ConstrainAs.HotbarButton, new[] { "HomeIndex" }) ?? 0;
                 MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 1;
                 MountedPoint = WoWPoint.Empty;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new[] { "TimesToUse" }) ?? 1;
                 OftenToUse = GetAttributeAsNullable<int>("OftenToUse", false, ConstrainAs.Milliseconds, null) ?? 1000;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                SpellType = GetAttributeAsNullable<int>("TypeId", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 2;
+                SpellType = GetAttributeAsNullable<int>("TypeId", false, new ConstrainTo.Domain<int>(0, 5), null) ?? 2;
                 TargetIds = GetNumberedAttributesAsArray<int>("TargetId", 1, ConstrainAs.MobId, new[] { "MobId", "NpcId" });
+                TargetIdsSecondary = GetNumberedAttributesAsArray<int>("TargetIdSecondary", 0, ConstrainAs.MobId, new[] { "MobIdSecondary", "NpcIdSecondary" });
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
                 VehicleMountId = GetAttributeAsNullable<int>("VehicleMountId", false, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 1;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
@@ -81,6 +83,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Attributes provided by caller
         public int AttackButton { get; private set; }
+        public int AttackButton2 { get; private set; }
         public int GoHomeButton { get; private set; }
         public double MaxRange { get; private set; }
         public WoWPoint MountedPoint { get; private set; }
@@ -90,6 +93,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public int SpellType { get; private set; }
         public int[] TargetIds { get; private set; }
+        public int[] TargetIdsSecondary { get; private set; }
         public int NumOfTimes { get; private set; }
         public int WaitTime { get; private set; }
         public int VehicleId { get; private set; }
@@ -112,12 +116,30 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                             .Where(u => TargetIds.Contains((int)u.Entry)
-                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange))
+                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange) && !u.Dead)
                                             .OrderBy(u => u.Distance)
                                             .ToList());
                 }
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                         .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
+                                        .OrderBy(u => u.Distance)
+                                        .ToList());
+            }
+        }
+        private List<WoWUnit> NpcListSecondary
+        {
+            get
+            {
+                if (VehicleList.Count > 0)
+                {
+                    return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                            .Where(u => TargetIdsSecondary.Contains((int)u.Entry)
+                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange) && !u.Dead)
+                                            .OrderBy(u => u.Distance)
+                                            .ToList());
+                }
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                        .Where(u => TargetIdsSecondary.Contains((int)u.Entry) && !u.Dead)
                                         .OrderBy(u => u.Distance)
                                         .ToList());
             }
@@ -323,6 +345,45 @@ namespace Styx.Bot.Quest_Behaviors
                                     Lua.DoString("CastPetAction({0})", AttackButton);
                                     LegacySpellManager.ClickRemoteLocation(NpcList[0].Location);
                                     Counter++;
+                                    return RunStatus.Running;
+                                }
+                            }
+                            return RunStatus.Running;
+                        })),
+
+                   new Decorator(c => InVehicle && SpellType == 5,
+                        new Action(c =>
+                        {
+                            if (NpcList.Count >= 1 || NpcListSecondary.Count >= 1)
+                            {
+                                using (new FrameLock())
+                                {
+                                    if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
+                                    {
+                                        Lua.DoString("VehicleExit()");
+                                        _isBehaviorDone = true;
+                                        return RunStatus.Success;
+                                    }
+
+                                    if (NpcList.Count > 0)
+                                    {
+                                        NpcList[0].Target();
+                                        WoWMovement.ConstantFace(Me.CurrentTargetGuid);
+                                        Lua.DoString("CastPetAction({0})", AttackButton);
+                                    }
+
+                                    if (NpcListSecondary.Count > 0)
+                                    {
+                                        NpcListSecondary[0].Target();
+                                        WoWMovement.ConstantFace(Me.CurrentTargetGuid);
+                                        Lua.DoString("CastPetAction({0})", AttackButton);
+                                    }
+
+                                    Lua.DoString("CastPetAction({0})", AttackButton2);
+
+                                    if(QuestId == 0)
+                                        Counter++;
+
                                     return RunStatus.Running;
                                 }
                             }
