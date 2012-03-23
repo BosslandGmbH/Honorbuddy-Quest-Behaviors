@@ -227,21 +227,20 @@ namespace Styx.Bot.Quest_Behaviors
 
                         new Decorator(ret => MobList.Count > 0 && !Me.IsCasting && SpellManager.CanCast(SpellId),
                             new Sequence(
-                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= CurrentBehaviorSpell.MinRange && MobList[0].Location.Distance(Me.Location) <= maxSpellRange && MobList[0].InLineOfSight,
-                                    new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
-                                        new Action(ret => WoWMovement.MoveStop()),
-                                        new Action(ret => Thread.Sleep(300)),
-                                        CreateSpellBehavior
-                                        )
-                                ),
-                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSight,
+                                   new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSpellSight,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].Name + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
                                         new Action(ret => Navigator.MoveTo(MobList[0].Location))
                                         )
                                 ),
-
+                                new DecoratorContinue(ret => MobList.Count > 0 && !Me.IsCasting && SpellManager.CanCast(SpellId, MobList[0]),
+                                    new Sequence(
+                                           new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSpellSight,
+                                            new Sequence(
+                                                new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].Name + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
+                                                new Action(ret => Navigator.MoveTo(MobList[0].Location))
+                                                )
+                                        ))),
                                 new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) < CurrentBehaviorSpell.MinRange,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
@@ -250,8 +249,25 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
                                         new Action(ret => Thread.Sleep(2000)),
                                         new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards))
-                                        ))
-                                ))
+                                        )),
+                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= CurrentBehaviorSpell.MinRange && MobList[0].Location.Distance(Me.Location) <= maxSpellRange && MobList[0].InLineOfSpellSight,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => WoWMovement.MoveStop()),
+                                        new Action(ret => Thread.Sleep(300)),
+                                        CreateSpellBehavior
+                                        )
+                                )
+                                )),
+                        //Fix for Charge and other Spells which needs a target
+                        new Decorator(ret => MobList[0].Location.Distance(Me.Location) >= 40,
+                            new Sequence(
+                                new Action(ret => TreeRoot.StatusText = "Targetting On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                new Action(ret => MobList[0].Target()),
+                                new Action(ret => Thread.Sleep(300)),
+                                CreateSpellBehavior
+                                )
+                        )
                 )));
         }
 
