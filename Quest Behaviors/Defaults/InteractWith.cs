@@ -225,13 +225,22 @@ namespace Styx.Bot.Quest_Behaviors
 
                     case ObjectType.Npc:
 
-                        var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                               .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
-                                                                   (NotMoving ? !obj.IsMoving : true) &&
+
+
+                        List<WoWUnit> baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                               .Where(obj => obj.IsValid && !_npcBlacklist.Contains(obj.Guid) &&
+                                                                   (!NotMoving || !obj.IsMoving) &&
                                                                     MobIds.Contains((int)obj.Entry) &&
                                                                    !Me.Minions.Contains(obj) &&
                                                                    obj.DistanceSqr < CollectionDistance * CollectionDistance)
-                                                               .OrderBy(obj => obj.DistanceSqr);
+                                                               .OrderBy(obj => obj.DistanceSqr).ToList();
+                        //Fix for undead-quest (and maybe some more), these npcs are minions
+                        if (baseTargets.Count == 0) baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                                  .Where(obj => obj.IsValid && !_npcBlacklist.Contains(obj.Guid) &&
+                                                                      (!NotMoving || !obj.IsMoving) &&
+                                                                       MobIds.Contains((int)obj.Entry) &&
+                                                                      obj.DistanceSqr < CollectionDistance * CollectionDistance)
+                                                                  .OrderBy(obj => obj.DistanceSqr).ToList();
 
                         var npcStateQualifiedTargets = baseTargets
                                                             .OrderBy(obj => obj.DistanceSqr)
