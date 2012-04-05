@@ -1,0 +1,42 @@
+- UsePetAbility Quest Behavior was added to allow the use of Pet "Bars" for profile developers, Documentation is included in the file.
+- NoControlVehicle added support for new Vehicle Type example quest is (Troggish Troubles)
+- NoControlVehicle has been rewritten for more advanced techniques
+- NoControlVehilce now supports using a bomb from your inventory and throwing it while on a "Taxi"
+- ItemWhileMoving now supports "Throwing" an object from your inventory while pathing to a Location
+- ItemWhileMoving has been rewritten for more advanced techniques
+- InteractWith Fix for many npcs that would not allow interaction
+- InteractWith now accepts IgnoreMobsInBlackspots to skip all mobs within a blacklist
+- WaitForpatrol Few minor issues fixed
+- UseItemOn now accepts a IgnoreCombat to ignore combat until behavior is finished
+- UseItemOn now accepts IgnoreMobsInBlackspots to skip all mobs within a blacklist
+- NPCAssistance added to support work on merging small npc behaviors and basic functions
+- NPCAssistance can now target Mobs within the profile
+- Escort has been rewritten for more advanced techniques
+- Escort can now defend against GameObjects
+- Escort now takes mobs locations into account as well as its target
+- Escort now uses the CC to pull rather then static spells
+- Escort can now use an item then defend Object/Unit
+- VehicleBehavior has been rewritten for more advanced techniques
+- VehicleBehavior can now follow an NPC and spam an array of buttons based on Priority of added
+
+
+- WaterBehavior has been Deprecated and will be removed on June 30th, 2012
+- BasicVehicleBehavior has been Deprecated and will be removed on June 30th, 2012
+- Halt has been Deprecated and will be removed on June 30th, 2012
+- UseItem has been Deprecated and will be removed on June 30th, 2012
+- Unofficial Behavior "10838.cs" is now deprecated and should now use Escort.cs
+- Unofficial Behavior "12255.cs" is now deprecated and should now use VehicleBehavior.cs
+- Unofficial Behavior "12259.cs" is now deprecated and should now use VehicleBehavior.cs
+- Unofficial Behavior "14243.cs" is now deprecated and should now use NoControlVehicle.cs
+- Unofficial Behavior "24817.cs" is now deprecated and should now use VehicleBehavior.cs
+- Unofficial Behavior "25066.cs" is now deprecated and should now use VehicleBehavior.cs
+- Unofficial Behavior "25251.cs" is now deprecated and should now use VehicleBehavior.cs
+- Unofficial Behavior "26028.cs" is now deprecated and should now use VehicleBehavior.cs
+- Unofficial Behavior "26058.cs" is now deprecated and should now use NoControlVehicle.cs
+- Unofficial Behavior "28454.cs" is now deprecated and should now use NoControlVehicle.cs
+
+- BasicMoveTo has been Deprecated for over a year and has been removed
+- FollowNpcUntil has been Deprecated for over a year and has been removed
+- Force Train has been Deprecated for over a year and has been removed
+- TalkToAndListenToStory has been Deprecated for over a year and has been removed
+- SetPullDistance has been Deprecated for over a year and has been removed
