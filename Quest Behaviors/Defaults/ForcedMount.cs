@@ -126,8 +126,9 @@ namespace Styx.Bot.Quest_Behaviors
             else
             {
                 MountHelper.FlyingMounts.First().CreatureSpell.Cast();
-                while (StyxWoW.Me.IsCasting)
-                { Thread.Sleep(100); }
+				Thread.Sleep(2500);
+             while (StyxWoW.Me.IsCasting)
+                { Thread.Sleep(200); }
             }
 
             // Hop off the ground. Kthx
