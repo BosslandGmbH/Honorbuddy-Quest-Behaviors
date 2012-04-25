@@ -35,6 +35,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+                LogMessage("warning", "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th.\n"
+                                        + "*\n"
+                                        + "* UseItem adds _no_ _additonal_ _value_ over the RunLUA behavior.\n"
+                                        + "* Please update the profile to use the RunLUA behavior. Use Lua=\"UseItemByName(12345)\""
+                                        + "*****");
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.

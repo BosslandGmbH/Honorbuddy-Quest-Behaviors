@@ -39,6 +39,15 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+
+                LogMessage("warning", "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                                        + "*\n"
+                                        + "* WaterBehavior adds _no_ _additonal_ _value_ over the CollectThings behavior.\n"
+                                        + "* Please update the profile to use the CollectThings behavior."
+                                        + "*****");
+
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
@@ -317,6 +326,8 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override void OnStart()
         {
+            
+
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.

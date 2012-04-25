@@ -38,6 +38,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+                LogMessage("warning", "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                                        + "*\n"
+                                        + "* Halt adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
+                                        + "* Please update the profile to use the UserSettings behavior and use StopBot."
+                                        + "*****");
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.

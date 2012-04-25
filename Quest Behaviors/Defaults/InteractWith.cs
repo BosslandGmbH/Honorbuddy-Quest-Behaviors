@@ -7,12 +7,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
+using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Inventory.Frames.Gossip;
 using Styx.Logic.Inventory.Frames.LootFrame;
 using Styx.Logic.Inventory.Frames.Merchant;
 using Styx.Logic.Pathing;
+using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -21,7 +22,7 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.InteractWith
 {
     /// <summary>
     /// Allows you to do quests that requires you to interact with nearby objects.
@@ -108,6 +109,7 @@ namespace Styx.Bot.Quest_Behaviors
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 3000;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
+                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
 
                 for (int i = 0; i < GossipOptions.Length; ++i)
                 { GossipOptions[i] -= 1; }
@@ -159,6 +161,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int WaitTime { get; private set; }
         public bool IgnoreCombat { get; private set; }
         public double MobHpPercentLeft { get; private set; }
+        public bool IgnoreMobsInBlackspots { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -228,16 +231,16 @@ namespace Styx.Bot.Quest_Behaviors
 
 
                         List<WoWUnit> baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                               .Where(obj => obj.IsValid && !_npcBlacklist.Contains(obj.Guid) &&
-                                                                   (!NotMoving || !obj.IsMoving) &&
+                                                               .Where(obj => obj.IsValid && !_npcBlacklist.Contains(obj.Guid) && !BehaviorBlacklist.Contains(obj.Guid) &&
+                                                                   (!NotMoving || !obj.IsMoving) && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, obj.Location))) &&
                                                                     MobIds.Contains((int)obj.Entry) &&
                                                                    !Me.Minions.Contains(obj) &&
                                                                    obj.DistanceSqr < CollectionDistance * CollectionDistance)
                                                                .OrderBy(obj => obj.DistanceSqr).ToList();
                         //Fix for undead-quest (and maybe some more), these npcs are minions
                         if (baseTargets.Count == 0) baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                                  .Where(obj => obj.IsValid && !_npcBlacklist.Contains(obj.Guid) &&
-                                                                      (!NotMoving || !obj.IsMoving) &&
+                                                                  .Where(obj => obj.IsValid && !_npcBlacklist.Contains(obj.Guid) && !BehaviorBlacklist.Contains(obj.Guid) &&
+                                                                      (!NotMoving || !obj.IsMoving) && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, obj.Location))) &&
                                                                        MobIds.Contains((int)obj.Entry) &&
                                                                       obj.DistanceSqr < CollectionDistance * CollectionDistance)
                                                                   .OrderBy(obj => obj.DistanceSqr).ToList();
@@ -263,6 +266,34 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        private bool BlacklistIfPlayerNearby(WoWObject target)
+        {
+            WoWUnit nearestCompetingPlayer = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                                    .OrderBy(player => player.Location.Distance(target.Location))
+                                                    .FirstOrDefault(player => player.IsPlayer
+                                                                                && player.IsAlive
+                                                                                && !player.IsInOurParty());
+
+            // If player is too close to the target, ignore target for a bit...
+            if ((nearestCompetingPlayer != null)
+                && (nearestCompetingPlayer.Location.Distance(target.Location) <= 25))
+            {
+                BehaviorBlacklist.Add(target.Guid, TimeSpan.FromSeconds(90));
+                return (true);
+            }
+
+            return (false);
+        }
+
+        private bool CanNavigateFully(WoWObject target)
+        {
+            if (Navigator.CanNavigateFully(Me.Location, target.Location))
+            {
+                return (true);
+            }
+
+            return (false);
+        }
 
         #region Overrides of CustomForcedBehavior
 
@@ -310,7 +341,8 @@ namespace Styx.Bot.Quest_Behaviors
                                         {
                                             TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
                                             CurrentObject.Interact();
-                                            _npcBlacklist.Add(CurrentObject.Guid);
+                                            if (CurrentObject != null)
+                                                _npcBlacklist.Add(CurrentObject.Guid);
 
                                             Thread.Sleep(2000);
                                             Counter++;
@@ -423,5 +455,54 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         #endregion
+    }
+
+    public static class WoWUnitExtensions
+    {
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+
+        public static bool IsInOurParty(this WoWUnit wowUnit)
+        {
+            return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
+        }
+    }
+
+    class BehaviorBlacklist
+    {
+        static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
+        private BehaviorBlacklist()
+        {
+        }
+
+        class BlacklistTime
+        {
+            public BlacklistTime(DateTime time, TimeSpan span)
+            {
+                TimeStamp = time;
+                Duration = span;
+            }
+            public DateTime TimeStamp { get; private set; }
+            public TimeSpan Duration { get; private set; }
+        }
+
+        static public bool Contains(ulong id)
+        {
+            RemoveIfExpired(id);
+            return SpellBlacklistDict.ContainsKey(id);
+        }
+
+        static public void Add(ulong id, TimeSpan duration)
+        {
+            SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
+        }
+
+        static void RemoveIfExpired(ulong id)
+        {
+            if (SpellBlacklistDict.ContainsKey(id) &&
+                SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)
+            {
+                SpellBlacklistDict.Remove(id);
+            }
+        }
     }
 }

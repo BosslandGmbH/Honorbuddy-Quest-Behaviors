@@ -25,6 +25,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -48,6 +49,18 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         QuestComplete,
     }
 
+    public enum DefendUnitType
+    {
+        Unit,
+        ItemStartTimer,
+    }
+
+    public enum ObjectType
+    {
+        Npc,
+        GameObject,
+    }
+
     public class Escort : CustomForcedBehavior
     {
         public Escort(Dictionary<string, string> args)
@@ -56,11 +69,15 @@ namespace Styx.Bot.Quest_Behaviors.Escort
             try
             {
                 EscortUntil = GetAttributeAsNullable<EscortUntilType>("EscortUntil", false, null, null) ?? EscortUntilType.QuestComplete;
+                DefendType = GetAttributeAsNullable<DefendUnitType>("DefendType", false, null, null) ?? DefendUnitType.Unit;
+                MobType = GetAttributeAsNullable<ObjectType>("MobType", false, null, new[] { "ObjectType" }) ?? ObjectType.Npc;
 
-                EscortDestination = GetAttributeAsNullable<WoWPoint>("EscortDest", (EscortUntil == EscortUntilType.DestinationReached), ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobId = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
-                QuestId = GetAttributeAsNullable<int>("QuestId", (EscortUntil == EscortUntilType.QuestComplete), ConstrainAs.QuestId(this), null) ?? 0;
+                EscortDestination = GetAttributeAsNullable("EscortDest", (EscortUntil == EscortUntilType.DestinationReached), ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                Location = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                ItemId = GetAttributeAsNullable("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                ObjectId = GetNumberedAttributesAsArray("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                MaxRange = GetAttributeAsNullable("Range", false, ConstrainAs.Range, null) ?? 20;
+                QuestId = GetAttributeAsNullable("QuestId", (EscortUntil == EscortUntilType.QuestComplete), ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
             }
@@ -83,8 +100,13 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         // Attributes provided by caller
         public WoWPoint EscortDestination { get; private set; }
         public EscortUntilType EscortUntil { get; private set; }
+        public DefendUnitType DefendType { get; private set; }
+        public ObjectType MobType { get; private set; }
+
         public WoWPoint Location { get; private set; }
-        public int[] MobId { get; private set; }
+        public int ItemId { get; private set; }
+        public int[] ObjectId { get; private set; }
+        public double MaxRange { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -95,18 +117,63 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         private bool _isDisposed;
         private Composite _root;
 
+        public Stopwatch TimeOut = new Stopwatch();
+
         // Private properties
         private const double DestinationTolerance = 5.0;
         private LocalPlayer Me { get { return (ObjectManager.Me); } }
-        private List<WoWUnit> MobList
+
+        public WoWItem Item
+        {
+            get
+            {
+                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
+            }
+        }
+
+        private WoWObject DefendObject
+        {
+            get
+            {
+                WoWObject @object = null;
+
+                switch (MobType)
+                {
+                    case ObjectType.GameObject:
+                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>()
+                                                .OrderBy(ret => ret.Distance)
+                                                .FirstOrDefault(obj => ObjectId.Contains((int)obj.Entry));
+                        break;
+
+                    case ObjectType.Npc:
+                        var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                                               .OrderBy(target => target.Distance)
+                                                               .Where(target => ObjectId.Contains((int)target.Entry));
+
+                        var npcStateQualifiedTargets = baseTargets
+                                                            .Where(target => (target.IsAlive));
+
+                        @object = npcStateQualifiedTargets.FirstOrDefault();
+                        break;
+                }
+
+                if (@object != null)
+                { LogMessage("debug", @object.Name); }
+
+                return @object;
+            }
+        }
+
+        private List<WoWUnit> EnemyList
         {
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => MobId.Contains((int)u.Entry) && !u.Dead)
-                                        .OrderBy(u => u.Distance).ToList());
+                                        .Where(u => (u.CurrentTarget == DefendObject || u.Location.Distance(DefendObject.Location) < 10) && !u.Dead)
+                                        .OrderBy(u => u.Location.Distance(DefendObject.Location)).ToList());
             }
         }
+
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -163,40 +230,20 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                                   QuestCompleteRequirement.Complete));
         }
 
-
-        WoWSpell RangeSpell
-        {
-            get
-            {
-                switch (Me.Class)
-                {
-                    case Styx.Combat.CombatRoutine.WoWClass.Druid:
-                        return SpellManager.Spells["Starfire"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Hunter:
-                        return SpellManager.Spells["Arcane Shot"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Mage:
-                        return SpellManager.Spells["Frost Bolt"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Priest:
-                        return SpellManager.Spells["Shoot"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Shaman:
-                        return SpellManager.Spells["Lightning Bolt"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Warlock:
-                        return SpellManager.Spells["Curse of Agony"];
-                    default: // should never get to here but adding this since the compiler complains
-                        return SpellManager.Spells["Auto Attack"]; ;
-                }
-            }
-        }
-
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
 
-                new PrioritySelector(
+               new PrioritySelector(
                 // If we've arrived at the destination, we're done...
+
+            #region DefendType Unit
+                new Decorator(ret => DefendType == DefendUnitType.Unit,
+
+                        new PrioritySelector(
+
                     new Decorator(ret => ((EscortUntil == EscortUntilType.DestinationReached)
                                           && (Me.Location.Distance(EscortDestination) <= DestinationTolerance)),
                         new Action(delegate
@@ -217,7 +264,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                 }))
                             )),
 
-                    new Decorator(ret => MobList.Count == 0,
+                    new Decorator(ret => DefendObject == null,
                         new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                 new Action(ret => Navigator.MoveTo(Location)),
@@ -229,13 +276,13 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                         new Action(ret => Me.ClearTarget())),
 
                     new Decorator(
-                        ret => MobList.Count > 0 && MobList[0].IsHostile,
+                        ret => EnemyList.Count > 0 && EnemyList[0].IsHostile,
                         new PrioritySelector(
                             new Decorator(
-                                ret => Me.CurrentTarget != MobList[0],
+                                ret => Me.CurrentTarget != EnemyList[0],
                                 new Action(ret =>
                                     {
-                                        MobList[0].Target();
+                                        EnemyList[0].Target();
                                         StyxWoW.SleepForLagDuration();
                                     })),
                             new Decorator(
@@ -248,21 +295,20 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
 
                     new Decorator(
-                        ret => MobList.Count > 0 && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) &&
-                                MobList[0].CurrentTarget == null && MobList[0].DistanceSqr > 5f * 5f,
+                        ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && DefendObject.DistanceSqr > 5f * 5f,
                         new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Following Mob - " + MobList[0].Name + " At X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
-                                    new Action(ret => Navigator.MoveTo(MobList[0].Location)),
+                                    new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
+                                    new Action(ret => Navigator.MoveTo(DefendObject.Location)),
                                     new Action(ret => Thread.Sleep(100))
                                 )
                         ),
 
-                    new Decorator(ret => MobList.Count > 0 && (Me.Combat || MobList[0].Combat),
+                    new Decorator(ret => EnemyList.Count > 0 && (Me.Combat || EnemyList[0].Combat),
                         new PrioritySelector(
                             new Decorator(
-                                ret => Me.CurrentTarget == null && MobList[0].CurrentTarget != null,
+                                ret => Me.CurrentTarget == null,
                                 new Sequence(
-                                new Action(ret => MobList[0].CurrentTarget.Target()),
+                                new Action(ret => EnemyList[0].CurrentTarget.Target()),
                                 new Action(ret => StyxWoW.SleepForLagDuration()))),
                             new Decorator(
                                 ret => !Me.Combat,
@@ -270,9 +316,118 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                                     new Decorator(
                                         ret => RoutineManager.Current.PullBehavior != null,
                                         RoutineManager.Current.PullBehavior),
-                                    new Action(ret => RoutineManager.Current.Pull())))))
+                                    new Action(ret => RoutineManager.Current.Pull()))))))),
 
-                )
+
+            #endregion
+
+            #region DefendType ObjectTimer
+                    new Decorator(ret => DefendType == DefendUnitType.ItemStartTimer,
+
+                        new PrioritySelector(
+
+                    new Decorator(ret => ((EscortUntil == EscortUntilType.DestinationReached)
+                                          && (Me.Location.Distance(EscortDestination) <= DestinationTolerance)),
+                        new Action(delegate
+                        {
+                            TreeRoot.StatusText = "Finished!";
+                            _isBehaviorDone = true;
+                        })),
+
+                    // If quest is completed, we're done...
+                    new Decorator(ret => ((EscortUntil == EscortUntilType.QuestComplete) && IsQuestComplete()),
+                        new Sequence(
+                            new Action(ret => TreeRoot.StatusText = "Finished!"),
+                            new WaitContinue(120,
+                                new Action(delegate
+                                {
+                                    _isBehaviorDone = true;
+                                    return RunStatus.Success;
+                                }))
+                            )),
+
+                    new Decorator(ret => DefendObject == null,
+                        new Sequence(
+                                new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
+                                new Action(ret => Navigator.MoveTo(Location)),
+                                new Action(ret => Thread.Sleep(300))
+                            )
+                        ),
+
+                    new Decorator(ret => DefendObject != null && DefendObject.WithinInteractRange,
+                        new Sequence(
+                                new Action(ret => TreeRoot.StatusText = "Using Item"),
+                                new Action(ret => Item.UseContainerItem()),
+                                new Action(ret => TimeOut.Start())
+                            )
+                        ),
+
+                    new Decorator(ret => TimeOut.ElapsedMilliseconds >= 300000 && !DefendObject.WithinInteractRange,
+                        new Sequence(
+                                new Action(ret => TreeRoot.StatusText = "Moving To Object : " + DefendObject.Location.Distance(Me.Location)),
+                                new Action(ret => Navigator.MoveTo(DefendObject.Location)),
+                                new Action(ret => Thread.Sleep(300))
+                            )
+                        ),
+
+                        new Decorator(ret => TimeOut.ElapsedMilliseconds >= 300000 && DefendObject.WithinInteractRange,
+                               new Sequence(
+                                   new Action(ret => DefendObject.Interact()),
+                                   new Action(ret => Thread.Sleep(500)),
+                                   new Action(ret => Lua.DoString("SelectGossipOption(1)")),
+                                   new Action(ret => TimeOut.Reset())
+                                   )
+                              ),
+
+                    new Decorator(ret => Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly,
+                        new Action(ret => Me.ClearTarget())),
+
+                    new Decorator(
+                        ret => EnemyList.Count > 0 && EnemyList[0].IsHostile,
+                        new PrioritySelector(
+                            new Decorator(
+                                ret => Me.CurrentTarget != EnemyList[0],
+                                new Action(ret =>
+                                    {
+                                        EnemyList[0].Target();
+                                        StyxWoW.SleepForLagDuration();
+                                    })),
+                            new Decorator(
+                                ret => !Me.Combat,
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ret => RoutineManager.Current.PullBehavior != null,
+                                        RoutineManager.Current.PullBehavior),
+                                    new Action(ret => RoutineManager.Current.Pull()))))),
+
+
+                    new Decorator(
+                        ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && DefendObject.DistanceSqr > 5f * 5f,
+                        new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
+                                    new Action(ret => Navigator.MoveTo(DefendObject.Location)),
+                                    new Action(ret => Thread.Sleep(100))
+                                )
+                        ),
+
+                    new Decorator(ret => EnemyList.Count > 0 && (Me.Combat || EnemyList[0].Combat),
+                        new PrioritySelector(
+                            new Decorator(
+                                ret => Me.CurrentTarget == null,
+                                new Sequence(
+                                new Action(ret => EnemyList[0].CurrentTarget.Target()),
+                                new Action(ret => StyxWoW.SleepForLagDuration()))),
+                            new Decorator(
+                                ret => !Me.Combat,
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ret => RoutineManager.Current.PullBehavior != null,
+                                        RoutineManager.Current.PullBehavior),
+                                    new Action(ret => RoutineManager.Current.Pull())))))))
+
+            #endregion
+
+)
             );
         }
 
@@ -329,11 +484,9 @@ namespace Styx.Bot.Quest_Behaviors.Escort
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
 
-                WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(unit => MobId.Contains((int)unit.Entry))
-                                      .FirstOrDefault();
+                WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => ObjectId.Contains((int)unit.Entry));
 
-                TreeRoot.GoalText = "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")"));
+                TreeRoot.GoalText = "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + ObjectId + ")"));
             }
         }
 

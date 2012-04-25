@@ -43,6 +43,13 @@ namespace Styx.Bot.Quest_Behaviors
         {
             try
             {
+                LogMessage("warning", "*****\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                                        + "*\n"
+                                        + "* BasicVehicleBehavior adds _no_ _additonal_ _value_ over the VehicleMover behavior.\n"
+                                        + "* Please update the profile to use the VehicleMover behavior."
+                                        + "*****");
+
                 LocationDest = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new[] { "Dest" }) ?? WoWPoint.Empty;
                 LocationMount = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;

@@ -10,9 +10,11 @@ using System.Linq;
 using System.Threading;
 
 using Styx.Helpers;
+using Styx.Logic;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
 using Styx.Logic.Pathing;
+using Styx.Logic.Profiles;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -21,7 +23,7 @@ using TreeSharp;
 using Action = TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Styx.Bot.Quest_Behaviors.UseItemOn
 {
     /// <summary>
     /// Allows you to use items on nearby gameobjects/npc's
@@ -90,6 +92,8 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
+                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
 
                 MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId) : null;
                 MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId) : null;
@@ -128,6 +132,9 @@ namespace Styx.Bot.Quest_Behaviors
         public double Range { get; private set; }
         public bool WaitForNpcs { get; private set; }
         public int WaitTime { get; private set; }
+        public bool IgnoreMobsInBlackspots { get; private set; }
+        public bool IgnoreCombat { get; private set; }
+
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -217,9 +224,9 @@ namespace Styx.Bot.Quest_Behaviors
                     case ObjectType.Npc:
                         var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
                                                                .OrderBy(target => target.Distance)
-                                                               .Where(target => !_npcBlacklist.Contains(target.Guid)
+                                                               .Where(target => !_npcBlacklist.Contains(target.Guid) && !BehaviorBlacklist.Contains(target.Guid)
                                                                                 && (target.Distance < CollectionDistance)
-                                                                                && MobIds.Contains((int)target.Entry));
+                                                                                && MobIds.Contains((int)target.Entry) && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, target.Location))));
 
                         var auraQualifiedTargets = baseTargets
                                                             .Where(target => (((MobAuraName == null) && (MobAuraMissingName == null))
@@ -242,6 +249,37 @@ namespace Styx.Bot.Quest_Behaviors
                 return @object;
             }
         }
+
+        private bool BlacklistIfPlayerNearby(WoWObject target)
+        {
+            WoWUnit nearestCompetingPlayer = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                                    .OrderBy(player => player.Location.Distance(target.Location))
+                                                    .FirstOrDefault(player => player.IsPlayer
+                                                                                && player.IsAlive
+                                                                                && !player.IsInOurParty());
+
+            // If player is too close to the target, ignore target for a bit...
+            if ((nearestCompetingPlayer != null)
+                && (nearestCompetingPlayer.Location.Distance(target.Location) <= 25))
+            {
+                BehaviorBlacklist.Add(target.Guid, TimeSpan.FromSeconds(90));
+                return (true);
+            }
+
+            return (false);
+        }
+
+        private bool CanNavigateFully(WoWObject target)
+        {
+            if (Navigator.CanNavigateFully(Me.Location, target.Location))
+            {
+                return (true);
+            }
+
+            return (false);
+        }
+
+        
 
         public WoWItem Item
         {
@@ -370,8 +408,67 @@ namespace Styx.Bot.Quest_Behaviors
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
+
+            if (IgnoreCombat && TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+            {
+                var currentRoot = TreeRoot.Current.Root;
+                if (currentRoot is GroupComposite)
+                {
+                    var root = (GroupComposite)currentRoot;
+                    root.InsertChild(0, CreateBehavior());
+                }
+            }
         }
 
         #endregion
+    }
+
+    public static class WoWUnitExtensions
+    {
+        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+
+        public static bool IsInOurParty(this WoWUnit wowUnit)
+        {
+            return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
+        }
+    }
+
+    class BehaviorBlacklist
+    {
+        static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
+        private BehaviorBlacklist()
+        {
+        }
+
+        class BlacklistTime
+        {
+            public BlacklistTime(DateTime time, TimeSpan span)
+            {
+                TimeStamp = time;
+                Duration = span;
+            }
+            public DateTime TimeStamp { get; private set; }
+            public TimeSpan Duration { get; private set; }
+        }
+
+        static public bool Contains(ulong id)
+        {
+            RemoveIfExpired(id);
+            return SpellBlacklistDict.ContainsKey(id);
+        }
+
+        static public void Add(ulong id, TimeSpan duration)
+        {
+            SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
+        }
+
+        static void RemoveIfExpired(ulong id)
+        {
+            if (SpellBlacklistDict.ContainsKey(id) &&
+                SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)
+            {
+                SpellBlacklistDict.Remove(id);
+            }
+        }
     }
 }
