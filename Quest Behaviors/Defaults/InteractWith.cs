@@ -110,6 +110,7 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 3000;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
                 IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
+                KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? true;
 
                 for (int i = 0; i < GossipOptions.Length; ++i)
                 { GossipOptions[i] -= 1; }
@@ -162,6 +163,7 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
         public bool IgnoreCombat { get; private set; }
         public double MobHpPercentLeft { get; private set; }
         public bool IgnoreMobsInBlackspots { get; private set; }
+        public bool KeepTargetSelected { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -260,7 +262,10 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                 }
 
                 if (@object != null)
-                { LogMessage("debug", @object.Name); }
+                {
+                    LogMessage("debug", @object.Name);
+                }
+
 
                 return @object;
             }
@@ -332,14 +337,19 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                     new Sequence(
                                         new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
                                             new Action(ret =>
-                                                {
-                                                    WoWMovement.MoveStop();
-                                                    StyxWoW.SleepForLagDuration();
-                                                })),
+                                            {
+                                                WoWMovement.MoveStop();
+                                                StyxWoW.SleepForLagDuration();
+                                            })),
 
                                         new Action(ret =>
                                         {
                                             TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
+
+                                            if (KeepTargetSelected && CurrentObject.Type == WoWObjectType.Unit)
+                                                CurrentObject.ToUnit().Target();
+
+
                                             CurrentObject.Interact();
                                             if (CurrentObject != null)
                                                 _npcBlacklist.Add(CurrentObject.Guid);
@@ -351,13 +361,13 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                         new DecoratorContinue(
                                             ret => GossipOptions.Length > 0,
                                             new Action(ret =>
+                                            {
+                                                foreach (var gos in GossipOptions)
                                                 {
-                                                    foreach (var gos in GossipOptions)
-                                                    {
-                                                        GossipFrame.Instance.SelectGossipOption(gos);
-                                                        Thread.Sleep(1000);
-                                                    }
-                                                })),
+                                                    GossipFrame.Instance.SelectGossipOption(gos);
+                                                    Thread.Sleep(1000);
+                                                }
+                                            })),
 
                                         new DecoratorContinue(
                                             ret => Loot && LootFrame.Instance.IsVisible,
@@ -366,16 +376,16 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                         new DecoratorContinue(
                                             ret => BuyItemId != 0 && MerchantFrame.Instance.IsVisible,
                                             new Action(ret =>
-                                                {
-                                                    var items = MerchantFrame.Instance.GetAllMerchantItems();
-                                                    var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (i.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
+                                            {
+                                                var items = MerchantFrame.Instance.GetAllMerchantItems();
+                                                var item = items.FirstOrDefault(i => i.ItemId == BuyItemId && (i.BuyPrice * (ulong)BuyItemCount) <= Me.Copper && (i.NumAvailable >= BuyItemCount || i.NumAvailable == -1));
 
-                                                    if (item != null)
-                                                    {
-                                                        MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
-                                                        Thread.Sleep(1500);
-                                                    }
-                                                })),
+                                                if (item != null)
+                                                {
+                                                    MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
+                                                    Thread.Sleep(1500);
+                                                }
+                                            })),
 
                                         new DecoratorContinue(
                                             ret => BuySlot != -1 && BuyItemId == 0 && MerchantFrame.Instance.IsVisible,
@@ -389,7 +399,7 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                                 }
                                             })),
                                         new DecoratorContinue(
-                                            ret => Me.CurrentTarget != null && Me.CurrentTarget == CurrentObject,
+                                            ret => Me.CurrentTarget != null && Me.CurrentTarget == CurrentObject && !KeepTargetSelected,
                                             new Action(ret => Me.ClearTarget())),
 
                                         new Action(ret => Thread.Sleep(WaitTime))

@@ -200,14 +200,14 @@ namespace Styx.Bot.Quest_Behaviors
 
                            new Decorator(ret => MobList.Count > 0 && !Me.IsCasting,
                                 new Sequence(
-                                    new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) > Range,
+                                    new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) > Range || !MobList[0].InLineOfSight,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                             new Action(ret => Navigator.MoveTo(MobList[0].Location)),
                                             new Action(ret => Thread.Sleep(300))
                                             )
                                     ),
-                                    new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) <= Range,
+                                    new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) <= Range && MobList[0].InLineOfSight,
                                         new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + MobList[0].Name + " With Spell: " + RangeSpell.Name),
                                         new Action(ret => WoWMovement.MoveStop()),

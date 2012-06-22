@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using CommonBehaviors.Actions;
 using Styx;
 using Styx.Plugins;
 using Styx.Plugins.PluginClass;
@@ -19,14 +20,14 @@ using Styx.Logic.Combat;
 
 namespace Blastranaar
 {
-    public class Blastranaar:CustomForcedBehavior
+    public class Blastranaar : CustomForcedBehavior
     {
         public Blastranaar(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestId = 13947;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
             }
             catch
             {
@@ -34,7 +35,7 @@ namespace Blastranaar
             }
         }
         public int QuestId { get; set; }
-        private bool IsBehaviorDone = false;
+        private bool _isBehaviorDone;
         public int MobIdThraka = 34429;
         public int MobIdSentinel = 34494;
         public int MobIdThrower = 34492;
@@ -46,9 +47,14 @@ namespace Blastranaar
         {
             get
             {
-                return IsBehaviorDone;
+                return _isBehaviorDone;
             }
         }
+        private LocalPlayer Me
+        {
+            get { return (ObjectManager.Me); }
+        }
+
         public override void OnStart()
         {
             OnStart_HandleAttributeProblem();
@@ -58,13 +64,7 @@ namespace Blastranaar
                 TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
             }
         }
-        public List<WoWUnit> Thraka
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdThraka && !u.Dead && !ObjectManager.Me.Dead && !ObjectManager.Me.Combat).OrderBy(u => u.Distance).ToList();
-            }
-        }
+
         public List<WoWUnit> Sentinels
         {
             get
@@ -79,56 +79,74 @@ namespace Blastranaar
                 return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdThrower && !u.Dead && u.Distance < 100).OrderBy(u => u.Distance).ToList();
             }
         }
-        internal static bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
-        internal static bool SentinelsDone { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(13947));if c==1 then return 1 else return 0 end", 0) == 1; } }
-        internal static bool ThrowersDone { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(2,GetQuestLogIndexByID(13947));if c==1 then return 1 else return 0 end", 0) == 1; } }
+
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
+        }
+        private bool IsObjectiveComplete(int objectiveId, uint questId)
+        {
+            if (Me.QuestLog.GetQuestById(questId) == null)
+            {
+                return false;
+            }
+            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
+            return
+                Lua.GetReturnVal<bool>(
+                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
+        }
+
+        public Composite DoneYet
+        {
+            get
+            {
+                return
+                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                    {
+                        Lua.DoString("CastPetAction(3)");
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+
+            }
+        }
+
+        public Composite KillOne
+        {
+            get
+            {
+                return new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId), new Action(r =>
+                                                                                                {
+                                                                                                    Lua.DoString(
+                                                                                                        "CastPetAction(1)");
+                                                                                                    LegacySpellManager.
+                                                                                                        ClickRemoteLocation
+                                                                                                        (Sentinels[0].
+                                                                                                             Location);
+                                                                                                }));
+            }
+        }
+        public Composite KillTwo
+        {
+            get
+            {
+                return new Decorator(r => !IsObjectiveComplete(2, (uint)QuestId), new Action(r =>
+                {
+                    Lua.DoString(
+                        "CastPetAction(1)");
+                    LegacySpellManager.
+                        ClickRemoteLocation
+                        (Throwers[0].
+                             Location);
+                }));
+            }
+        }
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(ret => !UtilIsProgressRequirementsMet(QuestId, questInLogRequirement, questCompleteRequirement),
-                        new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Finished!"),
-                            new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton3','0')")),
-                            new WaitContinue(120,
-                            new Action(delegate
-                            {
-                                IsBehaviorDone = true;
-                                return RunStatus.Success;
-                            }))
-                            )),
-                    new Decorator(ret =>
-                        !InVehicle && Thraka.Count < 1 || !InVehicle && Thraka[0].Distance > 5,
-                        new Sequence(
-                            new Action(ret => Navigator.MoveTo(Location)),
-                            new Action(ret => Thread.Sleep(100))
-                            )),
-                    new Decorator(ret =>
-                        !InVehicle && Thraka.Count > 0 && Thraka[0].Distance < 6,
-                        new Sequence(
-                            new Action(ret => Navigator.PlayerMover.MoveStop()),
-                            new Action(ret => Thraka[0].Interact()),
-                            new Action(ret => Thread.Sleep(500)),
-                            new Action(ret => Lua.DoString("SelectGossipOption(2)"))
-                            )),
-                    new Decorator(ret =>
-                        InVehicle && !SentinelsDone && Sentinels.Count > 0,
-                        new Sequence(
-                            new Action(ret => Sentinels[0].Target()),
-                            new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
-                            new Action(ret => LegacySpellManager.ClickRemoteLocation(Sentinels[0].Location)),
-                            new Action(ret => Thread.Sleep(3000))
-                            )),
-                    new Decorator(ret =>
-                        InVehicle && !ThrowersDone && Throwers.Count > 0,
-                        new Sequence(
-                            new Action(ret => Throwers[0].Target()),
-                            new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
-                            new Action(ret => LegacySpellManager.ClickRemoteLocation(Throwers[0].Location)),
-                            new Action(ret => Thread.Sleep(3000))
-                            ))
-                   ));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, KillOne, KillTwo, new ActionAlwaysSucceed())));
         }
     }
 }
