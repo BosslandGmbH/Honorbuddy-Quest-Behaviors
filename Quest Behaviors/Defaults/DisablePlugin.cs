@@ -22,11 +22,11 @@ using Styx.Logic.Questing;
 using Styx.WoWInternals;
 using System.Linq;
 
-namespace EnablePlugins
+namespace DisablePlugins
 {
-    public class EnablePlugins : CustomForcedBehavior
+    public class DisablePlugins : CustomForcedBehavior
     {
-        public EnablePlugins(Dictionary<string, string> args)
+        public DisablePlugins(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -61,11 +61,11 @@ private string[] Names;
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
-       
 
 
 
-        ~EnablePlugins()
+
+        ~DisablePlugins()
         {
             Dispose(false);
         }
@@ -131,7 +131,7 @@ private string[] Names;
                     //Logging.Write("Enable Plugins:"+name);
                     var firstOrDefault = Styx.Plugins.PluginManager.Plugins.FirstOrDefault(x => x.Name == name);
                     if (firstOrDefault != null)
-                        firstOrDefault.Enabled = true;
+                        firstOrDefault.Enabled = false;
                 }
 
                 _isBehaviorDone = true;
