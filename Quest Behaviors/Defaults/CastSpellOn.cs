@@ -56,7 +56,9 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 25;
-                SpellId = GetAttributeAsNullable<int>("SpellId", true, ConstrainAs.SpellId, null) ?? 0;
+                SpellIds = GetNumberedAttributesAsArray<int>("SpellId", 1, ConstrainAs.SpellId, null);
+                //SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                SpellName = GetAttributeAs<string>("SpellName", false, ConstrainAs.StringNonEmpty, new[] { "spellname" }) ?? "";
 
                 Counter = 1;
 
@@ -65,6 +67,17 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     LogMessage("fatal", "\"Range\" attribute must be greater than \"MinRange\" attribute.");
                     IsAttributeProblem = true;
+                }
+
+                SpellId = SpellIds.FirstOrDefault(id => SpellManager.HasSpell(id));
+
+                foreach (int i in SpellIds)
+                {
+                    if (SpellManager.HasSpell(i))
+                    {
+                        SpellId = i;
+                        break;
+                    }
                 }
             }
 
@@ -93,7 +106,9 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public double Range { get; private set; }
+        public int[] SpellIds { get; private set; }
         public int SpellId { get; private set; }
+        public string SpellName { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
