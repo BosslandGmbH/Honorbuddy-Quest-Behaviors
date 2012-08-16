@@ -50,7 +50,7 @@ namespace Styx.Bot.Quest_Behaviors
                 Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 3;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 110;
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.Milliseconds, new[] { "NpcId" });
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
@@ -207,8 +207,11 @@ namespace Styx.Bot.Quest_Behaviors
                     if (SpellId > 0)
                     {
 
-                        MobList[0].Target();
-                        MobList[0].Face();
+                        if (!CastSelf)
+                        {
+                            MobList[0].Target();
+                            MobList[0].Face();
+                        }
                         Thread.Sleep(300);
                         SpellManager.Cast(SpellId);
 
@@ -247,7 +250,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             )),
                         new DecoratorContinue(ret => CastSelf,
                                     new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: Myself"),
                                         new Action(ret => WoWMovement.MoveStop()),
                                         new Action(ret => Thread.Sleep(300)),
                                         CreateSpellBehavior
