@@ -79,6 +79,11 @@ namespace Styx.Bot.Quest_Behaviors
                         break;
                     }
                 }
+
+                CastSelf = false;
+
+                if (MobIds.FirstOrDefault() == 0)
+                    CastSelf = true;
             }
 
             catch (Exception except)
@@ -106,6 +111,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public double Range { get; private set; }
+        public bool CastSelf { get; private set; }
         public int[] SpellIds { get; private set; }
         public int SpellId { get; private set; }
         public string SpellName { get; private set; }
@@ -239,6 +245,14 @@ namespace Styx.Bot.Quest_Behaviors
                                                     return RunStatus.Success;
                                                 }))
                                             )),
+                        new DecoratorContinue(ret => CastSelf,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => WoWMovement.MoveStop()),
+                                        new Action(ret => Thread.Sleep(300)),
+                                        CreateSpellBehavior
+                                        )
+                                ),
 
                         new Decorator(ret => MobList.Count > 0 && !Me.IsCasting && SpellManager.CanCast(SpellId),
                             new Sequence(
