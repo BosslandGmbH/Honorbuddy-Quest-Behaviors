@@ -71,15 +71,6 @@ namespace Styx.Bot.Quest_Behaviors
 
                 SpellId = SpellIds.FirstOrDefault(id => SpellManager.HasSpell(id));
 
-                foreach (int i in SpellIds)
-                {
-                    if (SpellManager.HasSpell(i))
-                    {
-                        SpellId = i;
-                        break;
-                    }
-                }
-
                 CastSelf = false;
 
                 if (MobIds.FirstOrDefault() == 0)
@@ -235,20 +226,14 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite CreateRootBehavior()
         {
             return new PrioritySelector(
-                new Decorator(
-                    ret => !IsDone && StyxWoW.Me.IsAlive,
-                    new PrioritySelector(
-                        new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                            new WaitContinue(120,
-                                                new Action(delegate
-                                                {
-                                                    _isBehaviorDone = true;
-                                                    return RunStatus.Success;
-                                                }))
-                                            )),
-                        new DecoratorContinue(ret => CastSelf,
+
+                new Decorator(nat => !_isBehaviorDone && Me.IsAlive && (Counter >= NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted)),
+                    new Sequence(
+                        new Action(nat => TreeRoot.StatusText = "Finished CastSpellOn!"),
+                        new Action(nat => _isBehaviorDone = true),
+                        new Action(nat => RunStatus.Success))),
+
+                        new Decorator(ret => CastSelf,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: Myself"),
                                         new Action(ret => WoWMovement.MoveStop()),
@@ -259,7 +244,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                         new Decorator(ret => MobList.Count > 0 && !Me.IsCasting && SpellManager.CanCast(SpellId),
                             new Sequence(
-                                   new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSpellSight,
+                                   new DecoratorContinue(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSpellSight,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].Name + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
                                         new Action(ret => Navigator.MoveTo(MobList[0].Location))
@@ -273,7 +258,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                 new Action(ret => Navigator.MoveTo(MobList[0].Location))
                                                 )
                                         ))),
-                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) < CurrentBehaviorSpell.MinRange,
+                                new DecoratorContinue(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) < CurrentBehaviorSpell.MinRange,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
                                         new Action(ret => MobList[0].Face()),
@@ -282,7 +267,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => Thread.Sleep(2000)),
                                         new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards))
                                         )),
-                                new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= CurrentBehaviorSpell.MinRange && MobList[0].Location.Distance(Me.Location) <= maxSpellRange && MobList[0].InLineOfSpellSight,
+                                new DecoratorContinue(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) >= CurrentBehaviorSpell.MinRange && MobList[0].Location.Distance(Me.Location) <= maxSpellRange && MobList[0].InLineOfSpellSight,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                         new Action(ret => WoWMovement.MoveStop()),
@@ -292,15 +277,16 @@ namespace Styx.Bot.Quest_Behaviors
                                 )
                                 )),
                         //Fix for Charge and other Spells which needs a target
-                        new Decorator(ret => MobList[0].Location.Distance(Me.Location) >= 40,
+                        new Decorator(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) <= 40 && MobList[0].InLineOfSpellSight,
                             new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Targetting On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                new Action(ret => WoWMovement.MoveStop()),
                                 new Action(ret => MobList[0].Target()),
                                 new Action(ret => Thread.Sleep(300)),
                                 CreateSpellBehavior
                                 )
                         )
-                )));
+                );
         }
 
 
