@@ -60,7 +60,7 @@ namespace Styx.Bot.Quest_Behaviors
                 //SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
                 SpellName = GetAttributeAs<string>("SpellName", false, ConstrainAs.StringNonEmpty, new[] { "spellname" }) ?? "";
 
-                Counter = 1;
+                Counter = 0;
 
                 // Semantic checks
                 if (Range <= MinRange)
@@ -227,7 +227,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return new PrioritySelector(
 
-                new Decorator(nat => !_isBehaviorDone && Me.IsAlive && (Counter >= NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted)),
+                new Decorator(nat => !IsDone && !_isBehaviorDone && Me.IsAlive && (Counter >= NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted)),
                     new Sequence(
                         new Action(nat => TreeRoot.StatusText = "Finished CastSpellOn!"),
                         new Action(nat => _isBehaviorDone = true),

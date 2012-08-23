@@ -1,4 +1,4 @@
-// Behavior originally contributed by Raphus Recreated by Natfoth;
+// Behavior originally contributed by Raphus.
 //
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CombatUseItemOn
@@ -35,14 +35,10 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
 using System.Threading;
-using CommonBehaviors.Actions;
-using Styx.Helpers;
 using Styx.Logic.BehaviorTree;
 using Styx.Logic.Combat;
-using Styx.Logic.POI;
 using Styx.Logic.Pathing;
 using Styx.Logic.Questing;
 using Styx.WoWInternals;
@@ -54,9 +50,9 @@ using Action = TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    public class CombatUseItemOn : CustomForcedBehavior
+    public class CombatUseItemOnCopy : CustomForcedBehavior
     {
-        public CombatUseItemOn(Dictionary<string, string> args)
+        public CombatUseItemOnCopy(Dictionary<string, string> args)
             : base(args)
         {
 
@@ -64,7 +60,6 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 CastingSpellId = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
                 MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
-                MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 0;
                 HasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
                 Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
@@ -85,8 +80,6 @@ namespace Styx.Bot.Quest_Behaviors
                                          + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
                     IsAttributeProblem = true;
                 }
-
-                WaitTimer = new Helpers.WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
             }
 
             catch (Exception except)
@@ -107,7 +100,6 @@ namespace Styx.Bot.Quest_Behaviors
         // Attributes provided by caller
         public int CastingSpellId { get; private set; }
         public double MaxRange { get; private set; }
-        public double MinRange { get; private set; }
         public int HasAuraId { get; private set; }
         public int ItemId { get; private set; }
         public WoWPoint Location { get; private set; }
@@ -118,7 +110,6 @@ namespace Styx.Bot.Quest_Behaviors
         public int QuestId { get; private set; }
         public bool UseOnce { get; private set; }
         public int WaitTime { get; private set; }
-        public Helpers.WaitTimer WaitTimer { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
@@ -127,25 +118,26 @@ namespace Styx.Bot.Quest_Behaviors
         private bool _isDisposed;
         private Composite _root;
 
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
-
         // Private properties
         private int Counter { get; set; }
         public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
         private LocalPlayer Me { get { return (ObjectManager.Me); } }
-        public WoWUnit Mob { get { return (ObjectManager.GetObjectsOfType<WoWUnit>()
+        public WoWUnit Mob
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                      .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead)
-                                     .OrderBy(u => u.Distance).FirstOrDefault()); } }
-
-        public WoWUnit Lootable = ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(u => u.Distance).
-                                FirstOrDefault(u => u.Lootable);
+                                     .OrderBy(u => u.Distance).FirstOrDefault());
+            }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        ~CombatUseItemOn()
+        ~CombatUseItemOnCopy()
         {
             Dispose(false);
         }
@@ -175,70 +167,53 @@ namespace Styx.Bot.Quest_Behaviors
             _isDisposed = true;
         }
 
+        private ulong _lastMobGuid;
         private Composite RootCompositeOverride()
         {
-            return new PrioritySelector(
+            return
+                new PrioritySelector(
+                    new Decorator(
+                        ret => !_isBehaviorDone && Me.IsAlive,
+                        new PrioritySelector(
+                            new Decorator(ret => (Counter >= NumOfTimes) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isBehaviorDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
 
-                new Decorator(nat => !_isBehaviorDone && Me.IsAlive && (Counter >= NumOfTimes || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted)),
-                    new Sequence(
-                        new Action(nat => TreeRoot.StatusText = "Finished CombatUseItemOn!"),
-                        new Action(nat => _isBehaviorDone = true),
-                        new Action(nat => RunStatus.Success))),
-
-               new Decorator(nat => Mob == null,
-                    new Sequence(
-                        new Action(nat => TreeRoot.StatusText = "Moving To Location"),
-                        new Action(nat => Navigator.MoveTo(Location)))),
-
-                new Decorator(nat => !WaitTimer.IsFinished || (Me.IsActuallyInCombat && !MobIds.Contains((int)Me.CurrentTarget.Entry)),
-                    new ActionAlwaysSucceed()),
-
-                new Decorator(nat => WaitTimer.IsFinished && Mob != null && Mob.DistanceSqr <= MinRange * MinRange && !Navigator.CanNavigateFully(Me.Location, WoWMathHelper.CalculatePointFrom(Me.Location, Mob.Location, (float)(MinRange - Mob.Distance) - 3f)),
-                    new Sequence(
-                        new Action(nat => TreeRoot.StatusText = "Too Close. Backing up"),
-                        new Action(nat => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)))),
-
-                new Decorator(nat => WaitTimer.IsFinished && Mob != null && Mob.DistanceSqr <= MinRange * MinRange && Navigator.CanNavigateFully(Me.Location, WoWMathHelper.CalculatePointFrom(Me.Location, Mob.Location, (float)(MinRange - Mob.Distance) - 3f)),
-                    new Sequence(
-                        new Action(nat => TreeRoot.StatusText = "Too Close. Backing up"),
-                        new Action(nat => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, Mob.Location, (float)(MinRange - Mob.Distance) - 3f))))),
-
-
-               new Decorator(nat => WaitTimer.IsFinished && Mob != null && Mob.DistanceSqr >= MaxRange * MaxRange,
-                    new Sequence(
-                        new Action(nat => TreeRoot.StatusText = "Moving to Target"),
-                        new Action(nat => Navigator.MoveTo(Mob.Location)))),
-
-
-              new Decorator(nat => Me.IsMoving && WaitTimer.IsFinished && Me.CurrentTarget != null && MobIds.Contains((int)Me.CurrentTarget.Entry) && Item != null && Me.CurrentTarget.DistanceSqr < MaxRange * MaxRange && Me.CurrentTarget.DistanceSqr > MinRange * MinRange && (!UseOnce || !_npcBlacklist.Contains(Me.CurrentTarget.Guid)) &&
-                                               ((CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
+                            new Decorator(
+                                ret => Me.CurrentTarget != null && Item != null && (!UseOnce || Me.CurrentTarget.Guid != _lastMobGuid),
+                                new PrioritySelector(
+                                    new Sequence(
+                                    new Decorator(
+                                        ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
                                                (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
                                                (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
-                                               (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name))),
-                  new Sequence(
-                        new Action(nat => WoWMovement.MoveStop()),
-                        new Action(nat => SpellManager.StopCasting()),
-                        new Action(nat => Mob.Target()))),
+                                               (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name)),
+                                        new PrioritySelector(
+                                            new Decorator(
 
+                                            new Sequence(
+                                                new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                                new Action(ret => StyxWoW.SleepForLagDuration()),
+                                                new Action(ret => TreeRoot.StatusText = "Using item"),
+                                                new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
+                                                new Action(ret => Item.UseContainerItem()),
+                                                new Action(ret => Thread.Sleep(WaitTime)),
+                                                new DecoratorContinue(
+                                                    ret => QuestId == 0,
+                                                    new Action(ret => Counter++))))))))
 
-              new Decorator(nat => WaitTimer.IsFinished && Me.CurrentTarget != null && MobIds.Contains((int)Me.CurrentTarget.Entry) && Item != null && Me.CurrentTarget.DistanceSqr < MaxRange * MaxRange && Me.CurrentTarget.DistanceSqr > MinRange * MinRange && (!UseOnce || !_npcBlacklist.Contains(Me.CurrentTarget.Guid)) && 
-                                               ((CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
-                                               (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
-                                               (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
-                                               (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name))),
-                            new Sequence(
-                                new Action(nat => SpellManager.StopCasting()),
-                                new Action(nat => Logging.Write(Color.FromName("Aqua"), "[CUIO] Using Item : " + Item.Name)),
-                                new Action(nat => TreeRoot.StatusText = "Using Item : " + Item.Name),
-                                new Action(nat => _npcBlacklist.Add(Me.CurrentTarget.Guid)),
-                                new Action(nat => Item.UseContainerItem()),
-                                new Action(nat => WaitTimer.Reset()),
-                                new DecoratorContinue(nat => QuestId == 0,
-                                         new Action(nat => Counter++))))
-
-                
-                );
+                    ))));
         }
+
+
+        #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
@@ -247,10 +222,6 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(
                         ret => !Me.Combat,
                             new PrioritySelector(
-
-                                new Decorator(nat => Lootable != null && BotPoi.Current.Type == PoiType.Loot,
-                                    new ActionAlwaysSucceed()),
-
                                 new Decorator(
                                     ret => Mob == null,
                                     new Sequence(
@@ -312,8 +283,10 @@ namespace Styx.Bot.Quest_Behaviors
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
+                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
             }
         }
+
+        #endregion
     }
 }
