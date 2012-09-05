@@ -9,18 +9,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
-using Styx.Combat.CombatRoutine;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Tripper.Tools.Math;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -192,61 +190,61 @@ namespace Styx.Bot.Quest_Behaviors
                                       {
                                           ObjectManager.Update();
                                           Lua.DoString("CastPetAction(1);");
-                                          //LegacySpellManager.ClickRemoteLocation(getEstimatedPosition(Enemies[0],7));
+                                          //SpellManager.ClickRemoteLocation(getEstimatedPosition(Enemies[0],7));
 
                                            if (Enemies[0].Z <= 285)
                                          {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 15));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 15));
                                           }
 										  /*
 										  // bottom left
                                           if ((Enemies[0].Z >= 200) && (Enemies[0].Z <= 213))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
                                           }
 										  
 										  // middle left
                                           if ((Enemies[0].Z >= 219) && (Enemies[0].Z <= 228))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
                                           }
 										  // middle flat - i should change this to 2x x/y's for vector changes
 										  else if ((Enemies[0].Z >= 235) && (Enemies[0].Z <= 240))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
                                           }
 										  //
 										  /* this doesn't quite work the way i want it to
 										  // Middle Flat - Left
 										  else if (((Enemies[0].Z >= 236) && (Enemies[0].Z <= 240)) && ((Enemies[0].Y >= -57) && (Enemies[0].Y <= -44)) && ((Enemies[0].X >= -8534) && (Enemies[0].X <= -8515)))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
                                           }
 										  // Middle Flat - Right
 										  else if (((Enemies[0].Z >= 236) && (Enemies[0].Z <= 240)) && ((Enemies[0].Y >= -40) && (Enemies[0].Y <= -15)) && ((Enemies[0].X >= -8509) && (Enemies[0].X <= -8507)))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
                                           }
 										  /
 										  // middle right
                                           else if ((Enemies[0].Z >= 244) && (Enemies[0].Z <= 253))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 12));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 12));
                                           }
 										  // middle top right
                                           else if ((Enemies[0].Z >= 262) && (Enemies[0].Z <= 272))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
                                           }
 										  // top right
                                           else if ((Enemies[0].Z >= 282) && (Enemies[0].Z <= 292))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 16));
                                           }
 										  /* top
                                           else if ((Enemies[0].Z >= 292) && (Enemies[0].Z <= 307))
                                           {
-                                              LegacySpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 22));
+                                              SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 22));
                                           }
 										  */
 										  

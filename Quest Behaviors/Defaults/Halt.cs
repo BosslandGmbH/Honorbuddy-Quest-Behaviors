@@ -6,11 +6,9 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
-
-using TreeSharp;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
 
 
 namespace Styx.Bot.Quest_Behaviors

@@ -1,22 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading;
 using CommonBehaviors.Actions;
 using Styx;
-using Styx.Plugins;
-using Styx.Plugins.PluginClass;
-using Styx.Logic.BehaviorTree;
-using TreeSharp;
-using Styx.Logic.Questing;
-using Styx.Logic.Profiles.Quest;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Helpers;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Action = TreeSharp.Action;
-using Styx.Helpers;
-using Styx.Logic.Pathing;
-using Styx.Logic.Combat;
+using Action = Styx.TreeSharp.Action;
 
 namespace Blastranaar
 {
@@ -121,7 +113,7 @@ namespace Blastranaar
                                                                                                 {
                                                                                                     Lua.DoString(
                                                                                                         "CastPetAction(1)");
-                                                                                                    LegacySpellManager.
+                                                                                                    SpellManager.
                                                                                                         ClickRemoteLocation
                                                                                                         (Sentinels[0].
                                                                                                              Location);
@@ -136,7 +128,7 @@ namespace Blastranaar
                 {
                     Lua.DoString(
                         "CastPetAction(1)");
-                    LegacySpellManager.
+                    SpellManager.
                         ClickRemoteLocation
                         (Throwers[0].
                              Location);

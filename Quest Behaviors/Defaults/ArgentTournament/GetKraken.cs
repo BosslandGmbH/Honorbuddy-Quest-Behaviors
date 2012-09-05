@@ -9,18 +9,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
-using Styx.Combat.CombatRoutine;
+using Styx.CommonBot;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors

@@ -6,19 +6,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Tripper.Tools.Math;
-using Action = TreeSharp.Action;
-using System.Globalization;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -170,13 +166,12 @@ namespace Styx.Bot.Quest_Behaviors
                                 new WaitContinue(2, ret => !Me.IsMoving, new ActionAlwaysSucceed()),
                                 new Action(ctx =>
                                                {
-                                                   using (new FrameLock())
-                                                   {
+                                                   
                                                        Me.SetFacing(_lumberMillLocation);
                                                        WoWMovement.Move(WoWMovement.MovementDirection.ForwardBackMovement);
                                                        WoWMovement.MoveStop(WoWMovement.MovementDirection.ForwardBackMovement);
                                                        //Lua.DoString("CastSpellByID(83605)");
-                                                   }
+                                                   
                                                }),
                             new WaitContinue(TimeSpan.FromMilliseconds(200), ret => false, new ActionAlwaysSucceed()),
                              new Action(ctx => Lua.DoString("CastSpellByID(83605)"))

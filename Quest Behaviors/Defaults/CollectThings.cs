@@ -69,30 +69,23 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
-
 using CommonBehaviors.Actions;
-
 using Styx;
 using Styx.Combat.CombatRoutine;
+using Styx.CommonBot;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Inventory.Frames.LootFrame;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles;
-using Styx.Logic.Questing;
+using Styx.Pathing;
 using Styx.Plugins;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Styx.WoWInternals.World;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace BuddyWiki.CustomBehavior.CollectThings

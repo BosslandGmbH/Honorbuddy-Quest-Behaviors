@@ -7,20 +7,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using CommonBehaviors.Actions;
-
-using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -251,7 +246,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ret => Item.UseContainerItem()),
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => Counter++),
-                                new Action(ret => LegacySpellManager.ClickRemoteLocation(ClickToLocation)),
+                                new Action(ret => SpellManager.ClickRemoteLocation(ClickToLocation)),
                                 new Action(ret => Thread.Sleep(WaitTime)))
                             )),
 
@@ -285,7 +280,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => Item.UseContainerItem()),
                                         new Action(ret => Counter++),
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
-                                        new Action(ret => LegacySpellManager.ClickRemoteLocation(UseObject.Location)),
+                                        new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ret => Thread.Sleep(WaitTime))))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
@@ -316,7 +311,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Action(ret => Item.UseContainerItem()),
                                         new Action(ret => Counter++),
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
-                                        new Action(ret => LegacySpellManager.ClickRemoteLocation(UseObject.Location)),
+                                        new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ret => Thread.Sleep(WaitTime))))),
                             new Decorator(

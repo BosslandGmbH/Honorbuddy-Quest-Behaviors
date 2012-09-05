@@ -16,17 +16,14 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
 using System.Media;
 using System.Windows.Forms;
-using System.Xml;
-
 using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
+using Styx.TreeSharp;
 
 
 namespace BuddyWiki.CustomBehavior.UserDialog
@@ -546,11 +543,11 @@ namespace BuddyWiki.CustomBehavior.UserDialog
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public System.Media.SystemSound SoundCue { get; private set; }
+        public SystemSound SoundCue { get; private set; }
         public int SoundCueIntervalInSeconds { get; private set; }
 
         // Private variables for internal state
-        private TreeSharp.Composite _behavior;
+        private Composite _behavior;
         private AsyncCompletionToken _completionToken;
         private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
@@ -639,12 +636,12 @@ namespace BuddyWiki.CustomBehavior.UserDialog
 
         #region Overrides of CustomForcedBehavior
 
-        protected override TreeSharp.Composite CreateBehavior()
+        protected override Composite CreateBehavior()
         {
             if (_behavior == null)
             {
-                _behavior = new TreeSharp.PrioritySelector(
-                    new TreeSharp.Action(ret =>
+                _behavior = new PrioritySelector(
+                    new Styx.TreeSharp.Action(ret =>
                     {
                         bool isDialogComplete = _completionToken.IsComplete;
                         bool isProgressing = UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
@@ -660,19 +657,19 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                                                      : PopdownReason.PopdownCompletionCriteriaMet);
 
                             _isBehaviorDone = true;
-                            return (TreeSharp.RunStatus.Success);
+                            return (RunStatus.Success);
                         }
 
                         // If 'auto defend' is on and we're in combat, we skip this node to allow combat to take place
                         // somewhere in our parent's subtree
                         if (_completionToken.IsAutoDefend && StyxWoW.Me.IsActuallyInCombat)
-                            return (TreeSharp.RunStatus.Failure);
+                            return (RunStatus.Failure);
 
 
                         // 'auto defend is off'...
                         // RunStatus.Running returns us to this node.  This allows the user to control everything manually--
                         // including combat
-                        return (TreeSharp.RunStatus.Running);
+                        return (RunStatus.Running);
                     })
                 );
             }

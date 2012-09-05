@@ -4,21 +4,19 @@
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_VehicleBehavior
 //
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Xml.Linq;
-using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
-using Styx.Logic.Questing;
+using Styx.Common;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
+using Logging = Styx.Helpers.Logging;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -286,13 +284,10 @@ namespace Styx.Bot.Quest_Behaviors
                                     Thread.Sleep(500);
                                     WoWMovement.MoveStop();
 
-                                    using (new FrameLock())
-                                    {
-                                        Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
-                                        Lua.DoString("CastPetAction({0})", AttackButton);
-                                        Counter++;
-                                        return RunStatus.Success;
-                                    }
+                                    Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
+                                    Lua.DoString("CastPetAction({0})", AttackButton);
+                                    Counter++;
+                                    return RunStatus.Success;
                                 }
                                 if (_vehicle.Location.Distance(FirePoint) > 5)
                                 {

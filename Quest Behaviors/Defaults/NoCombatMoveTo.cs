@@ -6,15 +6,13 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -141,7 +139,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 }
                                 TreeRoot.StatusText = "Moving To Location - X: " + Destination.X + " Y: " + Destination.Y + " Z: " + Destination.Z;
 
-                                WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, Destination);
+                                WoWPoint[] pathtoDest1 = Navigator.GeneratePath(Me.Location, Destination);
 
                                 foreach (WoWPoint p in pathtoDest1)
                                 {

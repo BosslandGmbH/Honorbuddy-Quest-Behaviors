@@ -74,28 +74,22 @@
 //              to initate the query-response cycle.
 // 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-
+using System.Threading;
 using CommonBehaviors.Actions;
-
 using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Styx.WoWInternals.World;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
@@ -160,15 +154,15 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
 
                 // Install our chat handlers...
-                WoWChat.MonsterEmote += HandleChatMonster;
-                WoWChat.MonsterParty += HandleChatMonster;
-                WoWChat.MonsterSay += HandleChatMonster;
-                WoWChat.MonsterWhisper += HandleChatMonster;
-                WoWChat.MonsterYell += HandleChatMonster;
-                WoWChat.RaidBossEmote += HandleChatMonster;
-                WoWChat.RaidBossWhisper += HandleChatMonster;
-                WoWChat.RaidWarning += HandleChatLanguageSpecific;
-                WoWChat.System += HandleChatSimpleMessage;
+                Chat.MonsterEmote += HandleChatMonster;
+                Chat.MonsterParty += HandleChatMonster;
+                Chat.MonsterSay += HandleChatMonster;
+                Chat.MonsterWhisper += HandleChatMonster;
+                Chat.MonsterYell += HandleChatMonster;
+                Chat.RaidBossEmote += HandleChatMonster;
+                Chat.RaidBossWhisper += HandleChatMonster;
+                Chat.RaidWarning += HandleChatLanguageSpecific;
+                Chat.System += HandleChatSimpleMessage;
 
                 // If no MonitoringStartPhrases, we start 'hot'...
                 _buttonAction = ButtonEmpty;
@@ -347,19 +341,19 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         }
 
 
-        private void HandleChatMonster(WoWChat.ChatMonsterEventArgs args)
+        private void HandleChatMonster(Chat.ChatMonsterEventArgs args)
         {
             ProcessMessage(args.Message);
         }
 
 
-        private void HandleChatLanguageSpecific(WoWChat.ChatLanguageSpecificEventArgs args)
+        private void HandleChatLanguageSpecific(Chat.ChatLanguageSpecificEventArgs args)
         {
             ProcessMessage(args.Message);
         }
 
 
-        private void HandleChatSimpleMessage(WoWChat.ChatSimpleMessageEventArgs args)
+        private void HandleChatSimpleMessage(Chat.ChatSimpleMessageEventArgs args)
         {
             ProcessMessage(args.Message);
         }

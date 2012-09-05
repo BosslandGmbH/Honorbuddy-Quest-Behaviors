@@ -8,17 +8,12 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
-
-using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
@@ -416,7 +411,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             where a.Value.SpellId == auraId
                             select a.Value).FirstOrDefault();
 
-            return Me.HasAura(Styx.Logic.Combat.WoWSpell.FromId(auraId).Name);
+            return Me.HasAura(WoWSpell.FromId(auraId).Name);
         }
 
 

@@ -7,19 +7,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Inventory.Frames.LootFrame;
-using Styx.Logic.Inventory.Frames.Merchant;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors.InteractWith

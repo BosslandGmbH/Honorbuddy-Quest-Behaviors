@@ -6,18 +6,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Styx.CommonBot;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -159,10 +156,10 @@ namespace Styx.Bot.Quest_Behaviors
                                 }
                                 else
                                     lootable.Interact();
-                                if (Logic.Inventory.Frames.LootFrame.LootFrame.Instance != null &&
-                                    Logic.Inventory.Frames.LootFrame.LootFrame.Instance.IsVisible)
+                                if (LootFrame.Instance != null &&
+                                    LootFrame.Instance.IsVisible)
                                 {
-                                    Logic.Inventory.Frames.LootFrame.LootFrame.Instance.LootAll();
+                                    LootFrame.Instance.LootAll();
                                     if (Me.GotTarget)
                                         Blacklist.Add(Me.CurrentTarget, new TimeSpan(1, 0, 0));
                                     Me.ClearTarget();

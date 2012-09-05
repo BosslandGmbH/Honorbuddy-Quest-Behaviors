@@ -23,9 +23,9 @@
 //
 using System;
 using System.Collections.Generic;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.WoWInternals;
 
 
 namespace Styx.Bot.Quest_Behaviors

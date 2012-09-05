@@ -6,26 +6,19 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
-
 using Bots.Grind;
-
+using Styx.Common;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
-
-using Tripper.Tools.Math;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors.DeathknightStart
@@ -352,11 +345,13 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                     new Sequence(
                                         new Action(ret =>
                                             {
-                                                Vector3 v = ((WoWUnit)ret).Location - StyxWoW.Me.Location;
+                                                var v = ((WoWUnit)ret).Location - StyxWoW.Me.Location;
                                                 v.Normalize();
                                                 Lua.DoString(string.Format(
                                                     "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);",
                                                     Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
+
+                                                return RunStatus.Failure;
                                             }),
                                         new Action(ret => CastPetAction(AttackSpell)),
                                         new Action(ret => StyxWoW.SleepForLagDuration()))),

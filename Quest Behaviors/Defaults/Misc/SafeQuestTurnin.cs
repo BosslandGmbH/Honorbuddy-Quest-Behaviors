@@ -6,13 +6,10 @@
 using System;
 using System.Collections.Generic;
 using Bots.Quest.QuestOrder;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
 
 
 namespace Styx.Bot.Quest_Behaviors

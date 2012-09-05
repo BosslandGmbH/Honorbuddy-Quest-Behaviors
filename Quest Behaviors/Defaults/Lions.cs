@@ -7,18 +7,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using CommonBehaviors.Actions;
 using Styx.Combat.CombatRoutine;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -191,7 +189,7 @@ namespace Styx.Bot.Quest_Behaviors
             Logging.Write(string.Format("[Pet] Casting {0}", action));
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
             if (action == "Move")
-                LegacySpellManager.ClickRemoteLocation(Enemies[0].Location);
+                SpellManager.ClickRemoteLocation(Enemies[0].Location);
 
         }
 

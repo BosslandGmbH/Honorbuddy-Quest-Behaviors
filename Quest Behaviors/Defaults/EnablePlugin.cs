@@ -15,12 +15,9 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Threading;
-using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
-using Styx.WoWInternals;
 using System.Linq;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 
 namespace EnablePlugins
 {

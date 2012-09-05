@@ -1,16 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
 using System.Threading;
 using Styx;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
+using Styx.Helpers;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.Pathing;
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 namespace _24817
 {
@@ -19,14 +21,7 @@ namespace _24817
         public _24817(Dictionary<string, string> Args)
             : base(Args)
         {
-            try
-            {
-                QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-            }
-            catch
-            {
-                Styx.Helpers.Logging.Write("Problem in 24817 Behavior parsing QuestId Attibute!");
-            }
+            QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
         }
 
         public int QuestId { get; set; }

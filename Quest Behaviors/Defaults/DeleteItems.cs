@@ -1,13 +1,11 @@
 // Behavior originally contributed by Mastahg
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
 using Styx.WoWInternals;
-using System.Linq;
 
 namespace DeleteItems
 {

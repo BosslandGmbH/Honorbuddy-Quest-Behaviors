@@ -1,28 +1,18 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using Styx.Database;
-using Styx.Helpers;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.Combat;
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class Escort6641 : CustomForcedBehavior
     {
-
-
-        bool success = true;
-
-
         public Escort6641(Dictionary<string, string> args)
             : base(args)
         {

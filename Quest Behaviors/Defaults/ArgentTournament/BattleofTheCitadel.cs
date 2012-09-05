@@ -9,18 +9,14 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
-using Styx.Combat.CombatRoutine;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles.Quest;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -67,8 +63,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         uint[] Mounts = new uint[]{34125};
-        private uint[] Enemy;// = new uint[] { 33384, 33306,33285,33382,33383};
-        private uint[] EnemyDebuff;// = new uint[] { 64816, 64811, 64812, 64813, 64815 };
 
         WoWItem HordeLance()
         {
@@ -428,12 +422,11 @@ namespace Styx.Bot.Quest_Behaviors
                                                                              {
                                                                                  if (Me.CurrentTarget.Distance > 8)
                                                                                      Me.CurrentTarget.Face();
-                                                                                 using (new FrameLock())
-                                                                                 {
+                                                                                 
                                                                                      UsePetSkill("Thrust");
                                                                                      UsePetSkill("Charge");
                                                                                      UsePetSkill("Shield-Breaker");
-                                                                                 }
+                                                                                 
                                                                              }
 
                                                                          }

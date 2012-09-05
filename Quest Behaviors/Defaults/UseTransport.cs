@@ -5,18 +5,20 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-
+using System.Threading;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.Plugins;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -42,26 +44,15 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                WoWPoint? legacyEndLocation = LegacyGetAttributeAsWoWPoint("End", false, null, "TransportEndX/Y/Z");
-                WoWPoint? legacyGetOffLocation = LegacyGetAttributeAsWoWPoint("Exit", false, null, "GetOffX/Y/Z");
-                WoWPoint? legacyStartLocation = LegacyGetAttributeAsWoWPoint("Start", false, null, "TransportStartX/Y/Z");
-                WoWPoint? legacyWaitAtLocation = LegacyGetAttributeAsWoWPoint("Entry", false, null, "WaitAtX/Y/Z");
+
+                EndLocation = GetAttributeAsNullable<WoWPoint>("End", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                GetOffLocation = GetAttributeAsNullable<WoWPoint>("Exit", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                StandLocation = GetAttributeAsNullable<WoWPoint>("Start", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                WaitAtLocation = GetAttributeAsNullable<WoWPoint>("Entry", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
                 DestName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
-                EndLocation = GetAttributeAsNullable<WoWPoint>("TransportEnd", !legacyEndLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
-                                    ?? legacyEndLocation
-                                    ?? WoWPoint.Empty;
-                GetOffLocation = GetAttributeAsNullable<WoWPoint>("GetOff", !legacyGetOffLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
-                                    ?? legacyGetOffLocation
-                                    ?? WoWPoint.Empty;
-                StandLocation = GetAttributeAsNullable<WoWPoint>("StandOn", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                StartLocation = GetAttributeAsNullable<WoWPoint>("TransportStart", !legacyStartLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
-                                    ?? legacyStartLocation
-                                    ?? WoWPoint.Empty;
+
                 TransportId = GetAttributeAsNullable<int>("TransportId", true, ConstrainAs.MobId, new[] { "Transport" }) ?? 0;
-                WaitAtLocation = GetAttributeAsNullable<WoWPoint>("WaitAt", !legacyWaitAtLocation.HasValue, ConstrainAs.WoWPointNonEmpty, null)
-                                    ?? legacyWaitAtLocation
-                                    ?? WoWPoint.Empty;
             }
 
             catch (Exception except)

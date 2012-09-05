@@ -7,15 +7,17 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using System.Threading;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
+using Styx.Helpers;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -327,11 +329,9 @@ namespace Styx.Bot.Quest_Behaviors
                                     }
                                     else
                                     {
-                                        using (new FrameLock())
-                                        {
                                             Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
                                             WoWMovement.ClickToMove(waypoint);
-                                        }
+                                        
                                     }
                                     break;
                                 case State.looping:
@@ -340,8 +340,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     if (PickUpPassengerButton == 0)
                                     {
                                         TreeRoot.StatusText = string.Format("Blowing stuff up. {0} mins before resummon is required", ((780000 - _flightStopwatch.ElapsedMilliseconds) / 1000) / 60);
-                                        using (new FrameLock())
-                                        {
+                                        
                                             if ((vehicle.HealthPercent <= HealPercent || vehicle.ManaPercent <= HealPercent) && HealButton > 0
                                                 && npc != null && npc.Location.Distance2D(vehicle.Location) < 60)
                                             {
@@ -356,7 +355,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             }
                                             Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
                                             WoWMovement.ClickToMove(waypoint);
-                                        }
+                                        
                                     }
                                     else
                                     {
@@ -391,11 +390,10 @@ namespace Styx.Bot.Quest_Behaviors
                                                 break;
                                             }
                                         }
-                                        using (new FrameLock())
-                                        {
+                                        
                                             Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", SpeedButton);
                                             WoWMovement.ClickToMove(waypoint);
-                                        }
+                                        
                                     }
                                     break;
                                 case State.landing:

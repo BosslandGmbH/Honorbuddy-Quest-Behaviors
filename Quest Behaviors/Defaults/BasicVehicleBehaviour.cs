@@ -20,18 +20,19 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -158,7 +159,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ctx =>
                                 {
                                     WoWPoint destination1 = new WoWPoint(LocationMount.X, LocationMount.Y, LocationMount.Z);
-                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, destination1);
+                                    WoWPoint[] pathtoDest1 = Navigator.GeneratePath(Me.Location, destination1);
 
                                     foreach (WoWPoint p1 in pathtoDest1)
                                     {
@@ -208,7 +209,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ret =>
                                 {
                                     WoWPoint destination = new WoWPoint(LocationDest.X, LocationDest.Y, LocationDest.Z);
-                                    WoWPoint[] pathtoDest = Styx.Logic.Pathing.Navigator.GeneratePath(_vehicleList[0].Location, destination);
+                                    WoWPoint[] pathtoDest = Navigator.GeneratePath(_vehicleList[0].Location, destination);
 
                                     foreach (WoWPoint p in pathtoDest)
                                     {

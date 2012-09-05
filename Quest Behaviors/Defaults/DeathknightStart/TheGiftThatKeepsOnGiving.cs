@@ -7,18 +7,17 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Threading;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -231,7 +230,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 new Action(ctx => ((WoWItem)ctx).UseContainerItem()),
 
                                 new DecoratorContinue(ctx => HasGroundTarget,
-                                    new Action(ctx => LegacySpellManager.ClickRemoteLocation(Object.Location))),
+                                    new Action(ctx => SpellManager.ClickRemoteLocation(Object.Location))),
 
                                 new WaitContinue(6, ctx => false,
                                     new Sequence(

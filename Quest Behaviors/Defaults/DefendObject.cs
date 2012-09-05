@@ -3,33 +3,33 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 // ReSharper restore CheckNamespace
 {
     public class DefendObject : CustomForcedBehavior
     {
-        private WoWPoint _location;
-        private uint[] _objectId;
-        private int _questId;
-        private QuestCompleteRequirement _questRequirementComplete;
-        private QuestInLogRequirement _questRequirementInLog;
+        private readonly WoWPoint _location;
+        private readonly uint[] _objectId;
+        private readonly int _questId;
+        private readonly QuestCompleteRequirement _questRequirementComplete;
+        private readonly QuestInLogRequirement _questRequirementInLog;
         private readonly LocalPlayer _me = ObjectManager.Me;
-        private int _maxRange;
+        private readonly int _maxRange;
         private WoWUnit _defendObject;
 
 
         private List<WoWUnit> _enemyUnits = new List<WoWUnit>();
-        private readonly Styx.Helpers.WaitTimer _enemyListTimer = Styx.Helpers.WaitTimer.FiveSeconds;
+        private readonly Common.Helpers.WaitTimer _enemyListTimer = Common.Helpers.WaitTimer.FiveSeconds;
 
         /// <summary>
         /// Defends an Object.
@@ -163,7 +163,7 @@ namespace Styx.Bot.Quest_Behaviors
         private void FindObject()
         {
             _defendObject =
-                ObjectManager.GetObjectsOfType<WoWUnit>().Where(o => o.Entry == _objectId.First()).FirstOrDefault();
+                ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(o => o.Entry == _objectId.First());
         }
     }
 }

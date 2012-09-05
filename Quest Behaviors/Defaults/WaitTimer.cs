@@ -5,15 +5,10 @@
 //
 using System;
 using System.Collections.Generic;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
-using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
-using Timer = Styx.Helpers.WaitTimer;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -71,7 +66,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private variables for internal state
         private bool _isDisposed;
         private Composite _root;
-        private Timer _timer;
+        private Common.Helpers.WaitTimer _timer;
         private string _waitTimeAsString;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -184,7 +179,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 int waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
 
-                _timer = new Timer(new TimeSpan(0, 0, 0, 0, waitDuration));
+                _timer = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, waitDuration));
                 _waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);
 
                 _timer.Reset();

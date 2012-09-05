@@ -5,16 +5,20 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
+using Styx.Helpers;
+using Styx.Pathing;
+using Styx.Plugins;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -146,7 +150,7 @@ namespace Styx.Bot.Quest_Behaviors
                         })),
 
                     // if we hit the load screen and we are back in game
-                    new Decorator(ret => _isInPortal && ObjectManager.IsInGame && StyxWoW.Me != null,
+                    new Decorator(ret => _isInPortal && StyxWoW.IsInGame && StyxWoW.Me != null,
                         new Action(delegate
                         {
                             _isBehaviorDone = true;
@@ -162,7 +166,7 @@ namespace Styx.Bot.Quest_Behaviors
                         new Action(ret => _isInPortal = true)),
 
                     // if load screen is visible
-                    new Decorator(ret => !ObjectManager.IsInGame || StyxWoW.Me == null,
+                    new Decorator(ret => !StyxWoW.IsInGame || StyxWoW.Me == null,
                         new Action(ret => _isInPortal = true)),
 
                     // if we are within 2 yards of calculated end point we should never reach

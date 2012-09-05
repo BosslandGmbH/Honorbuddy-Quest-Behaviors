@@ -6,18 +6,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using CommonBehaviors.Actions;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -58,7 +55,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private readonly Helpers.WaitTimer _afkTimer = new Helpers.WaitTimer(TimeSpan.FromMinutes(2));
+        private readonly Common.Helpers.WaitTimer _afkTimer = new Common.Helpers.WaitTimer(TimeSpan.FromMinutes(2));
         private bool _isDisposed;
         private Composite _root;
 
@@ -112,7 +109,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        private readonly Styx.Helpers.WaitTimer _waitTimer = new Styx.Helpers.WaitTimer(TimeSpan.FromMinutes(10));
+        private readonly Common.Helpers.WaitTimer _waitTimer = new Common.Helpers.WaitTimer(TimeSpan.FromMinutes(10));
 
         protected override Composite CreateBehavior()
         {
@@ -184,12 +181,10 @@ namespace Styx.Bot.Quest_Behaviors
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            if (IsDone) return;
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-            }
+            TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
         }
 
         #endregion

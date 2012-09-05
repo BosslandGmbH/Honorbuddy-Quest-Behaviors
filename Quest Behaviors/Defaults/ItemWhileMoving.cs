@@ -5,17 +5,20 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Threading;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
+using Styx.Helpers;
+using Styx.Pathing;
+using Styx.Plugins;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -157,7 +160,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     }
                                     TreeRoot.StatusText = "Moving To Location: Using Item - " + wowItem.Name;
 
-                                    WoWPoint[] pathtoDest1 = Styx.Logic.Pathing.Navigator.GeneratePath(Me.Location, Location);
+                                    WoWPoint[] pathtoDest1 = Navigator.GeneratePath(Me.Location, Location);
 
                                     foreach (WoWPoint p in pathtoDest1)
                                     {
@@ -167,7 +170,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             WoWMovement.ClickToMove(p);
                                             wowItem.Interact();
                                             Thread.Sleep(200);
-                                            LegacySpellManager.ClickRemoteLocation(Me.Location);
+                                            SpellManager.ClickRemoteLocation(Me.Location);
                                             Thread.Sleep(500);
                                         }
                                     }

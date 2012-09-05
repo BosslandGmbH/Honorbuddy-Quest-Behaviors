@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
-using System.Text;
+using System.Threading;
 using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.BehaviorTree;
-using TreeSharp;
-using Action = TreeSharp.Action;
-using Styx.Logic.Pathing;
-using Styx.Combat;
-using Styx.Logic.Combat;
-using System.Threading;
-using System.Diagnostics;
+using Action = Styx.TreeSharp.Action;
 
 namespace _10838
 {

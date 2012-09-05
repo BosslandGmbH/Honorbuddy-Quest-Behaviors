@@ -1,89 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-
+using Styx.CommonBot;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Inventory.Frames.Gossip;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-
-using Action = TreeSharp.Action;
+using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
     public class SetHearthstone : CustomForcedBehavior
     {
         private readonly string _goalText;
-
-        private readonly Dictionary<string, object> _recognizedAttributes = new Dictionary<string, object>
-            {
-                { "NpcId", null },
-                { "X", null },
-                { "Y", null },
-                { "Z", null },
-                // Optional
-                { "Name", null },
-                { "AreaId", null }
-            };
-
         private bool _done;
 
         public SetHearthstone(Dictionary<string, string> args)
             : base(args)
         {
-            CheckForUnrecognizedAttributes(_recognizedAttributes);
+            NpcId = GetAttributeAsNullable<int>("NpcId", false, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
+            AreaId = GetAttributeAsNullable<int>("AreaId", false, ConstrainAs.MobId, null) ?? 0;
+            Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+            Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
-            int? npcId = GetAttributeAsInteger("NpcId", true, 0, int.MaxValue, null);
-            int? areaId = GetAttributeAsInteger("AreaId", false, 0, int.MaxValue, null);
-            double? x = GetAttributeAsDouble("X", true, 0, double.MaxValue, null);
-            double? y = GetAttributeAsDouble("Y", true, 0, double.MaxValue, null);
-            double? z = GetAttributeAsDouble("Z", true, 0, double.MaxValue, null);
-
-            string name = GetAttributeAsString("Name", false, null);
-
-            if (npcId != null)
+            if (!string.IsNullOrEmpty(Name))
             {
-                NpcId = npcId.Value;
-            }
-            if (x != null)
-            {
-                X = (float)x.Value;
-            }
-            if (y != null)
-            {
-                Y = (float)y.Value;
-            }
-            if (z != null)
-            {
-                Z = (float)z.Value;
-            }
-
-            AreaId = areaId != null ? areaId.Value : 0;
-
-            Name = name;
-
-            if (!string.IsNullOrEmpty(name))
-            {
-                _goalText = "Setting Hearthstone at " + name;
+                _goalText = "Setting Hearthstone at " + Name;
             }
             else
             {
-                _goalText = "Setting Hearthstone at NPC #" + npcId;
+                _goalText = "Setting Hearthstone at NPC #" + NpcId;
             }
         }
 
         public int NpcId { get; set; }
-        public float X { get; set; }
-        public float Y { get; set; }
-        public float Z { get; set; }
-        public WoWPoint Location { get { return new WoWPoint(X, Y, Z); } }
+        public WoWPoint Location { get; set; }
         public string Name { get; set; }
         public int AreaId { get; set; }
+        private LocalPlayer Me { get { return (ObjectManager.Me); } }
 
         public override bool IsDone { get { return _done; } }
 

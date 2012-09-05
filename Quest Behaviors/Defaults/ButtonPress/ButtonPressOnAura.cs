@@ -51,27 +51,19 @@
 //              this value coupled with the CollectionDistance.
 // 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-
 using CommonBehaviors.Actions;
-
 using Styx;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Profiles;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Action = TreeSharp.Action;
+using Styx.WoWInternals.World;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura

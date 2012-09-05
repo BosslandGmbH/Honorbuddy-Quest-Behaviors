@@ -4,21 +4,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using CommonBehaviors.Actions;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
-using Styx.Logic;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
-using Tripper.Tools.Math;
-using Action = TreeSharp.Action;
-using System.Globalization;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -89,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 try
                 {
-                    WoWPulsator.Pulse(PulseFlags.Objects);
+                    //WoWPulsator.Pulse(PulseFlags.Objects);
                     if (!InVehicle)
                     {
                         var turret = GetTurret();
@@ -167,14 +158,13 @@ namespace Styx.Bot.Quest_Behaviors
 
         WoWUnit GetBestTarget()
         {
-            using (new FrameLock())
-            {
+            
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
                     .Where(u => u.IsAlive && (u.Entry == 46711 || u.Entry == 46712))
                     .OrderByDescending(u => MobCountAtLocation(u.Location, 10, 46711, 46712))
                     .ThenBy(u => u.DistanceSqr)
                     .FirstOrDefault();
-            }
+            
         }
 
         int MobCountAtLocation(WoWPoint point, float radius, params uint[] mobIds)

@@ -1,35 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading;
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Questing;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.Logic.Pathing;
-using TreeSharp;
-using Action = TreeSharp.Action;
-
+using Action = Styx.TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
     public class _14122:CustomForcedBehavior
     {
         public _14122(Dictionary<string, string> args):base(args)
         {
-            try
-            {
-                QuestId = GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-            }
-            catch
-            {
-                Styx.Helpers.Logging.Write("Problem in 14122 Behavior parsing QuestId Attibute!");
-            }
+            QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
         }
         public int QuestId { get; set; }
-        private bool IsAttached = false;
-        private bool IsBehaviorDone = false;
-        private int Counter;
+        private bool IsAttached;
+        private bool IsBehaviorDone;
         private WoWPoint wp = new WoWPoint(-8361.689, 1726.248, 39.94792);
         public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
         public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;

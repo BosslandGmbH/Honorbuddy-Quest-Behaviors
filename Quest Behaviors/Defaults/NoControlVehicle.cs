@@ -5,20 +5,20 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
-
-using Styx.Logic.BehaviorTree;
-using Styx.Logic.Combat;
-using Styx.Logic.Pathing;
-using Styx.Logic.Questing;
+using CommonBehaviors.Actions;
+using Styx;
+using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
+using Styx.Helpers;
+using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-using TreeSharp;
 using Tripper.Tools.Math;
-using Action = TreeSharp.Action;
-using System.Globalization;
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -294,7 +294,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 }
                                 NpcList[0].Target();
                                 Lua.DoString("CastPetAction({0})", AttackButton);
-                                LegacySpellManager.ClickRemoteLocation(NpcList[0].Location);
+                                SpellManager.ClickRemoteLocation(NpcList[0].Location);
                                 Thread.Sleep(WaitTime);
                                 Counter++;
                                 return RunStatus.Running;
@@ -332,8 +332,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             if (NpcList.Count >= 1)
                             {
-                                using (new FrameLock())
-                                {
+                                
                                     if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                     {
                                         Lua.DoString("VehicleExit()");
@@ -343,10 +342,10 @@ namespace Styx.Bot.Quest_Behaviors
                                     NpcList[0].Target();
                                     WoWMovement.ClickToMove(NpcList[0].Location);
                                     Lua.DoString("CastPetAction({0})", AttackButton);
-                                    LegacySpellManager.ClickRemoteLocation(NpcList[0].Location);
+                                    SpellManager.ClickRemoteLocation(NpcList[0].Location);
                                     Counter++;
                                     return RunStatus.Running;
-                                }
+                                
                             }
                             return RunStatus.Running;
                         })),
@@ -356,8 +355,7 @@ namespace Styx.Bot.Quest_Behaviors
                         {
                             if (NpcList.Count >= 1 || NpcListSecondary.Count >= 1)
                             {
-                                using (new FrameLock())
-                                {
+                                
                                     if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
                                     {
                                         Lua.DoString("VehicleExit()");
@@ -385,7 +383,7 @@ namespace Styx.Bot.Quest_Behaviors
                                         Counter++;
 
                                     return RunStatus.Running;
-                                }
+                                
                             }
                             return RunStatus.Running;
                         }))
