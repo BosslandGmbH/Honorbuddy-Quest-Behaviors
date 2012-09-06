@@ -16,6 +16,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -134,7 +135,9 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                Logging.Write(ColorLog, "[Profile Message]: " + Text);
+                System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(ColorLog.A, ColorLog.R, ColorLog.G, ColorLog.B);
+
+                Logging.Write(newColor, "[Profile Message]: " + Text);
 
                 if (UpdateGoalText)
                 { TreeRoot.GoalText = Text; }

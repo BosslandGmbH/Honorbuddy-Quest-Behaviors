@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Threading;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -144,7 +145,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         public void Dlog(string format, params object[] args)
         {
-            LogMessage("debug", Color.CornflowerBlue, string.Format(format, args));
+            System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(Color.CornflowerBlue.A, Color.CornflowerBlue.R, Color.CornflowerBlue.G, Color.CornflowerBlue.B);
+            Logging.Write(LogLevel.Diagnostic, newColor, string.Format(format, args));
         }
 
         private static bool IsInVehicle

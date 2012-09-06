@@ -16,7 +16,6 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
-using Logging = Styx.Helpers.Logging;
 
 
 namespace Styx.Bot.Quest_Behaviors

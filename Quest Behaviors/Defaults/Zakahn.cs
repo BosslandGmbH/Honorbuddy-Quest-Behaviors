@@ -11,6 +11,7 @@ using System.Threading;
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Combat.CombatRoutine;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -196,7 +197,7 @@ namespace Styx.Bot.Quest_Behaviors
             if (spell == null)
                 return;
 
-            Logging.Write(string.Format("[Pet] Casting {0}", action));
+            Logging.Write("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }

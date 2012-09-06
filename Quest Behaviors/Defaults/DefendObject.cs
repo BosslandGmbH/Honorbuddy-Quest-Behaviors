@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -131,8 +132,12 @@ namespace Styx.Bot.Quest_Behaviors
                 FindObject();
                 if (_defendObject == null)
                     _isDone = true;
-            }  
-            Logging.WriteDebug(Color.LimeGreen, "DefendObject: PopulateList()!");
+            }
+            Color color = Color.LimeGreen;
+
+            System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
+
+            Logging.Write(LogLevel.Diagnostic, newColor, "DefendObject: PopulateList()!");
         }
 
         public override void OnTick()
@@ -145,14 +150,18 @@ namespace Styx.Bot.Quest_Behaviors
                 }
                 else
                 {
+                    Color color = Color.LightSalmon;
+
+                    System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
+
                     try
                     {
                         FindObject();
-                        Logging.WriteDebug(Color.LightSalmon, "DefendObject: Attempting to find Defendant...");
+                        Logging.Write(LogLevel.Diagnostic, newColor, "DefendObject: Attempting to find Defendant...");
                     }
                     catch (Exception ex)
                     {
-                        Logging.WriteDebug(Color.LimeGreen,
+                        Logging.Write(LogLevel.Diagnostic,
                                            "DefendObject: TickException: " + ex.Message + " Trace: " + ex.StackTrace);
                     }
                 }

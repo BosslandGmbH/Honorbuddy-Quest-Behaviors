@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -58,7 +59,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new Decorator(
                                 ret => IsAttached,
                                 new Sequence(
-                                    new Action(ret => Styx.Helpers.Logging.Write("Detaching")),
+                                    new Action(ret => Logging.Write("Detaching")),
                                     new Action(ret => Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", q14122msg)),
                                     new Action(ret => IsBehaviorDone = true)
                                     )))),

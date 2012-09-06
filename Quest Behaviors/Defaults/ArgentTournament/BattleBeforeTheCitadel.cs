@@ -9,6 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -180,7 +181,7 @@ namespace Styx.Bot.Quest_Behaviors
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write(string.Format("[Pet] Casting {0}", action));
+            Logging.Write("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }

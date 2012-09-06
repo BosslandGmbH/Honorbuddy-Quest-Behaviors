@@ -10,6 +10,7 @@ using System.Drawing;
 using System.Linq;
 using System.Threading;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -117,13 +118,6 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
 
-        public void Log(string format, params object[] args)
-        {
-            // following linecount hack is to stop dup suppression of Log window
-            LogMessage("info", Color.Green, format + (++_lineCount % 2 == 0 ? "" : " "), args);
-        }
-
-
         public bool DoWeHaveQuest()
         {
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
@@ -158,7 +152,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             new Decorator(ret => Me.HasAura("Mental Training"),
                                 new Action(delegate
                                 {
-                                    Log("Mental Training complete - exiting Orb");
+                                    Logging.Write(LogLevel.Normal,"Mental Training complete - exiting Orb");
                                     Lua.DoString("RunMacroText(\"/click BonusActionButton4\")");
                                     StyxWoW.SleepForLagDuration();
                                     return RunStatus.Success;
@@ -172,7 +166,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     new Decorator(ret => !Me.HasAura("Mental Training"),
                         new Action(delegate
                         {
-                            Log("Using Orb of Ascension");
+                            Logging.Write("Using Orb of Ascension");
                             // WoWItem orb =  Me.Inventory.Items.FirstOrDefault( i => i != null && i.Entry == 52828 );
                             WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
                             if (orb == null)
@@ -188,7 +182,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     new Decorator(ret => HasAura(Me, 74008),
                         new Action(delegate
                         {
-                            Log("Answering YES");
+                            Logging.Write("Answering YES");
                             Thread.Sleep(500);
                             Lua.DoString("RunMacroText(\"/click BonusActionButton1\")");
                             StyxWoW.SleepForLagDuration();
@@ -200,7 +194,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     new Decorator(ret => HasAura(Me, 74009),
                         new Action(delegate
                         {
-                            Log("Answering NO");
+                            Logging.Write("Answering NO");
                             Thread.Sleep(500);
                             Lua.DoString("RunMacroText(\"/click BonusActionButton2\")");
                             StyxWoW.SleepForLagDuration();

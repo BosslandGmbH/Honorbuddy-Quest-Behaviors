@@ -7,6 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -140,12 +141,10 @@ namespace Styx.Bot.Quest_Behaviors
             if (spell == null)
                 return;
 
-            Logging.Write(string.Format("[Pet] Casting {0}", action));
+            Logging.Write("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
             //if (action == "Move Ramkahen Infantry" || action == "Flame Arrows")
             SpellManager.ClickRemoteLocation(Spot[0]);
-
-
 
         }
 

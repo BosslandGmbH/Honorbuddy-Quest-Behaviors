@@ -6,6 +6,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -148,7 +149,8 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                LogMessage("", Color, "\n\n    " + Message + "\n");
+                System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(Color.A, Color.R, Color.G, Color.B);
+                Logging.Write(LogLevel.Diagnostic, newColor, "\n\n    " + Message + "\n");
 
                 TreeRoot.GoalText = Message;
                 TreeRoot.Stop();
