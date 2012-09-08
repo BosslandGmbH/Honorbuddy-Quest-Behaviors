@@ -385,7 +385,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                                                                               null));
             }
 
-            foreach (string configItemName in from propertyName in StyxSettings.Instance.GetSettings().Keys
+            foreach (string configItemName in from propertyName in GlobalSettings.Instance.GetSettings().Keys
                                               where !ignoredPropertyNames.Contains(propertyName)
                                               select propertyName)
             {
@@ -393,7 +393,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                 { continue; }
 
                 configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
-                                                                              StyxSettings.Instance,
+                                                                              GlobalSettings.Instance,
                                                                               null));
             }
 
