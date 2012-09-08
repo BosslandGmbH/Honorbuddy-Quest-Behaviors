@@ -392,6 +392,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                 if (configurationSetting.ContainsKey(configItemName))
                 { continue; }
 
+                if (configItemName == "LogLevel")
+                    continue;
+
                 configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
                                                                               GlobalSettings.Instance,
                                                                               null));
