@@ -118,7 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (NPCIds.Contains((int)ret.Entry)) && !ret.Dead)
+                                     .Where(ret => (NPCIds.Contains((int)ret.Entry)) && !ret.IsDead)
                                      .OrderBy(u => u.Distance)
                                      .ToList();
             }
@@ -130,7 +130,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
+                                     .Where(ret => (ret.Entry == VehicleMountId) && !ret.IsDead)
                                      .OrderBy(u => u.Distance)
                                      .ToList();
             }
@@ -148,12 +148,12 @@ namespace Styx.Bot.Quest_Behaviors
                 if (PreviousLocation.HasValue)
                 {
                     return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                                        .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
                                         .OrderBy(u => u.Location.Distance(PreviousLocation.Value))
                                         .ToList();
                 }
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                    .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
                     .OrderBy(u => u.Distance)
                     .ToList();
             }

@@ -119,13 +119,13 @@ namespace Styx.Bot.Quest_Behaviors
                 if (MobHpPercentLeft > 0)
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead && u.HealthPercent <= MobHpPercentLeft)
+                                         .Where(u => MobIds.Contains((int)u.Entry) && !u.IsDead && u.HealthPercent <= MobHpPercentLeft)
                                          .OrderBy(u => u.Distance).ToList());
                 }
                 else
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                         .Where(u => MobIds.Contains((int)u.Entry) && !u.Dead)
+                                         .Where(u => MobIds.Contains((int)u.Entry) && !u.IsDead)
                                          .OrderBy(u => u.Distance).ToList());
                 }
             }

@@ -82,7 +82,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {//40794 40803 31146
                 return
-                    (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 40794 && !u.Dead).OrderBy(u => u.Distance).ToList());
+                    (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 40794 && !u.IsDead).OrderBy(u => u.Distance).ToList());
             }
         }
 

@@ -80,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
                                      .OrderBy(o => o.Distance)
-                                     .FirstOrDefault(o => !o.Dead
+                                     .FirstOrDefault(o => !o.IsDead
                                                      && !Blacklist.Contains(o.Guid)
                                                      && (!o.GotTarget || o.IsTargetingMeOrPet)
                                                      && MobIds.Contains((int)o.Entry)));

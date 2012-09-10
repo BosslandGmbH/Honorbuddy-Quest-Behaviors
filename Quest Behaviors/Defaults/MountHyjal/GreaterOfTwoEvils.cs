@@ -156,7 +156,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .Where(u => u.Entry == MobId && !u.Dead)
+                                       .Where(u => u.Entry == MobId && !u.IsDead)
                                        .OrderBy(u => u.Distance).FirstOrDefault();
             }
         }

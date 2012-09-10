@@ -61,14 +61,14 @@ namespace Blastranaar
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdSentinel && !u.Dead && u.Distance < 100).OrderBy(u => u.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdSentinel && !u.IsDead && u.Distance < 100).OrderBy(u => u.Distance).ToList();
             }
         }
         public List<WoWUnit> Throwers
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdThrower && !u.Dead && u.Distance < 100).OrderBy(u => u.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdThrower && !u.IsDead && u.Distance < 100).OrderBy(u => u.Distance).ToList();
             }
         }
 

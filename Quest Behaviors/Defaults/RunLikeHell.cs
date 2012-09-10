@@ -134,7 +134,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .Where(u => u.Entry == MobId && !u.Dead)
+                                       .Where(u => u.Entry == MobId && !u.IsDead)
                                        .OrderBy(u => u.Distance).FirstOrDefault();
             }
         }
@@ -280,7 +280,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             {
                 bool result = (_isBehaviorDone                                 // normal completion
                                    || (((Path != null) && !Path.Any()) && Counter >= NumOfTimes)    // no hotspots left and all iterations complete
-                                   || Me.Dead || Me.IsGhost                        // i'm a ghost
+                                   || Me.IsDead || Me.IsGhost                        // i'm a ghost
                                    || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
 
                 if (result)

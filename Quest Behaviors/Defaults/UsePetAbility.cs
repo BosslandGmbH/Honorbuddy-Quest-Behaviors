@@ -157,7 +157,7 @@ namespace Styx.Bot.Quest_Behaviors.UsePetAbility
                         var npcStateQualifiedTargets = baseTargets
                                                             .OrderBy(obj => obj.Distance)
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
-                                                                              || ((NpcState == NpcStateType.Dead) && target.Dead)
+                                                                              || ((NpcState == NpcStateType.Dead) && target.IsDead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
                                                                               || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
 

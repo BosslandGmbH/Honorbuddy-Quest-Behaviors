@@ -31,7 +31,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 43596 && !u.Dead))
+                                    .Where(u => (u.Entry == 43596 && !u.IsDead))
                                     .OrderBy(u => u.Distance).ToList();
             }
         }
@@ -43,7 +43,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 43605 && !u.Dead).First();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 43605 && !u.IsDead).First();
             }
         }
         WoWPoint wp = new WoWPoint(-14878.15, 296.5315, 0.93627);

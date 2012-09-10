@@ -54,7 +54,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 27377 && !u.Dead))
+                                    .Where(u => (u.Entry == 27377 && !u.IsDead))
                                     .OrderBy(u => u.Distance).ToList();
             }
         }
@@ -63,7 +63,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 27292 && !u.Dead))
+                                    .Where(u => (u.Entry == 27292 && !u.IsDead))
                                     .OrderBy(u => u.Distance).ToList();
             }
         }

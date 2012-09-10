@@ -81,13 +81,13 @@ namespace Styx.Bot.Quest_Behaviors
 
         private List<WoWUnit> lions
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 48169 && !u.Dead).ToList()); }
+            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 48169 && !u.IsDead).ToList()); }
         }
 
 
         private List<WoWUnit> Enemies
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.Entry == 48199 || u.Entry == 48209) && !u.Dead).OrderBy(u => u.Distance).ToList()); }
+            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.Entry == 48199 || u.Entry == 48209) && !u.IsDead).OrderBy(u => u.Distance).ToList()); }
         }
 
 

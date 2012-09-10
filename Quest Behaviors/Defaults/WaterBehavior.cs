@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == MobId && !u.Dead)
+                                            .Where(u => u.Entry == MobId && !u.IsDead)
                                             .OrderBy(u => u.Distance).ToList();
             }
         }
@@ -138,7 +138,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == MobId && u.Dead && u.Lootable)
+                                            .Where(u => u.Entry == MobId && u.IsDead && u.Lootable)
                                             .OrderBy(u => u.Distance)
                                             .ToList();
             }

@@ -334,7 +334,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                 WoWUnit wowUnit = target.ToUnit();
 
                 isViable = ((wowUnit.IsAlive && (MobState == MobStateType.Alive))
-                            || (wowUnit.Dead && (MobState == MobStateType.Dead))
+                            || (wowUnit.IsDead && (MobState == MobStateType.Dead))
                             || (MobState == MobStateType.DontCare));
             }
 
@@ -468,7 +468,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                             })),
 
                     // If we're dead, the behavior can't function so bail until alive...
-                    new Decorator(ret => Me.Dead, new ActionAlwaysSucceed()),
+                    new Decorator(ret => Me.IsDead, new ActionAlwaysSucceed()),
 
                     // If swimming, check if we need breath...
                     _behavior_SwimBreath.CreateBehavior(),
@@ -1310,7 +1310,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                        .Where(target => (target.Dead && target.Lootable
+                        .Where(target => (target.IsDead && target.Lootable
                                           && !target.IsLootingBlacklisted())));
             }
         }

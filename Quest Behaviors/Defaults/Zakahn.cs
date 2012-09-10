@@ -90,7 +90,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         private List<WoWUnit> Guards
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49156 && !u.Dead).ToList()); }
+            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49156 && !u.IsDead).ToList()); }
         }
 
         public bool isMelee
@@ -326,7 +326,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return new Decorator(ret => Zah != null && !Zah.Dead, new PrioritySelector(TargetHim, Pullhim, Bots.Grind.LevelBot.CreateCombatBehavior()));
+                return new Decorator(ret => Zah != null && !Zah.IsDead, new PrioritySelector(TargetHim, Pullhim, Bots.Grind.LevelBot.CreateCombatBehavior()));
             }
         }
 

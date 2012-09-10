@@ -45,7 +45,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                         new PrioritySelector(
 
-                           new Decorator(ret => !me.Dead,
+                           new Decorator(ret => !me.IsDead,
                                 new Action(delegate
                                 {
                                     ObjectManager.Update();

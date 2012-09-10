@@ -332,7 +332,7 @@ namespace Styx.Bot.Quest_Behaviors
                         })),
                     new Action(c =>
                     {
-                        if (Vehicle.Location.Distance(Location) > Precision && !ObjectManager.Me.Dead)
+                        if (Vehicle.Location.Distance(Location) > Precision && !ObjectManager.Me.IsDead)
                         {
                             WoWMovement.ClickToMove(moveToLocation);
                             if (IgnoreCombat)

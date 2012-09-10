@@ -50,7 +50,7 @@ namespace _10838
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => u.Entry == MobId && !u.Dead)
+                                        .Where(u => u.Entry == MobId && !u.IsDead)
                                         .OrderBy(u => u.Distance).ToList());
             }
         }
@@ -58,7 +58,7 @@ namespace _10838
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != MobId && !u.Dead && u.IsHostile && u.Distance < 15).OrderBy(u => u.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != MobId && !u.IsDead && u.IsHostile && u.Distance < 15).OrderBy(u => u.Distance).ToList();
             }
         }
 

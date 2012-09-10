@@ -103,13 +103,13 @@ namespace Styx.Bot.Quest_Behaviors
                 if (FactionId > 1)
                 {
                     return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => u.Entry == MobId && !u.Dead && u.FactionId == FactionId)
+                                    .Where(u => u.Entry == MobId && !u.IsDead && u.FactionId == FactionId)
                                     .OrderBy(u => u.Distance).ToList();
                 }
                 else
                 {
                     return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                            .Where(u => u.Entry == MobId && !u.Dead)
+                                            .Where(u => u.Entry == MobId && !u.IsDead)
                                             .OrderBy(u => u.Distance).ToList();
                 }
             }

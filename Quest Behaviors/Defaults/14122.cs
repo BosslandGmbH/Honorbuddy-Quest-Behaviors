@@ -27,7 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 195449 && !ObjectManager.Me.Dead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 195449 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         private TreeSharp.Composite _root;

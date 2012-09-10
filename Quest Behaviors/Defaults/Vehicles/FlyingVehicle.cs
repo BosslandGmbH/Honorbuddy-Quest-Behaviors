@@ -176,7 +176,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             WoWUnit veh = GetVehicle();
             return ObjectManager.GetObjectsOfType<WoWUnit>().OrderBy(u => veh.Location.Distance2D(u.Location)).
-                FirstOrDefault(u => u.Location.Distance2D(veh.Location) <= NpcScanRange && !u.Dead && NpcList.Contains((int)u.Entry));
+                FirstOrDefault(u => u.Location.Distance2D(veh.Location) <= NpcScanRange && !u.IsDead && NpcList.Contains((int)u.Entry));
         }
 
         bool TargetIsInVehicle

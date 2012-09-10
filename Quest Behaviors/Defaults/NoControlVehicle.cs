@@ -116,12 +116,12 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                             .Where(u => TargetIds.Contains((int)u.Entry)
-                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange) && !u.Dead)
+                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange) && !u.IsDead)
                                             .OrderBy(u => u.Distance)
                                             .ToList());
                 }
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => TargetIds.Contains((int)u.Entry) && !u.Dead)
+                                        .Where(u => TargetIds.Contains((int)u.Entry) && !u.IsDead)
                                         .OrderBy(u => u.Distance)
                                         .ToList());
             }
@@ -134,12 +134,12 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     return (ObjectManager.GetObjectsOfType<WoWUnit>()
                                             .Where(u => TargetIdsSecondary.Contains((int)u.Entry)
-                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange) && !u.Dead)
+                                                        && (VehicleList[0].Location.Distance(u.Location) <= MaxRange) && !u.IsDead)
                                             .OrderBy(u => u.Distance)
                                             .ToList());
                 }
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => TargetIdsSecondary.Contains((int)u.Entry) && !u.Dead)
+                                        .Where(u => TargetIdsSecondary.Contains((int)u.Entry) && !u.IsDead)
                                         .OrderBy(u => u.Distance)
                                         .ToList());
             }
@@ -149,7 +149,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(ret => (ret.Entry == VehicleMountId) && !ret.Dead)
+                                      .Where(ret => (ret.Entry == VehicleMountId) && !ret.IsDead)
                                       .OrderBy(u => u.Distance)
                                       .ToList());
             }
@@ -159,7 +159,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(ret => (ret.Entry == VehicleId) && !ret.Dead)
+                                     .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
                                      .ToList());
             }
         }

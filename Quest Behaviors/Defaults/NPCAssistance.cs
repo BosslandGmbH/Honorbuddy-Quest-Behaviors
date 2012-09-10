@@ -155,7 +155,7 @@ namespace Styx.Bot.Quest_Behaviors.NPCAssistance
 
                         var npcStateQualifiedTargets = baseTargets
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
-                                                                              || ((NpcState == NpcStateType.Dead) && target.Dead)
+                                                                              || ((NpcState == NpcStateType.Dead) && target.IsDead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
                                                                               || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
 

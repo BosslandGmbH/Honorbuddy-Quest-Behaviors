@@ -33,21 +33,21 @@ namespace _24817
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 202108 && !ObjectManager.Me.Dead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 202108 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         public List<WoWUnit> q24817_hammer
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 36682 && !ObjectManager.Me.Dead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 36682 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         public List<WoWUnit> q24817_vehicle
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 38318 && !ObjectManager.Me.Dead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 38318 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         public override bool IsDone

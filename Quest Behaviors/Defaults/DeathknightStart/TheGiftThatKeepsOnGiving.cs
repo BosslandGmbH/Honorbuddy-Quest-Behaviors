@@ -170,8 +170,8 @@ namespace Styx.Bot.Quest_Behaviors
             if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSight &&
                 !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
             {
-                ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit)obj).Dead) &&
-                      (IsDead || !(obj is WoWUnit) || !((WoWUnit)obj).Dead);
+                ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit)obj).IsDead) &&
+                      (IsDead || !(obj is WoWUnit) || !((WoWUnit)obj).IsDead);
             }
             // temp fix to HB killing targets without letting us using item...
             if (ret && obj is WoWUnit)

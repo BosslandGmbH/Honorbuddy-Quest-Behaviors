@@ -164,7 +164,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     foreach (WoWPoint p in pathtoDest1)
                                     {
-                                        while (!Me.Dead && p.Distance(Me.Location) > 2)
+                                        while (!Me.IsDead && p.Distance(Me.Location) > 2)
                                         {
                                             Thread.Sleep(100);
                                             WoWMovement.ClickToMove(p);

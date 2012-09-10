@@ -163,7 +163,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     foreach (WoWPoint p1 in pathtoDest1)
                                     {
-                                        while (!Me.Dead && p1.Distance(Me.Location) > 3)
+                                        while (!Me.IsDead && p1.Distance(Me.Location) > 3)
                                         {
                                             Thread.Sleep(100);
                                             WoWMovement.ClickToMove(p1);
@@ -172,7 +172,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     ObjectManager.Update();
                                     _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(ret => (ret.Entry == VehicleId) && !ret.Dead).OrderBy(ret => ret.Location.Distance(Me.Location)).ToList();
+                                      .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(Me.Location)).ToList();
 
                                 })
                                 ),
@@ -200,7 +200,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     ObjectManager.Update();
                                     _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(ret => (ret.Entry == VehicleId) && !ret.Dead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList();
+                                      .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList();
                                     Thread.Sleep(3000);
                                 })
                                 ),
@@ -213,7 +213,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                                     foreach (WoWPoint p in pathtoDest)
                                     {
-                                        while (!_vehicleList[0].Dead && p.Distance(_vehicleList[0].Location) > 3)
+                                        while (!_vehicleList[0].IsDead && p.Distance(_vehicleList[0].Location) > 3)
                                         {
                                             Thread.Sleep(100);
                                             WoWMovement.ClickToMove(p);

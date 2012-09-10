@@ -169,7 +169,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => (u.CurrentTarget == DefendObject || u.Location.Distance(DefendObject.Location) < 10) && !u.Dead)
+                                        .Where(u => (u.CurrentTarget == DefendObject || u.Location.Distance(DefendObject.Location) < 10) && !u.IsDead)
                                         .OrderBy(u => u.Location.Distance(DefendObject.Location)).ToList());
             }
         }
@@ -295,7 +295,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
 
                     new Decorator(
-                        ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && DefendObject.DistanceSqr > 5f * 5f,
+                        ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.IsDead) && DefendObject.DistanceSqr > 5f * 5f,
                         new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
                                     new Action(ret => Navigator.MoveTo(DefendObject.Location)),
@@ -402,7 +402,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
 
                     new Decorator(
-                        ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.Dead) && DefendObject.DistanceSqr > 5f * 5f,
+                        ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.IsDead) && DefendObject.DistanceSqr > 5f * 5f,
                         new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
                                     new Action(ret => Navigator.MoveTo(DefendObject.Location)),

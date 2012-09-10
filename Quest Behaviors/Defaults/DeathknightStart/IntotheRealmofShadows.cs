@@ -134,7 +134,7 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 if (Me.CurrentTarget != null)
                                 {
-                                    if (Me.CurrentTarget.Dead)
+                                    if (Me.CurrentTarget.IsDead)
                                     {
                                         Me.ClearTarget();
                                     }

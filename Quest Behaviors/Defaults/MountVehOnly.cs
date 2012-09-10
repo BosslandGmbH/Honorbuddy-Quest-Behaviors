@@ -84,7 +84,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => u.Entry == VehicleMountId && !u.Dead)
+                                        .Where(u => u.Entry == VehicleMountId && !u.IsDead)
                                         .OrderBy(u => u.Distance).ToList());
             }
         }
