@@ -86,12 +86,10 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                             .Add("NinjaSkin", false)
                             .Add("PullDistance", 1)
                             .Add("SkinMobs", false)
-                            .Add("TrainNewSkills", false)
                         );
 
             presets.Add("NoTrain",
                         new ConfigurationChangeRequest(configurationSettings)
-                            .Add("TrainNewSkills", false)
                             .Add("FindVendorsAutomatically", false)
                         );
 
@@ -103,7 +101,6 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                             .Add("HarvestHerbs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Herbalism).MaxValue > 0))
                             .Add("HarvestMinerals", (StyxWoW.Me.GetSkill(Styx.SkillLine.Mining).MaxValue > 0))
                             .Add("KillBetweenHotspots", false)
-                            .Add("LearnFlightPaths", true)
                             .Add("LootChests", true)
                             .Add("LootMobs", true)
                             .Add("LootRadius", 45)
@@ -112,8 +109,6 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                             .Add("PullDistance", 30)
                             .Add("RessAtSpiritHealers", false)
                             .Add("SkinMobs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                            .Add("TrainNewSkills", true)
-                            .Add("UseFlightPaths", true)
                             .Add("UseMount", true)
                             .Add("UseRandomMount", true)
                         );
