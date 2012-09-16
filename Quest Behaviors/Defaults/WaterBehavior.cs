@@ -7,7 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-using Styx.Combat.CombatRoutine;
+
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -161,17 +161,17 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 switch (Me.Class)
                 {
-                    case Styx.Combat.CombatRoutine.WoWClass.Druid:
+                    case Styx.WoWClass.Druid:
                         return SpellManager.Spells["Starfire"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Hunter:
+                    case Styx.WoWClass.Hunter:
                         return SpellManager.Spells["Arcane Shot"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Mage:
+                    case Styx.WoWClass.Mage:
                         return SpellManager.Spells["Frost Bolt"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Priest:
+                    case Styx.WoWClass.Priest:
                         return SpellManager.Spells["Shoot"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Shaman:
+                    case Styx.WoWClass.Shaman:
                         return SpellManager.Spells["Lightning Bolt"];
-                    case Styx.Combat.CombatRoutine.WoWClass.Warlock:
+                    case Styx.WoWClass.Warlock:
                         return SpellManager.Spells["Curse of Agony"];
                     default: // should never get to here but adding this since the compiler complains
                         return SpellManager.Spells["Auto Attack"]; ;

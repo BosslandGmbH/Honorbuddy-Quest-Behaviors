@@ -8,7 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommonBehaviors.Actions;
-using Styx.Combat.CombatRoutine;
+
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;

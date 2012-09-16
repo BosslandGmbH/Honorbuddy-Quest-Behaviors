@@ -21,7 +21,7 @@ namespace Styx.Bot.Quest_Behaviors
         public SetHearthstone(Dictionary<string, string> args)
             : base(args)
         {
-            NpcId = GetAttributeAsNullable<int>("NpcId", false, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
+            NpcId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
             AreaId = GetAttributeAsNullable<int>("AreaId", false, ConstrainAs.MobId, null) ?? 0;
             Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
             Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? "";

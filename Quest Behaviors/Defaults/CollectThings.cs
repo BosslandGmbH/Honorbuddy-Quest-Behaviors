@@ -74,7 +74,7 @@ using System.Xml;
 using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Styx;
-using Styx.Combat.CombatRoutine;
+
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
