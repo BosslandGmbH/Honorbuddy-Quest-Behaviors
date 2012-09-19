@@ -33,7 +33,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         private bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         readonly WoWPoint _lumberMillLocation = new WoWPoint(2427.133, -1649.115, 104.0841);
         readonly WoWPoint _spiderLocation = new WoWPoint(2332.387, -1694.623, 104.5099);
         private WoWPoint _movetoPoint;

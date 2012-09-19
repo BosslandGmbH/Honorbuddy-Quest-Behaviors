@@ -74,7 +74,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private LocalPlayer Me
         {
-            get { return (ObjectManager.Me); }
+            get { return (StyxWoW.Me); }
         }
 
         private List<WoWUnit> Stage1

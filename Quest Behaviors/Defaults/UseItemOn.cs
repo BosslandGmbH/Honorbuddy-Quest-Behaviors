@@ -143,7 +143,7 @@ namespace Styx.Bot.Quest_Behaviors.UseItemOn
 
         // Private properties
         private int Counter { get; set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -423,7 +423,7 @@ namespace Styx.Bot.Quest_Behaviors.UseItemOn
 
     public static class WoWUnitExtensions
     {
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         public static bool IsInOurParty(this WoWUnit wowUnit)
         {

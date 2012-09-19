@@ -41,7 +41,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int QuestId { get; set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public static LocalPlayer me = ObjectManager.Me;
+        public static LocalPlayer me = StyxWoW.Me;
 		static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(12259));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
 		WoWPoint endloc = new WoWPoint(2798.203, -2510.08, 99.77123);

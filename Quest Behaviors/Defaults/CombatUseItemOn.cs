@@ -124,7 +124,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private int Counter { get; set; }
         public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         public WoWUnit Mob
         {
             get

@@ -44,7 +44,7 @@ namespace _10838
         private bool _isDisposed;
         private Composite _root;
 
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private List<WoWUnit> MobList
         {
             get

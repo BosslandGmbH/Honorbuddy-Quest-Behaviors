@@ -121,7 +121,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
 
         // Private properties
         private const double DestinationTolerance = 5.0;
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         public WoWItem Item
         {

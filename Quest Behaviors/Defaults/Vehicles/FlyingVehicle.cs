@@ -122,7 +122,7 @@ namespace Styx.Bot.Quest_Behaviors
         private Stopwatch _stuckTimer = new Stopwatch();
 
         // Private properties
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -168,7 +168,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public WoWUnit GetVehicle()
         {
-            return ObjectManager.Me.Minions.Where(o => o.Entry == VehicleId).
+            return StyxWoW.Me.Minions.Where(o => o.Entry == VehicleId).
                 OrderBy(o => o.Distance).FirstOrDefault();
         }
 

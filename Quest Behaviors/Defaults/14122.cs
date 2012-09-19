@@ -27,7 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 195449 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 195449 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         private TreeSharp.Composite _root;
@@ -37,12 +37,12 @@ namespace Styx.Bot.Quest_Behaviors
             return _root ?? (_root =
                 new PrioritySelector(
                     new Decorator(
-                        ret => wp.Distance(ObjectManager.Me.Location) > 5,
+                        ret => wp.Distance(StyxWoW.Me.Location) > 5,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                     new Action(ret => Navigator.MoveTo(wp)))),
                     new Decorator(
-                        ret => !ObjectManager.Me.HasAura("Vault Cracking Toolset"),
+                        ret => !StyxWoW.Me.HasAura("Vault Cracking Toolset"),
                                 new Sequence(
                                     new Action(ret => q14122bank[0].Interact()),
                                     new Action(ret => StyxWoW.SleepForLagDuration())
@@ -64,7 +64,7 @@ namespace Styx.Bot.Quest_Behaviors
                                     new Action(ret => IsBehaviorDone = true)
                                     )))),
                     new Decorator(
-                        ret => StyxWoW.Me.QuestLog.GetQuestById(14122).IsCompleted && ObjectManager.Me.HasAura("Vault Cracking Toolset"),
+                        ret => StyxWoW.Me.QuestLog.GetQuestById(14122).IsCompleted && StyxWoW.Me.HasAura("Vault Cracking Toolset"),
                         new Sequence(
                             new Action(ret => Lua.DoString("VehicleExit()"))
                             ))

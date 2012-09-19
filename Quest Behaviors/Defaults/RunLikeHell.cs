@@ -128,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         // Private properties
         private int Counter { get; set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private WoWUnit Mob
         {
             get

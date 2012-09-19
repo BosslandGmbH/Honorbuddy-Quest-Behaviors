@@ -22,7 +22,7 @@ namespace Styx.Bot.Quest_Behaviors
             : base(args){}
     
         
-        public static LocalPlayer me = ObjectManager.Me;
+        public static LocalPlayer me = StyxWoW.Me;
 		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
 		public double angle = 0;
 		public double CurentAngle = 0;

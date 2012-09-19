@@ -133,7 +133,7 @@ namespace Styx.Bot.Quest_Behaviors
                         }
                         else
                         {
-                            WoWItem item = ObjectManager.Me.BagItems.FirstOrDefault(i => i.Entry == ItemId);
+                            WoWItem item = StyxWoW.Me.BagItems.FirstOrDefault(i => i.Entry == ItemId);
                             if (item != null)
                             {
                                 Lua.DoString("PickupContainerItem({0},{1}) EquipCursorItem({2})",

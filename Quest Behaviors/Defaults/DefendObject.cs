@@ -24,7 +24,7 @@ namespace Styx.Bot.Quest_Behaviors
         private readonly int _questId;
         private readonly QuestCompleteRequirement _questRequirementComplete;
         private readonly QuestInLogRequirement _questRequirementInLog;
-        private readonly LocalPlayer _me = ObjectManager.Me;
+        private readonly LocalPlayer _me = StyxWoW.Me;
         private readonly int _maxRange;
         private WoWUnit _defendObject;
 

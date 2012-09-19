@@ -111,7 +111,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private int Counter { get; set; }
         private bool InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         private List<WoWUnit> NpcAttackList
         {

@@ -44,7 +44,7 @@ namespace Blastranaar
         }
         private LocalPlayer Me
         {
-            get { return (ObjectManager.Me); }
+            get { return (StyxWoW.Me); }
         }
 
         public override void OnStart()

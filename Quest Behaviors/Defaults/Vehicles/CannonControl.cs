@@ -172,7 +172,7 @@ namespace Styx.Bot.Quest_Behaviors
                             // looping since current versions of HB seem to be unresponsive for periods of time
                             while (true)
                             {
-                                var quest = ObjectManager.Me.QuestLog.GetQuestById((uint)QuestId);
+                                var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
                                 if (quest.IsCompleted)
                                 {
                                     if (ExitButton > 0)

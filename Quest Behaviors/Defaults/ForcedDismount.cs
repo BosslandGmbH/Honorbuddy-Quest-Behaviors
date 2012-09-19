@@ -80,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         private readonly TimeSpan Delay_WowClientMovement = TimeSpan.FromMilliseconds(1000);
         private const string DruidFlightForm = "Flight Form";
         private const string DruidSwiftFlightForm = "Swift Flight Form";
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }

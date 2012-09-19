@@ -33,21 +33,21 @@ namespace _24817
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 202108 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 202108 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         public List<WoWUnit> q24817_hammer
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 36682 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 36682 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         public List<WoWUnit> q24817_vehicle
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 38318 && !ObjectManager.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 38318 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
         public override bool IsDone
@@ -71,7 +71,7 @@ namespace _24817
             return _root ?? (_root =
                 new PrioritySelector(
                     new Decorator(
-                        ret => !ObjectManager.Me.HasAura("Mechashark X-Steam"),
+                        ret => !StyxWoW.Me.HasAura("Mechashark X-Steam"),
                                 new Sequence(
                                     new Action(ret => Navigator.MoveTo(q24817controller[0].Location)),
                                     new Action(ret => q24817controller[0].Interact()),
@@ -81,18 +81,18 @@ namespace _24817
                         ret => q24817_hammer[0].IsAlive,
                         new PrioritySelector(
                             new Decorator(
-                                ret => ObjectManager.Me.CurrentTarget != q24817_hammer[0],
+                                ret => StyxWoW.Me.CurrentTarget != q24817_hammer[0],
                                 new Sequence(
                                     new Action(ret => 
                                     {
-							            if (q24817_hammer.Count > 0 && q24817_hammer[0].Location.Distance(ObjectManager.Me.Location) > 45)
+							            if (q24817_hammer.Count > 0 && q24817_hammer[0].Location.Distance(StyxWoW.Me.Location) > 45)
 							            {
 								            Navigator.MoveTo(q24817_hammer[0].Location);
 								            Thread.Sleep(100);
 							            }
-							            if (q24817_hammer.Count > 0 && (q24817_hammer[0].Location.Distance(ObjectManager.Me.Location) <= 45))
+							            if (q24817_hammer.Count > 0 && (q24817_hammer[0].Location.Distance(StyxWoW.Me.Location) <= 45))
 							            {
-                                            while (!ObjectManager.Me.QuestLog.GetQuestById(24817).IsCompleted)
+                                            while (!StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted)
                                             {
                                                 q24817_hammer[0].Face();
                                                 q24817_hammer[0].Target();
@@ -106,7 +106,7 @@ namespace _24817
 							            }
                                     }))))),
                      new Decorator(
-                         ret => ObjectManager.Me.QuestLog.GetQuestById(24817).IsCompleted,
+                         ret => StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted,
                          new Sequence(
                              new Action(ret => Lua.DoString("VehicleExit()")),
                              new Action(ret => IsBehaviorDone = true)))

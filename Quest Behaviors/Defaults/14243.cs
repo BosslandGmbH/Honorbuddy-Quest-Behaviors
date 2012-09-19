@@ -23,7 +23,7 @@ namespace Styx.Bot.Quest_Behaviors
             : base(args){}
 
 
-        public static LocalPlayer me = ObjectManager.Me;
+        public static LocalPlayer me = StyxWoW.Me;
 		
 		
         #region Overrides of CustomForcedBehavior

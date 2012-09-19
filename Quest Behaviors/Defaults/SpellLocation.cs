@@ -48,10 +48,10 @@ namespace Styx.Bot.Quest_Behaviors
 		public int Counter { get; private set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 		private bool _isBehaviorDone;
 		private bool _isDisposed;
-		public static LocalPlayer me = ObjectManager.Me;
+		public static LocalPlayer me = StyxWoW.Me;
 	
 		~SpellLocation()
         {

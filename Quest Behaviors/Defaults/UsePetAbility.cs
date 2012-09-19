@@ -136,7 +136,7 @@ namespace Styx.Bot.Quest_Behaviors.UsePetAbility
 
         // Private properties
         public int Counter { get; private set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
         /*private WoWObject           UseObject1 { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                                                                 .Where(o => MobIds.Contains((int)o.Entry))

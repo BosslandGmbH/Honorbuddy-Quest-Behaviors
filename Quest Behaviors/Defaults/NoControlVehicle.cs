@@ -107,7 +107,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private int Counter { get; set; }
         private bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private List<WoWUnit> NpcList
         {
             get

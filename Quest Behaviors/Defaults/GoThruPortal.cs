@@ -96,7 +96,7 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite _root;
 
         // Private properties
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private string ZoneText { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion

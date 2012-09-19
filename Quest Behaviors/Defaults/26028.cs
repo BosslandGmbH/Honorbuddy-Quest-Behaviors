@@ -36,7 +36,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int QuestId { get; set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public static LocalPlayer Me = ObjectManager.Me;
+        public static LocalPlayer Me = StyxWoW.Me;
 		static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26028));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		static public bool Obj2Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(2,GetQuestLogIndexByID(26028));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		

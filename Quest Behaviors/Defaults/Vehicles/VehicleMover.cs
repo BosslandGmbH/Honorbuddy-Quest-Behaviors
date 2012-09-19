@@ -106,7 +106,7 @@ namespace Styx.Bot.Quest_Behaviors
         private Stopwatch _stuckTimer = new Stopwatch();
 
         // Private properties
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -176,7 +176,7 @@ namespace Styx.Bot.Quest_Behaviors
                                 _pauseStopwatch.Start();
                             if (_pauseStopwatch.ElapsedMilliseconds >= 1000 || CastTime == 0)
                             {
-                                if (ObjectManager.Me.IsMoving && CastTime > 0)
+                                if (StyxWoW.Me.IsMoving && CastTime > 0)
                                 {
                                     WoWMovement.MoveStop();
                                     if (IgnoreCombat)
@@ -245,7 +245,7 @@ namespace Styx.Bot.Quest_Behaviors
                             OrderBy(o => o.Distance).FirstOrDefault();
                         if (mob != null)
                         {
-                            if (!ObjectManager.Me.GotTarget || ObjectManager.Me.CurrentTarget != mob)
+                            if (!StyxWoW.Me.GotTarget || StyxWoW.Me.CurrentTarget != mob)
                                 mob.Target();
                             if (mob.Location.Distance(Location) > 4)
                             {
@@ -286,7 +286,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             return _root ??
                 (_root = new PrioritySelector(
-                    new Decorator(c => !ObjectManager.Me.IsAlive, // if we ignore combat and die... 
+                    new Decorator(c => !StyxWoW.Me.IsAlive, // if we ignore combat and die... 
                         new Action(c =>
                         {
                             return RunStatus.Failure;
@@ -332,7 +332,7 @@ namespace Styx.Bot.Quest_Behaviors
                         })),
                     new Action(c =>
                     {
-                        if (Vehicle.Location.Distance(Location) > Precision && !ObjectManager.Me.IsDead)
+                        if (Vehicle.Location.Distance(Location) > Precision && !StyxWoW.Me.IsDead)
                         {
                             WoWMovement.ClickToMove(moveToLocation);
                             if (IgnoreCombat)

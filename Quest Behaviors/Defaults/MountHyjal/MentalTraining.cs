@@ -80,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         private Composite _root;
 
         // Private properties
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }

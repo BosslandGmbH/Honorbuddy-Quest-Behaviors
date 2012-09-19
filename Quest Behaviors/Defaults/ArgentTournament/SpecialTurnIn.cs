@@ -104,7 +104,7 @@ namespace Styx.Bot.Quest_Behaviors
         // Private properties
         private LocalPlayer Me
         {
-            get { return (ObjectManager.Me); }
+            get { return (StyxWoW.Me); }
         }
 
 
@@ -229,7 +229,7 @@ namespace Styx.Bot.Quest_Behaviors
                     {
                         if ((QuestId == -1) || (((ulong) quests[i]) == (ulong) QuestId))
                         {
-                            PlayerQuest questById = ObjectManager.Me.QuestLog.GetQuestById(quests[i]);
+                            PlayerQuest questById = StyxWoW.Me.QuestLog.GetQuestById(quests[i]);
                             if ((QuestId != -1) || questById.IsCompleted)
                             {
                                 QuestManager.GossipFrame.SelectActiveQuest(i);
@@ -246,7 +246,7 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     if ((QuestId == -1) || (activeQuests[j].Id == QuestId))
                     {
-                        PlayerQuest quest = ObjectManager.Me.QuestLog.GetQuestById((uint) activeQuests[j].Id);
+                        PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) activeQuests[j].Id);
                         if ((QuestId != -1) || quest.IsCompleted)
                         {
                             QuestManager.GossipFrame.SelectActiveQuest(activeQuests[j].Index);

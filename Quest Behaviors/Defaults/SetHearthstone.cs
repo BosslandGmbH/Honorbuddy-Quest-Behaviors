@@ -40,7 +40,7 @@ namespace Styx.Bot.Quest_Behaviors
         public WoWPoint Location { get; set; }
         public string Name { get; set; }
         public int AreaId { get; set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         public override bool IsDone { get { return _done; } }
 

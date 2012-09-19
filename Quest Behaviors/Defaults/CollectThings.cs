@@ -220,7 +220,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(500);
         private string ItemName { get; set; }
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // Private LINQ queries..
         private int CollectedItemCount
@@ -666,7 +666,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate Logger;
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private const double MinDistanceToUse_DruidAquaticForm = 27.0;
         private int SpellId_DruidAquaticForm = 1066;
         private IEnumerable<WoWObject> ViableTargets()
@@ -1078,7 +1078,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         private readonly LoggerDelegate Logger;
         private int MinTime_DruidBreath = 30000;    // in milliseconds
         private int MinTime_WarlockBreath = 30000;    // in milliseconds
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private int SpellId_DruidAquaticForm = 1066;
         private int SpellId_WarlockUnendingBreath = 5697;
         private readonly TimeSpan ThrottleTimer_BreathCheck = TimeSpan.FromSeconds(5);
@@ -1099,7 +1099,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
             public string Name;
 
             public AirSource(WoWPoint location, string name) { Location = location; Name = name; }
-            public double Distance { get { return (Location.Distance(ObjectManager.Me.Location)); } }
+            public double Distance { get { return (Location.Distance(StyxWoW.Me.Location)); } }
             public static AirSource Empty = new AirSource(WoWPoint.Empty, "NONE");
         }
 
@@ -1298,7 +1298,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly TimeSpan Delay_WowClientWaitForLootFrame = TimeSpan.FromSeconds(10);
         private readonly LoggerDelegate Logger;
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private int SpellId_DruidAquaticForm = 1066;
 
         private Composite _behaviorRoot;
@@ -1512,7 +1512,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     public static class WoWObject_Extensions
     {
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // We provide our own 'local' blacklist.  If we use the global one maintained by HBcore,
         // that will prevent us from looting also.
@@ -1546,7 +1546,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
 
     public static class WoWUnit_Extensions
     {
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         public static bool IsInOurParty(this WoWUnit wowUnit)
         {
@@ -1559,7 +1559,7 @@ namespace BuddyWiki.CustomBehavior.CollectThings
     {
         public static Random _random = new Random((int)DateTime.Now.Ticks);
 
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
 

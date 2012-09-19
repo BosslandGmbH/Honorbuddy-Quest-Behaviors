@@ -103,7 +103,7 @@ namespace Styx.Bot.Quest_Behaviors.NPCAssistance
 
         // Private properties
         public int Counter { get; set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
 
         // DON'T EDIT THESE--they are auto-populated by Subversion

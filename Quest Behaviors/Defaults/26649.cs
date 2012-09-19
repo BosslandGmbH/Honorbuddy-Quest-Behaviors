@@ -22,7 +22,7 @@ namespace Styx.Bot.Quest_Behaviors
             : base(args) { }
 
 
-        public static LocalPlayer me = ObjectManager.Me;
+        public static LocalPlayer me = StyxWoW.Me;
         static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26649));if c==1 then return 1 else return 0 end", 0) == 1; } }
         public double angle = 0;
         public double CurentAngle = 0;
@@ -68,7 +68,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(ret => !InVehicle,
                         new Action(ret =>
                         {
-                            while (ObjectManager.Me.Location.Distance(wp) > 5)
+                            while (StyxWoW.Me.Location.Distance(wp) > 5)
                             {
                                 Navigator.MoveTo(wp);
                                 Thread.Sleep(100);

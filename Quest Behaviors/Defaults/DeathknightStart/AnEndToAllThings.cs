@@ -97,7 +97,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                        .Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId);
             }
         }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private CircularQueue<WoWPoint> Path { get; set; }
         private WoWPoint StartPoint { get; set; }    // Start path
         public WoWUnit Vehicle
@@ -341,7 +341,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                             new Sequence(
                                 ret => KillNpcs.Where(n => n.Distance2DSqr > 20 * 20 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
                                 new DecoratorContinue(
-                                    ret => ret != null && ((WoWUnit)ret).InLineOfSight && AttackSpell != null && !AttackSpell.Spell.Cooldown && !StyxWoW.GlobalCooldown,
+                                    ret => ret != null && ((WoWUnit)ret).InLineOfSight && AttackSpell != null && !AttackSpell.Spell.Cooldown && !SpellManager.GlobalCooldown,
                                     new Sequence(
                                         new Action(ret =>
                                             {

@@ -228,7 +228,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         private WoWObject CurrentTarget { get { return (_behavior_HuntingGround.CurrentTarget); } }
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private TimeSpan Delay_InputResponse { get { return (TimeSpan.FromMilliseconds((_rand.NextDouble() * InputResponseDelay) + 450)); } }
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private string QuestName { get; set; }
         private readonly Dictionary<string, int> SimpleTextToButtonMap = new Dictionary<string, int>();
 
@@ -722,7 +722,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly LoggerDelegate LogMessage;
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private const double MinDistanceToUse_DruidAquaticForm = 27.0;
         private int SpellId_DruidAquaticForm = 1066;
         public ViableTargetsDelegate ViableTargets { get; private set; }
@@ -1187,7 +1187,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     public static class WoWObject_Extensions
     {
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // We provide our own 'local' blacklist.  If we use the global one maintained by HBcore,
         // that will prevent us from looting also.
@@ -1221,7 +1221,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
 
     public static class WoWUnit_Extensions
     {
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         public static bool IsInOurParty(this WoWUnit wowUnit)
         {
@@ -1234,7 +1234,7 @@ namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
     {
         public static Random _random = new Random((int)DateTime.Now.Ticks);
 
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
 

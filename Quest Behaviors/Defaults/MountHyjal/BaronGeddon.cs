@@ -111,7 +111,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         // Private properties
         private WoWItem Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId)); } }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private WoWUnit Mob
         {
             get

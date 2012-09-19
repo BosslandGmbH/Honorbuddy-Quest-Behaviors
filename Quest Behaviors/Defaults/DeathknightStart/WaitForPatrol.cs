@@ -104,7 +104,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
         }
 
 
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private string MobName { get; set; }
         private static readonly TimeSpan ThrottleUserStatusUpdate = TimeSpan.FromSeconds(1);
 

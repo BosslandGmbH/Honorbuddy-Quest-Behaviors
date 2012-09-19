@@ -20,7 +20,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        public static LocalPlayer me = ObjectManager.Me;
+        public static LocalPlayer me = StyxWoW.Me;
 
         public List<WoWUnit> npcList;
 		public List<WoWUnit> npcList2;

@@ -80,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         // Private properties
         public int Counter { get; set; }
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
         public bool IsConverted { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion

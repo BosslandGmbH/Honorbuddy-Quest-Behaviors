@@ -80,7 +80,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         private Composite _root;
 
         // Private properties
-        private LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -245,7 +245,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             })
                         ),
 
-                        new Decorator(ret => !StyxWoW.GlobalCooldown && !Blacklist.Contains(2) && !Me.Auras.ContainsKey("Flame Shield"),
+                        new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(2) && !Me.Auras.ContainsKey("Flame Shield"),
                             new Action(delegate
                             {
                                 Log("Cast Flame Shield");
@@ -255,7 +255,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             })
                         ),
 
-                        new Decorator(ret => !StyxWoW.GlobalCooldown && !Blacklist.Contains(1),
+                        new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(1),
                             new Action(delegate
                             {
                                 Log("Cast Attack");

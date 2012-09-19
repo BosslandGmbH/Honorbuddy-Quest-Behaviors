@@ -73,7 +73,7 @@ namespace Styx.Bot.Quest_Behaviors
         private Composite _root;
 
         // Private properties
-        private static LocalPlayer Me { get { return (ObjectManager.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         public WoWUnit Npc
         {
             get
@@ -177,7 +177,7 @@ namespace Styx.Bot.Quest_Behaviors
                             {
                                 if (Me.IsMoving)
                                     WoWMovement.MoveStop();
-                                if (!Me.IsAutoAttacking || !Me.IsSafelyFacing(ObjectManager.Me.CurrentTarget))
+                                if (!Me.IsAutoAttacking || !Me.IsSafelyFacing(StyxWoW.Me.CurrentTarget))
                                 {
                                     TreeRoot.GoalText = string.Format("Bullying {0}", Npc.Name);
                                     Npc.Interact();
