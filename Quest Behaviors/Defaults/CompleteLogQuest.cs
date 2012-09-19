@@ -127,11 +127,11 @@ namespace Styx.Bot.Quest_Behaviors
                                 TreeRoot.StatusText = "Completing Log Quest: " + QuestName;
                                 Lua.DoString("ShowQuestComplete({0})", QuestIndexId);
                             }),
-                            new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                            new WaitContinue(Delay_WowClientLagTime + TimeSpan.FromSeconds(3), ret => false, new ActionAlwaysSucceed()),
                             new Action(delegate { Lua.DoString("CompleteQuest()"); }),
-                            new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
+                            new WaitContinue(Delay_WowClientLagTime + TimeSpan.FromSeconds(3), ret => false, new ActionAlwaysSucceed()),
                             new Action(delegate { Lua.DoString("GetQuestReward({0})", 1); }),
-                            new WaitContinue(Delay_WaitForNewQuestOfferred, ret => _newQuest,
+                            new WaitContinue(Delay_WowClientLagTime + TimeSpan.FromSeconds(5), ret => _newQuest,
                                                 new Action(ret => Lua.DoString("AcceptQuest()"))),
                             new Action(delegate
                             {
