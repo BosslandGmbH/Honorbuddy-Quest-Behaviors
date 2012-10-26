@@ -45,10 +45,11 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
 
-                EndLocation = GetAttributeAsNullable<WoWPoint>("End", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                GetOffLocation = GetAttributeAsNullable<WoWPoint>("Exit", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                StandLocation = GetAttributeAsNullable<WoWPoint>("Start", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                WaitAtLocation = GetAttributeAsNullable<WoWPoint>("Entry", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                StartLocation = GetAttributeAsNullable<WoWPoint>("TransportStart", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                EndLocation = GetAttributeAsNullable<WoWPoint>("TransportEnd", false, ConstrainAs.WoWPointNonEmpty,null) ?? Me.Location;
+                GetOffLocation = GetAttributeAsNullable<WoWPoint>("GetOff", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                StandLocation = GetAttributeAsNullable<WoWPoint>("StandOn", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                WaitAtLocation = GetAttributeAsNullable<WoWPoint>("WaitAt", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
                 DestName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
