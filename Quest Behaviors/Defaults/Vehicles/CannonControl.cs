@@ -176,7 +176,8 @@ namespace Styx.Bot.Quest_Behaviors
                                 if (quest.IsCompleted)
                                 {
                                     if (ExitButton > 0)
-                                        Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s)", ExitButton);
+                                        Lua.DoString("CastPetAction({0})", ExitButton);
+                                        //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s)", ExitButton);
                                     else
                                         Lua.DoString("VehicleExit()");
                                     _isBehaviorDone = true;
