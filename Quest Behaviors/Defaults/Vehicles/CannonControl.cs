@@ -51,10 +51,10 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-                ExitButton += 120;
+                //ExitButton += 120;
 
-                for (int i = 0; i < Buttons.Length; ++i)
-                { Buttons[i] += 120; }
+                //for (int i = 0; i < Buttons.Length; ++i)
+               // { Buttons[i] += 120; }
             }
 
             catch (Exception except)
@@ -188,11 +188,13 @@ namespace Styx.Bot.Quest_Behaviors
 
                                         Lua.DoString("VehicleAimRequestNormAngle({0})",
                                             MinAngle + (rand.NextDouble() * (MaxAngle - MinAngle)));
+									    Thread.Sleep(250);
                                         foreach (int b in Buttons)
                                         {
                                             //Lua.DoString("local _,s,_ = GetActionInfo({0}) local c = GetSpellCooldown(s) if c == 0 then CastSpellByID(s) end ", b);
                                             //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
-                                            Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
+                                            //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
+											Lua.DoString("CastPetAction({0})", b);
                                         }
                                         //}
                                     
