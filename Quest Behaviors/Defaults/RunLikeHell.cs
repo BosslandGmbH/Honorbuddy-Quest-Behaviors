@@ -14,6 +14,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
+using CommonBehaviors.Actions;
 
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
@@ -231,12 +232,12 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                         new Decorator(ret => Path.Peek().Distance(Me.Location) <= Navigator.PathPrecision,
                             new PrioritySelector(
                                 new Decorator(ret => Me.IsMoving && WaitTime > 0,
-                                    new Action(delegate
-                                    {
-                                        WoWMovement.MoveStop();
-                                        TreeRoot.GoalText = "RunLikeHell pausing " + WaitTime + " ms";
-                                        System.Threading.Thread.Sleep(WaitTime);
-                                    })),
+                                    new Sequence(                                      
+                                        new Action( ret => WoWMovement.MoveStop()),
+                                        new Action( ret => TreeRoot.GoalText = "RunLikeHell pausing " + WaitTime + " ms"),
+                                        new WaitContinue( TimeSpan.FromMilliseconds(WaitTime), ret => false, new ActionAlwaysSucceed())
+                                        )
+                                    ),
                                 new Decorator(ret => MobId != 0 && Mob.Distance > Range,
                                     new Action(delegate
                                     {
@@ -360,6 +361,16 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
             }
         }
 
+        /// <summary>
+        /// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
+        /// </summary>
+        /// <returns></returns>
+        public static Composite CreateWaitForLagDuration()
+        {
+            return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
+        }
+
         #endregion
+
     }
 }

@@ -79,6 +79,8 @@ namespace Styx.Bot.Quest_Behaviors
             Logging.Write("Let the trog genocide commence");
             while (!IsDone)
             {
+                ObjectManager.Update();
+                //Logging.Write("dsad");
                 try
                 {
                     //WoWPulsator.Pulse(PulseFlags.Objects);
@@ -97,15 +99,21 @@ namespace Styx.Bot.Quest_Behaviors
                             Logging.Write("Unable to find turret");
                         }
                     }
-                    // if 5 or mobs are within 20 units of turret then use Power Burst ability
-                    if (MobCountAtLocation(Me.Location, 20, 46711, 46712) >= 5)
-                        Lua.DoString("if GetPetActionCooldown(2) == 0 then CastPetAction(2) end");
-                    var target = GetBestTarget();
-                    if (target != null)
+                    else
                     {
-                        WoWMovement.ClickToMove(target.Location);
-                        Lua.DoString("if GetPetActionCooldown(1) == 0 then CastPetAction(1) end");
+
+                        //Logging.Write(MobCountAtLocation(Me.Location, 20, 46711, 46712).ToString());
+                        // if 5 or mobs are within 20 units of turret then use Power Burst ability
+                        if (MobCountAtLocation(Me.Location, 20, 46711, 46712) >= 5)
+                            Lua.DoString("if GetPetActionCooldown(2) == 0 then CastPetAction(2) end");
+                        var target = GetBestTarget();
+                        if (target != null)
+                        {
+                            WoWMovement.ClickToMove(target.Location);
+                            Lua.DoString("if GetPetActionCooldown(1) == 0 then CastPetAction(1) end");
+                        }
                     }
+
                 }
                 catch (Exception ex)
                 {

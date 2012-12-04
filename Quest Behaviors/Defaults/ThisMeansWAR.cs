@@ -48,7 +48,16 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 var quest = Me.QuestLog.GetQuestById(27001);
-                return quest != null && quest.IsCompleted;
+
+                var done = (quest != null && quest.IsCompleted);
+
+                if (done)
+                {
+                    BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                    Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+                }
+
+                return done;
             }
         }
 

@@ -18,6 +18,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
+using CommonBehaviors.Actions;
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
 {
@@ -226,7 +227,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             // need to move ( timer or aura )
                             new Decorator(ret => _castTime.ElapsedMilliseconds > 5000 || HasAura(Mob as WoWUnit, AuraId),
                                 new PrioritySelector(
-                // if at safe spot then wait
+                            // if at safe spot then wait
                                     new Decorator(ret => Location.Distance(Me.Location) < 3,
                                         new Action(delegate
                                         {
@@ -254,30 +255,32 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                                         Navigator.MoveTo(WoWMovement.CalculatePointFrom(Mob.Location, (float)(Range - 1)));
                                     })),
                                 new Decorator(ret => Me.IsMoving,
-                                    new Action(delegate
-                                    {
-                                        WoWMovement.MoveStop();
-                                        StyxWoW.SleepForLagDuration();
-                                    })),
+                                    new Sequence(
+                                        new Action( ret => WoWMovement.MoveStop()),
+                                        new WaitContinue( TimeSpan.FromMilliseconds(500), ret => !Me.IsMoving, new ActionAlwaysSucceed())
+                                        )
+                                    ),
                                 new Decorator(ret => _castTime.IsRunning,
                                     new Action(ret => 0)),
-                                new Action(delegate
-                                {
-                                    TreeRoot.StatusText = "Using item on - " + Mob.Name;
-                                    (Mob as WoWUnit).Target();
-
-                                    if (Item == null)
+                                new Sequence(
+                                    new Action(delegate
                                     {
-                                        LogMessage("fatal", "Could not locate ItemId({0}) in inventory.", ItemId);
-                                        return;
-                                    }
+                                        TreeRoot.StatusText = "Using item on - " + Mob.Name;
+                                        (Mob as WoWUnit).Target();
 
-                                    WoWMovement.Face(Mob.Guid);
+                                        if (Item == null)
+                                        {
+                                            LogMessage("fatal", "Could not locate ItemId({0}) in inventory.", ItemId);
+                                            return;
+                                        }
 
-                                    Item.UseContainerItem();
-                                    _castTime.Start();
-                                    StyxWoW.SleepForLagDuration();
-                                })
+                                        WoWMovement.Face(Mob.Guid);
+
+                                        Item.UseContainerItem();
+                                        _castTime.Start();
+                                    }),
+                                    CreateWaitForLagDuration()
+                                    )
                                 )
                             )
                         )
@@ -322,6 +325,15 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
+        }
+
+        /// <summary>
+        /// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
+        /// </summary>
+        /// <returns></returns>
+        public static Composite CreateWaitForLagDuration()
+        {
+            return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
         }
 
         #endregion

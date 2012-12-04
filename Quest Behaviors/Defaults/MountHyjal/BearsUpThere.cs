@@ -15,6 +15,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
+using CommonBehaviors.Actions;
 
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
@@ -184,9 +185,10 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
         private RunStatus ClimbUp()
         {
-            bool canCast = CanCastNow(CLIMB_UP);
+            // bool canCast = CanCastNow(CLIMB_UP);
             WoWPoint lastPos = Me.Location;
-            Lua.DoString("CastSpellByID({0})", CLIMB_UP);
+            // Lua.DoString("CastSpellByID({0})", CLIMB_UP);
+            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
             WaitForCurrentSpell();
             Thread.Sleep(2000);
 
@@ -215,8 +217,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                 spellId = CLIMB_DOWN_AT_TOP;
 
             WoWPoint lastPos = Me.Location;
-            CanCastNow(spellId);
-            Lua.DoString("CastSpellByID({0})", spellId);
+            // CanCastNow(spellId);
+            // Lua.DoString("CastSpellByID({0})", spellId);
+            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
             WaitForCurrentSpell();
 
             // wait longer if at top due to UI skin change
@@ -323,8 +326,9 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         private RunStatus ChuckBear()
         {
             Dlog("(Chuck-A-Bear) threw bear at trampoline");
-            bool canCast = CanCastNow(CHUCK_A_BEAR);
-            Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
+            // bool canCast = CanCastNow(CHUCK_A_BEAR);
+            // Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
+            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")");
             WaitForCurrentSpell();
             Thread.Sleep(4000);
             return RunStatus.Success;
@@ -423,6 +427,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         {
             return _root ?? (_root =
                 new PrioritySelector(
+
+                    new Decorator(ret => Me.IsCasting || SpellManager.GlobalCooldown, new ActionAlwaysSucceed()),
 
                     // check if we left tree/vehicle
                     new Decorator(ret => !InTree(), new Action(ret => _isBehaviorDone = true)),

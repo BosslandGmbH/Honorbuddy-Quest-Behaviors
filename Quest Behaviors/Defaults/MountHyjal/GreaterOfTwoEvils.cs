@@ -18,6 +18,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
+using CommonBehaviors.Actions;
 
 
 namespace Styx.Bot.Quest_Behaviors.MountHyjal
@@ -172,22 +173,18 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                         new Decorator(ret => IsQuestComplete(),
                             new PrioritySelector(
                                 new Decorator(ret => Me.HasAura("Flame Ascendancy"),
-                                    new Action(delegate
-                                    {
-                                        DLog("Quest complete - cancelling Flame Ascendancy");
-                                        Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")");
-                                        StyxWoW.SleepForLagDuration();
-                                        return RunStatus.Success;
-                                    })
-                                ),
-                                new Action(delegate
-                                {
-                                    _isBehaviorDone = true;
-                                    StyxWoW.SleepForLagDuration();
-                                    return RunStatus.Success;
-                                })
-                            )
-                        ),
+                                    new Sequence( 
+                                        new Action( ret => DLog("Quest complete - cancelling Flame Ascendancy")),
+                                        new Action( ret => Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")")),
+                                        CreateWaitForLagDuration()
+                                        )
+                                    ),
+                                new Sequence(
+                                    new Action( ret => _isBehaviorDone = true ),
+                                    CreateWaitForLagDuration()
+                                    )
+                                )
+                            ),
 
                         // loop waiting for target only if no buff
                         new Decorator(ret => Target == null,
@@ -249,7 +246,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             new Action(delegate
                             {
                                 Log("Cast Flame Shield");
-                                Lua.DoString("RunMacroText(\"/click BonusActionButton2\")");
+                                Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
                                 Blacklist.Add(2, TimeSpan.FromMilliseconds(6000));
                                 return RunStatus.Success;
                             })
@@ -259,7 +256,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                             new Action(delegate
                             {
                                 Log("Cast Attack");
-                                Lua.DoString("RunMacroText(\"/click BonusActionButton1\")");
+                                Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
                                 Blacklist.Add(1, TimeSpan.FromMilliseconds(1500));
                                 return RunStatus.Success;
                             })
@@ -273,6 +270,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
                     )
                 )
             );
+            
         }
 
 
@@ -336,6 +334,15 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
+        }
+
+        /// <summary>
+        /// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
+        /// </summary>
+        /// <returns></returns>
+        public static Composite CreateWaitForLagDuration()
+        {
+            return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
         }
 
         #endregion
