@@ -328,6 +328,20 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                                 new Action(ret => _isBehaviorDone = true)
                                             )))),
 
+                                new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) <= Range * Range && StyxWoW.Me.IsFlying,
+                                        new Action(ret =>
+                                        {
+                                            WoWMovement.Move(WoWMovement.MovementDirection.Descend);
+                                            while (StyxWoW.Me.IsFlying)
+                                                Thread.Sleep(100);
+
+                                            WoWMovement.MoveStop(WoWMovement.MovementDirection.Descend);
+
+                                            WoWMovement.MoveStop();          
+                                        }
+                                        
+                                        )),
+
                                 new Decorator(ret => CurrentObject != null && CurrentObject.Location.DistanceSqr(Me.Location) <= Range * Range,
                                     new Sequence(
                                         new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
