@@ -159,11 +159,9 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
         #endregion  // Missing HBcore infrastructure
 
 
-        private bool IsReadyToDismount()
+        private bool IsReadyToDismount
         {
-            return (!Me.IsFlying
-                    || Me.Location.IsOverGround(MaxDismountHeight)
-                    || Me.Location.IsOverWater(MaxDismountHeight));
+            get { return !Me.IsFlying || Me.GetTraceLinePos().IsOverGroundOrWater(MaxDismountHeight); }
         }
 
 
@@ -180,11 +178,11 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
 
 
                     // If we're flying, we need to descend...
-                    new Decorator(ret => !IsReadyToDismount(),
+                    new Decorator(ret => !IsReadyToDismount,
                             new Sequence(
                                 new ActionRunOnceContinue(delegate { LogMessage("debug", "Descending before dismount"); }),
                                 new Action(delegate { Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend); }),
-                                new WaitContinue(Delay_WowClientMovement, ret => IsReadyToDismount(), new ActionAlwaysSucceed())
+                                new WaitContinue(Delay_WowClientMovement, ret => IsReadyToDismount || !Me.IsMoving, new ActionAlwaysSucceed())
                                 )),
 
 
@@ -273,6 +271,21 @@ namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
                                             double z)
         {
             return (new WoWPoint(wowPoint.X + x, wowPoint.Y + y, wowPoint.Z + z));
+        }
+
+        /// <summary>
+        /// Returns true, if ground or water is withing DISTANCE _below_ you.
+        /// </summary>
+        /// <param name="location">TracelinePos should be passed as location</param>
+        /// <param name="distance"></param>
+        /// <returns>true, if ground or water is withing DISTANCE _below_ you.</returns>
+        /// <remarks>raphus 18/12/2012</remarks>
+        public static bool IsOverGroundOrWater(this WoWPoint location, double distance)
+        {
+            return GameWorld.TraceLine(location, location.Add(0f, 0f, -distance),
+                                       GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures |
+                                       GameWorld.CGWorldFrameHitFlags.HitTestLiquid |
+                                       GameWorld.CGWorldFrameHitFlags.HitTestLiquid2);
         }
 
 
