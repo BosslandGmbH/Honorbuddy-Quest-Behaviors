@@ -203,8 +203,7 @@ namespace Styx.Bot.Quest_Behaviors
                                             new PrioritySelector(
                                                  new Decorator(ret => HozenEnemy != null,
                                                     new Sequence(
-                                                        new Action(ret => HozenEnemy.Target()),
-                                                        new Action(ret => Thread.Sleep(400)),
+                                                        new Action(ret => HozenEnemy.Target()),                                                        new Action(ret => Thread.Sleep(400)),
                                                         new Action(ret => HozenEnemy.Interact()))),
 
                                                 new Decorator(ret => OrcEnemy != null, // Orc Has to be Seperate or we will Die
