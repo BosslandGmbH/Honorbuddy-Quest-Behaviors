@@ -15,11 +15,11 @@ using Action = Styx.TreeSharp.Action;
 
 
 
-namespace Blastranaar
+namespace RampageAgainstTheMachine
 {
-    public class Blastranaar : CustomForcedBehavior
+    public class RampageAgainstTheMachine : CustomForcedBehavior
     {
-        public Blastranaar(Dictionary<string, string> args)
+        public RampageAgainstTheMachine(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -36,11 +36,11 @@ namespace Blastranaar
         public int MobIdMantid1 = 67035;
         public int MobIdMantid2 = 67034;
         public int MobIdKunchong = 63625;
-		public int Xaril = 63765;
+        public int Xaril = 63765;
         private Composite _root;
         public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
         public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
-		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
+        static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
         public override bool IsDone
         {
             get
@@ -58,6 +58,18 @@ namespace Blastranaar
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
+
+                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (currentRoot is GroupComposite)
+                    {
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateBehavior());
+                    }
+                }
+
+
                 PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
                 TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
             }
@@ -67,7 +79,7 @@ namespace Blastranaar
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdMantid1 || u.Entry == MobIdMantid2 && !u.IsDead && u.Distance < 350).OrderBy(u => u.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.Entry == MobIdMantid1 || u.Entry == MobIdMantid2) && !u.IsDead && u.Distance < 350).OrderBy(u => u.Distance).ToList();
             }
         }
         public List<WoWUnit> Kunchong
@@ -88,7 +100,7 @@ namespace Blastranaar
                                     .FirstOrDefault();
             }
         }
-	
+
         public bool IsQuestComplete()
         {
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
@@ -129,31 +141,68 @@ namespace Blastranaar
                 return
                     new Decorator(ret => !IsObjectiveComplete(2, (uint)QuestId), new Action(c =>
                     {
-                       TreeRoot.StatusText = "Moving to Attack";
+                        TreeRoot.StatusText = "Moving to Attack";
+                        //<Vendor Name="Klaxxi Kunchong Destroyer" Entry="64834" Type="Repair" X="-58.25938" Y="3466.082" Z="113.1098" />
+                        var hostile =
+                            ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Entry != 64834 && r.GotTarget && r.CurrentTarget == Me.CharmedUnit).OrderBy(r=>r.Distance).FirstOrDefault();
 
-			if (Mantid[0].Location.Distance(Kovok.Location) > 15)
-			{
-				WoWMovement.ClickToMove(Mantid[0].Location);
-				Mantid[0].Target();
-				Mantid[0].Face();
-			}
-				WoWMovement.ClickToMove(Mantid[0].Location);
-				Mantid[0].Target();
-                                WoWMovement.MoveStop();
-                                Thread.Sleep(400);
-				Mantid[0].Face();
-				Lua.DoString("CastPetAction(1)");
-				Lua.DoString("CastPetAction(3)");
-                                WoWMovement.MoveStop();
 
-			if (IsObjectiveComplete(2, (uint)QuestId))
-			{
-                        	TreeRoot.StatusText = "Finished!";
-                        	_isBehaviorDone = true;
-                        	return RunStatus.Success;
-			}
-                                return RunStatus.Running;
+                        //<Vendor Name="Dread Behemoth" Entry="67039" Type="Repair" X="-153.9916" Y="3373.808" Z="103.9902" />
+                        //<Vendor Name="Ik'thik Kunchong" Entry="67036" Type="Repair" X="-142.2761" Y="3578.237" Z="118.6222" />
+                        WoWUnit tar;
 
+                        if (hostile != null)
+                        {
+                            tar = hostile;
+                        }
+                        else if (Mantid.Count > 0)
+                        {
+                            tar = Mantid.FirstOrDefault();
+                        }
+                        else
+                        {
+                            var xtra =
+                                ObjectManager.GetObjectsOfType<WoWUnit>().Where(
+                                    r => (r.Entry == 67039 || r.Entry == 67036) && r.IsAlive).OrderBy(
+                                        r => r.Distance).FirstOrDefault();
+
+                            if (xtra != null)
+                            {
+                                tar = xtra;
+                            }
+                            else
+                            {
+                                Logging.Write("No viable targets, waiting.");
+                                return RunStatus.Failure;
+                            }
+                        }
+
+                        if (tar.Location.Distance(Me.CharmedUnit.Location) > 15)
+                        {
+                            WoWMovement.ClickToMove(tar.Location);
+                            tar.Target();
+                            tar.Face();
+                        }
+                        else
+                        {
+                            //WoWMovement.ClickToMove(tar.Location);
+                            tar.Target();
+                            //WoWMovement.MoveStop();
+                            //Thread.Sleep(400);
+                            tar.Face();
+                            Lua.DoString("CastPetAction(1)");
+                            Lua.DoString("CastPetAction(3)");
+                            //WoWMovement.MoveStop();
+                            if (Me.IsMoving || Me.CharmedUnit.IsMoving)
+                                WoWMovement.ClickToMove(Me.CharmedUnit.Location);
+                        }
+
+
+
+
+
+
+                        return RunStatus.Failure;
                     }));
 
             }
@@ -165,7 +214,7 @@ namespace Blastranaar
 
 
 
-		
+
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, MantidKill, new ActionAlwaysSucceed())));

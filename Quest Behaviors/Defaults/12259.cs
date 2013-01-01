@@ -128,10 +128,16 @@ namespace Styx.Bot.Quest_Behaviors
 							if (objmob.Count > 0)
 							{
 								objmob[0].Target();
-								WoWMovement.ClickToMove(objmob[0].Location);
-								Thread.Sleep(100);
-								Lua.DoString("UseAction(122, 'target', 'LeftButton')");
-								Lua.DoString("UseAction(121, 'target', 'LeftButton')");
+                                objmob[0].Face();
+								//WoWMovement.ClickToMove(objmob[0].Location);
+                                if (me.IsMoving || me.CharmedUnit.IsMoving)
+                                    WoWMovement.ClickToMove(me.CharmedUnit.Location);
+								//Thread.Sleep(100);
+								//Lua.DoString("UseAction(122, 'target', 'LeftButton')");
+								//Lua.DoString("UseAction(121, 'target', 'LeftButton')");
+                                Lua.DoString("CastPetAction(1)");
+                                Lua.DoString("CastPetAction(2)");
+                                Lua.DoString("CastPetAction(3)");
 							}
 							return RunStatus.Running;
 						}

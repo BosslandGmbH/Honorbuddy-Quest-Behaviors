@@ -217,7 +217,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
             if (!QuestManager.GossipFrame.IsVisible)
             {
-                if (QuestManager.QuestFrame.IsVisible)
+               /* if (QuestManager.QuestFrame.IsVisible)
                 {
                     List<uint> quests = QuestManager.QuestFrame.Quests;
                     if ((QuestId != -1) && !quests.Contains((uint) QuestId))
@@ -237,7 +237,7 @@ namespace Styx.Bot.Quest_Behaviors
                             }
                         }
                     }
-                }
+                }*/
             }
             else
             {
