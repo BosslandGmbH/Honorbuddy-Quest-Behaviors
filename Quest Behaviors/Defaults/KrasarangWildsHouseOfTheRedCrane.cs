@@ -26,9 +26,9 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    public class KarasonWildsHouseOfTheRedCrane : CustomForcedBehavior
+    public class KrasarangWildsHouseOfTheRedCrane : CustomForcedBehavior
     {
-        public KarasonWildsHouseOfTheRedCrane(Dictionary<string, string> args)
+        public KrasarangWildsHouseOfTheRedCrane(Dictionary<string, string> args)
             : base(args)
         {
 
@@ -111,7 +111,7 @@ namespace Styx.Bot.Quest_Behaviors
         public override string SubversionRevision { get { return ("$Revision: 249 $"); } }
 
 
-        ~KarasonWildsHouseOfTheRedCrane()
+        ~KrasarangWildsHouseOfTheRedCrane()
         {
             Dispose(false);
         }
