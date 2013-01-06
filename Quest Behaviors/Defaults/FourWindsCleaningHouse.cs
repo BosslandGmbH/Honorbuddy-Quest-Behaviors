@@ -248,7 +248,17 @@ namespace Styx.Bot.Quest_Behaviors
                                     new Decorator(
                                         ret => Me.MapId == 870,
                                             new PrioritySelector(
-                                                new Decorator(ret => !_eddySlain && Enemy != null,
+
+                                                new Decorator(ret => FizzySprite != null,
+                                                    new Sequence(
+                                                       new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
+                                                                RoutineManager.Current.CombatBehavior),
+                                                         new Action(ret => FizzySprite.Target()),
+                                                         new Action(ret => RoutineManager.Current.Pull()),
+                                                         new Decorator(ret => FizzySprite.Distance > 20,
+                                                          new Action(ret => WoWMovement.ClickToMove(FizzySprite.Location))))),
+
+                                                new Decorator(ret => (!_eddySlain || Me.CurrentTarget.Entry == 58014) && Enemy != null,
                                                     new PrioritySelector(
                                                         new Decorator(ret => EddyDead != null,
                                                             new Action(ret => _eddySlain = true)),
@@ -272,7 +282,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                                      new Action(ret => WoWMovement.ClickToMove(Enemy.Location)))))
                                                         )),
 
-                                               new Decorator(ret => _eddySlain && !_joogaSlain && Enemy != null,
+                                               new Decorator(ret => ((_eddySlain && !_joogaSlain) || Me.CurrentTarget.Entry == 58014) && Enemy != null,
                                                     new PrioritySelector(
                                                         new Decorator(ret => JoogaDead != null,
                                                             new Action(ret => _joogaSlain = true)),
@@ -297,7 +307,7 @@ namespace Styx.Bot.Quest_Behaviors
 
 
 
-                                          new Decorator(ret => _joogaSlain && !_fizzySlain && Enemy != null,
+                                          new Decorator(ret => ((_joogaSlain && !_fizzySlain)  || Me.CurrentTarget.Entry == 58014) && Enemy != null,
                                                     new PrioritySelector(
                                                         new Decorator(ret => FizzyDead != null,
                                                             new Action(ret => _fizzySlain = true)),
@@ -310,16 +320,9 @@ namespace Styx.Bot.Quest_Behaviors
                                                                 new Decorator(ret => Enemy.Distance > 20,
                                                                      new Action(ret => WoWMovement.ClickToMove(Enemy.Location)))))
 
-                                                        )),
+                                                        ))
 
-                                         new Decorator(ret => _joogaSlain && !_fizzySlain && FizzySprite != null,
-                                                    new Sequence(
-                                                       new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                                                RoutineManager.Current.CombatBehavior),
-                                                         new Action(ret => FizzySprite.Target()),
-                                                         new Action(ret => RoutineManager.Current.Pull()),
-                                                         new Decorator(ret => FizzySprite.Distance > 20,
-                                                          new Action(ret => WoWMovement.ClickToMove(FizzySprite.Location)))))
+                                         
 
 
                                                             
