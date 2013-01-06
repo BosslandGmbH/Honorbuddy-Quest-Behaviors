@@ -72,6 +72,7 @@ namespace Styx.Bot.Quest_Behaviors
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 UseOnce = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true;
+                BlacklistMob = GetAttributeAsNullable<bool>("BlacklistMob", false, null, null) ?? false;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 500;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -112,6 +113,7 @@ namespace Styx.Bot.Quest_Behaviors
         public int NumOfTimes { get; private set; }
         public int QuestId { get; private set; }
         public bool UseOnce { get; private set; }
+        public bool BlacklistMob { get; private set; }
         public int WaitTime { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -130,7 +132,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => MobIds.Contains((int)u.Entry) && !u.IsDead)
+                                     .Where(u => MobIds.Contains((int)u.Entry) && !u.IsDead && !BehaviorBlacklist.Contains(u.Guid))
                                      .OrderBy(u => u.Distance).FirstOrDefault());
             }
         }
@@ -208,6 +210,8 @@ namespace Styx.Bot.Quest_Behaviors
                                                 new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
                                                 new Action(ret => Item.UseContainerItem()),
                                                 new Action(ret => Thread.Sleep(WaitTime)),
+                                                new Decorator(ret => BlacklistMob,
+                                                    new Action(ret => BehaviorBlacklist.Add(_lastMobGuid, TimeSpan.FromSeconds(30)))),
                                                 new DecoratorContinue(
                                                     ret => QuestId == 0,
                                                     new Action(ret => Counter++))))))))
@@ -291,5 +295,44 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         #endregion
+    }
+
+    class BehaviorBlacklist
+    {
+        static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
+        private BehaviorBlacklist()
+        {
+        }
+
+        class BlacklistTime
+        {
+            public BlacklistTime(DateTime time, TimeSpan span)
+            {
+                TimeStamp = time;
+                Duration = span;
+            }
+            public DateTime TimeStamp { get; private set; }
+            public TimeSpan Duration { get; private set; }
+        }
+
+        static public bool Contains(ulong id)
+        {
+            RemoveIfExpired(id);
+            return SpellBlacklistDict.ContainsKey(id);
+        }
+
+        static public void Add(ulong id, TimeSpan duration)
+        {
+            SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
+        }
+
+        static void RemoveIfExpired(ulong id)
+        {
+            if (SpellBlacklistDict.ContainsKey(id) &&
+                SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)
+            {
+                SpellBlacklistDict.Remove(id);
+            }
+        }
     }
 }
