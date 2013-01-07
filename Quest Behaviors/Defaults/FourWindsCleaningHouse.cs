@@ -258,7 +258,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                          new Decorator(ret => FizzySprite.Distance > 20,
                                                           new Action(ret => WoWMovement.ClickToMove(FizzySprite.Location))))),
 
-                                                new Decorator(ret => (!_eddySlain || Me.CurrentTarget.Entry == 58014) && Enemy != null,
+                                                new Decorator(ret => Enemy != null && (!_eddySlain || Enemy.Entry == 58014),
                                                     new PrioritySelector(
                                                         new Decorator(ret => EddyDead != null,
                                                             new Action(ret => _eddySlain = true)),
@@ -282,7 +282,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                                      new Action(ret => WoWMovement.ClickToMove(Enemy.Location)))))
                                                         )),
 
-                                               new Decorator(ret => ((_eddySlain && !_joogaSlain) || Me.CurrentTarget.Entry == 58014) && Enemy != null,
+                                               new Decorator(ret => Enemy != null && ((_eddySlain && !_joogaSlain) || Enemy.Entry == 58015),
                                                     new PrioritySelector(
                                                         new Decorator(ret => JoogaDead != null,
                                                             new Action(ret => _joogaSlain = true)),
@@ -303,11 +303,11 @@ namespace Styx.Bot.Quest_Behaviors
                                                         
                                                         )),
 
-                                          
 
 
 
-                                          new Decorator(ret => ((_joogaSlain && !_fizzySlain)  || Me.CurrentTarget.Entry == 58014) && Enemy != null,
+
+                                          new Decorator(ret => Enemy != null && ((_joogaSlain && !_fizzySlain) || Enemy.Entry == 58017),
                                                     new PrioritySelector(
                                                         new Decorator(ret => FizzyDead != null,
                                                             new Action(ret => _fizzySlain = true)),
