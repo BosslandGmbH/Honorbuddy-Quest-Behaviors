@@ -126,10 +126,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public static WoWPoint ModifiedLocation(WoWUnit u)
         {
-            var unitLoc = new WoWPoint(u.Location.X, u.Location.Y, u.Location.Z - 15);
-
-
-            return unitLoc;
+            return u.Location.Add(0f, 0f, -15f);
         }
 
         public Composite DoneYet
@@ -184,7 +181,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public int Underneath
         {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().Count(r => (r.Entry == 55707 || r.Entry == 55701) && r.Location.Distance(ModifiedLocation(StyxWoW.Me.CharmedUnit)) < 20); }
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().Count(r => (r.Entry == 55707 || r.Entry == 55701) && StyxWoW.Me.CharmedUnit != null && r.Location.Distance(ModifiedLocation(StyxWoW.Me.CharmedUnit)) < 20); }
         }
 
         public WoWUnit Gutripper

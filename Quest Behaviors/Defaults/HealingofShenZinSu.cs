@@ -24,16 +24,16 @@ using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace HealingofShenZinSu
 {
-    public class TheLessonoftheBalancedRock : CustomForcedBehavior
+    public class HealingofShenZinSu : CustomForcedBehavior
     {
-        ~TheLessonoftheBalancedRock()
+        ~HealingofShenZinSu()
         {
             Dispose(false);
         }
 
-        public TheLessonoftheBalancedRock(Dictionary<string, string> args)
+        public HealingofShenZinSu(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -42,7 +42,7 @@ namespace Styx.Bot.Quest_Behaviors
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 29663; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestId = 29799; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -103,6 +103,9 @@ namespace Styx.Bot.Quest_Behaviors
                 // Clean up unmanaged resources (if any) here...
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
+
+
+
 
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
@@ -171,29 +174,39 @@ namespace Styx.Bot.Quest_Behaviors
 
 
 
-        //<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
-        //<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
+        //<Vendor Name="Alliance Priest" Entry="60877" Type="Repair" X="208.6163" Y="3913.861" Z="61.57914" />
+        //<Vendor Name="Horde Druid" Entry="60770" Type="Repair" X="318.3125" Y="3896.318" Z="78.3259" />
+        //16777216
 
         //209691 - sniper rifle
-        public WoWUnit Monk
+        public WoWUnit PriestsClickable
         {
             get
-            {
+            {//559104
                 return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => (r.Entry == 55019 || r.Entry == 65468) && !r.IsFriendly).OrderBy(r=>r.Distance).FirstOrDefault();
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => (r.Entry == 60877 || r.Entry == 60770) && r.Flags == 32768).OrderBy(r => r.Distance).FirstOrDefault();
+            }
+
+        }
+
+        public WoWUnit Wreckage
+        {
+            get
+            {//559104
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Entry == 60848).OrderBy(r => r.Distance).FirstOrDefault();
             }
 
         }
 
 
-
         
-        public IEnumerable<WoWUnit> Poles
+        public WoWUnit InCombat
         {
             get
             {
                 return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => (r.Entry == 54993 || r.Entry == 57626) && r.NpcFlags == 16777216);
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => (r.Entry == 60877 || r.Entry == 60770) && r.Flags == 559104).OrderBy(r=>r.Distance).FirstOrDefault();
             }
 
         }
@@ -201,8 +214,7 @@ namespace Styx.Bot.Quest_Behaviors
 
        
 
-        private int stage = 0;
-        WoWPoint spot = new WoWPoint(966.1218,3284.928,126.7932);
+
         
 
         private bool spoke = false;
@@ -215,69 +227,58 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return new PrioritySelector(
-                    new Decorator(r=> !Me.InVehicle && Me.Location.Distance(spot) > 10, new Action(r=>Navigator.MoveTo(spot))),
-                    new Decorator(r=> !Me.InVehicle, new Action(r=>Poles.OrderBy(z=>z.Distance).FirstOrDefault().Interact(true)))
-                    
+                    new Decorator(r => Me.Combat, RoutineManager.Current.CombatBehavior),
+
+                    //Sometimes wreckage would popup and make us stray, if theres a nearby healer click that first.
+                    new Decorator(r => PriestsClickable != null && PriestsClickable.Distance < 5, new Action(r=>PriestsClickable.Interact(true))),
+                    new Decorator(r => Wreckage != null, new Action(r =>
+                                                                    {Navigator.MoveTo(Wreckage.Location);
+                                                                        Wreckage.Interact();
+                                                                    } )),
+                    new Decorator(r => PriestsClickable != null, new Action(r =>
+                                                                                {
+
+                                                                                    Navigator.MoveTo(PriestsClickable.Location);
+
+                                                                                    if (PriestsClickable.WithinInteractRange)
+                                                                                    {
+                                                                                        PriestsClickable.Interact(true);
+                                                                                    }
+                                                                                    
+                                                                                })),
+                    new Decorator(r => Me.CurrentTarget == null && InCombat != null && InCombat.GotTarget, new Action(r =>
+                                                                                                                          {
+                                                                                                                              Logging.Write("Attacking nearby enemy");
+                                                                                                                              InCombat
+                                                                                                                                  .
+                                                                                                                                  CurrentTarget
+                                                                                                                                  .
+                                                                                                                                  Target
+                                                                                                                                  ();
+
+                                                                                                                              InCombat.CurrentTarget.Interact();
+                                                                                                                              Navigator
+                                                                                                                                  .
+                                                                                                                                  MoveTo
+                                                                                                                                  (InCombat
+                                                                                                                                       .
+                                                                                                                                       CurrentTarget
+                                                                                                                                       .
+                                                                                                                                       Location);
+                                                                                                                          }
+                        ))
                     
                     );
             }
         }
 
 
-        private Composite PoleCombat
-        {
-            get
-            {
-                return new PrioritySelector(
-                    new Decorator(r=> Monk.Distance > 5, new Action(delegate
-                                                                        {
-                                                                            
-                                                                            var Pole =
-                                                                                Poles.Where(r => r.WithinInteractRange).
-                                                                                    OrderBy(
-                                                                                        r =>
-                                                                                        r.Location.Distance(
-                                                                                            Monk.Location)).FirstOrDefault();
-                                                                            Pole.Interact(true);
 
 
-                                                                        })),
-                            new Decorator(r=> Monk.Distance <= 5, new Sequence(
-                                
-                                new Action(r=>{Monk.Target();Monk.Face(); return RunStatus.Success;}),
-                                RoutineManager.Current.CombatBehavior
-                                
-                                
-                                )
-
-
-
-                                                                      ));
-            }
-        }
-
-
-        /*                                                                                     if (SpellManager.CanCast("Blackout Kick"))
-                                                                                     {
-                                                                                         SpellManager.Cast("Blackout Kick");
-                                                                                     }
-
-
-                                                                                     else if (SpellManager.CanCast("Tiger Palm") && !Me.HasAura("Tiger Power"))
-                                                                                     {
-                                                                                         SpellManager.Cast("Tiger Palm");
-                                                                                     }
-
-                                                                                     else if (SpellManager.CanCast("Jab"))
-                                                                                     {
-                                                                                         SpellManager.Cast("Jab");
-                                                                                     }
-
-         * */
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetonPole,PoleCombat,new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetonPole,new ActionAlwaysSucceed())));
         }
 
 
