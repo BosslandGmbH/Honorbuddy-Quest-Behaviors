@@ -361,6 +361,10 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                         {
                                             TreeRoot.StatusText = "Interacting with - " + CurrentObject.Name;
 
+                                            StyxWoW.Me.SetFacing(CurrentObject.Location);
+
+                                            Thread.Sleep(100);
+
                                             if (KeepTargetSelected && CurrentObject.Type == WoWObjectType.Unit)
                                                 CurrentObject.ToUnit().Target();
 
