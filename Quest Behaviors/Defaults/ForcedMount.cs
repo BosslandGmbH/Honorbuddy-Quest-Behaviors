@@ -183,7 +183,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete) || StyxWoW.Me.Mounted);
             }
         }
 
