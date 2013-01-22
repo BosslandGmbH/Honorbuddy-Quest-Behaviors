@@ -1,5 +1,5 @@
 ﻿// Behavior originally contributed by BarryDurex
-// [Quest Behavior] MrFishIt - v1.0.1
+// [Quest Behavior] MrFishIt - v1.0.8
 //
 // Credits: [Bot]MrFishIt by Nesox | [Bot]PoolFishingBuddy by Iggi66
 //
@@ -29,7 +29,7 @@ using System.Windows.Media;
 using Styx.WoWInternals.World;
 
 
-namespace Styx.Bot.Quest_Behaviors.FishinItem
+namespace Styx.Bot.Quest_Behaviors.MrFishIt
 {
     class MrFishIt : CustomForcedBehavior
     {
@@ -46,6 +46,7 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
                 CollectItemId = GetAttributeAsNullable<int>("CollectItemId", true, ConstrainAs.ItemId, null) ?? 0;
                 CollectItemCount = GetAttributeAsNullable<int>("CollectItemCount", false, ConstrainAs.RepeatCount, null) ?? 1;
                 MoveToPool = GetAttributeAsNullable<bool>("MoveToPool", false, null, null) ?? true;
+                TestFishing = GetAttributeAsNullable<bool>("TestFishing", false, null, null) ?? false;
                 PoolFishingBuddy.MaxCastRange = GetAttributeAsNullable<int>("MaxCastRange", false, ConstrainAs.ItemId, null) ?? 20;
                 PoolFishingBuddy.MinCastRange = GetAttributeAsNullable<int>("MinCastRange", false, ConstrainAs.ItemId, null) ?? 15;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
@@ -75,12 +76,13 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
         public static int PoolId { get; private set; }
         public int CollectItemCount { get; private set; }
         public bool MoveToPool { get; private set; }
+        public bool TestFishing { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private Version _Version { get { return new Version(1, 0, 1); } }
+        private Version _Version { get { return new Version(1, 0, 8); } }
         public static double _PoolGUID;
         private ConfigMemento _configMemento;
         private bool _isDisposed, _cancelBehavior;
@@ -112,15 +114,19 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
 
                 _configMemento = null;
 
+                _cancelBehavior = true;
+
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
                 Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
+                Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
-                if (StyxWoW.Me.IsCasting)
+                if (Fishing.IsFishing)
                     SpellManager.StopCasting();
-
-                // Call parent Dispose() (if it exists) here ...
+                
+                // Call parent Dispose() (if it exists) here ...                
+                _root = null;
                 base.Dispose();
             }
 
@@ -146,8 +152,11 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
         {
             get
             {
-                return ((StyxWoW.Me.BagItems.FirstOrDefault(i => i.Entry == CollectItemId && i.StackCount == CollectItemCount) != null)     // normal completion
+                bool ret = ((StyxWoW.Me.BagItems.FirstOrDefault(i => i.Entry == CollectItemId && i.StackCount == CollectItemCount) != null)     // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete) || _cancelBehavior);
+                if (ret)
+                { _root = null; _cancelBehavior = true; }
+                return ret;
             }
         }
 
@@ -178,6 +187,8 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop; 
                 Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);
+                Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
+                LootOpen = false;
 
                 // Disable any settings that may cause us to dismount --
                 // When we mount for travel via FlyTo, we don't want to be distracted by other things.
@@ -192,13 +203,28 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;
-
+                
                 // Make sure we don't get logged out
                 GlobalSettings.Instance.LogoutForInactivity = false;
 
-                TreeRoot.GoalText = "[MrFishIt][v" + _Version.ToString() + "] Fishing for Item " + CollectItemId;
+                // some CustomClass make problems, so we stop it now
+                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (currentRoot is GroupComposite)
+                    {
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateBehavior());
+                    }
+                }
 
-                Logging.WriteDiagnostic(Colors.Green, "[MrFishIt][v{0}] Fishing for Item: {1} - Quantity: {2}.", _Version.ToString(), CollectItemId, CollectItemCount);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                if (quest == null)
+                    TreeRoot.GoalText = "[MrFishIt][v" + _Version.ToString() + "] Fishing Item [" + CollectItemId + "] - In Progress";
+                else
+                    TreeRoot.GoalText = "[MrFishIt][v" + _Version.ToString() + "] Fishing Item for [" + quest.Name + "] - In Progress";
+
+                Logging.WriteDiagnostic(Colors.Green, "[MrFishIt][v{0}] Fishing Item: {1} - Quantity: {2} - QuestID: {3}", _Version.ToString(), CollectItemId, CollectItemCount, CollectItemId);
             }
         }
 
@@ -233,32 +259,21 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
         protected override TreeSharp.Composite CreateBehavior()
         {
             return _root ?? (_root =
-                new Decorator(ret => !IsDone && !StyxWoW.Me.Combat && !StyxWoW.Me.IsDead && !StyxWoW.Me.IsGhost,
+                new Decorator(ret => !IsDone /*&& !LootOpen*/,
                     new PrioritySelector(
 
                         // Have we a facing waterpoint or a PoolId and PoolGUID? No, then cancel this behavior!
-                        new Decorator(ret => WaterPoint == WoWPoint.Empty && (PoolId == 0 || _PoolGUID == -1),
+                        new Decorator(ret => (!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || _PoolGUID == -1)) ||
+                        StyxWoW.Me.Combat || StyxWoW.Me.IsDead || StyxWoW.Me.IsGhost,
                             new Action(ret => _cancelBehavior = true)),
 
-                        new Decorator(ret => (!Flightor.MountHelper.Mounted || !StyxWoW.Me.IsFlying) && (WaterPoint != WoWPoint.Empty ||
+                        new Decorator(ret => (!Flightor.MountHelper.Mounted || !StyxWoW.Me.IsFlying) && (TestFishing || (WaterPoint != WoWPoint.Empty ||
                             (PoolId != 0 && hasPoolFound && PoolFishingBuddy.saveLocation.Count > 0 &&
-                            StyxWoW.Me.Location.Distance(PoolFishingBuddy.saveLocation[0]) <= 2.5 && !PoolFishingBuddy.looking4NewLoc)),
+                            StyxWoW.Me.Location.Distance(PoolFishingBuddy.saveLocation[0]) <= 2.5 && !PoolFishingBuddy.looking4NewLoc))),
                             CreateFishBehavior()
                             ),
 
-
-                        PoolFishingBuddy.CreateMoveToPoolBehavior()
-
-                        //// Do we need to looking for pool?
-                        //new Decorator(ret => PoolId != 0 && MoveToPool && (!_PoolGUID.IsValid() || _PoolGUID > 0),
-                        //    new Sequence(
-                        //        new Action(ret => Logging.WriteDiagnostic("need looking - " + _PoolGUID.asWoWGameObject().Distance2D)),
-                        //        new Decorator(ret => _PoolGUID > 0 && (Flightor.MountHelper.Mounted || _PoolGUID.asWoWGameObject().Distance2D < PoolFishingBuddy.MinCastRange || 
-                        //            _PoolGUID.asWoWGameObject().Distance2D > PoolFishingBuddy.MaxCastRange),
-                        //            PoolFishingBuddy.CreateMoveToPoolBehavior())))
-
-                        //new Decorator(ret => WaterPoint != WoWPoint.Empty || (PoolId != 0 && _PoolGUID > 0),
-                            
+                        PoolFishingBuddy.CreateMoveToPoolBehavior()                            
                     )));
         }
         
@@ -271,12 +286,21 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
             return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
         }
 
+        private bool LootOpen { get; set; }
         private void HandleLootOpened(object sender, LuaEventArgs args)
         {
+            LootOpen = true;
+            Logging.WriteDiagnostic(Colors.Firebrick, "looting..");
+
             object[] arg = args.Args;
             if (arg[0] == "0")
+            {
+                Logging.WriteDiagnostic(Colors.Firebrick, "no autoloot");
                 Lua.DoString("for i=1, GetNumLootItems() do LootSlot(i) ConfirmBindOnUse() end CloseLoot()");
+            }
+            Logging.WriteDiagnostic(Colors.Firebrick, "looting done..");
         }
+        private void HandleLootClosed(object sender, LuaEventArgs args) { Logging.WriteDiagnostic(Colors.Firebrick, "(hook)looting done.."); LootOpen = false; }
 
         private Composite CreateFishBehavior()
         {
@@ -309,23 +333,26 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
                         new Wait(5, ret => LootFrame.Instance.IsVisible,
                             new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "[MrFishIt] Looting ..."),
-                                new Action(ret => StyxWoW.SleepForLagDuration())
+                                //new Action(ret => StyxWoW.SleepForLagDuration())
+                                //CreateWaitForLagDuration()
+                                new ActionAlwaysSucceed()
                                 ))
                             )),
 
                 // Do we need to recast?
-                new Decorator(ret => /*Fishing.FishingPole != null &&*/ !Fishing.IsFishing || (PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole),
+                new Decorator(ret => Fishing.FishingBobber == null || !Fishing.IsFishing || (Fishing.IsFishing && PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole),
                     new Sequence(
+                        new Action(ret => { if (Fishing.FishingBobber == null) Logging.WriteDiagnostic("[MrFishIt] no FishingBobber found!?"); }),
                         new Action(ret => Logging.Write(Colors.Aquamarine, "[MrFishIt] Casting ...")),
                         new Action(ret => { if (WaterPoint != WoWPoint.Empty) { StyxWoW.Me.SetFacing(WaterPoint); Thread.Sleep(200); } }),
                         new Action(ret => { if (PoolId != 0) { StyxWoW.Me.SetFacing(_PoolGUID.asWoWGameObject()); Thread.Sleep(200); } }),
                         new Action(ret => SpellManager.Cast("Fishing")),
-                        new Wait(5, ret => !StyxWoW.Me.IsCasting, new ActionIdle()),
-                        CreateWaitForLagDuration()
+                        new Wait(2, ret => Fishing.IsFishing, new ActionAlwaysSucceed())
+                        //CreateWaitForLagDuration()
                         )),
 
                 new Sequence(
-                    new Action(ret => TreeRoot.StatusText = "[MrFishIt] Waiting for bobber to splash ..."),
+                    new ActionSetActivity("[MrFishIt] Waiting for bobber to splash ..."),
                     new ActionIdle()
                     ));
         }
@@ -338,7 +365,7 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
         /// <summary>
         /// Returns true if you are fishing
         /// </summary>
-        public static bool IsFishing { get { return /*FishingIds.Contains(StyxWoW.Me.ChanneledCastingSpellId);*/ StyxWoW.Me.IsCasting; } }
+        public static bool IsFishing { get { return /*FishingIds.Contains(StyxWoW.Me.ChanneledCastingSpellId);*/ (StyxWoW.Me.IsCasting | StyxWoW.Me.HasAura("Fishing")); } }
 
         /// <summary>
         /// Returns your fishing pole
@@ -364,6 +391,10 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
             get
             {
                 ObjectManager.Update();
+                var d = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o != null && o.IsValid && o.CreatedByGuid == StyxWoW.Me.Guid);
+                //if (d != null)
+                //    Logging.WriteDiagnostic("[FishingBobber]Name: {0} - AnimationState: {1}", d.Name, d.AnimationState);
+
                 return ObjectManager.GetObjectsOfType<WoWGameObject>()
                     .FirstOrDefault(o => o != null && o.IsValid && o.CreatedByGuid == StyxWoW.Me.Guid &&
                         o.SubType == WoWGameObjectType.FishingNode);
@@ -385,22 +416,19 @@ namespace Styx.Bot.Quest_Behaviors.FishinItem
 
         public static bool IsBobbing(this WoWGameObject value)
         {
-            if (value == null || value.SubType != WoWGameObjectType.FishingNode)
+            if (value == null)
                 return false;
 
             //return ((WoWFishingBobber)value.SubObj).IsBobbing;
+            //return null != Fishing.FishingBobber ? 1 == Fishing.FishingBobber.AnimationState : false;
 
-            return null != Fishing.FishingBobber ? 1 == Fishing.FishingBobber.AnimationState : false;
+            return value.AnimationState == 1;
         }
 
         public static WoWGameObject asWoWGameObject(this double GUID)
         {
             ObjectManager.Update();
             WoWGameObject _o = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o.Guid == GUID);
-            //if (_o == null)
-            //    Logging.WriteDiagnostic("{0} - asWoWGameObject - null", DateTime.Now.ToLongTimeString());
-            //else
-            //    Logging.WriteDiagnostic(DateTime.Now.ToLongTimeString() + " - asWoWGameObject - " + _o.Guid.ToString() + " - " + _o.Name + " - " + _o.Distance2D);
             return _o;
         }
     }

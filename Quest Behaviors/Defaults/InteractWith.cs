@@ -218,7 +218,7 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                 {
                     case ObjectType.GameObject:
                         @object = ObjectManager.GetObjectsOfType<WoWGameObject>().Where(obj =>
-                            !_npcBlacklist.Contains(obj.Guid) && !Blacklist.Contains(obj.Guid) &&
+                            !_npcBlacklist.Contains(obj.Guid) &&
                             obj.DistanceSqr < CollectionDistance * CollectionDistance &&
                             MobIds.Contains((int)obj.Entry)).OrderBy(ret => ret.DistanceSqr).FirstOrDefault();
 
@@ -318,15 +318,19 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                             )),
                                         new SwitchArgument<NavigationType>(
                                             NavigationType.Mesh,
-                                            new Sequence(
-                                                new Decorator(ret => Navigator.CanNavigateFully(StyxWoW.Me.Location, CurrentObject.Location),
+                                            new PrioritySelector(
+
+                                                new Decorator(ret => !Navigator.CanNavigateFully(StyxWoW.Me.Location, CurrentObject.Location) && !StyxWoW.Me.IsFlying,
                                                     new Sequence(
-                                                        new Action(ret => Blacklist.Add(CurrentObject.Guid, TimeSpan.FromMinutes(5))),
+														new Action(ret => { TreeRoot.StatusText = "Unable to navigate to object, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
+                                                        new Action(ret => _npcBlacklist.Add(CurrentObject.Guid)),
                                                         new ActionAlwaysSucceed())),
 
-                                                new Action(delegate { TreeRoot.StatusText = "Moving to interact with \"" + CurrentObject.Name + "\""; }),
-                                                new Action(ret => Navigator.MoveTo(CurrentObject.Location))
-                                                )),
+                                                new Sequence(
+                                                    new Action(delegate { TreeRoot.StatusText = "Moving to interact with \"" + CurrentObject.Name + "\""; }),
+                                                    new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+                                                ))),
+
                                         new SwitchArgument<NavigationType>(
                                             NavigationType.None,
                                             new Sequence(
