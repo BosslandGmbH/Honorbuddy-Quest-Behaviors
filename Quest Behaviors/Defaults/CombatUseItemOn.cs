@@ -53,9 +53,9 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    public class CombatUseItemOnCopy : CustomForcedBehavior
+    public class CombatUseItemOn : CustomForcedBehavior
     {
-        public CombatUseItemOnCopy(Dictionary<string, string> args)
+        public CombatUseItemOn(Dictionary<string, string> args)
             : base(args)
         {
 
@@ -142,7 +142,7 @@ namespace Styx.Bot.Quest_Behaviors
         public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        ~CombatUseItemOnCopy()
+        ~CombatUseItemOn()
         {
             Dispose(false);
         }
@@ -210,11 +210,11 @@ namespace Styx.Bot.Quest_Behaviors
                                                 new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
                                                 new Action(ret => Item.UseContainerItem()),
                                                 new Action(ret => Thread.Sleep(WaitTime)),
-                                                new Decorator(ret => BlacklistMob,
-                                                    new Action(ret => BehaviorBlacklist.Add(_lastMobGuid, TimeSpan.FromSeconds(30)))),
                                                 new DecoratorContinue(
                                                     ret => QuestId == 0,
-                                                    new Action(ret => Counter++))))))))
+                                                    new Action(ret => Counter++)),
+												new DecoratorContinue(ret => BlacklistMob,
+                                                    new Action(ret => BehaviorBlacklist.Add(_lastMobGuid, TimeSpan.FromSeconds(30))))))))))
 
                     ))));
         }
