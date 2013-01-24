@@ -7,8 +7,10 @@
 //      Allows you to cast a specific spell on a target.  Useful for training dummies and starting quests.
 //
 //  Parameters (required, then optional--both listed alphabetically):
-//      MobId: Id of the target (NPC or Object) on which the spell should be cast.
-//      SpellId: Spell that should be used to cast on the target
+//      MobIdN: Id of the target(s) (NPC or Object) on which the spell should be cast.
+//      SpellIdN: Spell(s) that should be used to cast on the target
+//          One spell from all those provided will be selected and used.
+//          One of the identified spells must be known; otherwise, an error is displayed and Honorbuddy stops.
 //      X,Y,Z: The general location where the targets can be found.
 //
 //      HpLeftAmount [Default:110 hitpoints]: How low the hitpoints on the target should be before attempting
@@ -55,7 +57,6 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 25;
                 SpellIds = GetNumberedAttributesAsArray<int>("SpellId", 1, ConstrainAs.SpellId, null);
-                //SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
                 SpellName = GetAttributeAs<string>("SpellName", false, ConstrainAs.StringNonEmpty, new[] { "spellname" }) ?? "";
 
                 Counter = 0;
@@ -296,6 +297,16 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
+        private string FriendlySpellIdentifier(int spellId)
+        {
+            WoWSpell spell = WoWSpell.FromId(spellId);
+
+            return ((spell == null)
+                    ? string.Format("SpellId({0})", spellId)
+                    : string.Format("SpellId({0}, \"{1}\")", spellId, spell.Name));
+        }
+
+
         #region Overrides of CustomForcedBehavior
 
 
@@ -333,16 +344,17 @@ namespace Styx.Bot.Quest_Behaviors
                 // that has already been completed, then having this check in the constructor yields
                 // confusing (and wrong) error messages.  Thus, we needed to defer the check until
                 // we actually tried to _use_ the behavior--not just create it.
-                if (!SpellManager.HasSpell(SpellId))
-                {
-                    WoWSpell spell = WoWSpell.FromId(SpellId);
 
-                    LogMessage("fatal", "Toon doesn't know SpellId({0}, \"{1}\")",
-                                        SpellId,
-                                        ((spell != null) ? spell.Name : "unknown"));
+                // If toon doesn't know any of the prescribed spells, we're done...
+                if (!SpellIds.Any(s => SpellManager.HasSpell(s)))
+                {
+                    LogMessage("fatal", "Toon doesn't know any of: {0}",
+                        string.Join(", ", SpellIds.Select(s => FriendlySpellIdentifier(s))));
+
                     _isBehaviorDone = true;
                     return;
                 }
+
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
