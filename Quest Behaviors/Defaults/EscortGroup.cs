@@ -70,8 +70,16 @@
 // </CustomBehavior>
 // 
 
-// Can be used to defend a stationary object
-// Escorts a single NPC or a group of NPCs
+// * Can be used to defend a stationary object
+// * Escorts a single NPC or a group of NPCs
+// * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
+// * Will wait for the NPCs to be escorted to arrive
+// Future improvements:
+// * Leading escort in addition to following
+// * Don't unnecessarily move while in combat
+// * A variant where the toon must lead the escort, rather than follow it (e.g., http://www.wowhead.com/quest=28156)
+// THINGS TO KNOW:
+// * All looting and harvesting is turned off while the escort is in progress.
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -84,6 +92,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -98,20 +107,6 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
     {
         public delegate WoWPoint LocationDelegate(object context);
         public delegate string MessageDelegate(object context);
-
-        private enum BehaviorStateType
-        {
-            MovingToStartLocation,
-
-            StartBy_NpcInteraction,
-            StartBy_NpcInteraction2,
-            StartBy_NpcPresence,
-
-            Escorting,
-            Escorting_MoveToEscortCenterPoint,
-
-            CheckDone,
-        }
 
         public enum StartByType
         {
@@ -215,12 +210,27 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
         // Private and Convenience variables
+        private enum BehaviorStateType
+        {
+            MovingToStartLocation,
+
+            StartBy_NpcInteraction,
+            StartBy_NpcInteraction2,
+            StartBy_NpcPresence,
+
+            Escorting,
+            Escorting_MoveToEscortCenterPoint,
+
+            CheckDone,
+        }
+
         private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
         private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
-        private static LocalPlayer Me { get { return StyxWoW.Me; } }
+        private LocalPlayer Me { get { return StyxWoW.Me; } }
 
         private Composite _behaviorTreeHook = null;
+        private ConfigMemento _configMemento = null;
         private WoWPoint _escortCenterPoint = WoWPoint.Empty;
         private BehaviorStateType _behaviorState = BehaviorStateType.MovingToStartLocation;
         private int _gossipOptionIndex;
@@ -228,7 +238,6 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         private bool _isDisposed = false;
         private RunStatus _lastStateReturn { get; set; }
         private WoWUnit _targetPoiUnit = null;
-        private BotPoi _targetPoi = null;
         private Stopwatch _waitForStartTimer = new Stopwatch();
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -256,9 +265,17 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 }
 
                 // Clean up unmanaged resources (if any) here...
-                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook);
+                if (_behaviorTreeHook != null)
+                    { TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook); }
 
-                Utility_NotifyUser(string.Empty);
+                if (_configMemento != null)
+                    { _configMemento.Dispose(); }
+
+                _configMemento = null;
+
+                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
 
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
@@ -272,11 +289,14 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         protected override Composite CreateBehavior()
         {
             return new PrioritySelector(escortedUnitsContext => FindEscortedUnits(),
-                new Action(delegate { LogMessage("info", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
+                // FOR DEBUG:
+                // new Action(delegate { LogMessage("info", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
 
                 new Decorator(escortedUnitsContext => _isBehaviorDone,
                     new Action(delegate { Utility_NotifyUser("Finished"); })),
-
+// TODO:
+// * Tighten up follow
+// * Allow for combat fall-through before escort
                 new Switch<BehaviorStateType>(escortedUnitsContext => _behaviorState,
                     new Action(delegate { // default case
                         LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", _behaviorState);
@@ -285,24 +305,27 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         }),
 
                     new SwitchArgument<BehaviorStateType>(BehaviorStateType.MovingToStartLocation,
-                        new PrioritySelector(
-                            UtilityBehavior_MoveTo(escortedUnitsContext => StartLocation,
-                                                  escortedUnitsContext => "Escort Start Location"),
-                            new Action(delegate // Select start method
-                            {
-                                _waitForStartTimer.Stop();
-                                switch (StartBy)
+                        new Sequence(
+                            new DecoratorContinue(escortedUnitsContext => Me.Combat,
+                                new ActionAlwaysFail()),
+                            new PrioritySelector(
+                                UtilityBehavior_MoveTo(escortedUnitsContext => StartLocation,
+                                                      escortedUnitsContext => "Escort Start Location"),
+                                new Action(delegate // Select start method
                                 {
-                                    case StartByType.NpcInteraction: _behaviorState = BehaviorStateType.StartBy_NpcInteraction; break;
-                                    case StartByType.NpcPresence:    _behaviorState = BehaviorStateType.StartBy_NpcPresence; break;
-                                    default:
-                                        LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: StartBy({0}) state is unhandled", StartBy);
-                                        TreeRoot.Stop();
-                                        _isBehaviorDone = true;
-                                        break;
-                                }
-                            })
-                        )),
+                                    _waitForStartTimer.Stop();
+                                    switch (StartBy)
+                                    {
+                                        case StartByType.NpcInteraction: _behaviorState = BehaviorStateType.StartBy_NpcInteraction; break;
+                                        case StartByType.NpcPresence:    _behaviorState = BehaviorStateType.StartBy_NpcPresence; break;
+                                        default:
+                                            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: StartBy({0}) state is unhandled", StartBy);
+                                            TreeRoot.Stop();
+                                            _isBehaviorDone = true;
+                                            break;
+                                    }
+                                })
+                        ))),
 
                     // NB: We must break StartBy_NpcInteraction into two pieces,
                     // because some escorts depop the interaction NPC and immediately replace with the escort-instance version.
@@ -339,42 +362,52 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                             new Decorator(escortedUnitsContext => IsMoveToEscortedUnitsNeeded((IEnumerable<WoWUnit>)escortedUnitsContext),
                                 new Action(escortedUnitsContext => _behaviorState = BehaviorStateType.Escorting_MoveToEscortCenterPoint)),
 
-                            // If escort units in combat, then defend...
-                            new Decorator(escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Any(u => u.Combat),
-                                new ActionSetPoi(escortedUnitsContext => GetTargetPoi((IEnumerable<WoWUnit>)escortedUnitsContext))),
+                            new Sequence(
+                                // If escort units in combat, then defend...
+                                new DecoratorContinue(escortedUnitsContext => IsEscortInCombat((IEnumerable<WoWUnit>)escortedUnitsContext),
+                                    new Action(escortedUnitsContext =>
+                                    {
+                                        ChooseBestTarget((IEnumerable<WoWUnit>)escortedUnitsContext);
+                                        LogMessage("info", "SELECTED TARGET({0})", _targetPoiUnit.Name);
+                                        return (RunStatus.Failure); // terminate evaluation & return to PrioritySelector
+                                    })),
 
-                            // Escort complete or failed?
-                            new Decorator(escortedUnitsContext => !Me.Combat,
+                                // Escort complete or failed?
                                 new Decorator(escortedUnitsContext => (IsEscortComplete() || IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext)),
-                                    new Action(escortedUnitsContext => _behaviorState = BehaviorStateType.CheckDone)))
+                                    new Action(escortedUnitsContext => 
+                                    {
+                                        _behaviorState = BehaviorStateType.CheckDone;
+                                        return (RunStatus.Failure); // terminate evaluation & return to PrioritySelector
+                                    })),
+
+                                new ActionAlwaysFail()
+                            )
                         )),
 
                     new SwitchArgument<BehaviorStateType>(BehaviorStateType.Escorting_MoveToEscortCenterPoint,
                         new PrioritySelector(
-                            // Clear any active POI (so we're not trying to also fight)...
-                            // TODO: new Action(delegate { BotPoi.Clear(); return RunStatus.Failure; }),
-
-                            // If Anchor point is empty, find new anchor point...
-                            new Decorator(escortedUnitsContext => (_escortCenterPoint == WoWPoint.Empty),
+                            // If Escort failed, no sense in trying to "keep up"...
+                            new Decorator(escortedUnitsContext => !IsMoveToEscortedUnitsNeeded((IEnumerable<WoWUnit>)escortedUnitsContext),
                                 new Action(delegate
                                 {
+                                    _targetPoiUnit = null; // Force reevaluation of which target we should be attacking
+                                    _escortCenterPoint = WoWPoint.Empty;
+                                    _behaviorState = BehaviorStateType.Escorting;
+                                })),
+
+                            // If Anchor point is empty or escort is moving, find new center point...
+                            new Decorator(escortedUnitsContext => (_escortCenterPoint == WoWPoint.Empty)
+                                                                    || ((IEnumerable<WoWUnit>)escortedUnitsContext).Any(u => u.IsMoving),
+                                new Action(escortedUnitsContext =>
+                                {
                                     // If we were unable to calculate an anchorpoint, see if we're done...
-                                    if ((_escortCenterPoint = FindGroupCenterPoint()) == WoWPoint.Empty)
+                                    if ((_escortCenterPoint = FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext)) == WoWPoint.Empty)
                                         { _behaviorState = BehaviorStateType.CheckDone; }
-     
                                     return (RunStatus.Failure); // fall thru
                                 })),
 
-                            // If we are too far from the group center, then close distance...
-                            new Decorator(escortedUnitsContext => (Me.Location.Distance(_escortCenterPoint) > Navigator.PathPrecision),
-                                UtilityBehavior_MoveTo(context => _escortCenterPoint, context => "escort center point")),
-
-                            // Done with movement...
-                            new Action(delegate
-                            {
-                                _escortCenterPoint = WoWPoint.Empty;
-                                _behaviorState = BehaviorStateType.Escorting;
-                            })
+                            // Close the distance...
+                            UtilityBehavior_MoveTo(context => _escortCenterPoint, context => "escort center point")
                         )),
 
                     new SwitchArgument<BehaviorStateType>(BehaviorStateType.CheckDone,
@@ -410,6 +443,14 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
         public override void OnStart()
         {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+            if ((QuestId != 0) && (quest == null))
+            {
+                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                IsAttributeProblem = true;
+            }
+
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -419,9 +460,30 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                // The ConfigMemento() class captures the user's existing configuration.
+                // After its captured, we can change the configuration however needed.
+                // When the memento is dispose'd, the user's original configuration is restored.
+                // More info about how the ConfigMemento applies to saving and restoring user configuration
+                // can be found here...
+                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
+                _configMemento = new ConfigMemento();
+                
+                BotEvents.OnBotStop += BotEvents_OnBotStop;
 
-                TreeRoot.GoalText = string.Format("{0}: {1}\nEscorting {2}",
+                // Disable any settings that may interfere with the escort --
+                // When we escort, we don't want to be distracted by other things.
+                // NOTE: these settings are restored to their normal values when the behavior completes
+                // or the bot is stopped.
+                CharacterSettings.Instance.HarvestHerbs = false;
+                CharacterSettings.Instance.HarvestMinerals = false;
+                CharacterSettings.Instance.LootChests = false;
+                CharacterSettings.Instance.LootMobs = false;
+                CharacterSettings.Instance.NinjaSkin = false;
+                CharacterSettings.Instance.SkinMobs = false;
+                CharacterSettings.Instance.PullDistance = 1;
+                
+                TreeRoot.GoalText = string.Format(
+                    "{0}: {1}\nEscorting {2}\nLooting and Harvesting are disabled while Escort in progress",
                     this.GetType().Name,
                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"),
                     Utility_GetNamesOfUnits(ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
@@ -445,9 +507,8 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
-        private WoWPoint FindGroupCenterPoint()
+        private WoWPoint FindGroupCenterPoint(IEnumerable<WoWUnit> escortedUnits)
         {
-            IEnumerable<WoWUnit> escortedUnits = FindEscortedUnits();
             int escortedUnitCount = 0;
             double centerPointX = 0.0;
             double centerPointY = 0.0;
@@ -488,27 +549,36 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
 
         // Get the weakest mob attacking our weakest escorted unit...
-        private BotPoi GetTargetPoi(IEnumerable<WoWUnit> escortedUnits)
+        private void ChooseBestTarget(IEnumerable<WoWUnit> escortedUnits)
         {
-            if (escortedUnits.Any(u => u.Combat))
+            if ((_targetPoiUnit == null) || !_targetPoiUnit.IsValid || _targetPoiUnit.IsDead)
             {
-                if ((_targetPoiUnit == null) || !_targetPoiUnit.IsValid || _targetPoiUnit.IsDead)
-                {
-                    WoWUnit weakestEscortedUnit = escortedUnits.OrderBy(u => u.HealthPercent).FirstOrDefault();
+                _targetPoiUnit =
+                    ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                    // NB: Anything attacking the escorted units or ourself, or our pet has to be knocked down.
+                    // NB: Some AoE effect will snag 'neutral' targets, so the test is intentionally
+                    // for !IsFriendly, instead of IsHostile.
+                    .Where(u => u.IsValid && !u.IsFriendly && u.IsAlive
+                            && (escortedUnits.Contains(u.CurrentTarget)
+                                || (u.CurrentTarget == Me) || ((Me.Pet != null) && (u.CurrentTarget == Me.Pet)))
+                            && !Blacklist.Contains(u, BlacklistFlags.Combat))
+                    // Target preferences:
+                    // * Prefer weakest enemies attacking the weakest escorted units
+                    // * Prefer melee attackers (to ranged)
+                    // * Prefer targets attacking escorted units (instead of ourselves/pet)
+                    .OrderBy(u => u.HealthPercent * u.CurrentTarget.HealthPercent * u.Location.Distance(u.CurrentTarget.Location)
+                        * (((u.CurrentTarget == Me) || (u.CurrentTarget == Me.Pet)) ? 100 : 1))
+                    .FirstOrDefault();
 
-                    _targetPoiUnit =
-                        ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                        .Where(u => u.IsValid && u.IsAlive && u.IsHostile && u.CurrentTarget == weakestEscortedUnit)
-                        .OrderBy(u => u.HealthPercent * weakestEscortedUnit.Location.Distance(u.Location))
-                        .FirstOrDefault();
-
-                    _targetPoi = new BotPoi(_targetPoiUnit, PoiType.Kill);
-                }
-
-                return _targetPoi;
+                LogMessage("warning", "Selected new POI TARGET({0})", _targetPoiUnit.Name);
             }
 
-            return null;
+            if ((_targetPoiUnit != null) && (Me.CurrentTarget != _targetPoiUnit))
+            {
+                LogMessage("warning", "Refocused TO TARGET({0})", _targetPoiUnit.Name);
+                BotPoi.Current = new BotPoi(_targetPoiUnit, PoiType.Kill);
+                _targetPoiUnit.Target();
+            }
         }
 
 
@@ -541,7 +611,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         // Escort fails when 1) quest says so, or 2) there are no more units to escort
         private bool IsEscortFailed(IEnumerable<WoWUnit> escortedUnits)
         {
-            bool isFailed = (escortedUnits.Count(u => u.IsValid && u.IsAlive) <= 0);
+            bool isFailed = !escortedUnits.Any(u => u.IsValid && u.IsAlive);
 
             if (QuestId != 0)
             {
@@ -553,12 +623,34 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
-        private bool IsMoveToEscortedUnitsNeeded(IEnumerable<WoWUnit> escortedUnits)
+        private bool IsEscortInCombat(IEnumerable<WoWUnit> escortedUnits)
         {
-            return escortedUnits.All(u => (u.Distance > EscortedNpcsMaxFollowDistance));
+            return Me.Combat || ((Me.Pet != null) && Me.Pet.Combat) || escortedUnits.Any(u => u.Combat);
         }
 
 
+        private bool IsMoveToEscortedUnitsNeeded(IEnumerable<WoWUnit> escortedUnits)
+        {
+            // If escort failed, no point in trying to 'keep up'...
+            if (IsEscortFailed(escortedUnits))
+                { return false; }
+
+            // If Combat, then its good enough to stay in "max range" of the nearested escorted unit...
+            if (IsEscortInCombat(escortedUnits))
+                { return escortedUnits.All(u => u.Distance > EscortedNpcsMaxFollowDistance); }
+
+            // If no combat, we want to stay within "max range" of the escort's center point...
+            // double tolerance = escortedUnits.Any(u => u.IsMoving) ? EscortedNpcsMaxFollowDistance : 3.0;
+            return (Me.Location.Distance(FindGroupCenterPoint(escortedUnits)) > 3.0);
+        }
+
+
+        public void BotEvents_OnBotStop(EventArgs args)
+        {
+            Dispose();
+        }
+        
+        
         // Returns: RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary
         private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate, MessageDelegate locationNameDelegate)
         {
@@ -646,7 +738,11 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             return new Decorator(context => waitForUnitIds.Count() > 0,
                 new Sequence(unitsPresentContext => ObjectManager.GetObjectsOfType<WoWUnit>(true, false).Any(u => waitForUnitIds.Contains((int)u.Entry)),
                     new DecoratorContinue(unitsPresentContext => (bool)unitsPresentContext,
-                        new Action(unitsPresentContext => { _waitForStartTimer.Stop(); return RunStatus.Failure; })),
+                        new Action(unitsPresentContext =>
+                        {
+                            _waitForStartTimer.Stop();
+                            return RunStatus.Failure;   // fall thru
+                        })),
                     new CompositeThrottle(TimeSpan.FromSeconds(10),
                         new Action(delegate
                         {
@@ -683,8 +779,8 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
         private void Utility_NotifyUser(string statusText)
         {
-            if (statusText != null) { TreeRoot.StatusText = statusText; }
-            if (!string.IsNullOrEmpty(statusText)) { LogMessage("info", statusText); }
+            if (statusText != null)
+                { TreeRoot.StatusText = statusText; }
         }
         #endregion // Behavior helpers
 
