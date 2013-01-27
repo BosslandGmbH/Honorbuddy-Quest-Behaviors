@@ -350,6 +350,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                                                                                   "PluginKey",
                                                                                   "SelectedBotIndex",
                                                                                   "Username",
+																				  "RecentProfiles",
                                                                               };
             Dictionary<string, ConfigDescriptor> configurationSetting = new Dictionary<string, ConfigDescriptor>();
 
