@@ -1,16 +1,4 @@
-// WORK IN PROGRESS -- WON'T COMPILE, UNTESTED, DON'T USE YET
-
-
-#region Summary and Documentation
 // Behavior originally contributed by Chinajade.
-//
-// ESCORTGROUP has the following characteristics:
-// * Escorts and defends a single NPC or a group of NPCs
-// * Can be used to defend a stationary object
-// * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
-// * Will wait for the NPCs to be escorted to arrive, or can search for them
-//   via a supplied SearchPath.
-// * Can 'lead' an NPC (rather than follow it) via a supplied EscortPath.
 //
 // LICENSE:
 // This work is licensed under the
@@ -19,87 +7,121 @@
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
-//
-// DOCUMENTATION:
-//      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CollectThings
-//     
+
+#region Summary and Documentation
 // QUICK DOX:
-//      Collects items from mobs or objects when (right-click) 'interaction' is required.
-//      Most useful for those type of quests where you blow something up,
-//      then you have to collect the pieces.
+// ESCORTGROUP has the following characteristics:
+//      * Escorts and defends a single NPC or a group of NPCs
+//      * Can be used to defend a stationary object
+//      * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
+//      * Will wait for the NPCs to be escorted to arrive, or can search for them
+//        via a supplied SearchPath.
+//      * Can 'lead' an NPC (rather than follow it) via a supplied EscortPath.
 //
-//  Parameters:
-//      StartNpcIdN
-//      StartEscortGossipOptions
+//  BEHAVIOR ATTRIBUTES:
+//      StartNpcIdN [REQUIRED if StartEscortGossipOptions specified]
+//          N may be omitted, or any numeric value--multiple mobs are supported.
+//          If NPC interaction is required to start the escort, the StartNpcIdN identifieds one
+//          or more NPCs that may be interacted with to initiate the escort.
+//          If the quest fails for some reason, the behavior will return to these NPCs
+//          to try again.
+//      StartEscortGossipOptions [optional; Default: first gossip option on first dialog panel]
+//          Specifies the set of interaction choices on each gossip panel to make, in order to
+//          start the escort.
+//          The value of this attribute is a comma-separated list of gossip options (e.g., "1,3,1").
 //
-//      EscortNpcIdN
-//      EscortMaxFightDistance
-//      EscortMaxFollowDistance
+//      EscortNpcIdN [REQUIRED]
+//          N may be omitted, or any numeric value--multiple mobs are supported.
+//          Identifies one or more NPCs to be escorted.
+//      EscortMaxFightDistance [optional; Default: 27.0]
+//          [on the close ranged: [5.0..100.0]]
+//          The maximum range from the _nearest_ escorted NPC at which the toon will fight.
+//          If for some reason, the toon is pulled outside of this range, the behavior
+//          moves the toon back into this maximum range.
+//      EscortMaxFollowDistance [optional; Default: 15.0]
+//          [on the closed ranged: [3.0..100.0]]
+//          The maximum range at which the toon will follow the escorted NPCs while not
+//          in combat.  If a group of NPCs is being escorted, this distance is measured
+//          from the group center point.
 //
-//      EscortCompleteWhen
-//      EscortCompleteLocation
-//      EscortCompleteMaxRange
+//      EscortCompleteWhen [optional; Default: QuestComplete]
+//          [allowed values: DestinationReached/QuestComplete/QuestCompleteOrFails]
+//          Defines the completion criteria for the behavior.
+//      EscortCompleteX/EscortCompleteY/EscortCompleteZ [REQUIRED if EscortCompleteWhen=DestinationReached]
+//          Defines the location at which the behavior is considered complete.  This value is only used
+//          if EscortComplete is DestinationReached.
+//      EscortCompleteMaxRange [optional; Default: 10.0]
+//          Defines the tolerance from the EscortCompleteX/Y/Z for which the behavior is considered
+//          complete.  This value is only used if EscortCompelte is DestinationReached.
 //
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-
-//// Quest handling...
-//QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-//QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-//QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-
-//      (***One or more of the following two attributes must be specified***)
-//      MobIdN [REQUIRED if ObjectId is omitted]: Defines the mobs that drop the Items we're after.
-//              N may be omitted, or any numeric value--multiple mobs are supported.
-//      ObjectIdN [REQUIRED if MobId is omitted]: Defines the objects that drop the Items we're after.
-//              N may be omitted, or any numeric value--mulitple objects are supported.
 //
-//      (This attribute is optional, but governs what other attributes are optional)
-//      CollectUntil [Default: RequiredCountReached]: Defines the terminating condition for
-//              this behavior.  Available options include:  NoTargetsInArea, RequiredCountReached, QuestComplete.
-//              "Targets" means mobs or objects--whatever is dropping the items we're after.
+// BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
+// See the "Examples" section for typical usage.
+//      EscortPath [optional]
+//          Comprised of a set of Hotspots, this element defines a _unidirectional_ path
+//          which the toon will lead the EscortNpcIdN.
+//      SearchPath [optional; Default: Toon's current position when the behavior is started]
+//          Comprised of a set of Hotspots, this element defines a _circular_ path
+//          that the toon will traverse to locate the StartNpcIdN or EscortNpcIdN.
+//          If no SearchPath is specified, the toon will wait at the current position
+//          for the StartNpcIdN or EscortNpcIdN to arrive.
 //
-//      (***These attributes may/may not be optional based on value of CollectUntil attribute***)
-//      CollectItemCount [REQUIRED if CollectUntil=RequiredCountReached; Default: 1]:
-//              represents the number of items we must collect for the behavior to terminate.
-//      CollectItemId [REQUIRED if CollectUntil=NoTargetsInArea or RequiredCountReached; Default:none]:
-//              Identifies the item we are collecting.  The only time this attribute may be omitted
-//              is when we're collecting intangibles such as 'attitudes' or 'liberations' that
-//              will complete the quest.
-//      QuestId [REQUIRED if CollectUntil=QuestComplete; Default:none]:
-//
-//      (***These attibutes are completely optional***)
-//      HuntingGroundRadius [Default: 120]: The range from the anchor location (i.e., X/Y/Z) location at which
-//              targets (mobs or objects) will be sought.
-//      IgnoreMobsInBlackspots [Default: false]: If true, mobs sitting in blackspotted areas will not be
-//              considered as targets.
-//      MobState [Default: DontCare]: Identifies the state in which the Mob must be to be considered
-//              as a target.  The MobState only applies if the target is some form of NPC.  The MobState
-//              Valid values are Alive/Dead/DontCare.
-//      NonCompeteDistance [Default: 25]: If a player is within this distance of a target that looks
-//              interesting to us, we'll ignore the target.  The assumption is that the player may
-//              be going for the same target, and we don't want to draw attention.
-//      PostInteractDelay [Default: 1500ms]: The number of milliseconds to wait after each interaction.
-//              This is useful if the target requires time for the interaction to complete.
-//              This value must be on the closed interval [0..61000].
-//      QuestCompleteRequirement [Default:NotComplete]:
-//      QuestInLogRequirement [Default:InLog]:
-//              A full discussion of how the Quest* attributes operate is described in
-//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-//      X/Y/Z [Default: Toon's initial position]: Defines the anchor of a search area for
-//              which targets (mobs or objects) will be sought.  The hunting ground is defined by
-//              this value coupled with the CollectionDistance.
+// THINGS TO KNOW:
+// * All looting and harvesting is turned off while the escort is in progress.
+// * Provide an EscortPath--it makes the toon look _incredibly_ human.
 //
 // POSSIBLE FUTURE IMPROVEMENTS:
 // * Do 'fan out' as we travel, so multiple toons don't stack up in the exact same spots
 // * Timeouts: 1) While searching for NPCs, 2) for overall quest completion
+#endregion
+
+#region FAQs
+// * Why the distinction between StartNpcIdN and EscortNpcIdN?
+//      StartNpcIdN must be interacted via a gossip dialog to initiate the escort.
+//      EscortNpcIdN represents a toon who's presence is sufficient to conduct
+//      an escort.
+//      Game mechanics are usually such that after the gossip completes with the
+//      StartNpcIdN, an second instance of the gossip NPC is produced, and this
+//      instanced-version is the NPC that should be followed (via EscortNpcIdN).
 //
-// THINGS TO KNOW:
-// * All looting and harvesting is turned off while the escort is in progress.
-// * Always provide an EscortPath--it makes the bot look incredibly human.
+// * When does the behavior 'lead' versus 'follow' NPCs to be escorted?
+//      If an EscortPath is specified, the toon will 'lead' the NPC while escorting.
+//      Otherwise, it will 'follow' the NPC.
+//
+// * What happens if the toon gets in a fight but the NPCs keep going?
+//      The toon will try to drag the mob to the NPC and pull the NPC into combat
+//      also. This usually makes the NPC stop moving, and assist with the battle.
+//
+// * Can I specify both an EscortPath and a SearchPath?
+//      Absolutely
+//
+// * What happens if the NPCs won't follow the EscortPath?
+//      The behavior detects this situation and dequeues the current waypoint from
+//      this escort path.  Such a dequeue will continue to happen until the toon
+//      is again in a position to 'lead' the escorted NPCs.
+//      If the toon never gets into a position to 'lead' the NPCs (i.e., the EscortPath
+//      is poorly defined), then the toon just resorts to 'following' the NPCs.
+//
+// * What happens when an Escorted NPC dies?
+//      If there is more than one NPC being escorted, the behavior will continue
+//      until all NPCs are dead.  Once the last NPC dies, the behavior will return
+//      to its starting point and try again, unless EscortCompleteWhen is set to
+//      QuestCompleteOrFails.
+//
+// * What happens if the Quest fails?
+//      Normally, the behavior returns to its starting point to try again.  However,
+//      if EscortCompleteWhen is set to QuestCompleteOrFails, the behavior will simply
+//      terminate.
+//
+// * The quest failed, how do I arrange to abandon it, and go pick it up again?
+//      Set the EscortCompleteWhen attribute to QuestCompleteOrFails.  In the profile,
+//      check for quest failure, and abandon and pick the quest up again, before
+//      re-conducting the behavior.
 #endregion
 
 #region Examples
@@ -204,6 +226,12 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
 
                 // Semantic Coherency checks --
+                if ((StartEscortGossipOptions.Count() != 0) && (StartNpcIds.Count() == 0))
+                {
+                    LogMessage("error", "If StartEscortGossipOptions are specified, you must also specify one or more StartNpcIdN");
+                    IsAttributeProblem = true;
+                }
+
                 if (EscortMaxFightDistance < EscortMaxFollowDistance)
                 {
                     LogMessage("error", "EscortedNpcsMaxCombatDistance({0}) must be greater than or equal to EscortedNpcsMaxNoCombatDistance({1})",
@@ -220,6 +248,12 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 if ((EscortCompleteWhen == EscortCompleteWhenType.QuestComplete) && (QuestId == 0))
                 {
                     LogMessage("error", "With a EscortCompleteWhen argument of QuestComplete, you must specify a QuestId argument");
+                    IsAttributeProblem = true;
+                }
+
+                if ((QuestId == 0) && (EscortCompleteWhen != EscortCompleteWhenType.DestinationReached))
+                {
+                    LogMessage("error", "When no QuestId is specified, EscortCompleteWhen must be DestinationReached");
                     IsAttributeProblem = true;
                 }
 
@@ -288,6 +322,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         private Composite _behaviorTreeHook = null;
         private ConfigMemento _configMemento = null;
         private Queue<WoWPoint> _escortPath = null;
+        private IEnumerable<WoWPoint> _escortPathSpecified = null;
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
@@ -295,6 +330,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         private int _pullDistanceOriginal = 0;
         private Queue<WoWPoint> _searchPath = null;
         private WoWUnit _targetPoiUnit = null;
+        private WoWPoint _toonStartingPosition = null;
         private Stopwatch _waitForStartTimer = new Stopwatch();
         #endregion
 
@@ -389,7 +425,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 IsAttributeProblem = true;
             }
 
-            _escortPath = ParsePath("EscortPath");
+            _escortPathSpecified = ParsePath("EscortPath");
             _searchPath = ParsePath("SearchPath");
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -431,7 +467,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 // If we're leading the escort instead of following,
                 // allow some hysteresis in that 'move back to escort' distance...
                 // This prevents the toon from vascillating while moving.
-                if (_escortPath.Count() > 0)
+                if (_escortPathSpecified.Count() > 0)
                 {
                     EscortMaxLeadDistance = EscortMaxFollowDistance;
                     EscortMaxFollowDistance = EscortMaxFollowDistance + Math.Max(0.2 * EscortMaxFollowDistance, 5.0);
@@ -440,6 +476,8 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 // If search path not provided, use our current location...
                 if (_searchPath.Count() <= 0)
                     { _searchPath.Enqueue(Me.Location); }
+
+                _toonStartingPosition = Me.Location;
 
                 _behaviorState = BehaviorStateType.InitialState;
                 _behaviorTreeHook = CreateBehavior();
@@ -452,6 +490,9 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         #region Main Behavior
         protected Composite CreateMainBehavior()
         {
+            // NB: This behavior is hooked in at a 'higher priority' than Combat_Main.  We need this
+            // because while escorting, it is sometimes more important to move than fight.
+
             // Let other behaviors deal with toon death and path back to corpse...
             return new DecoratorContinue(context => !(Me.IsDead || Me.IsGhost),
                 new PrioritySelector(escortedUnitsContext => FindUnitsFromIds(EscortNpcIds),
@@ -469,15 +510,24 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         }),
 
                         new SwitchArgument<BehaviorStateType>(BehaviorStateType.InitialState,
-                            new Action(delegate
-                            {
-                                // Start at nearest point in the search path...
-                                WoWPoint nearestPoint = _searchPath.OrderBy(p => Me.Location.Distance(p)).FirstOrDefault();
-                                while (_searchPath.Peek() != nearestPoint)
-                                    { Utility_RotatePath(_searchPath); }
+                            new PrioritySelector(
+                                UtilityBehavior_MoveWithinRange(escortedUnitsContext => _toonStartingPosition,
+                                                                escortedUnitsContext => "start location"),
+                                new Action(delegate
+                                {
+                                    // Since the _escortPath is 'consumed' while we travel,
+                                    // we need to have a full copy of it when starting...
+                                    // (Behavior must be Honorbuddy stop/start friendly).
+                                    _escortPath = new Queue<WoWPoint>(_escortPathSpecified);
 
-                                _behaviorState = BehaviorStateType.SearchingForEscortUnits;
-                            })),
+                                    // Start at nearest point in the search path...
+                                    WoWPoint nearestPoint = _searchPath.OrderBy(p => Me.Location.Distance(p)).FirstOrDefault();
+                                    while (_searchPath.Peek() != nearestPoint)
+                                        { Utility_RotatePath(_searchPath); }
+
+                                    _behaviorState = BehaviorStateType.SearchingForEscortUnits;
+                                })
+                            )),
 
                         new SwitchArgument<BehaviorStateType>(BehaviorStateType.SearchingForEscortUnits,
                             new PrioritySelector(
@@ -735,7 +785,6 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             if (IsEscortFailed(escortedUnits))
                 { return false; }
 
-            // If Combat, then its good enough to stay in "max range" of the nearested escorted unit...
             WoWPoint groupCenterPoint = FindGroupCenterPoint(escortedUnits);
             bool isEscortedInCombat = IsInCombat(escortedUnits);
             bool isMoveNeeded = false;
