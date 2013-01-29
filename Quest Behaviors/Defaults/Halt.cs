@@ -38,10 +38,11 @@ namespace Styx.Bot.Quest_Behaviors
             try
             {
                 LogMessage("warning", "*****\n"
-                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                                        + "* THIS BEHAVIOR IS DEPRECATED, and scheduled to be retired.\n"
                                         + "*\n"
                                         + "* Halt adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
-                                        + "* Please update the profile to use the UserSettings behavior and use StopBot."
+                                        + "* Please update the profile to use:\n"
+                                        + "     <CustomBehavior File=\"UserSettings\" StopBot=\"true\" />\n"
                                         + "*****");
 
                 // QuestRequirement* attributes are explained here...
