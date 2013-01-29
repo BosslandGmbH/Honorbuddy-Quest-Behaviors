@@ -1,7 +1,16 @@
 // WORK IN PROGRESS -- WON'T COMPILE, UNTESTED, DON'T USE YET
 
 
+#region Summary and Documentation
 // Behavior originally contributed by Chinajade.
+//
+// ESCORTGROUP has the following characteristics:
+// * Escorts and defends a single NPC or a group of NPCs
+// * Can be used to defend a stationary object
+// * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
+// * Will wait for the NPCs to be escorted to arrive, or can search for them
+//   via a supplied SearchPath.
+// * Can 'lead' an NPC (rather than follow it) via a supplied EscortPath.
 //
 // LICENSE:
 // This work is licensed under the
@@ -19,7 +28,29 @@
 //      Most useful for those type of quests where you blow something up,
 //      then you have to collect the pieces.
 //
-//  Parameters (required, then optional--both listed alphabetically):
+//  Parameters:
+//      StartNpcIdN
+//      StartEscortGossipOptions
+//
+//      EscortNpcIdN
+//      EscortMaxFightDistance
+//      EscortMaxFollowDistance
+//
+//      EscortCompleteWhen
+//      EscortCompleteLocation
+//      EscortCompleteMaxRange
+//
+//      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+
+//// Quest handling...
+//QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+//QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+//QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
 //      (***One or more of the following two attributes must be specified***)
 //      MobIdN [REQUIRED if ObjectId is omitted]: Defines the mobs that drop the Items we're after.
 //              N may be omitted, or any numeric value--multiple mobs are supported.
@@ -61,32 +92,61 @@
 //      X/Y/Z [Default: Toon's initial position]: Defines the anchor of a search area for
 //              which targets (mobs or objects) will be sought.  The hunting ground is defined by
 //              this value coupled with the CollectionDistance.
-// 
-// Exmaples:
-// <CustomBehavior File="CollectThings" ...other args... >
-//     <Hotspot Name="Cathedral Square fishing dock" X="4554.003" Y="-4718.743" Z="883.0464" StartPoint="true" />
-//     <Hotspot Name="The Shady Lady" X="4578.725" Y="-4721.257" Z="882.8724" />
-//     <Hotspot Name="The Blue Recluse" X="4584.166" Y="-4693.487" Z="882.7331" StartPoint="true" />
-// </CustomBehavior>
-// 
-
-// * Can be used to defend a stationary object
-// * Escorts a single NPC or a group of NPCs
-// * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
-// * Will wait for the NPCs to be escorted to arrive
-// Future improvements:
-// * Leading escort in addition to following
-// * Don't unnecessarily move while in combat
-// * A variant where the toon must lead the escort, rather than follow it (e.g., http://www.wowhead.com/quest=28156)
+//
+// POSSIBLE FUTURE IMPROVEMENTS:
+// * Do 'fan out' as we travel, so multiple toons don't stack up in the exact same spots
+// * Timeouts: 1) While searching for NPCs, 2) for overall quest completion
+//
 // THINGS TO KNOW:
 // * All looting and harvesting is turned off while the escort is in progress.
+// * Always provide an EscortPath--it makes the bot look incredibly human.
+#endregion
+
+#region Examples
+// "Reunited" (http://www.wowhead.com/quest=31091).
+// A simple follow-and-defend quest.  The EscortPath is optional, but makes the toon look
+// exceptionally human, because it will 'lead' the Npc rather than follow it.  The path is
+// designed to avoid an initial encounter, just like a human would.
+// The quest requires interacting with an NPC (StartNpcId) via a gossip, then the gossip NPC
+// is immediately replaced with an instanced-version which we need to escort (EscortNpcId).
+// 		<CustomBehavior File="EscortGroup" QuestId="31091" StartNpcId="63876" EscortNpcId="64013">
+//          <EscortPath>
+//              <Hotspot X="-874.6547" Y="3809.671" Z="-0.3560973" />
+//              <Hotspot X="-895.4308" Y="3819.729" Z="-0.2184875" />
+//              <Hotspot X="-927.9977" Y="3821.674" Z="-0.3616131" />
+//              <Hotspot X="-955.2557" Y="3891.079" Z="-0.02633452" />
+//              <Hotspot X="-1027.789" Y="3926.881" Z="0.591239" />
+//              <Hotspot X="-1094.124" Y="3928.721" Z="-0.2553162" />
+//              <Hotspot X="-1154.453" Y="3901.083" Z="1.835292" />
+//          </EscortPath>
+//  </CustomBehavior>
+//
+// "Students No More" (http://www.wowhead.com/quest=30625)
+// Searchs for the students (EscortNpcIdN), then follows them to kill 4 elite mobs and some trash.
+// The SearchPath is used to initially locate the students.
+//      <CustomBehavior File="EscortGroup" QuestId="30625"
+//          EscortNpcId1="59839" EscortNpcId2="59840" EscortNpcId3="59841" EscortNpcId4="59842" EscortNpcId5="59843">
+//          <SearchPath>
+//              <Hotspot X="-244.1373" Y="2327.563" Z="137.9225" />
+//              <Hotspot X="-271.8149" Y="2286.35" 	Z="119.61" />
+//              <Hotspot X="-278.60"   Y="2280.82"  Z="116.73" />
+//              <Hotspot X="-377.7986" Y="2311.363" Z="117.677" />
+//              <Hotspot X="-422.3317" Y="2303.213" Z="133.0315" />
+//              <Hotspot X="-273.74"   Y="2351.56"  Z="126.98" />
+//          </SearchPath>
+//      </CustomBehavior>
+// 
+#endregion
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using Styx;
+using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
@@ -99,6 +159,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviors.EscortGroup
@@ -107,13 +168,9 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
     {
         public delegate WoWPoint LocationDelegate(object context);
         public delegate string MessageDelegate(object context);
+        public delegate double RangeDelegate(object context);
 
-        public enum StartByType
-        {
-            NpcInteraction,
-            NpcPresence,
-        }
-
+        #region Consructor and Argument Processing
         public enum EscortCompleteWhenType
         {
             DestinationReached,
@@ -127,21 +184,18 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             try
             {
                 // Parameters dealing with 'starting' the behavior...
-                StartBy = GetAttributeAsNullable<StartByType>("StartBy", false, null, null) ?? StartByType.NpcPresence;
                 StartEscortGossipOptions = GetAttributeAsArray<int>("StartEscortGossipOptions", false, new ConstrainTo.Domain<int>(1, 10), null, null);
-                StartLocation = GetAttributeAsNullable<WoWPoint>("Start", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 StartNpcIds = GetNumberedAttributesAsArray<int>("StartNpcId", 0, ConstrainAs.MobId, null);
-                StartNpcMaxRange = GetAttributeAsNullable<double>("StartNpcMaxRange", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 20.0; ;
 
                 // Parameters dealing with the Escorted Npcs...
-                EscortedNpcIds = GetNumberedAttributesAsArray<int>("EscortedNpcId", 1, ConstrainAs.MobId, null); ;
-                EscortedNpcsMaxFollowDistance = GetAttributeAsNullable<double>("EscortedMobsMaxFollowDistance", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 25.0;
-                EscortTimeMaxInSeconds = GetAttributeAsNullable<double>("EscortTimeMaxInSeconds", false, new ConstrainTo.Domain<double>(1.0, 600.0), null) ?? 420.0;
+                EscortNpcIds = GetNumberedAttributesAsArray<int>("EscortNpcId", 1, ConstrainAs.MobId, null); ;
+                EscortMaxFightDistance = GetAttributeAsNullable<double>("EscortMaxFightDistance", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 27.0;
+                EscortMaxFollowDistance = GetAttributeAsNullable<double>("EscortMaxFollowDistance", false, new ConstrainTo.Domain<double>(3.0, 100.0), null) ?? 15.0;
 
                 // Parameters dealing with when the task is 'done'...
                 EscortCompleteWhen = GetAttributeAsNullable<EscortCompleteWhenType>("EscortCompleteWhen", false, null, null) ?? EscortCompleteWhenType.QuestComplete;
                 EscortCompleteLocation = GetAttributeAsNullable<WoWPoint>("EscortComplete", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                EscortCompleteMaxRange = GetAttributeAsNullable<double>("EscortCompleteMaxRange", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 20.0;
+                EscortCompleteMaxRange = GetAttributeAsNullable<double>("EscortCompleteMaxRange", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 10.0;
 
                 // Quest handling...
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
@@ -150,9 +204,10 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
 
                 // Semantic Coherency checks --
-                if ((StartBy == StartByType.NpcInteraction) && (StartNpcIds.Count() == 0))
+                if (EscortMaxFightDistance < EscortMaxFollowDistance)
                 {
-                    LogMessage("error", "With a StartBy of NpcInteraction, one or more StartNpcId argument(s) must be specified");
+                    LogMessage("error", "EscortedNpcsMaxCombatDistance({0}) must be greater than or equal to EscortedNpcsMaxNoCombatDistance({1})",
+                        EscortMaxFightDistance, EscortMaxFollowDistance);
                     IsAttributeProblem = true;
                 }
 
@@ -195,56 +250,56 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         private WoWPoint EscortCompleteLocation { get; set; }
         private double EscortCompleteMaxRange { get; set; }
 
-        private int[] EscortedNpcIds { get; set; }
-        private double EscortedNpcsMaxFollowDistance { get; set; }
-        private double EscortTimeMaxInSeconds { get; set; }
+        private int[] EscortNpcIds { get; set; }
+        private double EscortMaxFightDistance { get; set; }
+        private double EscortMaxFollowDistance { get; set; }
 
-        private StartByType StartBy { get; set; }
         public int[] StartEscortGossipOptions { get; set; }
-        private WoWPoint StartLocation { get; set; }
         private int[] StartNpcIds { get; set; }
-        private double StartNpcMaxRange { get; set; }
 
         private int QuestId { get; set; }
         private QuestCompleteRequirement QuestRequirementComplete { get; set; }
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
-        // Private and Convenience variables
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
+        #endregion
+
+
+        #region Private and Convenience variables
         private enum BehaviorStateType
         {
-            MovingToStartLocation,
-
-            StartBy_NpcInteraction,
-            StartBy_NpcInteraction2,
-            StartBy_NpcPresence,
-
+            InitialState,
+            SearchingForEscortUnits,
+            InteractingToStart,
             Escorting,
-            Escorting_MoveToEscortCenterPoint,
-
             CheckDone,
         }
 
         private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
+        private double EscortMaxLeadDistance { get; set; }
         private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
+        private IEnumerable<WoWUnit> MeAsGroup  = new List<WoWUnit>() { StyxWoW.Me };
 
+        private BehaviorStateType _behaviorState = BehaviorStateType.InitialState;
         private Composite _behaviorTreeHook = null;
         private ConfigMemento _configMemento = null;
-        private WoWPoint _escortCenterPoint = WoWPoint.Empty;
-        private BehaviorStateType _behaviorState = BehaviorStateType.MovingToStartLocation;
+        private Queue<WoWPoint> _escortPath = null;
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
-        private RunStatus _lastStateReturn { get; set; }
+        private BotPoi _poiStartLocation = null;
+        private int _pullDistanceOriginal = 0;
+        private Queue<WoWPoint> _searchPath = null;
         private WoWUnit _targetPoiUnit = null;
         private Stopwatch _waitForStartTimer = new Stopwatch();
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        #endregion
 
 
+        #region Destructor, Dispose, and cleanup
         ~EscortGroup()
         {
             Dispose(false);
@@ -285,142 +340,25 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
+        public void BotEvents_OnBotStop(EventArgs args)
+        {
+            Dispose();
+        }
+        #endregion
+
+
         #region Overrides of CustomForcedBehavior
+        // NB: This behavior is designed to run at a 'higher priority' than Combat_Main.
+        // This is necessary because movement is frequently more important than combat when conducting
+        // escorts (e.g., the escort doesn't wait for us to kill the mob).  Be aware that this priority
+        // inversion is not what you are used to seeing in most quest behaviors, and results in some
+        // 'different' combinations of PrioritySelector and Sequence.
+        // NB: Due to the complexity, this behavior is also 'state' based.  All necessary actions are
+        // conducted in the current state.  If the current state is no longer valid, then a state change
+        // is effected.  Ths entry state is "MovingToStartLocation".
         protected override Composite CreateBehavior()
         {
-            return new PrioritySelector(escortedUnitsContext => FindEscortedUnits(),
-                // FOR DEBUG:
-                // new Action(delegate { LogMessage("info", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
-
-                new Decorator(escortedUnitsContext => _isBehaviorDone,
-                    new Action(delegate { Utility_NotifyUser("Finished"); })),
-// TODO:
-// * Tighten up follow
-// * Allow for combat fall-through before escort
-                new Switch<BehaviorStateType>(escortedUnitsContext => _behaviorState,
-                    new Action(delegate { // default case
-                        LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", _behaviorState);
-                        TreeRoot.Stop();
-                        _isBehaviorDone = true;
-                        }),
-
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.MovingToStartLocation,
-                        new Sequence(
-                            new DecoratorContinue(escortedUnitsContext => Me.Combat,
-                                new ActionAlwaysFail()),
-                            new PrioritySelector(
-                                UtilityBehavior_MoveTo(escortedUnitsContext => StartLocation,
-                                                      escortedUnitsContext => "Escort Start Location"),
-                                new Action(delegate // Select start method
-                                {
-                                    _waitForStartTimer.Stop();
-                                    switch (StartBy)
-                                    {
-                                        case StartByType.NpcInteraction: _behaviorState = BehaviorStateType.StartBy_NpcInteraction; break;
-                                        case StartByType.NpcPresence:    _behaviorState = BehaviorStateType.StartBy_NpcPresence; break;
-                                        default:
-                                            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: StartBy({0}) state is unhandled", StartBy);
-                                            TreeRoot.Stop();
-                                            _isBehaviorDone = true;
-                                            break;
-                                    }
-                                })
-                        ))),
-
-                    // NB: We must break StartBy_NpcInteraction into two pieces,
-                    // because some escorts depop the interaction NPC and immediately replace with the escort-instance version.
-                    // Here, the first check makes certain that the interaction NPC is present, then moves to the second state
-                    // to actually conduct the interaction.
-                    // Without this, the BT will get hung up here indefinitely, because the NPC is frequently replaced
-                    // before we can change state to avoid the problem.
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.StartBy_NpcInteraction,
-                        new PrioritySelector(
-                            UtilityBehavior_WaitForUnitsToArrive(StartNpcIds),
-                            new Action(delegate { _behaviorState = BehaviorStateType.StartBy_NpcInteraction2; })
-                        )),
-
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.StartBy_NpcInteraction2,
-                        new PrioritySelector(
-                            UtilityBehavior_StartByInteract(),
-                            new Action(delegate
-                            {
-                                if (GossipFrame.Instance != null)
-                                    { GossipFrame.Instance.Close(); }
-                                _behaviorState = BehaviorStateType.StartBy_NpcPresence;
-                            })
-                        )),
-
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.StartBy_NpcPresence,
-                        new PrioritySelector(
-                            UtilityBehavior_WaitForUnitsToArrive(EscortedNpcIds),
-                            new Action(nearestUnitContext => _behaviorState = BehaviorStateType.Escorting)
-                        )),
-
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.Escorting,
-                        new PrioritySelector(
-                            // If we are too far from the Escorted Units, then close distance...
-                            new Decorator(escortedUnitsContext => IsMoveToEscortedUnitsNeeded((IEnumerable<WoWUnit>)escortedUnitsContext),
-                                new Action(escortedUnitsContext => _behaviorState = BehaviorStateType.Escorting_MoveToEscortCenterPoint)),
-
-                            new Sequence(
-                                // If escort units in combat, then defend...
-                                new DecoratorContinue(escortedUnitsContext => IsEscortInCombat((IEnumerable<WoWUnit>)escortedUnitsContext),
-                                    new Action(escortedUnitsContext =>
-                                    {
-                                        ChooseBestTarget((IEnumerable<WoWUnit>)escortedUnitsContext);
-                                        LogMessage("info", "SELECTED TARGET({0})", _targetPoiUnit.Name);
-                                        return (RunStatus.Failure); // terminate evaluation & return to PrioritySelector
-                                    })),
-
-                                // Escort complete or failed?
-                                new Decorator(escortedUnitsContext => (IsEscortComplete() || IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext)),
-                                    new Action(escortedUnitsContext => 
-                                    {
-                                        _behaviorState = BehaviorStateType.CheckDone;
-                                        return (RunStatus.Failure); // terminate evaluation & return to PrioritySelector
-                                    })),
-
-                                new ActionAlwaysFail()
-                            )
-                        )),
-
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.Escorting_MoveToEscortCenterPoint,
-                        new PrioritySelector(
-                            // If Escort failed, no sense in trying to "keep up"...
-                            new Decorator(escortedUnitsContext => !IsMoveToEscortedUnitsNeeded((IEnumerable<WoWUnit>)escortedUnitsContext),
-                                new Action(delegate
-                                {
-                                    _targetPoiUnit = null; // Force reevaluation of which target we should be attacking
-                                    _escortCenterPoint = WoWPoint.Empty;
-                                    _behaviorState = BehaviorStateType.Escorting;
-                                })),
-
-                            // If Anchor point is empty or escort is moving, find new center point...
-                            new Decorator(escortedUnitsContext => (_escortCenterPoint == WoWPoint.Empty)
-                                                                    || ((IEnumerable<WoWUnit>)escortedUnitsContext).Any(u => u.IsMoving),
-                                new Action(escortedUnitsContext =>
-                                {
-                                    // If we were unable to calculate an anchorpoint, see if we're done...
-                                    if ((_escortCenterPoint = FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext)) == WoWPoint.Empty)
-                                        { _behaviorState = BehaviorStateType.CheckDone; }
-                                    return (RunStatus.Failure); // fall thru
-                                })),
-
-                            // Close the distance...
-                            UtilityBehavior_MoveTo(context => _escortCenterPoint, context => "escort center point")
-                        )),
-
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.CheckDone,
-                        new PrioritySelector(
-                            new Decorator(escortedUnitsContext => IsEscortComplete(),
-                                new Action(delegate { _isBehaviorDone = true; })),
-                            new Action(delegate
-                            {
-                                Utility_NotifyUser("Looks like we've failed the escort, returning to start to re-do");
-                                _behaviorState = BehaviorStateType.MovingToStartLocation;
-                            })
-                        ))
-                ));
+            return CreateMainBehavior();
         }
 
 
@@ -451,6 +389,9 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 IsAttributeProblem = true;
             }
 
+            _escortPath = ParsePath("EscortPath");
+            _searchPath = ParsePath("SearchPath");
+
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -480,16 +421,27 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 CharacterSettings.Instance.LootMobs = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.PullDistance = 1;
+                _pullDistanceOriginal = CharacterSettings.Instance.PullDistance;
                 
                 TreeRoot.GoalText = string.Format(
-                    "{0}: {1}\nEscorting {2}\nLooting and Harvesting are disabled while Escort in progress",
+                    "{0}: \"{1}\"\nLooting and Harvesting are disabled while Escort in progress",
                     this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"),
-                    Utility_GetNamesOfUnits(ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                            .Where(u => EscortedNpcIds.Contains((int)u.Entry))));
+                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
-                _behaviorState = BehaviorStateType.MovingToStartLocation;
+                // If we're leading the escort instead of following,
+                // allow some hysteresis in that 'move back to escort' distance...
+                // This prevents the toon from vascillating while moving.
+                if (_escortPath.Count() > 0)
+                {
+                    EscortMaxLeadDistance = EscortMaxFollowDistance;
+                    EscortMaxFollowDistance = EscortMaxFollowDistance + Math.Max(0.2 * EscortMaxFollowDistance, 5.0);
+                }
+
+                // If search path not provided, use our current location...
+                if (_searchPath.Count() <= 0)
+                    { _searchPath.Enqueue(Me.Location); }
+
+                _behaviorState = BehaviorStateType.InitialState;
                 _behaviorTreeHook = CreateBehavior();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook);
             }
@@ -497,54 +449,167 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         #endregion
 
 
-        #region Behavior helpers
-        // May return 'null'
-        private IEnumerable<WoWUnit> FindEscortedUnits()
+        #region Main Behavior
+        protected Composite CreateMainBehavior()
         {
-            return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                .Where(u => EscortedNpcIds.Contains((int)u.Entry) && u.IsAlive)
-                .ToList();
-        }
+            // Let other behaviors deal with toon death and path back to corpse...
+            return new DecoratorContinue(context => !(Me.IsDead || Me.IsGhost),
+                new PrioritySelector(escortedUnitsContext => FindUnitsFromIds(EscortNpcIds),
+                    new Action(escortedUnitsContext => { LogMessage("debug", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
 
+                    new Decorator(escortedUnitsContext => _isBehaviorDone,
+                        new Action(escortedUnitsContext => { Utility_NotifyUser("Finished"); })),
 
-        private WoWPoint FindGroupCenterPoint(IEnumerable<WoWUnit> escortedUnits)
-        {
-            int escortedUnitCount = 0;
-            double centerPointX = 0.0;
-            double centerPointY = 0.0;
-            double centerPointZ = 0.0;
+                    new Switch<BehaviorStateType>(escortedUnitsContext => _behaviorState,
+                        new Action(escortedUnitsContext =>   // default case
+                        {
+                            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", _behaviorState);
+                            TreeRoot.Stop();
+                            _isBehaviorDone = true;
+                        }),
 
-            foreach (WoWUnit wowUnit in FindEscortedUnits())
-            {
-                centerPointX += wowUnit.Location.X;
-                centerPointY += wowUnit.Location.Y;
-                centerPointZ += wowUnit.Location.Z;
-                ++escortedUnitCount;
-            }
+                        new SwitchArgument<BehaviorStateType>(BehaviorStateType.InitialState,
+                            new Action(delegate
+                            {
+                                // Start at nearest point in the search path...
+                                WoWPoint nearestPoint = _searchPath.OrderBy(p => Me.Location.Distance(p)).FirstOrDefault();
+                                while (_searchPath.Peek() != nearestPoint)
+                                    { Utility_RotatePath(_searchPath); }
 
-            return (escortedUnitCount <= 0)
-                    ? WoWPoint.Empty
-                    : (new WoWPoint((centerPointX / escortedUnitCount),
-                                    (centerPointY / escortedUnitCount),
-                                    (centerPointZ / escortedUnitCount)));
-        }
+                                _behaviorState = BehaviorStateType.SearchingForEscortUnits;
+                            })),
 
+                        new SwitchArgument<BehaviorStateType>(BehaviorStateType.SearchingForEscortUnits,
+                            new PrioritySelector(
+                                // If Start NPCs specified, move to them when found...
+                                new Decorator(escortedUnitsContext => (StartNpcIds.Count() > 0),
+                                    new PrioritySelector(startUnitsContext => FindUnitsFromIds(StartNpcIds),
+                                        new Decorator(startUnitsContext => ((IEnumerable<WoWUnit>)startUnitsContext).Count() > 0,
+                                            new PrioritySelector(
+                                                UtilityBehavior_MoveWithinRange(startUnitsContext => FindGroupCenterPoint((IEnumerable<WoWUnit>)startUnitsContext),
+                                                                                startUnitsContext => "group center"),
+                                                new Action(startUnitsContext => _behaviorState = BehaviorStateType.InteractingToStart)
+                                            )))),
 
-        // May return 'null'
-        private IEnumerable<WoWUnit> FindStartUnits()
-        {
-            // If "StartNpcs" were specified, prefer them...
-            if (StartNpcIds.Count() > 0)
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                    .Where(u => StartNpcIds.Contains((int)u.Entry))
-                    .ToList();
-            }
+                                // If no StartNpcs specified, move to the EscortedNpcs when found...
+                                new Decorator(escortedUnitsContext => (StartNpcIds.Count() <= 0),
+                                    new Decorator(escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Count() > 0,
+                                        new PrioritySelector(
+                                            UtilityBehavior_MoveWithinRange(escortedUnitsContext => FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext),
+                                                                            escortedUnitsContext => "group center"),
+                                            new Action(escortedUnitsContext => _behaviorState = BehaviorStateType.Escorting)
+                                        ))),
 
-            // No "StartNpcs' specified, use the Npcs to be Escorted...
-            return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                .Where(u => EscortedNpcIds.Contains((int)u.Entry))
-                .ToList();
+                                new Decorator(escortedUnitsContext => !IsInCombat(MeAsGroup),
+                                    new PrioritySelector(                                
+                                        // If we've reached the next point in the search path, dequeue it...
+                                        new Decorator(escortedUnitsContext => _searchPath.Count() > 1,
+                                            new PrioritySelector(
+                                                new Decorator(escortedUnitsContext => Me.Location.Distance(_searchPath.Peek()) <= Navigator.PathPrecision,
+                                                    new Action(escortedUnitsContext => Utility_RotatePath(_searchPath))),
+
+                                                UtilityBehavior_MoveWithinRange(escortedUnitsContext => _searchPath.Peek(),
+                                                                                escortedUnitsContext => "next search waypoint")
+                                            )),
+
+                                        new Decorator(escortedUnitsContext => _searchPath.Count() <= 1,
+                                            new Action(escortedUnitsContext =>
+                                            {
+                                                Utility_NotifyUser(string.Format("Waiting {0} for NPCs to arrive",
+                                                                    Utility_BuildTimeAsString(_waitForStartTimer.Elapsed)));
+                                            }))
+                                    ))
+                                )),
+
+                        // NB:some escorts depop the interaction NPC and immediately replace with the escort-instance version
+                        // after selecting the appropriate gossip options.  Do NOT be tempted to check for presence of
+                        // correct NPC while in this state--it will hang the behavior tree if it is immediately replaced on gossip.
+                        new SwitchArgument<BehaviorStateType>(BehaviorStateType.InteractingToStart,
+                            new PrioritySelector(
+                                // If no interaction required to start escort, then proceed excorting
+                                new Decorator(escortedUnitsContext => StartNpcIds.Count() <= 0,
+                                    new Action(escortedUnitsContext => _behaviorState = BehaviorStateType.Escorting)),
+
+                                // If in combat while interacting, restart the conversation
+                                new Decorator(escortedUnitsContext => IsInCombat(MeAsGroup),
+                                    new Action(escortedUnitsContext =>
+                                    {
+                                        if (GossipFrame.Instance != null)
+                                            { GossipFrame.Instance.Close(); }
+                                        _behaviorState = BehaviorStateType.SearchingForEscortUnits;
+                                    })),
+
+                                // Continue with interaction
+                                UtilityBehavior_GossipToStartEscort(),
+
+                                new Action(escortedUnitsContext =>
+                                {
+                                    if (GossipFrame.Instance != null)
+                                        { GossipFrame.Instance.Close(); }
+                                    _behaviorState = BehaviorStateType.Escorting;
+                                })
+                            )),
+
+                        new SwitchArgument<BehaviorStateType>(BehaviorStateType.Escorting,
+                            new PrioritySelector(
+                                // If we are too far from the Escorted Units, then close distance...
+                                new Decorator(escortedUnitsContext => IsMoveToEscortedUnitsNeeded((IEnumerable<WoWUnit>)escortedUnitsContext),
+                                    UtilityBehavior_MoveWithinRange(escortedUnitsContext => FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext), context => "escort center point")),
+
+                                new Sequence(
+                                    new DecoratorContinue(escortedUnitsContext => CharacterSettings.Instance.PullDistance > 5,
+                                        new Action(escortedUnitsContext => { CharacterSettings.Instance.PullDistance = 5; })),
+
+                                    // If escort units or myself in combat, then defend...
+                                    new DecoratorContinue(escortedUnitsContext => IsInCombat(MeAsGroup) || IsInCombat((IEnumerable<WoWUnit>)escortedUnitsContext),
+                                        new Action(escortedUnitsContext =>
+                                        {
+                                            IEnumerable<WoWUnit> escortedUnits = (IEnumerable<WoWUnit>)escortedUnitsContext;
+
+                                            ChooseBestTarget(escortedUnits);
+                                            return (RunStatus.Failure); // terminate evaluation & return to PrioritySelector
+                                        })),
+
+                                    // If escort path was specified, process it...
+                                    new DecoratorContinue(escortedUnitsContext => _escortPath.Count() > 1,
+                                        new PrioritySelector(
+                                            // If we've arrived at the next point, the dequeue it...
+                                            new Decorator(escortedUnitsContext => IsWaypointDropNeeded(_escortPath, (IEnumerable<WoWUnit>)escortedUnitsContext, "EscortPath"),
+                                                new Action(escortedUnitsContext => _escortPath.Dequeue())),
+
+                                            // Move towards next point...
+                                            new Decorator(escortedUnitsContext => IsWaypointMoveAllowed((IEnumerable<WoWUnit>)escortedUnitsContext)
+                                                                                && (Me.Location.Distance(_escortPath.Peek()) >= Navigator.PathPrecision),
+                                                UtilityBehavior_MoveWithinRange(context => _escortPath.Peek(), context => "escort path waypoint")),
+
+                                            new Decorator(escortedUnitsContext => Me.IsMoving,
+                                                new Action(escortedUnitsContext => WoWMovement.MoveStop()))
+                                        )),
+
+                                    // Escort complete or failed?
+                                    new Decorator(escortedUnitsContext => (IsEscortComplete() || IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext)),
+                                        new Action(escortedUnitsContext => 
+                                        {
+                                            _behaviorState = BehaviorStateType.CheckDone;
+                                            CharacterSettings.Instance.PullDistance = _pullDistanceOriginal;
+                                            return (RunStatus.Failure); // terminate evaluation & return to PrioritySelector
+                                        })),
+
+                                    new ActionAlwaysFail()
+                                )
+                            )),
+
+                        new SwitchArgument<BehaviorStateType>(BehaviorStateType.CheckDone,
+                            new PrioritySelector(
+                                new Decorator(escortedUnitsContext => IsEscortComplete(),
+                                    new Action(delegate { _isBehaviorDone = true; })),
+                                new Action(delegate
+                                {
+                                    Utility_NotifyUser("Looks like we've failed the escort, returning to start to re-do");
+                                    _behaviorState = BehaviorStateType.InitialState;
+                                })
+                            ))
+                    )));
         }
 
 
@@ -554,31 +619,65 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             if ((_targetPoiUnit == null) || !_targetPoiUnit.IsValid || _targetPoiUnit.IsDead)
             {
                 _targetPoiUnit =
-                    ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                    // NB: Anything attacking the escorted units or ourself, or our pet has to be knocked down.
-                    // NB: Some AoE effect will snag 'neutral' targets, so the test is intentionally
-                    // for !IsFriendly, instead of IsHostile.
-                    .Where(u => u.IsValid && !u.IsFriendly && u.IsAlive
-                            && (escortedUnits.Contains(u.CurrentTarget)
-                                || (u.CurrentTarget == Me) || ((Me.Pet != null) && (u.CurrentTarget == Me.Pet)))
-                            && !Blacklist.Contains(u, BlacklistFlags.Combat))
-                    // Target preferences:
-                    // * Prefer weakest enemies attacking the weakest escorted units
-                    // * Prefer melee attackers (to ranged)
-                    // * Prefer targets attacking escorted units (instead of ourselves/pet)
-                    .OrderBy(u => u.HealthPercent * u.CurrentTarget.HealthPercent * u.Location.Distance(u.CurrentTarget.Location)
-                        * (((u.CurrentTarget == Me) || (u.CurrentTarget == Me.Pet)) ? 100 : 1))
+                    FindAllTargets(escortedUnits)
+                    .OrderBy(u => u.HealthPercent * u.CurrentTarget.HealthPercent   // prefer weakest enemies attacking weakest escorted units
+                        * u.Location.Distance(u.CurrentTarget.Location)             // prefer melee attackers (to ranged)
+                        * (u.Elite ? 1000 : 1)                                      // prefer non-elite mobs
+                        * (IsTargettingGroupMember(u, MeAsGroup) ? 100 : 1))        // prefer targets attacking escorted units (instead of myself/pet)
                     .FirstOrDefault();
-
-                LogMessage("warning", "Selected new POI TARGET({0})", _targetPoiUnit.Name);
             }
 
+            // If target has strayed, reset to what we want...
             if ((_targetPoiUnit != null) && (Me.CurrentTarget != _targetPoiUnit))
             {
-                LogMessage("warning", "Refocused TO TARGET({0})", _targetPoiUnit.Name);
                 BotPoi.Current = new BotPoi(_targetPoiUnit, PoiType.Kill);
                 _targetPoiUnit.Target();
             }
+        }
+
+
+        // Finds all enemies attacking escorted units, or the myself or pet
+        private IEnumerable<WoWUnit> FindAllTargets(IEnumerable<WoWUnit> escortedUnits)
+        {
+            // NB: Some AoE effect will snag 'neutral' targets, so the test is intentionally
+            // for !IsFriendly, instead of IsHostile.
+            return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                    .Where(u => u.IsValid && !u.IsFriendly && u.Combat
+                            && (IsTargettingGroupMember(u, MeAsGroup) || IsTargettingGroupMember(u, escortedUnits))
+                            && !Blacklist.Contains(u, BlacklistFlags.Combat))
+                    .ToList();
+        }
+
+
+        private IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds)
+        {
+            return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                .Where(u => unitIds.Contains((int)u.Entry) && u.IsValid && u.IsAlive)
+                .ToList();
+        }
+
+
+        // Returns group center point or, WoWPoint.Empty if group is empty
+        private WoWPoint FindGroupCenterPoint(IEnumerable<WoWUnit> groupMembers)
+        {
+            int groupMemberCount = 0;
+            double centerPointX = 0.0;
+            double centerPointY = 0.0;
+            double centerPointZ = 0.0;
+
+            foreach (WoWUnit wowUnit in groupMembers)
+            {
+                centerPointX += wowUnit.Location.X;
+                centerPointY += wowUnit.Location.Y;
+                centerPointZ += wowUnit.Location.Z;
+                ++groupMemberCount;
+            }
+
+            return (groupMemberCount <= 0)
+                    ? Me.Location
+                    : (new WoWPoint((centerPointX / groupMemberCount),
+                                    (centerPointY / groupMemberCount),
+                                    (centerPointZ / groupMemberCount)));
         }
 
 
@@ -590,16 +689,16 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                     return Me.Location.Distance(EscortCompleteLocation) <= EscortCompleteMaxRange;
 
                 case EscortCompleteWhenType.QuestComplete:
-                    {
-                        PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
-                        return (quest == null) || quest.IsCompleted;
-                    }
+                {
+                    PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
+                    return (quest == null) || quest.IsCompleted;
+                }
 
                 case EscortCompleteWhenType.QuestCompleteOrFails:
-                    {
-                        PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
-                        return (quest == null) || quest.IsCompleted || quest.IsFailed;
-                    }
+                {
+                    PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
+                    return (quest == null) || quest.IsCompleted || quest.IsFailed;
+                }
             }
 
             LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: EscortCompleteWhen({0}) state is unhandled", EscortCompleteWhen);
@@ -623,9 +722,10 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
-        private bool IsEscortInCombat(IEnumerable<WoWUnit> escortedUnits)
+        // returns true, if any member of GROUP (or their pets) is in combat
+        private bool IsInCombat(IEnumerable<WoWUnit> group)
         {
-            return Me.Combat || ((Me.Pet != null) && Me.Pet.Combat) || escortedUnits.Any(u => u.Combat);
+            return group.Any(u => u.Combat || ((u.Pet != null) && u.Pet.Combat));
         }
 
 
@@ -636,70 +736,103 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 { return false; }
 
             // If Combat, then its good enough to stay in "max range" of the nearested escorted unit...
-            if (IsEscortInCombat(escortedUnits))
-                { return escortedUnits.All(u => u.Distance > EscortedNpcsMaxFollowDistance); }
+            WoWPoint groupCenterPoint = FindGroupCenterPoint(escortedUnits);
+            bool isEscortedInCombat = IsInCombat(escortedUnits);
+            bool isMoveNeeded = false;
 
-            // If no combat, we want to stay within "max range" of the escort's center point...
-            // double tolerance = escortedUnits.Any(u => u.IsMoving) ? EscortedNpcsMaxFollowDistance : 3.0;
-            return (Me.Location.Distance(FindGroupCenterPoint(escortedUnits)) > 3.0);
+            // Combat distance evaluation...
+            if (IsInCombat(MeAsGroup) || isEscortedInCombat)
+            {
+                // If the escorted units are also in combat (not just me),
+                //   then stay within EscortedNpcsMaxFightDistance of the nearest escorted unit.
+                // If the escorted units are not in combat with us,
+                //   move to escorted center point in an attempt to put the escorted units in combat also.
+                isMoveNeeded = (isEscortedInCombat
+                    ? !escortedUnits.Any(u => Me.Location.Distance(u.Location) <= EscortMaxFightDistance)
+                    : (Me.Location.Distance(groupCenterPoint) > 2.5));
+
+                if (isMoveNeeded)
+                {
+                    if (isEscortedInCombat)
+                        { LogMessage("debug", "ESCORT MOVE: Moving to escorted units to pull into combat"); }
+                    else
+                        { LogMessage("debug", "ESCORT MOVE: Staying within {0:F1} feet of escorted unit (dist:{1})", EscortMaxFightDistance, escortedUnits.Min(u => u.Distance)); }
+                }
+            }
+
+            else // If no combat, then we should "keep up" with the escorted units...
+            {
+                isMoveNeeded = (Me.Location.Distance(groupCenterPoint) > EscortMaxFollowDistance);
+                if (isMoveNeeded)
+                    { LogMessage("debug", "ESCORT MOVE: Escorting units at {0:F1} feet", Me.Location.Distance(groupCenterPoint)); }
+            }
+
+            return (isMoveNeeded);
         }
 
 
-        public void BotEvents_OnBotStop(EventArgs args)
+        // returns true, if WOWUNIT is targeting any member of GROUP (or a group member's pet)
+        private bool IsTargettingGroupMember(WoWUnit wowUnit, IEnumerable<WoWUnit> group)
         {
-            Dispose();
+            WoWUnit currentTarget = wowUnit.CurrentTarget;
+
+            return (currentTarget == null)
+                ? false
+                : group.Any(m => (currentTarget == m) || ((m.Pet != null) && (currentTarget == m.Pet)));
         }
-        
-        
-        // Returns: RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary
-        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate, MessageDelegate locationNameDelegate)
+
+
+        private bool IsWaypointDropNeeded(Queue<WoWPoint> path, IEnumerable<WoWUnit> escortedUnits, string pathName)
         {
-            return new Sequence(
-                    // Done, if we're already at destination...
-                    new DecoratorContinue(context => (Me.Location.Distance(locationDelegate(context)) <= Navigator.PathPrecision),
-                        new Decorator(context => Me.IsMoving,
-                            new Action(delegate { WoWMovement.MoveStop(); }))),
+            int waypointCount = path.Count();
 
-                    // Notify user of progress...
-                    new CompositeThrottle(TimeSpan.FromSeconds(1),
-                        new Action(context =>
-                        {
-                            double destinationDistance = Me.Location.Distance(locationDelegate(context));
-                            string locationName = locationNameDelegate(context);
-                            Utility_NotifyUser(string.Format("Moving to {0} (distance: {1:F1})", locationName, destinationDistance));
-                        })
-                        ),
+             // No more waypoints?
+            if (waypointCount == 0)
+                { return false; }
 
-                    new Action(context =>
-                    {
-                        WoWPoint destination = locationDelegate(context);
+            WoWPoint waypointCurrent = path.Peek();
+            
+            // If toon or any of the escorted crosses the waypoint, then the waypoint is no longer needed...
+            if ((Me.Location.Distance(waypointCurrent) < Navigator.PathPrecision)
+                || (escortedUnits.Any(u => u.Location.Distance(waypointCurrent) < Navigator.PathPrecision)))
+                { return true; }
 
-                        // Try to use Navigator to get there...
-                        MoveResult moveResult = Navigator.MoveTo(destination);
+            // If escortedUnits are walking away from waypoint toward next one, then we can drop the current waypoint...
+            bool isImplicitDropNeeded = (waypointCount == 1)
+                ? escortedUnits.All(u => u.IsMoving && !(u.IsFacing(Me) || u.IsFacing(waypointCurrent)))
+                : escortedUnits.All(u => u.IsMoving && !(u.IsFacing(Me) || u.IsFacing(waypointCurrent)) && u.IsFacing(path.ElementAt(1)));
 
-                        // If Navigator fails, fall back to click-to-move...
-                        if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                            { WoWMovement.ClickToMove(destination); }
+            if (isImplicitDropNeeded)
+            {
+                if (string.IsNullOrEmpty(pathName))
+                    { pathName = "Unknown path"; }
 
-                        return RunStatus.Success; // fall through
-                    }),
+                LogMessage("warning", "Dropping waypoint {0}--NPCs doesn't want to go that way", path.Peek().ToString());
+            }
 
-                    new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                    );
+            return (isImplicitDropNeeded);
+        }
+
+
+        private bool IsWaypointMoveAllowed(IEnumerable<WoWUnit> escortedUnits)
+        {
+            return (Me.IsMoving && escortedUnits.Any(u => u.Distance <= EscortMaxLeadDistance))
+                || (!Me.IsMoving && escortedUnits.All(u => !u.IsFacing(Me) && u.IsMoving));
         }
 
 
         // Wait for group to arrive at starting location, when present interact to start escort --
         // When the group is within "StartNpcMaxRange" of our current position, we will interact
         // with the nearest NPC to start the escort.
-        private Composite UtilityBehavior_StartByInteract()
+        private Composite UtilityBehavior_GossipToStartEscort()
         {
-            return new PrioritySelector(gossipUnitContext => FindStartUnits().OrderBy(u => u.Distance).FirstOrDefault(),
+            return new PrioritySelector(gossipUnitContext => FindUnitsFromIds(StartNpcIds).OrderBy(u => u.Distance).FirstOrDefault(),
                 new Decorator(gossipUnitContext => gossipUnitContext != null,
                     new PrioritySelector(
                         // Move to closest unit...
-                        UtilityBehavior_MoveTo(gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
-                                               gossipUnitContext => ((WoWUnit)gossipUnitContext).Name),
+                        UtilityBehavior_MoveWithinRange(gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
+                                                gossipUnitContext => ((WoWUnit)gossipUnitContext).Name,
+                                                gossipUnitContext => ((WoWUnit)gossipUnitContext).InteractRange),
 
                         // Interact with unit to open the Gossip dialog...
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
@@ -721,42 +854,52 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                                     new Action(gossipUnitContext => ++_gossipOptionIndex),
                                     new WaitContinue(Delay_GossipDialogThrottle, ret => false, new ActionAlwaysSucceed())
                                 ))
-                    )),
-                new Action(delegate
-                {
-                    if (GossipFrame.Instance != null)
-                        { GossipFrame.Instance.Close(); }
-                    _behaviorState = BehaviorStateType.StartBy_NpcPresence;
-                })
-            );
+                    )));
         }
 
 
-        // Returns RunStatus.Success while waiting for units to arrive; RunStatus.Failure, if no need to wait
-        private Composite UtilityBehavior_WaitForUnitsToArrive(int[] waitForUnitIds)
+        // Returns: RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary
+        private Composite UtilityBehavior_MoveWithinRange(LocationDelegate locationDelegate,
+                                                                    MessageDelegate locationNameDelegate,
+                                                                    RangeDelegate precisionDelegate = null)
         {
-            return new Decorator(context => waitForUnitIds.Count() > 0,
-                new Sequence(unitsPresentContext => ObjectManager.GetObjectsOfType<WoWUnit>(true, false).Any(u => waitForUnitIds.Contains((int)u.Entry)),
-                    new DecoratorContinue(unitsPresentContext => (bool)unitsPresentContext,
-                        new Action(unitsPresentContext =>
-                        {
-                            _waitForStartTimer.Stop();
-                            return RunStatus.Failure;   // fall thru
-                        })),
-                    new CompositeThrottle(TimeSpan.FromSeconds(10),
-                        new Action(delegate
-                        {
-                            if (!_waitForStartTimer.IsRunning)
-                                { _waitForStartTimer.Restart(); }
+            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
 
-                            Utility_NotifyUser(string.Format("Waiting {0} for NPCs to arrive within {1:F1} feet.",
-                                                            Utility_BuildTimeAsString(_waitForStartTimer.Elapsed),
-                                                            StartNpcMaxRange));
-                        }))
-                ));
+            return new Sequence(
+                // Done, if we're already at destination...
+                new DecoratorContinue(context => (Me.Location.Distance(locationDelegate(context)) <= precisionDelegate(context)),
+                    new Decorator(context => Me.IsMoving,   // This decorator failing indicates the behavior is complete
+                        new Action(delegate { WoWMovement.MoveStop(); }))),
+
+                // Notify user of progress...
+                new CompositeThrottle(TimeSpan.FromSeconds(1),
+                    new Action(context =>
+                    {
+                        double destinationDistance = Me.Location.Distance(locationDelegate(context));
+                        string locationName = locationNameDelegate(context) ?? locationDelegate(context).ToString();
+                        Utility_NotifyUser(string.Format("Moving to {0} (distance: {1:F1})", locationName, destinationDistance));
+                    })
+                    ),
+
+                new Action(context =>
+                {
+                    WoWPoint destination = locationDelegate(context);
+
+                    // Try to use Navigator to get there...
+                    MoveResult moveResult = Navigator.MoveTo(destination);
+
+                    // If Navigator fails, fall back to click-to-move...
+                    if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
+                        { WoWMovement.ClickToMove(destination); }
+
+                    return RunStatus.Success; // fall through
+                }),
+
+                new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
+                );
         }
 
-        
+
         private string Utility_BuildTimeAsString(TimeSpan timeSpan)
         {
             string formatString = string.Empty;
@@ -771,16 +914,28 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
         private string Utility_GetNamesOfUnits(IEnumerable<WoWUnit> wowUnits)
         {
-            return (wowUnits.Count() > 0)
-                    ? string.Join(", ", wowUnits.Select(u => u.Name))
-                    : "NPCs";
+            return (wowUnits.Count() > 0) ?
+                string.Join(", ", wowUnits.Select(u => u.Name))
+                : "NPCs";
         }
 
 
-        private void Utility_NotifyUser(string statusText)
+        private void Utility_NotifyUser(string format, params object[] args)
         {
-            if (statusText != null)
-                { TreeRoot.StatusText = statusText; }
+            if (format != null)
+            {
+                string message = string.Format(format, args);
+
+                if (TreeRoot.StatusText != message)
+                    { TreeRoot.StatusText = message; }
+            }
+        }
+
+
+        private void Utility_RotatePath(Queue<WoWPoint> path)
+        {
+            WoWPoint frontPoint = path.Dequeue();
+            path.Enqueue(frontPoint);
         }
         #endregion // Behavior helpers
 
@@ -808,6 +963,85 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
             private readonly Stopwatch _throttle;
             private readonly TimeSpan _throttleTime;
+        }
+        #endregion
+
+
+        #region Path parsing
+        // never returns null, but the returned Queue may be empty
+        public Queue<WoWPoint> ParsePath(string pathElementName)
+        {
+            var descendants = Element.Descendants(pathElementName).Elements();
+            Queue<WoWPoint> path = new Queue<WoWPoint>();
+
+            if (descendants.Count() > 0)
+            {
+                foreach (XElement element in descendants.Where(elem => elem.Name == "Hotspot"))
+                {
+                    string elementAsString = element.ToString();
+                    bool isAttributeMissing = false;
+
+                    XAttribute xAttribute = element.Attribute("X");
+                    if (xAttribute == null)
+                    {
+                        LogMessage("error", "Unable to locate X attribute for {0}", elementAsString);
+                        isAttributeMissing = true;
+                    }
+
+                    XAttribute yAttribute = element.Attribute("Y");
+                    if (yAttribute == null)
+                    {
+                        LogMessage("error", "Unable to locate Y attribute for {0}", elementAsString);
+                        isAttributeMissing = true;
+                    }
+
+                    XAttribute zAttribute = element.Attribute("Z");
+                    if (zAttribute == null)
+                    {
+                        LogMessage("error", "Unable to locate Z attribute for {0}", elementAsString);
+                        isAttributeMissing = true;
+                    }
+
+                    if (isAttributeMissing)
+                    {
+                        IsAttributeProblem = true;
+                        continue;
+                    }
+
+                    bool isParseProblem = false;
+
+                    double x = 0.0;
+                    if (!double.TryParse(xAttribute.Value, out x))
+                    {
+                        LogMessage("error", "Unable to parse X attribute for {0}", elementAsString);
+                        isParseProblem = true;
+                    }
+
+                    double y = 0.0;
+                    if (!double.TryParse(yAttribute.Value, out y))
+                    {
+                        LogMessage("error", "Unable to parse Y attribute for {0}", elementAsString);
+                        isParseProblem = true;
+                    }
+
+                    double z = 0.0;
+                    if (!double.TryParse(zAttribute.Value, out z))
+                    {
+                        LogMessage("error", "Unable to parse Z attribute for {0}", elementAsString);
+                        isParseProblem = true;
+                    }
+
+                    if (isParseProblem)
+                    {
+                        IsAttributeProblem = true;
+                        continue;
+                    }
+
+                    path.Enqueue(new WoWPoint(x, y, z));
+                }
+            }
+
+            return path;
         }
         #endregion
     }
