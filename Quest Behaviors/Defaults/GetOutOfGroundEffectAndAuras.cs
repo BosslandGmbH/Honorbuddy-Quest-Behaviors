@@ -1,7 +1,3 @@
-// TODO:
-// - Allow preferred targets
-// - Move to initial state if we die (need death behavior hook)
-
 // Behavior originally contributed by Chinajade.
 //
 // LICENSE:
@@ -13,109 +9,177 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Summary and Documentation
-// QUICK DOX:
-// ESCORTGROUP has the following characteristics:
-//      * Escorts and defends a single NPC or a group of NPCs
-//      * Can be used to defend a stationary object
-//      * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
-//      * Will wait for the NPCs to be escorted to arrive, or can search for them
-//        via a supplied SearchPath.
-//      * Can 'lead' an NPC (rather than follow it) via a supplied EscortPath.
+// GETOUTOFGROUNDEFFECTANDAURAS has the following characteristics:
+//  * It can move _away_ from mobs casting certain spells
+//  * It can move _away_ from mobs possessing certain auras
+//  * It can move _behind_ mobs casting certain spells
+//  * It can move out of ground-effect spells
+//  * It can switch targets to preferred mobs during battle
+//  * It can gossip to start an event
 //
 //  BEHAVIOR ATTRIBUTES:
-//      StartNpcIdN [REQUIRED if StartEscortGossipOptions specified]
+//      StartNpcIdN [optional]
 //          N may be omitted, or any numeric value--multiple mobs are supported.
-//          If NPC interaction is required to start the escort, the StartNpcIdN identifieds one
+//          If NPC interaction is required to start the event, the StartNpcIdN identifieds one
 //          or more NPCs that may be interacted with to initiate the escort.
 //          If the quest fails for some reason, the behavior will return to these NPCs
-//          to try again.
-//      StartEscortGossipOptions [optional; Default: first gossip option on first dialog panel]
+//          to restart the event.
+//      StartEventGossipOptions [optional; Default: a dialog-less chat interaction]
+//          This argument is only used of a StartNpcIdN is specified.
 //          Specifies the set of interaction choices on each gossip panel to make, in order to
-//          start the escort.
+//          start the event.
 //          The value of this attribute is a comma-separated list of gossip options (e.g., "1,3,1").
+//      EventX/EventY/EventZ [optional]
+//          This argument specifies the location where the toon should loiter while waiting
+//          for the event to start.  If this value is not specified, the toon will normally loiter
+//          at its current location where the behavior was started.  If StartNpcIdN is specified,
+//          the toon will loiter near the event-starting NPC.
 //
-//      EscortNpcIdN [REQUIRED]
-//          N may be omitted, or any numeric value--multiple mobs are supported.
-//          Identifies one or more NPCs to be escorted.
-//      EscortMaxFightDistance [optional; Default: 27.0]
-//          [on the close ranged: [5.0..100.0]]
-//          The maximum range from the _nearest_ escorted NPC at which the toon will fight.
-//          If for some reason, the toon is pulled outside of this range, the behavior
-//          moves the toon back into this maximum range.
-//      EscortMaxFollowDistance [optional; Default: 15.0]
-//          [on the closed ranged: [3.0..100.0]]
-//          The maximum range at which the toon will follow the escorted NPCs while not
-//          in combat.  If a group of NPCs is being escorted, this distance is measured
-//          from the group center point.
+//   At least one of the following arguments must be specified:
+//      MoveAwayFromMobWithAuraIdN [optional]
+//          When a mob in the vicinity has this aura, the toon will avoid this mob
+//          by moving towards safe spots.
+//          This argument applies to any mob that is aggro'd on the toon--not necessarily
+//          the mob the toon is currently fighting.
+//      MoveAwayFromMobCastingSpellIdN [optional]
+//          When a mob in the vicinity is casting this spell, the toon will avoid this mob
+//          by moving towards safe spots.
+//          This argument applies to any mob that is aggro'd on the toon--not necessarily
+//          the mob the toon is currently fighting.
+//      MoveBehindMobCastingSpellIdN [optional]
+//          When a mob in the vicinity is casting this spell, the toon will avoid this mob
+//          by moving behind the mob.
+//          This argument applies to any mob that is aggro'd on the toon--not necessarily
+//          the mob the toon is currently fighting.
+//      MoveOutOfGroundEffectAuraIdN [optional]
+//          When a toon has one of thse ground-effect aura debuffs, the toon will
+//          move out of the ground-effect by moving towards safe spots.
+//      PreferKillingMobIdN [optional]
+//          If a mob appears that is identified as 'preferred', the toon will switch from
+//          the mob it is currently fighting to the preferred mob.  This only happens if
+//          the toon is not already fighting a preferred mob.
 //
-//      EscortCompleteWhen [optional; Default: QuestComplete]
-//          [allowed values: DestinationReached/QuestComplete/QuestCompleteOrFails]
+//   Behavior completion criteria:
+//      EventCompleteWhen [optional; Default: QuestComplete]
+//          [allowed values: QuestComplete/QuestCompleteOrFails/SpecificMobsDead]
 //          Defines the completion criteria for the behavior.
-//      EscortCompleteX/EscortCompleteY/EscortCompleteZ [REQUIRED if EscortCompleteWhen=DestinationReached]
-//          Defines the location at which the behavior is considered complete.  This value is only used
-//          if EscortComplete is DestinationReached.
-//      EscortCompleteMaxRange [optional; Default: 10.0]
-//          Defines the tolerance from the EscortCompleteX/Y/Z for which the behavior is considered
-//          complete.  This value is only used if EscortCompelte is DestinationReached.
+//      EventCompleteDeadMobIds [REQUIRED if EventCompleteWhen=SpecificMobsDead]
+//          This argument is only consulted if EventCompleteWhen=SpecificMobsDead.
+//          This argument identifies one or more mobs.  The killing of _any_ of the
+//          identified mobs results in behavior completion.
 //
+//   Quest binding:
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
 //              A full discussion of how the Quest* attributes operate is described in
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //
+//   Tunables (ideally, the profile would _never_ provide these arguments):
+//      AvoidMobMinRange [optional; Default: 25.0]
+//          This argument defines the minimum distance that should be between the toon
+//          and the mob when the behavior is avoiding a mob.
+//      MovementBy [optional; Default NavigatorPreferred]
+//          [allowed values: ClickToMoveOnly/NavigatorOnly/NavigatorPreferred]
+//          Allows alternative navigation techniques.  You should provide this argument
+//          only when an area is unmeshed, or not meshed well.  If ClickToMoveOnly
+//          is specified, the area must be free of obstacles; otherwise, the toon
+//          will get hung up.
+//
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
-//      EscortPath [optional]
-//          Comprised of a set of Hotspots, this element defines a _unidirectional_ path
-//          which the toon will lead the EscortNpcIdN.
-//      SearchPath [optional; Default: Toon's current position when the behavior is started]
-//          Comprised of a set of Hotspots, this element defines a _circular_ path
-//          that the toon will traverse to locate the StartNpcIdN or EscortNpcIdN.
-//          If no SearchPath is specified, the toon will wait at the current position
-//          for the StartNpcIdN or EscortNpcIdN to arrive.
+//      Safespots [REQUIRED]
+//          Comprised of a set of Hotspots, this element defines a set of locations
+//          to which a toon may move to avoid mobs.
 //
 // THINGS TO KNOW:
 // * All looting and harvesting is turned off while the escort is in progress.
-// * Provide an EscortPath--it makes the toon look _incredibly_ human.
 //
 // POSSIBLE FUTURE IMPROVEMENTS:
-// * Do 'fan out' as we travel, so multiple toons don't stack up in the exact same spots
 // * Timeouts: 1) While searching for NPCs, 2) for overall quest completion
 #endregion
 
-#region Examples
-// "Reunited" (http://www.wowhead.com/quest=31091).
-// A simple follow-and-defend quest.  The EscortPath is optional, but makes the toon look
-// exceptionally human, because it will 'lead' the Npc rather than follow it.  The path is
-// designed to avoid an initial encounter, just like a human would.
-// The quest requires interacting with an NPC (StartNpcId) via a gossip, then the gossip NPC
-// is immediately replaced with an instanced-version which we need to escort (EscortNpcId).
-// 		<CustomBehavior File="EscortGroup" QuestId="31091" StartNpcId="63876" EscortNpcId="64013">
-//          <EscortPath>
-//              <Hotspot X="-874.6547" Y="3809.671" Z="-0.3560973" />
-//              <Hotspot X="-895.4308" Y="3819.729" Z="-0.2184875" />
-//              <Hotspot X="-927.9977" Y="3821.674" Z="-0.3616131" />
-//              <Hotspot X="-955.2557" Y="3891.079" Z="-0.02633452" />
-//              <Hotspot X="-1027.789" Y="3926.881" Z="0.591239" />
-//              <Hotspot X="-1094.124" Y="3928.721" Z="-0.2553162" />
-//              <Hotspot X="-1154.453" Y="3901.083" Z="1.835292" />
-//          </EscortPath>
-//      </CustomBehavior>
+#region FAQs
+// * There is an NPC that starts the event, but it doesn't have a dialog box pop up?
+//      Specify a StartNpcId, but no StartEventGossipOptions.  StartEventGossipOptions
+//      defaults to a dialog-less chat interaction.
 //
-// "Students No More" (http://www.wowhead.com/quest=30625)
-// Searchs for the students (EscortNpcIdN), then follows them to kill 4 elite mobs and some trash.
-// The SearchPath is used to initially locate the students.
-//      <CustomBehavior File="EscortGroup" QuestId="30625"
-//          EscortNpcId1="59839" EscortNpcId2="59840" EscortNpcId3="59841" EscortNpcId4="59842" EscortNpcId5="59843">
-//          <SearchPath>
-//              <Hotspot X="-244.1373" Y="2327.563" Z="137.9225" />
-//              <Hotspot X="-271.8149" Y="2286.35" 	Z="119.61" />
-//              <Hotspot X="-278.60"   Y="2280.82"  Z="116.73" />
-//              <Hotspot X="-377.7986" Y="2311.363" Z="117.677" />
-//              <Hotspot X="-422.3317" Y="2303.213" Z="133.0315" />
-//              <Hotspot X="-273.74"   Y="2351.56"  Z="126.98" />
-//          </SearchPath>
+// * There is no NPC that starts the event--just need to "get into position"?
+//      Specify an EventX/EventY/EventZ, but no StartNpcId.  This will move the toon
+//      into position, and wait for the event to start.
+//
+// * What happens if I die?
+//      This depends on how the behavior was configured:
+//      If EventCompleteWhen=QuestCompleteOrFails, and the death causes a quest failure,
+//      then this behavior completes.
+//      All other conditions, the toon will move back and rez.  After that, if a StartNpcId
+//      was specified, it will interact with the event-start NPC to try again.
+//      If an EventX/EventY/EventZ was specified, it will move to that location and wait
+//      for the mobs to arrive.
+//
+// * How should I place safespots?
+//      The safespots are just a collection of locations to which to run, and the behavior
+//      selects from them according to the battlefield conditions (i.e., toon placement,
+//      mob placement, etc).  The safespots do _not_ form any kind of 'path'.
+//      Safespots should be placed as far away as reasonably possible.  Six spots making
+//      a circle with a 50-yard radius should be sufficient.  Try to place the spots
+//      such that there are no interfering obstacles.
+//
+// * The toon is pathing funny to get to the safespots.  How do I handle this?
+//      This happens because the area is unmeshed, or meshed badly.  You can resort to
+//      MovementType=ClickToMoveOnly.  But, we would recommend you report the problem
+//      to the Navigation thread to have the mesh repaired.  "Click to move" doesn't
+//      handle obstacles or other obstructions at all.
+//
+// * What happens if the Quest fails?
+//      Normally, the behavior returns to its starting point to try again.  However,
+//      if EventCompleteWhen is set to QuestCompleteOrFails, the behavior will simply
+//      terminate.
+//
+// * The quest failed, how do I arrange to abandon it, and go pick it up again?
+//      Set the EventCompleteWhen attribute to QuestCompleteOrFails.  In the profile,
+//      check for quest failure, and abandon and pick the quest up again, before
+//      re-conducting the behavior.
+//
+
+#endregion
+
+#region Examples
+// "The Celestial Experience" (http://www.wowhead.com/quest=31394)
+// This quest has three consecutive NPCs that must be killed in a large circular room.
+// The quest starts by chatting with Xuen (http://www.wowhead.com/npc=64528).  This is a dialog-less
+// interaction, so we specify a StartNpcId, but no StartEventGossipOptions.
+// The NPCs have a set of spells you must avoid:
+// * A high damage ground-effect AoE must be avoided (Sha Corruption, http://www.wowhead.com/spell=126625).
+//   To 'get out of this effect' we specify a MoveOutOfGroundEffectAuraId1="126625" argument.
+// * An AoE directly in front of the caster (Devastation, http://www.wowhead.com/spell=126631).
+//   We choose to get out of this spell while it is being cast by moving behind the caster.
+//   This is accomplished with a MoveBehindMobCastingSpellId1="126631" argument.
+// * The mob will buff himself with an 8-sec +300 Strength buff  (Untamed Fury, http://www.wowhead.com/spell=23719)
+//   We choose to avoid the mob as long as this buff is up by specifying
+//   a MoveAwayFromMobWithAuraId1="23719" argument.
+// * The mob will buff himself with a extremely damaging attack (Whirlwind of Anger, http://www.wowhead.com/spell=126633)
+//   We get a 'head start' on avoiding this mob while he is casting the spell for 3 seconds
+//   by specifying MoveAwayFromMobCastingSpellId1="126633".  While the whirlwind is in progress
+//   for another 8 seconds, we want to stay away from the mob.  We do this by specifying an additional
+//   an additional MoveAwayFromMobWithAuraId2="126633" argument.
+//
+//      <CustomBehavior File="GetOutOfGroundEffectAndAuras" StartNpcId="64528" QuestId="31395"
+//          EventX="3783.071" EventY="535.3829" EventZ="639.0076"
+//          MoveOutOfGroundEffectAuraId1="126625"
+//          MoveBehindMobCastingSpellId1="126631"
+//          MoveAwayFromMobCastingSpellId1="126633"
+//          MoveAwayFromMobWithAuraId1="23719"
+//          MoveAwayFromMobWithAuraId2="126633">
+//          <Safespots>
+//              <!-- safe spots in the room are the gold circles that comprise the big circle -->
+//              <Hotspot X="3825.954" Y="550.3646" Z="639.8345" />
+//              <Hotspot X="3800.181" Y="567.9801" Z="639.8226" />
+//              <Hotspot X="3770.128" Y="557.3201" Z="639.8259" />
+//              <Hotspot X="3765.737" Y="516.8966" Z="639.8144" />
+//              <Hotspot X="3791.67"  Y="499.2032" Z="639.825" />
+//              <Hotspot X="3821.244" Y="509.5078" Z="639.8226" />
+//          </Safespots>
 //      </CustomBehavior>
 // 
 #endregion
@@ -175,14 +239,12 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                 // Parameters dealing with 'starting' the behavior...
                 StartEventGossipOptions = GetAttributeAsArray<int>("StartEventGossipOptions", false, new ConstrainTo.Domain<int>(1, 10), null, null);
                 StartNpcIds = GetNumberedAttributesAsArray<int>("StartNpcId", 0, ConstrainAs.MobId, null);
-                StartLocation = GetAttributeAsNullable<WoWPoint>("Start", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-
+                EventLocation = GetAttributeAsNullable<WoWPoint>("Event", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
                 // Parameters dealing with avoidance during battle...
                 MoveAwayFromMobWithAuraIds = GetNumberedAttributesAsArray<int>("MoveAwayFromMobWithAuraId", 0, ConstrainAs.SpellId, null);
                 MoveAwayFromMobCastingSpellIds = GetNumberedAttributesAsArray<int>("MoveAwayFromMobCastingSpellId", 0, ConstrainAs.SpellId, null);
                 MoveBehindMobCastingSpellIds = GetNumberedAttributesAsArray<int>("MoveBehindMobCastingSpellId", 0, ConstrainAs.SpellId, null);
-                AvoidMobMinRange = GetAttributeAsNullable<double>("AvoidMobMinRange", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 25.0;
                 MoveOutOfGroundEffectAuraIds = GetNumberedAttributesAsArray<int>("MoveOutOfGroundEffectAuraId", 0, ConstrainAs.SpellId, null);
                 PreferKillingMobIds = GetNumberedAttributesAsArray<int>("PreferKillingMobId", 0, ConstrainAs.MobId, null);
 
@@ -196,6 +258,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 // Behavior tunables (profiles shouldn't specify these unless working around bugs)...
+                AvoidMobMinRange = GetAttributeAsNullable<double>("AvoidMobMinRange", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 25.0;
                 MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.NavigatorPreferred;
 
 
@@ -257,7 +320,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
         // Variables for Attributes provided by caller
         private int[] StartEventGossipOptions { get; set; }
         private int[] StartNpcIds { get; set; }
-        private WoWPoint StartLocation { get; set; }
+        private WoWPoint EventLocation { get; set; }
 
         private double AvoidMobMinRange { get; set; }
         private int[] MoveAwayFromMobWithAuraIds { get; set; }
@@ -371,14 +434,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
 
 
         #region Overrides of CustomForcedBehavior
-        // NB: This behavior is designed to run at a 'higher priority' than Combat_Main.
-        // This is necessary because movement is frequently more important than combat when conducting
-        // escorts (e.g., the escort doesn't wait for us to kill the mob).  Be aware that this priority
-        // inversion is not what you are used to seeing in most quest behaviors, and results in some
-        // 'different' combinations of PrioritySelector and Sequence.
-        // NB: Due to the complexity, this behavior is also 'state' based.  All necessary actions are
-        // conducted in the current state.  If the current state is no longer valid, then a state change
-        // is effected.  Ths entry state is "MovingToStartLocation".
+
         protected override Composite CreateBehavior()
         {
             return CreateMainBehavior();
@@ -413,6 +469,11 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
             }
 
             _safespots = ParsePath("Safespots");
+            if (_safespots.Count() <= 0)
+            {
+                LogMessage("error", "The <Safespots> element is missing or empty");
+                IsAttributeProblem = true;
+            }
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -542,7 +603,9 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
 
         protected Composite CreateMainBehavior()
         {
-            // Let other behaviors deal with toon death and path back to corpse...
+            // NB: Due to the complexity, this behavior is 'state' based.  All necessary actions are
+            // conducted in the current state.  If the current state is no longer valid, then a state change
+            // is effected.  Ths entry state is "InitialState".
             return new PrioritySelector(
                     new Decorator(context => _isBehaviorDone,
                         new Action(context => { LogMessage("info", "Behavior Finished"); })),
@@ -622,8 +685,8 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                                 new Decorator(context => IsEventComplete() || IsEventFailed(),
                                     new Action(context => { _behaviorState = BehaviorStateType.CheckDone; })),
 
-                                new Decorator(context => (StartLocation != WoWPoint.Empty) && (Me.Location.Distance(StartLocation) > Navigator.PathPrecision),
-                                    UtilityBehavior_MoveWithinRange(context => StartLocation, context => "to start location")),
+                                new Decorator(context => (EventLocation != WoWPoint.Empty) && (Me.Location.Distance(EventLocation) > Navigator.PathPrecision),
+                                    UtilityBehavior_MoveWithinRange(context => EventLocation, context => "to start location")),
 
                                 new ActionAlwaysFail()
                             )),
