@@ -81,8 +81,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id: BearsUpThere.cs 258 2013-01-01 17:29:47Z natfoth $"); } }
+        public override string SubversionRevision { get { return ("$Revision: 258 $"); } }
 
 
         //  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest

@@ -7,9 +7,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Pathing;
+using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -18,14 +19,14 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-    public class BomberMan : CustomForcedBehavior
+    public class Defend : CustomForcedBehavior // The Defense of Nahom - Uldum
     {
-        ~BomberMan()
+        ~Defend()
         {
             Dispose(false);
         }
 
-        public BomberMan(Dictionary<string, string> args)
+        public Defend(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -33,13 +34,13 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 27761; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId = 28501;//GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
 
-
+                MobIds = new uint[] { 45543, 45586, 48490, 48462, 48463 };
             }
 
             catch (Exception except)
@@ -68,9 +69,6 @@ namespace Styx.Bot.Quest_Behaviors
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
-        private WoWPoint[] BombSpots = { new WoWPoint(-10702.17, -2455.62, 123.2423), new WoWPoint(-10678.92, -2452.069, 100.3572), new WoWPoint(-10588.04, -2439.058, 93.703) };
-
 
         // Private properties
         private LocalPlayer Me
@@ -123,12 +121,12 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return
-                    new Decorator(ret => IsQuestComplete() && Me.Mounted, new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
+                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                                                    {
+                                                        TreeRoot.StatusText = "Finished!";
+                                                        _isBehaviorDone = true;
+                                                        return RunStatus.Success;
+                                                    }));
 
             }
         }
@@ -136,7 +134,50 @@ namespace Styx.Bot.Quest_Behaviors
 
 
 
+        public void UsePetAbility(string action, params WoWPoint[] Spot)
+        {
 
+            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+            if (spell == null)
+                return;
+
+            Logging.Write("[Pet] Casting {0}", action);
+            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+            //if (action == "Move Ramkahen Infantry" || action == "Flame Arrows")
+            SpellManager.ClickRemoteLocation(Spot[0]);
+
+        }
+
+
+
+        public int GuardsTooFar
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Count(
+                        u => u.IsAlive && u.Entry == 45643 && u.Location.Distance(Location) > 10);
+            }
+
+        }
+
+        public int GuardsLowHealth
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Count(u => u.IsAlive && u.Entry == 45643 && u.HealthPercent <= 30);
+            }
+        }
+
+        public int NearbyEnemies
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Count(u => u.IsAlive && u.FactionId == 2334 && u.Location.Distance(Location) < 30);
+            }
+        }
 
 
         public List<WoWUnit> Enemies
@@ -144,93 +185,71 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.FactionId == 2334 && u.IsAlive).OrderBy(u => u.Distance).ToList();
+                //ObjectManager.GetObjectsOfType<WoWUnit>().Where(u=> MobIds.Contains(u.Entry) && u.IsAlive).OrderBy(u => u.Distance).ToList();
             }
         }
 
 
-        public WoWUnit ClosestBomb()
-        {
-            return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 46888 && u.IsAlive && u.Location.Distance(BadBomb) > 10).OrderBy(u => u.Distance).FirstOrDefault();
-        }
-
-
-        public int Hostiles
+        public Composite BunchUp
         {
             get
             {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Count(
-                        u => u.IsHostile && u.Location.Distance(ClosestBomb().Location) <= 10);
+                return new Decorator(r => GuardsTooFar > 0, new Action(r => UsePetAbility("Move Ramkahen Infantry", Location)));
             }
-
         }
 
-        public Composite DeployHologram
+        public Composite ShootArrows
         {
             get
             {
-                return new Decorator(ret => Hostiles > 0,
-                    new Action(r => Hologram().Use()));
+                return new Decorator(r => Me.PetSpells[1].Cooldown == false && Enemies.Count > 0, new Action(r => UsePetAbility("Flame Arrows", Enemies[0].Location.RayCast(Enemies[0].Rotation, (float)(Enemies[0].MovementInfo.CurrentSpeed * 2.5)))));
             }
         }
 
-
-        public Composite FindBomb
+        public Composite Lazor
         {
             get
             {
-                return new Decorator(ret => Me.Location.Distance(ClosestBomb().Location) > 12,
-                    new Action(delegate
-                    {
-                        var x = ClosestBomb().Location;
-                        x.Z += 10;
-                        Flightor.MoveTo(x);
-                    }));
+                return new Decorator(r => (NearbyEnemies > 10 || GuardsLowHealth >= 1) && Me.PetSpells[2].Cooldown == false, new Action(r => UsePetAbility("Sun's Radiance", Location)));
             }
-        }
-
-
-        public Composite BreakCombat
-        {
-            get
-            {
-                return new Decorator(ret => Me.Combat,
-                    new Action(r => Hologram().Use()));
-            }
-        }
-
-        public Composite Mount
-        {
-            get
-            {
-                return new Decorator(ret => !Me.Mounted && ClosestBomb().Distance > 10,
-                    new Action(r => Flightor.MountHelper.MountUp()));
-            }
-        }
-
-        public Composite UseAndGo
-        {
-            get
-            {
-                return new Action(delegate { 
-                    ClosestBomb().Interact();
-                    Flightor.MountHelper.MountUp();
-                });
-            }
-        }
-
-        public WoWItem Hologram()
-        {
-            return Me.BagItems.FirstOrDefault(x => x.Entry == 62398);
         }
 
         protected override Composite CreateBehavior()
         {
-
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(BreakCombat,Mount, DoneYet,FindBomb, DeployHologram, UseAndGo)));
+            //return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone,new PrioritySelector(new Action(ret => Loopstuff()))));
         }
 
-        WoWPoint BadBomb = new WoWPoint(-10561.68, -2429.371, 91.56037);
+
+
+        public void Loopstuff()
+        {
+            while (true)
+            {
+                ObjectManager.Update();
+                if (IsQuestComplete())
+                {
+                    _isBehaviorDone = true;
+                    break;
+                }
+
+                if (Me.PetSpells[1].Cooldown == false && Enemies.Count > 0)
+                {
+                    UsePetAbility("Flame Arrows",
+                                  Enemies[0].Location.RayCast(Enemies[0].Rotation,
+                                                              (float) (Enemies[0].MovementInfo.CurrentSpeed*2.5)));
+                }
+                if ((NearbyEnemies > 10 || GuardsLowHealth >= 1) && Me.PetSpells[2].Cooldown == false)
+                {
+                    UsePetAbility("Sun's Radiance", Location);
+                }
+                if (GuardsTooFar > 0)
+                {
+                    UsePetAbility("Move Ramkahen Infantry", Location);
+                }
+
+            }
+        }
 
         public override void Dispose()
         {
@@ -248,7 +267,14 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        public bool cancast(int spot)
+        {
+            var x = Lua.GetReturnValues("return GetPetActionCooldown(" + (spot + 1) + ")");
+            if (x[0] != "0")
+                return false;
 
+            return true;
+        }
         public override void OnStart()
         {
 
@@ -263,6 +289,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
 
 
+
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {
                     var currentRoot = TreeRoot.Current.Root;
@@ -273,7 +300,8 @@ namespace Styx.Bot.Quest_Behaviors
                     }
                 }
 
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
+
+
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

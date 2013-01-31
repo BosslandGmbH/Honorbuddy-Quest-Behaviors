@@ -1,4 +1,4 @@
-// Behavior originally contributed by Natfoth.
+﻿// Behavior originally contributed by Natfoth.
 //
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_FireFromTheSky
@@ -70,7 +70,7 @@ namespace Styx.Bot.Quest_Behaviors
         private bool _usedTurret;
 
         public static int[] MobIds = new[] { 55411, 55484, 55410, 55473, 55505, 55485 };
-        public static int[] OrcIds = new[] { 55498, 55501, 55499};
+        public static int[] OrcIds = new[] { 55498, 55501, 55499 };
         public static int DwarfID = 55286;
 
         public static WoWPoint TurretLocation = new WoWPoint(1116.968f, -544.0963f, 413.5516f);
@@ -151,12 +151,12 @@ namespace Styx.Bot.Quest_Behaviors
             _isDisposed = true;
         }
 
-        
+
 
 
         #region Overrides of CustomForcedBehavior
 
-       
+
 
         protected override Composite CreateBehavior()
         {
@@ -182,11 +182,17 @@ namespace Styx.Bot.Quest_Behaviors
                                         new Decorator(ret => Amber == null,
                                             new Sequence(
                                                 new Action(ret => TreeRoot.StatusText = "Moving to Start Amber(Human) Story"),
-                                                new Action(ret => Navigator.MoveTo(new WoWPoint(-157.5062f, -2659.278f, 1.069468f)))
+                                                new Action(ret => Navigator.MoveTo(new WoWPoint(-157.5062f, -2659.278f, 1.069468f))),
+                                                new Action(ret => WoWMovement.MoveStop()),
+                                                new Action(ret => Thread.Sleep(1000))
                                              )),
 
                                         new Decorator(ret => Amber != null && !Amber.WithinInteractRange,
-                                                new Action(ret => Navigator.MoveTo(Amber.Location))
+                                                new Sequence(
+                                                    new Action(ret => Navigator.MoveTo(Amber.Location)),
+                                                    new Action(ret => WoWMovement.MoveStop()),
+                                                    new Action(ret => Thread.Sleep(1000))
+                                                    )
                                              ),
 
                                         new Decorator(ret => Amber != null && Amber.WithinInteractRange,
@@ -203,14 +209,14 @@ namespace Styx.Bot.Quest_Behaviors
                                             new PrioritySelector(
                                                  new Decorator(ret => HozenEnemy != null,
                                                     new Sequence(
-                                                        new Action(ret => HozenEnemy.Target()),                                                        new Action(ret => Thread.Sleep(400)),
+                                                        new Action(ret => HozenEnemy.Target()), new Action(ret => Thread.Sleep(400)),
                                                         new Action(ret => HozenEnemy.Interact()))),
 
                                                 new Decorator(ret => OrcEnemy != null, // Orc Has to be Seperate or we will Die
                                                     new Sequence(
                                                         new Action(ret => OrcEnemy.Target()),
                                                         new Action(ret => Thread.Sleep(400)),
-                                                        new Action(ret => OrcEnemy.Interact()))), 
+                                                        new Action(ret => OrcEnemy.Interact()))),
 
                                                 new Decorator(ret => UsingTurretLocation.Distance(StyxWoW.Me.Location) > 30 && !_usedTurret,
                                                     new PrioritySelector(
@@ -220,10 +226,10 @@ namespace Styx.Bot.Quest_Behaviors
                                                             new Sequence(
                                                             new Action(ret => Turret.Interact()),
                                                             new Action(ret => _usedTurret = true)))))
-                                                            
+
 
                                             ))
-                                                            
+
 
                     ))));
         }

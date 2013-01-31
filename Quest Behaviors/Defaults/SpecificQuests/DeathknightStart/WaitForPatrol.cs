@@ -109,8 +109,8 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart.WaitForPatrol
         private static readonly TimeSpan ThrottleUserStatusUpdate = TimeSpan.FromSeconds(1);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id: WaitForPatrol.cs 249 2012-09-19 01:31:37Z natfoth $"); } }
+        public override string SubversionRevision { get { return ("$Revision: 249 $"); } }
 
 
         ~WaitForPatrol()

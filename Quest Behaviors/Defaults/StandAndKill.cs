@@ -2,7 +2,8 @@
 //
 // DOCUMENTATION:
 //     
-//
+//				<CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" /> // originally made for hyjal behavior
+
 
 using System;
 using System.Collections.Generic;

@@ -129,8 +129,8 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        public override string SubversionId { get { return ("$Id: BaronGeddon.cs 254 2012-12-04 19:17:46Z dogan $"); } }
+        public override string SubversionRevision { get { return ("$Revision: 254 $"); } }
 
 
         ~BaronGeddon()
