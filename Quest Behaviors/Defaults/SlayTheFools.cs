@@ -34,6 +34,8 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
+				// 				<CustomBehavior File="SlayTheFools" QuestId="" MobId="" CollectionDistance="" 
+				// 				<CustomBehavior File="SlayTheFools" QuestId="29749" MobId="55489" CollectionDistance="60" X="2930.426" Y="-1644.892" Z="252.8332" />
                 Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 QuestId = GetAttributeAsNullable<int>("QuestId",true, ConstrainAs.QuestId(this), null) ?? 0;
                 ObjectiveId = GetAttributeAsNullable<int>("ObjectiveId", false, ConstrainAs.RepeatCount, null) ?? 0;
