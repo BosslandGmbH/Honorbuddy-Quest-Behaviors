@@ -9,6 +9,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using CommonBehaviors.Actions;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -44,6 +45,8 @@ namespace Styx.Bot.Quest_Behaviors
                 Distance = GetAttributeAsNullable<int>("CollectionDistance", false, null, null) ?? 1000;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
+                Logging.Write("!!!!!!Distance thingy is:" + Distance);
                 
             }
 
