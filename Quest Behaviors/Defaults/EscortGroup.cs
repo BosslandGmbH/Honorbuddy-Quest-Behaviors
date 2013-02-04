@@ -131,7 +131,7 @@
 // designed to avoid an initial encounter, just like a human would.
 // The quest requires interacting with an NPC (StartNpcId) via a gossip, then the gossip NPC
 // is immediately replaced with an instanced-version which we need to escort (EscortNpcId).
-// 		<CustomBehavior File="EscortGroup" QuestId="31091" StartNpcId="63876" EscortNpcId="64013">
+// 		<CustomBehavior File="EscortGroup" QuestId="31091" StartNpcId="63876" EscortNpcId="64013" >
 //          <EscortPath>
 //              <Hotspot X="-874.6547" Y="3809.671" Z="-0.3560973" />
 //              <Hotspot X="-895.4308" Y="3819.729" Z="-0.2184875" />
@@ -147,14 +147,14 @@
 // Searchs for the students (EscortNpcIdN), then follows them to kill 4 elite mobs and some trash.
 // The SearchPath is used to initially locate the students.
 //      <CustomBehavior File="EscortGroup" QuestId="30625"
-//          EscortNpcId1="59839" EscortNpcId2="59840" EscortNpcId3="59841" EscortNpcId4="59842" EscortNpcId5="59843">
+//          EscortNpcId1="59839" EscortNpcId2="59840" EscortNpcId3="59841" EscortNpcId4="59842" EscortNpcId5="59843" >
 //          <SearchPath>
 //              <Hotspot X="-244.1373" Y="2327.563" Z="137.9225" />
-//              <Hotspot X="-271.8149" Y="2286.35" 	Z="119.61" />
-//              <Hotspot X="-278.60"   Y="2280.82"  Z="116.73" />
+//              <Hotspot X="-271.8149" Y="2286.35" Z="119.61" />
+//              <Hotspot X="-278.60" Y="2280.82" Z="116.73" />
 //              <Hotspot X="-377.7986" Y="2311.363" Z="117.677" />
 //              <Hotspot X="-422.3317" Y="2303.213" Z="133.0315" />
-//              <Hotspot X="-273.74"   Y="2351.56"  Z="126.98" />
+//              <Hotspot X="-273.74" Y="2351.56"  Z="126.98" />
 //          </SearchPath>
 //      </CustomBehavior>
 // 

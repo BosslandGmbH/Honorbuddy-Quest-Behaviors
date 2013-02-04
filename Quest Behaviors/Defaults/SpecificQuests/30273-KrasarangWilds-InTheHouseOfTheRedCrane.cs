@@ -14,9 +14,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Bots.Grind;
+using CommonBehaviors.Actions;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -80,9 +83,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => (MobIds.Contains((int)u.Entry) || u.Name.Contains("Echo")) && !u.IsDead)
-                                     .OrderBy(u => u.Distance).FirstOrDefault());
+                return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => (MobIds.Contains((int)u.Entry) || u.Name.Contains("Echo")) && u.CanSelect && !u.IsDead));
             }
         }
 
@@ -91,7 +92,7 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => u.Entry == 59651 && !u.IsDead)
+                                     .Where(u => u.Entry == 59651 && !u.IsDead && u.CanSelect)
                                      .OrderBy(u => u.Distance).FirstOrDefault());
             }
         }
@@ -146,49 +147,83 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-       
-
-        protected override Composite CreateBehavior()
+        public bool IsQuestComplete()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(
-                        ret => !_isBehaviorDone,
-                        new PrioritySelector(
-                            new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
-
-                                new Decorator(
-                                    ret => Sha == null,
-                                    new PrioritySelector(
-                                        new Decorator(ret => Crane == null,
-                                            new Sequence(
-                                                new Action(ret => TreeRoot.StatusText = "Moving to Start Crane Story"),
-                                                new Action(ret => Navigator.MoveTo(ShaLocation))
-                                             )),
-
-                                        new Decorator(ret => Crane != null && !Crane.WithinInteractRange,
-                                                new Action(ret => Navigator.MoveTo(Crane.Location))
-                                             ),
-
-                                        new Decorator(ret => Crane != null && Crane.WithinInteractRange,
-                                            new Sequence(
-                                                new Action(ret => WoWMovement.MoveStop()),
-                                                new Action(ret => Crane.Interact()),
-                                                new Action(ret => Thread.Sleep(400)),
-                                                new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)"))
-                                             )))),
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
+        }
 
 
-                                    new Decorator(
+        public Composite DoneYet
+        {
+            get
+            {
+                return
+                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+
+            }
+        }
+
+        public WoWUnit Surge
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Distance < 3 && r.DynamicFlags == 140).OrderBy(r => r.Distance).
+                        FirstOrDefault();
+            }
+        }
+
+
+        public Composite PreCombatStory
+        {
+            get
+            {
+                
+                return new Decorator(
+                    ret => Sha == null,
+                    new PrioritySelector(
+                        new Decorator(ret => Crane == null,
+                                          new Action(delegate
+                                                         {
+                                                             TreeRoot.StatusText = "Moving to Start Crane Story";
+                                                             Navigator.MoveTo(ShaLocation);
+
+                                                             if (Me.IsDead)
+                                                             {
+                                                                 Lua.DoString("RetrieveCorpse()");
+                                                             }
+                                                         }
+
+                                              )
+
+                                          ),
+
+                        new Decorator(ret => Crane != null && !Crane.WithinInteractRange && Math.Abs(Crane.Z - -31.73) < .20,
+                                      new Action(ret => Navigator.MoveTo(Crane.Location))
+                            ),
+
+                        new Decorator(ret => Crane != null && Crane.WithinInteractRange && Math.Abs(Crane.Z - -31.73) < .20,
+                                      new Sequence(
+                                          new Action(ret => WoWMovement.MoveStop()),
+                                          new Action(ret => Crane.Interact()),
+                                          new Action(ret => Thread.Sleep(400)),
+                                          new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)"))
+                                          ))));
+            }
+        }
+
+
+
+        /*
+         * 
+         * 
+         *                                  new Decorator(
                                         ret => Sha != null,
                                             new PrioritySelector(
                                                  new Decorator(ret => !StyxWoW.Me.Combat,
@@ -211,12 +246,91 @@ namespace Styx.Bot.Quest_Behaviors
                                                                          RoutineManager.Current.CombatBehavior),
                                                                 new Action(ret => Sha.Target()),
                                                                 new Action(ret => RoutineManager.Current.Pull())))
-                                                            
+         * 
+         * 
+         * */
 
-                                            ))
-                                                            
+        public WoWUnit Priority
+        {
+            get { 
 
-                    ))));
+                if (Echo != null)
+                {
+                    return Echo;
+                }
+
+                if (Sha != null)
+                {
+                    return Sha;
+                }
+
+                return null;
+
+            }
+        }
+
+        private static WoWPoint CalculatePointBehindTarget()
+        {
+            return
+                StyxWoW.Me.CurrentTarget.Location.RayCast(
+                    StyxWoW.Me.CurrentTarget.Rotation + WoWMathHelper.DegreesToRadians(150), 10f);
+        }
+
+        /*
+         * 
+         *                     new Decorator(r => Surge != null || BehindTarget != blank, new Action(r =>
+                        
+                        
+                        {
+
+
+                            if (BehindTarget == blank)
+                            {
+                                reachedLocation = false;
+                                BehindTarget = CalculatePointBehindTarget();
+                                Navigator.MoveTo(BehindTarget);
+                            }
+                            if (!reachedLocation && BehindTarget != blank)
+                            {
+                                Navigator.MoveTo(BehindTarget);
+
+                                if (BehindTarget.Distance(Me.Location) < 1)
+                                {
+                                    reachedLocation = true;
+                                    BehindTarget = blank;
+                                }
+                            }
+
+                            return RunStatus.Success;
+                        })),*/
+        private bool reachedLocation = false;
+        private WoWPoint BehindTarget = new WoWPoint(0,0,0);
+        private WoWPoint blank = new WoWPoint(0, 0, 0);
+        public Composite CombatStuff
+        {
+            get
+            {
+                return new PrioritySelector(
+                    
+                    new Decorator(r=> Me.CurrentTarget == null && Priority != null, new Action(r=>Priority.Target())),
+                    //new Decorator(r=> Echo != null && Sha != null && Me.CurrentTarget != null && Me.CurrentTarget == Sha, new Action(r=>Echo.Target())),
+
+                    //LevelBot.CreateCombatBehavior()
+                    
+                    new Decorator(r=> !Me.Combat, RoutineManager.Current.PullBehavior),
+                    RoutineManager.Current.HealBehavior,
+                    RoutineManager.Current.CombatBuffBehavior,
+                   RoutineManager.Current.CombatBehavior
+                    
+                    );
+            }
+        }
+
+
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PreCombatStory, CombatStuff, new ActionAlwaysSucceed())));
         }
 
         public override void Dispose()

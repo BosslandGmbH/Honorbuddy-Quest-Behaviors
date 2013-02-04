@@ -1,6 +1,7 @@
 // Behavior originally contributed by mastahg.
 //
 // DOCUMENTATION:
+// This behavior makes mastahg cry each time it is used.
 //     
 //
 
@@ -40,7 +41,7 @@ namespace Styx.Bot.Quest_Behaviors
                 QuestId = GetAttributeAsNullable<int>("QuestId",true, ConstrainAs.QuestId(this), null) ?? 0;
                 ObjectiveId = GetAttributeAsNullable<int>("ObjectiveId", false, ConstrainAs.RepeatCount, null) ?? 0;
                 MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
-                Distance = GetAttributeAsNullable<int>("CollectionDistance", false, ConstrainAs.ObjectId, null) ?? 1000;
+                Distance = GetAttributeAsNullable<int>("CollectionDistance", false, null, null) ?? 1000;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 
@@ -169,12 +170,10 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
+                    new PrioritySelector(RoutineManager.Current.CombatBuffBehavior,RoutineManager.Current.CombatBehavior);
             }
-        }
 
+        }
 
         public WoWUnit TargetKind
         {
@@ -198,9 +197,11 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return new PrioritySelector(
-                    new Decorator(r => Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly),SelectNew)
-                    );
+                return
+                    new Decorator(
+                        r => Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly),
+                        SelectNew);
+
             }
         }
 
