@@ -13,6 +13,7 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -218,10 +219,19 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+
+        public Composite StayInRange
+        {
+            get
+            {
+                return new Decorator(ret => Me.Location.Distance(Location) > Distance, new Action(r=>Navigator.MoveTo(Location)));
+            }
+        }
+
         protected override Composite CreateBehavior()
         {
 
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, HandleCombat, FindOne,DoDps, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, StayInRange,HandleCombat, FindOne,DoDps, new ActionAlwaysSucceed())));
         }
 
 
