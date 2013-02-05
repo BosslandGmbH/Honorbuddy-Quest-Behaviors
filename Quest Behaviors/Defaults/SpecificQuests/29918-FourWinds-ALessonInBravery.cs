@@ -14,6 +14,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using System.Timers;
+using CommonBehaviors.Actions;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -22,6 +24,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
+using Timer = System.Timers.Timer;
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -110,6 +113,9 @@ namespace Styx.Bot.Quest_Behaviors
         {
             if (!_isDisposed)
             {
+
+                ClawClick.Enabled = false;
+                ClawClick = null;
                 // NOTE: we should call any Dispose() method for any managed or unmanaged
                 // resource, if that resource provides a Dispose() method.
 
@@ -135,79 +141,99 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-       
+
+        //<Vendor Name="Great White Plainshawk" Entry="56171" Type="Repair" X="279.5976" Y="-490.9407" Z="323.0689" />
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
+        }
+        private bool IsObjectiveComplete(int objectiveId, uint questId)
+        {
+            if (Me.QuestLog.GetQuestById(questId) == null)
+            {
+                return false;
+            }
+            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
+            return
+                Lua.GetReturnVal<bool>(
+                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
+        }
+
+        public Composite DoneYet
+        {
+            get
+            {
+                return
+                    new Decorator(ret => IsObjectiveComplete(2, (uint)QuestId), new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+
+            }
+        }
+
+        public WoWItem Rope
+        {
+            get { return Me.BagItems.FirstOrDefault(r => r.Entry == 75208); }
+        }
+        public WoWUnit GiantAssBird
+        {
+            
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.IsAlive && r.Entry == 56171).OrderBy(
+                        r => r.Distance).FirstOrDefault();
+            }
+        }
+        public Composite GetOnBird
+        {
+            get
+            {
+                return
+                    new Decorator(ret => !Me.InVehicle, new PrioritySelector(
+                        new Decorator(r => GiantAssBird != null, new Action(r => { 
+                            
+                            GiantAssBird.Target();
+                                                                                     Navigator.MoveTo(
+                                                                                         GiantAssBird.Location);
+                                                                                     Rope.Use();
+
+
+
+                        }))
+
+
+                                                            ));
+
+            }
+        }
+        public Composite KillBird
+        {
+            get
+            {
+                return
+                    new Decorator(ret => Me.InVehicle, new PrioritySelector(
+
+                        new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != GiantAssBird,new Action(r=>GiantAssBird.Target())),
+
+                        RoutineManager.Current.CombatBuffBehavior,
+                RoutineManager.Current.CombatBehavior
+
+
+                                                           ));
+
+            }
+        }
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(
-                        ret => !_isBehaviorDone,
-                        new PrioritySelector(
-                            new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
-
-                                new Decorator(
-                                    ret => !Me.InVehicle && !_onBird,
-                                    new PrioritySelector(
-                                        new Decorator(ret => Item == null,
-                                            new PrioritySelector(
-                                                new Decorator(ret => RopeGameObject == null,
-                                                    new Action(ret => Navigator.MoveTo(RopeGameObjectLocation))),
-                                                new Decorator(ret => RopeGameObject != null,
-                                                    new PrioritySelector(
-                                                        new Decorator(ret => !RopeGameObject.WithinInteractRange,
-                                                            new Action(ret => Navigator.MoveTo(RopeGameObject.Location))),
-                                                        new Decorator(ret => RopeGameObject.WithinInteractRange,
-                                                            new Sequence(
-                                                                new Action(ret => WoWMovement.MoveStop()),
-                                                                new Action(ret => RopeGameObject.Interact())))
-                                                    ))
-                                        )),
-
-                                        new Decorator(ret => Enemy == null,
-                                            new Action(ret => Navigator.MoveTo(RopeGameObject.Location))),
-
-                                        new Decorator(ret => Enemy != null,
-                                            new Sequence(
-                                                new Action(ret => Enemy.Target()),
-                                                new Action(ret => Item.UseContainerItem()),
-                                                new Action(ret => Thread.Sleep(3000)),
-                                                new Action(ret => GetOnTimer.Reset()),
-                                                new Decorator(ret => Enemy.Distance < 20,
-                                                    new Action(ret => _onBird = true))))
-                                     )),
-
-
-                                    new Decorator(
-                                        ret => Me.InVehicle,
-                                            new PrioritySelector(
-                                                 new Sequence(
-                                                     new Decorator(ret => GetOnTimer.IsFinished,
-                                                         new Sequence(
-                                                             new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
-                                                             new Action(ret => Lua.DoString("RunMacroText('/click ExtraActionButton1','0')")),
-                                                             new Action(ret => GetOnTimer.Reset()))),
-                                                     
-                                                     new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                                                RoutineManager.Current.CombatBehavior),
-                                                     new Action(ret => Enemy.Target()),
-                                                     new Action(c => RoutineManager.Current.Combat())))
-                                                            
-
-                                            )
-                                                            
-
-                    ))));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetOnBird,KillBird, new ActionAlwaysSucceed())));
         }
+
 
         public override void Dispose()
         {
@@ -225,6 +251,15 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        private Timer ClawClick;
+        void ClawClick_Elapsed(object sender, ElapsedEventArgs e)
+        {
+           if (Me.InVehicle)
+           {
+               Lua.DoString("RunMacroText('/click ExtraActionButton1')");
+           }
+        }
+
 
         public override void OnStart()
         {
@@ -237,6 +272,13 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+
+                ClawClick = new Timer();
+                ClawClick.Elapsed += ClawClick_Elapsed;
+                ClawClick.Interval = 5000;
+                ClawClick.Enabled = true;
+
+
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {
                     var currentRoot = TreeRoot.Current.Root;
