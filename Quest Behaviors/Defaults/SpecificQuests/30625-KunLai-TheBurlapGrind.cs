@@ -1,6 +1,8 @@
+﻿using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -50,13 +52,13 @@ namespace Behaviors
         public bool Hop = false;
         public bool IgnoreCombat = false;
         public WoWPoint Location = new WoWPoint(2748.791, 1803.984, 653.4359);
-        public int[] MobIds = new int[] { 60749, 60746, 60752, 60753, 60743, }; 
+        public List<int> MobIds = new List<int>() { 60749, 60746, 60752, 60753, 60743, }; 
         public WoWPoint[] Path { get; private set; }
         public double Precision = 50;
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public int[] SpellIds = new int[] { 117677, 117671 };
+        public int[] SpellIds = new int[] { 117671, 117677 };
         public bool UseNavigator = true;
         public int[] VehicleIds = new int[] { 60754, 60587 };
 
@@ -128,66 +130,52 @@ namespace Behaviors
             }
         }
 
+        public WoWUnit Enemy
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                    .Where(o => MobIds.Contains((int)o.Entry))
+                                    .OrderBy(o => o.Distance)
+                                    .FirstOrDefault();
+            }
+        }
+
+        public List<WoWUnit> Enemies
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true)
+                                    .Where(o => MobIds.Contains((int)o.Entry))
+                                    .OrderBy(o => o.Distance).ToList();
+            }
+        }
+
 
         public Composite CreateSpellBehavior
         {
             get
             {
-                return new Action(c =>
-                {
-                    if (!_casted)
-                    {
-                        if (!_pauseStopwatch.IsRunning)
-                            _pauseStopwatch.Start();
-                        if (_pauseStopwatch.ElapsedMilliseconds >= 1000 || CastTime == 0)
+                return new PrioritySelector(
+                    new Action(r => 
                         {
-                            if (StyxWoW.Me.IsMoving && CastTime > 0)
+                            BotPoi CurrentPoi = BotPoi.Current;
+                            if(CurrentPoi == null || MobIds.Contains((int) CurrentPoi.Entry)) 
                             {
-                                WoWMovement.MoveStop();
-                                if (IgnoreCombat)
-                                    return RunStatus.Running;
-                                else
-                                    return RunStatus.Success;
+                                BotPoi.Current = new BotPoi(Enemy, PoiType.Kill);
                             }
-                            // getting a "Spell not learned" error if using HB's spell casting api..
-                            foreach (int SpellId in SpellIds) 
-                            {
-                                Lua.DoString("CastSpellByID({0})", SpellId);
-                            }
-                            _castCounter++;
-                            _casted = true;
-                            if (CastTime == 0)
-                            {
-                                return RunStatus.Success;
-                            }
-                            _pauseStopwatch.Stop();
-                            _pauseStopwatch.Reset();
-                            _castStopwatch.Reset();
-                            _castStopwatch.Start();
-                        }
-                    }
-                    else if (_castStopwatch.ElapsedMilliseconds >= CastTime)
-                    {
-                        if (_castCounter < CastNum)
-                        {
-                            _casted = false;
-                            _castStopwatch.Stop();
-                            _castStopwatch.Reset();
-                        }
-                        else
-                        {
-                            _castStopwatch.Stop();
-                            _castStopwatch.Reset();
-                            return RunStatus.Success;
-                        }
-                    }
-                    if (IgnoreCombat)
-                        return RunStatus.Running;
-                    else
-                        return RunStatus.Success; 
-
-                });
+                        }),
+                    new Decorator(cond => Vehicle.HealthPercent <= 60, 
+                        new Action(r => CastSpell(117671))),
+                    new Decorator(cond => Enemies.Where(o => Vehicle.Location.Distance(o.Location) < 15).Count() >= 1,
+                        new Action(r => CastSpell(117677)))
+                    );
             }
+        }
+
+        public void CastSpell(int SpellId)
+        {
+            Lua.DoString("CastSpellByID({0})", SpellId);
         }
 
 
@@ -198,25 +186,6 @@ namespace Behaviors
                 if (UseNavigator)
                 {
                     WoWUnit vehicle = Vehicle;
-                    if (MobIds.Count() > 0)
-                    {
-                        // target mob and move to it 
-                        WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => MobIds.Contains((int)o.Entry)).
-                            OrderBy(o => o.Distance).FirstOrDefault();
-                        if (mob != null)
-                        {
-                            if (!StyxWoW.Me.GotTarget || StyxWoW.Me.CurrentTarget != mob)
-                                mob.Target();
-                            if (mob.Location.Distance(Location) > 1)
-                            {
-                                Location = mob.Location;
-                                Path = Navigator.GeneratePath(vehicle.Location, Location);
-                                _pathIndex = 0;
-                                if (Path == null || Path.Length == 0)
-                                    UseNavigator = false;
-                            }
-                        }
-                    }
                     if (Hop && (!_stuckTimer.IsRunning || _stuckTimer.ElapsedMilliseconds > 2000))
                     {
                         _stuckTimer.Reset();
