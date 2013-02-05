@@ -1,4 +1,4 @@
-// Behavior originally contributed by mastahg based off killuntilcomplete.
+// Behavior originally contributed by mastahg
 //
 // DOCUMENTATION:
 //     
@@ -7,7 +7,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -77,18 +77,34 @@ namespace Styx.Bot.Quest_Behaviors
             get { return (StyxWoW.Me); }
         }
 
-        private List<WoWUnit> Adds
+        //<Vendor Name="Malfurion Stormrage" Entry="41632" Type="Repair" X="3993.279" Y="-3036.587" Z="575.3904" />
+        private WoWUnit Malfurion
+
+        {
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 41632); }
+        }
+
+
+        //<Vendor Name="Cenarius" Entry="41631" Type="Repair" X="3954.34" Y="-2826.02" Z="618.7476" />
+        private WoWUnit Cenarius
+
+        {
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 41631); }
+        }
+
+        private WoWUnit Add
         {
             get
             {//40794 40803 31146
                 return
-                    (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 40794 && !u.IsDead).OrderBy(u => u.Distance).ToList());
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 40794 && !u.IsDead).OrderBy(
+                        u => u.Distance).FirstOrDefault();
             }
         }
 
         private WoWUnit Ragnaros
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 40793)); }
+            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 41634)); }
         }
 
 
@@ -123,67 +139,30 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        private bool IsRanged
-        {
-            get
-            {
-                return (((Me.Class == WoWClass.Druid) &&
-                         (SpellManager.HasSpell("BalanceSpell") || SpellManager.HasSpell("RestoSpell"))) ||
-                        ((Me.Class == WoWClass.Shaman) &&
-                         (SpellManager.HasSpell("ElementalSpell") || SpellManager.HasSpell("RestoSpell"))) ||
-                        (Me.Class == WoWClass.Hunter) || (Me.Class == WoWClass.Mage) || (Me.Class == WoWClass.Priest) ||
-                        (Me.Class == WoWClass.Warlock));
-            }
-        }
 
-        private int Range
-        {
-            get { return (IsRanged ? 29 : 3); }
-        }
-
-        private int Range2
-        {
-            get { return (IsRanged ? 30 : 30); }
-        }
 
         #region Overrides of CustomForcedBehavior
 
-        public Composite AddMethod
-        {
-            get
-            {
-                return new PrioritySelector(
-                    new Decorator(ret => Adds.Count > 0 && Adds[0].Distance > Range, MoveCloser),
-                    new Decorator(ret => Adds.Count > 0 && Adds[0].Distance <= Range, DoDps));
-            }
-        }
 
-        public Composite RagMethod
-        {
-            get
-            {
-                return new PrioritySelector(
-                    new Decorator(ret => Ragnaros.Distance > Range2, MoveCloserRag),
-                    new Decorator(ret => Ragnaros.Distance <= Range2, DoDps));
-            }
-        }
 
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
+        }
 
         public Composite DoneYet
         {
             get
             {
                 return
-                    new Decorator(
-                        ret =>
-                        (Me.QuestLog.GetQuestById((uint)QuestId) != null &&
-                         Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
-                        new Sequence(new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                     new WaitContinue(120, new Action(delegate
-                                     {
-                                         _isBehaviorDone = true;
-                                         return RunStatus.Success;
-                                     }))));
+                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                    {
+
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
 
             }
         }
@@ -192,45 +171,68 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get
             {
-                return
-                     new Sequence(new Action(ret => Navigator.PlayerMover.MoveStop()),
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
-                        new Action(ret => RoutineManager.Current.Combat())));
-            }
-        }
-        public Composite MoveCloser
-        {
-            get
-            {
-                return new Action(delegate
-                {
-                    var target = Adds[0];
-
-                    target.Target();
-                    Navigator.MoveTo(target.Location);
-                });
+                return new PrioritySelector(RoutineManager.Current.CombatBuffBehavior,
+                                            RoutineManager.Current.CombatBehavior);
             }
         }
 
-        public Composite MoveCloserRag
+        public Composite Story
         {
             get
             {
-                return new Action(delegate
-                {
-                    var target = Ragnaros;
+                return new Decorator(r => Malfurion == null, new PrioritySelector(
 
-                    target.Target();
-                    Navigator.MoveTo(target.Location);
-                });
+                                                                 new Action(r=>
+                                                                                {
+                                                                                    WoWMovement.MoveStop();
+                                                                                    Cenarius.Interact();
+                                                                                    Thread.Sleep(400);
+                                                                                    Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
+                                                                                }
+
+
+                                                                     )));
+            }
+        }
+
+
+        public Composite KillAdds
+        {
+            get
+            {
+                return new Decorator(r=> Add != null, new PrioritySelector(
+                    
+                    
+                    new Decorator(r=> !Me.GotTarget || Me.CurrentTarget != Add, new Action(r=>Add.Target())),
+                    DoDps
+
+                    
+                    
+                    ));
+            }
+        }
+
+
+        public Composite KillBoss
+        {
+            get
+            {
+                return new Decorator(r => Ragnaros != null, new PrioritySelector(
+
+
+                    new Decorator(r => !Me.GotTarget || Me.CurrentTarget != Ragnaros, new Action(r => Ragnaros.Target())),
+                    DoDps
+
+
+
+                    ));
             }
         }
 
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new PrioritySelector(DoneYet,AddMethod));
+            return _root ?? (_root = new PrioritySelector(DoneYet,Story, KillAdds, KillBoss));
         }
 
 
@@ -262,6 +264,19 @@ namespace Styx.Bot.Quest_Behaviors
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+
+                if (TreeRoot.Current != null && TreeRoot.Current.Root != null &&
+    TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (currentRoot is GroupComposite)
+                    {
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateBehavior());
+                    }
+                }
+
+
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " +
