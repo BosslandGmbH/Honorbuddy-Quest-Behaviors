@@ -132,7 +132,7 @@ namespace Honorbuddy.QuestBehaviors.BreakingTheEmperorsShield
 
                 // Clean up unmanaged resources (if any) here...
                 if (_behaviorTreeCombatHook != null)
-                    { TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeCombatHook); }
+                    { TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeCombatHook); }
 
                 if (_configMemento != null)
                     { _configMemento.Dispose(); }
@@ -160,14 +160,7 @@ namespace Honorbuddy.QuestBehaviors.BreakingTheEmperorsShield
 
 
         #region Overrides of CustomForcedBehavior
-        // NB: This behavior is designed to run at a 'higher priority' than Combat_Main.
-        // This is necessary because movement is frequently more important than combat when conducting
-        // escorts (e.g., the escort doesn't wait for us to kill the mob).  Be aware that this priority
-        // inversion is not what you are used to seeing in most quest behaviors, and results in some
-        // 'different' combinations of PrioritySelector and Sequence.
-        // NB: Due to the complexity, this behavior is also 'state' based.  All necessary actions are
-        // conducted in the current state.  If the current state is no longer valid, then a state change
-        // is effected.  Ths entry state is "MovingToStartLocation".
+
         protected override Composite CreateBehavior()
         {
             return _behaviorTreeMainRoot ?? (_behaviorTreeMainRoot = CreateMainBehavior());
@@ -233,7 +226,7 @@ namespace Honorbuddy.QuestBehaviors.BreakingTheEmperorsShield
                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 _behaviorTreeCombatHook = CreateCombatBehavior();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeCombatHook);
+                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeCombatHook);
             }
         }
         #endregion
@@ -242,7 +235,7 @@ namespace Honorbuddy.QuestBehaviors.BreakingTheEmperorsShield
         #region Main Behavior
         protected Composite CreateCombatBehavior()
         {
-            // NB: This behavior is hooked in at a 'higher priority' than Combat_Main.  We need this
+            // NB: This behavior is hooked in at a 'higher priority' than Combat_Only.  We need this
             // for proper target selection.
 
             return new Decorator(context => Me.Combat && HasAuraToBeAvoided(Me.CurrentTarget),
