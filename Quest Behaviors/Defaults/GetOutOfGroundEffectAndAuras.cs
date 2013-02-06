@@ -584,8 +584,10 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                                                                 && (!Me.IsSafelyBehind((WoWUnit)nearestBehindMobContext)
                                                                     || !Me.IsSafelyFacing((WoWUnit)nearestBehindMobContext)),
                         new PrioritySelector(
+                            // We add an additional +3 yards to move behind mob to deal with "large mob" considerations,
+                            // and the WoWclient lieing to HB in such situations.
                             UtilityBehavior_MoveWithinRange(nearestBehindMobContext => SafespotBehindMob((WoWUnit)nearestBehindMobContext,
-                                                                                            ((WoWUnit)nearestBehindMobContext).CombatReach),
+                                                                                            ((WoWUnit)nearestBehindMobContext).CombatReach + 3.0),
                                 nearestBehindMobContext => string.Format("behind from mob casting '{0}'",
                                     UnitSpellFromCastingIds((WoWUnit)nearestBehindMobContext, MoveBehindMobCastingSpellIds).Name),
                                 nearestBehindMobContext => ((WoWUnit)nearestBehindMobContext).CombatReach),
