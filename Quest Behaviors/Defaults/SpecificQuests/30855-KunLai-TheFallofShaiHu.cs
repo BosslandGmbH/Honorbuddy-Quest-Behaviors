@@ -255,6 +255,11 @@ namespace Behaviors
                 _behaviorTreeCombatHook = CreateCombatBehavior();
 
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeCombatHook);
+
+                if (ShaiHuNPC != null && ShaiHuNPC.Distance < 10)
+                {
+                    Navigator.MoveTo(ShaiHuNPC.Location);
+                }
             }
 
         }
