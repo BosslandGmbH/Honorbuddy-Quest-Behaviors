@@ -588,7 +588,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                             // and the WoWclient lieing to HB in such situations.
                             UtilityBehavior_MoveWithinRange(nearestBehindMobContext => SafespotBehindMob((WoWUnit)nearestBehindMobContext,
                                                                                             ((WoWUnit)nearestBehindMobContext).CombatReach + 3.0),
-                                nearestBehindMobContext => string.Format("behind from mob casting '{0}'",
+                                nearestBehindMobContext => string.Format("behind mob casting '{0}'",
                                     UnitSpellFromCastingIds((WoWUnit)nearestBehindMobContext, MoveBehindMobCastingSpellIds).Name),
                                 nearestBehindMobContext => ((WoWUnit)nearestBehindMobContext).CombatReach),
                             new Decorator(nearestBehindMobContext => !Me.IsSafelyFacing((WoWUnit)nearestBehindMobContext),
