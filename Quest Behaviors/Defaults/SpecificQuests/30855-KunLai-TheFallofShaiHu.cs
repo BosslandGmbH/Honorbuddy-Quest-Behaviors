@@ -1,5 +1,9 @@
-﻿using CommonBehaviors.Actions;
+﻿/**
+ * Behavior originally contributed by LastCoder
+ **/
+using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -12,6 +16,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Action = Styx.TreeSharp.Action;
 
@@ -57,6 +62,7 @@ namespace Behaviors
         private bool _isBehaviorDone = false;
         private bool _isDisposed;
         private Composite _root;
+        private Composite _behaviorTreeCombatHook;
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // Static constant variables
@@ -79,7 +85,7 @@ namespace Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => ExplosiveHatredIds.Contains(u.Entry) && u.FactionId == 2550 && !u.Elite && !u.IsDead && u.Distance < 199)
+                                     .Where(u => ExplosiveHatredIds.Contains(u.Entry) && !u.IsDead)
                                      .OrderBy(u => u.Distance).ToList());
             }
         }
@@ -97,13 +103,72 @@ namespace Behaviors
             get
             {
                 return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => ShaiHuId == u.Entry).OrderBy(u => u.IsDead)
-                                     .ThenBy(u => u.Distance)).FirstOrDefault();
+                                     .Where(u => ShaiHuId == u.Entry && !u.IsDead).OrderBy(u => u.Distance)).FirstOrDefault();
             }
+        }
+
+        public Composite CreateCombatBehavior()
+        {
+            return new PrioritySelector(
+                  new Decorator(cond => ShaiHuNPC != null && !ShaiHuNPC.HasAura(118633) && Me.CurrentTarget != ShaiHuNPC,
+                    new Action(r =>
+                    {
+                        BotPoi.Current = new BotPoi(ShaiHuNPC, PoiType.Kill);
+                        ShaiHuNPC.Target();
+                        return RunStatus.Failure;
+                    })),
+                  new Decorator(cond => ShaiHuNPC != null && ShaiHuNPC.HasAura(118633),
+                    new PrioritySelector(
+                                new Decorator(cond => !ExplosiveHatredEnemy.IsTargetingMeOrPet,
+                                    new Action(r =>
+                                    {
+                                        TreeRoot.StatusText = "Pulling explosive hatred using no combat move...";
+                                        WoWPoint[] path = Navigator.GeneratePath(Me.Location, ExplosiveHatredEnemy.Location);
+
+                                        foreach (WoWPoint p in path)
+                                        {
+                                            Thread.Sleep(500);
+                                            WoWMovement.ClickToMove(p);
+                                        }
+                                        return RunStatus.Failure;
+                                    })),
+                                new Decorator(cond => ExplosiveHatredEnemy.IsTargetingMeOrPet && ExplosiveHatredEnemy.Location.Distance(ShaiHuNPC.Location) > 10,
+                                    new Action(r =>
+                                    {
+
+                                        WoWPoint[] path = Navigator.GeneratePath(Me.Location, ShaiHuNPC.Location);
+
+                                        foreach (WoWPoint p in path)
+                                        {
+                                            Thread.Sleep(500);
+                                            WoWMovement.ClickToMove(p);
+                                        }
+                                        return RunStatus.Failure;
+                                    })),
+                              new Decorator(cond => ExplosiveHatredEnemy.Location.Distance(ShaiHuNPC.Location) < 10,
+                                  new Action(r =>
+                                  {
+                                      BotPoi.Current = new BotPoi(ExplosiveHatredEnemy, PoiType.Kill);
+                                      ExplosiveHatredEnemy.Target();
+                                      return RunStatus.Failure;
+                                  })))),
+
+                        new Decorator(cond => ShaiHuNPC != null && !ShaiHuNPC.HasAura(118633),
+                            new Action(r =>
+                            {
+                                if (BotPoi.Current == null ? true : BotPoi.Current.Entry == ShaiHuId)
+                                {
+                                    BotPoi.Current = new BotPoi(ShaiHuNPC, PoiType.Kill);
+                                }
+                                Thread.Sleep(500);
+                                Navigator.MoveTo(ShaiHuNPC.Location);
+                                return RunStatus.Failure;
+                            })));
         }
 
         #endregion
 
+        #region Disposal
         ~KunLaiTheFallofShaiHu()
         {
             Dispose(false);
@@ -133,11 +198,19 @@ namespace Behaviors
             _isDisposed = true;
         }
 
+        #endregion
+
         #region CustomForcedBehavior Override
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new PrioritySelector(new Decorator(
+            return _root ?? (_root = CreateMainBehavior());
+        }
+
+        public Composite CreateMainBehavior()
+        {
+            return new PrioritySelector(
+                new PrioritySelector(new Decorator(
                 ret => !_isBehaviorDone,
                 new PrioritySelector(
                     new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
@@ -149,46 +222,10 @@ namespace Behaviors
                                             _isBehaviorDone = true;
                                             return RunStatus.Success;
                                         }))
-                                    )),
-                    new Decorator(ret => Me.Location.Distance(Waypoint) > 100 && ShaiHuNPC == null,
-                        new Action(r =>
-                        {
-                            Navigator.MoveTo(Waypoint);
-                        })),
-                    new Decorator(ret => ShaiHuNPC != null && ShaiHuNPC.Distance < 100,
-                        new PrioritySelector(
-                            new Decorator(ret => ShaiHuNPC.Buffs.ContainsKey("Bathed in Rage"),
-                                new PrioritySelector(
-                                    new Decorator(r => BotPoi.Current == new BotPoi(ShaiHuNPC, PoiType.Kill),
-                                        new ActionClearPoi()),
-                                    new ActionSetPoi(r => new BotPoi(ExplosiveHatredEnemy, PoiType.Kill)),
-                                    new Decorator(ret => ExplosiveHatredEnemy.Distance < 10,
-                                        new PrioritySelector(
-                                            new Decorator(ret => RoutineManager.Current.PullBehavior != null,
-                                                RoutineManager.Current.PullBehavior),
-                                            new Decorator(ret => RoutineManager.Current.PullBehavior == null,
-                                                new Action(o => RoutineManager.Current.Pull())),
-                                            new Decorator(ret => ShaiHuNPC.Distance > 10,
-                                                new Action(r => { Navigator.MoveTo(ShaiHuNPC.Location); })),
-                                            new Decorator(ret => ShaiHuNPC.Distance <= 10,
-                                                new Action(r => { WoWMovement.MoveStop(); })))),
-                                    new Decorator(ret => ExplosiveHatredEnemy.Distance > 10,
-                                        new Action(r => { Navigator.MoveTo(ExplosiveHatredEnemy.Location); })))) 
-                                    )),
-                            new Decorator(ret => !ShaiHuNPC.Buffs.ContainsKey("Bathed in Rage"),
-                                new PrioritySelector(
-                                    new ActionSetPoi(r => new BotPoi(ShaiHuNPC, PoiType.Kill)),
-                                    new Decorator(r => ShaiHuNPC.Distance <= 10 && Me.IsMoving, 
-                                        new Action(r => 
-                                            {
-                                                WoWMovement.MoveStop();
-                                            })),
-                                   new PrioritySelector(
-                                    new Decorator(ret => RoutineManager.Current.PullBehavior != null,
-                                        RoutineManager.Current.PullBehavior),
-                                    new Decorator(ret => RoutineManager.Current.PullBehavior == null,
-                                        new Action(o => RoutineManager.Current.Pull())))))
-                            ))));
+                                    )))))
+ 
+                                     
+                );
         }
 
         public override bool IsDone
@@ -214,7 +251,12 @@ namespace Behaviors
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
+                _behaviorTreeCombatHook = CreateCombatBehavior();
+
+                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeCombatHook);
             }
+
         }
 
         public override void Dispose()
