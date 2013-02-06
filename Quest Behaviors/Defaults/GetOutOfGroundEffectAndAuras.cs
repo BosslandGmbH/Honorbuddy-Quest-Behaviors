@@ -780,7 +780,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                 {
                     PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
                     if (quest.IsCompleted)
-                        { LogMessage("Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
+                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
                     return (quest == null) || quest.IsCompleted;
                 }
 
@@ -788,15 +788,21 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                 {
                     PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
                     if (quest.IsCompleted)
-                        { LogMessage("Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
+                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
                     if (quest.IsCompleted)
-                        { LogMessage("Event done due to Quest(\"{0}\", {1}) failed", quest.Name, quest.Id); }
+                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) failed", quest.Name, quest.Id); }
                     return (quest == null) || quest.IsCompleted || quest.IsFailed;
                 }
 
                 case EventCompleteWhenType.QuestObjectiveComplete:
                 {
-                    return (IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex));
+                    bool isObjectiveComplete = (IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex));
+                    PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
+
+                    if (isObjectiveComplete)
+                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) objective {2} complete", quest.Name, quest.Id, QuestObjectiveIndex); }
+
+                    return (isObjectiveComplete);
                 }
                 
                 case EventCompleteWhenType.SpecificMobsDead:
@@ -807,7 +813,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                         .FirstOrDefault();
 
                     if (ourDeadTarget != null)
-                        { LogMessage("Event done due to killing '{0}'({1})", ourDeadTarget.Name, ourDeadTarget.Entry); }
+                        { LogMessage("info", "Event done due to killing '{0}'({1})", ourDeadTarget.Name, ourDeadTarget.Entry); }
                     return (ourDeadTarget != null);
                 }
             }
