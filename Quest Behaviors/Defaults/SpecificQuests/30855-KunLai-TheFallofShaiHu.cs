@@ -256,10 +256,7 @@ namespace Behaviors
 
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeCombatHook);
 
-                if (ShaiHuNPC != null && ShaiHuNPC.Distance < 10)
-                {
-                    Navigator.MoveTo(ShaiHuNPC.Location);
-                }
+                WoWMovement.ClickToMove(new WoWPoint(2175.019, 380.8854, 476.0461));
             }
 
         }
