@@ -17,7 +17,8 @@
 //  * It can switch targets to preferred mobs during battle
 //  * It can gossip to start an event
 //
-//  BEHAVIOR ATTRIBUTES:
+// BEHAVIOR ATTRIBUTES:
+// Event start:
 //      StartNpcIdN [optional]
 //          N may be omitted, or any numeric value--multiple mobs are supported.
 //          If NPC interaction is required to start the event, the StartNpcIdN identifieds one
@@ -35,7 +36,7 @@
 //          at its current location where the behavior was started.  If StartNpcIdN is specified,
 //          the toon will loiter near the event-starting NPC.
 //
-//   At least one of the following arguments must be specified:
+// At least one of the following arguments must be specified:
 //      MoveAwayFromMobWithAuraIdN [optional]
 //          When a mob in the vicinity has this aura, the toon will avoid this mob
 //          by moving towards safe spots.
@@ -59,23 +60,27 @@
 //          the mob it is currently fighting to the preferred mob.  This only happens if
 //          the toon is not already fighting a preferred mob.
 //
-//   Behavior completion criteria:
+// Behavior completion criteria:
 //      EventCompleteWhen [optional; Default: QuestComplete]
-//          [allowed values: QuestComplete/QuestCompleteOrFails/SpecificMobsDead]
+//          [allowed values: QuestComplete/QuestCompleteOrFails/QuestObjectiveComplete/SpecificMobsDead]
 //          Defines the completion criteria for the behavior.
 //      EventCompleteDeadMobIds [REQUIRED if EventCompleteWhen=SpecificMobsDead]
-//          This argument is only consulted if EventCompleteWhen=SpecificMobsDead.
+//          This argument is only consulted if EventCompleteWhen is SpecificMobsDead.
 //          This argument identifies one or more mobs.  The killing of _any_ of the
 //          identified mobs results in behavior completion.
 //
-//   Quest binding:
+// Quest binding:
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
 //      QuestCompleteRequirement [Default:NotComplete]:
 //      QuestInLogRequirement [Default:InLog]:
-//              A full discussion of how the Quest* attributes operate is described in
-//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//          A full discussion of how the Quest* attributes operate is described in
+//          http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      QuestObjectiveIndex [REQUIRED if EventCompleteWhen=QuestObjectiveComplete]
+//          [on the closed interval: [1..5]]
+//          This argument is only consulted if EventCompleteWhen is QuestObjectveComplete.
+//          The argument specifies the index of the sub-goal of a quest.
 //
-//   Tunables (ideally, the profile would _never_ provide these arguments):
+// Tunables (ideally, the profile would _never_ provide these arguments):
 //      AvoidMobMinRange [optional; Default: 25.0]
 //          This argument defines the minimum distance that should be between the toon
 //          and the mob when the behavior is avoiding a mob.
@@ -221,6 +226,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
         {
             QuestComplete,
             QuestCompleteOrFails,
+            QuestObjectiveComplete,
             SpecificMobsDead,
         }
 
@@ -256,6 +262,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 5), null) ?? 0;
 
                 // Behavior tunables (profiles shouldn't specify these unless working around bugs)...
                 AvoidMobMinRange = GetAttributeAsNullable<double>("AvoidMobMinRange", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 25.0;
@@ -277,9 +284,22 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                     IsAttributeProblem = true;
                 }
 
+                if ((EventCompleteWhen == EventCompleteWhenType.QuestObjectiveComplete)
+                    && ((QuestId == 0) || (QuestObjectiveIndex == 0)))
+                {
+                    LogMessage("error", "With an EventCompleteWhen argument of QuestObjectiveComplete, you must specify both QuestId and QuestObjectiveIndex arguments");
+                    IsAttributeProblem = true;
+                }
+
+                if ((QuestObjectiveIndex != 0) && (EventCompleteWhen != EventCompleteWhenType.QuestObjectiveComplete))
+                {
+                    LogMessage("error", "The QuestObjectiveIndex argument should not be specified unless EventCompleteWhen is QuestObjectiveComplete");
+                    IsAttributeProblem = true;
+                }
+
                 if ((EventCompleteWhen == EventCompleteWhenType.SpecificMobsDead) && (EventCompleteDeadMobIds.Count() <= 0))
                 {
-                    LogMessage("error", "With a EventCompleteWhen argument of SpecificMobsDead, you must specify one or more EventCompleteDeadMobIdN argument");
+                    LogMessage("error", "With an EventCompleteWhen argument of SpecificMobsDead, you must specify one or more EventCompleteDeadMobIdN argument");
                     IsAttributeProblem = true;
                 }
 
@@ -333,6 +353,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
         private EventCompleteWhenType EventCompleteWhen { get; set; }
 
         private int QuestId { get; set; }
+        private int QuestObjectiveIndex { get; set; }
         private QuestCompleteRequirement QuestRequirementComplete { get; set; }
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
@@ -527,7 +548,7 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
         #endregion
 
 
-        #region Main Behavior
+        #region Main Behaviors
 
         protected Composite CreateCombatBehavior()
         {
@@ -703,8 +724,10 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                             ))
                     ));
         }
+        #endregion
 
 
+        #region Helper methods
         // Finds all enemies attacking escorted units, or the myself or pet
         private IEnumerable<WoWUnit> FindAllTargets()
         {
@@ -770,6 +793,11 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
                         { LogMessage("Event done due to Quest(\"{0}\", {1}) failed", quest.Name, quest.Id); }
                     return (quest == null) || quest.IsCompleted || quest.IsFailed;
                 }
+
+                case EventCompleteWhenType.QuestObjectiveComplete:
+                {
+                    return (IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex));
+                }
                 
                 case EventCompleteWhenType.SpecificMobsDead:
                 {
@@ -809,6 +837,18 @@ namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
         private bool IsInCombat(IEnumerable<WoWUnit> group)
         {
             return group.Any(u => u.Combat || ((u.Pet != null) && u.Pet.Combat));
+        }
+
+        
+        private bool IsQuestObjectiveComplete(int questId, int objectiveId)
+        {
+            if (Me.QuestLog.GetQuestById((uint)questId) == null)
+                { return false; }
+
+            int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
+
+            return
+                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveId, questLogIndex), 2);
         }
 
 
