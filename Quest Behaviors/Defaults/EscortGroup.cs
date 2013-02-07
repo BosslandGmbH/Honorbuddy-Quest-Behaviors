@@ -15,8 +15,8 @@
 //      * Can be used to defend a stationary object
 //      * Can gossip with an NPC to initiate the quest (outside of a quest pickup)
 //      * Will wait for the NPCs to be escorted to arrive, or can search for them
-//        via a supplied SearchPath.
-//      * Can 'lead' an NPC (rather than follow it) via a supplied EscortPath.
+//          via a supplied SearchPath.
+//      * While escorting the group, it 'leads' the group in a very human-like fashion
 //
 //  BEHAVIOR ATTRIBUTES:
 //  Interaction to start:
@@ -57,6 +57,11 @@
 //          The argument specifies the index of the sub-goal of a quest.
 //
 // Tunables (ideally, the profile would _never_ provide these arguments):
+//      CombatMaxEngagementRangeDistance [optional; Default: 23.0]
+//          This is a work around for some buggy Combat Routines.  If a targetted mob is
+//          "too far away", some Combat Routines refuse to engage it for killing.  This
+//          value moves the toon within an appropriate distance to the requested target
+//          so the Combat Routine will perform as expected.
 //      DebugReportUnitsOutOfRange [optional; Default: false]
 //          When enabled, any hostile targets that are out of EscortMaxFightDistance will be
 //          reported with log warnings.
@@ -73,16 +78,13 @@
 //          The maximum range at which the toon will follow the escorted NPCs while not
 //          in combat.  If a group of NPCs is being escorted, this distance is measured
 //          from the group center point.
-//      SearchForNpcsRadius [optional; Default: 100.0]
+//      SearchForNpcsRadius [optional; Default: 75.0]
 //          [on the closed range: [3.0..100.0]
 //          This is the distance from the current position that the toon will look for
 //          StartNpcIds or EscortNpcIds.
 //
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
-//      EscortPath [optional]
-//          Comprised of a set of Hotspots, this element defines a _unidirectional_ path
-//          which the toon will lead the EscortNpcIdN.
 //      SearchPath [optional; Default: Toon's current position when the behavior is started]
 //          Comprised of a set of Hotspots, this element defines a _circular_ path
 //          that the toon will traverse to locate the StartNpcIdN or EscortNpcIdN.
@@ -90,13 +92,9 @@
 //          for the StartNpcIdN or EscortNpcIdN to arrive.
 //
 // THINGS TO KNOW:
+// * The behavior lowers the "Pull Distance" while executing to avoid pulling mobs unnecessarily
 // * All looting and harvesting is turned off while the escort is in progress.
-// * Provide an EscortPath--it makes the toon look _incredibly_ human.
 //
-// POSSIBLE FUTURE IMPROVEMENTS:
-// * Add QuestObjectiveIndex argument and EscortCompleteWhen.QuestObjectiveComplete
-// * Do 'fan out' as we travel, so multiple toons don't stack up in the exact same spots
-// * Timeouts: 1) While searching for NPCs, 2) for overall quest completion
 #endregion
 
 #region FAQs
@@ -107,24 +105,12 @@
 //      Game mechanics are usually such that after the gossip completes with the
 //      StartNpcIdN, an second instance of the gossip NPC is produced, and this
 //      instanced-version is the NPC that should be followed (via EscortNpcIdN).
-//
-// * When does the behavior 'lead' versus 'follow' NPCs to be escorted?
-//      If an EscortPath is specified, the toon will 'lead' the NPC while escorting.
-//      Otherwise, it will 'follow' the NPC.
+//      Some Escorts you just search for EscortNpcIdN and help them home
+//      without chatting.
 //
 // * What happens if the toon gets in a fight but the NPCs keep going?
 //      The toon will try to drag the mob to the NPC and pull the NPC into combat
 //      also. This usually makes the NPC stop moving, and assist with the battle.
-//
-// * Can I specify both an EscortPath and a SearchPath?
-//      Absolutely
-//
-// * What happens if the NPCs won't follow the EscortPath?
-//      The behavior detects this situation and dequeues the current waypoint from
-//      this escort path.  Such a dequeue will continue to happen until the toon
-//      is again in a position to 'lead' the escorted NPCs.
-//      If the toon never gets into a position to 'lead' the NPCs (i.e., the EscortPath
-//      is poorly defined), then the toon just resorts to 'following' the NPCs.
 //
 // * What happens when an Escorted NPC dies?
 //      If there is more than one NPC being escorted, the behavior will continue
@@ -141,26 +127,30 @@
 //      Set the EscortCompleteWhen attribute to QuestCompleteOrFails.  In the profile,
 //      check for quest failure, and abandon and pick the quest up again, before
 //      re-conducting the behavior.
+//
+// * My toon is running to the mob to kill it, then running back to the escort.
+//      The behavior's value of EscortMaxFightDistance is too low for the quest.
+//      The profile needs to adjust this value accordingly.
+//
+// * My toon has an appropriate mob selected, but it won't engage it to kill
+//      Some Combat Routines have bugs, and refuse to attack an appropriate target
+//      if it is "too far away".  Adjust the value of CombatMaxEngagementRangeDistance
+//      accordingly.
+//
+// * As soon as I gossip to start the escort, it tells me the Escort failed
+//      The profile has selected improper values for the StartEscortGossipOptions
+//      argument.
+//
 #endregion
 
 #region Examples
 // "Reunited" (http://www.wowhead.com/quest=31091).
-// A simple follow-and-defend quest.  The EscortPath is optional, but makes the toon look
-// exceptionally human, because it will 'lead' the Npc rather than follow it.  The path is
-// designed to avoid an initial encounter, just like a human would.
+// A simple follow-and-defend quest.
 // The quest requires interacting with an NPC (StartNpcId) via a gossip, then the gossip NPC
 // is immediately replaced with an instanced-version which we need to escort (EscortNpcId).
-// 		<CustomBehavior File="EscortGroup" QuestId="31091" StartNpcId="63876" EscortNpcId="64013">
-//          <EscortPath>
-//              <Hotspot X="-874.6547" Y="3809.671" Z="-0.3560973" />
-//              <Hotspot X="-895.4308" Y="3819.729" Z="-0.2184875" />
-//              <Hotspot X="-927.9977" Y="3821.674" Z="-0.3616131" />
-//              <Hotspot X="-955.2557" Y="3891.079" Z="-0.02633452" />
-//              <Hotspot X="-1027.789" Y="3926.881" Z="0.591239" />
-//              <Hotspot X="-1094.124" Y="3928.721" Z="-0.2553162" />
-//              <Hotspot X="-1154.453" Y="3901.083" Z="1.835292" />
-//          </EscortPath>
-//      </CustomBehavior>
+//      <CustomBehavior File="EscortGroup"
+//          QuestId="31091" EscortCompleteWhen="QuestObjectiveComplete" QuestObjectiveIndex="1"
+//          StartNpcId="63876" StartEscortGossipOptions="1" EscortNpcId="64013" />
 //
 // "Students No More" (http://www.wowhead.com/quest=30625)
 // Searchs for the students (EscortNpcIdN), then follows them to kill 4 elite mobs and some trash.
@@ -177,6 +167,25 @@
 //          </SearchPath>
 //      </CustomBehavior>
 // 
+// "The Burlap Trail: To Burlap Waystation" (http://www.wowhead.com/quest=30592)
+// A simple "assist the NPCs home" quest.  Note there are three versions of the
+// Grummle Trail Guide (the party's tank), and you don't know which version you
+// will get for a particular party, so we include them all as EscortNpcIdN.
+//      <CustomBehavior File="EscortGroup"  QuestId="30592"
+//                      EscortNpcId1="59556" EscortNpcId2="59593" EscortNpcId3="59578"
+//                      EscortNpcId4="59526" EscortNpcId5="59527"
+//                      EscortMaxFightDistance="41" EscortMaxFollowDistance="25" >
+//          <SearchPath>
+//              <Hotspot X="2979.028" Y="1154.199" Z="627.852" />
+//              <Hotspot X="2915.427" Y="1162.269" Z="616.4099" />
+//              <Hotspot X="2918.999" Y="1244.736" Z="635.1276" />
+//              <Hotspot X="2880.712" Y="1333.895" Z="639.9879" />
+//              <Hotspot X="2859.79" Y="1421.056" Z="641.6649" />
+//              <Hotspot X="2836.308" Y="1484.419" Z="641.7247" />
+//              <Hotspot X="2848.853" Y="1394.382" Z="645.6835" />
+//          </SearchPath>
+//      </CustomBehavior>
+//
 #endregion
 
 #region Usings
@@ -227,7 +236,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             try
             {
                 // Parameters dealing with 'starting' the behavior...
-                StartEscortGossipOptions = GetAttributeAsArray<int>("StartEscortGossipOptions", false, new ConstrainTo.Domain<int>(1, 10), null, null);
+                StartEventGossipOptions = GetAttributeAsArray<int>("StartEscortGossipOptions", false, new ConstrainTo.Domain<int>(1, 10), null, null);
                 StartNpcIds = GetNumberedAttributesAsArray<int>("StartNpcId", 0, ConstrainAs.MobId, null);
 
                 // Parameters dealing with the Escorted Npcs...
@@ -244,14 +253,15 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 5), null) ?? 0;
 
                 // Tunables...
+                CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
                 DebugReportUnitsOutOfRange = GetAttributeAsNullable<bool>("DebugReportUnitsOutOfRange", false, null, null) ?? false;
                 EscortCompleteMaxRange = GetAttributeAsNullable<double>("EscortCompleteMaxRange", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 10.0;
                 EscortMaxFightDistance = GetAttributeAsNullable<double>("EscortMaxFightDistance", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 27.0;
                 EscortMaxFollowDistance = GetAttributeAsNullable<double>("EscortMaxFollowDistance", false, new ConstrainTo.Domain<double>(3.0, 100.0), null) ?? 15.0;
-                SearchForNpcsRadius = GetAttributeAsNullable<double>("SearchForNpcsRadius", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 100.0;
+                SearchForNpcsRadius = GetAttributeAsNullable<double>("SearchForNpcsRadius", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 75.0;
 
-                // Semantic Coherency checks --
-                if ((StartEscortGossipOptions.Count() != 0) && (StartNpcIds.Count() == 0))
+                // Semantic coherency / covariant dependency checks --
+                if ((StartEventGossipOptions.Count() != 0) && (StartNpcIds.Count() == 0))
                 {
                     LogMessage("error", "If StartEscortGossipOptions are specified, you must also specify one or more StartNpcIdN");
                     IsAttributeProblem = true;
@@ -295,11 +305,11 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                     IsAttributeProblem = true;
                 }
 
-                if (StartEscortGossipOptions.Count() == 0)
-                    { StartEscortGossipOptions = new int[] { 1 }; }
+                if (StartEventGossipOptions.Count() == 0)
+                    { StartEventGossipOptions = new int[] { 0 }; }
 
-                for (int i = 0; i < StartEscortGossipOptions.Length; ++i)
-                    { StartEscortGossipOptions[i] -= 1; }
+                for (int i = 0; i < StartEventGossipOptions.Length; ++i)
+                    { StartEventGossipOptions[i] -= 1; }
             }
 
             catch (Exception except)
@@ -318,6 +328,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
 
         // Variables for Attributes provided by caller
+        public double CombatMaxEngagementRangeDistance { get; set; }
         public bool DebugReportUnitsOutOfRange { get; set; }
 
         public EscortCompleteWhenType EscortCompleteWhen { get; set; }
@@ -329,7 +340,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         public double EscortMaxFollowDistance { get; set; }
 
         public double SearchForNpcsRadius { get; set; }
-        public int[] StartEscortGossipOptions { get; set; }
+        public int[] StartEventGossipOptions { get; set; }
         public int[] StartNpcIds { get; set; }
 
         public int QuestId { get; set; }
@@ -353,14 +364,13 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             CheckDone,
         }
 
-        private struct MovementState
-        {
+        private class MovementState
+        {     
             public bool IsMoveInProgress { get; set; }
         }
 
         private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
-        private double EscortMaxLeadDistance { get; set; }
         private double EscortNavigationPrecision = 3.0;
         private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
@@ -371,14 +381,11 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         private Composite _behaviorTreeHook_Death = null;
         private Composite _behaviorTreeHook_Main = null;
         private ConfigMemento _configMemento = null;
-        private Queue<WoWPoint> _escortPath = null;
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
-        private MovementState _movementState    = new MovementState();
-        private WoWPoint _movementDestination = WoWPoint.Empty;
-        private BotPoi _poiStartLocation = null;
-        private int _pullDistanceOriginal = 0;
+        private MovementState _movementStateForCombat = new MovementState();
+        private MovementState _movementStateForNonCombat = new MovementState();
         private Queue<WoWPoint> _searchPath = null;
         private WoWUnit _targetPoiUnit = null;
         private WoWPoint _toonStartingPosition = WoWPoint.Empty;
@@ -481,7 +488,6 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 IsAttributeProblem = true;
             }
 
-            _escortPath = ParsePath("EscortPath");
             _searchPath = ParsePath("SearchPath");
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -513,22 +519,12 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 CharacterSettings.Instance.LootMobs = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-                _pullDistanceOriginal = CharacterSettings.Instance.PullDistance;
-                CharacterSettings.Instance.PullDistance = 20;
+                CharacterSettings.Instance.PullDistance = 5;    // don't pull anything we don't have to
                 
                 TreeRoot.GoalText = string.Format(
                     "{0}: \"{1}\"\nLooting and Harvesting are disabled while Escort in progress",
                     this.GetType().Name,
                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
-
-                // If we're leading the escort instead of following,
-                // allow some hysteresis in that 'move back to escort' distance...
-                // This prevents the toon from vascillating while moving.
-                if (_escortPath.Count() > 0)
-                {
-                    EscortMaxLeadDistance = EscortMaxFollowDistance;
-                    EscortMaxFollowDistance = EscortMaxFollowDistance + Math.Max(0.2 * EscortMaxFollowDistance, 5.0);
-                }
 
                 // If search path not provided, use our current location...
                 if (_searchPath.Count() <= 0)
@@ -549,65 +545,72 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         #region Main Behavior
         private Composite CreateCombatBehavior()
         {
-            return new PrioritySelector(escortedUnitsContext => FindUnitsFromIds(EscortNpcIds),
+            return new Decorator(context => (_behaviorState == BehaviorStateType.SearchingForEscortUnits)
+                                            || (_behaviorState == BehaviorStateType.Escorting),
+                new PrioritySelector(escortedUnitsContext => FindUnitsFromIds(EscortNpcIds),
                 
-                // If we've found units to escort...
-                new Decorator(escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Count() > 0,
-                    new PrioritySelector(
-                        // Toon should *never* drift more than EscortMaxFightDistance from nearest escorted unit
-                        UtilityBehavior_MoveTo(
-                            escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => Me.Location.Distance(u.Location) > EscortMaxFightDistance),
-                            escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Any(u => Me.Location.Distance(u.Location) < EscortMaxFollowDistance),
-                            escortedUnitsContext => FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext),
-                            escortedUnitsContext => "nearest escorted unit",
-                            escortedUnitsContext => EscortNavigationPrecision),
+                    // If we've found units to escort...
+                    new Decorator(escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Count() > 0,
+                        new PrioritySelector(
+                            // Toon should *never* drift more than EscortMaxFightDistance from nearest escorted unit
+                            UtilityBehavior_MoveTo(
+                                _movementStateForCombat,
+                                escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => u.Distance > EscortMaxFightDistance),
+                                escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Any(u => u.Distance < EscortMaxFollowDistance),
+                                escortedUnitsContext => FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext),
+                                escortedUnitsContext => "nearest escorted unit",
+                                escortedUnitsContext => EscortNavigationPrecision),
 
-                        // If escort in combat, make certain we've a valid target and strat attacking...
-                        // NB: We manually instrument calls to the CombatBehavior...
-                        // This is required because during an escort, we can be in combat with no units attacking us.
-                        // If this happens, HB will just "stand around" while the escorted units get pounded on.
-                        // We must assure the intended target gets attacked, even if HB thinks differently.
-                        new Decorator(escortedUnitsContext => FindAllTargets((IEnumerable<WoWUnit>)escortedUnitsContext).Count() > 0,
-                            new PrioritySelector(
-                                new Action(escortedUnitsContext =>
-                                {
-                                    #region Debug: Report out-of-range hostiles
-                                    // If enabled, display any targets out of range...
-                                    // (Useful for profile development)
-                                    if (DebugReportUnitsOutOfRange)
+                            // If escort in combat, make certain we've a valid target and strat attacking...
+                            // NB: We manually instrument calls to the CombatBehavior...
+                            // This is required because during an escort, we can be in combat with no units attacking us.
+                            // If this happens, HB will just "stand around" while the escorted units get pounded on.
+                            // We must assure the intended target gets attacked, even if HB thinks differently.
+                            new Decorator(escortedUnitsContext => FindAllTargets((IEnumerable<WoWUnit>)escortedUnitsContext).Count() > 0,
+                                new PrioritySelector(
+                                    new Action(escortedUnitsContext =>
                                     {
-                                        IEnumerable<Tuple<WoWUnit, double>> outOfRangeUnits = FindUnitsOutOfRange((IEnumerable<WoWUnit>)escortedUnitsContext);
-
-                                        if (outOfRangeUnits.Count() > 0)
+                                        #region Debug: Report out-of-range hostiles
+                                        // If enabled, display any targets out of range...
+                                        // (Useful for profile development)
+                                        if (DebugReportUnitsOutOfRange)
                                         {
-                                            LogMessage("warning", "Some units exceed the EscortMaxFightDistance range ({0} yard): {1}",
-                                                EscortMaxFightDistance,
-                                                string.Join(", ", outOfRangeUnits.Select(u => string.Format("{0}({1})", u.Item1.Name, u.Item2))));
+                                            IEnumerable<Tuple<WoWUnit, double>> outOfRangeUnits = FindUnitsOutOfRange((IEnumerable<WoWUnit>)escortedUnitsContext);
+
+                                            if (outOfRangeUnits.Count() > 0)
+                                            {
+                                                LogMessage("warning", "Some units exceed the EscortMaxFightDistance range ({0} yard): {1}",
+                                                    EscortMaxFightDistance,
+                                                    string.Join(", ", outOfRangeUnits.Select(u => string.Format("{0}({1:F1})", u.Item1.Name, u.Item2))));
+                                            }
                                         }
-                                    }
-                                    #endregion
+                                        #endregion
 
-                                    ChooseBestTarget((IEnumerable<WoWUnit>)escortedUnitsContext);
-                                    return RunStatus.Failure;
-                                }),
+                                        ChooseBestTarget((IEnumerable<WoWUnit>)escortedUnitsContext);
+                                        return RunStatus.Failure;
+                                    }),
 
-                                new Decorator(escortedUnitsContext => _targetPoiUnit != null,
-                                    new PrioritySelector(
-                                        new Decorator(escortedUnitsContext => (Me.CurrentTarget != _targetPoiUnit),
-                                            new Action(escortedUnitsContext => { _targetPoiUnit.Target(); return RunStatus.Failure; })),
-                                        new Decorator(escortedUnitsContext => _targetPoiUnit.Distance > CharacterSettings.Instance.PullDistance,
-                                            new Action(escortedUnitsContext => { Navigator.MoveTo(_targetPoiUnit.Location); })),
-                                        new Decorator(escortedUnitsContext => RoutineManager.Current.CombatBehavior != null,
-                                            RoutineManager.Current.CombatBehavior),
-                                        new Action(escortedUnitsContext =>
-                                        {
-                                            RoutineManager.Current.Combat();
-                                            return RunStatus.Failure;
-                                        })
-                                    ))
-                            ))
-                    ))
-            );
+                                    // NB: Some Combat Routines won't engage targets that are "too far away"...
+                                    // This code moves the toon within CombatMaxEngagementRangeDistance
+                                    // to assure the toon is within appropriate distance for the Combat Routines
+                                    // to pick up the mob as requested.
+                                    new Decorator(escortedUnitsContext => _targetPoiUnit != null,
+                                        new PrioritySelector(
+                                            new Decorator(escortedUnitsContext => (Me.CurrentTarget != _targetPoiUnit),
+                                                new Action(escortedUnitsContext => { _targetPoiUnit.Target(); return RunStatus.Failure; })),
+                                            new Decorator(escortedUnitsContext => _targetPoiUnit.Distance > CombatMaxEngagementRangeDistance,
+                                                new Action(escortedUnitsContext => { Navigator.MoveTo(_targetPoiUnit.Location); })),
+                                            new Decorator(escortedUnitsContext => RoutineManager.Current.CombatBehavior != null,
+                                                RoutineManager.Current.CombatBehavior),
+                                            new Action(escortedUnitsContext =>
+                                            {
+                                                RoutineManager.Current.Combat();
+                                                return RunStatus.Failure;
+                                            })
+                                        ))
+                                ))
+                        ))
+            ));
         
         }
 
@@ -631,7 +634,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             // Let other behaviors deal with toon death and path back to corpse...
             return new PrioritySelector(escortedUnitsContext => FindUnitsFromIds(EscortNpcIds),
                     //FOR DEBUG:
-                    new Action(escortedUnitsContext => { LogMessage("info", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
+                    // new Action(escortedUnitsContext => { LogMessage("info", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
 
                     new Decorator(escortedUnitsContext => _isBehaviorDone,
                         new Action(escortedUnitsContext => { LogMessage("info", "Finished"); })),
@@ -648,6 +651,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         new SwitchArgument<BehaviorStateType>(BehaviorStateType.InitialState,
                             new PrioritySelector(
                                 UtilityBehavior_MoveTo(
+                                    _movementStateForNonCombat,
                                     escortedUnitsContext => true,
                                     escortedUnitsContext => false,
                                     escortedUnitsContext => _toonStartingPosition,
@@ -693,6 +697,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
                                 // Move to next search waypoint as needed...
                                 UtilityBehavior_MoveTo(
+                                    _movementStateForNonCombat,
                                     escortedUnitsContext => true,
                                     escortedUnitsContext => false,
                                     escortedUnitsContext => _searchPath.Peek(),
@@ -728,7 +733,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                                     })),
                  
                                 // Continue with interaction
-                                UtilityBehavior_GossipToStartEscort(),
+                                UtilityBehavior_GossipToStartEvent(),
 
                                 new Action(escortedUnitsContext =>
                                 {
@@ -747,42 +752,14 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                                     new Action(escortedUnitsContext => { _behaviorState = BehaviorStateType.CheckDone; })),
                                 
                                 new Decorator(escortedUnitsContext => !Me.Combat,
-                                    new PrioritySelector(
-                                        // If we're following escort, make certain to maintain proper distance
-                                        new Decorator(escortedUnitsContext => _escortPath.Count() <= 0,
-                                            new PrioritySelector(
-                                            new Action(escortedUnitsContext =>
-                                            {
-                                                LogMessage("warning", "FOLLOW-- AllOutOfRange({0})",
-                                                    ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => u.Distance > EscortMaxFollowDistance));
-                                                return RunStatus.Failure;
-                                            }),
-                                            UtilityBehavior_MoveTo(
-                                                escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => u.Distance > EscortMaxFollowDistance),
-                                                escortedUnitsContext => false,
-                                                escortedUnitsContext => FindGroupCenterPoint((IEnumerable<WoWUnit>)escortedUnitsContext),
-                                                escortedUnitsContext => "keep up with escort",
-                                                escortedUnitsContext => EscortNavigationPrecision))
-                                            ),
-
-                                        // If we're leading the escort, head to next waypoint...
-                                        new Decorator(escortedUnitsContext => _escortPath.Count() > 0,
-                                            new PrioritySelector(
-                                            new Action(escortedUnitsContext =>
-                                            {
-                                                LogMessage("warning", "LEAD-- AllIsFacing({0}), Nearest({1})",
-                                                    ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => !u.IsFacing(Me)),
-                                                    FindNearestEscortWaypoint((IEnumerable<WoWUnit>)escortedUnitsContext));
-                                                return RunStatus.Failure;
-                                            }),
-                                            UtilityBehavior_MoveTo(
-                                                escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => !u.IsFacing(Me)),
-                                                escortedUnitsContext => false, // ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => u.IsFacing(Me) && (u.Distance > EscortMaxLeadDistance)),
-                                                escortedUnitsContext => FindNearestEscortWaypoint((IEnumerable<WoWUnit>)escortedUnitsContext),
-                                                escortedUnitsContext => "escort path waypoint",
-                                                escortedUnitsContext => EscortNavigationPrecision))
-                                                )
-                                    ))
+                                    UtilityBehavior_MoveTo(
+                                        _movementStateForNonCombat,
+                                        escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).Any(u => !u.IsFacing(Me))
+                                                                    && ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => u.IsMoving),
+                                        escortedUnitsContext => ((IEnumerable<WoWUnit>)escortedUnitsContext).All(u => u.IsFacing(Me) && (u.Distance > EscortMaxFollowDistance)),
+                                        escortedUnitsContext => FindPositionToEscort((IEnumerable<WoWUnit>)escortedUnitsContext),
+                                        escortedUnitsContext => "escort"
+                                        ))
                             )),
                         #endregion
 
@@ -883,17 +860,19 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
-        private WoWPoint FindNearestEscortWaypoint(IEnumerable<WoWUnit> escortedUnits)
+        private WoWPoint FindPositionToEscort(IEnumerable<WoWUnit> escortedUnits)
         {
-            WoWPoint groupCenter = FindGroupCenterPoint(escortedUnits);
+            WoWPoint groupCenterPoint = FindGroupCenterPoint(escortedUnits);
 
-            return
-               (from point in _escortPath
-                where escortedUnits.All(u => u.IsFacing(point))
-                orderby groupCenter.Distance(point)
-                select point)
-                .FirstOrDefault();
+            // Find aggregate heading...
+            double aggregateHeading = escortedUnits.Average(u => u.Rotation);
+            WoWUnit unitNearestGroupCenter = escortedUnits.OrderBy(u => u.Location.Distance(groupCenterPoint)).FirstOrDefault();
+
+            return (unitNearestGroupCenter != null)
+                ? unitNearestGroupCenter.Location.RayCast((float)aggregateHeading, (float)EscortMaxFollowDistance)
+                : WoWPoint.Empty;
         }
+
 
         /// <summary>list of tuples of all aggro'd hostiles not in EscortMaxFightDistance an any ESCORTEDUNITS.
         /// The tuple is composed of the unit that is out of range, along with their distance to the nearest
@@ -984,39 +963,6 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
-        private bool IsWaypointDropNeeded(Queue<WoWPoint> path, IEnumerable<WoWUnit> escortedUnits, string pathName)
-        {
-            int waypointCount = path.Count();
-
-             // No more waypoints?
-            if (waypointCount == 0)
-                { return false; }
-
-            WoWPoint waypointCurrent = path.Peek();
-            
-            // If toon or any of the escorted crosses the waypoint, then the waypoint is no longer needed...
-            if ((Me.Location.Distance(waypointCurrent) < Navigator.PathPrecision)
-                || (escortedUnits.Any(u => u.Location.Distance(waypointCurrent) < Navigator.PathPrecision)))
-                { return true; }
-
-            // If escortedUnits are walking away from waypoint toward next one, then we can drop the current waypoint...
-            //bool isImplicitDropNeeded = (waypointCount <= 1)
-            //    ? escortedUnits.All(u => u.IsMoving && !(u.IsFacing(Me) || u.IsFacing(waypointCurrent)))
-            //    : escortedUnits.All(u => u.IsMoving && !(u.IsFacing(Me) || u.IsFacing(waypointCurrent)) && u.IsFacing(path.ElementAt(1)));
-            bool isImplicitDropNeeded = escortedUnits.All(u => u.IsMoving && !(u.IsFacing(Me) || u.IsFacing(waypointCurrent)));
-
-            if (isImplicitDropNeeded)
-            {
-                if (string.IsNullOrEmpty(pathName))
-                    { pathName = "Unknown path"; }
-
-                LogMessage("warning", "Dropping waypoint {0}--NPCs doesn't want to go that way", path.Peek().ToString());
-            }
-
-            return (isImplicitDropNeeded);
-        }
-
-
         /// <summary>
         /// When STARTMOVINGWHEN is true, this behavior moves to LOCATIONDELEGATE.  When STOPMOVINGWHEN is true,
         /// or the toon is within PRECISIONDELEGATE of LOCATIONDELEGATE, the behavior ceases to issue move
@@ -1029,7 +975,8 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         /// <param name="locationNameDelegate"></param>
         /// <param name="precisionDelegate"></param>
         /// <returns>RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary</returns>
-        private Composite UtilityBehavior_MoveTo(CanRunDecoratorDelegate startMovingWhen,
+        private Composite UtilityBehavior_MoveTo(MovementState movementState,
+                                                 CanRunDecoratorDelegate startMovingWhen,
                                                  CanRunDecoratorDelegate stopMovingWhen,
                                                  LocationDelegate locationDelegate,
                                                  MessageDelegate locationNameDelegate,
@@ -1039,28 +986,27 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
             return new PrioritySelector(
                 // Need to start moving?
-                new Decorator(context => !_movementState.IsMoveInProgress && startMovingWhen(context) && !stopMovingWhen(context)
+                new Decorator(context => !movementState.IsMoveInProgress && startMovingWhen(context) && !stopMovingWhen(context)
                                             && (Me.Location.Distance(locationDelegate(context)) > precisionDelegate(context)),
-                    new Action(context => { _movementState.IsMoveInProgress = true; })),
+                    new Action(context => { movementState.IsMoveInProgress = true; })),
 
                 // Headed somewhere?
-                new Decorator(context => _movementState.IsMoveInProgress,
+                new Decorator(context => movementState.IsMoveInProgress,
                     new PrioritySelector(
                         // Did we arrive at destination?
                         new Decorator(context => Me.Location.Distance(locationDelegate(context)) <= precisionDelegate(context),
-                            new Action(context => { _movementState.IsMoveInProgress = false; })),
+                            new Action(context => { movementState.IsMoveInProgress = false; })),
 
                         // Did stop trigger activate?
                         new Decorator(context => stopMovingWhen(context),
-                            new Action(context => { _movementState.IsMoveInProgress = false; })),
+                            new Action(context => { movementState.IsMoveInProgress = false; })),
 
                         // Notify user of progress...
                         new CompositeThrottle(TimeSpan.FromSeconds(1),
                             new Action(context =>
                             {
-                                double destinationDistance = Me.Location.Distance(locationDelegate(context));
                                 string locationName = locationNameDelegate(context) ?? locationDelegate(context).ToString();
-                                LogMessage("info", "Moving to {0}", locationName, /*{1:F1}*/ destinationDistance);
+                                LogMessage("info", "Moving to {0}", locationName);
                                 return RunStatus.Failure; // fall through after notifying user
                             })),
 
@@ -1083,52 +1029,56 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                     ))
             );
         }
-        
-        // Wait for group to arrive at starting location, when present interact to start escort --
-        // When the group is within "StartNpcMaxRange" of our current position, we will interact
-        // with the nearest NPC to start the escort.
-        private Composite UtilityBehavior_GossipToStartEscort()
+
+
+        /// <returns>Returns RunStatus.Success if gossip in progress; otherwise, RunStatus.Failure if gossip complete or unnecessary</returns>
+        private Composite UtilityBehavior_GossipToStartEvent()
         {
             return new PrioritySelector(gossipUnitContext => FindUnitsFromIds(StartNpcIds).OrderBy(u => u.Distance).FirstOrDefault(),
                 new Decorator(gossipUnitContext => gossipUnitContext != null,
                     new PrioritySelector(
                         // Move to closest unit...
                         UtilityBehavior_MoveTo(
+                            _movementStateForNonCombat,
                             gossipUnitContext => true,
                             gossipUnitContext => false,
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).Name,
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).InteractRange),
 
+                        // TODO: In the future, we may need to 'land' first...
+                        new Decorator(gossipUnitContext => Me.Mounted,
+                            new Action(gossipUnitContext => { Mount.Dismount(); })),
+
                         // Interact with unit to open the Gossip dialog...
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
                             new Sequence(
                                 new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Target()),
-                                new Action(gossipUnitContext => LogMessage("info", "Interacting with \"{0}\" to start escort.", ((WoWUnit)gossipUnitContext).Name)),
+                                new Action(gossipUnitContext => LogMessage("info", "Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
                                 new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Interact()),
                                 new WaitContinue(LagDuration, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
-                                new Action(gossipUnitContext => _gossipOptionIndex = 0),
-                                new WaitContinue(Delay_GossipDialogThrottle, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
+                                new WaitContinue(Delay_GossipDialogThrottle, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
+                                new Action(gossipUnitContext =>
+                                {
+                                    _gossipOptionIndex = 0;
+
+                                    // If no dialog is expected, we're done...
+                                    if (StartEventGossipOptions[_gossipOptionIndex] < 0)
+                                        { return RunStatus.Failure; }
+                                    return RunStatus.Success;
+                                })
                             )),
 
                         // Choose appropriate gossip options...
                         // NB: If we get attacked while gossiping, and the dialog closes, then it will automatically be retried.
-                        new Decorator(gossipUnitContext => (_gossipOptionIndex < StartEscortGossipOptions.Length)
+                        new Decorator(gossipUnitContext => (_gossipOptionIndex < StartEventGossipOptions.Length)
                                                             && (GossipFrame.Instance != null) && GossipFrame.Instance.IsVisible,
                                 new Sequence(
-                                    new Action(gossipUnitContext => GossipFrame.Instance.SelectGossipOption(StartEscortGossipOptions[_gossipOptionIndex])),
+                                    new Action(gossipUnitContext => GossipFrame.Instance.SelectGossipOption(StartEventGossipOptions[_gossipOptionIndex])),
                                     new Action(gossipUnitContext => ++_gossipOptionIndex),
                                     new WaitContinue(Delay_GossipDialogThrottle, ret => false, new ActionAlwaysSucceed())
                                 ))
                     )));
-        }
-
-
-        private string Utility_GetNamesOfUnits(IEnumerable<WoWUnit> wowUnits)
-        {
-            return (wowUnits.Count() > 0) ?
-                string.Join(", ", wowUnits.Select(u => u.Name))
-                : "NPCs";
         }
 
 
