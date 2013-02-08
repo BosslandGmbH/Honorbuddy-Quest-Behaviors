@@ -230,7 +230,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public Composite CreateEnsureMovementStoppedBehavior()
         {
-            return new Decorator(ret => StyxWoW.Me.IsMoving, new Action(ret => { Navigator.PlayerMover.MoveStop(); return RunStatus.Failure; }));
+            return new Decorator(ret => StyxWoW.Me.CharmedUnit.IsMoving, new Action(ret => { WoWMovement.ClickToMove(Me.CharmedUnit.Location); return RunStatus.Failure; }));
         }
 
         public Composite CreateMoveToMeleeBehavior(bool stopInRange)
@@ -268,8 +268,8 @@ namespace Styx.Bot.Quest_Behaviors
             // or chase it down like mad. (PVP oriented behavior)
             return
                     new PrioritySelector(
-                        new Decorator(ret => stopInRange && StyxWoW.Me.Location.Distance(location(ret)) < range(ret), CreateEnsureMovementStoppedBehavior()),
-                        new Decorator(ret => StyxWoW.Me.Location.Distance(location(ret)) > range(ret), new Action(ret =>
+                        new Decorator(ret => stopInRange && StyxWoW.Me.CharmedUnit.Location.Distance(location(ret)) < range(ret), CreateEnsureMovementStoppedBehavior()),
+                        new Decorator(ret => StyxWoW.Me.CharmedUnit.Location.Distance(location(ret)) > range(ret), new Action(ret =>
                         {
 
                             Navigator.MoveTo(location(ret));
@@ -326,7 +326,7 @@ namespace Styx.Bot.Quest_Behaviors
                     new Decorator(r => StupidMonkey == null, new Action(r => Navigator.MoveTo(point2))),
                     new Decorator(r => StupidMonkey != null && (!Me.GotTarget || Me.CurrentTarget != StupidMonkey), new Action(r => StupidMonkey.Target())),
                     CreateFaceTargetBehavior(ret => Me.CurrentTarget),
-                    CreateMoveToMeleeBehavior(true),
+                    //CreateMoveToMeleeBehavior(true),
                     new Action(r => UsePetSkill("Stormstout Fu"))
 
 
@@ -337,11 +337,50 @@ namespace Styx.Bot.Quest_Behaviors
 
         //<Vendor Name="Uncle Gao" Entry="56680" Type="Repair" X="-751.9271" Y="1334.837" Z="162.6358" />
         WoWPoint point3 = new WoWPoint(-751.9271,1334.837,162.6358);
+        //Stupid ass game doesnt detect that you walked close sometimes, so we need todo some stupid shit
+
+        private int bouncestage = 0;
+
+        //<Vendor Name="Chen Stormstout" Entry="56649" Type="Repair" X="-769.0266" Y="1274.853" Z="162.7204" />
+        WoWPoint bounce = new WoWPoint(-769.0266,1274.853,162.7204);
+
+        public Composite Move
+        {
+            get
+            {
+                return
+                    new PrioritySelector(
+                        new Decorator(r => point3.Distance(Me.Location) > 10 && bouncestage <= 0, new Action(r => Navigator.MoveTo(point3))),
+                        new Decorator(r => point3.Distance(Me.Location) < 10 && bouncestage == 0, new Action(r => stage = 1))
+
+
+                        );
+            }
+
+        }
+
+
+        public Composite bouncez
+        {
+            get
+            {
+                return
+                    new PrioritySelector(
+                        new Decorator(r => bounce.Distance(Me.Location) > 3 && bouncestage == 1, new Action(r => Navigator.MoveTo(bounce))),
+                        new Decorator(r => bounce.Distance(Me.Location) <= 3 && bouncestage == 1, new Action(r => stage = -1))
+
+
+                        );
+            }
+
+        }
+
+
         public Composite StepThree
         {
             get
             {
-                return new Decorator(r => stage == 3, new Action(r => Navigator.MoveTo(point3)));
+                return new Decorator(r => stage == 2, new PrioritySelector(bouncez, Move));
             }
         }
 
