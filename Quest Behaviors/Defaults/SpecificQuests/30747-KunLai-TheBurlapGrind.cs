@@ -117,19 +117,11 @@ namespace TheBurlapGrind
                         TreeRoot.StatusText = "Finished!";
 
 
-                        if(Me.Location.Distance(StartPoint) < 25)
-                        {
-                            CharacterSettings.Instance.UseMount = true;
                             Lua.DoString("VehicleExit()");
                             _isBehaviorDone = true;
                             return RunStatus.Success;
-                        }
-                        else
-                        {
-                            Logging.Write("Moving to start location");
-                            Navigator.MoveTo(StartPoint);
-                            return RunStatus.Failure;
-                        }
+ 
+                    
 
                         
                         
