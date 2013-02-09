@@ -1,14 +1,18 @@
 ﻿// Behavior originally contributed by AknA.
-// A variation of MyCTM with extra check if you're in a instance.
+// A variation of MyCTM with extra check if you're in a instance or not.
+// Primary use is to zone in/out of instances and not have strange behaviors once you have, otherwize it works exactly like MyCTM.
+// How to use : <CustomBehavior File="InInstance" X="123" Y="456" Z="789" /> 
 
 using System;
 using System.Collections.Generic;
 using System.Threading;
+
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Tripper.Tools.Math;
 using Action = Styx.TreeSharp.Action;
 
@@ -28,9 +32,9 @@ namespace Styx.Bot.Quest_Behaviors {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? "";
-                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                DestinationName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? "";
+                Destination = GetAttributeAsNullable("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 UseRealitiveLocation = GetAttributeAsNullable<bool>("UseRelative", false, null, new[] { "useRelative" }) ?? false;
@@ -68,11 +72,12 @@ namespace Styx.Bot.Quest_Behaviors {
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
+        private readonly bool _inInstanceOrNot = CheckInstance();
         private Composite _root;
 
         // Private properties
         public int Counter { get; set; }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         public bool IsConverted { get; set; }
 
         ~InInstance() { Dispose(false); }
@@ -95,7 +100,7 @@ namespace Styx.Bot.Quest_Behaviors {
             _isDisposed = true;
         }
 
-        public bool CheckInstance() {
+        public static bool CheckInstance() {
             Lua.DoString("a = select(2, IsInInstance())");
             var a = Lua.GetReturnVal<string>("return a", 0);
             return a != "none";
@@ -114,7 +119,7 @@ namespace Styx.Bot.Quest_Behaviors {
                                 return RunStatus.Failure;
                             }
                     ))),
-                    new Decorator(ret => Destination.Distance(Me.Location) <= 3 || !CheckInstance(),
+                    new Decorator(ret => Destination.Distance(Me.Location) <= 3 || (_inInstanceOrNot != CheckInstance()),
                         new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Finished!"),
                             new WaitContinue(120,
@@ -123,7 +128,7 @@ namespace Styx.Bot.Quest_Behaviors {
                                     return RunStatus.Success;
                                 }
                     )))),
-                    new Decorator(ret => Destination.Distance(Me.Location) > 3 && CheckInstance(),
+                    new Decorator(ret => Destination.Distance(Me.Location) > 3 && (_inInstanceOrNot == CheckInstance()),
                         new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Destination.X + " Y: " + Destination.Y),
                             new Action(ret => WoWMovement.ClickToMove(Destination)),
