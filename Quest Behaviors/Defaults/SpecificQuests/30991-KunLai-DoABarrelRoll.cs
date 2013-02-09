@@ -61,19 +61,19 @@ namespace Honorbuddy.QuestBehaviors.DoABarrelRoll
         {
             try
             {
-                QuestId = 30991; // http://wowhead.com/quest=30690
+                QuestId = 30991; // http://wowhead.com/quest=30991
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-                QuestObjectiveIndex_OsulInvader = 1;
-                QuestObjectiveIndex_OsulTreelauncher = 2;
+                QuestObjectiveIndex_OsulInvader = 1; // http://wowhead.com/quest=30991
+                QuestObjectiveIndex_OsulTreelauncher = 2; // http://wowhead.com/quest=30991
 
-                MobId_KegBomb = 60553;
-                MobId_KegBombVehicle = 60552;
-                MobId_OsulInvader = 60455;
-                MobId_OsulTreelauncher = 60483;
+                MobId_KegBomb = 60553; // http://wowhead.com/npc=60553
+                MobId_KegBombVehicle = 60552; // http://wowhead.com/npc=60553
+                MobId_OsulInvader = 60455; // http://wowhead.com/npc=60455
+                MobId_OsulTreelauncher = 60483; // http://wowhead.com/npc=60483
 
                 IgniteKeg_LuaCommand = "if GetPetActionCooldown(1) == 0 then CastPetAction(1) end";
-                IgniteKeg_FuseDuration = 3.0; //in seconds
+                IgniteKeg_FuseDuration = 3.0; //in seconds  http://wowhead.com/spell=120842
 
                 // If we're in the barrel for too long, then below it up and try again...
                 // This can happen when mobs are slow to "wink in" causing us to miss our targets.
