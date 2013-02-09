@@ -392,7 +392,7 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
                         // Otherwise, the attacks of certain classes will interfere with the trap placement
                         // and pilfering of the mask. A Shaman's "Feral Spirit" is one such example.
                         new Decorator(context => (_combatContext.MalevolentFury == null)
-                                                    || /*safety measure*/(Me.HealthPercent < ToonHealthPercentSafetyLevel),
+                                                    && /*safety measure*/(Me.HealthPercent > ToonHealthPercentSafetyLevel),
                             new ActionAlwaysSucceed())
                     )),
 
