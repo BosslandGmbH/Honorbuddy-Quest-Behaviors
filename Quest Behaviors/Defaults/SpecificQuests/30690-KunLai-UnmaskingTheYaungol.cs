@@ -429,13 +429,6 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
                                     })),
                                 new Decorator(context => _combatContext.Kobai.Distance > CharacterSettings.Instance.PullDistance,
                                     new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); }))
-                                //new Decorator(context => RoutineManager.Current.PullBehavior != null,
-                                //    RoutineManager.Current.PullBehavior),
-                                //new Action(preferredTargetContext =>
-                                //{
-                                //    RoutineManager.Current.Pull();
-                                //    return RunStatus.Failure;
-                                //})
                             ))
                     )),
 
