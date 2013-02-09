@@ -22,6 +22,19 @@
 //  6) Reprioritizes kill target to Malevolent Fury when it arrives
 //  7) Profit!
 // 
+// THINGS TO KNOW:
+//  * If the event fails for some reason, the event retries automatically.
+//
+//  * The toon will not defend itself while being attacked until the mask has
+//      been pilfered (i.e., the Malevolent Fury is on the battlefield).
+//      This is required to prevent certain attacks from interfering with
+//      the trap placement and mask pilfering (i.e., Shaman's "Feral Spirit").
+//      There is a safety measure if the toon's health gets below 60%
+//      while waiting to pilfer the mask, it will start defending itself.
+//      If this happens, the event is automatically retried. 
+//      "Not defending" also prevents failures if the class max level
+//      is ever increased above 90 by Blizzard, or the toon is uber-geared.
+//
 // EXAMPLE:
 //     <CustomBehavior File="30690-KunLai-UnmaskingTheYaungol" />
 #endregion
@@ -72,6 +85,7 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
                 GameObjectId_BlindingRageTrap = 209349; // http://wowhead.com/object-209349, object once deployed (created by Me)
                 MobId_Kobai = 61303; // http://wowhead.com/npc=61303
                 MobId_MalevolentFury = 61333; // http://wowhead.com/npc=61333
+                ToonHealthPercentSafetyLevel = 60;
 
                 // For streamlining...
                 // We don't want a bunch of adds when we pull Kobai--not only can they interfere with our task,
@@ -102,14 +116,15 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
         public QuestCompleteRequirement QuestRequirementComplete { get; set; }
         public QuestInLogRequirement QuestRequirementInLog { get; set; }
 
-        public int AuraId_StealMask;
-        public WoWPoint KobaiSafePullAreaAnchor;
-        public double KobaiSafePullAreaRadius;
-        public int ItemId_BlindingRageTrap;
-        public int MobId_Kobai;
-        public int MobId_MalevolentFury;
-        public int GameObjectId_BlindingRageTrap;
-        public WoWPoint WaitPoint;
+        public int AuraId_StealMask { get; private set; }
+        public int GameObjectId_BlindingRageTrap { get; private set; }
+        public int ItemId_BlindingRageTrap { get; private set; }
+        public WoWPoint KobaiSafePullAreaAnchor { get; private set; }
+        public double KobaiSafePullAreaRadius { get; private set; }
+        public int MobId_Kobai { get; private set; }
+        public int MobId_MalevolentFury { get; private set; }
+        public double ToonHealthPercentSafetyLevel { get; private set; }
+        public WoWPoint WaitPoint { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -370,7 +385,15 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
                                 new Decorator(context => _combatContext.MalevolentFury == null,
                                     new Action(context => { Lua.DoString("RunMacroText('/click ExtraActionButton1')"); })),
                                 new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
-                            ))
+                            )),
+
+                        // Disallow combat until the trap Malevolent Fury shows up...
+                        // NB: We *must* disable combat while the trap is being placed, and the mask pilfered.
+                        // Otherwise, the attacks of certain classes will interfere with the trap placement
+                        // and pilfering of the mask. A Shaman's "Feral Spirit" is one such example.
+                        new Decorator(context => (_combatContext.MalevolentFury == null)
+                                                    || /*safety measure*/(Me.HealthPercent < ToonHealthPercentSafetyLevel),
+                            new ActionAlwaysSucceed())
                     )),
 
                 // If we're not in combat, but have found Kobai, move to engage him...
@@ -394,7 +417,9 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
                         // Kobai in kill zone, pull him...
                         new Decorator(context => _combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) <= KobaiSafePullAreaRadius,
                             new PrioritySelector(
-                                new Action(context => { LogMessage("info", "Pulling Kobai"); return RunStatus.Failure; }),
+                                new Action(context => { LogMessage("info", "Engaging Kobai"); return RunStatus.Failure; }),
+                                new Decorator(context => Me.Mounted,
+                                    new Action(context => { Mount.Dismount(); })),
                                 new Decorator(context => (Me.CurrentTarget != _combatContext.Kobai),
                                     new Action(context =>
                                     {
@@ -403,14 +428,14 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
                                         return RunStatus.Failure;
                                     })),
                                 new Decorator(context => _combatContext.Kobai.Distance > CharacterSettings.Instance.PullDistance,
-                                    new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); })),
-                                new Decorator(context => RoutineManager.Current.PullBehavior != null,
-                                    RoutineManager.Current.PullBehavior),
-                                new Action(preferredTargetContext =>
-                                {
-                                    RoutineManager.Current.Pull();
-                                    return RunStatus.Failure;
-                                })
+                                    new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); }))
+                                //new Decorator(context => RoutineManager.Current.PullBehavior != null,
+                                //    RoutineManager.Current.PullBehavior),
+                                //new Action(preferredTargetContext =>
+                                //{
+                                //    RoutineManager.Current.Pull();
+                                //    return RunStatus.Failure;
+                                //})
                             ))
                     )),
 
@@ -445,16 +470,22 @@ namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
         private Composite UtilityBehavior_MoveToStartPosition()
         {
             // Move to start position, if needed...
-            return new Decorator(context => Me.Location.Distance(WaitPoint) > Navigator.PathPrecision,
-                new PrioritySelector(
-                    new Decorator(context => !Me.Mounted && Mount.CanMount(),
-                        new Action(context => { Mount.MountUp(() => WaitPoint); })),
-                    new Action(context =>
-                    {
-                        LogMessage("info", "Moving to start position");
-                        Navigator.MoveTo(WaitPoint);
-                    })
-                ));
+            return new PrioritySelector(
+                new Decorator(context => Me.Location.Distance(WaitPoint) > Navigator.PathPrecision,
+                    new PrioritySelector(
+                        new Decorator(context => !Me.Mounted && Mount.CanMount(),
+                            new Action(context => { Mount.MountUp(() => WaitPoint); })),
+                        new Action(context =>
+                        {
+                            LogMessage("info", "Moving to start position");
+                            Navigator.MoveTo(WaitPoint);
+                        })
+                    )),
+
+                // We're at start position, dismount...
+                new Decorator(context => Me.Mounted,
+                    new Action(context => { Mount.Dismount(); }))
+            );
         }
         #endregion // Behavior helpers
     }
