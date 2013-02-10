@@ -378,6 +378,10 @@ namespace Styx.Bot.Quest_Behaviors.InteractWith
                                                 _npcBlacklist.Add(CurrentObject.Guid);
 
                                             Thread.Sleep(2000);
+											
+											if(!KeepTargetSelected)
+												StyxWoW.Me.ClearTarget();
+											
                                             Counter++;
                                         }),
 
