@@ -148,6 +148,9 @@ namespace Styx.Bot.Quest_Behaviors
                                         Thread.Sleep(100);
                                         WoWMovement.ClickToMove(p);
                                     }
+
+                                    if(Me.IsDead)
+                                        return RunStatus.Success;
                                 }
 
 
