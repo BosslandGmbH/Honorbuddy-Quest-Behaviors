@@ -607,6 +607,7 @@ namespace Honorbuddy.QuestBehaviors.UpInFlames
                 orderby
                     (!unit.HasAura(AuraId_Timberhusk)   // prefer units without Timberhusk buff
                         ? 0 : 10000)
+                    + unit.HealthPercent                // prefer weaker mobs
                     + unit.Distance                     // prefer closer units
                 select unit)
                 .FirstOrDefault();
