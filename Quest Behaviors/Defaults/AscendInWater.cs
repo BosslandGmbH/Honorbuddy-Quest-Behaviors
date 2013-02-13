@@ -66,6 +66,8 @@ namespace Styx.Bot.Quest_Behaviors
         public override string SubversionRevision { get { return ("$Revision: 184 $"); } }
 
 
+        static readonly Common.Helpers.WaitTimer Timer = Common.Helpers.WaitTimer.OneSecond;
+
         ~AscendInWater()
         {
             Dispose(false);
@@ -117,7 +119,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         public override bool IsDone
         {
-            get { return !Me.IsSwimming; }
+            get { return Timer.IsFinished && !Me.IsSwimming; }
         }
 
 
@@ -127,6 +129,8 @@ namespace Styx.Bot.Quest_Behaviors
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
+
+            Timer.Reset();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
