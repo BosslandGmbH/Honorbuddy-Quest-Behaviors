@@ -74,6 +74,10 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
                 VehicleId_NurongsCannon = 62302; // http://wowhead.com/npc=62302
                 NurongsCannonShot_LuaCommand = "if GetPetActionCooldown(1) == 0 then CastPetAction(1) end"; // http://www.wowhead.com/npc=62302
 
+                // Empirically determined FeetPerSecond travel rate of ammo --
+                // This is not a function of the spell's cooldown time, as there may be multiple missiles in the air at once.
+                NurongsCannonShot_FeetPerSecond = 100;  
+
                 // Cannon Articulation (these were determined empirically)...
                 CannonArticulation_AzimuthMax = 0.75;   // radians
                 CannonArticulation_AzimuthMin = 0.10;   // radians
@@ -104,6 +108,7 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
         public int MobId_KorthikSwarmer { get; private set; }
         public int MobId_NurongsCannon { get; private set; }
         public int MobId_Voressthalik { get; private set; }
+        public float NurongsCannonShot_FeetPerSecond { get; private set; }
         public string NurongsCannonShot_LuaCommand { get; private set; }
         public int QuestId { get; private set; }
         public int QuestObjectiveIndex_KorthikSwarmer { get; private set; }
@@ -120,11 +125,11 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
 
 
         #region Private and Convenience variables
-        private WoWPoint CannonVehicleLocation { get; set; }
+        private WoWUnit CannonVehicle { get; set; }
         private LocalPlayer Me { get { return StyxWoW.Me; } }
         private WoWUnit SelectedTarget { get; set; }
 
-        private Composite _behaviorTreeHook_Combat = null;
+        private Composite _behaviorTreeHook_CombatOnly = null;
         private Composite _behaviorTreeHook_Main = null;
         private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
@@ -157,10 +162,10 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
                 // NB: we don't unhook _behaviorTreeHook_Main
                 // This was installed when HB created the behavior, and its up to HB to unhook it
 
-                if (_behaviorTreeHook_Combat != null)
+                if (_behaviorTreeHook_CombatOnly != null)
                 {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
-                    _behaviorTreeHook_Combat = null;
+                    TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
+                    _behaviorTreeHook_CombatOnly = null;
                 }
 
                 if (_configMemento != null)
@@ -258,20 +263,23 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
                     this.GetType().Name,
                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
-                _behaviorTreeHook_Combat = CreateCombatBehavior();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
+                _behaviorTreeHook_CombatOnly = CreateCombatOnlyBehavior();
+                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
             }
         }
         #endregion
 
 
         #region Main Behavior
-        protected Composite CreateCombatBehavior()
+        protected Composite CreateCombatOnlyBehavior()
         {
-            // Nothing to do, for now...
-            return new ActionAlwaysFail();
+            // Keep the Combat Routine from running...
+            // This behavior locks us into a 'cannon vehicle' where we cannot move or be harmed.
+            // Even so, this can throw us into combat.  We prevent the combat routine from running
+            // here, so it won't throw exceptions while the behavior is in progress (i.e., while
+            // we are locked into the vehicle.)
+            return new ActionAlwaysSucceed();
         }
-
 
         public Composite CreateMainBehavior()
         {
@@ -287,17 +295,49 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
                         LogMessage("info", "Finished");
                     })),
 
+                // If using cannon, start spanking targets...
+                new Decorator(context => Me.InVehicle,                  
+                    // Ready, Aim, Fire!
+                    new Action(context =>
+                    {
+                        // If ejected from vehicle, try to re-locate it...
+                        if ((CannonVehicle == null) || !CannonVehicle.IsValid)
+                        {
+                            CannonVehicle = FindUnitsFromId(VehicleId_NurongsCannon).FirstOrDefault();
+                            return;
+                        }
+
+                        // If target is no longer valid, select another...
+                        if (!IsViableTarget(CannonVehicle, SelectedTarget))
+                        {
+                            SelectedTarget = ChooseTarget(CannonVehicle, SelectedTarget);
+                            if (SelectedTarget == null)
+                                { return; }
+                            SelectedTarget.Target();
+                        }
+
+                        AimAndFireCannon(CannonVehicle, SelectedTarget);
+                    })),
+                        
                 // If not using cannon, get in cannon vehicle...
                 new Decorator(context => !Me.InVehicle,
                     new PrioritySelector(cannonContext => FindUnitsFromId(MobId_NurongsCannon).FirstOrDefault(),
+
                         // If unable to locate cannon, warn user and stop...
                         new Decorator(cannonContext => cannonContext == null,
-                            new Action(cannonContext =>
-                            {
-                                LogMessage("error", "PROFILE ERROR: Nurong's Canon is not in the area--please repair profile");
-                                TreeRoot.Stop();
-                                _isBehaviorDone = true;
-                            })),
+                            new PrioritySelector(
+                                // The Wait is a defensive bumper against a WoWclient/HBcore race condition...
+                                // Sometimes, the toon is ejected from the vehicle before the quest is marked as 'complete'.
+                                // We don't want this situation to cause the profile to stop, so we wait for a short while
+                                // before declaring a profile problem.
+                                new Wait(TimeSpan.FromMilliseconds(5000), cannonContext => IsDone, new ActionAlwaysSucceed()),
+                                new Action(cannonContext =>
+                                {
+                                    LogMessage("error", "PROFILE ERROR: Nurong's Cannon is not in the area--please repair profile");
+                                    TreeRoot.Stop();
+                                    _isBehaviorDone = true;
+                                })
+                            )),
 
                         // Move close enough, and interact with cannon...
                         new Decorator(cannonContext => ((WoWUnit)cannonContext).Distance > ((WoWUnit)cannonContext).InteractRange,
@@ -307,106 +347,78 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
                         new Decorator(cannonContext => Me.IsMoving,
                             new Action(cannonContext => { WoWMovement.MoveStop(); })),
                         new Decorator(cannonContext => !Me.InVehicle,
-                            new Action(cannonContext => { ((WoWUnit)cannonContext).Interact(); }))
-                    )),
-
-                new Decorator(context => CannonVehicleLocation == WoWPoint.Empty,
-                    new Action(context => { CannonVehicleLocation = FindUnitsFromId(VehicleId_NurongsCannon).FirstOrDefault().Location; })),
-
-                // Ready...
-                new Decorator(context => (SelectedTarget == null) || !SelectedTarget.IsValid || SelectedTarget.IsDead
-                                            || Blacklist.Contains(SelectedTarget, BlacklistFlags.Combat),
-                    new Action(context =>
-                    {   
-                        if (SelectedTarget != null)
-                            { WoWMovement.ConstantFaceStop(SelectedTarget.Guid); }
-                        Me.ClearTarget();
-
-                        SelectedTarget = ChooseTarget();
-                    })),
-
-                // Aim...
-                // If we can't successfully fire at target, go find another...
-                new Decorator(context => !IsWithinArticulationLimits(SelectedTarget),
-                    new Action(context => { Blacklist.Add(SelectedTarget, BlacklistFlags.Combat, TimeSpan.FromSeconds(60)); })),
-                    
-                // Fire!
-                new Action(context =>
-                {
-                    SelectedTarget.Target();
-                    AimCannon();
-                    Lua.DoString(NurongsCannonShot_LuaCommand);
-                })
+                            new Action(cannonContext =>
+                            {
+                                ((WoWUnit)cannonContext).Interact();
+                                CannonVehicle = null;
+                            })),
+                        new Wait(TimeSpan.FromMilliseconds(5000), cannonContext => Me.InVehicle, new ActionAlwaysSucceed())
+                    ))
             );
         }
         #endregion
 
 
         #region Helpers
-
         // NB: In WoW, larger headings are to left, and larger Azimuths are up
-        private void AimCannon()
+        private void AimAndFireCannon(WoWUnit vehicle, WoWUnit target)
         {
-            if ((SelectedTarget == null) || !SelectedTarget.IsValid)
-                { return; }
-
             // Handle heading...
-            WoWMovement.ConstantFace(SelectedTarget.Guid);
+            double traveltime = target.Distance / (NurongsCannonShot_FeetPerSecond * 3.0f /*feet to yards*/);
+            WoWPoint targetLeadPoint = target.Location.RayCast(target.RenderFacing, (float)(target.MovementInfo.CurrentSpeed * traveltime));
+            float neededHeading = WoWMathHelper.CalculateNeededFacing(Me.Location, targetLeadPoint);
+            neededHeading = WoWMathHelper.NormalizeRadian(neededHeading);
+            Me.SetFacing(neededHeading);
 
             // Handle Azimuth...
             // "Location" is measured at the feet of the toon.  We want to aim for the 'middle' of the toon's
             // height.
             double currentAzimuth = NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
-            double neededAzimuth = Math.Atan((SelectedTarget.Location.Z - CannonVehicleLocation.Z
-                                             + (GetBoundingHeight(SelectedTarget) / 2))   // Middle of toon height
-                                            / CannonVehicleLocation.Distance2D(SelectedTarget.Location));
+            double neededAzimuth = Math.Atan((target.Location.Z - vehicle.Location.Z
+                                                + (GetBoundingHeight(target) / 2))   // Middle of toon height
+                                            / vehicle.Location.Distance2D(target.Location));
             neededAzimuth = NormalizeAngleToPi(neededAzimuth);
 
-            // VehicleAimIncrement() handles negative values of 'increment' correctly...
-            Lua.DoString("VehicleAimIncrement({0});", (neededAzimuth - currentAzimuth));
+            // Execute fire...
+            // NB: VehicleAimIncrement() handles negative values of 'increment' correctly...
+            Lua.DoString("VehicleAimIncrement({0}); {1}", (neededAzimuth - currentAzimuth), NurongsCannonShot_LuaCommand);
         }
 
 
-        private WoWUnit ChooseTarget()
+        private WoWUnit ChooseTarget(WoWUnit vehicle, WoWUnit previousTarget)
         {
             WoWUnit target = null;
 
-            // Prefer the Voress'thalik, if its up...
-            if (!IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex_Voressthalik))
+            // Swarmers...
+            if ((target == null)
+                && !IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex_KorthikSwarmer))
             {
                 target =
                    (from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
                     where
-                        unit.IsValid
-                        && (unit.Entry == MobId_Voressthalik)
-                        && unit.IsAlive
-                        && !Blacklist.Contains(unit, BlacklistFlags.Combat)
-                        && IsWithinArticulationLimits(unit)
-                    select unit)
-                    .FirstOrDefault();
-            }
-
-
-            // If no Voress'thalik, check for Swarmers...
-            if ((target == null) && !IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex_KorthikSwarmer))
-            {
-                target =
-                   (from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
-                    where
-                        unit.IsValid
+                        IsViableTarget(vehicle, unit)
                         && (unit.Entry == MobId_KorthikSwarmer)
-                        && unit.IsAlive
-                        && !Blacklist.Contains(unit, BlacklistFlags.Combat)
-                        && IsWithinArticulationLimits(unit)
-                    orderby // prefer units that are "clustered"
-                        FindUnitsSurroundingTarget(unit, 25.0).Count() descending, unit.Distance
+                    orderby
+                        ((previousTarget != null)                       
+                         ? unit.Location.Distance(previousTarget.Location)  // prefer units closer to previous target
+                         : unit.Distance)                                   // no previous target = prefer closer units
                     select unit)
                     .FirstOrDefault();
             }
-
-            if (target != null)
-                { target.Target(); }
-
+            
+            // Voress'thalik...
+            if ((target == null)
+                && !IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex_Voressthalik))
+            {
+                target =
+                   (from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                    where
+                        IsViableTarget(vehicle, unit)
+                        && (unit.Entry == MobId_Voressthalik)
+                    select unit)
+                    .FirstOrDefault();
+            }
+            
             return target;
         }
 
@@ -415,8 +427,11 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
         {
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
-                where (unit.Entry == unitId) && unit.IsAlive
-                        && (unit.TaggedByMe || unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                where
+                    unit.IsValid
+                    && unit.IsAlive
+                    && (unit.Entry == unitId)
+                    && (unit.TaggedByMe || unit.TappedByAllThreatLists || !unit.TaggedByOther)
                 select unit;
         }
 
@@ -426,9 +441,10 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
                 where
-                    (target.Entry == unit.Entry)
+                    unit.IsValid
                     && unit.IsAlive
-                    && (target.Location.Distance(unit.Location) < surroundRadius)
+                    && (unit.Entry != target.Entry)
+                    && (target.Location.Distance(unit.Location) <= surroundRadius)
                 select unit;
         }
 
@@ -457,14 +473,28 @@ namespace Honorbuddy.QuestBehaviors.HostileSkies
         }
 
 
-        private bool IsWithinArticulationLimits(WoWUnit potentialTarget)
+        private bool IsViableTarget(WoWUnit vehicle, WoWUnit wowUnit)
         {
+            return
+                (wowUnit != null)
+                && wowUnit.IsValid
+                && wowUnit.IsAlive
+                && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat)
+                && IsWithinArticulationLimits(vehicle, wowUnit);
+        }
+
+
+        private bool IsWithinArticulationLimits(WoWUnit vehicle, WoWUnit potentialTarget)
+        {
+            if ((vehicle == null) || !vehicle.IsValid)
+                { return false; }
+
             if ((potentialTarget == null) || !potentialTarget.IsValid)
                 { return false; }
 
-            double neededAzimuth = Math.Atan((potentialTarget.Location.Z - CannonVehicleLocation.Z)
-                                / CannonVehicleLocation.Distance2D(potentialTarget.Location));
-            double neededFacing = WoWMathHelper.CalculateNeededFacing(CannonVehicleLocation, potentialTarget.Location);
+            double neededAzimuth = Math.Atan((potentialTarget.Location.Z - vehicle.Location.Z)
+                                / vehicle.Location.Distance2D(potentialTarget.Location));
+            double neededFacing = WoWMathHelper.CalculateNeededFacing(vehicle.Location, potentialTarget.Location);
             neededFacing = WoWMathHelper.NormalizeRadian((float)neededFacing);
 
             if ((neededFacing < CannonArticulation_HeadingMin) || (neededFacing > CannonArticulation_HeadingMax))
