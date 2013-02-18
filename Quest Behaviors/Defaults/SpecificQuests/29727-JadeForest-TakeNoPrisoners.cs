@@ -209,7 +209,8 @@ namespace Styx.Bot.Quest_Behaviors
                                             new PrioritySelector(
                                                  new Decorator(ret => HozenEnemy != null,
                                                     new Sequence(
-                                                        new Action(ret => HozenEnemy.Target()), new Action(ret => Thread.Sleep(400)),
+                                                        new Action(ret => HozenEnemy.Target()), 
+														new Action(ret => Thread.Sleep(400)),
                                                         new Action(ret => HozenEnemy.Interact()))),
 
                                                 new Decorator(ret => OrcEnemy != null, // Orc Has to be Seperate or we will Die
@@ -222,10 +223,14 @@ namespace Styx.Bot.Quest_Behaviors
                                                     new PrioritySelector(
                                                         new Decorator(ret => TurretLocation.Distance(Me.Location) > 3,
                                                             new Action(ret => Navigator.MoveTo(TurretLocation))),
-                                                        new Decorator(ret => TurretLocation.Distance(Me.Location) <= 3,
-                                                            new Sequence(
-                                                            new Action(ret => Turret.Interact()),
-                                                            new Action(ret => _usedTurret = true)))))
+                                                                          new Decorator(r => Turret.WithinInteractRange, new Action(r =>
+                        {
+                            Thread.Sleep(450);
+                            Navigator.PlayerMover.MoveStop();
+                            Turret.Interact();
+
+                            _usedTurret = true;
+                        }))))
 
 
                                             ))
