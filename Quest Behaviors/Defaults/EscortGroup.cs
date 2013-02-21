@@ -1072,7 +1072,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         // Choose appropriate gossip options...
                         // NB: If we get attacked while gossiping, and the dialog closes, then it will automatically be retried.
                         new Decorator(gossipUnitContext => (_gossipOptionIndex < StartEventGossipOptions.Length)
-                                                            && (GossipFrame.Instance != null) && GossipFrame.Instance.IsVisible,
+                                                            && (GossipFrame.Instance != null) && GossipFrame.Instance.IsVisible, 
                                 new Sequence(
                                     new Action(gossipUnitContext =>
                                     {
