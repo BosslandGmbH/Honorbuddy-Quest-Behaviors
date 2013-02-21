@@ -144,6 +144,13 @@
 #endregion
 
 #region Examples
+// "Nefereset Prison" (http://www.wowhead.com/quest=27707)
+// This used to be an escort quest, but has since been 'dumbed down' into a defend the NPC quest.
+// The EscortGroup behavior is still very appropriate for defending stationary NPCs.
+//      <CustomBehavior File="EscortGroup"  QuestId="27707"
+//			StartNpcId="46425" StartEscortGossipOptions="1" EscortNpcId="46425"
+//			EscortMaxFightDistance="30" EscortMaxFollowDistance="25" />
+//
 // "Reunited" (http://www.wowhead.com/quest=31091).
 // A simple follow-and-defend quest.
 // The quest requires interacting with an NPC (StartNpcId) via a gossip, then the gossip NPC
