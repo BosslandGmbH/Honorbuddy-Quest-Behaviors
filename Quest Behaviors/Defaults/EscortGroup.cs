@@ -1074,8 +1074,18 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         new Decorator(gossipUnitContext => (_gossipOptionIndex < StartEventGossipOptions.Length)
                                                             && (GossipFrame.Instance != null) && GossipFrame.Instance.IsVisible,
                                 new Sequence(
-                                    new Action(gossipUnitContext => GossipFrame.Instance.SelectGossipOption(StartEventGossipOptions[_gossipOptionIndex])),
-                                    new Action(gossipUnitContext => ++_gossipOptionIndex),
+                                    new Action(gossipUnitContext =>
+                                    {
+                                        GossipFrame.Instance.SelectGossipOption(StartEventGossipOptions[_gossipOptionIndex]);
+                                        ++_gossipOptionIndex;
+
+                                        // If Gossip completed, this behavior is done...
+                                        // NB: This handles situations where the NPC closes the Gossip dialog instead of us.
+                                        if (_gossipOptionIndex >= StartEventGossipOptions.Length)
+                                            { return RunStatus.Failure; }
+
+                                        return RunStatus.Success;
+                                    }),
                                     new WaitContinue(Delay_GossipDialogThrottle, ret => false, new ActionAlwaysSucceed())
                                 ))
                     )));
