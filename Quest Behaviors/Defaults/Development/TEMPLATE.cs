@@ -12,6 +12,24 @@
 // QUICK DOX:
 // TEMPLATE.cs is a skeleton for creating new quest behaviors.
 //
+// Quest binding:
+//      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
+//      QuestCompleteRequirement [Default:NotComplete]:
+//      QuestInLogRequirement [Default:InLog]:
+//              A full discussion of how the Quest* attributes operate is described in
+//              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      QuestObjectiveIndex [REQUIRED if EventCompleteWhen=QuestObjectiveComplete]
+//          [on the closed interval: [1..5]]
+//          This argument is only consulted if EventCompleteWhen is QuestObjectveComplete.
+//          The argument specifies the index of the sub-goal of a quest.
+//
+// Tunables (ideally, the profile would _never_ provide these arguments):
+//      CombatMaxEngagementRangeDistance [optional; Default: 23.0]
+//          This is a work around for some buggy Combat Routines.  If a targetted mob is
+//          "too far away", some Combat Routines refuse to engage it for killing.  This
+//          value moves the toon within an appropriate distance to the requested target
+//          so the Combat Routine will perform as expected.
+//
 // THINGS TO KNOW:
 //
 // EXAMPLE:
@@ -29,7 +47,9 @@ using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using System.Text;
@@ -52,10 +72,14 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
         {
             try
             {
+                // Quest handling...
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 5), null) ?? 0;
+
+                // Tunables...
+                CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
 
                 // Semantic coherency / covariant dependency checks --
             }
@@ -76,6 +100,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
 
 
         // Variables for Attributes provided by caller
+        public double CombatMaxEngagementRangeDistance { get; set; }
         public int QuestId { get; private set; }
         public int QuestObjectiveIndex { get; set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -92,12 +117,13 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
         public delegate WoWPoint LocationDelegate(object context);
         public delegate string StringDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
+        public delegate double RangeDelegate(object context);
 
         private LocalPlayer Me { get { return StyxWoW.Me; } }
 
         private Composite _behaviorTreeHook_CombatMain = null;
         private Composite _behaviorTreeHook_CombatOnly = null;
-        private Composite _behaviorTreeHook_Death = null;
+        private Composite _behaviorTreeHook_DeathMain = null;
         private Composite _behaviorTreeHook_Main = null;
         private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
@@ -142,10 +168,10 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
                     _behaviorTreeHook_CombatOnly = null;
                 }
 
-                if (_behaviorTreeHook_Death != null)
+                if (_behaviorTreeHook_DeathMain != null)
                 {
-                    TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_Death);
-                    _behaviorTreeHook_Death = null;
+                    TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
+                    _behaviorTreeHook_DeathMain = null;
                 }
 
                 if (_configMemento != null)
@@ -243,42 +269,50 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
                     this.GetType().Name,
                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
-                _behaviorTreeHook_CombatMain = CreateCombatMainBehavior();
-                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatOnly = CreateCombatOnlyBehavior();
+                _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
+                _behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_Death = CreateDeathBehavior();
-                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_Death);
+                _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
+                TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
             }
         }
         #endregion
 
 
         #region Main Behavior
-        protected Composite CreateCombatMainBehavior()
+        private Composite CreateBehavior_CombatMain()
         {
             return new PrioritySelector(
                 );
         }
 
 
-        protected Composite CreateCombatOnlyBehavior()
+        private Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
                 );
         }
 
 
-        protected Composite CreateDeathBehavior()
+        private Composite CreateBehavior_DeathMain()
         {
             return new PrioritySelector(
                 );
         }
 
 
-        public Composite CreateMainBehavior()
+        private Composite CreateMainBehavior()
         {
             return new PrioritySelector(
+
+                // If quest is done, behavior is done...
+                new Decorator(context => IsDone,
+                    new Action(context =>
+                    {
+                        _isBehaviorDone = true;
+                        LogMessage("info", "Finished");
+                    }))
                 );
         }
         #endregion
@@ -286,15 +320,23 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
 
         #region Helpers
 
-        private IEnumerable<WoWUnit> FindUnitsFromId(int unitId)
+        private IEnumerable<WoWUnit> FindUnitsFromIds(params int[] unitIds)
         {
+            if (unitIds == null)
+            {
+                string message = "BEHAVIOR MAINTENANCE ERROR: unitIds argument may not be null";
+
+                LogMessage("error", message);
+                throw new ArgumentException(message);
+            }
+
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
                 where
                     unit.IsValid
                     && unit.IsAlive
-                    && (unit.Entry == unitId)
-                    && (unit.TaggedByMe || unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                    && unitIds.Contains((int)unit.Entry)
+                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
                 select unit;
         }
 
@@ -311,13 +353,61 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
         }
 
 
-        private bool IsViableTarget(WoWUnit vehicle, WoWUnit wowUnit)
+        private bool IsViable(WoWUnit wowUnit)
         {
             return
                 (wowUnit != null)
                 && wowUnit.IsValid
                 && wowUnit.IsAlive
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
+        }
+
+
+        /// <summary>
+        /// This behavior quits attacking the mob, once the mob is targeting us.
+        /// </summary>
+        private Composite UtilityBehavior_GetMobsAttention(WoWUnitDelegate selectedTargetDelegate)
+        {
+
+            return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
+                new Decorator(targetContext => IsViable((WoWUnit)targetContext),
+                    new PrioritySelector(
+                        new Decorator(targetContext => !((((WoWUnit)targetContext).CurrentTarget == Me)
+                                                        || (Me.GotAlivePet && ((WoWUnit)targetContext).CurrentTarget == Me.Pet)),
+                            new PrioritySelector(
+                                new Action(targetContext =>
+                                {
+                                    LogMessage("info", "Getting attention of {0}", ((WoWUnit)targetContext).Name);
+                                    return RunStatus.Failure;
+                                }),
+                                UtilityBehavior_SpankMob(selectedTargetDelegate)))
+                    )));
+        }
+
+
+        /// <summary>
+        /// Unequivocally engages mob in combat.
+        /// </summary>
+        private Composite UtilityBehavior_SpankMob(WoWUnitDelegate selectedTargetDelegate)
+        {
+            return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
+                new Decorator(targetContext => IsViable((WoWUnit)targetContext),
+                    new PrioritySelector(               
+                        new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CombatMaxEngagementRangeDistance,
+                            new Action(targetContext => { Navigator.MoveTo(((WoWUnit)targetContext).Location); })),
+                        new Decorator(targetContext => Me.CurrentTarget != (WoWUnit)targetContext,
+                            new Action(targetContext =>
+                            {
+                                BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill);
+                                ((WoWUnit)targetContext).Target();
+                            })),
+                        new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
+                            new PrioritySelector(
+                                new Decorator(targetContext => RoutineManager.Current.CombatBehavior != null,
+                                    RoutineManager.Current.CombatBehavior),
+                                new Action(targetContext => { RoutineManager.Current.Combat(); })
+                            ))
+                    )));
         }
         #endregion // Behavior helpers
 
@@ -375,7 +465,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
         {
             string spellName = "Attack";
             return new Decorator(context => Me.GotAlivePet
-                                            && (wowUnitDelegate(context) != null)
+                                            && IsViable(wowUnitDelegate(context))
                                             && (Me.Pet.CurrentTarget != wowUnitDelegate(context))
                                             && !wowUnitDelegate(context).IsFriendly
                                             && CanCastPetAction(spellName),
@@ -388,7 +478,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE
             string spellName = "Follow";
             return new Decorator(context => Me.GotAlivePet
                                             && CanCastPetAction(spellName)
-                                            && (!IsPetActionActive(spellName) || (Me.Pet.CurrentTarget != null)),
+                                            && (!IsPetActionActive(spellName) || IsViable(Me.Pet.CurrentTarget)),
                 new Action(context => CastPetAction(spellName)));
         }
         
