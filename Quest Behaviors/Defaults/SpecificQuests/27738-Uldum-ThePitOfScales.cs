@@ -1,9 +1,4 @@
-﻿// TODO:
-// * Need to disable combat movement--setting BotPoi causes it to do its own thing
-// * Tighten up area around Croc Eggs
-// * Need a max timer on Egg use
-
-// Behavior originally contributed by Chinajade.
+﻿// Behavior originally contributed by Chinajade.
 //
 // LICENSE:
 // This work is licensed under the
@@ -15,13 +10,25 @@
 
 #region Summary and Documentation
 // QUICK DOX:
-// TEMPLATE.cs is a skeleton for creating new quest behaviors.
+// 1) Kills the four mobs in the order they are presented:
+//    Gorebite, Khaman & Thartep, Caimas.
+// 2) Kites Caimas around the Croc Eggs to kill him.
+// 3) If toon gets snagged by Young Crocs, it will jump up
+//    and down to get rid of them.
+// 3) Profit!
 //
 // THINGS TO KNOW:
+// * Pets are properly managed in conducting this quest.
+// * We will not visit Croc Eggs that have mobs around them.
+// * If competing players are in the area, the behavior moves the
+//   toon a safe distance away from the event area, then waits
+//   for the competition to leave.
 //
 // EXAMPLE:
-//     <CustomBehavior File="TEMPLATE" />
+//     <CustomBehavior File="SpecificQuests\27738-Uldum-ThePitOfScales" />
 #endregion
+
+//#define DEBUG_THEPITOFSCALES
 
 #region Usings
 using System;
@@ -84,10 +91,10 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 PoolRadius = 13.0;
                 
                 // BattlefieldChillPoint is where we go sit while waiting for competition to clear...
-                BattlefieldChillPoint = FanOutRandom(new WoWPoint(-11410.45, -1097.339, 5.171799), 15.0);
+                BattlefieldWaitingArea = FanOutRandom(new WoWPoint(-11410.45, -1097.339, 5.171799), 15.0);
 
                 CombatMaxEngagementRangeDistance = 23.0;
-                CrocEggAvoidanceDistance = 5.0;
+                CrocEggAvoidanceDistance = 6.0;
 
                 // Semantic coherency / covariant dependency checks --
             }
@@ -109,7 +116,7 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
 
         // Variables for Attributes provided by caller
         public WoWPoint BattlefieldCenterPoint { get; private set; }
-        public WoWPoint BattlefieldChillPoint { get; private set; }
+        public WoWPoint BattlefieldWaitingArea { get; private set; }
         public double BattlefieldRadius { get; private set; }
         public double CombatMaxEngagementRangeDistance { get; private set; }
         public double CrocEggAvoidanceDistance { get; private set; }
@@ -138,11 +145,8 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
 
 
         #region Private and Convenience variables
-        public delegate IEnumerable<DefinedArea> DefinedAreaDelegate();
-        public delegate WoWPoint LocationDelegate(object context);
         public delegate string StringDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
-        public delegate double RangeDelegate(object context);
 
         private bool IsShakingYoungCrocolisksOff { get; set; }
         private LocalPlayer Me { get { return StyxWoW.Me; } }
@@ -373,21 +377,16 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
 
                                     double safetyDistance = SelectedTarget.CombatReach * 3;
 
-                                    // Find new Croc Egg pile, if current is no longer valid...
+                                    // Find new Croc Eggs, if current is no longer valid...
                                     if (!IsViable(PreferredCrocEgg))
                                         { PreferredCrocEgg = FindPreferredCrocEgg(); }
 
-                                    // If Croc Egg pile found, use it by positioning it between mob and self...
+                                    // If Croc Eggs found, use it by positioning it between mob and self...
                                     if (IsCrocEggViable(PreferredCrocEgg))
                                     {
-                                        float avoidDistance = (float)(CrocEggAvoidanceDistance +3.0f);
+                                        float avoidDistance = (float)(CrocEggAvoidanceDistance +2.0f);
                                         float heading = WoWMathHelper.CalculateNeededFacing(SelectedTarget.Location, PreferredCrocEgg.Location);
                                         WoWPoint destination = PreferredCrocEgg.Location.RayCast(heading, avoidDistance);
-
-                                        if (Navigator.CanNavigateFully(Me.Location, destination))  // TODO:
-                                        {
-                                            LogMessage("warning", "CANNOT FULLY NAVIGATE");
-                                        }
 
                                         if (Me.Location.Distance(destination) > Navigator.PathPrecision)
                                         {
@@ -395,8 +394,17 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                                             return RunStatus.Success;
                                         }
 
+                                        if (Me.IsMoving)
+                                            { WoWMovement.MoveStop(); }
+
+                                        if (!Me.IsFacing(SelectedTarget))
+                                            { SelectedTarget.Face(); }
+
                                         if (SelectedTarget.Distance < safetyDistance)
-                                            { Blacklist.Add(PreferredCrocEgg, BlacklistFlags.Combat, TimeSpan.FromSeconds(60)); }
+                                        {
+                                            LogMessage("warning", "Blacklisting current Croc Egg selection");
+                                            Blacklist.Add(PreferredCrocEgg, BlacklistFlags.Combat, TimeSpan.FromSeconds(60));
+                                        }
                                     }
 
                                     return RunStatus.Success;
@@ -455,14 +463,14 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                     new Decorator(context => (SelectedTarget = ChooseAttackingTarget()) != null,
                         UtilityBehavior_SpankMob(context => SelectedTarget)),
 
-                    // If we have competition, go to Chill point and wait for player to clear area...
+                    // If we have competition, go to waiting area until other players clear area...
                     new Decorator(context => FindCompetingPlayers().Count() > 0,
                         new PrioritySelector(
-                            new Decorator(context => Me.Location.Distance(BattlefieldChillPoint) > Navigator.PathPrecision,
+                            new Decorator(context => Me.Location.Distance(BattlefieldWaitingArea) > Navigator.PathPrecision,
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Moving to chill area while we wait for competing players to clear");
-                                    MoveWithinDangerousArea(BattlefieldChillPoint);
+                                    LogMessage("info", "Moving to waiting area while competing players on battlefield");
+                                    MoveWithinDangerousArea(BattlefieldWaitingArea);
                                 })),
                             new Wait(TimeSpan.FromSeconds(30), context => false, new ActionAlwaysSucceed()),
                             new ActionAlwaysSucceed()
@@ -489,7 +497,10 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                                     new Action(tahetUnitContext => { ((WoWUnit)tahetUnitContext).Face(); })),
                                 new Decorator(tahetUnitContext => ((WoWUnit)tahetUnitContext).HasAura(AuraId_TahetImprisoned),
                                     new Action(tahetUnitContext => { ((WoWUnit)tahetUnitContext).Interact(); }))
-                            ))),
+                            )),
+                        new Decorator(tahetUnitContext => tahetUnitContext == null,
+                            new Action(tahetUnitContext => { LogMessage("info", "Waiting for Tahet to respawn"); }))
+                        ),
 
                     // If we're outside the battlefield, move back to anchor...
                     new Decorator(context => Me.Location.Distance(BattlefieldCenterPoint) > BattlefieldRadius,
@@ -560,7 +571,7 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
             IEnumerable<DefinedArea> dangerousAreas =
                 from crocEgg in ObjectManager.GetObjectsOfType<WoWGameObject>()
                 where crocEgg.Entry == ObjectId_CrocEggs
-                select new DefinedArea_Circle(this, "Croc Eggs", crocEgg.Location, CrocEggAvoidanceDistance);
+                select new DefinedArea_Circle(this, crocEgg.Location, CrocEggAvoidanceDistance);
 
             return dangerousAreas;
         }
@@ -575,10 +586,10 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                     && IsCrocEggViable(crocEgg)
                     // Make certain we stay in main area...
                     && (BattlefieldCenterPoint.Distance(crocEgg.Location) <= BattlefieldRadius)
-                let dangerScore = (new DefinedArea_Circle(this, null, crocEgg.Location, CrocEggAvoidanceDistance +1.0)).DangerScore()
+                let dangerScore = (new DefinedArea_Circle(this, crocEgg.Location, CrocEggAvoidanceDistance +1.0)).DangerScore()
                 orderby
-                    (crocEgg.Distance * dangerScore)
-                    + (WoWMathHelper.IsInPath(SelectedTarget, Me.Location, crocEgg.Location) ? 100.0 : 0.0)
+                    ((0.5 * crocEgg.Distance) + (0.5 * dangerScore))
+                    //+ (WoWMathHelper.IsInPath(SelectedTarget, Me.Location, crocEgg.Location) ? 100.0 : 0.0) // TODO
                 select crocEgg);
 
             return crocEggPreferences.FirstOrDefault();
@@ -651,6 +662,22 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 && wowUnit.IsAlive
                 && !Blacklist.Contains(wowUnit.Guid, BlacklistFlags.Combat);
         }
+
+
+        private MoveResult MoveWithinDangerousArea(WoWPoint destination)
+        {
+            DefinedArea nearestDangerousArea =
+               (from area in FindDangerousAreas()
+                where area.WillPathThroughArea(Me.Location, destination)
+                orderby area.Distance(Me.Location)
+                select area)
+                .FirstOrDefault();
+
+            if (nearestDangerousArea != null)
+                { destination = nearestDangerousArea.FindNavigationPoint(StyxWoW.Me.Location, destination); }
+
+            return Navigator.MoveTo(destination);
+        }
         #endregion
 
 
@@ -664,7 +691,8 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
             return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
                 new Decorator(targetContext => IsViable((WoWUnit)targetContext),
                     new PrioritySelector(
-                        new Decorator(targetContext => !((WoWUnit)targetContext).Aggro,
+                        new Decorator(targetContext => !((((WoWUnit)targetContext).CurrentTarget == Me)
+                                                        || (Me.GotAlivePet && ((WoWUnit)targetContext).CurrentTarget == Me.Pet)),
                             new PrioritySelector(
                                 new Action(targetContext =>
                                 {
@@ -673,6 +701,30 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                                 }),
                                 UtilityBehavior_SpankMob(selectedTargetDelegate)))
                     )));
+        }
+
+
+       private Composite UtilityBehavior_HandleYoungCrocolisks()
+        {
+            return new PrioritySelector(isBeingAttackedContext => Me.HasAura(AuraId_TinyTeeth),
+                new Decorator(isBeingAttackedContext => ((bool)isBeingAttackedContext),
+                    new Action(isBeingAttackedContext =>
+                    {
+                        LogMessage("info", "Shaking off Young Crocolisks");
+                        WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+                        IsShakingYoungCrocolisksOff = true;
+                        return RunStatus.Failure; // let other actions continue while we deal with the situation
+                    })),
+
+                new Decorator(isBeingAttackedContext => !((bool)isBeingAttackedContext) && IsShakingYoungCrocolisksOff,
+                    new Action(isBeingAttackedContext =>
+                    {
+                        LogMessage("info", "Young Crocolisks delt with");
+                        WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
+                        IsShakingYoungCrocolisksOff = false;
+                        return RunStatus.Failure; // let other actions continue
+                    }))
+                );      
         }
 
 
@@ -711,20 +763,18 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
         #region Utility: DefinedArea
         public interface DefinedArea
         {
-            string AreaName();
             double DangerScore();
             double Distance(WoWPoint referencePoint);
             WoWPoint FindNavigationPoint(WoWPoint currentLocation, WoWPoint destination);
             bool IsInsideArea(WoWPoint currentLocation);
-            bool WillTraverseThroughArea(WoWPoint start, WoWPoint destination);
+            bool WillPathThroughArea(WoWPoint start, WoWPoint destination);
         }
 
         private class DefinedArea_Circle : DefinedArea
         {
-            public DefinedArea_Circle(ThePitOfScales behavior, string areaName, WoWPoint center, double radius)
+            public DefinedArea_Circle(ThePitOfScales behavior, WoWPoint center, double radius)
             {
                 _behavior = behavior;
-                _areaName = areaName ?? "NO AREA NAME";
                 CenterPoint = center;
                 Radius = radius;
 
@@ -740,17 +790,9 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
             // into trouble by entering the actual dangerous area, or vascillating about where to go.
             private const double NavPointOffset = 1.0; //yards
             private const int NavPointCount = 16;
-            private const double NavPointCollisionPenalty = 1000.0;
 
-            private string _areaName;
             private ThePitOfScales _behavior;
             private IList<Tuple<WoWPoint, double>> _navPointsCounterclockwise;
-
-
-            public string AreaName()
-            {
-                return _areaName;
-            }
 
 
             public double DangerScore()
@@ -770,14 +812,19 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 // If toon has managed to get inside the area, force him out the quickest way possible...
                 if (IsInsideArea(currentLocation))
                 {
-                    WoWMovement.MoveStop();
-                    _behavior.LogMessage("warning", "Immediately moving out of area");
+                    _behavior.LogMessage("warning", "Immediately moving out of dangerous (Croc Egg) area");
 
                     WoWPoint nearestSafeNavPoint =
-                        _navPointsCounterclockwise
-                        .OrderBy(t => StyxWoW.Me.Location.Distance(t.Item1) * t.Item2)
-                        .FirstOrDefault()
-                        .Item1;
+                       (from tuple in _navPointsCounterclockwise
+                        let point = tuple.Item1
+                        let traversalCost = tuple.Item2
+                        let facingCost =
+                            Math.Abs(StyxWoW.Me.RenderFacing
+                            - WoWMathHelper.NormalizeRadian(WoWMathHelper.CalculateNeededFacing(StyxWoW.Me.Location, point)))
+                        orderby
+                            StyxWoW.Me.Location.Distance(point) * traversalCost * facingCost
+                        select point)
+                        .FirstOrDefault();
 
                     double neededHeading = WoWMathHelper.CalculateNeededFacing(CenterPoint, nearestSafeNavPoint);
                     return nearestSafeNavPoint.RayCast((float)neededHeading, (float)(Radius + NavPointOffset));
@@ -788,16 +835,18 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 {
                     IEnumerable<WoWPoint> newLocalDestinations =
                         from tuple in _navPointsCounterclockwise
-                        where !WillTraverseThroughArea(Navigator.GeneratePath(tuple.Item1, destination))
-                        orderby destination.Distance(tuple.Item1) * tuple.Item2
-                        select tuple.Item1;
+                        let point = tuple.Item1
+                        let traversalCost = tuple.Item2
+                        where !WillPathThroughArea(point, destination)
+                        orderby destination.Distance(point) * traversalCost
+                        select point;
 
                     _behavior.LogMessage("warning", "Altering destination outside of the danger area");
                     destination = newLocalDestinations.FirstOrDefault();
                 }
 
                 // If toon not headed through area, send him to his destination unimpeded...
-                if (!WillTraverseThroughArea(currentLocation, destination))
+                if (!WillPathThroughArea(currentLocation, destination))
                     { return destination; }
 
                 // If toon is too far away from the area to warrant navigational help,
@@ -811,10 +860,12 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 Tuple<WoWPoint, double> traversalClockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, false);
                 Tuple<WoWPoint, double> traversalCounterclockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, true);
 
-                // TODO:
-                _behavior.LogMessage("info", "Traversal cost:  CW({0:F2}),  CCW({1:F2})",
+                #if DEBUG_THEPITOFSCALES
+                string level = ((traversalClockwise.Item2 > 1000.0) || (traversalCounterclockwise.Item2 > 1000.0)) ? "warning" : "info";
+                _behavior.LogMessage(level, "Traversal cost:  CW({0:F2}),  CCW({1:F2})",
                     traversalClockwise.Item2,
                     traversalCounterclockwise.Item2);
+                #endif
 
                 return (traversalClockwise.Item2 < traversalCounterclockwise.Item2)  // compare path costs
                     ? traversalClockwise.Item1
@@ -828,37 +879,10 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
             }
 
 
-            public bool WillTraverseThroughArea(WoWPoint start, WoWPoint destination)
+            public bool WillPathThroughArea(WoWPoint start, WoWPoint destination)
             {
-                // If we terminate in the area, it "traverses through" by definition...
-                // NB: We don't apply this test to origin; otherwise, that would prevent
-                // us from leaving the area.
-                if (CenterPoint.Distance(destination) < Radius)
-                    { return true; }
+                WoWPoint[] path = Navigator.GeneratePath(start, destination);
 
-                // Test if line "passes thru" the area...
-                double xDelta = destination.X - start.X;
-                double yDelta = destination.Y - start.Y;
-
-                // Start and Destination are same point...
-                if ((xDelta == 0.0) && (yDelta == 0.0))
-                    { return false; }
-
-                double u = ((CenterPoint.X - start.X) * xDelta + (CenterPoint.Y - start.Y) * yDelta)
-                            / ((xDelta * xDelta) + (yDelta * yDelta));
-
-                // If the intersection doesn't occur on the line segment, then won't go through area...
-                if ((u < 0.0) || (u > 1.0))
-                    { return false; }
-
-                WoWPoint intersectionPoint = start.Add((float)(u * xDelta), (float)(u * yDelta), 0.0f);
-                
-                return CenterPoint.Distance(intersectionPoint) <= Radius;
-            }
-
-
-            public bool WillTraverseThroughArea(IList<WoWPoint> path)
-            {
                 int pathSegmentCount = path.Count() -1;
 
                 for (int i = 0; i < pathSegmentCount;  ++i)
@@ -936,7 +960,8 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                     {
                         float preservedZ = potentialNavPoints[i].Z;
                         potentialNavPoints[i] = hitPoints[i];
-                        potentialNavPoints[i].Z = preservedZ;
+                        if (!Navigator.CanNavigateFully(CenterPoint, hitPoints[i]))
+                            { potentialNavPoints[i].Z = preservedZ; }
                     }
 
                     tmpList.Add(Tuple.Create(potentialNavPoints[i], traversalCost));
@@ -956,7 +981,7 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 // to the destination.
                 IEnumerable<WoWPoint> exitNavPoints =
                    (from tuple in pathPoints
-                    where !WillTraverseThroughArea(Navigator.GeneratePath(tuple.Item1, destination))
+                    where !WillPathThroughArea(tuple.Item1, destination)
                     select tuple.Item1)
                     .ToList();
 
@@ -973,7 +998,8 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                     let entryPoint = tuple.Item1
                     let traversalCost = tuple.Item2
                     where
-                        !WillTraverseThroughArea(Navigator.GeneratePath(currentLocation, entryPoint))
+                        !WillPathThroughArea(currentLocation, entryPoint)
+                        && (StyxWoW.Me.Location.Distance(entryPoint) > Navigator.PathPrecision)
                     let pathTraversalCost = CalculatePathCost(pathPoints, entryPoint, exitNavPoints, doCounterClockwise)
                     orderby
                         pathTraversalCost
@@ -991,69 +1017,62 @@ namespace Honorbuddy.QuestBehaviors.ThePitOfScales
                 if (exitNavPoints.Contains(entryNavTuple.Item1))
                     { return Tuple.Create(destination, 0.0); }
 
-//TODO:
-StringBuilder tmp = new StringBuilder();
+                #if DEBUG_THEPITOFSCALES
+                StringBuilder tmp = new StringBuilder();
 
-tmp.AppendFormat("\nDESTINATION: {0}  / Precision: {1:F2}\n",
-    IsInsideArea(destination) ? "UNSAFE" : "safe",
-    Navigator.PathPrecision);
+                tmp.AppendFormat("\nDESTINATION: {0} (dist: {1:F2}) / Precision: {2:F2}\n",
+                    IsInsideArea(destination) ? "UNSAFE" : "safe",
+                    StyxWoW.Me.Location.Distance(destination),
+                    Navigator.PathPrecision);
 
-tmp.AppendFormat("CURRENT HEADING TO CENTERPOINT: {0:F2}\n",
-    WoWMathHelper.CalculateNeededFacing(StyxWoW.Me.Location, CenterPoint) / TAU);
+                tmp.AppendFormat("CURRENT HEADING TO CENTERPOINT: {0:F2}\n",
+                    WoWMathHelper.CalculateNeededFacing(StyxWoW.Me.Location, CenterPoint) / TAU);
 
-tmp.AppendFormat("NAV POINTS ({0}):\n    {1}\n",
-    doCounterClockwise ? "CCW" : "CW",
-    string.Join("\n    ", pathPoints.Select(t => string.Format("Heading: {0:F2} = {1:F2} {2} {3} (traverse: {4})",
-        WoWMathHelper.CalculateNeededFacing(CenterPoint, t.Item1) / TAU,
-        t.Item2,
-        (t.Item1 == entryNavTuple.Item1) ? string.Format("ENTRY(dist: {0:F2})",  StyxWoW.Me.Location.Distance(entryNavTuple.Item1)): "                  ",
-        exitNavPoints.Contains(t.Item1) ? string.Format("EXIT (weight: {0:F2})", CalculatePathCost(pathPoints, entryNavTuple.Item1, new List<WoWPoint>() { t.Item1 }, doCounterClockwise)) : "    ",
-        WillTraverseThroughArea(StyxWoW.Me.Location, t.Item1))
-        ))
-        );
+                tmp.AppendFormat("NAV POINTS ({0}):\n    {1}\n",
+                    doCounterClockwise ? "CCW" : "CW",
+                    string.Join("\n    ", pathPoints.Select(t => string.Format("Heading: {0:F2} = {1:F2} {2} {3} (traverse: {4})",
+                        WoWMathHelper.CalculateNeededFacing(CenterPoint, t.Item1) / TAU,
+                        t.Item2,
+                        (t.Item1 == entryNavTuple.Item1) ? string.Format("ENTRY(dist: {0:F2})",  StyxWoW.Me.Location.Distance(entryNavTuple.Item1)): "                  ",
+                        exitNavPoints.Contains(t.Item1) ? string.Format("EXIT (weight: {0:F2})", CalculatePathCost(pathPoints, entryNavTuple.Item1, new List<WoWPoint>() { t.Item1 }, doCounterClockwise)) : "    ",
+                        WillPathThroughArea(StyxWoW.Me.Location, t.Item1))
+                        ))
+                        );
 
-_behavior.LogMessage("info", "{0}", tmp.ToString());
+                _behavior.LogMessage("info", "{0}", tmp.ToString());
+                #endif
                 
                 return entryNavTuple;
             }
-        }
 
 
-        private MoveResult MoveWithinDangerousArea(WoWPoint destination)
-        {
-            DefinedArea nearestDangerousArea =
-                FindDangerousAreas()
-                .OrderBy(a => a.Distance(StyxWoW.Me.Location))
-                .FirstOrDefault();
+            public bool WillTraverseThroughArea(WoWPoint start, WoWPoint destination)
+            {
+                // If we terminate in the area, it "traverses through" by definition...
+                // NB: We don't apply this test to origin; otherwise, that would prevent
+                // us from leaving the area.
+                if (CenterPoint.Distance(destination) < Radius)
+                    { return true; }
 
-            if (nearestDangerousArea != null)
-                { destination = nearestDangerousArea.FindNavigationPoint(StyxWoW.Me.Location, destination); }
+                // Test if line "passes thru" the area...
+                double xDelta = destination.X - start.X;
+                double yDelta = destination.Y - start.Y;
 
-            return Navigator.MoveTo(destination);
-        }
+                // Start and Destination are same point...
+                if ((xDelta == 0.0) && (yDelta == 0.0))
+                    { return false; }
 
+                double u = ((CenterPoint.X - start.X) * xDelta + (CenterPoint.Y - start.Y) * yDelta)
+                            / ((xDelta * xDelta) + (yDelta * yDelta));
 
-        private Composite UtilityBehavior_HandleYoungCrocolisks()
-        {
-            return new PrioritySelector(isBeingAttackedContext => Me.HasAura(AuraId_TinyTeeth),
-                new Decorator(isBeingAttackedContext => ((bool)isBeingAttackedContext),
-                    new Action(isBeingAttackedContext =>
-                    {
-                        LogMessage("warning", "Shaking off Young Crocolisks");
-                        WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-                        IsShakingYoungCrocolisksOff = true;
-                        return RunStatus.Failure; // let other actions continue while we deal with the situation
-                    })),
+                // If the intersection doesn't occur on the line segment, then won't go through area...
+                if ((u < 0.0) || (u > 1.0))
+                    { return false; }
 
-                new Decorator(isBeingAttackedContext => !((bool)isBeingAttackedContext) && IsShakingYoungCrocolisksOff,
-                    new Action(isBeingAttackedContext =>
-                    {
-                        LogMessage("warning", "Young Crocolisks delt with");
-                        WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
-                        IsShakingYoungCrocolisksOff = false;
-                        return RunStatus.Failure; // let other actions continue
-                    }))
-                );      
+                WoWPoint intersectionPoint = start.Add((float)(u * xDelta), (float)(u * yDelta), 0.0f);
+                
+                return CenterPoint.Distance(intersectionPoint) <= Radius;
+            }
         }
         #endregion
 
