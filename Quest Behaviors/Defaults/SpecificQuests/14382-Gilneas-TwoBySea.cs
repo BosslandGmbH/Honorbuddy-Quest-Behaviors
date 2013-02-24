@@ -102,7 +102,7 @@ namespace Honorbuddy.QuestBehaviors.TwoBySea
                 MobId_ForsakenMachinist = 36292; // http://wowhead.com/npc=36292
                 VehicleId_ForsakenCatapult = 36283; // http://www.wowhead.com/npc=36283
 
-                Location_CatapultFarm = new WoWPoint(-2052.313, 2577.324, 1.39316);
+                Location_CatapultFarm = new WoWPoint(-2052.313, 2577.324, 1.39316).FanOutRandom(20.0);
 
                 Lua_LaunchCommand = "if GetPetActionCooldown(1) == 0 then CastPetAction(1) end"; // http://www.wowhead.com/spell=66251
 
