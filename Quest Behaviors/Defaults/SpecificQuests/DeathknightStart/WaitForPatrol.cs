@@ -493,7 +493,7 @@ namespace QuestBehaviors.WaitForPatrol
                             )),
 
                         // If we don't have a current ingress path to follow, build it...
-                        new Decorator(context => (Mob_ToAvoid.Distance > AvoidDistance)
+                        new Decorator(context => ((Mob_ToAvoid == null) || (Mob_ToAvoid.Distance > AvoidDistance))
                                                 && (Path_Ingress == null),
                             new Action(context =>
                             {
@@ -519,7 +519,7 @@ namespace QuestBehaviors.WaitForPatrol
 
                             #region Strategy: Stalk Mob at Avoid Distance Strategy
                             new SwitchArgument<FollowPathStrategyType>(FollowPathStrategyType.StalkMobAtAvoidDistance,
-                                new Decorator(context => Mob_ToAvoid.Distance < AvoidDistance,
+                                new Decorator(context => (Mob_ToAvoid != null) && (Mob_ToAvoid.Distance < AvoidDistance),
                                     new PrioritySelector(
                                         new Decorator(context => Me.IsMoving,
                                             new Action(context => { WoWMovement.MoveStop(); })),
