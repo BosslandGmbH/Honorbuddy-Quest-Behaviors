@@ -167,7 +167,9 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
                 // resolved.
-                LogMaintenanceError(except.Message);
+                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -464,8 +466,7 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
 
                             // Move to drop off spot...
                             new Decorator(context => Me.Location.Distance(PositionToMakeLandfall) > Navigator.PathPrecision,
-                                UtilityBehavior_MoveWithinRange(context => PositionToMakeLandfall,
-                                                                context => "back to shore"))
+                                UtilityBehavior_MoveTo(context => PositionToMakeLandfall, context => "back to shore"))
                         )),
                     #endregion 
 
@@ -499,8 +500,8 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
                                 new Action(context => { CurrentPath.Dequeue(); })),
 
                             // Follow the prescribed path...
-                            UtilityBehavior_MoveWithinRange(context => CurrentPath.Peek(),
-                                                            current => "out to Drowned Watcman")
+                            UtilityBehavior_MoveTo(context => CurrentPath.Peek(),
+                                                   current => "out to Drowned Watcman")
                         )),
                     #endregion
 
@@ -556,7 +557,7 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
                                 new Action(context => { CurrentPath.Dequeue(); })),
 
                             // Follow the prescribed path...
-                            UtilityBehavior_MoveWithinRange(context => CurrentPath.Peek(),
+                            UtilityBehavior_MoveTo(context => CurrentPath.Peek(),
                                                             current => "in to drop off Drowned Watcman")
                         ))
                     #endregion
@@ -699,7 +700,7 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
 
                         // If not within interact range, move closer...
                         new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
-                            UtilityBehavior_MoveWithinRange(interactUnitContext => ((WoWUnit)interactUnitContext).Location,
+                            UtilityBehavior_MoveTo(interactUnitContext => ((WoWUnit)interactUnitContext).Location,
                                                             interactUnitContext => "to interact with " + ((WoWUnit)interactUnitContext).Name)),
 
                         new Decorator(interactUnitContext => Me.IsMoving,
@@ -722,7 +723,7 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
 
 
         /// <returns>RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary</returns>
-        private Composite UtilityBehavior_MoveWithinRange(LocationDelegate locationDelegate,
+        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
                                                             MessageDelegate locationNameDelegate,
                                                             RangeDelegate precisionDelegate = null)
         {
@@ -826,6 +827,17 @@ namespace Honorbuddy.QuestBehaviors.GaspingForBreath
         public void LogDeveloperInfo(string message, params object[] args)
         {
             LogMessage("debug", message, args);
+        }
+        
+        
+        /// <summary>
+        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogError(string message, params object[] args)
+        {
+            LogMessage("error", message, args);
         }
         
         
