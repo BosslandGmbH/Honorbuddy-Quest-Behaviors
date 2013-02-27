@@ -80,7 +80,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
                 // Tunables...
                 CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
-
+                NonCompeteDistance = 25.0;
                 Blackspots = new List<Blackspot>()
                 {
                     // empty for now
@@ -96,9 +96,9 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
                 // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -112,7 +112,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         public IEnumerable<Blackspot> Blackspots { get; private set; }
-
+        public double NonCompeteDistance { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -121,9 +121,11 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
 
         #region Private and Convenience variables
-        public delegate string StringDelegate(object context);
+        public delegate string MessageDelegate(object context);
+        public delegate double RangeDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
 
+        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
 
         private Composite _behaviorTreeHook_CombatMain = null;
@@ -180,6 +182,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                     _behaviorTreeHook_DeathMain = null;
                 }
 
+                // Restore configuration...
                 if (_configMemento != null)
                 {
                     _configMemento.Dispose();
@@ -189,6 +192,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                 BlackspotManager.RemoveBlackspots(Blackspots);
 
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
+
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -290,7 +294,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         #endregion
 
 
-        #region Main Behavior
+        #region Main Behaviors
         private Composite CreateBehavior_CombatMain()
         {
             return new PrioritySelector(
@@ -330,10 +334,36 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
         #region Helpers
 
+        // 25Feb2013-12:50UTC chinajade
+        private IEnumerable<WoWUnit> FindMobsTargetingMeOrPet()
+        {
+            return
+                from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                where
+                    IsViable(unit)
+                    && !unit.IsFriendly
+                    && ((unit.CurrentTarget == Me)
+                        || (Me.GotAlivePet && unit.CurrentTarget == Me.Pet))
+                select unit;
+        }
+
+
+        // 25Feb2013-12:50UTC chinajade
+        private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
+        {
+            return
+                from player in ObjectManager.GetObjectsOfType<WoWPlayer>()
+                where
+                    player.IsAlive
+                    && player.Location.Distance(location) < radius
+                select player;
+        }
+
+
         // 24Feb2013-08:11UTC chinajade
         private IEnumerable<WoWUnit> FindUnitsFromIds(params int[] unitIds)
         {
-            ContractRequires(() => unitIds != null, () => "unitIds argument may not be null");
+            ContractRequires(unitIds != null, () => "unitIds argument may not be null");
 
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
@@ -343,6 +373,16 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                     && unitIds.Contains((int)unit.Entry)
                     && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
                 select unit;
+        }
+
+
+        private string GetMobNameFromId(int wowUnitId)
+        {
+            WoWUnit wowUnit = FindUnitsFromIds(wowUnitId).FirstOrDefault();
+
+            return (wowUnit != null)
+                ? wowUnit.Name
+                : string.Format("MobId({0})", wowUnitId);
         }
 
 
@@ -393,6 +433,76 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         }
 
 
+        private Composite UtilityBehavior_InteractWithMob(WoWUnitDelegate unitToInteract)
+        {
+            return new PrioritySelector(interactUnitContext => unitToInteract(interactUnitContext),
+                new Decorator(interactUnitContext => IsViable((WoWUnit)interactUnitContext),
+                    new PrioritySelector(
+                        // Show user which unit we're going after...
+                        new Decorator(interactUnitContext => Me.CurrentTarget != (WoWUnit)interactUnitContext,
+                            new Action(interactUnitContext => { ((WoWUnit)interactUnitContext).Target(); })),
+
+                        // If not within interact range, move closer...
+                        new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
+                            new Action(interactUnitContext =>
+                            {
+                                LogDeveloperInfo("Moving to interact with {0}", ((WoWUnit)interactUnitContext).Name);
+                                Navigator.MoveTo(((WoWUnit)interactUnitContext).Location);
+                            })),
+
+                        new Decorator(interactUnitContext => Me.IsMoving,
+                            new Action(interactUnitContext => { WoWMovement.MoveStop(); })),
+                        new Decorator(interactUnitContext => !Me.IsFacing((WoWUnit)interactUnitContext),
+                            new Action(interactUnitContext => { Me.SetFacing((WoWUnit)interactUnitContext); })),
+
+                        // Blindly interact...
+                        // Ideally, we would blacklist the unit if the interact failed.  However, the HB API
+                        // provides no CanInteract() method (or equivalent) to make this determination.
+                        new Action(interactUnitContext =>
+                        {
+                            LogDeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
+                            ((WoWUnit)interactUnitContext).Interact();
+                            return RunStatus.Failure;
+                        }),
+                        new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
+                    )));
+        }
+
+
+        private Composite UtilityBehavior_MoveTo(LocationRetriever locationRetriever,
+                                                    MessageDelegate locationNameDelegate,
+                                                    RangeDelegate precisionDelegate = null)
+        {
+            ContractRequires(locationRetriever != null, () => "locationRetriever may not be null");
+            ContractRequires(locationNameDelegate != null, () => "locationNameDelegate may not be null");
+            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
+
+            return new PrioritySelector(locationContext => locationRetriever(),
+                new Decorator(locationContext => !Me.Mounted
+                                                    && Mount.CanMount()
+                                                    && Mount.ShouldMount((WoWPoint)locationContext),
+                    new Action(locationContext => { Mount.MountUp(() => (WoWPoint)locationContext); })),
+
+                new Decorator(locationContext => (Me.Location.Distance((WoWPoint)locationContext) > precisionDelegate(locationContext)),
+                    new Sequence(
+                        new Action(context =>
+                        {
+                            WoWPoint destination = locationRetriever();
+                            string locationName = locationNameDelegate(context) ?? destination.ToString();
+
+                            TreeRoot.StatusText = "Moving to " + locationName;
+
+                            if (!Me.IsSwimming && Navigator.CanNavigateFully(Me.Location, destination))
+                                { Navigator.MoveTo(destination); }
+                            else
+                                { WoWMovement.ClickToMove(destination); }
+                        }),
+                        new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
+                    ))
+                );
+        }
+        
+        
         /// <summary>
         /// Unequivocally engages mob in combat.
         /// </summary>
@@ -433,8 +543,8 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
         /// <summary>
         /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY returns true, no action is taken.
-        /// If false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
+        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
+        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
         /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
         /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
         /// <para>Notes:<list type="bullet">
@@ -452,11 +562,9 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
         ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
         ///  throughout the code.
-        public bool ContractRequires(ContractPredicateDelegate isContractOkay, StringProviderDelegate stringProviderDelegate)
+        public bool ContractRequires(bool isContractOkay, StringProviderDelegate stringProviderDelegate)
         {
-            bool isOkay = isContractOkay();
-
-            if (!isOkay)
+            if (!isContractOkay)
             {
                 // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
                 string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
@@ -466,7 +574,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                                         message, trace.ToString());
             }
 
-            return isOkay;
+            return isContractOkay;
         }
 
 
@@ -500,6 +608,17 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         public void LogDeveloperInfo(string message, params object[] args)
         {
             LogMessage("debug", message, args);
+        }
+        
+        
+        /// <summary>
+        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogError(string message, params object[] args)
+        {
+            LogMessage("error", message, args);
         }
         
         

@@ -1,0 +1,3 @@
+﻿TODO:
+* UserDialog needs to log which button the user clicked on to close the dialog
+
