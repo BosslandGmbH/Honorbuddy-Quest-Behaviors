@@ -80,7 +80,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
                 // Tunables...
                 CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
-                NonCompeteDistance = 25.0;
+                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 25.0;
                 Blackspots = new List<Blackspot>()
                 {
                     // empty for now
@@ -121,6 +121,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
 
         #region Private and Convenience variables
+        public delegate WoWPoint LocationDelegate(object context);
         public delegate string MessageDelegate(object context);
         public delegate double RangeDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
@@ -298,6 +299,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         private Composite CreateBehavior_CombatMain()
         {
             return new PrioritySelector(
+                // empty, for now
                 );
         }
 
@@ -305,6 +307,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         private Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
+                // empty, for now
                 );
         }
 
@@ -312,6 +315,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         private Composite CreateBehavior_DeathMain()
         {
             return new PrioritySelector(
+                // empty, for now
                 );
         }
 
@@ -368,8 +372,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
                 where
-                    unit.IsValid
-                    && unit.IsAlive
+                    IsViable(unit)
                     && unitIds.Contains((int)unit.Entry)
                     && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
                 select unit;
@@ -408,8 +411,10 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                 && wowUnit.IsAlive
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
         }
+        #endregion
 
 
+        #region Utility Behaviors
         /// <summary>
         /// This behavior quits attacking the mob, once the mob is targeting us.
         /// </summary>
@@ -469,16 +474,16 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         }
 
 
-        private Composite UtilityBehavior_MoveTo(LocationRetriever locationRetriever,
+        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
                                                     MessageDelegate locationNameDelegate,
                                                     RangeDelegate precisionDelegate = null)
         {
-            ContractRequires(locationRetriever != null, () => "locationRetriever may not be null");
+            ContractRequires(locationDelegate != null, () => "locationRetriever may not be null");
             ContractRequires(locationNameDelegate != null, () => "locationNameDelegate may not be null");
             precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
 
-            return new PrioritySelector(locationContext => locationRetriever(),
-                new Decorator(locationContext => !Me.Mounted
+            return new PrioritySelector(locationContext => locationDelegate(locationContext),
+                new Decorator(locationContext => !Me.InVehicle && !Me.Mounted
                                                     && Mount.CanMount()
                                                     && Mount.ShouldMount((WoWPoint)locationContext),
                     new Action(locationContext => { Mount.MountUp(() => (WoWPoint)locationContext); })),
@@ -487,15 +492,20 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                     new Sequence(
                         new Action(context =>
                         {
-                            WoWPoint destination = locationRetriever();
+                            WoWPoint destination = locationDelegate(context);
                             string locationName = locationNameDelegate(context) ?? destination.ToString();
 
                             TreeRoot.StatusText = "Moving to " + locationName;
 
-                            if (!Me.IsSwimming && Navigator.CanNavigateFully(Me.Location, destination))
-                                { Navigator.MoveTo(destination); }
-                            else
-                                { WoWMovement.ClickToMove(destination); }
+                            MoveResult moveResult = Navigator.MoveTo(destination);
+
+                            // If Navigator couldn't move us, resort to click-to-move...
+                            if (!((moveResult == MoveResult.Moved)
+                                    || (moveResult == MoveResult.ReachedDestination)
+                                    || (moveResult == MoveResult.PathGenerated)))
+                            {
+                                WoWMovement.ClickToMove(destination);
+                            }
                         }),
                         new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
                     ))
@@ -528,7 +538,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                             ))
                     )));
         }
-        #endregion // Behavior helpers
+        #endregion
 
 
         #region Pet Helpers
