@@ -1,3 +1,5 @@
 ﻿TODO:
+* ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
+* Kick's Hyjal "Mental Training": Needs to use ButtonPressOn* behavior instead of specific one.
 * UserDialog needs to log which button the user clicked on to close the dialog
 
