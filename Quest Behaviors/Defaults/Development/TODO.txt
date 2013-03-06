@@ -1,4 +1,7 @@
 ﻿TODO:
+* "Students No More" needs to focus on the eggs that heal the boss.
+  In Kick's thread a few people have reported the inability to kill the boss when the eggs
+  are not taken out first.
 * ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
 * Kick's Hyjal "Mental Training": Needs to use ButtonPressOn* behavior instead of specific one.
 * UserDialog needs to log which button the user clicked on to close the dialog
