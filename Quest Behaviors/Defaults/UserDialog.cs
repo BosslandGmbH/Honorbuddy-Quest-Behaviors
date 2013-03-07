@@ -619,7 +619,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
                                                                      directiveRequester);
 
                 TreeRoot.StatusText = terminationMessage;
-                LogMessage(messageType, terminationMessage);
+                LogMessage(messageType, "[{0}] {1}\nDisposition: {2}", DialogTitle, DialogText, terminationMessage);
             }
 
             if (popdownReason.IsBotStop())
