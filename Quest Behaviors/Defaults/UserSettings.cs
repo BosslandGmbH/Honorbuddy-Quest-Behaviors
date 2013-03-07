@@ -150,7 +150,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 IsStopBot = GetAttributeAsNullable<bool>("StopBot", false, null, null) ?? false;
 
-                _userChangeRequest.GetChangesFromAttributes(this);
+                _userChangeRequest.GetChangesFromAttributes(this, _originalConfiguration);
 
                 // Transfer any 'debug' requests made by the user into our persistent copy --
                 if (tmpDebugShowChangesApplied.HasValue)
@@ -570,7 +570,8 @@ namespace BuddyWiki.CustomBehavior.UserSettings
     {
         // The returned object may be null.
         public abstract object AcquireUserInput(CustomForcedBehavior behavior,
-                                                string configName);
+                                                string configName,
+                                                object originalValue);
 
         public abstract string AsString();
 
@@ -587,8 +588,15 @@ namespace BuddyWiki.CustomBehavior.UserSettings
         }
 
         public override object AcquireUserInput(CustomForcedBehavior behavior,
-                                                    string configName)
+                                                    string configName,
+                                                    object originalValue)
         {
+            if (originalValue != null)
+            {
+                string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
+                if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
+                    { return originalValue; }
+            }
             return (behavior.GetAttributeAsNullable<bool>(configName, false, null, null));
         }
 
@@ -610,8 +618,15 @@ namespace BuddyWiki.CustomBehavior.UserSettings
         }
 
         public override object AcquireUserInput(CustomForcedBehavior behavior,
-                                                    string configName)
+                                                    string configName,
+                                                    object originalValue)
         {
+            if (originalValue != null)
+            {
+                string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
+                if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
+                    { return originalValue; }
+            }
             return (behavior.GetAttributeAsNullable<int>(configName, false, new CustomForcedBehavior.ConstrainTo.Domain<int>(MinValue, MaxValue), null));
         }
 
@@ -636,8 +651,12 @@ namespace BuddyWiki.CustomBehavior.UserSettings
         }
 
         public override object AcquireUserInput(CustomForcedBehavior behavior,
-                                                    string configName)
+                                                    string configName,
+                                                    object originalValue)
         {
+            string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
+            if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
+                { return originalValue; }
             return (behavior.GetAttributeAs<string>(configName, false, null, null));
         }
 
@@ -698,7 +717,7 @@ namespace BuddyWiki.CustomBehavior.UserSettings
         public int Count { get { return (_changeRequests.Count); } }
 
 
-        public void GetChangesFromAttributes(CustomForcedBehavior behavior)
+        public void GetChangesFromAttributes(CustomForcedBehavior behavior, ConfigSnapshot originalConfiguration)
         {
             var configDescriptors = (from attributeKvp in behavior.Args
                                      from desc in _recognizedAttributes.Values
@@ -707,7 +726,9 @@ namespace BuddyWiki.CustomBehavior.UserSettings
 
             foreach (ConfigDescriptor configDesc in configDescriptors)
             {
-                object result = configDesc.Constraint.AcquireUserInput(behavior, configDesc.Name);
+                object result = configDesc.Constraint.AcquireUserInput(behavior,
+                                                                    configDesc.Name,
+                                                                    originalConfiguration.GetSnapshotValue(configDesc.Name));
 
                 if (result != null)
                 { _changeRequests.Add(configDesc, result); }
@@ -773,6 +794,16 @@ namespace BuddyWiki.CustomBehavior.UserSettings
             { outString = "    No changes from original settings\n"; }
 
             return (outString);
+        }
+
+
+        public object GetSnapshotValue(string itemName)
+        {
+            return
+               (from item in _configSnapshot
+                where item.Key.Name == itemName
+                select item.Value)
+                .FirstOrDefault();
         }
 
 
