@@ -122,7 +122,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
         #region Private and Convenience variables
         public delegate WoWPoint LocationDelegate(object context);
-        public delegate string MessageDelegate(object context);
+        public delegate string StringDelegate(object context);
         public delegate double RangeDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
 
@@ -475,7 +475,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
 
         private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
-                                                    MessageDelegate locationNameDelegate,
+                                                    StringDelegate locationNameDelegate,
                                                     RangeDelegate precisionDelegate = null)
         {
             ContractRequires(locationDelegate != null, () => "locationRetriever may not be null");
@@ -547,9 +547,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
 
         #region Diagnostic Methods
-        // These are needed by a number of the pre-supplied methods...
-        public delegate bool    ContractPredicateDelegate();
-        public delegate string  StringProviderDelegate();
+        public delegate string StringProviderDelegate();
 
         /// <summary>
         /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>

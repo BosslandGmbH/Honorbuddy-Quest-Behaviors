@@ -5,11 +5,13 @@
     If a vehicle is occupied, it will possess an aura described here. 
     
     If you need code to read this file, and put it in a form suitable for use in
-    a quest behavior, see the Vehicles/VehicleMover.cs behavior for an example
-    (ref: GetOccupiedVehicleAuraIds() method).
+    a quest behavior, the Development/DataAccess.cs file contains an implementation
+    of the GetOccupiedVehicleAuraIds() method for your cut-n-paste convenience.
     
     To use the assembled information in your Quest Behavior, you merely use it as
     a qualifier in your LINQ query as thus:
+        IEnumerable<int> AuraIds_OccupiedVehicle = GetOccupiedVehicleAuraIds();
+        
         private WoWUnit FindUnoccupiedVehicle()
         {
             return

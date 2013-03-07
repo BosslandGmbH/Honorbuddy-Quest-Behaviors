@@ -51,8 +51,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         // 24Feb2013-07:42UTC chinajade
         public bool CanCastPetAction(string petActionName)
         {
-            ContractRequires(() => !string.IsNullOrEmpty(petActionName),
-                             () => "petActionName may not be null or empty");
+            ContractRequires(!string.IsNullOrEmpty(petActionName), () => "petActionName may not be null or empty");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
@@ -80,8 +79,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         // 24Feb2013-07:42UTC chinajade
         public void CastPetAction(string petActionName)
         {
-            ContractRequires(() => !string.IsNullOrEmpty(petActionName),
-                             () => "petActionName may not be null or empty");
+            ContractRequires(!string.IsNullOrEmpty(petActionName), () => "petActionName may not be null or empty");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
@@ -111,10 +109,8 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         // 24Feb2013-07:42UTC chinajade
         public void CastPetAction(string petActionName, WoWUnit wowUnit)
         {
-            ContractRequires(() => !string.IsNullOrEmpty(petActionName),
-                             () => "petActionName may not be null or empty");
-            ContractRequires(() => wowUnit != null,
-                             () => "wowUnit may not be null");
+            ContractRequires(!string.IsNullOrEmpty(petActionName), () => "petActionName may not be null or empty");
+            ContractRequires(wowUnit != null, () => "wowUnit may not be null");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
@@ -148,8 +144,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         // 24Feb2013-07:42UTC chinajade
         public bool IsPetActionActive(string petActionName)
         {
-            ContractRequires(() => !string.IsNullOrEmpty(petActionName),
-                             () => "petActionName may not be null or empty");
+            ContractRequires(!string.IsNullOrEmpty(petActionName), () => "petActionName may not be null or empty");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
@@ -174,8 +169,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         /// <returns>a behavior tree Composite suitable for use in a (Priority)Selector container</returns>
         public Composite UtilityBehaviorPS_PetActionAttack(WoWUnitDelegate wowUnitDelegate)
         {
-            ContractRequires(() => wowUnitDelegate != null,
-                             () => "wowUnitDelegate may not be null");
+            ContractRequires(wowUnitDelegate != null, () => "wowUnitDelegate may not be null");
 
             string spellName = "Attack";
             return new Decorator(context => Me.GotAlivePet
