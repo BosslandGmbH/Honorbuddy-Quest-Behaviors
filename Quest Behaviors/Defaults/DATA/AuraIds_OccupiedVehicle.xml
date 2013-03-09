@@ -34,6 +34,7 @@
  -->
 <Auras>
     <Aura Name="Stolen Horse" SpellId="52263" />  <!-- Havenshire Horse for "Grand Theft Palominio": http://wowhead.com/spell=52263 -->
+    <Aura Name="Ride Vehicle" SpellId="68503" />  <!-- Glaive Thrower for "They Have Allies, But So Do We": http://wowhead.com/spell=68503 -->
     <Aura Name="Ride Vehicle" SpellId="84495" />  <!-- http://wowhead.com/spell=84495 -->
     <Aura Name="Ride Vehicle" SpellId="84499" />  <!-- http://wowhead.com/spell=84499 -->
     <Aura Name="Ride Vehicle" SpellId="84896" />  <!-- http://wowhead.com/spell=84896 -->
