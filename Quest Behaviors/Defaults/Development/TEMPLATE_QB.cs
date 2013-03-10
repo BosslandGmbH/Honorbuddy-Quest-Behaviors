@@ -390,7 +390,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
 
         // 24Feb2013-08:11UTC chinajade
-        private bool IsQuestObjectiveComplete(int questId, int objectiveId)
+        private bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
         {
             if (Me.QuestLog.GetQuestById((uint)questId) == null)
                 { return false; }
@@ -398,7 +398,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
             int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
 
             return
-                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveId, questLogIndex), 2);
+                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
         }
 
 
