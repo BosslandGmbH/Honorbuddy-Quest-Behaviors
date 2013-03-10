@@ -38,8 +38,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??
-                           WoWPoint.Empty;
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
                 //MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] {"NpcID"})
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
@@ -77,19 +76,21 @@ namespace Styx.Bot.Quest_Behaviors
             get { return (StyxWoW.Me); }
         }
 
-        //<Vendor Name="Malfurion Stormrage" Entry="41632" Type="Repair" X="3993.279" Y="-3036.587" Z="575.3904" />
+        //<Vendor Name="Malfurion Stormrage" Entry="41632" Type="Repair" X="3993.279" Y="-3036.587" Z="575.3904" /> Alliance
+        //<Vendor Name="Malfurion Stormrage" Entry="40804" Type="Repair" X="3941.458" Y="-2825.699" Z="618.7477" /> Horde
         private WoWUnit Malfurion
 
         {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 41632); }
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 41632 || r.Entry == 40804); }
         }
 
 
-        //<Vendor Name="Cenarius" Entry="41631" Type="Repair" X="3954.34" Y="-2826.02" Z="618.7476" />
+        //<Vendor Name="Cenarius" Entry="41631" Type="Repair" X="3954.34" Y="-2826.02" Z="618.7476" /> Alliance
+        //<Vendor Name="Cenarius" Entry="40803" Type="Repair" X="3954.5" Y="-2825.82" Z="618.7477" /> Horde
         private WoWUnit Cenarius
 
         {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 41631); }
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 41631 || r.Entry == 40803); }
         }
 
         private WoWUnit Add
@@ -102,9 +103,11 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+
+        //<Vendor Name="Ragnaros" Entry="40793" Type="Repair" X="4027.45" Y="-3054.09" Z="569.141" /> Horde
         private WoWUnit Ragnaros
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 41634)); }
+            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 41634 || u.Entry ==  40793)); }
         }
 
 
