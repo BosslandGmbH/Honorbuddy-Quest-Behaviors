@@ -365,7 +365,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
 
         // 24Feb2013-08:11UTC chinajade
-        private IEnumerable<WoWUnit> FindUnitsFromIds(params int[] unitIds)
+        private IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds)
         {
             ContractRequires(unitIds != null, () => "unitIds argument may not be null");
 
@@ -381,7 +381,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
         private string GetMobNameFromId(int wowUnitId)
         {
-            WoWUnit wowUnit = FindUnitsFromIds(wowUnitId).FirstOrDefault();
+            WoWUnit wowUnit = FindUnitsFromIds(new int[] { wowUnitId }).FirstOrDefault();
 
             return (wowUnit != null)
                 ? wowUnit.Name
@@ -626,6 +626,17 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         public void LogError(string message, params object[] args)
         {
             LogMessage("error", message, args);
+        }
+        
+        
+        /// <summary>
+        /// <para>Normal information to keep user informed.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogInfo(string message, params object[] args)
+        {
+            LogMessage("info", message, args);
         }
         
         

@@ -15,3 +15,11 @@
   See these posts:
     + http://www.thebuddyforum.com/archives/24256-kicks-old-posts-thread-archives-do-not-delete-1903.html#post825855
 	+ http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-2.html#post1034169
+
+* 27779-Uldum-Gnomebliteration.cs
+    + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626
+	+ The behavior can kill all the Gnomes in the immediate area, then run out of things to kill.  Since there
+	  are distance limits on the range of ObjectManager.GetObjectsOfType(), the 'target list' goes empty
+	  and causes this problem.  We need to rewrite the behavior to have the ball follow a particular path when there
+	  are no more targets in the immediate area.  The path should take us to more targets so
+	  ObjectManager.GetObjectsOfType() can be re-populated.
