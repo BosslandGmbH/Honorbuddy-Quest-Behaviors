@@ -474,7 +474,8 @@ namespace BuddyWiki.CustomBehavior.CollectThings
                     _behavior_SwimBreath.CreateBehavior(),
 
                     // If there is loot to clean up...
-                    _behavior_UnderwaterLooting.CreateBehavior(() => true),
+                    new Decorator(context => CharacterSettings.Instance.LootMobs,
+                        _behavior_UnderwaterLooting.CreateBehavior(() => true)),
 
                     // Find next target...
                     _behavior_HuntingGround.CreateBehavior_SelectTarget(() => (CollectUntil == CollectUntilType.NoTargetsInArea)),
