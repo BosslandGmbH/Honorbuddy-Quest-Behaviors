@@ -172,7 +172,10 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
             ContractRequires(wowUnitDelegate != null, () => "wowUnitDelegate may not be null");
 
             string spellName = "Attack";
+
+            // NB: We can't issue "Attack" directive while mounted, so don't try...
             return new Decorator(context => Me.GotAlivePet
+                                            && !Me.Mounted
                                             && IsViable(wowUnitDelegate(context))
                                             && (Me.Pet.CurrentTarget != wowUnitDelegate(context))
                                             && !wowUnitDelegate(context).IsFriendly
@@ -196,7 +199,10 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         public Composite UtilityBehaviorPS_PetActionFollow()
         {
             string spellName = "Follow";
+
+            // NB: We can't issue "Follow" directive while mounted, so don't try...
             return new Decorator(context => Me.GotAlivePet
+                                            && !Me.Mounted
                                             && CanCastPetAction(spellName)
                                             && (!IsPetActionActive(spellName) || IsViable(Me.Pet.CurrentTarget)),
                 new Action(context => CastPetAction(spellName)));
@@ -219,20 +225,22 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         {
             string[] knownStanceNames = { "Assist", "Defensive", "Passive" };
 
-            return new PrioritySelector(petStanceNameContext => petStanceNameDelegate(petStanceNameContext),
-                new Decorator(petStanceNameContext => !knownStanceNames.Contains((string)petStanceNameContext),
-                    new Action(petStanceNameContext =>
-                    {
-                        LogMaintenanceError("Unknown pet stance '{0}'.  Must be one of: {1}",
-                            (string)petStanceNameContext,
-                            string.Join(", ", knownStanceNames));
-                    })),
+            // We can't change pet stance while mounted, so don't try...
+            return new Decorator(context => !Me.Mounted,
+                new PrioritySelector(petStanceNameContext => petStanceNameDelegate(petStanceNameContext),
+                    new Decorator(petStanceNameContext => !knownStanceNames.Contains((string)petStanceNameContext),
+                        new Action(petStanceNameContext =>
+                        {
+                            LogMaintenanceError("Unknown pet stance '{0}'.  Must be one of: {1}",
+                                (string)petStanceNameContext,
+                                string.Join(", ", knownStanceNames));
+                        })),
 
-                new Decorator(petStanceNameContext => Me.GotAlivePet
-                                                        && CanCastPetAction((string)petStanceNameContext)
-                                                        && !IsPetActionActive((string)petStanceNameContext),
-                    new Action(petStanceNameContext => CastPetAction((string)petStanceNameContext)))
-            );
+                    new Decorator(petStanceNameContext => Me.GotAlivePet
+                                                            && CanCastPetAction((string)petStanceNameContext)
+                                                            && !IsPetActionActive((string)petStanceNameContext),
+                        new Action(petStanceNameContext => { CastPetAction((string)petStanceNameContext); }))
+                ));
         }
         #endregion
     }

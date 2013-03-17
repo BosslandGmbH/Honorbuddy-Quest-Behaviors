@@ -136,6 +136,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
         private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
+        public static Random _random = new Random((int)DateTime.Now.Ticks);
         #endregion
 
 
@@ -243,7 +244,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                LogError("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -329,7 +330,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                     new Action(context =>
                     {
                         _isBehaviorDone = true;
-                        LogMessage("info", "Finished");
+                        LogInfo("Finished");
                     }))
                 );
         }
@@ -409,7 +410,15 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                 (wowUnit != null)
                 && wowUnit.IsValid
                 && wowUnit.IsAlive
+                && (wowUnit.TappedByAllThreatLists || !wowUnit.TaggedByOther)
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
+        }
+
+
+        // 12Mar2013-08:27UTC chinajade
+        private IEnumerable<T> ToEnumerable<T>(T item)
+        {
+            yield return item;
         }
         #endregion
 
@@ -430,7 +439,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                             new PrioritySelector(
                                 new Action(targetContext =>
                                 {
-                                    LogMessage("info", "Getting attention of {0}", ((WoWUnit)targetContext).Name);
+                                    LogInfo("Getting attention of {0}", ((WoWUnit)targetContext).Name);
                                     return RunStatus.Failure;
                                 }),
                                 UtilityBehavior_SpankMob(selectedTargetDelegate)))
@@ -522,13 +531,15 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
             return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
                 new Decorator(targetContext => IsViable((WoWUnit)targetContext),
                     new PrioritySelector(               
-                        new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CombatMaxEngagementRangeDistance,
+                        new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CharacterSettings.Instance.PullDistance,
                             new Action(targetContext => { Navigator.MoveTo(((WoWUnit)targetContext).Location); })),
                         new Decorator(targetContext => Me.CurrentTarget != (WoWUnit)targetContext,
                             new Action(targetContext =>
                             {
                                 BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill);
                                 ((WoWUnit)targetContext).Target();
+                                if (Me.Mounted)
+                                    { Mount.Dismount(); }
                             })),
                         new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
                             new PrioritySelector(
