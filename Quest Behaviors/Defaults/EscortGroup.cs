@@ -144,14 +144,25 @@
 #endregion
 
 #region Examples
-// "Nefereset Prison" (http://www.wowhead.com/quest=27707)
+// "Nefereset Prison" (http://wowhead.com/quest=27707)
 // This used to be an escort quest, but has since been 'dumbed down' into a defend the NPC quest.
 // The EscortGroup behavior is still very appropriate for defending stationary NPCs.
 //      <CustomBehavior File="EscortGroup"  QuestId="27707"
 //			StartNpcId="46425" StartEscortGossipOptions="1" EscortNpcId="46425"
 //			EscortMaxFightDistance="30" EscortMaxFollowDistance="25" />
 //
-// "Reunited" (http://www.wowhead.com/quest=31091).
+// "No Place To Run" (http://wowhead.com/quest=12261)
+// Go to a particular spot and use the Destructive Wards (http://wowhead.com/item=37445)
+// to spawn the Destrutive Ward (http://wowhead.com/npc=27430).  Defend the spawned
+// Destructive Ward from the mobs that are attacking it, until the Ward charges to full.
+//      <While Condition="!IsQuestCompleted(12261)" >
+//          <UseItem QuestName="No Place to Run" QuestId="12261" ItemId="37445"
+//              X="4384.706" Y="1305.638" Z="150.4314" />
+//          <CustomBehavior File="EscortGroup" QuestId="12261" EscortMaxFightDistance="15"
+//              SearchForNpcsRadius="15" EscortNpcId1="27430" EscortCompleteWhen="QuestCompleteOrFails" />
+//      </While>
+//
+// "Reunited" (http://wowhead.com/quest=31091).
 // A simple follow-and-defend quest.
 // The quest requires interacting with an NPC (StartNpcId) via a gossip, then the gossip NPC
 // is immediately replaced with an instanced-version which we need to escort (EscortNpcId).
@@ -159,7 +170,7 @@
 //          QuestId="31091" EscortCompleteWhen="QuestObjectiveComplete" QuestObjectiveIndex="1"
 //          StartNpcId="63876" StartEscortGossipOptions="1" EscortNpcId="64013" />
 //
-// "Students No More" (http://www.wowhead.com/quest=30625)
+// "Students No More" (http://wowhead.com/quest=30625)
 // Searchs for the students (EscortNpcIdN), then follows them to kill 4 elite mobs and some trash.
 // The SearchPath is used to initially locate the students.
 //      <CustomBehavior File="EscortGroup" QuestId="30625"
@@ -174,7 +185,7 @@
 //          </SearchPath>
 //      </CustomBehavior>
 // 
-// "The Burlap Trail: To Burlap Waystation" (http://www.wowhead.com/quest=30592)
+// "The Burlap Trail: To Burlap Waystation" (http://wowhead.com/quest=30592)
 // A simple "assist the NPCs home" quest.  Note there are three versions of the
 // Grummle Trail Guide (the party's tank), and you don't know which version you
 // will get for a particular party, so we include them all as EscortNpcIdN.
@@ -270,45 +281,45 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 // Semantic coherency / covariant dependency checks --
                 if ((StartEventGossipOptions.Count() != 0) && (StartNpcIds.Count() == 0))
                 {
-                    LogMessage("error", "If StartEscortGossipOptions are specified, you must also specify one or more StartNpcIdN");
+                    LogError("If StartEscortGossipOptions are specified, you must also specify one or more StartNpcIdN");
                     IsAttributeProblem = true;
                 }
 
                 if (EscortMaxFightDistance < EscortMaxFollowDistance)
                 {
-                    LogMessage("error", "EscortedNpcsMaxCombatDistance({0}) must be greater than or equal to EscortedNpcsMaxNoCombatDistance({1})",
+                    LogError("EscortedNpcsMaxCombatDistance({0}) must be greater than or equal to EscortedNpcsMaxNoCombatDistance({1})",
                         EscortMaxFightDistance, EscortMaxFollowDistance);
                     IsAttributeProblem = true;
                 }
 
                 if ((EscortCompleteWhen == EscortCompleteWhenType.DestinationReached) && (EscortCompleteLocation == WoWPoint.Empty))
                 {
-                    LogMessage("error", "With a EscortCompleteWhen argument of DestinationReached, you must specify EscortCompleteX/EscortCompleteY/EscortCompleteZ arguments");
+                    LogError("With a EscortCompleteWhen argument of DestinationReached, you must specify EscortCompleteX/EscortCompleteY/EscortCompleteZ arguments");
                     IsAttributeProblem = true;
                 }
 
                 if ((EscortCompleteWhen == EscortCompleteWhenType.QuestComplete) && (QuestId == 0))
                 {
-                    LogMessage("error", "With a EscortCompleteWhen argument of QuestComplete, you must specify a QuestId argument");
+                    LogError("With a EscortCompleteWhen argument of QuestComplete, you must specify a QuestId argument");
                     IsAttributeProblem = true;
                 }
 
                 if ((QuestId == 0) && (EscortCompleteWhen != EscortCompleteWhenType.DestinationReached))
                 {
-                    LogMessage("error", "When no QuestId is specified, EscortCompleteWhen must be DestinationReached");
+                    LogError("When no QuestId is specified, EscortCompleteWhen must be DestinationReached");
                     IsAttributeProblem = true;
                 }
 
                 if ((EscortCompleteWhen == EscortCompleteWhenType.QuestObjectiveComplete)
                     && ((QuestId == 0) || (QuestObjectiveIndex == 0)))
                 {
-                    LogMessage("error", "With an EscortCompleteWhen argument of QuestObjectiveComplete, you must specify both QuestId and QuestObjectiveIndex arguments");
+                    LogError("With an EscortCompleteWhen argument of QuestObjectiveComplete, you must specify both QuestId and QuestObjectiveIndex arguments");
                     IsAttributeProblem = true;
                 }
 
                 if ((QuestObjectiveIndex != 0) && (EscortCompleteWhen != EscortCompleteWhenType.QuestObjectiveComplete))
                 {
-                    LogMessage("error", "The QuestObjectiveIndex argument should not be specified unless EscortCompleteWhen is QuestObjectiveComplete");
+                    LogError("The QuestObjectiveIndex argument should not be specified unless EscortCompleteWhen is QuestObjectiveComplete");
                     IsAttributeProblem = true;
                 }
 
@@ -326,9 +337,9 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
                 // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -491,7 +502,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                LogError("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -586,7 +597,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
 
                                             if (outOfRangeUnits.Count() > 0)
                                             {
-                                                LogMessage("warning", "Some units exceed the EscortMaxFightDistance range ({0} yard): {1}",
+                                                LogWarning("Some units exceed the EscortMaxFightDistance range ({0} yard): {1}",
                                                     EscortMaxFightDistance,
                                                     string.Join(", ", outOfRangeUnits.Select(u => string.Format("{0}({1:F1})", u.Item1.Name, u.Item2))));
                                             }
@@ -641,15 +652,15 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             // Let other behaviors deal with toon death and path back to corpse...
             return new PrioritySelector(escortedUnitsContext => FindUnitsFromIds(EscortNpcIds),
                     //FOR DEBUG:
-                    // new Action(escortedUnitsContext => { LogMessage("info", "Current State: {0}", _behaviorState); return RunStatus.Failure; }),
+                    // new Action(escortedUnitsContext => { LogInfo("Current State: {0}", _behaviorState); return RunStatus.Failure; }),
 
                     new Decorator(escortedUnitsContext => _isBehaviorDone,
-                        new Action(escortedUnitsContext => { LogMessage("info", "Finished"); })),
+                        new Action(escortedUnitsContext => { LogInfo("Finished"); })),
 
                     new Switch<BehaviorStateType>(escortedUnitsContext => _behaviorState,
                         new Action(escortedUnitsContext =>   // default case
                         {
-                            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", _behaviorState);
+                            LogMaintenanceError("BehaviorState({0}) is unhandled", _behaviorState);
                             TreeRoot.Stop();
                             _isBehaviorDone = true;
                         }),
@@ -715,7 +726,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                                 // for NPCs to arrive...
                                 new Decorator(escortedUnitsContext => _searchPath.Count() <= 1,
                                     new CompositeThrottle(TimeSpan.FromSeconds(60),
-                                        new Action(escortedUnitsContext => { LogMessage("info", "Waiting for NPCs to arrive"); })))
+                                        new Action(escortedUnitsContext => { LogInfo("Waiting for NPCs to arrive"); })))
                                 )),
                         #endregion
 
@@ -755,7 +766,8 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         new SwitchArgument<BehaviorStateType>(BehaviorStateType.Escorting,
                             new PrioritySelector(
                                 // Escort complete or failed?
-                                new Decorator(escortedUnitsContext => (IsEscortComplete() || IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext)),
+                                new Decorator(escortedUnitsContext => (IsEscortComplete((IEnumerable<WoWUnit>)escortedUnitsContext)
+                                                                        || IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext)),
                                     new Action(escortedUnitsContext => { _behaviorState = BehaviorStateType.CheckDone; })),
                                 
                                 new Decorator(escortedUnitsContext => !Me.Combat,
@@ -773,14 +785,26 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         #region State: CheckDone
                         new SwitchArgument<BehaviorStateType>(BehaviorStateType.CheckDone,
                             new PrioritySelector(
-                                new Decorator(escortedUnitsContext => IsEscortComplete(),
-                                    new Action(delegate { _isBehaviorDone = true; })),
-                                new Action(delegate
+                                new Decorator(escortedUnitsContext => (!IsEscortComplete((IEnumerable<WoWUnit>)escortedUnitsContext)
+                                                                        && !IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext)),
+                                    new Action(escortedUnitsContext => { _behaviorState = BehaviorStateType.Escorting; })),
+                                
+                                new Action(escortedUnitsContext =>
                                 {
-                                    LogMessage("warning", "Looks like we've failed the escort, returning to start to re-do");
-                                    _behaviorState = BehaviorStateType.InitialState;
-                                })
-                            ))
+                                    if (IsEscortFailed((IEnumerable<WoWUnit>)escortedUnitsContext))
+                                        { LogWarning("Looks like we've failed the escort."); }
+
+                                    if (IsEscortComplete((IEnumerable<WoWUnit>)escortedUnitsContext))
+                                    {
+                                        LogInfo("Behavior complete (EscortCompleteWhen=\"{0}\")", EscortCompleteWhen);
+                                        _isBehaviorDone = true;
+                                    }
+                                    else
+                                    {
+                                        LogInfo("Returning to start to re-do.");
+                                        _behaviorState = BehaviorStateType.InitialState;
+                                    }
+                                })))
                         #endregion
                     ));
         }
@@ -901,7 +925,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
         }
 
 
-        private bool IsEscortComplete()
+        private bool IsEscortComplete(IEnumerable<WoWUnit> escortedUnits)
         {
             switch (EscortCompleteWhen)
             {
@@ -917,7 +941,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 case EscortCompleteWhenType.QuestCompleteOrFails:
                 {
                     PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
-                    return (quest == null) || quest.IsCompleted || quest.IsFailed;
+                    return (quest == null) || quest.IsCompleted || IsEscortFailed(escortedUnits);
                 }
 
                 case EscortCompleteWhenType.QuestObjectiveComplete:
@@ -926,7 +950,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                 }
             }
 
-            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: EscortCompleteWhen({0}) state is unhandled", EscortCompleteWhen);
+            LogMaintenanceError("EscortCompleteWhen({0}) state is unhandled", EscortCompleteWhen);
             TreeRoot.Stop();
             return true;
         }
@@ -1013,7 +1037,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                             new Action(context =>
                             {
                                 string locationName = locationNameDelegate(context) ?? locationDelegate(context).ToString();
-                                LogMessage("info", "Moving to {0}", locationName);
+                                LogInfo("Moving to {0}", locationName);
                                 return RunStatus.Failure; // fall through after notifying user
                             })),
 
@@ -1061,7 +1085,7 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
                             new Sequence(
                                 new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Target()),
-                                new Action(gossipUnitContext => LogMessage("info", "Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
+                                new Action(gossipUnitContext => LogInfo("Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
                                 new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Interact()),
                                 new WaitContinue(LagDuration, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
                                 new WaitContinue(Delay_GossipDialogThrottle, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
@@ -1151,21 +1175,21 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                     XAttribute xAttribute = element.Attribute("X");
                     if (xAttribute == null)
                     {
-                        LogMessage("error", "Unable to locate X attribute for {0}", elementAsString);
+                        LogError("Unable to locate X attribute for {0}", elementAsString);
                         isAttributeMissing = true;
                     }
 
                     XAttribute yAttribute = element.Attribute("Y");
                     if (yAttribute == null)
                     {
-                        LogMessage("error", "Unable to locate Y attribute for {0}", elementAsString);
+                        LogError("Unable to locate Y attribute for {0}", elementAsString);
                         isAttributeMissing = true;
                     }
 
                     XAttribute zAttribute = element.Attribute("Z");
                     if (zAttribute == null)
                     {
-                        LogMessage("error", "Unable to locate Z attribute for {0}", elementAsString);
+                        LogError("Unable to locate Z attribute for {0}", elementAsString);
                         isAttributeMissing = true;
                     }
 
@@ -1180,21 +1204,21 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
                     double x = 0.0;
                     if (!double.TryParse(xAttribute.Value, out x))
                     {
-                        LogMessage("error", "Unable to parse X attribute for {0}", elementAsString);
+                        LogError("Unable to parse X attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
                     double y = 0.0;
                     if (!double.TryParse(yAttribute.Value, out y))
                     {
-                        LogMessage("error", "Unable to parse Y attribute for {0}", elementAsString);
+                        LogError("Unable to parse Y attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
                     double z = 0.0;
                     if (!double.TryParse(zAttribute.Value, out z))
                     {
-                        LogMessage("error", "Unable to parse Z attribute for {0}", elementAsString);
+                        LogError("Unable to parse Z attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
@@ -1211,6 +1235,128 @@ namespace Honorbuddy.QuestBehaviors.EscortGroup
             return path;
         }
         #endregion
+
+
+        #region Diagnostic Methods
+        public delegate string StringProviderDelegate();
+
+        /// <summary>
+        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
+        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
+        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
+        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
+        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
+        /// <para>Notes:<list type="bullet">
+        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
+        /// so we don't pay a performance penalty to build an error message that is not used
+        /// when ISCONTRACTOKAY is true.</para></description></item>
+        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
+        /// dynamically compile parts of the project at run time.</para></description></item>
+        /// </list></para>
+        /// </summary>
+        /// <param name="isContractOkay"></param>
+        /// <param name="stringProviderDelegate"></param>
+        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
+        ///  30Jun2012-15:58UTC chinajade
+        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
+        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
+        ///  throughout the code.
+        public bool ContractRequires(bool isContractOkay, StringProviderDelegate stringProviderDelegate)
+        {
+            if (!isContractOkay)
+            {
+                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
+                string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
+                StackTrace  trace   = new StackTrace(1);
+
+                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
+            }
+
+            return isContractOkay;
+        }
+
+
+        /// <summary>
+        /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
+        /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
+        /// <para>This is useful when emitting log messages.</para>
+        /// </summary>
+        /// <para>Notes:<list type="bullet">
+        /// <item><description><para> * This method uses reflection--making it relatively 'expensive' to call.
+        /// Use it with caution.</para></description></item>
+        /// </list></para>
+        /// <returns></returns>
+        ///  7Jul2012-20:26UTC chinajade
+        public static string    GetMyMethodName(bool  showDeclaringType   = false)
+        {
+            var method  = (new StackTrace(1)).GetFrame(0).GetMethod();
+
+            if (showDeclaringType)
+                { return (method.DeclaringType + "." + method.Name); }
+
+            return (method.Name);
+        }
+
+
+        /// <summary>
+        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogDeveloperInfo(string message, params object[] args)
+        {
+            LogMessage("debug", message, args);
+        }
+        
+        
+        /// <summary>
+        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogError(string message, params object[] args)
+        {
+            LogMessage("error", message, args);
+        }
+        
+        
+        /// <summary>
+        /// <para>Normal information to keep user informed.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogInfo(string message, params object[] args)
+        {
+            LogMessage("info", message, args);
+        }
+        
+        
+        /// <summary>
+        /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
+        /// action a user can perform in the field for these types of errors.
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        ///  30Jun2012-15:58UTC chinajade
+        public void LogMaintenanceError(string message, params object[] args)
+        {
+            string          formattedMessage    = string.Format(message, args);
+            StackTrace      trace               = new StackTrace(1);
+
+            LogMessage("error", "[MAINTENANCE ERROR] {0}\nLocation:\n{1}", formattedMessage, trace.ToString());
+        }
+
+
+        /// <summary>
+        /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogWarning(string message, params object[] args)
+        {
+            LogMessage("warning", message, args);
+        }
+        #endregion    
     }
 }
 
