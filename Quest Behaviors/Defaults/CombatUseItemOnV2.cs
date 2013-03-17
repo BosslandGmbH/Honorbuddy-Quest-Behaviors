@@ -34,7 +34,10 @@
 //      MobId1, MobId2, ... MobIdN [at least one MobId is REQUIRED]
 //          Identifies the mobs on which the item should be used.
 //      NumOfTimesToUseItem [REQUIRED if a QuestId is not provided; otherwise IGNORED]
-//          Specifies the number of items the item should be used on te identified mobs.
+//          Specifies the number of items the item should be used on the identified mobs
+//          before the behavior considers itself 'complete'.
+//          This value is only used if we're not in the context of a quest.  If a quest is specified,
+//          the quest determines whether or not the behavior is complete.
 //      UseWhenMeHasAuraId [at least one of the UseWhen* attributes is REQUIRED; Default: none]
 //          When the toon acquires the identified AuraId, the item is used on the mob.
 //          If multiple UseWhen* attributes are provided, the item is used when _any_
@@ -187,6 +190,7 @@
 //      </CustomBehavior>
 //
 #endregion
+
 
 #region Usings
 using System;
@@ -489,7 +493,7 @@ namespace Styx.Bot.Quest_Behaviors.CombatUseItemOnV2
 
                 // If user provided a hunting ground center, add it to our hunting ground waypoints...
                 if (HuntingGroundCenter != WoWPoint.Empty)
-                    { HuntingGrounds.AppendWaypoint(HuntingGroundCenter); }
+                    { HuntingGrounds.AppendWaypoint(HuntingGroundCenter, "hunting ground center"); }
 
 
                 if (HuntingGrounds.Waypoints.Count() <= 0)
