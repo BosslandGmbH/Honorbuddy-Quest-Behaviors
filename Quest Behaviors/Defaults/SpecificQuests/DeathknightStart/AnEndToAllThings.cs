@@ -350,8 +350,6 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
                                                 Lua.DoString(string.Format(
                                                     "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);",
                                                     Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
-
-                                                return RunStatus.Failure;
                                             }),
                                         new Action(ret => CastPetAction(AttackSpell)),
                                         new Action(ret => StyxWoW.SleepForLagDuration()))),
