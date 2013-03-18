@@ -31,7 +31,7 @@ using Styx.WoWInternals.WoWObjects;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
+namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
     public static class Extensions_WoWPoint
     {
@@ -179,7 +179,7 @@ namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
                                              locationLower,
                                              (GameWorld.CGWorldFrameHitFlags.HitTestLiquid
                                               | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2),
-                                             out hitLocation);
+                                             out hitLocation));
 
             return (hitResult ? hitLocation : WoWPoint.Empty);
         }

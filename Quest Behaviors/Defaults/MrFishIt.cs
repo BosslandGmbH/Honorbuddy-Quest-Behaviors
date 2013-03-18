@@ -259,7 +259,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             }
         }
 
-        protected override TreeSharp.Composite CreateBehavior()
+        protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
                 new Decorator(ret => !IsDone /*&& !LootOpen*/,

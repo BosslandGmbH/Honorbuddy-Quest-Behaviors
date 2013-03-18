@@ -28,7 +28,18 @@ using System.Text;
 
 namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
-    class MeshNavigation
+    public partial class TEMPLATE_QB
     {
+        /// <summary>
+        /// Returns the normalized ANGLEINRADIANS to the closed interval [-PI..+PI]
+        /// </summary>
+        /// <param name="radians"></param>
+        /// <returns></returns>
+        public static double NormalizeAngleToPi(double angleInRadians)
+        {
+            while (angleInRadians > Math.PI)  { angleInRadians -= (2 * Math.PI); }
+            while (angleInRadians < -Math.PI) { angleInRadians += (2 * Math.PI); }
+            return (angleInRadians);
+        }
     }
 }

@@ -125,7 +125,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
         #region Overrides of CustomForcedBehavior
 
-        protected override TreeSharp.Composite CreateBehavior()
+        protected override Composite CreateBehavior()
         {
             return (_root ?? (_root = new Action(ret => Flightor.MoveTo(Destination))));
         }

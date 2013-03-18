@@ -7,7 +7,7 @@
 * ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
 * Kick's Hyjal "Mental Training": Needs to use ButtonPressOn* behavior instead of specific one.
 
-* Hotspots needed for UseItemOn, InteractWith (from Kick)
+* Hotspots needed for UseItemOn (from Kick)
 	Ie:
 	interactwith etc etc etc xyz
 	OR
@@ -24,6 +24,13 @@
 	"if i have this aura, don't interact with gameobject/npc anymore because we already are in the event"?
 	it also might need fixes due to new actionbar code,
 	for me wow says "you can't do that" and no buttons seem to be pressed
+
+* InteractWith needs a complete overhaul
+	+ Mobs disappearing cause exceptions
+	+ It contains Thread.Sleep() and many more sins.
+    + It runs 'open loop', if you get interrupted while interacting, it counts it towards its completion goal
+    + It needs to be recast in terms of TreeHooks, since it expects to act during combat.
+       The old technique this behavior uses is glitchy.
 
 * Goblin profiles are buggy for Huntards (from Kick):
   See these posts:

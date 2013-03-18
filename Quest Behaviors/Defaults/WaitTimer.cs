@@ -23,7 +23,7 @@ using Styx.TreeSharp;
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.WaitTimer
+namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a conflict with the new Styx.Common.Helpers.WaitTimer
 {
     [CustomBehaviorFileName(@"WaitTimer")]
     public class WaitTimer : CustomForcedBehavior

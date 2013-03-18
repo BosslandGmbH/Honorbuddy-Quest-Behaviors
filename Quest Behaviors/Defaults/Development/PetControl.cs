@@ -31,7 +31,7 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
+namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
     public partial class TEMPLATE_QB
     {
