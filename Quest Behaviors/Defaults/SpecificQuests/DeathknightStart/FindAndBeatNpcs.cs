@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -14,10 +16,11 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
 {
     /// <summary>
     /// Finds Npc's that match MobId,MobId2 or MobId3 and beats them up using AutoAttack. useful for a dk quest
@@ -28,6 +31,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// X,Y,Z: The location where you want to move to
     /// </summary>
     /// 
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\FindAndBeatNpcs")]
     public class FindAndBeatNpcs : CustomForcedBehavior
     {
         public FindAndBeatNpcs(Dictionary<string, string> args)

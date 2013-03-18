@@ -7,6 +7,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -16,11 +18,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Skullcrusher
 {
+    [CustomBehaviorFileName(@"SpecificQuests\27787-27788-TwilightHighlands-Skullcrusher")]
     public class Skullcrusher : CustomForcedBehavior
     {
         ~Skullcrusher()

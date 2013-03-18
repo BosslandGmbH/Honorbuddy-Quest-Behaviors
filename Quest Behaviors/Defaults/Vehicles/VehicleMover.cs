@@ -131,8 +131,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 {
+    [CustomBehaviorFileName(@"Vehicles\VehicleMover")]
     public class VehicleMover : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

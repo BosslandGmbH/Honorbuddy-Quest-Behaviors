@@ -16,16 +16,20 @@
 //
 using System;
 using System.Collections.Generic;
+
 using CommonBehaviors.Actions;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.EjectVeh
 {
+    [CustomBehaviorFileName(@"EjectVeh")]
     public class EjectVeh : CustomForcedBehavior
     {
         public EjectVeh(Dictionary<string, string> args)

@@ -65,8 +65,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.TwoBySea
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
 {
+    [CustomBehaviorFileName(@"SpecificQuests\14382-Gilneas-TwoBySea")]
     public class TwoBySea : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

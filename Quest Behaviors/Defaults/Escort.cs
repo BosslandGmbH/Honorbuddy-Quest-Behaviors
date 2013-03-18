@@ -28,6 +28,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -38,10 +39,11 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.Escort
+namespace Honorbuddy.Quest_Behaviors.Escort
 {
     public enum EscortUntilType
     {
@@ -61,6 +63,7 @@ namespace Styx.Bot.Quest_Behaviors.Escort
         GameObject,
     }
 
+    [CustomBehaviorFileName(@"Escort")]
     public class Escort : CustomForcedBehavior
     {
         public Escort(Dictionary<string, string> args)

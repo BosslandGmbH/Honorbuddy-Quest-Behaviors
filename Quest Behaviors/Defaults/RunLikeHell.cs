@@ -7,18 +7,22 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+
+using CommonBehaviors.Actions;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
-using CommonBehaviors.Actions;
 
 
-namespace Styx.Bot.Quest_Behaviors.MountHyjal
+namespace Honorbuddy.Quest_Behaviors.RunLikeHell
 {
+    [CustomBehaviorFileName(@"RunLikeHell")]
     public class RunLikeHell : CustomForcedBehavior
     {
         /// <summary>

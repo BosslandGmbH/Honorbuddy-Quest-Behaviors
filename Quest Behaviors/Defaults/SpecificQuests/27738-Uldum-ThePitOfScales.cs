@@ -57,8 +57,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.ThePitOfScales
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 {
+    [CustomBehaviorFileName(@"SpecificQuests\27738-Uldum-ThePitOfScales")]
     public class ThePitOfScales : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

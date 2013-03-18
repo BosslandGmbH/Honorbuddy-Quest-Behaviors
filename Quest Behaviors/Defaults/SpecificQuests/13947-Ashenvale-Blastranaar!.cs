@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -8,10 +9,13 @@ using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace Blastranaar
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Blastranaar
 {
+    [CustomBehaviorFileName(@"SpecificQuests\13947-Ashenvale-Blastranaar!")]
     public class Blastranaar : CustomForcedBehavior
     {
         public Blastranaar(Dictionary<string, string> args)

@@ -12,16 +12,20 @@
 //
 using System;
 using System.Collections.Generic;
+
 using CommonBehaviors.Actions;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 {
+    [CustomBehaviorFileName(@"CompleteLogQuest")]
     public class CompleteLogQuest : CustomForcedBehavior
     {
         public CompleteLogQuest(Dictionary<string, string> args)

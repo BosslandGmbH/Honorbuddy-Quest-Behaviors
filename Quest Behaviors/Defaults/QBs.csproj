@@ -1,0 +1,423 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
+    <ProjectGuid>{E5E5BF45-38FF-41C2-B84C-5E8B755BF451}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <NoStandardLibraries>false</NoStandardLibraries>
+    <AssemblyName>ConsoleApplication</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <TargetFrameworkProfile>Client</TargetFrameworkProfile>
+    <FileAlignment>512</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <PlatformTarget>x86</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup>
+    <RootNamespace>QBs</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="Honorbuddy">
+      <HintPath>..\Honorbuddy Development\Honorbuddy.exe</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="Tripper.Tools">
+      <HintPath>..\Honorbuddy Development\Tripper.Tools.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="AbandonQuest.cs" />
+    <Compile Include="ArgentTournament\AtTheEnemysGates.cs" />
+    <Compile Include="ArgentTournament\BattleBeforeTheCitadel.cs" />
+    <Compile Include="ArgentTournament\BattleofTheCitadel.cs" />
+    <Compile Include="ArgentTournament\GetKraken.cs" />
+    <Compile Include="ArgentTournament\SpecialTurnIn.cs" />
+    <Compile Include="ArgentTournament\TheGrandMelee.cs" />
+    <Compile Include="AscendInWater.cs" />
+    <Compile Include="BarrelHook.cs" />
+    <Compile Include="BasicInteractWith.cs" />
+    <Compile Include="BasicUseObject.cs" />
+    <Compile Include="BasicVehicleBehaviour.cs" />
+    <Compile Include="ButtonPress\ButtonPressOnAura.cs" />
+    <Compile Include="ButtonPress\ButtonPressOnChat.cs" />
+    <Compile Include="CastSpellOn.cs" />
+    <Compile Include="CollectThings.cs" />
+    <Compile Include="CombatUseItemOn.cs" />
+    <Compile Include="CombatUseItemOnV2.cs" />
+    <Compile Include="CompleteLogQuest.cs" />
+    <Compile Include="DefendObject.cs" />
+    <Compile Include="DeleteItems.cs" />
+    <Compile Include="Development\DataAccess.cs" />
+    <Compile Include="Development\Extensions_WoWPoint.cs" />
+    <Compile Include="Development\MeshNavigation.cs" />
+    <Compile Include="Development\PetControl.cs" />
+    <Compile Include="Development\TEMPLATE_QB.cs" />
+    <Compile Include="DisablePlugin.cs" />
+    <Compile Include="EjectVeh.cs" />
+    <Compile Include="EnablePlugin.cs" />
+    <Compile Include="EquipItem.cs" />
+    <Compile Include="Escort.cs" />
+    <Compile Include="Escort6641.cs" />
+    <Compile Include="EscortGroup.cs" />
+    <Compile Include="FlyTo.cs" />
+    <Compile Include="ForcedDismount.cs" />
+    <Compile Include="ForcedMount.cs" />
+    <Compile Include="ForceSetVendor.cs" />
+    <Compile Include="ForceTrainRiding.cs" />
+    <Compile Include="GetOutOfGroundEffectAndAuras.cs" />
+    <Compile Include="GoThruPortal.cs" />
+    <Compile Include="Halt.cs" />
+    <Compile Include="InteractWith.cs" />
+    <Compile Include="ItemWhileMoving.cs" />
+    <Compile Include="KillUntilComplete.cs" />
+    <Compile Include="LoadProfile.cs" />
+    <Compile Include="Message.cs" />
+    <Compile Include="Misc\InInstance.cs" />
+    <Compile Include="Misc\RunLua.cs" />
+    <Compile Include="Misc\SafeQuestTurnin.cs" />
+    <Compile Include="MountVehOnly.cs" />
+    <Compile Include="MrFishIt.cs" />
+    <Compile Include="MyCTM.cs" />
+    <Compile Include="NoCombatMoveTo.cs" />
+    <Compile Include="NoControlVehicle.cs" />
+    <Compile Include="NPCAssistance.cs" />
+    <Compile Include="PerformTradeskillOn.cs" />
+    <Compile Include="RunLikeHell.cs" />
+    <Compile Include="RunMacro.cs" />
+    <Compile Include="SetHearthstone.cs" />
+    <Compile Include="SlayTheFools.cs" />
+    <Compile Include="SpecificQuests\10129-10146-Hellfire-MurkethAndShaadraz.cs" />
+    <Compile Include="SpecificQuests\10162-10163-Hellfire-MissionTheAbyssalShelf.cs" />
+    <Compile Include="SpecificQuests\10838-Hellfire-TheDemoniacScryer.cs" />
+    <Compile Include="SpecificQuests\12255-GrizzlyHills-AllyTheThaneofVoldrune.cs" />
+    <Compile Include="SpecificQuests\12259-GrizzlyHills-HordeTheThaneofVoldrune.cs" />
+    <Compile Include="SpecificQuests\13947-Ashenvale-Blastranaar!.cs" />
+    <Compile Include="SpecificQuests\14122-Kezan-TheGreatBankHeist.cs" />
+    <Compile Include="SpecificQuests\14243-LostIsles-WarchiefsRevenge.cs" />
+    <Compile Include="SpecificQuests\14382-Gilneas-TwoBySea.cs" />
+    <Compile Include="SpecificQuests\14395-Gilneas-GaspingForBreath.cs" />
+    <Compile Include="SpecificQuests\24817-LostIsles-AGoblininSharksClothing.cs" />
+    <Compile Include="SpecificQuests\25066-LostIsles-ThePrideofKezan.cs" />
+    <Compile Include="SpecificQuests\25251-LostIsles-FinalConfrontation.cs" />
+    <Compile Include="SpecificQuests\25551-Hyjal-TheFirelord.cs" />
+    <Compile Include="SpecificQuests\26028-Stonetalons-MrDsWildRide.cs" />
+    <Compile Include="SpecificQuests\26058-Stonetalon-InDefenseofKromgarFortress.cs" />
+    <Compile Include="SpecificQuests\26501-Deepholm-SealingTheWay.cs" />
+    <Compile Include="SpecificQuests\26649-Stranglethorn-DriveByPiracy.cs" />
+    <Compile Include="SpecificQuests\26659-Deepholm-ResonatingBlow.cs" />
+    <Compile Include="SpecificQuests\26831-Deepholm-TheTwilightFlight.cs" />
+    <Compile Include="SpecificQuests\26875-Deepholm-UndyingTwilight.cs" />
+    <Compile Include="SpecificQuests\27001-WPL-ThisMeansWAR.cs" />
+    <Compile Include="SpecificQuests\27380-TwilightHighlands-Nightmare.cs" />
+    <Compile Include="SpecificQuests\27648-AllyTwilightHighlands-IntoTheFire.cs" />
+    <Compile Include="SpecificQuests\27702-27703-TwilightHighlands-CoupDeGrace.cs" />
+    <Compile Include="SpecificQuests\27738-Uldum-ThePitOfScales.cs" />
+    <Compile Include="SpecificQuests\27748-Uldum-FortuneAndGlory.cs" />
+    <Compile Include="SpecificQuests\27761-Uldum-ADisarmingDistraction.cs" />
+    <Compile Include="SpecificQuests\27779-Uldum-Gnomebliteration.cs" />
+    <Compile Include="SpecificQuests\27787-27788-TwilightHighlands-Skullcrusher.cs" />
+    <Compile Include="SpecificQuests\27789-Badlands-TroggishTroubles.cs" />
+    <Compile Include="SpecificQuests\27811-AllyTwilightHighlands-ScentOfBattle.cs" />
+    <Compile Include="SpecificQuests\27817-AllyTwilightHighlands-DroppingTheHammer.cs" />
+    <Compile Include="SpecificQuests\27990-Uldum-Battlezone.cs" />
+    <Compile Include="SpecificQuests\28173-TwilightHighlands-Blackout.cs" />
+    <Compile Include="SpecificQuests\28277-Uldum-SalhetTheTactician.cs" />
+    <Compile Include="SpecificQuests\28367-Uldum-ShroudOfTheMakers.cs" />
+    <Compile Include="SpecificQuests\28454-BurningSteppes-HordeAssaultonDreadmaulRock.cs" />
+    <Compile Include="SpecificQuests\28497-28736-Uldum-FireFromTheSky.cs" />
+    <Compile Include="SpecificQuests\28501-Uldum-TheDefenseOfNahom.cs" />
+    <Compile Include="SpecificQuests\28589-HordeTwilightHighlands-EverythingButTheKitchenSink.cs" />
+    <Compile Include="SpecificQuests\28591-HordeTwilightHighlands-OffTheWall.cs" />
+    <Compile Include="SpecificQuests\28611-Uldum-TheDefilersRitual.cs" />
+    <Compile Include="SpecificQuests\28758-TwilightHighlands-BattleofLifeandDeath.cs" />
+    <Compile Include="SpecificQuests\29661-PandaStarter-TheLessonofDryFur.cs" />
+    <Compile Include="SpecificQuests\29663-PandaStarter-TheLessonoftheBalancedRock.cs" />
+    <Compile Include="SpecificQuests\29679-PandaStarter-ANewFriend.cs" />
+    <Compile Include="SpecificQuests\29725-JadeForest-SI7ReportFireFromtheSky.cs" />
+    <Compile Include="SpecificQuests\29727-JadeForest-TakeNoPrisoners.cs" />
+    <Compile Include="SpecificQuests\29731-HordeJadeForest-ScoutingReportOnTheRightTrack.cs" />
+    <Compile Include="SpecificQuests\29786-PandaStarter-BattleForTheSkies.cs" />
+    <Compile Include="SpecificQuests\29798-PandaStarter-AnAncientEvil.cs" />
+    <Compile Include="SpecificQuests\29799-PandaStarter-HealingofShenZinSu.cs" />
+    <Compile Include="SpecificQuests\29823-HordeJadeForest-ScoutingReportTheFriendofMyEnemy.cs" />
+    <Compile Include="SpecificQuests\29824-HordeJadeForest-ScoutingReportLikeJinyuInABarrel.cs" />
+    <Compile Include="SpecificQuests\29827-HordeJadeForest-AcidRain.cs" />
+    <Compile Include="SpecificQuests\29918-FourWinds-ALessonInBravery.cs" />
+    <Compile Include="SpecificQuests\29952-VotFW-BrokenDreams.cs" />
+    <Compile Include="SpecificQuests\29967-HordeJadeForest-BoomGoesTheDoonamite!.cs" />
+    <Compile Include="SpecificQuests\30078-FourWinds-CleaningHouse.cs" />
+    <Compile Include="SpecificQuests\30231-VOEB-PompfruitPickup.cs" />
+    <Compile Include="SpecificQuests\30232-VOEB-RufflingSomeFeathers.cs" />
+    <Compile Include="SpecificQuests\30243-VOEB-MantidUnderFire.cs" />
+    <Compile Include="SpecificQuests\30273-KrasarangWilds-InTheHouseOfTheRedCrane.cs" />
+    <Compile Include="SpecificQuests\30310-VOEB-ThunderingSkies.cs" />
+    <Compile Include="SpecificQuests\30625-FourWinds-StudentsNoMore.cs" />
+    <Compile Include="SpecificQuests\30690-KunLai-UnmaskingTheYaungol.cs" />
+    <Compile Include="SpecificQuests\30747-KunLai-TheBurlapGrind.cs" />
+    <Compile Include="SpecificQuests\30798-KunLai-BreakingTheEmperorsShield.cs" />
+    <Compile Include="SpecificQuests\30855-KunLai-TheFallofShaiHu.cs" />
+    <Compile Include="SpecificQuests\30968-TownlongSteppes-TheShaofHatred.cs" />
+    <Compile Include="SpecificQuests\30973-TownlongSteppes-UpInFlames.cs" />
+    <Compile Include="SpecificQuests\30978-TownlongSteppes-HostileSkies.cs" />
+    <Compile Include="SpecificQuests\30991-KunLai-DoABarrelRoll.cs" />
+    <Compile Include="SpecificQuests\31046-TownlongSteppes-LittleHatchlings.cs" />
+    <Compile Include="SpecificQuests\31061-TownlongSteppes-RidingTheStorm.cs" />
+    <Compile Include="SpecificQuests\31190-DreadWastes-TheMarinersRevenge.cs" />
+    <Compile Include="SpecificQuests\31216-DreadWastes-DarkSkies.cs" />
+    <Compile Include="SpecificQuests\31228-KunLai-ProphetKharzul.cs" />
+    <Compile Include="SpecificQuests\31237-DreadWastes-DebuggingTheTerrace.cs" />
+    <Compile Include="SpecificQuests\31303-JadeForest-TheSealIsBroken.cs" />
+    <Compile Include="SpecificQuests\31758-VOEB-LaosyScouting.cs" />
+    <Compile Include="SpecificQuests\31808-DreadWastes-RampageAgainstTheMachine.cs" />
+    <Compile Include="SpecificQuests\DeathknightStart\AnEndToAllThings.cs" />
+    <Compile Include="SpecificQuests\DeathknightStart\FindAndBeatNpcs.cs" />
+    <Compile Include="SpecificQuests\DeathknightStart\IntotheRealmofShadows.cs" />
+    <Compile Include="SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving.cs" />
+    <Compile Include="SpecificQuests\DeathknightStart\TheLightOfDawn.cs" />
+    <Compile Include="SpecificQuests\DeathknightStart\WaitForPatrol.cs" />
+    <Compile Include="SpecificQuests\MountHyjal\BaronGeddon.cs" />
+    <Compile Include="SpecificQuests\MountHyjal\BearsUpThere.cs" />
+    <Compile Include="SpecificQuests\MountHyjal\GreaterOfTwoEvils.cs" />
+    <Compile Include="SpecificQuests\MountHyjal\MentalTraining.cs" />
+    <Compile Include="SpellLocation.cs" />
+    <Compile Include="StandAndKill.cs" />
+    <Compile Include="UseGameObject.cs" />
+    <Compile Include="UseItem.cs" />
+    <Compile Include="UseItemOn.cs" />
+    <Compile Include="UseItemTargetLocation.cs" />
+    <Compile Include="UsePetAbility.cs" />
+    <Compile Include="UserDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="UserSettings.cs" />
+    <Compile Include="UseTransport.cs" />
+    <Compile Include="VehicleBehavior.cs" />
+    <Compile Include="Vehicles\CannonControl.cs" />
+    <Compile Include="Vehicles\FlyingVehicle.cs" />
+    <Compile Include="Vehicles\VehicleMover.cs" />
+    <Compile Include="WaitTimer.cs" />
+    <Compile Include="WaterBehavior.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="UserDialog.resx">
+      <DependentUpon>UserDialog.cs</DependentUpon>
+    </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include=".svn\entries" />
+    <None Include=".svn\format" />
+    <None Include=".svn\pristine\02\02ae7d1448457f8476614eda0477cdbfb2b37587.svn-base" />
+    <None Include=".svn\pristine\03\0313675acb27ae992c7579c49d60941ff1d28bc1.svn-base" />
+    <None Include=".svn\pristine\03\03d952aab9a644e33d4df379571a50c0543c6458.svn-base" />
+    <None Include=".svn\pristine\07\07a6b0376d258281c671d00697b835441dfa3a56.svn-base" />
+    <None Include=".svn\pristine\08\083eba7ce79980c99d889035e288213ba0eb857d.svn-base" />
+    <None Include=".svn\pristine\0c\0cd09820163e595905bd4f13a0613964d58d799b.svn-base" />
+    <None Include=".svn\pristine\0d\0d1271dc0b8795242519b0ff749c8c5afcd48706.svn-base" />
+    <None Include=".svn\pristine\0e\0e27905fcb1108e766e6087f3e36d78982a163f1.svn-base" />
+    <None Include=".svn\pristine\11\11c6d648e55335af1b506bc75cdf921e66dc96ed.svn-base" />
+    <None Include=".svn\pristine\13\130abd716994493cb4cdfbf968a104231ac816f1.svn-base" />
+    <None Include=".svn\pristine\14\144d6e5a366880bd22373d8550ac72e0750f433b.svn-base" />
+    <None Include=".svn\pristine\15\155a2bee933c113f1effd5dbb3a4c863d88654fb.svn-base" />
+    <None Include=".svn\pristine\17\170365f56702a0aebb4dbdcce382ece344979290.svn-base" />
+    <None Include=".svn\pristine\18\18f81f7f4f2f1f07a3cdfab25a31b9d45534b0e2.svn-base" />
+    <None Include=".svn\pristine\1b\1b43520400c9b492e27c4a1c3ca4706c1f381daa.svn-base" />
+    <None Include=".svn\pristine\1b\1b91127690a7e010eb8359ead334342adacca54a.svn-base" />
+    <None Include=".svn\pristine\1d\1db1b99d8323187f30c468c147d6be37732d63ab.svn-base" />
+    <None Include=".svn\pristine\1d\1dd28fdfa11256cc52adb164f50227c81e4ba006.svn-base" />
+    <None Include=".svn\pristine\1f\1ff6bc8a86146d445f2c45bab805346bf4ddf5a7.svn-base" />
+    <None Include=".svn\pristine\21\213c8d353979dd6052c3a6a686cafceaf545e5c9.svn-base" />
+    <None Include=".svn\pristine\21\21f1e12ee76b267bf05b35d9bf2e3fd024f20b6b.svn-base" />
+    <None Include=".svn\pristine\23\236cd3da0c5db5ed671dedac5343c598247a1efc.svn-base" />
+    <None Include=".svn\pristine\25\25aabfd772566a33b8850ca967c4e7df7492fcb6.svn-base" />
+    <None Include=".svn\pristine\28\284c11b873812dd2ac0f084aabd9cdf97ef6235c.svn-base" />
+    <None Include=".svn\pristine\28\28866372c8fa1084f277ad9ff88d6d4bd82e9244.svn-base" />
+    <None Include=".svn\pristine\29\297e2c94cfb7eccd5e5ba289702488896bdcd0ac.svn-base" />
+    <None Include=".svn\pristine\2b\2b0aadcc08958e813971478be679713e555e46e0.svn-base" />
+    <None Include=".svn\pristine\33\33da85b2921eeabaf2bca683631f08a8daa12fc8.svn-base" />
+    <None Include=".svn\pristine\36\362b14870f15d01b92de4bf02815bb9ce3c5f6b8.svn-base" />
+    <None Include=".svn\pristine\3a\3a5a4f7d97184b97cae04c2503fb02a8bab9bfac.svn-base" />
+    <None Include=".svn\pristine\3a\3abe6fbe1e288a7b2c67913e5facb7b1649bf389.svn-base" />
+    <None Include=".svn\pristine\3c\3c52e4fe6e032f314cb30a5d827e4519e21b6567.svn-base" />
+    <None Include=".svn\pristine\3c\3cbc2967d19c6a8206e4fb85b5beeea0fc8b5183.svn-base" />
+    <None Include=".svn\pristine\3d\3d50504a010c3f72bc3c74c139356383e8b447ee.svn-base" />
+    <None Include=".svn\pristine\40\40ca013aaeb5243b99d94ee50f3bfdab3311cbf4.svn-base" />
+    <None Include=".svn\pristine\44\4470b6f814353969f10203cf97a5db9e52605fa0.svn-base" />
+    <None Include=".svn\pristine\45\45ef4d7052e345631bba688bac9562bb7e9f6f78.svn-base" />
+    <None Include=".svn\pristine\46\462674513025d1ca864c444e8e84802ee0b6fc76.svn-base" />
+    <None Include=".svn\pristine\46\467e2bfccf31e3bd68cd7131c320b21c7bf3c69e.svn-base" />
+    <None Include=".svn\pristine\47\47f8cda8b723b10ac1d360feef816fa3afa5d9b3.svn-base" />
+    <None Include=".svn\pristine\48\489ee311fc083798b06d2ca77923d699a63f31f8.svn-base" />
+    <None Include=".svn\pristine\49\490047b7e557fed79fc539e9c10ad2bcc29040cf.svn-base" />
+    <None Include=".svn\pristine\49\4917a883213ea228d6b048bc63d0580ac34c40bb.svn-base" />
+    <None Include=".svn\pristine\49\492825170fea141947e63e8132b2989b4f5fcc94.svn-base" />
+    <None Include=".svn\pristine\49\493d5c5f651db93a9fb00ba8b858cdd4a6171ae7.svn-base" />
+    <None Include=".svn\pristine\49\498866ca1509d850a2204a22c17e15ee7a6be1b1.svn-base" />
+    <None Include=".svn\pristine\4a\4a12187128a2135b0a089905b107e65fad8eed87.svn-base" />
+    <None Include=".svn\pristine\4b\4b91da0fe740b9dc0c2c32d2bacb62c2fbbd48c0.svn-base" />
+    <None Include=".svn\pristine\4c\4c5958f03762c47f088121a0f0aed49614503490.svn-base" />
+    <None Include=".svn\pristine\50\50cd0550cc6bea7f01ff6f6cf1c8a8a22e72e362.svn-base" />
+    <None Include=".svn\pristine\53\530a22df52f745b26d4847c2efc5b02a32a6e655.svn-base" />
+    <None Include=".svn\pristine\53\53513b4b8dcee95f4702eff6304b428b207147dc.svn-base" />
+    <None Include=".svn\pristine\54\544c3c2878d772b9a3713fea3d2d0b3716e370e4.svn-base" />
+    <None Include=".svn\pristine\54\54afc29541cfd42ea1a363965d728c12483c29ea.svn-base" />
+    <None Include=".svn\pristine\54\54cfe40e39306c35f0cb7107fbec44f5e07704e0.svn-base" />
+    <None Include=".svn\pristine\54\54e1a94e2a7dbc8214cd88b722d4d1e0b4db769e.svn-base" />
+    <None Include=".svn\pristine\55\55564fb4f22d666d981d2c74ee2fff5f54812fef.svn-base" />
+    <None Include=".svn\pristine\56\560a8680f4f59ca932913e1ac2bfd59dd6e71234.svn-base" />
+    <None Include=".svn\pristine\56\5668461c98161fc858a1d3806c2d1b4fcc23ebb5.svn-base" />
+    <None Include=".svn\pristine\58\58abebd0ad4e8de2457b30622848c0e319159ae8.svn-base" />
+    <None Include=".svn\pristine\5c\5c9cb77f2871766e528e4bfead31f6651de651ce.svn-base" />
+    <None Include=".svn\pristine\5d\5d7a6759f5b29f98ae5f1422a995784b0da47351.svn-base" />
+    <None Include=".svn\pristine\5d\5da2efd6615186dd45bc64c489c6a4e3f037beaa.svn-base" />
+    <None Include=".svn\pristine\5f\5f8bd1e96d117ae2db0203466917b0971fc475f4.svn-base" />
+    <None Include=".svn\pristine\60\60d017df8f98d2a1f99cce9c4b798f2aaf04f5b6.svn-base" />
+    <None Include=".svn\pristine\63\635142270d0d7347c5d723d084703fb87fc69e02.svn-base" />
+    <None Include=".svn\pristine\66\666a3bf6d0bc1598948103c141d603d956fc06f8.svn-base" />
+    <None Include=".svn\pristine\68\6827a34cc226dd12305850935725246303fab785.svn-base" />
+    <None Include=".svn\pristine\68\687a4ca7f7b320a02111c53eeb83e8eb92d12d27.svn-base" />
+    <None Include=".svn\pristine\68\688a49a8afc6072e771986d0ce7e357bfde65941.svn-base" />
+    <None Include=".svn\pristine\6a\6a6a85464b7f2bbe160423741e0799409b65aadb.svn-base" />
+    <None Include=".svn\pristine\6c\6c3b2b65d615b8eabb6171e203cc393dacaf5192.svn-base" />
+    <None Include=".svn\pristine\6e\6eee78e37d8aa0f087b58539de172b5cd027afc1.svn-base" />
+    <None Include=".svn\pristine\6f\6fd470f4b4921c6deb9ff295a759179423f4971d.svn-base" />
+    <None Include=".svn\pristine\70\702ceba2c6b8caa7efe20d4dad27fd1a5198af93.svn-base" />
+    <None Include=".svn\pristine\74\7457f23cc8a6051d58c922f8396bf6d5f6367dff.svn-base" />
+    <None Include=".svn\pristine\75\755d0f927c2fd6c84d872611d8a35dd8cb2125cb.svn-base" />
+    <None Include=".svn\pristine\7b\7b8c0a84153daad1ae4e69f61c805c27d6f13f3f.svn-base" />
+    <None Include=".svn\pristine\7b\7bb28e0142564adcf90d4bba5695b2224c9a6a80.svn-base" />
+    <None Include=".svn\pristine\7c\7c5420f0fb6c5c4ee793c16937c3e0049d782140.svn-base" />
+    <None Include=".svn\pristine\7c\7c753723856ffbb46a810081c1069264035953b5.svn-base" />
+    <None Include=".svn\pristine\7d\7d9d2ae5c2266623bae0a3054e768864fe48cf7a.svn-base" />
+    <None Include=".svn\pristine\7f\7f137eff2bf3a54e4479331c808b594daa66c31e.svn-base" />
+    <None Include=".svn\pristine\7f\7f6f3dd51a72fcf6bc97e77ab6cb6cdd548fb552.svn-base" />
+    <None Include=".svn\pristine\7f\7f9f5721144b5f89f72edbcea11c69e34b4f50f2.svn-base" />
+    <None Include=".svn\pristine\83\832d1dedc0e51b9541338408e879e9749751316f.svn-base" />
+    <None Include=".svn\pristine\84\84e64fdaa4ed69d5fdd5e2166b606cfcacdfb963.svn-base" />
+    <None Include=".svn\pristine\89\890077765c8dfa797b581881579c5f52d3564fdc.svn-base" />
+    <None Include=".svn\pristine\89\893804bd2ad5e089d3cfc5cd241e6f28b6bc41ad.svn-base" />
+    <None Include=".svn\pristine\8b\8b4b4f394b19c6ea42a2d9b6feaa9f4bf7d55336.svn-base" />
+    <None Include=".svn\pristine\8e\8e73b09315bde5d76a02f2d7abd20292d48ff966.svn-base" />
+    <None Include=".svn\pristine\8f\8f1b59989e1ee60b8d0d6deeb5d8a7e943c90912.svn-base" />
+    <None Include=".svn\pristine\91\9116f141b7e5595b3a0d09ec4894bf62d1b70e5b.svn-base" />
+    <None Include=".svn\pristine\92\925144af310c12a9f028af07cda08d51a69e37f4.svn-base" />
+    <None Include=".svn\pristine\92\9297cf97d07dfb390d041dfd94fff3f68bfbe3dd.svn-base" />
+    <None Include=".svn\pristine\92\929a1350872f1cfe7daaefb528165e92a69530b4.svn-base" />
+    <None Include=".svn\pristine\95\9570726a8d7d67743e1cda9c0cf599e0a2216a05.svn-base" />
+    <None Include=".svn\pristine\95\95a836dffc17adf2497779d94e323ef1cfe97b4f.svn-base" />
+    <None Include=".svn\pristine\97\97af3e7ae7893c9f7c2f4b023ec3de9cb591b78c.svn-base" />
+    <None Include=".svn\pristine\98\98713ece1cf3440c3e7a08a08ff0d6d3390f105e.svn-base" />
+    <None Include=".svn\pristine\98\98d17c3330e23fcc46a66e917593d50c947465b8.svn-base" />
+    <None Include=".svn\pristine\99\991b8f00e056149c5c5f53daf70503e9d8f6e787.svn-base" />
+    <None Include=".svn\pristine\a2\a204f62ebce2f93b4ce4dcc75a96f649dd7f605e.svn-base" />
+    <None Include=".svn\pristine\a2\a26c82ccc6eed285d644cf0d1c033b8ab4bdecc7.svn-base" />
+    <None Include=".svn\pristine\a2\a26f881adf1ac2e1b24a0ef393b8dc51a08d0631.svn-base" />
+    <None Include=".svn\pristine\a3\a3b3e25eca957692079c56a3ee45d1cac10bbbfa.svn-base" />
+    <None Include=".svn\pristine\a6\a6aeef3b72cc3f2b2c224fe99fe01ad1d4139ae7.svn-base" />
+    <None Include=".svn\pristine\a7\a7888e22b99fd329b5f54bf06474edb30ecbd1f6.svn-base" />
+    <None Include=".svn\pristine\a7\a7cec328c156d88ed1f7d406ad7a9d25bb01b170.svn-base" />
+    <None Include=".svn\pristine\a7\a7e3ed95451b0090c6e06c5a7f66744c99d32e3f.svn-base" />
+    <None Include=".svn\pristine\a8\a8aa7b814b037ceb5ab56e9c90e894b9d5137746.svn-base" />
+    <None Include=".svn\pristine\a9\a96675d9fcd8ee924ef2bdd22d0e23b58c3707f0.svn-base" />
+    <None Include=".svn\pristine\ac\ac033b0f090d50fb786827ebb07ea4b58550be6f.svn-base" />
+    <None Include=".svn\pristine\ad\ad8c66bef442884949426b3f49fe8b9b5eb979f3.svn-base" />
+    <None Include=".svn\pristine\ae\ae1951f8538b5e3c68ffc5358e092dc0629a4f8c.svn-base" />
+    <None Include=".svn\pristine\af\af6e51b99918c558bea4645d480c0806df3a1196.svn-base" />
+    <None Include=".svn\pristine\b0\b03a35768b3cc5c7b98854707e6fd7841d9ee3d5.svn-base" />
+    <None Include=".svn\pristine\b0\b044eabdc3829441a9f419239bcbe95252db4a91.svn-base" />
+    <None Include=".svn\pristine\b0\b09c9c8c4bd909dd8d119ca1ea4738fda1653e71.svn-base" />
+    <None Include=".svn\pristine\b0\b0e789bda4c35278c285fef5daed80c1e5fc9e39.svn-base" />
+    <None Include=".svn\pristine\b3\b3f13718cb11155a0fa3ad2ebc83f3578567636c.svn-base" />
+    <None Include=".svn\pristine\b3\b3f5f49fea9a99c474c9aacb2909bed76f2bbad3.svn-base" />
+    <None Include=".svn\pristine\b6\b670557a1749c12fce7c25af50098ae27b071c19.svn-base" />
+    <None Include=".svn\pristine\b9\b93d9afbe1a09462a64608fcb3bd7c5b3c46e746.svn-base" />
+    <None Include=".svn\pristine\bd\bda74ea1d8a1fd2f67ef721a1da3ec65bd9a5135.svn-base" />
+    <None Include=".svn\pristine\be\be5d70caa53381dc84fd4945d5d90242034f09be.svn-base" />
+    <None Include=".svn\pristine\be\be93bc33469cd1bacd546aaa52cc553ecaed144b.svn-base" />
+    <None Include=".svn\pristine\c0\c0671a5718861599e30c647f25287c1eb7db98f3.svn-base" />
+    <None Include=".svn\pristine\c0\c08e50730312fca5f8f37932dace83141181bedb.svn-base" />
+    <None Include=".svn\pristine\c2\c22bc5395d4053e895ea90fc2db51ba07b467919.svn-base" />
+    <None Include=".svn\pristine\c2\c233a6c0491e2ce9ef9bd6ce897a71e7dce9fbc8.svn-base" />
+    <None Include=".svn\pristine\c3\c3391e4d0269420143c1b244bd33321dc0c48705.svn-base" />
+    <None Include=".svn\pristine\c5\c5055ca64713552d30cf96851102320e085c4099.svn-base" />
+    <None Include=".svn\pristine\c9\c973c000051775e75d4aff0efd9ed356f52605ce.svn-base" />
+    <None Include=".svn\pristine\ca\ca7b12aa24b257f74e2eb8c9a358f691d55ca31c.svn-base" />
+    <None Include=".svn\pristine\cb\cb9b9954835ad71ce58d125bc86fbf6489df9ec1.svn-base" />
+    <None Include=".svn\pristine\cf\cf46a0ef41eb3fa1a8dbd464ef0161e2063db22e.svn-base" />
+    <None Include=".svn\pristine\d0\d00d1f08d18e3340df7158612144a821f25d060d.svn-base" />
+    <None Include=".svn\pristine\d0\d074bf25aaf34cbcaf581eaea32d0eda13e4736b.svn-base" />
+    <None Include=".svn\pristine\d3\d3685047445abfec8510b616ad74b858a174cec5.svn-base" />
+    <None Include=".svn\pristine\d4\d46239b09e19f3f9867a1d93415cef0c0109dcbd.svn-base" />
+    <None Include=".svn\pristine\d4\d48c31b05688280b869b5f7b1fa86b053a6c9d72.svn-base" />
+    <None Include=".svn\pristine\d6\d60a61fc87d74e591cbcde8f8cfb62fdfcc24000.svn-base" />
+    <None Include=".svn\pristine\d8\d8158f54022c9fe6a0e37cbe2fff5cfadaddd198.svn-base" />
+    <None Include=".svn\pristine\d8\d830389c97e89d12e75d6b9a9b6ff5364aa9d502.svn-base" />
+    <None Include=".svn\pristine\d8\d89e2df81c8654b519b4e0717240d17b2a3bb569.svn-base" />
+    <None Include=".svn\pristine\d8\d8f175678cd8c689c197416be9abee5c61683316.svn-base" />
+    <None Include=".svn\pristine\da\da3a7293db8a7c82296ec6f2b4a1c8dfc633dacb.svn-base" />
+    <None Include=".svn\pristine\de\de04b8800f4b336356d7f8d46dbe4e233f82cbd3.svn-base" />
+    <None Include=".svn\pristine\e0\e015882346da47054910c904023118717c9b80d5.svn-base" />
+    <None Include=".svn\pristine\e0\e0de91ea630553dcf8ecbc4dee5b7a26be49f733.svn-base" />
+    <None Include=".svn\pristine\e2\e2de4bb60504a737b792a117bffd5740fa5397d0.svn-base" />
+    <None Include=".svn\pristine\e5\e5e81dc6e5732cdc913ccb4e3d7b63b36411b2fb.svn-base" />
+    <None Include=".svn\pristine\e8\e8129a45dfe9edad1f0c1435940c69d0f28e6550.svn-base" />
+    <None Include=".svn\pristine\ea\ea4fc7e0e2ab1c7edeabc09c067d41cd3aa5425f.svn-base" />
+    <None Include=".svn\pristine\ea\ea56575779a50958d7c3e020b000dd8f94305275.svn-base" />
+    <None Include=".svn\pristine\eb\ebd25177c62ea0332d7f42a243e58926e50c88ce.svn-base" />
+    <None Include=".svn\pristine\ec\ec6ad23d23eac3d2c0cdce3f787bc75b966165ef.svn-base" />
+    <None Include=".svn\pristine\ed\ed80abc9bd27c476be07d4e83f984e0ede34f6b4.svn-base" />
+    <None Include=".svn\pristine\ed\ed8ec8043590e5e62eef0f0551baee5c1d76033c.svn-base" />
+    <None Include=".svn\pristine\ee\eeeba0bb43e3033d88856a7f52a7a5728702432d.svn-base" />
+    <None Include=".svn\pristine\ef\eff4e991eb73971da471dd628499af7c4247142b.svn-base" />
+    <None Include=".svn\pristine\f2\f24d52dadf8f6239ddb7150dda74d7389a75b6fb.svn-base" />
+    <None Include=".svn\pristine\f2\f2b860e569f854edb02de879b05d6020ad681605.svn-base" />
+    <None Include=".svn\pristine\f4\f442c923145f00d1542d89db3f1b2020cce0ea4a.svn-base" />
+    <None Include=".svn\pristine\f5\f500fc90046c4f1409750272aa760e8f66b330fd.svn-base" />
+    <None Include=".svn\pristine\f5\f50c51474de524eb33f94be734abede76ee1f2a5.svn-base" />
+    <None Include=".svn\pristine\f7\f705820b13a66aaf41ef865288ba29a87f74333e.svn-base" />
+    <None Include=".svn\pristine\f9\f935d4da30a884b6187c044967070bf8f211adbd.svn-base" />
+    <None Include=".svn\pristine\fd\fd4489f2095c9f5dbf029332eeca80a4f4fae9c6.svn-base" />
+    <None Include=".svn\pristine\fe\fe913bfaec45f915240de01a7740fcb64a6f209a.svn-base" />
+    <None Include=".svn\pristine\ff\ff0722e19beb8c18634027c45317db9878fdbdb7.svn-base" />
+    <None Include=".svn\pristine\ff\fffc25d4a2ba10bf426a203d1e88696f78be3a64.svn-base" />
+    <None Include=".svn\wc.db" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="DATA\AuraIds_OccupiedVehicle.xml" />
+    <Content Include="Development\TODO-chinajade.txt" />
+    <Content Include="Development\TODO.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include=".svn\tmp\" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
+  <ProjectExtensions>
+    <VisualStudio AllowExistingFolder="true" />
+  </ProjectExtensions>
+</Project>

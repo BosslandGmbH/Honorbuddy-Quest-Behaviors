@@ -51,8 +51,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.DoABarrelRoll
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30991-KunLai-DoABarrelRoll")]
     public class DoABarrelRoll : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

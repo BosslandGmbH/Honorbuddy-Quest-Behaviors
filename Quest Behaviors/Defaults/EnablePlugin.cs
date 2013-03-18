@@ -16,11 +16,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 
-namespace EnablePlugins
+
+namespace Honorbuddy.Quest_Behaviors.EnablePlugin
 {
+    [CustomBehaviorFileName(@"EnablePlugin")]
     public class EnablePlugins : CustomForcedBehavior
     {
         public EnablePlugins(Dictionary<string, string> args)

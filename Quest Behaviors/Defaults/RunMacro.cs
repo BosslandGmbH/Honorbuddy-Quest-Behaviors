@@ -18,6 +18,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -28,11 +29,13 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace BuddyWiki.CustomBehavior.RunMacro
+namespace Honorbuddy.Quest_Behaviors.RunMacro
 {
+    [CustomBehaviorFileName(@"RunMacro")]
     public class RunMacro : CustomForcedBehavior
     {
         public RunMacro(Dictionary<string, string> args)

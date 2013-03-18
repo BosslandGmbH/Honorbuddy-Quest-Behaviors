@@ -5,14 +5,16 @@
 //
 using System;
 using System.Collections.Generic;
+
 using Bots.Quest.QuestOrder;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
 {
     /// <summary>
     /// Removes all units from targeting while running.
@@ -25,6 +27,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// Y: Y axis of this npc
     /// Z: Z axis of this npc
     /// </summary>
+    [CustomBehaviorFileName(@"Misc\SafeQuestTurnin")]
     public class SafeQuestTurnin : CustomForcedBehavior
     {
         public SafeQuestTurnin(Dictionary<string, string> args)

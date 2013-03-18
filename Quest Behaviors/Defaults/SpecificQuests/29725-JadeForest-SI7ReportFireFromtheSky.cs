@@ -14,7 +14,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
+using Styx;
 using Styx.Common;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -22,11 +25,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
 {
+    [CustomBehaviorFileName(@"SpecificQuests\29725-JadeForest-SI7ReportFireFromtheSky")]
     public class JadeForestFireFromTheSky : CustomForcedBehavior
     {
         public JadeForestFireFromTheSky(Dictionary<string, string> args)
@@ -77,8 +82,8 @@ namespace Styx.Bot.Quest_Behaviors
         public static WoWPoint Shrine3Location = new WoWPoint(776.9325, -1788.328, 56.5228);
         public static WoWPoint CampLocation = new WoWPoint(714.5405, -2103.443, 65.78586);
 
-        public static Common.Helpers.WaitTimer AimingTimer = new Common.Helpers.WaitTimer(TimeSpan.FromSeconds(2));
-        public static Common.Helpers.WaitTimer WaitAtThridTimer = new Common.Helpers.WaitTimer(TimeSpan.FromSeconds(20));
+        public static WaitTimer AimingTimer = new WaitTimer(TimeSpan.FromSeconds(2));
+        public static WaitTimer WaitAtThridTimer = new WaitTimer(TimeSpan.FromSeconds(20));
 
         private bool _firstExplored;
         private bool _secondExplored;

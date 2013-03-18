@@ -16,11 +16,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 
-namespace DisablePlugins
+
+namespace Honorbuddy.Quest_Behaviors.DisablePlugin
 {
+    [CustomBehaviorFileName(@"DisablePlugin")]
     public class DisablePlugins : CustomForcedBehavior
     {
         public DisablePlugins(Dictionary<string, string> args)

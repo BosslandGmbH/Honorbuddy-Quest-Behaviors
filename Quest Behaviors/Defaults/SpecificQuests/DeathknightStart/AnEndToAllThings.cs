@@ -9,7 +9,9 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+
 using Bots.Grind;
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -18,10 +20,11 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.DeathknightStart
+namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 {
     /// <summary>
     /// Moves along a path in a vehicle using spells to inflict damage and to heals itself until the quest is completed.
@@ -32,6 +35,7 @@ namespace Styx.Bot.Quest_Behaviors.DeathknightStart
     /// HealSpell: Id of the healspell, can be enumerated using, 'GetPetActionInfo(index)'
     /// NpcIds: a comma separated list with id's of npc's to kill for this quest. example. NpcIds="143,2,643,1337" 
     /// </summary>
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\AnEndToAllThings")]
     public class AnEndToAllThings : CustomForcedBehavior
     {
         public AnEndToAllThings(Dictionary<string, string> args)

@@ -62,8 +62,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.TEMPLATE_QB
+namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
+    [CustomBehaviorFileName(@"Development\TEMPLATE_QB")]
     public partial class TEMPLATE_QB : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

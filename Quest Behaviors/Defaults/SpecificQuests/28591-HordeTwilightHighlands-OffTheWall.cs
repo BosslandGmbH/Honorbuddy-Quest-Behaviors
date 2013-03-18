@@ -7,6 +7,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -14,11 +16,13 @@ using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 {
+    [CustomBehaviorFileName(@"SpecificQuests\28591-HordeTwilightHighlands-OffTheWall")]
     public class OffTheWall : CustomForcedBehavior
     {
         ~OffTheWall()

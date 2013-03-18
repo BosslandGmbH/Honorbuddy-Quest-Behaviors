@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -10,10 +11,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace BattlefortheSkies
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleForTheSkies
 {
+    [CustomBehaviorFileName(@"SpecificQuests\29786-PandaStarter-BattleForTheSkies")]
     public class BattlefortheSkies : CustomForcedBehavior
     {
         public BattlefortheSkies(Dictionary<string, string> args)

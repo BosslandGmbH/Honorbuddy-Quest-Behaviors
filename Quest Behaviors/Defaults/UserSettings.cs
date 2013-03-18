@@ -20,6 +20,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -30,11 +31,13 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace BuddyWiki.CustomBehavior.UserSettings
+namespace Honorbuddy.Quest_Behaviors.UserSettings
 {
+    [CustomBehaviorFileName(@"UserSettings")]
     class UserSettings : CustomForcedBehavior
     {
         // To add, adjust, or remove presets, this is the only method that needs to be modified...

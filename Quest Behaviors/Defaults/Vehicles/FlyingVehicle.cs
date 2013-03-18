@@ -1,13 +1,30 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
 // DOCUMENTATION:
-//     
+// Moves to along a path in a vehicle using the specific actionbar butons until quest is complete
+// ##Syntax##
+// VehicleId: ID of the vehicle
+// Buttons: A series of numbers that represent the buttons to press in order of importance, separated by comma, for example Buttons ="2,1"     
+// NpcList: a comma separated list of Npcs IDs to kill for this quest. example: NpcList ="2323,4231,4324"
+// ItemId:(Optional) Id of item that summons Vehicle
+// (Optional) HealButton: the button number that's used to heal: 1-20
+// (Optional) HealPercent: Vehicle Health percent at which to wait to use heal. Default:35
+// Path formats are x,y,z|x,y,z. example: Path = "2331.773,-5752.029,153.9199|2310.267,-5742.212,161.2074"
+// StartPath: The Path to follow at the start. This leads to the quest area.
+// Path: The Path to follow while completing the quests objectives, This Path should loop..
+// EndPath:  The Path to follow when quest completes. This leads to the quest turnin NPC
+// PickUpPassengerButton: (optional) this is button used to pickup NPCs durring search and rescue operations
+// DropPassengerButton: (optional) this is button used to drop NPCs durring search and rescue operations
+// SpeedButton: (optional) this button presses a speed boost ability if specified
+// NpcScanRange: (optional) Maximum range from player to scan for NPCs
+// Precision: (optional) This behavior moves on to the next waypoint when at Precision distance or less to current waypoint. Default 4;    
 //
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,30 +34,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 {
-    /// <summary>
-    /// Moves to along a path in a vehicle using the specific actionbar butons until quest is complete
-    /// ##Syntax##
-    /// VehicleId: ID of the vehicle
-    /// Buttons: A series of numbers that represent the buttons to press in order of importance, separated by comma, for example Buttons ="2,1"     
-    /// NpcList: a comma separated list of Npcs IDs to kill for this quest. example: NpcList ="2323,4231,4324"
-    /// ItemId:(Optional) Id of item that summons Vehicle
-    /// (Optional) HealButton: the button number that's used to heal: 1-20
-    /// (Optional) HealPercent: Vehicle Health percent at which to wait to use heal. Default:35
-    /// Path formats are x,y,z|x,y,z. example: Path = "2331.773,-5752.029,153.9199|2310.267,-5742.212,161.2074"
-    /// StartPath: The Path to follow at the start. This leads to the quest area.
-    /// Path: The Path to follow while completing the quests objectives, This Path should loop..
-    /// EndPath:  The Path to follow when quest completes. This leads to the quest turnin NPC
-    /// PickUpPassengerButton: (optional) this is button used to pickup NPCs durring search and rescue operations
-    /// DropPassengerButton: (optional) this is button used to drop NPCs durring search and rescue operations
-    /// SpeedButton: (optional) this button presses a speed boost ability if specified
-    /// NpcScanRange: (optional) Maximum range from player to scan for NPCs
-    /// Precision: (optional) This behavior moves on to the next waypoint when at Precision distance or less to current waypoint. Default 4;
-    /// </summary>
+    [CustomBehaviorFileName(@"Vehicles\FlyingVehicle")]
     public class FlyingVehicle : CustomForcedBehavior
     {
         public FlyingVehicle(Dictionary<string, string> args)

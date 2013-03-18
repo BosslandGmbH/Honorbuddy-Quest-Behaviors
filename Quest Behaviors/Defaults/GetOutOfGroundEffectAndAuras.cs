@@ -213,8 +213,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.GetOutOfGroundEffectAndAuras
+namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 {
+    [CustomBehaviorFileName(@"GetOutOfGroundEffectAndAuras")]
     public class GetOutOfGroundEffectAndAuras : CustomForcedBehavior
     {
         public delegate WoWPoint LocationDelegate(object context);

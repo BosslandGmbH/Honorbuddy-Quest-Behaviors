@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -11,12 +12,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-
-namespace Blastranaar
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThunderingSkies
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30310-VOEB-ThunderingSkies")]
     public class Blastranaar : CustomForcedBehavior
     {
         public Blastranaar(Dictionary<string, string> args)

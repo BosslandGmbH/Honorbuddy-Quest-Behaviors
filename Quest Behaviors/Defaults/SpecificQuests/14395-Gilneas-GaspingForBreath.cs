@@ -62,8 +62,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.GaspingForBreath
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 {
+    [CustomBehaviorFileName(@"SpecificQuests\14395-Gilneas-GaspingForBreath")]
     public partial class GaspingForBreath : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

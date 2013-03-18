@@ -17,7 +17,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -26,11 +28,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.AscendInWater
 {
+    [CustomBehaviorFileName(@"AscendInWater")]
     public class AscendInWater : CustomForcedBehavior
     {
         public AscendInWater(Dictionary<string, string> args)
@@ -66,7 +70,7 @@ namespace Styx.Bot.Quest_Behaviors
         public override string SubversionRevision { get { return ("$Revision: 184 $"); } }
 
 
-        static readonly Common.Helpers.WaitTimer Timer = Common.Helpers.WaitTimer.OneSecond;
+        static readonly WaitTimer Timer = WaitTimer.OneSecond;
 
         ~AscendInWater()
         {

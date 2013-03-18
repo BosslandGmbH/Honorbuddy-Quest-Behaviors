@@ -1,5 +1,20 @@
 // Behavior originally contributed by Nesox.
 //
+// Allows you to use items on nearby gameobjects/npc's
+// ##Syntax##
+// QuestId: The id of the quest.
+// MobId1, MobId2, ...MobIdN: The ids of the mobs.
+// ItemId: The id of the item to use.
+// [Optional]NumOfTimes: Number of times to use said item.
+// [Optional]WaitTime: Time to wait after using an item. DefaultValue: 1500 ms
+// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
+// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
+// [Optional]Range: The range to object that it will use the item
+// [Optional]MobState: The state of the npc -> Dead, Alive, BelowHp. None is default
+// [Optional]MobHpPercentLeft: Will only be used when NpcState is BelowHp
+// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
+// [Optional]X,Y,Z: The general location where theese objects can be found
+//
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UseItemOn
 //
@@ -8,6 +23,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -18,27 +34,13 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.UseItemOn
+namespace Honorbuddy.Quest_Behaviors.UseItemOn
 {
-    /// <summary>
-    /// Allows you to use items on nearby gameobjects/npc's
-    /// ##Syntax##
-    /// QuestId: The id of the quest.
-    /// MobId1, MobId2, ...MobIdN: The ids of the mobs.
-    /// ItemId: The id of the item to use.
-    /// [Optional]NumOfTimes: Number of times to use said item.
-    /// [Optional]WaitTime: Time to wait after using an item. DefaultValue: 1500 ms
-    /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
-    /// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
-    /// [Optional]Range: The range to object that it will use the item
-    /// [Optional]MobState: The state of the npc -> Dead, Alive, BelowHp. None is default
-    /// [Optional]MobHpPercentLeft: Will only be used when NpcState is BelowHp
-    /// ObjectType: the type of object to interact with, expected value: Npc/Gameobject
-    /// [Optional]X,Y,Z: The general location where theese objects can be found
-    /// </summary>
+    [CustomBehaviorFileName(@"UseItemOn")]
     public class UseItemOn : CustomForcedBehavior
     {
         public enum ObjectType

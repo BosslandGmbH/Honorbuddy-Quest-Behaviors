@@ -182,8 +182,6 @@
 #endregion
 
 
-
-#region Usings
 #region Usings
 using System;
 using System.Collections.Generic;
@@ -194,6 +192,7 @@ using System.Threading;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -204,11 +203,11 @@ using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
-#endregion
 
 
-namespace Styx.Bot.Quest_Behaviors.InteractWith
+namespace Honorbuddy.Quest_Behaviors.InteractWith
 {
+    [CustomBehaviorFileName(@"InteractWith")]
     public class InteractWith : CustomForcedBehavior
     {
         #region Constructor and argument processing

@@ -51,8 +51,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.HostileSkies
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30978-TownlongSteppes-HostileSkies")]
     public class HostileSkies : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

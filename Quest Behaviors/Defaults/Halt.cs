@@ -6,14 +6,16 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.Halt
 {
+    [CustomBehaviorFileName(@"Halt")]
     public class Halt : CustomForcedBehavior
     {
         /// <summary>

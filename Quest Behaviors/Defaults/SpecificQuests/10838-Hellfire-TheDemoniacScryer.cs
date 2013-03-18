@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -13,10 +14,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace _10838
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 {
+    [CustomBehaviorFileName(@"SpecificQuests\10838-Hellfire-TheDemoniacScryer")]
     public class _10838:CustomForcedBehavior
     {
         public _10838(Dictionary<string, string> args)

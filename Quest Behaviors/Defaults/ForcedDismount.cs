@@ -20,7 +20,9 @@
 //
 using System;
 using System.Collections.Generic;
+
 using CommonBehaviors.Actions;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -28,11 +30,13 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.ForcedDismount2
+namespace Honorbuddy.Quest_Behaviors.ForcedDismount
 {
+    [CustomBehaviorFileName(@"ForcedDismount")]
     public class ForcedDismount : CustomForcedBehavior
     {
 

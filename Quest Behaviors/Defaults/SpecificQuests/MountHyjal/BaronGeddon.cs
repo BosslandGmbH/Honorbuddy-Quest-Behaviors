@@ -8,6 +8,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
+using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,10 +19,11 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Action = Styx.TreeSharp.Action;
-using CommonBehaviors.Actions;
 
-namespace Styx.Bot.Quest_Behaviors.MountHyjal
+using Action = Styx.TreeSharp.Action;
+
+
+namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
 {
     /// <summary>
     /// Allows safely completing the http://www.wowhead.com/quest=25464 .  Can also be used
@@ -46,6 +49,7 @@ namespace Styx.Bot.Quest_Behaviors.MountHyjal
     /// [Optional] Range: Distance to use item at
     /// X,Y,Z: safe point (location we run to when target has auraid) must be in LoS of MobId
     /// </summary>
+    [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BaronGeddon")]
     public class BaronGeddon : CustomForcedBehavior
     {
         public BaronGeddon(Dictionary<string, string> args)

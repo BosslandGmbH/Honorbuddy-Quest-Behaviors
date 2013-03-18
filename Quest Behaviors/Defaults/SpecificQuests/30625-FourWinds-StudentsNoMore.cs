@@ -4,8 +4,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using CommonBehaviors.Decorators;
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
@@ -15,11 +17,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30625-FourWinds-StudentsNoMore")]
     public class FourWindsStudentsNoMore : CustomForcedBehavior
     {
         public FourWindsStudentsNoMore(Dictionary<string, string> args)

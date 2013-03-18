@@ -7,6 +7,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -14,11 +16,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CoupDeGrace
 {
+    [CustomBehaviorFileName(@"SpecificQuests\27702-27703-TwilightHighlands-CoupDeGrace")]
     public class CoupDeGrave : CustomForcedBehavior
     {
         ~CoupDeGrave()

@@ -54,6 +54,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
@@ -63,11 +64,13 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnAura
+namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 {
+    [CustomBehaviorFileName(@"ButtonPress\ButtonPressOnAura")]
     public class ButtonPressOnAura : CustomForcedBehavior
     {
         public ButtonPressOnAura(Dictionary<string, string> args)

@@ -78,6 +78,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
@@ -89,11 +90,13 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace BuddyWiki.CustomBehavior.ButtonPress.ButtonPressOnChat
+namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 {
+    [CustomBehaviorFileName(@"ButtonPress\ButtonPressOnChat")]
     public class ButtonPressOnChat : CustomForcedBehavior
     {
         public ButtonPressOnChat(Dictionary<string, string> args)

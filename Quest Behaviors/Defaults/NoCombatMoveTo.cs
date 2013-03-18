@@ -6,17 +6,21 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
+
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
 {
+    [CustomBehaviorFileName(@"NoCombatMoveTo")]
     public class NoCombatMoveTo : CustomForcedBehavior
     {
         /// <summary>

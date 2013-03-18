@@ -43,8 +43,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.BreakingTheEmperorsShield
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30798-KunLai-BreakingTheEmperorsShield")]
     public class BreakingTheEmperorsShield : CustomForcedBehavior
     {
         public delegate WoWPoint LocationDelegate(object context);

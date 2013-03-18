@@ -1,6 +1,13 @@
 ﻿/**
  * Behavior originally contributed by LastCoder
  **/
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -12,16 +19,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace Behaviors
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30855-KunLai-TheFallofShaiHu")]
     class KunLaiTheFallofShaiHu : CustomForcedBehavior
     {
 

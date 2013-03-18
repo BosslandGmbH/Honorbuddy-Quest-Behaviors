@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -8,10 +9,13 @@ using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace DarkSkies
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DarkSkies
 {
+    [CustomBehaviorFileName(@"SpecificQuests\31216-DreadWastes-DarkSkies")]
     public class DarkSkies : CustomForcedBehavior
     {
         public DarkSkies(Dictionary<string, string> args)

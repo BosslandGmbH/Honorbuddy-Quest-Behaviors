@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -9,10 +10,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace aNewFriend
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ANewFriend
 {
+    [CustomBehaviorFileName(@"SpecificQuests\29679-PandaStarter-ANewFriend")]
     public class aNewFriend : CustomForcedBehavior
     {
         public aNewFriend(Dictionary<string, string> args)

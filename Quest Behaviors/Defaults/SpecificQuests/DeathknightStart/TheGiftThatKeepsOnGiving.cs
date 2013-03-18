@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,10 +18,11 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
 {
     /// <summary>
     /// Allows you to use items on nearby gameobjects/npc's
@@ -38,6 +40,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// [Optional]MinionCount: Number of minions to gather. Used for the quest "The Gift That Keeps On Giving" Default: 0(By:HighVoltz)
     /// [Optional] X,Y,Z: The general location where theese objects can be found
     /// </summary>
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving")]
     public class TheGiftThatKeepsOnGiving : CustomForcedBehavior
     {
         public TheGiftThatKeepsOnGiving(Dictionary<string, string> args)

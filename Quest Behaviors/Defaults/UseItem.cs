@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -18,10 +19,11 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.UseItem
 {
     /// <summary>
     /// Allows you to use items on nearby gameobjects/npc's
@@ -31,6 +33,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// NumOfTimes: Number of times to use said item.
     /// [Optional]WaitTime: Time to wait after using an item. DefaultValue: 1500 ms
     /// </summary>
+    [CustomBehaviorFileName(@"UseItem")]
     public class UseItem : CustomForcedBehavior
     {
         public UseItem(Dictionary<string, string> args)

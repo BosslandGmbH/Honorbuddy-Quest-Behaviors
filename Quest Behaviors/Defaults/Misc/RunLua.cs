@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,10 +18,11 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.RunLua
 {
     /// <summary>
     /// Runs the lua script x amount of times waiting x milliseconds inbetween
@@ -30,6 +32,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// QuestId: (Optional) - the quest to perform this action on
     /// WaitTime: (Optional) - The time in milliseconds to wait before executing the next. default:0
     /// </summary>
+    [CustomBehaviorFileName(@"Misc\RunLua")]
     public class RunLua : CustomForcedBehavior
     {
         public RunLua(Dictionary<string, string> args)
@@ -40,7 +43,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Lua = GetAttributeAs<string>("Lua", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                LuaCommand = GetAttributeAs<string>("Lua", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
@@ -64,7 +67,7 @@ namespace Styx.Bot.Quest_Behaviors
 
 
         // Attributes provided by caller
-        public string Lua { get; private set; }
+        public string LuaCommand { get; private set; }
         public int NumOfTimes { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -128,7 +131,7 @@ namespace Styx.Bot.Quest_Behaviors
                         if (_waitStopwatch.ElapsedMilliseconds < WaitTime)
                             return;
 
-                        WoWInternals.Lua.DoString(Lua);
+                        Lua.DoString(LuaCommand);
                         _counter++;
                         _waitStopwatch.Reset();
                     })
@@ -167,7 +170,7 @@ namespace Styx.Bot.Quest_Behaviors
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
                 TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
-                                                    this.GetType().Name, Lua, NumOfTimes, WaitTime);
+                                                    this.GetType().Name, LuaCommand, NumOfTimes, WaitTime);
             }
         }
 

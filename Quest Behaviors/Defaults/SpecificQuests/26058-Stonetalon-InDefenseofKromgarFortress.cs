@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -12,10 +13,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace Styx.Bot.Quest_Behaviors
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
 {
+    [CustomBehaviorFileName(@"SpecificQuests\26058-Stonetalon-InDefenseofKromgarFortress")]
     public class q26058 : CustomForcedBehavior
 	{
 		public q26058(Dictionary<string, string> args)

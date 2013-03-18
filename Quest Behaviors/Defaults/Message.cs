@@ -16,13 +16,16 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 
-namespace Styx.Bot.Quest_Behaviors
+
+namespace Honorbuddy.Quest_Behaviors.Message
 {
+    [CustomBehaviorFileName(@"Message")]
     public class Message : CustomForcedBehavior
     {
         public Message(Dictionary<string, string> args)

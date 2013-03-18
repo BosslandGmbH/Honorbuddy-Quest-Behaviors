@@ -23,13 +23,16 @@
 //
 using System;
 using System.Collections.Generic;
+
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.WoWInternals;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.AbandonQuest
 {
+    [CustomBehaviorFileName(@"AbandonQuest")]
     public class AbandonQuest : CustomForcedBehavior
     {
         public enum AbandonType

@@ -6,6 +6,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Inventory;
 using Styx.CommonBot.Profiles;
@@ -14,16 +16,18 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
 {
     /// <summary>
     /// Into the Realm of Shadows]
     /// ##Syntax##
     /// X,Y,Z: The location where you want to move to
     /// </summary>
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\IntotheRealmofShadows")]
     public class IntotheRealmofShadows : CustomForcedBehavior
     {
         public IntotheRealmofShadows(Dictionary<string, string> args)

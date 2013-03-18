@@ -11,8 +11,13 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using System.Windows.Media;
+
+using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
@@ -20,17 +25,15 @@ using Styx.Pathing;
 using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-using Action = Styx.TreeSharp.Action;
-using CommonBehaviors.Actions;
-using Styx.Common;
-using Styx.CommonBot.Frames;
-using System.Windows.Media;
 using Styx.WoWInternals.World;
+using Styx.WoWInternals.WoWObjects;
+
+using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.MrFishIt
+namespace Honorbuddy.Quest_Behaviors.MrFishIt
 {
+    [CustomBehaviorFileName(@"MrFishIt")]
     class MrFishIt : CustomForcedBehavior
     {
         public MrFishIt(Dictionary<string, string> args)

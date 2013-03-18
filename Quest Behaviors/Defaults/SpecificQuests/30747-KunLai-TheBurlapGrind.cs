@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -13,12 +14,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-
-namespace TheBurlapGrind
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30747-KunLai-TheBurlapGrind")]
     public class TheBurlapGrind : CustomForcedBehavior
     {
         public TheBurlapGrind(Dictionary<string, string> args)

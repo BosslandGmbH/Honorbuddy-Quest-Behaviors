@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
@@ -20,11 +21,13 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.LoadProfile
 {
+    [CustomBehaviorFileName(@"LoadProfile")]
     public class LoadProfile : CustomForcedBehavior
     {
         /// <summary>

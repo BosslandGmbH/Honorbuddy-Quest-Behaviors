@@ -67,8 +67,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.UpInFlames
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30973-TownlongSteppes-UpInFlames")]
     public class UpInFlames : CustomForcedBehavior
     {
         #region Constructor and Argument Processing

@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -8,9 +10,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
-namespace Styx.Bot.Quest_Behaviors
+
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 {
+    [CustomBehaviorFileName(@"SpecificQuests\14122-Kezan-TheGreatBankHeist")]
     public class _14122:CustomForcedBehavior
     {
         public _14122(Dictionary<string, string> args):base(args)
@@ -30,7 +36,7 @@ namespace Styx.Bot.Quest_Behaviors
                 return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 195449 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
-        private TreeSharp.Composite _root;
+        private Composite _root;
 
         protected override Composite CreateBehavior()
         {

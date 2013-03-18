@@ -15,7 +15,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Timers;
+
 using CommonBehaviors.Actions;
+using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -23,12 +26,14 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 using Timer = System.Timers.Timer;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 {
+    [CustomBehaviorFileName(@"SpecificQuests\29918-FourWinds-ALessonInBravery")]
     public class FourWindsLessonInBravery : CustomForcedBehavior
     {
         public FourWindsLessonInBravery(Dictionary<string, string> args)
@@ -100,7 +105,7 @@ namespace Styx.Bot.Quest_Behaviors
         public override string SubversionId { get { return ("$Id: CombatUseItemOn.cs 249 2012-09-19 01:31:37Z natfoth $"); } }
         public override string SubversionRevision { get { return ("$Revision: 249 $"); } }
 
-        public static Common.Helpers.WaitTimer GetOnTimer = new Common.Helpers.WaitTimer(TimeSpan.FromSeconds(1));
+        public static WaitTimer GetOnTimer = new WaitTimer(TimeSpan.FromSeconds(1));
 
 
         ~FourWindsLessonInBravery()

@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -9,10 +10,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace BarrelHook
+
+namespace Honorbuddy.Quest_Behaviors.BarrelHook
 {
+    [CustomBehaviorFileName(@"BarrelHook")]
     public class BarrelHook : CustomForcedBehavior
     {
         public BarrelHook(Dictionary<string, string> args)

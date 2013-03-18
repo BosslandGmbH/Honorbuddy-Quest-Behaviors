@@ -72,9 +72,9 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
-
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -85,11 +85,13 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace BuddyWiki.CustomBehavior.CollectThings
+namespace Honorbuddy.Quest_Behaviors.CollectThings
 {
+    [CustomBehaviorFileName(@"CollectThings")]
     public class CollectThings : CustomForcedBehavior
     {
         public enum CollectUntilType

@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,10 +18,11 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 {
     /// <summary>
     /// Shoots a Cannon
@@ -32,6 +34,7 @@ namespace Styx.Bot.Quest_Behaviors
     /// Buttons:A series of numbers that represent the buttons to press in order of importance, separated by comma, for example Buttons ="2,1" 
     /// ExitButton: (Optional)Button to press to exit the cannon. 1-12
     /// </summary>
+    [CustomBehaviorFileName(@"Vehicles\CannonControl")]
     public class CannonControl : CustomForcedBehavior
     {
         public CannonControl(Dictionary<string, string> args)

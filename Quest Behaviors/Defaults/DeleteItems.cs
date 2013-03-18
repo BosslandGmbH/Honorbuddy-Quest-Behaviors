@@ -1,6 +1,7 @@
 // Behavior originally contributed by Mastahg
 using System;
 using System.Collections.Generic;
+
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -8,8 +9,10 @@ using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.WoWInternals;
 
-namespace DeleteItems
+
+namespace Honorbuddy.Quest_Behaviors.DeleteItems
 {
+    [CustomBehaviorFileName(@"DeleteItems")]
     public class DeleteItems : CustomForcedBehavior
     {
         public DeleteItems(Dictionary<string, string> args)

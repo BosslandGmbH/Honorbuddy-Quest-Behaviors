@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -9,10 +10,13 @@ using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace Blastranaar
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30243-VOEB-MantidUnderFire")]
     public class Blastranaar : CustomForcedBehavior
     {
         public Blastranaar(Dictionary<string, string> args)

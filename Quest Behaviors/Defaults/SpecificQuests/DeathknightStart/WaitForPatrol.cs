@@ -164,8 +164,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace QuestBehaviors.WaitForPatrol
+namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 {
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\WaitForPatrol")]
     public class WaitForPatrol : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

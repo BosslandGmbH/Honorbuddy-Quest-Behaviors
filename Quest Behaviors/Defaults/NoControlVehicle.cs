@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
@@ -18,11 +19,13 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Tripper.Tools.Math;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 {
+    [CustomBehaviorFileName(@"NoControlVehicle")]
     public class NoControlVehicle : CustomForcedBehavior
     {
         /// <summary>

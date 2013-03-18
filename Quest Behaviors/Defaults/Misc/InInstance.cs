@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -17,7 +18,9 @@ using Tripper.Tools.Math;
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors {
+namespace Honorbuddy.Quest_Behaviors.InInstance
+{
+    [CustomBehaviorFileName(@"Misc\InInstance")]
     public class InInstance : CustomForcedBehavior {
         /// <summary>
         /// Allows you to physically click on the screen so that your bot can get around non meshed locations or off objects. *** There is no navigation with this ****

@@ -220,8 +220,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Styx.Bot.Quest_Behaviors.CombatUseItemOnV2
+namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 {
+    [CustomBehaviorFileName(@"CombatUseItemOnV2")]
     public partial class CombatUseItemOnV2 : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

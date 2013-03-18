@@ -6,7 +6,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
+using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -14,11 +17,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 {
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheLightOfDawn")]
     public class TheLightOfDawn : CustomForcedBehavior
     {
         public TheLightOfDawn(Dictionary<string, string> args)
@@ -55,7 +60,7 @@ namespace Styx.Bot.Quest_Behaviors
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private readonly Common.Helpers.WaitTimer _afkTimer = new Common.Helpers.WaitTimer(TimeSpan.FromMinutes(2));
+        private readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
         private bool _isDisposed;
         private Composite _root;
 
@@ -109,7 +114,7 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        private readonly Common.Helpers.WaitTimer _waitTimer = new Common.Helpers.WaitTimer(TimeSpan.FromMinutes(10));
+        private readonly WaitTimer _waitTimer = new WaitTimer(TimeSpan.FromMinutes(10));
 
         protected override Composite CreateBehavior()
         {

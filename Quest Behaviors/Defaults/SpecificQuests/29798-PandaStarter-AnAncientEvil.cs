@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -11,10 +12,13 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace AnAncientEvil
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AnAncientEvil
 {
+    [CustomBehaviorFileName(@"SpecificQuests\29798-PandaStarter-AnAncientEvil")]
     public class AnAncientEvil : CustomForcedBehavior
     {
         public AnAncientEvil(Dictionary<string, string> args)

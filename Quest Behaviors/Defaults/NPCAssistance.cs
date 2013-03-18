@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -18,11 +19,13 @@ using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors.NPCAssistance
+namespace Honorbuddy.Quest_Behaviors.NPCAssistance
 {
+    [CustomBehaviorFileName(@"NPCAssistance")]
     public class NPCAssistance : CustomForcedBehavior
     {
         /// <summary>

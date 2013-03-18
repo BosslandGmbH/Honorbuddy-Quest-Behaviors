@@ -8,7 +8,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+
 using CommonBehaviors.Actions;
+using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -20,8 +22,9 @@ using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Styx.Bot.Quest_Behaviors
+namespace Honorbuddy.Quest_Behaviors.ArgentTournament.AtTheEnemysGates
 {
+    [CustomBehaviorFileName(@"ArgentTournament\AtTheEnemysGates")]
     public class AtTheEnemysGate : CustomForcedBehavior
     {
         ~AtTheEnemysGate()

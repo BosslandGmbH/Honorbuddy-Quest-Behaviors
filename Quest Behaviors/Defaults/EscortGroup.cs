@@ -231,8 +231,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.EscortGroup
+namespace Honorbuddy.Quest_Behaviors.EscortGroup
 {
+    [CustomBehaviorFileName(@"EscortGroup")]
     public class EscortGroup : CustomForcedBehavior
     {
         public delegate WoWPoint LocationDelegate(object context);

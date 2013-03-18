@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -12,18 +13,19 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace Styx.Bot.Quest_Behaviors
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 {
+    [CustomBehaviorFileName(@"SpecificQuests\26028-Stonetalons-MrDsWildRide")]
     public class q26028 : CustomForcedBehavior
     {
         
         public q26028(Dictionary<string, string> args)
             : base(args)
         {
-
-
             QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
             Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
             Location = GetAttributeAsNullable<WoWPoint>("end", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;

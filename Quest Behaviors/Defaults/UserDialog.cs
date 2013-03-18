@@ -19,6 +19,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Media;
 using System.Windows.Forms;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -26,7 +27,7 @@ using Styx.Helpers;
 using Styx.TreeSharp;
 
 
-namespace BuddyWiki.CustomBehavior.UserDialog
+namespace Honorbuddy.Quest_Behaviors.UserDialog
 {
     // Visual Studio's "Designer" requires the form to be the first class in the file...
     // <sigh> So much for alphabetical class listings.
@@ -478,6 +479,7 @@ namespace BuddyWiki.CustomBehavior.UserDialog
     }
 
 
+    [CustomBehaviorFileName(@"UserDialog")]
     public class UserDialog : CustomForcedBehavior
     {
         public UserDialog(Dictionary<string, string> args)

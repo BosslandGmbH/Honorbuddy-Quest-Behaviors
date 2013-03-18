@@ -65,8 +65,9 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.QuestBehaviors.UnmaskingTheYaungol
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 {
+    [CustomBehaviorFileName(@"SpecificQuests\30690-KunLai-UnmaskingTheYaungol")]
     public class UnmaskingTheYaungol : CustomForcedBehavior
     {
         #region Consructor and Argument Processing

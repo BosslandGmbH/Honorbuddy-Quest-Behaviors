@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -28,10 +29,13 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Styx.TreeSharp;
+
 using Action = Styx.TreeSharp.Action;
 
-namespace GetOutOfGroundEffectAndAuras
+
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 {
+    [CustomBehaviorFileName(@"SpecificQuests\31228-KunLai-ProphetKharzul")]
     internal class ProphetKharzulBehavior : CustomForcedBehavior
     {
         private const uint ProphetKharzulId = 61541;
