@@ -39,7 +39,8 @@
 //          Id, set the ObjectType attribute appropriately.
 //      NpcState [optional; Default: DontCare]
 //          [Allowed values: Alive, BelowHp, Dead, DontCare]
-//          This represents the state the NPC must be in to initiate the interaction.
+//          This represents the state the NPC must be in when searching for targets
+//          with which we can interact.
 //          (NB: You probably don't want to select "BelowHp"--it is here for backward
 //           compatibility only.  I.e., You do not want to use this behavior to
 //          "fight a mob then use an item"--as it is *very* unreliable
@@ -127,10 +128,11 @@
 //          Defines the number of milliseconds to wait after the interaction is successfully
 //          conducted before carrying on with the behavior on other mobs.
 //      X/Y/Z [optional; Default: toon's current location when behavior is started]
-//          This specifies the location of a 'safe spot' where the toon should loiter
-//          while waiting for the AvoidMobId to clear the area.
-//          If this value _and_ a <HuntingGrounds> sub-element is specified, this
-//          X/Y/Z location will be converted to a hunting ground waypoint.
+//          This specifies the location where the toon should loiter
+//          while waiting to interact with MobIdN.  If you need a large hunting ground
+//          you should prefer using the <HuntingGrounds> sub-element, as it allows for
+//          multiple locations (waypoints) to visit.
+//          This value is automatically converted to a <HuntingGrounds> waypoint.
 //
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
@@ -638,10 +640,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         new Sequence(
                                             new Action(context =>
                                             {
-                                                string destinationName = "Moving to next hunting ground waypoint";
+                                                string destinationName =
+                                                    string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name)
+                                                    ? "Moving to next hunting ground waypoint"
+                                                    : string.Format("Moving to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name);
 
-                                                if (!string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name))
-                                                    { destinationName = string.Format("Moving to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name); }
                                                 TreeRoot.StatusText = destinationName;
                                                 Navigator.MoveTo(CurrentHuntingGroundWaypoint.Location);
                                             }),
@@ -672,16 +675,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public override void OnStart()
         {
             // Hunting ground processing...
-            IList<HuntingGroundType> tmpHuntingGrounds = null;
+            IList<HuntingGroundType> tmpHuntingGrounds;
             IsAttributeProblem |= XmlUtil_ParseSubelements<HuntingGroundType>(this, HuntingGroundType.Create, Element, "HuntingGrounds", out tmpHuntingGrounds);
 
             if (!IsAttributeProblem)
             {
                 HuntingGrounds = (tmpHuntingGrounds != null) ? tmpHuntingGrounds.FirstOrDefault() : null;
-
-                // If user didn't provide a <HuntingGrounds>, then use the default anchor...
-                if (HuntingGrounds == null)
-                    { HuntingGrounds = HuntingGroundType.Create(this, new XElement("HuntingGrounds")); }
+                HuntingGrounds = HuntingGrounds ?? HuntingGroundType.Create(this, new XElement("HuntingGrounds"));
 
                 // If user didn't provide a HuntingGrounds, or he provided a non-default center point, add it...
                 if ((HuntingGrounds.Waypoints.Count() <= 0) || (HuntingGroundCenter != DefaultHuntingGroundCenter))
@@ -706,7 +706,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             {
                 TreeRoot.GoalText = "Interacting with " + MobNames;
 
-                CurrentHuntingGroundWaypoint = HuntingGrounds.FindNearestWaypoint(Me.Location);
+                CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
             }
 
             if (IgnoreCombat && TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
@@ -822,6 +822,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             public void AppendWaypoint(WoWPoint newWaypoint, string name = "", double radius = 7.0)
             {
                 Waypoints.Add(new WaypointType(newWaypoint, name, radius));
+            }
+
+
+            public WaypointType FindFirstWaypoint(WoWPoint currentLocation)
+            {
+                return (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
+                    ? FindNextWaypoint(currentLocation)
+                    : FindNearestWaypoint(currentLocation);
             }
 
 

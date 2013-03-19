@@ -32,6 +32,10 @@
     + It needs to be recast in terms of TreeHooks, since it expects to act during combat.
        The old technique this behavior uses is glitchy.
 
+* UseTransport
+	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
+	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
+
 * Goblin profiles are buggy for Huntards (from Kick):
   See these posts:
     + http://www.thebuddyforum.com/archives/24256-kicks-old-posts-thread-archives-do-not-delete-1903.html#post825855
