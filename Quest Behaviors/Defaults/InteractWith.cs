@@ -621,14 +621,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 // If we couldn't find a mob, move to next hunting grounds waypoint...
                                 new Decorator(context => CurrentObject == null,
                                     new PrioritySelector(
-                                        new Decorator(context => !WaitForNpcs,
-                                            new Action(context => { _isBehaviorDone = true; })),
-
                                         new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
                                             new Action(context =>
                                             {
-                                                if (HuntingGrounds.Waypoints.Count() > 1)
+                                                if (!WaitForNpcs)
+                                                    { _isBehaviorDone = true; }
+
+                                                else if (HuntingGrounds.Waypoints.Count() > 1)
                                                     { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }
+
                                                 else
                                                 {
                                                     string message = "Waiting for mobs or objects to respawn.";
