@@ -23,10 +23,16 @@
 //          This is the minimum distance the AvoidMobId must be from our safe spot.
 //          On occasion, the 'same' vehicle can have multiple IDs.  These numbers
 //          identify all the vehicles that can fulfill the need.
-//      X/Y/Z [REQUIRED]
-//          Specifies the destination location where the vehicle should be delivered.
-//          If the vehicle is to be delivered to an NPC instead, this should specify
-//          a location within 50 yards or so of where the NPC can be found.
+//      AuraId_ProxyVehicle [optional; Default: none]
+//          If this value is specified, then then VehicleIdN uses a "Eye of Acherus"-like
+//          mechanic (http://wowhead.com/npc=28511), instead of the normal WoWclient
+//          "vehicle" mechanic.  For a "proxy vehicle like the Eye, there will be
+//          no 'eject' button as you find in a normal WoWclient vehicle.
+//          A proxy vehicle has the following characteristics:
+//              + You are not 'mounted' or 'in a vehicle'--instead you have a particular aura
+//              + The vehicle's location is calculated differently
+//          The behavior will not find and enter proxy vehicles for you.  You must
+//          arrange to use another behavior (e.g., InteractWith).
 //      MobId [optional; Default: none]
 //          Specifies an NPC to which the vehicle should be delivered.
 //      SpellId [optional; Default: none]
@@ -34,6 +40,10 @@
 //          has been delivered to the destination.  The spell will be located
 //          on the action bar provided by the vehicle.  But please note that
 //          this is the _SpellId_, not the _ActionBarIndex_.
+//      X/Y/Z [REQUIRED]
+//          Specifies the destination location where the vehicle should be delivered.
+//          If the vehicle is to be delivered to an NPC instead, this should specify
+//          a location within 50 yards or so of where the NPC can be found.
 //
 // Quest binding:
 //      QuestId [optional; Default: none]:
@@ -43,9 +53,12 @@
 //          http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //
 // Tunables (ideally, the profile would _never_ provide these arguments):
-//      CastNum [optional; Default 1]
+//      CastNum [optional; Default: 1]
 //          This is the number of times we should cast SpellId once we arrive
 //          at the destination.
+//      CastTime [optional; Default: 1500ms]
+//          The number of milliseconds we should wait after casting SpellId,
+//          before any other actions are taken.
 //      Hop [optional; Default: false]
 //          This value serves as an 'unstuck' mechanic.  It forces the bot to jump
 //          in the vehicle on its way to the destination.
@@ -87,6 +100,31 @@
 
 
 #region Examples
+// "Death Comes from On High" (http://wowhead.com/quest=12641)
+// Drive the Eye of Acherus (http://wowhead.com/npc=28511) to each of four locations,
+// and use the Siphon of Acherus spell (http://wowhead.com/spell=51859) upon arriving
+// at the location.
+// Since the Eye is a "proxy" vehicle, we must use the InteractWith behavior
+// on the Eye of Acherus control mechanism (http://wowhead.com/object=191609).
+//      <If Condition="!Me.HasAura(51852)"> <!-- HB start/stop protection -->
+//          <CustomBehavior File="InteractWith" MobId = "191609" QuestId="12641"
+//              ObjectType="GameObject" NumOfTimes = "1" CollectionDistance = "4"
+//              X="2345.848" Y="-5696.338" Z="426.0303" />
+//          <CustomBehavior File="WaitTimer" WaitTime="25000" />
+//      </If>
+//      <CustomBehavior File="Vehicles\VehicleMover" QuestId="12641" QuestObjectiveIndex="3"
+//          VehicleId="28511" AuraId_ProxyVehicle="51852" SpellId="51859" CastTime="9000"
+//          UseNavigator="false" X="1654.104" Y="-5996.521" Z="183.0229"/>
+//      <CustomBehavior File="Vehicles\VehicleMover" QuestId="12641" QuestObjectiveIndex="1"
+//          VehicleId="28511" AuraId_ProxyVehicle="51852" SpellId="51859" CastTime="9000"
+//          UseNavigator="false" X="1799.286" Y="-6003.341" Z="170.4593"/>
+//      <CustomBehavior File="Vehicles\VehicleMover" QuestId="12641" QuestObjectiveIndex="2"
+//          VehicleId="28511" AuraId_ProxyVehicle="51852" SpellId="51859" CastTime="9000"
+//          UseNavigator="false" X="1592.047" Y="-5735.208" Z="196.1772"/>
+//      <CustomBehavior File="Vehicles\VehicleMover" QuestId="12641" QuestObjectiveIndex="4"
+//          VehicleId="28511" AuraId_ProxyVehicle="51852" SpellId="51859" CastTime="9000"
+//          UseNavigator="false" X="1384.774" Y="-5701.124" Z="199.2797"/>
+//
 // "The Hungry Ettin": Worgen starter quest (http://wowhead.com/quest=14416)
 // Steal Mountain Horses (http://wowhead.com/npc=36540) and return them back
 // to Lorna Crowley (http://wowhead.com/npc=36457).
@@ -143,6 +181,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             try
             {
                 // Primary attributes...
+                AuraId_ProxyVehicle = GetAttributeAsNullable<int>("AuraId_ProxyVehicle", false, ConstrainAs.SpellId, null) ?? 0;
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "MobID", "NpcId" });
                 SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, new[] { "SpellID" }) ?? 0;
                 VehicleIds = GetNumberedAttributesAsArray<int>("VehicleId", 1, ConstrainAs.VehicleId, new[] { "VehicleID" });
@@ -150,10 +189,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
                 // Tunables...
                 CastNum = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
+                CastTime = GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null) ?? 1500;
                 Hop = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 25.0;
                 Precision = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
+                PreferNavigator = GetAttributeAsNullable<bool>("UseNavigator", false, null, null) ?? true;
 
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
@@ -161,10 +202,9 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 5), null) ?? 0;
 
                 // These attributes are no longer used, but here for backward compatibility (it prevents 'complaining' if profiles supply them)...
-                GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null); // ?? 0;
-                GetAttributeAsNullable<bool>("UseNavigator", false, null, null); // ?? true;
 
 
                 // Semantic coherency / covariant dependency checks --
@@ -183,22 +223,26 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
         // Attributes provided by caller
+        public int AuraId_ProxyVehicle { get; private set; }
         public int CastNum { get; private set; }
+        public int CastTime { get; private set; }
         public bool Hop { get; private set; }
         public bool IgnoreCombat { get; private set; }
         public WoWPoint Destination { get; private set; }
         public int[] MobIds { get; private set; }
         public double NonCompeteDistance { get; private set; }
         public double Precision { get; private set; }
+        public bool PreferNavigator { get; private set; }
         public int QuestId { get; private set; }
+        public int QuestObjectiveIndex { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public int SpellId { get; private set; }
@@ -216,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         public delegate double RangeDelegate(object context);
 
         private IEnumerable<int> AuraIds_OccupiedVehicle { get; set; }
-        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
+        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
         private WoWPoint FinalDestination { get; set; }
         private string FinalDestinationName { get; set; }
         private LocalPlayer Me { get { return StyxWoW.Me; } }
@@ -323,7 +367,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         {
             get
             {
+                bool isQuestObjectiveComplete = ((QuestId > 0) && (QuestObjectiveIndex > 0))
+                    ? IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
+                    : false;
+
                 return (_isBehaviorDone     // normal completion
+                        || isQuestObjectiveComplete
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
@@ -391,6 +440,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         {
             return new Decorator(context => !IsDone,
                 new PrioritySelector(
+
                     // Update values for this BT node visit...
                     new Action(context =>
                     {
@@ -428,15 +478,15 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                             // If we were successfully mounted...
                             // and within a few yards of our destination when we were dismounted, we must
                             // assume we were auto-dismounted, and the behavior is complete...
-                            new Decorator(context => SuccessfullyMounted && !Me.InVehicle
+                            new Decorator(context => SuccessfullyMounted && IsInVehicle()
                                                         && (Me.Location.Distance(FinalDestination) < 15.0),
                                 new Action(context => { _isBehaviorDone = true; })),
 
                             // If we're not in a vehicle, go fetch one...
-                            new Decorator(context => !Me.InVehicle && IsViable(VehicleUnoccupied),
+                            new Decorator(context => !IsInVehicle() && IsViable(VehicleUnoccupied),
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Moving to {0} {1}",
+                                    LogInfo("Moving to {0} {1}",
                                         VehicleUnoccupied.Name,
                                         Me.Combat ? "(ignoring combat)" : "");
 
@@ -447,7 +497,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                 })),
 
                             // If we successfully mounted the vehicle, record the fact...
-                            new Decorator(context => Me.InVehicle && !SuccessfullyMounted,
+                            new Decorator(context => IsInVehicle() && !SuccessfullyMounted,
                                 new Action(context => { SuccessfullyMounted = true; })),
 
                             // Move vehicle to destination...
@@ -455,9 +505,19 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                                     context => FinalDestinationName,
                                                     context => Precision),
                             new Decorator(context => Me.IsMoving,
-                                new Action(context => { WoWMovement.MoveStop(); })),
+                                new Sequence(
+                                    new Action(context => { WoWMovement.MoveStop(); }),
+                                    new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
+                                )),
 
                             // Arrived at destination, use spell if necessary...
+                            new Decorator(context => ((QuestId <= 0) && (_castCounter >= CastNum))
+                                                        || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex),
+                                new Action(context =>
+                                {
+                                    LogInfo("Behavior complete.");
+                                    _isBehaviorDone = true;
+                                })),
                             CreateSpellBehavior()
                         )),
 
@@ -491,8 +551,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 new Decorator(context => IsDone,
                     new Action(context =>
                     {
+                        LogInfo("Finished");
                         _isBehaviorDone = true;
-                        LogMessage("info", "Finished");
                     }))
             );
         }
@@ -511,15 +571,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             // NB: Since the spell we want to cast is associated with the vehicle, if we get auto-ejected
             // from the vehicle after we arrive at our destination, then there is no way to cast the spell.
             // If we get auto-ejected, we don't try to cast.
-            return new Decorator(context => Me.InVehicle && (SpellId > 0) && (_castCounter < CastNum),
+            return new Decorator(context => IsInVehicle() && (SpellId > 0),
                 new PrioritySelector(
                     // Stop moving so we can cast...
                     new Decorator(context => Me.IsMoving,
-                        new Action(context => { WoWMovement.MoveStop(); })),
-
-                    // If we're in the process of casting, wait for it to complete...
-                    new Decorator(context => Me.IsCasting,
-                        new Action(contxt => LogWarning("Waiting for casting complete") )),
+                        new Sequence(
+                            new Action(context => { WoWMovement.MoveStop(); }),
+                            new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
+                        )),
                         
                     // If we cannot retrieve the spell info, its a bad SpellId...
                     new Decorator(context => string.IsNullOrEmpty(Lua.GetReturnVal<string>(LuaRetrieveSpellInfoCommand, 0)),
@@ -534,15 +593,21 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                         new Action(context => LogWarning("Waiting for cooldown") )),
 
                     // Cast the required spell...
-                    new Action(context =>
-                    {
-                        // NB: we use LUA to cast the spell.  Otherwise, we get
-                        // a "Spell not learned" error.  Apparently, HB only keeps up with
-                        // permanent spells known by the toon, and not transient spells that
-                        // available in vehicles.
-                        Lua.DoString(LuaCastSpellCommand);
-                        ++_castCounter;
-                    })
+                    new Sequence(
+                        new Action(context =>
+                        {
+                            WoWSpell wowSpell = WoWSpell.FromId(SpellId);
+                            LogInfo("Casting {0}", (wowSpell != null) ? wowSpell.Name : string.Format("SpellId({0})", SpellId));
+
+                            // NB: we use LUA to cast the spell.  As some vehicle abilities cause
+                            // a "Spell not learned" error.  Apparently, HB only keeps up with
+                            // permanent spells known by the toon, and not transient spells that become
+                            // available in vehicles.
+                            Lua.DoString(LuaCastSpellCommand);
+                            ++_castCounter;
+                        }),
+                        new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
+                    )
                 ));
         }
 
@@ -585,6 +650,31 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         }
 
 
+        private bool IsInVehicle()
+        {
+            return Me.InVehicle
+                || Me.HasAura(AuraId_ProxyVehicle);
+        }
+
+
+        // 24Feb2013-08:11UTC chinajade
+        private bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
+        {
+            // If quest and objective was not specified, obviously its not complete...
+            if ((questId <= 0) || (objectiveIndex <= 0))
+                { return false; }
+
+            // If quest is not in our log, obviously its not complete...
+            if (Me.QuestLog.GetQuestById((uint)questId) == null)
+                { return false; }
+
+            int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
+
+            return
+                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
+        }
+
+
         private bool IsViable(WoWUnit wowUnit)
         {
             return
@@ -592,6 +682,18 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 && wowUnit.IsValid
                 && wowUnit.IsAlive
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
+        }
+
+        
+        private WoWPoint LocationObserver()
+        {
+            if (Me.HasAura(AuraId_ProxyVehicle))
+            {
+                if (VehicleUnoccupied != null)
+                    { return VehicleUnoccupied.Location; }
+            }
+
+            return Me.Location;
         }
         #endregion
 
@@ -606,21 +708,23 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
 
             return new PrioritySelector(locationContext => locationDelegate(locationContext),
-                new Decorator(locationContext => !Me.InVehicle && !Me.Mounted
+                new Decorator(locationContext => !IsInVehicle() && !Me.Mounted
                                                     && Mount.CanMount()
                                                     && Mount.ShouldMount((WoWPoint)locationContext),
                     new Action(locationContext => { Mount.MountUp(() => (WoWPoint)locationContext); })),
 
-                new Decorator(locationContext => (Me.Location.Distance((WoWPoint)locationContext) > precisionDelegate(locationContext)),
+                new Decorator(locationContext => (LocationObserver().Distance((WoWPoint)locationContext) > precisionDelegate(locationContext)),
                     new Sequence(
-                        new Action(context =>
+                        new Action(locationContext =>
                         {
-                            WoWPoint destination = locationDelegate(context);
-                            string locationName = locationNameDelegate(context) ?? destination.ToString();
+                            WoWPoint destination = locationDelegate(locationContext);
+                            string locationName = locationNameDelegate(locationContext) ?? destination.ToString();
 
-                            LogMessage("info", "Moving " + locationName);
+                            LogInfo("Moving " + locationName);
 
-                            MoveResult moveResult = Navigator.MoveTo(destination);
+                            MoveResult moveResult = PreferNavigator
+                                ? Navigator.MoveTo(destination)
+                                : MoveResult.Failed;
 
                             // If Navigator couldn't move us, resort to click-to-move...
                             if (!((moveResult == MoveResult.Moved)
@@ -674,14 +778,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 XAttribute spellIdAttribute = aura.Attribute("SpellId");
                 if (spellIdAttribute == null)
                 {
-                    LogMessage("error", "Unable to locate SpellId attribute for {0}", elementAsString);
+                    LogError("Unable to locate SpellId attribute for {0}", elementAsString);
                     continue;
                 }
 
                 int auraSpellId;
                 if (!int.TryParse(spellIdAttribute.Value, out auraSpellId))
                 {
-                    LogMessage("error", "Unable to parse SpellId attribute for {0}", elementAsString);
+                    LogError("Unable to parse SpellId attribute for {0}", elementAsString);
                     continue;
                 }
 
@@ -727,8 +831,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
                 StackTrace  trace   = new StackTrace(1);
 
-                LogMessage("error", "[CONTRACT VIOLATION] {0}\nLocation:\n{1}",
-                                        message, trace.ToString());
+                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}", message, trace.ToString());
             }
 
             return isContractOkay;
@@ -776,6 +879,17 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         public void LogError(string message, params object[] args)
         {
             LogMessage("error", message, args);
+        }
+        
+        
+        /// <summary>
+        /// <para>Normal information to keep user informed.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogInfo(string message, params object[] args)
+        {
+            LogMessage("info", message, args);
         }
         
         
