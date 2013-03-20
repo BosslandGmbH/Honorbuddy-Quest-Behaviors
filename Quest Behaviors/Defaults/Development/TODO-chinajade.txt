@@ -6,18 +6,6 @@
 
 * ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
 * Kick's Hyjal "Mental Training": Needs to use ButtonPressOn* behavior instead of specific one.
-
-* Hotspots needed for UseItemOn (from Kick)
-	Ie:
-	interactwith etc etc etc xyz
-	OR
-	interactwith etc etc etc >
-	<hotspots>
-	asdf
-	asdf
-	asdf
-	</hotspots>
-
  
 * ButtonPressOnChat, (request from Laria):
 	hey there, could you extend buttonpressonchat with a small auraid check,
@@ -31,28 +19,29 @@
     + It runs 'open loop', if you get interrupted while interacting, it counts it towards its completion goal
     + It needs to be recast in terms of TreeHooks, since it expects to act during combat.
        The old technique this behavior uses is glitchy.
-
-* UseTransport
-	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
-	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
-
-* Goblin profiles are buggy for Huntards (from Kick):
-  See these posts:
-    + http://www.thebuddyforum.com/archives/24256-kicks-old-posts-thread-archives-do-not-delete-1903.html#post825855
-	+ http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-2.html#post1034169
-
-
-
-BUGS:
-* InteractWith can't see Hargan Bronzewing to buy riding training:
-	+ http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
+	+ Here is an example: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
+	+ InteractWith can't see Hargan Bronzewing to buy riding training:
+		http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
 
 * LoadProfile is not constructing relative path names correctly:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
 	+ [20:50:36.197 D] Activity: Loading profile 'C:\WoW Plus\A-1 HB\Profiles\Kick's Profiles\Kick's Profiles\1-90 Questing Profile Pack\MoP\..\GoTo\..\MoP\[N - Quest] MoP Train Flying LP [Kick].xml'
 
+* UseTransport
+	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
+	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
+	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-9.html#post1092429
+
 * VehicleMover is not working in Death Comes from On High with Eye of Achareus
 	+ http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111534-dk-starting-revised-nesox.html#post1087220
+
+
+
+BUGS:
+* Goblin profiles are buggy for Huntards (from Kick):
+  See these posts:
+    + http://www.thebuddyforum.com/archives/24256-kicks-old-posts-thread-archives-do-not-delete-1903.html#post825855
+	+ http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-2.html#post1034169
 
 * 27779-Uldum-Gnomebliteration.cs:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626
