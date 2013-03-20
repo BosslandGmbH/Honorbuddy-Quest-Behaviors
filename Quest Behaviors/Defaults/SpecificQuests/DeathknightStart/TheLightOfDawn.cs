@@ -41,7 +41,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 DistanceToFollowWarlord = 45.0;
-                Location_Battlefield = new Blackspot(new WoWPoint(2266.047, -5300.083, 89.15713), 83.22643f, 10.0f);
+                Location_Battlefield = new Blackspot(new WoWPoint(2266.047, -5300.083, 89.15713), 95.0f, 10.0f);
                 Location_WaitForBattleToComplete = new WoWPoint(2282.805, -5207.55, 82.10373).FanOutRandom(20.0);
                 Location_WaitToChatWithDarion = new WoWPoint(2431.67, -5137.021, 83.84176).FanOutRandom(20.0);
                 AuraId_TheMightOfMograine = 53642;
