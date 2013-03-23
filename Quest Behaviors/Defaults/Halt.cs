@@ -39,14 +39,6 @@ namespace Honorbuddy.Quest_Behaviors.Halt
         {
             try
             {
-                LogMessage("warning", "*****\n"
-                                        + "* THIS BEHAVIOR IS DEPRECATED, and scheduled to be retired.\n"
-                                        + "*\n"
-                                        + "* Halt adds _no_ _additonal_ _value_ over the UserSettings behavior.\n"
-                                        + "* Please update the profile to use:\n"
-                                        + "     <CustomBehavior File=\"UserSettings\" StopBot=\"true\" />\n"
-                                        + "*****");
-
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
