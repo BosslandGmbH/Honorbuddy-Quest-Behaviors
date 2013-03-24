@@ -473,14 +473,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-            if ((QuestId != 0) && (quest == null))
-            {
-                LogError("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
-                IsAttributeProblem = true;
-            }
-
             // Hunting ground processing...
             IList<HuntingGroundType> tmpHuntingGrounds = null;
             IsAttributeProblem |= XmlUtil_ParseSubelements<HuntingGroundType>(this, HuntingGroundType.Create, Element, "HuntingGrounds", out tmpHuntingGrounds);
@@ -527,6 +519,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // When we escort, we don't want to be distracted by other things.
                 // NOTE: these settings are restored to their normal values when the behavior completes
                 // or the bot is stopped.
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = string.Format(
                     "{0}: \"{1}\"",
