@@ -87,7 +87,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                             .Add("LootChests", false)
                             .Add("LootMobs", false)
                             .Add("NinjaSkin", false)
-                            .Add("PullDistance", 1)
+                            .Add("PullDistance", 0)
                             .Add("SkinMobs", false)
                         );
 
@@ -408,7 +408,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
                 { "LootRadius",             new ConstrainInteger(1, 100) },
                 { "MountDistance",          new ConstrainInteger(1, 200) },
-                { "PullDistance",           new ConstrainInteger(1, 75) },
+                { "PullDistance",           new ConstrainInteger(0, 75) },
             };
 
             foreach (KeyValuePair<string, Constraint> kvp in constraints)
