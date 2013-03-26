@@ -590,7 +590,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
                     // If the spell is on cooldown, we need to wait...
                     new Decorator(context => Lua.GetReturnVal<double>(LuaCooldownCommand, 1) > 0.0,
-                        new Action(context => LogWarning("Waiting for cooldown") )),
+                        new Action(context => LogInfo("Waiting for cooldown") )),
 
                     // Cast the required spell...
                     new Sequence(
