@@ -391,16 +391,17 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                                 new Decorator(context => HighWarlordDarion.Location.Distance(Location_Battlefield.Location) <= Location_Battlefield.Radius,
                                     new Action(context => { State_Behavior = StateType_Behavior.WaitingForBattleToComplete; })),
 
-                                // IF we have Warlord's battle buff, time to go...
-                                new Decorator(context => Me.HasAura(AuraId_TheMightOfMograine),
-                                    new Action(context => { State_Behavior = StateType_Behavior.WaitingForBattleToComplete; })),
-
-                                // If Warlord moving, time to go...
-                                new Decorator(context => HighWarlordDarion.IsMoving,
-                                    new Action(context => { State_Behavior = StateType_Behavior.WaitingForBattleToComplete; })),
+                                // If the warlord is not on the battlefield, follow him at a reasonable distance...
+                                new Decorator(context => HighWarlordDarion.Distance > DistanceToFollowWarlord,
+                                    new Action(context =>
+                                    {
+                                        TreeRoot.StatusText = string.Format("Following {0}", HighWarlordDarion.Name);
+                                        Navigator.MoveTo(HighWarlordDarion.Location);
+                                    })),
 
                                 // Move into position to await battle start...
-                                new Decorator(context => Me.Location.Distance(Location_WaitToChatWithDarion) > Navigator.PathPrecision,
+                                new Decorator(context => !HighWarlordDarion.IsMoving
+                                                            && Me.Location.Distance(Location_WaitToChatWithDarion) > Navigator.PathPrecision,
                                     new Action(context =>
                                     {
                                         TreeRoot.StatusText = "Waiting for Battle to start";
@@ -434,14 +435,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                                             TreeRoot.StatusText = "Waiting for battle to complete.";
                                             AntiAfk();
                                         }))),
-
-                                // If the warlord is not on the battlefield, follow him at a reasonable distance...
-                                new Decorator(context => HighWarlordDarion.Distance > DistanceToFollowWarlord,
-                                    new Action(context =>
-                                    {
-                                        TreeRoot.StatusText = string.Format("Following {0}", HighWarlordDarion.Name);
-                                        Navigator.MoveTo(HighWarlordDarion.Location);
-                                    })),
 
                                 // If the warlord has returned to his starting position, then start over...
                                 new Decorator(context => HighWarlordDarion.Location.Distance(Location_WaitToChatWithDarion) <= DistanceToFollowWarlord,
