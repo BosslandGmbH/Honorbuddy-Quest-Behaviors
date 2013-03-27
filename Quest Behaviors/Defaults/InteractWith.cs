@@ -323,6 +323,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 
                 
                 // Semantic coherency / covariant dependency checks --
+                if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
+                {
+                    LogError("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided", QuestObjectiveIndex);
+                    IsAttributeProblem = true;
+                }
+
                 if ((MobIds.Length <= 0) && (AuraIdsOnMob.Length <= 0) && (AuraIdsMissingFromMob.Length <= 0))
                 {
                     LogError("You must specify at least one MobIdN, AuraIdsOnMobN, or AuraIdsMissingFromMobN");
