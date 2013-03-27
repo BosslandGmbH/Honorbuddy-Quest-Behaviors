@@ -759,7 +759,10 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         public IEnumerable<int> GetOccupiedVehicleAuraIds()
         {
             List<int> occupiedVehicleAuraIds = new List<int>();
-            string auraDataFileName = Path.Combine(GlobalSettings.Instance.QuestBehaviorsPath, "DATA", "AuraIds_OccupiedVehicle.xml");
+            string auraDataFileName = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
+                                                    GlobalSettings.Instance.QuestBehaviorsPath,
+                                                    "DATA",
+                                                    "AuraIds_OccupiedVehicle.xml");
 
             if (!File.Exists(auraDataFileName))
             {
