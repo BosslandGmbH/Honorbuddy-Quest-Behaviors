@@ -31,7 +31,7 @@
 //          These Ids can represent either NPCs (WoWUnit) or Object (WoWObject);
 //          however, the two cannot be mixed.  To choose the 'flavor' of the
 //          Id, set the ObjectType attribute appropriately.
-//      NpcState [optional; Default: DontCare]
+//      MobState [optional; Default: DontCare]
 //          [Allowed values: Alive, BelowHp, Dead, DontCare]
 //          This represents the state the NPC must be in when searching for targets
 //          with which we can interact.
@@ -80,6 +80,13 @@
 //          [Allowed values: Accept, Complete, Continue, Ignore]
 //          This attribute determines the behavior's response should the NPC
 //          with which we've interacted offer us a quest frame.
+//
+// Interact by Using Item:
+//      InteractByUsingItemId [optional; Default: none]
+//          Specifies an ItemId to use on the specified MobInN.
+//          The item may be a normal 'one-click-to-use' item, or it may be
+//          a (two-click) item that needs to be placed on the ground at
+//          the MobIdN's location.
 //
 // Quest binding:
 //      QuestId [optional; Default:none]:
@@ -270,7 +277,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.MobId, null);
                 AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.MobId, null);
 
-                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                MobState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
 
@@ -376,7 +383,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public bool InteractByLooting { get; private set; }
         public double MobHpPercentLeft { get; private set; }
         public int[] MobIds { get; private set; }
-        public NpcStateType NpcState { get; private set; }
+        public NpcStateType MobState { get; private set; }
         public NavigationType NavigationState { get; private set; }
         public ObjectType ObjType { get; private set; }
         public double NonCompeteDistance { get; private set; }
@@ -1119,10 +1126,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowUnit.Location)))
                 && ((AuraIdsOnMob.Length <= 0) || wowUnit.GetAllAuras().Any(a => AuraIdsOnMob.Contains(a.SpellId)))
                 && ((AuraIdsMissingFromMob.Length <= 0) || !wowUnit.GetAllAuras().Any(a => AuraIdsMissingFromMob.Contains(a.SpellId)))
-                && ((NpcState == NpcStateType.DontCare)
-                    || ((NpcState == NpcStateType.Dead) && wowUnit.IsDead)
-                    || ((NpcState == NpcStateType.Alive) && wowUnit.IsAlive)
-                    || ((NpcState == NpcStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft)))
+                && ((MobState == NpcStateType.DontCare)
+                    || ((MobState == NpcStateType.Dead) && wowUnit.IsDead)
+                    || ((MobState == NpcStateType.Alive) && wowUnit.IsAlive)
+                    || ((MobState == NpcStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft)))
                 && !IsInCompetition(wowUnit);
         }
 
