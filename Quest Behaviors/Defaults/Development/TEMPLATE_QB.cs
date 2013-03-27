@@ -234,6 +234,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             get
             {
                 return _isBehaviorDone     // normal completion
+                        || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
             }
         }
@@ -346,10 +347,12 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
                 where
-                    IsViable(unit)
+                    unit.IsValid
+                    && unit.IsAlive
                     && !unit.IsFriendly
                     && ((unit.CurrentTarget == Me)
                         || (Me.GotAlivePet && unit.CurrentTarget == Me.Pet))
+                    && !Blacklist.Contains(unit, BlacklistFlags.Combat)
                 select unit;
         }
 
@@ -376,7 +379,6 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 where
                     IsViable(unit)
                     && unitIds.Contains((int)unit.Entry)
-                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
                 select unit;
         }
 
@@ -394,6 +396,11 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         // 24Feb2013-08:11UTC chinajade
         private bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
         {
+            // If quest and objective was not specified, obviously its not complete...
+            if ((questId <= 0) || (objectiveIndex <= 0))
+                { return false; }
+
+            // If quest is not in our log, obviously its not complete...
             if (Me.QuestLog.GetQuestById((uint)questId) == null)
                 { return false; }
 
@@ -405,14 +412,40 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         // 24Feb2013-08:11UTC chinajade
-        private bool IsViable(WoWUnit wowUnit)
+        private bool IsViable(WoWObject wowObject)
         {
             return
-                (wowUnit != null)
-                && wowUnit.IsValid
+                (wowObject != null)
+                && wowObject.IsValid;
+        }
+        
+        
+        // 24Feb2013-08:11UTC chinajade
+        private bool IsViableForFighting(WoWUnit wowUnit)
+        {
+            return
+                IsViable(wowUnit)
                 && wowUnit.IsAlive
-                && (wowUnit.TappedByAllThreatLists || !wowUnit.TaggedByOther)
+                && !wowUnit.IsFriendly
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
+        }
+
+
+        // 24Feb2013-08:11UTC chinajade
+        private bool IsViableForInteracting(WoWObject wowObject)
+        {
+            return
+                IsViable(wowObject)
+                && !Blacklist.Contains(wowObject, BlacklistFlags.Node);
+        }
+
+
+        // 24Feb2013-08:11UTC chinajade
+        private bool IsViableForPulling(WoWUnit wowUnit)
+        {
+            return
+                IsViableForFighting(wowUnit)
+                && (wowUnit.TappedByAllThreatLists || !wowUnit.TaggedByOther);
         }
 
 
@@ -420,6 +453,12 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         private IEnumerable<T> ToEnumerable<T>(T item)
         {
             yield return item;
+        }
+
+
+        private static TimeSpan VariantTimeSpan(int milliSecondsMin, int milliSecondsMax)
+        {
+            return TimeSpan.FromMilliseconds(_random.Next(milliSecondsMin, milliSecondsMax));
         }
         #endregion
 
@@ -433,7 +472,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         {
 
             return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
-                new Decorator(targetContext => IsViable((WoWUnit)targetContext),
+                new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
                     new PrioritySelector(
                         new Decorator(targetContext => !((((WoWUnit)targetContext).CurrentTarget == Me)
                                                         || (Me.GotAlivePet && ((WoWUnit)targetContext).CurrentTarget == Me.Pet)),
@@ -530,7 +569,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         private Composite UtilityBehavior_SpankMob(WoWUnitDelegate selectedTargetDelegate)
         {
             return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
-                new Decorator(targetContext => IsViable((WoWUnit)targetContext),
+                new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
                     new PrioritySelector(               
                         new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CharacterSettings.Instance.PullDistance,
                             new Action(targetContext => { Navigator.MoveTo(((WoWUnit)targetContext).Location); })),
@@ -639,6 +678,17 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         {
             LogMessage("error", message, args);
         }
+           
+        
+        /// <summary>
+        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+        /// </summary>
+        /// <param name="message"></param>
+        /// <param name="args"></param>
+        public void LogFatal(string message, params object[] args)
+        {
+            LogMessage("fatal", message, args);
+        }  
         
         
         /// <summary>

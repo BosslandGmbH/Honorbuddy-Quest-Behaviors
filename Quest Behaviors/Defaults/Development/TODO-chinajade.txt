@@ -23,9 +23,19 @@
 	+ InteractWith can't see Hargan Bronzewing to buy riding training:
 		http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
 
+* KillUntilComplete
+	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive
+	+ Behavior 'stands around' far too much
+	+ Needs a HuntingGrounds element
+	+ DeathKnight start area: "Nowhere to Run And Nowhere to Hide" is a good test
+
 * LoadProfile is not constructing relative path names correctly:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
 	+ [20:50:36.197 D] Activity: Loading profile 'C:\WoW Plus\A-1 HB\Profiles\Kick's Profiles\Kick's Profiles\1-90 Questing Profile Pack\MoP\..\GoTo\..\MoP\[N - Quest] MoP Train Flying LP [Kick].xml'
+
+* UseItemTargetLocation
+	+ Bug report from here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/113182-qb-useitemtargetlocation-seems-broken.html#post1102605
+	+ "Sharecropper" profile is here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/111188-sharecropper.html#post1084027
 
 * UseTransport
 	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
@@ -35,7 +45,7 @@
 * VehicleMover is not working in Death Comes from On High with Eye of Achareus
 	+ http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111534-dk-starting-revised-nesox.html#post1087220
 
-
+52781-Persuasive Strike
 
 BUGS:
 * Goblin profiles are buggy for Huntards (from Kick):
@@ -45,9 +55,16 @@ BUGS:
 
 * 27779-Uldum-Gnomebliteration.cs:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626
+	+ http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-5.html#post1103008
 	+ The behavior can kill all the Gnomes in the immediate area, then run out of things to kill.  Since there
 	  are distance limits on the range of ObjectManager.GetObjectsOfType(), the 'target list' goes empty
 	  and causes this problem.  We need to rewrite the behavior to have the ball follow a particular path when there
 	  are no more targets in the immediate area.  The path should take us to more targets so
 	  ObjectManager.GetObjectsOfType() can be re-populated.
 	+ May need to put a "gnomes killed" timer in place to abandon the current vehicle, and go fetch a fresh one
+
+
+TO RETIRE:
+* FindAndBeatNpcs.cs
+* IntoTheRealmOfShadows.cs
+* TheGiftThatKeepsOnGiving.cs

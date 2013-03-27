@@ -20,6 +20,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -44,7 +45,12 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         public IEnumerable<int> GetOccupiedVehicleAuraIds()
         {
             List<int> occupiedVehicleAuraIds = new List<int>();
-            string auraDataFileName = Path.Combine(GlobalSettings.Instance.QuestBehaviorsPath, "DATA", "AuraIds_OccupiedVehicle.xml");
+            // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
+            // QBs supplied in the Honorbuddy/Default Profiles/. directory.
+            string auraDataFileName = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
+                                                    GlobalSettings.Instance.QuestBehaviorsPath,
+                                                    "DATA",
+                                                    "AuraIds_OccupiedVehicle.xml");
 
             if (!File.Exists(auraDataFileName))
             {
