@@ -48,8 +48,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -114,11 +112,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
         }
 
 
-
-
-
-
-
         #region Overrides of CustomForcedBehavior
 
         public bool IsQuestComplete()
@@ -141,10 +134,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
-
 
 
         public void CastSpell(string action)
@@ -158,6 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }
+
 
         bool IsObjectiveComplete(int objectiveId, uint questId)
         {
@@ -184,7 +176,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                 return
                     ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => (r.Entry == 55019 || r.Entry == 65468) && !r.IsFriendly).OrderBy(r=>r.Distance).FirstOrDefault();
             }
-
         }
 
 
@@ -197,7 +188,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                 return
                     ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => (r.Entry == 54993 || r.Entry == 57626) && r.NpcFlags == 16777216);
             }
-
         }
 
 
@@ -210,8 +200,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
         private bool spoke = false;
 
 
-
-    
         private Composite GetonPole
         {
             get
@@ -231,51 +219,45 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
             get
             {
                 return new PrioritySelector(
-                    new Decorator(r=> Monk.Distance > 5, new Action(delegate
-                                                                        {
+                    new Decorator(r=> Monk.Distance > 5,
+                        new Action(delegate
+                        {
                                                                             
-                                                                            var Pole =
-                                                                                Poles.Where(r => r.WithinInteractRange).
-                                                                                    OrderBy(
-                                                                                        r =>
-                                                                                        r.Location.Distance(
-                                                                                            Monk.Location)).FirstOrDefault();
-                                                                            Pole.Interact(true);
+                            var Pole =
+                                Poles.Where(r => r.WithinInteractRange).
+                                    OrderBy(
+                                        r =>
+                                        r.Location.Distance(
+                                            Monk.Location)).FirstOrDefault();
+                            Pole.Interact(true);
+                        })),
 
-
-                                                                        })),
-                            new Decorator(r=> Monk.Distance <= 5, new Sequence(
-                                
-                                new Action(r=>{Monk.Target();Monk.Face(); return RunStatus.Success;}),
-                                RoutineManager.Current.CombatBehavior
-                                
-                                
-                                )
-
-
-
-                                                                      ));
+                    new Decorator(r=> Monk.Distance <= 5,
+                        new Sequence(        
+                            new Action(r=>{Monk.Target();Monk.Face(); return RunStatus.Success;}),
+                            RoutineManager.Current.CombatBehavior       
+                        ))
+                );
             }
         }
 
 
-        /*                                                                                     if (SpellManager.CanCast("Blackout Kick"))
-                                                                                     {
-                                                                                         SpellManager.Cast("Blackout Kick");
-                                                                                     }
+        //if (SpellManager.CanCast("Blackout Kick"))
+        //{
+        //    SpellManager.Cast("Blackout Kick");
+        //}
 
 
-                                                                                     else if (SpellManager.CanCast("Tiger Palm") && !Me.HasAura("Tiger Power"))
-                                                                                     {
-                                                                                         SpellManager.Cast("Tiger Palm");
-                                                                                     }
+        //else if (SpellManager.CanCast("Tiger Palm") && !Me.HasAura("Tiger Power"))
+        //{
+        //    SpellManager.Cast("Tiger Palm");
+        //}
 
-                                                                                     else if (SpellManager.CanCast("Jab"))
-                                                                                     {
-                                                                                         SpellManager.Cast("Jab");
-                                                                                     }
+        //else if (SpellManager.CanCast("Jab"))
+        //{
+        //    SpellManager.Cast("Jab");
+        //}
 
-         * */
 
         protected override Composite CreateBehavior()
         {
@@ -335,18 +317,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }
