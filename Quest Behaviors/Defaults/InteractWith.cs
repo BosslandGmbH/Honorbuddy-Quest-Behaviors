@@ -42,6 +42,8 @@
 //      NumOfTimes [optional; Default: 1]
 //          This is the number of times the behavior should interact with MobIdN.
 //          Once this value is achieved, the behavior considers itself done.
+//          If the Quest or QuestObjectiveIndex completes prior to reaching this
+//          count, the behavior also terminates.
 //      ObjectType [optional; Default: Npc]
 //          [Allowed values: GameObject, Npc]
 //          Selects whether the provided MobIdN are used to identify
@@ -94,6 +96,9 @@
 //      QuestInLogRequirement [Default:InLog]:
 //          A full discussion of how the Quest* attributes operate is described in
 //          http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+//      QuestObjectiveIndex [optional; Default: none]
+//          Qualifies the behavior to consider only an objective of the quest--
+//          not the full quest--to determine whether or not the behavior is done.
 //
 // Tunables:
 //      CollectionDistance [optional; Default: 100.0]
@@ -630,8 +635,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 new Decorator(context => _waitTimer.IsRunning && (_waitTimer.ElapsedMilliseconds < WaitTime),
                     new Action(context => { LogInfo("Completing wait of {0}", PrettyTime(WaitTime)); })),
 
-                // Counter is only used to determine 'done' if we're not in a Quest context...
-                new Decorator(ret => (QuestId <= 0) && (Counter >= NumOfTimes),
+                // Counter is used to determine 'done'...
+                new Decorator(ret => Counter >= NumOfTimes,
                     new Action(ret => _isBehaviorDone = true)),
                     
                 // If quest is done, behavior is done...
@@ -766,8 +771,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         {
                                             LogInfo("Looting {0}", SelectedInteractTarget.Name);
                                             LootFrame.Instance.LootAll();
-                                            _interactBlacklist.Add(SelectedInteractTarget, BlacklistDuration);
-                                            ++Counter;
                                         }),
                                         new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
                                         new Action(context => { LootFrame.Instance.Close(); }),
