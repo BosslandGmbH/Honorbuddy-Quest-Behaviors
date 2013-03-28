@@ -26,11 +26,17 @@
 //
 // BEHAVIOR ATTRIBUTES:
 // Basic Attributes:
-//      MobId1, MobId2, ... MobIdN [at least one MobId is REQUIRED]
+//      AuraIdOnMobN [optional; Default: none]
+//          Selects only MobIdN that have AuraIdOnMobN on them.
+//      AuraIdMissingFromMob [optional; Default: none]
+//          Selects only MobIdN that have do not have AuraIdMissingFromMobN on them.
+//      MobIdN [at least one MobIdN is REQUIRED]
 //          Identifies the mobs on which the interaction should take place.
 //          These Ids can represent either NPCs (WoWUnit) or Object (WoWObject);
 //          however, the two cannot be mixed.  To choose the 'flavor' of the
 //          Id, set the ObjectType attribute appropriately.
+//          This attribute may be safely combined with AuraIdOnMobN, AuraIdMissingFromMobN,
+//          and MobIdN.
 //      MobState [optional; Default: DontCare]
 //          [Allowed values: Alive, BelowHp, Dead, DontCare]
 //          This represents the state the NPC must be in when searching for targets
@@ -278,9 +284,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 DefaultHuntingGroundCenter = Me.Location;
 
                 // Basic attributes...
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
-                AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.MobId, null);
-                AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.MobId, null);
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.AuraId, null);
+                AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.AuraId, null);
 
                 MobState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
@@ -331,12 +337,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
                 {
                     LogError("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided", QuestObjectiveIndex);
-                    IsAttributeProblem = true;
-                }
-
-                if ((MobIds.Length <= 0) && (AuraIdsOnMob.Length <= 0) && (AuraIdsMissingFromMob.Length <= 0))
-                {
-                    LogError("You must specify at least one MobIdN, AuraIdsOnMobN, or AuraIdsMissingFromMobN");
                     IsAttributeProblem = true;
                 }
 
