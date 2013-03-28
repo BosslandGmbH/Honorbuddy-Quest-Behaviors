@@ -132,7 +132,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
         // Private properties
         public int Counter { get; private set; }
-        private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
+        private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId); } }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
         /*private WoWObject           UseObject1 { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
@@ -227,9 +227,22 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         {
             return _root ?? (_root =
                 new PrioritySelector(
-                    new Decorator(
-                        ret => Item == null,
-                        new ActionAlwaysSucceed()),
+                    // If item is not in our backpack, behavior is done...
+                    new Decorator(context => Item == null,
+                        new Action(context =>
+                        {
+                            LogMessage("error", "ItemId({0}) is not in our backpack", ItemId);
+                            TreeRoot.Stop();
+                            _isBehaviorDone = true;
+                        })),
+
+                    // Wait for item to come off of cooldown...
+                    new Decorator(context => Item.CooldownTimeLeft > TimeSpan.Zero,
+                        new Action(context =>
+                        {
+                            LogMessage("info", "Waiting for {0} to leave cooldown (time remaining: {1})",
+                                Item.Name, Item.CooldownTimeLeft);
+                        })),
 
                     new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
                         new Action(ret => _isBehaviorDone = true)),
