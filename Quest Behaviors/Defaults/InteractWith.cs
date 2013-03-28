@@ -773,9 +773,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             LootFrame.Instance.LootAll();
                                         }),
                                         new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
-                                        new Action(context => { LootFrame.Instance.Close(); }),
-                                        new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
-                                            new Action(context => { Me.ClearTarget(); }))
+                                        // Make certain loot frame didn't morph into another frame type...
+                                        new Decorator(context => LootFrame.Instance.IsVisible,
+                                            new Sequence(
+                                                new Action(context => { LootFrame.Instance.Close(); }),
+                                                new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
+                                                    new Action(context => { Me.ClearTarget(); }))
+                                            ))
                                     )),
                                 #endregion
 
@@ -794,9 +798,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 new Action(context =>
                                                 {
                                                     LogInfo("Gossip with {0} complete.", SelectedInteractTarget.Name);
-                                                    _interactBlacklist.Add(SelectedInteractTarget, BlacklistDuration);
-                                                    _waitTimer.Restart();
-                                                    ++Counter;
+
+                                                    // NB: Some merchants require that we gossip with them before purchase.
+                                                    // If the caller has also specified a "buy item", then we're not done yet.
+                                                    if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
+                                                    {
+                                                        _interactBlacklist.Add(SelectedInteractTarget, BlacklistDuration);
+                                                        _waitTimer.Restart();
+                                                        ++Counter;
+                                                    }
                                                 })
                                             )),
                                         new DecoratorContinue(context => InteractByGossipOptions.Length <= 0,
@@ -804,9 +814,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 new Action(context => { LogError("[PROFILE ERROR]: Gossip frame not expected--ignoring."); }),
                                                 new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed())
                                             )),
-                                        new Action(context => { GossipFrame.Instance.Close(); }),
-                                        new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
-                                            new Action(context => { Me.ClearTarget(); }))
+                                        // Make certain gossip frame didn't morph into another frame type (e.g., merchant frame)...
+                                        new Decorator(context => GossipFrame.Instance.IsVisible,
+                                            new Sequence(
+                                                new Action(context => { GossipFrame.Instance.Close(); }),
+                                                new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
+                                                    new Action(context => { Me.ClearTarget(); }))
+                                            ))
                                     )),
                                 #endregion
 
@@ -860,9 +874,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 { LogError("[PROFILE ERROR] Merchant frame not expected--ignoring."); }
                                         }),
                                         new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
-                                        new Action(context => { MerchantFrame.Instance.Close(); }),
-                                        new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
-                                            new Action(context => { Me.ClearTarget(); }))
+                                        // Make certain merchant frame didn't morph into another frame type...
+                                        new Decorator(context => MerchantFrame.Instance.IsVisible,
+                                            new Sequence(
+                                                new Action(context => { MerchantFrame.Instance.Close(); }),
+                                                new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
+                                                    new Action(context => { Me.ClearTarget(); }))
+                                            ))
                                     )),
                                 #endregion
 
@@ -878,7 +896,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.Continue,
                                             new Action(context => { QuestFrame.Instance.ClickContinue(); })),
                                         new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
-                                        new Action(context => { QuestFrame.Instance.Close(); })
+                                        // Make certain merchant frame didn't morph into another frame type...
+                                        new Decorator(context => QuestFrame.Instance.IsVisible,
+                                            new Action(context => { QuestFrame.Instance.Close(); }))
                                     )),
                                 #endregion
                                         
