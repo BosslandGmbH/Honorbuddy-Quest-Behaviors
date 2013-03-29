@@ -750,6 +750,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         new WaitContinue(Delay_WoWClientMovementThrottle, context => false, new ActionAlwaysSucceed())
                                     )),
                                         
+                                // Dismount to interact, if target is an object, or a non-flying NPC...
+                                new Decorator(context => Me.Mounted
+                                                        && ((SelectedInteractTarget.ToUnit() != null)
+                                                            || !SelectedInteractTarget.ToUnit().IsFlying),
+                                    new Action(context => { Mount.Dismount(); })),
+                                    
                                 // Prep to interact...
                                 new Decorator(context => !Me.IsSafelyFacing(SelectedInteractTarget),
                                     new Action(context => { Me.SetFacing(SelectedInteractTarget.Location); })),
