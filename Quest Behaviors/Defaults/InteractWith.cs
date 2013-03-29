@@ -752,7 +752,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         
                                 // Dismount to interact, if target is an object, or a non-flying NPC...
                                 new Decorator(context => Me.Mounted
-                                                        && ((SelectedInteractTarget.ToUnit() != null)
+                                                        && ((SelectedInteractTarget.ToUnit() == null)
                                                             || !SelectedInteractTarget.ToUnit().IsFlying),
                                     new Action(context => { Mount.Dismount(); })),
                                     
