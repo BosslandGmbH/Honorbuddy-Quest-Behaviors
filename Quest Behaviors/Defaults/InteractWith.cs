@@ -1002,7 +1002,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private WoWObject FindBestInteractTarget()
         {
             double collectionDistanceSqr = CollectionDistance * CollectionDistance;
-            double nonMinionWeighting = Math.Pow(100, 4);
+            double minionWeighting = Math.Pow(100, 4);
 
             WoWObject entity = 
                (from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true)
@@ -1018,8 +1018,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 let weightedVerticalDiff = Math.Pow(verticalDiff, 4)
                 orderby
                     wowObject.Distance2DSqr + weightedVerticalDiff
-                    // Fix for undead-quest (and maybe some more), where the npcs are minions...
-                    + (Me.Minions.Contains(wowObject) ? 1 : nonMinionWeighting)
+                    // Fix for undead-quest (and maybe some more), where the targets can be minions...
+                    + (Me.Minions.Contains(wowObject) ? minionWeighting : 1)
                 select wowObject)
                 .FirstOrDefault();
 
