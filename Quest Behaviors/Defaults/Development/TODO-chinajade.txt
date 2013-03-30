@@ -33,6 +33,9 @@
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
 	+ [20:50:36.197 D] Activity: Loading profile 'C:\WoW Plus\A-1 HB\Profiles\Kick's Profiles\Kick's Profiles\1-90 Questing Profile Pack\MoP\..\GoTo\..\MoP\[N - Quest] MoP Train Flying LP [Kick].xml'
 
+* MyCTM
+	+ Needs to take a path of points
+
 * UseItemTargetLocation
 	+ Bug report from here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/113182-qb-useitemtargetlocation-seems-broken.html#post1102605
 	+ "Sharecropper" profile is here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/111188-sharecropper.html#post1084027
@@ -63,6 +66,17 @@ BUGS:
 	  ObjectManager.GetObjectsOfType() can be re-populated.
 	+ May need to put a "gnomes killed" timer in place to abandon the current vehicle, and go fetch a fresh one
 
+
+* GENERAL PROFILE ISSUES:
+	+ Stay on Apoc/Nesox about getting unified QB directory DLL.
+		We can't reuse any code until this problem is solved.
+
+	+ Currently underwater nav is handled by each behavior, and slightly differently.
+		Any chance of using Flightor as the nav while swimming?
+
+* KICK'S PROFILES:
+	+ Need to sweep through all profiles and remove as much CTM things as possible.
+		CTM doesn't unstuck and causes grief.
 
 TO RETIRE:
 * FindAndBeatNpcs.cs

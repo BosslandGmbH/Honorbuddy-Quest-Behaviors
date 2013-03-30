@@ -82,12 +82,19 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 // Tunables...
                 CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 25.0;
+
                 Blackspots = new List<Blackspot>()
                 {
                     // empty for now
                 };
 
+
                 // Semantic coherency / covariant dependency checks --
+                if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
+                {
+                    LogError("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided", QuestObjectiveIndex);
+                    IsAttributeProblem = true;
+                }
             }
 
             catch (Exception except)
