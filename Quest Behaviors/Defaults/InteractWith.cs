@@ -416,7 +416,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         public int Counter { get; private set; }
         private WaypointType CurrentHuntingGroundWaypoint { get; set; }
-        private TimeSpan BlacklistDuration { get { return TimeSpan.FromSeconds(180); } }
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
         private TimeSpan Delay_AfterItemUse { get { return VariantTimeSpan(400, 900); } }
         private TimeSpan Delay_Interaction { get { return VariantTimeSpan(900, 1900); } }
@@ -698,23 +697,24 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 || (!IsInLineOfSight(SelectedInteractTarget)
                                                     && (SelectedInteractTarget.DistanceSqr > SelectedInteractTarget.InteractRangeSqr)),
                             new Switch<NavigationType>(ret => NavigationState,
-                                new SwitchArgument<NavigationType>( NavigationType.CTM,
+                                new SwitchArgument<NavigationType>(NavigationType.CTM,
                                     new Action(ret =>
                                     {
                                         TreeRoot.StatusText = string.Format("Moving to interact with {0} (dist: {1:F1}{2})",
                                             SelectedInteractTarget.Name, SelectedInteractTarget.Distance,
-                                            IsInLineOfSight(SelectedInteractTarget) ? " LoS" : " noLoS");
+                                            IsInLineOfSight(SelectedInteractTarget) ? "" : " noLoS");
                                         WoWMovement.ClickToMove(SelectedInteractTarget.Location);
                                     })),
 
                                 new SwitchArgument<NavigationType>(NavigationType.Mesh,
                                     new PrioritySelector(
-                                        new Decorator(ret => !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedInteractTarget.Location) && !StyxWoW.Me.IsFlying,
+                                        new Decorator(ret => !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedInteractTarget.Location)
+                                                            && !Me.IsFlying && !Me.IsOnTransport,
                                             new Action(ret =>
                                             {
-                                                TreeRoot.StatusText = string.Format("Unable to navigate to {0} (dist: {1:F1})--Skipping.",
-                                                                                    SelectedInteractTarget.Name, SelectedInteractTarget.Distance);
-                                                _interactBlacklist.Add(SelectedInteractTarget, BlacklistDuration);
+                                                TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedInteractTarget);
+                                                TreeRoot.StatusText = string.Format("Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
+                                                                                    SelectedInteractTarget.Name, SelectedInteractTarget.Distance, blacklistDuration);
                                             })),
 
                                         new Action(ret =>
@@ -729,8 +729,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new SwitchArgument<NavigationType>(NavigationType.None,
                                     new Action(ret =>
                                     {
-                                        TreeRoot.StatusText = string.Format("{0} is out of range (dist: {1:F1})--Skipping.",
-                                                                            SelectedInteractTarget.Name, SelectedInteractTarget.Distance);
+                                        TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedInteractTarget);
+                                        TreeRoot.StatusText = string.Format("{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
+                                                                            SelectedInteractTarget.Name, SelectedInteractTarget.Distance, blacklistDuration);
                                         _isBehaviorDone = true;
                                     }))
                             )),
@@ -809,7 +810,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                     // If the caller has also specified a "buy item", then we're not done yet.
                                                     if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
                                                     {
-                                                        _interactBlacklist.Add(SelectedInteractTarget, BlacklistDuration);
+                                                        BlacklistInteractTarget(SelectedInteractTarget);
                                                         _waitTimer.Restart();
                                                         ++Counter;
                                                     }
@@ -940,7 +941,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     new DecoratorContinue(context => !IsFrameExpectedFromInteraction(),
                                         new Action(context =>
                                         {
-                                            _interactBlacklist.Add(SelectedInteractTarget, BlacklistDuration);
+                                            BlacklistInteractTarget(SelectedInteractTarget);
                                             _waitTimer.Restart();
                                             ++Counter;
 
@@ -969,7 +970,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                                 else
                                 {
-                                    string message = "Waiting for mobs or objects to respawn.";
+                                    string message = string.Format("Waiting for {0} to respawn.", 
+                                                                    string.Join(", ", MobIds.Select(m => FindMobName(m))));
                                     LogInfo(message);
                                     TreeRoot.StatusText = message;
                                 }
@@ -997,12 +999,23 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
         #region Helpers
+        private TimeSpan BlacklistInteractTarget(WoWObject selectedTarget)
+        {
+            WoWUnit wowUnit = selectedTarget.ToUnit();
+            bool isShortBlacklist = (wowUnit != null) && (wowUnit.IsVendor || wowUnit.IsFlightMaster);
+            TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : 180);
+
+            _interactBlacklist.Add(selectedTarget, blacklistDuration);
+            return blacklistDuration;
+        }
+
+
         /// <summary> Current object we should interact with.</summary>
         /// <value> The object.</value>
         private WoWObject FindBestInteractTarget()
         {
             double collectionDistanceSqr = CollectionDistance * CollectionDistance;
-            double minionWeighting = Math.Pow(100, 4);
+            double minionWeighting = Math.Pow(1000, 4);
 
             WoWObject entity = 
                (from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true)
