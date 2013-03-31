@@ -1,11 +1,6 @@
-﻿TODO:
-* "Students No More" needs to focus on the eggs that heal the boss.
-	+ In Kick's thread a few people have reported the inability to kill the boss when the eggs are not taken out first.
-	+ Need to beef up EscortGroup to allow for target priority
-	+ Have Kick replace 30625-FourWinds-StudentsNoMore.cs with EscortGroup.cs
-
+﻿TODO
+====
 * ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
-* Kick's Hyjal "Mental Training": Needs to use ButtonPressOn* behavior instead of specific one.
  
 * ButtonPressOnChat, (request from Laria):
 	hey there, could you extend buttonpressonchat with a small auraid check,
@@ -13,14 +8,9 @@
 	it also might need fixes due to new actionbar code,
 	for me wow says "you can't do that" and no buttons seem to be pressed
 
-* InteractWith needs a complete overhaul
-	+ Mobs disappearing cause exceptions
-	+ It contains Thread.Sleep() and many more sins.
-    + It runs 'open loop', if you get interrupted while interacting, it counts it towards its completion goal
-    + It needs to be recast in terms of TreeHooks, since it expects to act during combat.
-       The old technique this behavior uses is glitchy.
-	+ Here is an example: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
-	+ InteractWith can't see Hargan Bronzewing to buy riding training:
+* InteractWith testing needed:
+	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
+	+ Old InteractWith can't see Hargan Bronzewing to buy riding training--see if problem still exists with new InteractWith:
 		http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
 
 * KillUntilComplete
@@ -35,26 +25,12 @@
 
 * MyCTM
 	+ Needs to take a path of points
-
-* UseItemTargetLocation
-	+ Bug report from here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/113182-qb-useitemtargetlocation-seems-broken.html#post1102605
-	+ "Sharecropper" profile is here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/111188-sharecropper.html#post1084027
+	+ Needs to gracefully recover from combat situations
 
 * UseTransport
 	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-9.html#post1092429
-
-* VehicleMover is not working in Death Comes from On High with Eye of Achareus
-	+ http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111534-dk-starting-revised-nesox.html#post1087220
-
-52781-Persuasive Strike
-
-BUGS:
-* Goblin profiles are buggy for Huntards (from Kick):
-  See these posts:
-    + http://www.thebuddyforum.com/archives/24256-kicks-old-posts-thread-archives-do-not-delete-1903.html#post825855
-	+ http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-2.html#post1034169
 
 * 27779-Uldum-Gnomebliteration.cs:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626
@@ -65,20 +41,66 @@ BUGS:
 	  are no more targets in the immediate area.  The path should take us to more targets so
 	  ObjectManager.GetObjectsOfType() can be re-populated.
 	+ May need to put a "gnomes killed" timer in place to abandon the current vehicle, and go fetch a fresh one
+	
+* 52781-Persuasive Strike
+	+ ?
 
 
-* GENERAL PROFILE ISSUES:
-	+ Stay on Apoc/Nesox about getting unified QB directory DLL.
-		We can't reuse any code until this problem is solved.
+KICK'S PROFILES:
+================
+* "Students No More" needs to focus on the eggs that heal the boss.
+	+ In Kick's thread a few people have reported the inability to kill the boss when the eggs are not taken out first.
+	+ Need to beef up EscortGroup to allow for target priority
+	+ Have Kick replace 30625-FourWinds-StudentsNoMore.cs with EscortGroup.cs
+	
+* Need to sweep through all profiles and remove as much CTM things as possible.
+	CTM doesn't unstuck and causes grief.
 
-	+ Currently underwater nav is handled by each behavior, and slightly differently.
-		Any chance of using Flightor as the nav while swimming?
+* Kick's Hyjal "Mental Training": Needs to use ButtonPressOn* behavior instead of specific one.
 
-* KICK'S PROFILES:
-	+ Need to sweep through all profiles and remove as much CTM things as possible.
-		CTM doesn't unstuck and causes grief.
+* Goblin profiles are buggy for Huntards (from Kick):
+  See these posts:
+    + http://www.thebuddyforum.com/archives/24256-kicks-old-posts-thread-archives-do-not-delete-1903.html#post825855
+	+ http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-2.html#post1034169
+
+
+NEEDED QUEST BEHAVIORS:
+=======================
+* Actively Avoid Mobs
+	* You Can't Take'Em Alone & Hold the Line
+		+ Need to avoid the Horrid Abomination (36231) while doing Hold he Line
+
+* Behavior to completely disable Combat Routine (and turn it back on)
+	* Needed for pet-based classes in Worgen and Goblin starting zones?
+		
+* General Pickpocket behavior
+	* Similar to new InteractWith or CollectThings
+	* Has a 'hunting ground'
+	* Needs to guarantee stealth
+	* Needs to guarantee approaching mob from behind
+	* Use distract if necessary
+
+* Mobile tank vehicle behavior that can actually aim at targets
+
+* Stationary Cannon (Worgen starting area--level 5-ish)
+	* For By Blood and Ash
+		+ Mount Rebel Cannon (35317)
+		+ Just aim on Bloodfang Stalker(35229)
+		+ Use Button 1 (Rebel Cannon, http://www.wowhead.com/spell=67279) 
+		+ Prefer nearest mobs
+
+
+GENERAL PROFILE ISSUES:
+=======================
+* Stay on Apoc/Nesox about getting unified QB directory DLL.
+	We can't reuse any code until this problem is solved.
+
+* Currently underwater nav is handled by each behavior, and slightly differently.
+	Any chance of using Flightor as the nav while swimming?
+
 
 TO RETIRE:
+==========
 * FindAndBeatNpcs.cs
 * IntoTheRealmOfShadows.cs
 * TheGiftThatKeepsOnGiving.cs
