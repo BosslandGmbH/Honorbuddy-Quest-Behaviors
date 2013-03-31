@@ -732,10 +732,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new SwitchArgument<NavigationType>(NavigationType.None,
                                     new Action(ret =>
                                     {
+                                        _isBehaviorDone = true;
                                         TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedInteractTarget);
                                         TreeRoot.StatusText = string.Format("{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
                                                                             SelectedInteractTarget.Name, SelectedInteractTarget.Distance, blacklistDuration);
-                                        _isBehaviorDone = true;
                                     }))
                             )),
                         #endregion
@@ -813,9 +813,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                     // If the caller has also specified a "buy item", then we're not done yet.
                                                     if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
                                                     {
+                                                        ++Counter;  // bump counter first, to work around HBcore memory read bug
                                                         BlacklistInteractTarget(SelectedInteractTarget);
                                                         _waitTimer.Restart();
-                                                        ++Counter;
                                                     }
                                                 })
                                             )),
@@ -944,9 +944,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     new DecoratorContinue(context => !IsFrameExpectedFromInteraction(),
                                         new Action(context =>
                                         {
-                                            BlacklistInteractTarget(SelectedInteractTarget);
+                                            ++Counter;  // Bump counter first to work around HBcore memory read bug
                                             _waitTimer.Restart();
-                                            ++Counter;
+                                            BlacklistInteractTarget(SelectedInteractTarget);
 
                                             if ((Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected)
                                                 { Me.ClearTarget(); }
