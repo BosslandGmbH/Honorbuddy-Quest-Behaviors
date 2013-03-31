@@ -20,6 +20,9 @@
 //  * Gossiping with the mob through a set of dialogs
 //  * "Right-clicking" on the mob to complete a goal
 //  * Buying particular items off of vendors
+//  * Using an item on a mob or object.  The item can be one-click use, or two-click
+//      use (two-click: clicks once to get a 'placement cursor', and clicks the
+//      second time to drop the placement cursor on the mob or object).
 //  * Looting or harvesting (through interaction) an item off a mob or object
 // The behavior initiates interaction by "right clicking" on the mob of interest.
 // The subsequent actions taken by the behavior depend on the attributes provided.
@@ -74,7 +77,7 @@
 //      InteractByGossipOptions [optional; Default: none]
 //          Defines a comma-separated list of (1-based) numbers that specifies
 //          which Gossip option to select in each dialog frame when chatting with an NPC.
-//          This value should be separated with commas. ie. GossipOption="1,1,4,2".
+//          This value should be separated with commas. ie. InteractByGossipOptions="1,1,4,2".
 //
 // Interaction by Looting:
 //      InteractByLooting [optional; Default: false]
