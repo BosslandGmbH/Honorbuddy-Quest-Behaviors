@@ -732,10 +732,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new SwitchArgument<NavigationType>(NavigationType.None,
                                     new Action(ret =>
                                     {
-                                        _isBehaviorDone = true;
                                         TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedInteractTarget);
                                         TreeRoot.StatusText = string.Format("{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
                                                                             SelectedInteractTarget.Name, SelectedInteractTarget.Distance, blacklistDuration);
+                                        _isBehaviorDone = true;
                                     }))
                             )),
                         #endregion
@@ -798,24 +798,28 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new Decorator(context => GossipFrame.Instance.IsVisible,
                                     new Sequence(
                                         new DecoratorContinue(context => InteractByGossipOptions.Length > 0,
-                                            new Sequence(
-                                                new Action(context=> { LogInfo("Gossiping with {0}", SelectedInteractTarget.Name); }),
-                                                new Action(context => { GossipOptionIndex = 0; }),
-                                                new WhileLoop(RunStatus.Success, context => GossipOptionIndex < InteractByGossipOptions.Length,
-                                                    new Action(context => { GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipOptionIndex++]); }),
-                                                    new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed())
+                                            new Sequence(selectedTargetNameContext => SelectedInteractTarget.Name,
+                                                new Action(selectedTargetNameContext => { LogInfo("Gossiping with {0}", (string)selectedTargetNameContext); }),
+                                                new Action(selectedTargetNameContext => { GossipOptionIndex = 0; }),
+                                                new WhileLoop(RunStatus.Success, selectedTargetNameContext => GossipOptionIndex < InteractByGossipOptions.Length,
+                                                    new Action(selectedTargetNameContext => { GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipOptionIndex++]); }),
+                                                    new WaitContinue(Delay_Interaction, selectedTargetNameContext => false, new ActionAlwaysSucceed())
                                                 ),
-                                                new Action(context =>
+                                                new Action(selectedTargetNameContext =>
                                                 {
-                                                    LogInfo("Gossip with {0} complete.", SelectedInteractTarget.Name);
+                                                    // NB: The SelectedInteractTarget may no longer be viable after gossiping.
+                                                    // For instance, the NPC may disappear, or if the toon was forced on a taxi ride
+                                                    // as a result of the gossip, the SelectedInteractTarget will no longer be viable
+                                                    // once we land.
+                                                    LogInfo("Gossip with {0} complete.", (string)selectedTargetNameContext);
 
                                                     // NB: Some merchants require that we gossip with them before purchase.
                                                     // If the caller has also specified a "buy item", then we're not done yet.
                                                     if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
                                                     {
-                                                        ++Counter;  // bump counter first, to work around HBcore memory read bug
                                                         BlacklistInteractTarget(SelectedInteractTarget);
                                                         _waitTimer.Restart();
+                                                        ++Counter;
                                                     }
                                                 })
                                             )),
@@ -944,9 +948,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     new DecoratorContinue(context => !IsFrameExpectedFromInteraction(),
                                         new Action(context =>
                                         {
-                                            ++Counter;  // Bump counter first to work around HBcore memory read bug
-                                            _waitTimer.Restart();
                                             BlacklistInteractTarget(SelectedInteractTarget);
+                                            _waitTimer.Restart();
+                                            ++Counter;
 
                                             if ((Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected)
                                                 { Me.ClearTarget(); }
@@ -1004,6 +1008,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         #region Helpers
         private TimeSpan BlacklistInteractTarget(WoWObject selectedTarget)
         {
+            // NB: The selectedTarget can sometimes go "non viable".
+            // An example: We gossip with an NPC that results in a forced taxi ride.  Honorbuddy suspends
+            // this behavior while the taxi ride is in progress, and when we land, the selectedTarget
+            // is no longer viable to blacklist.
+            if (!IsViable(selectedTarget))
+                { return TimeSpan.Zero; }
+
             WoWUnit wowUnit = selectedTarget.ToUnit();
             bool isShortBlacklist = (wowUnit != null) && (wowUnit.IsVendor || wowUnit.IsFlightMaster);
             TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : 180);
@@ -1714,7 +1725,4 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
         #endregion
     }
-
-
-
 }
