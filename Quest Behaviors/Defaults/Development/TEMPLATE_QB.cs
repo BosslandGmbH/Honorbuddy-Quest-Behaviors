@@ -134,6 +134,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         public delegate double RangeDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
 
+        private readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
 
@@ -349,28 +350,25 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         #region Helpers
 
         // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWUnit> FindMobsTargetingMeOrPet()
+        private IEnumerable<WoWUnit> FindNonFriendlyTargetingMeOrPet()
         {
             return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
-                    unit.IsValid
-                    && unit.IsAlive
-                    && !unit.IsFriendly
-                    && ((unit.CurrentTarget == Me)
-                        || (Me.GotAlivePet && unit.CurrentTarget == Me.Pet))
-                    && !Blacklist.Contains(unit, BlacklistFlags.Combat)
+                    IsViableForFighting(unit)
+                    && unit.IsTargetingMeOrPet
                 select unit;
         }
-
-
+        
+        
         // 25Feb2013-12:50UTC chinajade
         private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
         {
             return
-                from player in ObjectManager.GetObjectsOfType<WoWPlayer>()
+                from player in ObjectManager.GetObjectsOfType<WoWPlayer>(true, false)
                 where
-                    player.IsAlive
+                    IsViable(player)
+                    && player.IsAlive
                     && player.Location.Distance(location) < radius
                 select player;
         }
@@ -400,6 +398,28 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
+        // returns true, if any member of GROUP (or their pets) is in combat
+        // 24Feb2013-08:11UTC chinajade
+        private bool IsAnyInCombat(IEnumerable<WoWUnit> group)
+        {
+            return group.Any(u => u.Combat || (u.GotAlivePet && u.Pet.Combat));
+        }
+
+        
+        //  23Mar2013-05:38UTC chinajade
+        private bool IsInLineOfSight(WoWObject wowObject)
+        {
+            WoWUnit wowUnit = wowObject.ToUnit();
+
+            return (wowUnit == null)
+                ? wowObject.InLineOfSight
+                // NB: For WoWUnit, we do two checks.  This keeps us out of trouble when the
+                // mobs are up a stairway and we're looking at them through a guardrail and
+                // other boundary conditions.
+                : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
+        }
+        
+        
         // 24Feb2013-08:11UTC chinajade
         private bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
         {
@@ -595,6 +615,26 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                                 new Action(targetContext => { RoutineManager.Current.Combat(); })
                             ))
                     )));
+        }
+
+        
+        private WoWUnit MobTargetingUs { get; set; }
+        private Composite UtilityBehavior_SpankMobTargetingUs()
+        {
+            return new PrioritySelector(
+                // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
+                // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
+                new Decorator(context => !IsViableForFighting(MobTargetingUs),
+                    new Action(context =>
+                    {
+                        MobTargetingUs = FindNonFriendlyTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
+                        return RunStatus.Failure;   // fall through
+                    })),
+
+                // Spank any mobs we find being naughty...
+                new Decorator(context => MobTargetingUs != null,
+                    UtilityBehavior_SpankMob(context => MobTargetingUs))
+            );
         }
         #endregion
 
