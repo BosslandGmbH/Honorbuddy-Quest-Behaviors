@@ -419,13 +419,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         public int Counter { get; private set; }
         private WaypointType CurrentHuntingGroundWaypoint { get; set; }
+        private readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
         private TimeSpan Delay_AfterItemUse { get { return VariantTimeSpan(400, 900); } }
         private TimeSpan Delay_Interaction { get { return VariantTimeSpan(900, 1900); } }
         private int GossipOptionIndex { get; set; }
         private WoWItem ItemToUse { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-        private WoWUnit MobTargetingUs { get; set; }
         private WoWObject SelectedInteractTarget { get; set; }
 
         private Composite _behaviorTreeHook_CombatMain = null;
@@ -660,19 +660,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 UtilityBehavior_Rest(),
 
                 // If a mob is targeting us, deal with it immediately, so our interact actions won't be interrupted...
-                new Decorator(context => !IsViableTargetForFighting(MobTargetingUs),
-                    new Action(context =>
-                    {
-                        MobTargetingUs = FindMobsTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
-                        return RunStatus.Failure;   // fall through
-                    })),
-                // Spank any mobs we find being naughty, unless we want to interact with them...
-                new Decorator(context => (MobTargetingUs != null) && !MobIds.Contains((int)MobTargetingUs.Entry),
-                    UtilityBehavior_SpankMob(context => MobTargetingUs)),
+                UtilityBehavior_SpankMobTargetingUs(),
 
 
-                // If interact target is no longer viable, try to find another...
-                new Decorator(context => !IsViableTargetForInteracting(SelectedInteractTarget),
+                // If interact target is no longer viable, try to find another...s
+                new Decorator(context => !IsViableForInteracting(SelectedInteractTarget),
                     new Action(context =>
                     {
                         SelectedInteractTarget = FindBestInteractTarget();
@@ -712,7 +704,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new SwitchArgument<NavigationType>(NavigationType.Mesh,
                                     new PrioritySelector(
                                         new Decorator(ret => !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedInteractTarget.Location)
-                                                            && !Me.IsFlying && !Me.IsOnTransport,
+                                                            && (!Me.IsFlying || !Me.IsOnTransport),
                                             new Action(ret =>
                                             {
                                                 TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedInteractTarget);
@@ -766,7 +758,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new Decorator(context => Me.IsMoving,
                                     new Sequence(
                                         new Action(context => { WoWMovement.MoveStop(); }),
-                                        new WaitContinue(Delay_WoWClientMovementThrottle, context => false, new ActionAlwaysSucceed())
+                                        new WaitContinue(Delay_LagDuration, context => false, new ActionAlwaysSucceed())
                                     )),
                                     
     
@@ -1036,7 +1028,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 where
                     MobIds.Contains((int)wowObject.Entry)
                     && (wowObject.DistanceSqr < collectionDistanceSqr)
-                    && IsViableTargetForInteracting(wowObject)
+                    && IsViableForInteracting(wowObject)
                 // NB: we use a weighted vertical difference to make mobs higher or lower
                 // than us 'more expensive' to get to.  This is important in tunnels/caves
                 // where mobs may be within X feet of us, but they are below or above us,
@@ -1073,7 +1065,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private IEnumerable<WoWUnit> FindMobsTargetingMeOrPet()
         {
             return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
                     unit.IsValid
                     && unit.IsAlive
@@ -1086,10 +1078,22 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
         // 25Feb2013-12:50UTC chinajade
+        private IEnumerable<WoWUnit> FindNonFriendlyTargetingMeOrPet()
+        {
+            return
+                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                where
+                    IsViableForFighting(unit)
+                    && unit.IsTargetingMeOrPet
+                select unit;
+        }
+        
+        
+        // 25Feb2013-12:50UTC chinajade
         private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
         {
             return
-                from player in ObjectManager.GetObjectsOfType<WoWPlayer>()
+                from player in ObjectManager.GetObjectsOfType<WoWPlayer>(true, false)
                 where
                     IsViable(player)
                     && player.IsAlive
@@ -1157,7 +1161,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         
         
         // 24Feb2013-08:11UTC chinajade
-        private bool IsViableTargetForFighting(WoWUnit wowUnit)
+        private bool IsViableForFighting(WoWUnit wowUnit)
         {
             return
                 IsViable(wowUnit)
@@ -1167,7 +1171,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
         // 24Feb2013-08:11UTC chinajade
-        private bool IsViableTargetForInteracting(WoWObject wowObject)
+        private bool IsViableForInteracting(WoWObject wowObject)
         {
             if (wowObject == null)
                 { return false; }
@@ -1200,7 +1204,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private bool IsViableTargetForPulling(WoWUnit wowUnit)
         {
             return
-                IsViableTargetForFighting(wowUnit)
+                IsViableForFighting(wowUnit)
                 && (wowUnit.TappedByAllThreatLists || !wowUnit.TaggedByOther);
         }
 
@@ -1259,7 +1263,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private Composite UtilityBehavior_SpankMob(WoWUnitDelegate selectedTargetDelegate)
         {
             return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
-                new Decorator(targetContext => IsViableTargetForFighting((WoWUnit)targetContext),
+                new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
                     new PrioritySelector(               
                         new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CharacterSettings.Instance.PullDistance,
                             new Action(targetContext => { Navigator.MoveTo(((WoWUnit)targetContext).Location); })),
@@ -1278,6 +1282,26 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new Action(targetContext => { RoutineManager.Current.Combat(); })
                             ))
                     )));
+        }
+
+
+        private WoWUnit MobTargetingUs { get; set; }
+        private Composite UtilityBehavior_SpankMobTargetingUs()
+        {
+            return new PrioritySelector(
+                // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
+                // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
+                new Decorator(context => !IsViableForFighting(MobTargetingUs),
+                    new Action(context =>
+                    {
+                        MobTargetingUs = FindNonFriendlyTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
+                        return RunStatus.Failure;   // fall through
+                    })),
+
+                // Spank any mobs we find being naughty...
+                new Decorator(context => MobTargetingUs != null,
+                    UtilityBehavior_SpankMob(context => MobTargetingUs))
+            );
         }
         #endregion
 
