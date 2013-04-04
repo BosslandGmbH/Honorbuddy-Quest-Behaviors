@@ -1,0 +1,64 @@
+<HBProfile>
+	<Name>GetOutOfGroundEffectAndAuras test - A Celestial Experience</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<If Condition="Me.IsAlliance">
+			<PickUp QuestName="A Celestial Experience" QuestId="31394" GiverName="Auduin Wrnn" GiverId="64540" X="3823.77" Y="538.21" Z="639.01" />
+		</If>
+		<If Condition="Me.IsHorde">
+			<PickUp QuestName="A Celestial Experience" QuestId="31395" GiverName="Sunwalker Dezco" GiverId="64542" X="3823.77" Y="538.21" Z="639.01" />
+		</If>
+
+		<!-- MoveOutOfGroundEffectAuraId1="126625" -->
+		<CustomBehavior File="GetOutOfGroundEffectAndAuras" StartNpcId="64528" QuestId="31394"
+			EventX="3783.071" EventY="535.3829" EventZ="639.0076"
+			MoveBehindMobCastingSpellId1="126631"
+			MoveAwayFromMobsWhenMyAuraId1="5697"
+			MoveAwayFromMobCastingSpellId1="126633"
+			MoveAwayFromMobWithAuraId1="23719"
+			MoveAwayFromMobWithAuraId2="126633"
+			>
+			<Safespots>
+				<!-- safe spots in the room are the gold circles that comprise the big circle -->
+				<Hotspot X="3825.954" Y="550.3646" Z="639.8345" />
+				<Hotspot X="3800.181" Y="567.9801" Z="639.8226" />
+				<Hotspot X="3770.128" Y="557.3201" Z="639.8259" />
+				<Hotspot X="3765.737" Y="516.8966" Z="639.8144" />
+				<Hotspot X="3791.67"  Y="499.2032" Z="639.825" />
+				<Hotspot X="3821.244" Y="509.5078" Z="639.8226" />
+			</Safespots>
+		</CustomBehavior>
+	</QuestOrder>
+</HBProfile>

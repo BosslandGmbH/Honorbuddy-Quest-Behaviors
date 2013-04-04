@@ -1,0 +1,42 @@
+<HBProfile>
+	<Name>GetOutOfGroundEffectAndAuras test - Breaking the Emporer's Shield</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<CustomBehavior File="GetOutOfGroundEffectAndAuras" QuestId="30798"
+			EventX="3468.91" EventY="1526.312" EventZ="814.9637"
+			PreferKillingMobId1="60826"
+			/>
+	</QuestOrder>
+</HBProfile>

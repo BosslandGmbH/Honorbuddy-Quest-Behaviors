@@ -1,0 +1,52 @@
+<HBProfile>
+	<Name>EscortGroup test - Students No More</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<PickUp QuestName="Students No More" QuestId="30625" GiverName="Guard Captain Oakenshield" GiverId="57198" X="-199.9965" Y="2223.845" Z="135.255" />
+
+		<CustomBehavior File="EscortGroup" QuestId="30625"
+			EscortNpcId1="59839" EscortNpcId2="59840" EscortNpcId3="59841" EscortNpcId4="59842" EscortNpcId5="59843"
+			>
+			<SearchPath>
+				<Hotspot X="-244.1373" Y="2327.563" Z="137.9225" />
+				<Hotspot X="-271.8149" Y="2286.35" 	Z="119.61" />
+				<Hotspot X="-278.60"   Y="2280.82"  Z="116.73" />
+				<Hotspot X="-377.7986" Y="2311.363" Z="117.677" />
+				<Hotspot X="-422.3317" Y="2303.213" Z="133.0315" />
+				<Hotspot X="-273.74"   Y="2351.56"  Z="126.98" />
+			</SearchPath>
+		</CustomBehavior>
+	</QuestOrder>
+</HBProfile>

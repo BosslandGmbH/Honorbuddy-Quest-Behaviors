@@ -1,0 +1,67 @@
+<HBProfile>
+	<Name>InteractWith - Merchant buy with no money Test</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		
+		<CustomBehavior File="InteractWith" MobId="44236" NumOfTimes="1"
+			BuyItemId="159" BuyItemCount="9" />
+		<CustomBehavior File="Halt" />
+			
+		<!-- Right ItemId num -->
+		<CustomBehavior File="Message" Text="Buying from right ItemId number--should SUCCEED" />
+		<CustomBehavior File="InteractWith" MobId="44236" NumOfTimes="1"
+			BuyItemId="2596" BuyItemCount="1" />
+			
+		<!-- Right slot num -->
+		<CustomBehavior File="Message" Text="Buying from right slot number--should SUCCEED" />
+		<CustomBehavior File="InteractWith" MobId="44236" NumOfTimes="1"
+			BuySlot="0" BuyItemCount="1" />
+
+		<!-- Wrong ItemId num -->
+		<CustomBehavior File="Message" Text="Buying from right ItemId number--should FAIL" />
+		<CustomBehavior File="InteractWith" MobId="44236" NumOfTimes="1"
+			BuyItemId="123" BuyItemCount="1" />
+			
+		<!-- Wrong slot num -->
+		<CustomBehavior File="Message" Text="Buying from wrong slot number--should FAIL" />
+		<CustomBehavior File="InteractWith" MobId="44236" NumOfTimes="1"
+			BuySlot="100" BuyItemCount="1" />
+
+		<!-- Insufficient count -->
+		<CustomBehavior File="Message" Text="Buying excessive count--should FAIL" />
+		<CustomBehavior File="InteractWith" MobId="5519" NumOfTimes="1"
+			BuyItemId="4404" BuyItemCount="1" />
+	</QuestOrder>
+</HBProfile>

@@ -1,0 +1,56 @@
+<HBProfile>
+	<Name>UseItemOn test - Extinguishing Hope</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<PickUp QuestName="Extinguishing Hope" QuestId="26391" GiverName="Milly Osworth" GiverId="9296"
+			X="-8923.88" Y="-135.8889" Z="81.02888" />
+		<CustomBehavior File="UserSettings" PullDistance="10" />
+		
+		<CustomBehavior File="UseItemOn" QuestId="26391" MobId="42940" ItemId="58362" NumOfTimes="8"
+			WaitTime="3000" Range="10" CollectionDistance="100"
+			>
+			<!-- X="-9063.322" Y="-277.0595" Z="73.64384"  -->
+			<HuntingGrounds WaypointVisitStrategy="Random" >
+				<Hotspot Name="wagon" X="-9050.408" Y="-300.6666" Z="73.69003" />
+				<Hotspot Name="SW totem" X="-9111.854" Y="-312.8966" Z="73.42716" />
+				<Hotspot Name="S burning tree" X="-9122.291" Y="-362.1429" Z="73.37186" />
+				<Hotspot Name="fallen tree" X="-9036.503" Y="-346.3283" Z="73.72896" />
+			</HuntingGrounds>
+		</CustomBehavior>
+		
+		<CustomBehavior File="UserSettings" PullDistance="25" />	
+		<CustomBehavior File="AbandonQuest" QuestId="26391" Type="All" />
+	</QuestOrder>
+</HBProfile>

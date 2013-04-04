@@ -1,0 +1,49 @@
+<HBProfile>
+	<Name>CombatUseItemOnV2 - Do the Imp-Possible Test</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<PickUp QuestName="Do the Imp-Possible" QuestId="28000" GiverName="Arcanist Delaris" GiverId="47341" />
+		
+		<CustomBehavior File="CombatUseItemOnV2" QuestId="28000" ItemId="62899" MobId="47339"
+			ItemAppliesAuraId="88330" UseWhenMobHasHealthPercent="15" MaxRangeToUseItem="15"
+			UseItemStrategy="UseItemOncePerTargetDontDefend"
+			X="4287.259" Y="-1112.751" Z="323.6652" />
+		
+		<CustomBehavior File="AbandonQuest" QuestId="28000" Type="All" />	 
+		<!-- <If Condition="(Me.HasAura(&quot;Enchanted Imp Sack&quot;))" >
+			<RunTo X="4327.813" Y="-745.0688" Z="284.447" />
+		</If> -->
+	</QuestOrder>
+</HBProfile>

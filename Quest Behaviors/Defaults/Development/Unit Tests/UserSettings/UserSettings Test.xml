@@ -1,0 +1,49 @@
+<HBProfile>
+	<Name>UserSettings Test</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<While Condition="true">
+			<CustomBehavior File="UserSettings" PullDistance="40" LootMobs="false" />
+			<CustomBehavior File="UserSettings" DebugShowDiff="true" />
+			<CustomBehavior File="WaitTimer" WaitTime="10000" />
+			<CustomBehavior File="UserSettings" PullDistance="original" />
+			<CustomBehavior File="UserSettings" DebugShowDiff="true" />
+			<CustomBehavior File="WaitTimer" WaitTime="10000" />
+			<CustomBehavior File="UserSettings" LootMobs="original" />
+			<CustomBehavior File="UserSettings" DebugShowDiff="true" />
+			<CustomBehavior File="WaitTimer" WaitTime="10000" />
+		</While>
+	</QuestOrder>
+</HBProfile>

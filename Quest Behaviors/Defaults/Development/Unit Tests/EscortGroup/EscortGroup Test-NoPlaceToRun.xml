@@ -1,0 +1,57 @@
+<HBProfile>
+	<Name>EscortGroup test - No Place To Run</Name>
+   
+	<MinLevel>1</MinLevel>
+	<!-- <MaxLevel>99</MaxLevel> -->
+   
+	<MinDurability>0.2</MinDurability>
+	<MinFreeBagSlots>2</MinFreeBagSlots>
+	
+	<MailGrey>False</MailGrey>
+	<MailWhite>False</MailWhite>
+	<MailGreen>True</MailGreen>
+	<MailBlue>True</MailBlue>
+	<MailPurple>True</MailPurple>
+   
+	<SellGrey>True</SellGrey>
+	<SellWhite>True</SellWhite>
+	<SellGreen>False</SellGreen>
+	<SellBlue>False</SellBlue>
+	<SellPurple>False</SellPurple>
+   
+	<TargetElites>True</TargetElites>
+
+	<AvoidMobs>
+	</AvoidMobs>
+	
+	<Blackspots>
+	</Blackspots>
+
+	<Mailboxes>
+	</Mailboxes>
+ 
+	<Vendors>
+	</Vendors>
+
+	<QuestOrder>
+		<While Condition="!IsQuestCompleted(12261)" >
+			<If Condition="!HasQuest(12261)" >
+				<CustomBehavior File="FlyTo" DestName="Pickup Quest" X="4376" Y="1492" Z="124" />
+				<CustomBehavior File="ForcedDismount" />
+				<PickUp QuestName="No Place to Run" QuestId="12261" GiverName="Serinar" GiverId="26593" />
+				<RunTo X="4376" Y="1492" Z="124" />
+			</If>
+			
+			<CustomBehavior File="FlyTo" DestName="Objective" X="4384.706" Y="1305.638" Z="150.4314" />
+			<CustomBehavior File="ForcedDismount" />
+			<RunTo X="4384.706" Y="1305.638" Z="150.4314" />
+			
+			<UseItem QuestName="No Place to Run" QuestId="12261" ItemId="37445"
+				X="4384.706" Y="1305.638" Z="150.4314" />
+			<CustomBehavior File="EscortGroup" QuestId="12261" EscortMaxFightDistance="15"
+				SearchForNpcsRadius="15" EscortNpcId1="27430" EscortCompleteWhen="QuestCompleteOrFails" />
+		</While>
+		
+		<CustomBehavior File="AbandonQuest" QuestId="12261" Type="All" />		
+	</QuestOrder>
+</HBProfile>
