@@ -82,8 +82,6 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
         // Private properties
         private readonly TimeSpan Delay_WowClientDismount = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan Delay_WowClientMovement = TimeSpan.FromMilliseconds(1000);
-        private const string DruidFlightForm = "Flight Form";
-        private const string DruidSwiftFlightForm = "Swift Flight Form";
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -169,6 +167,18 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
         }
 
 
+        private bool IsShapeShifted()
+        {
+            return
+                Me.Auras.ContainsKey("Bear Form")
+                || Me.Auras.ContainsKey("Cat Form")
+                || Me.Auras.ContainsKey("Flight Form")
+                || Me.Auras.ContainsKey("Ghost Wolf")
+                || Me.Auras.ContainsKey("Swift Flight Form")
+                || Me.Auras.ContainsKey("Travel Form");
+        }
+
+
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
@@ -177,7 +187,7 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
                 new PrioritySelector(
 
                     // If we're not mounted, nothing to do...
-                    new Decorator(ret => !Me.Mounted,
+                    new Decorator(ret => !Me.Mounted && !IsShapeShifted(),
                         new Action(delegate { _isBehaviorDone = true; })),
 
 
@@ -192,11 +202,10 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
 
                     // Otherwise, dismount...
                     new Sequence(
-                        new DecoratorContinue(ret => (Me.Auras.ContainsKey(DruidSwiftFlightForm)
-                                                      || Me.Auras.ContainsKey(DruidFlightForm)),
+                        new DecoratorContinue(context => IsShapeShifted(),
                             new Action(delegate
                                 {
-                                    LogMessage("debug", "Cancelling Flight Form");
+                                    LogMessage("debug", "Cancelling Shapeshift Form");
                                     Lua.DoString("CancelShapeshiftForm()");
                                 })),
 
