@@ -41,7 +41,7 @@
 //          This attribute may be safely combined with AuraIdOnMobN, AuraIdMissingFromMobN,
 //          and MobIdN.
 //      MobState [optional; Default: DontCare]
-//          [Allowed values: Alive, BelowHp, Dead, DontCare]
+//          [Allowed values: Alive, AliveNotInCombat, BelowHp, Dead, DontCare]
 //          This represents the state the NPC must be in when searching for targets
 //          with which we can interact.
 //          (NB: You probably don't want to select "BelowHp"--it is here for backward
@@ -254,6 +254,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public enum MobStateType
         {
             Alive,
+            AliveNotInCombat,
             BelowHp,
             Dead,
             DontCare,
@@ -1196,6 +1197,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 && ((AuraIdsMissingFromMob.Length <= 0) || !wowUnit.GetAllAuras().Any(a => AuraIdsMissingFromMob.Contains(a.SpellId)))
                 && ((MobState == MobStateType.DontCare)
                     || ((MobState == MobStateType.Dead) && wowUnit.IsDead)
+                    || ((MobState == MobStateType.AliveNotInCombat) && !wowUnit.Combat && wowUnit.IsAlive)
                     || ((MobState == MobStateType.Alive) && wowUnit.IsAlive)
                     || ((MobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft)));
         }
@@ -1384,6 +1386,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 if (!((MobState == MobStateType.DontCare)
                         || ((MobState == MobStateType.Dead) && wowUnit.IsDead)
                         || ((MobState == MobStateType.Alive) && wowUnit.IsAlive)
+                        || ((MobState == MobStateType.AliveNotInCombat) && !wowUnit.Combat && wowUnit.IsAlive)
                         || ((MobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft))))
                 {
                     if (MobState == MobStateType.BelowHp)
