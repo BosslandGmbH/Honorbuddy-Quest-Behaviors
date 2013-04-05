@@ -140,6 +140,10 @@ namespace Honorbuddy.Quest_Behaviors.Message
             {
                 System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(ColorLog.A, ColorLog.R, ColorLog.G, ColorLog.B);
 
+                Text = Text
+                    .Replace(@"\n", System.Environment.NewLine)
+                    .Replace(@"\t", "\t");
+
                 Logging.Write(newColor, "[Profile Message]: " + Text);
 
                 if (UpdateGoalText)
