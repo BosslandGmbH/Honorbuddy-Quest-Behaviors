@@ -229,6 +229,7 @@ using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
@@ -250,13 +251,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
     public class InteractWith : CustomForcedBehavior
     {
         #region Constructor and argument processing
-        public enum ObjectType
-        {
-            Npc,
-            GameObject,
-        }
-
-        public enum NpcStateType
+        public enum MobStateType
         {
             Alive,
             BelowHp,
@@ -269,6 +264,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             Mesh,
             CTM,
             None,
+        }
+
+        public enum ObjectType
+        {
+            Npc,
+            GameObject,
         }
 
         public enum QuestFrameDisposition
@@ -291,7 +292,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.AuraId, null);
                 AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.AuraId, null);
 
-                MobState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                MobState = GetAttributeAsNullable<MobStateType>("MobState", false, null, new[] { "NpcState" }) ?? MobStateType.DontCare;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
 
@@ -397,7 +398,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public bool InteractByLooting { get; private set; }
         public double MobHpPercentLeft { get; private set; }
         public int[] MobIds { get; private set; }
-        public NpcStateType MobState { get; private set; }
+        public MobStateType MobState { get; private set; }
         public NavigationType NavigationState { get; private set; }
         public ObjectType ObjType { get; private set; }
         public double NonCompeteDistance { get; private set; }
@@ -959,22 +960,22 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 new Decorator(context => SelectedInteractTarget == null,
                     new PrioritySelector(
                         new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
-                            new Action(context =>
-                            {
-                                if (!WaitForNpcs)
-                                    { _isBehaviorDone = true; }
+                            new PrioritySelector(
+                                new Decorator(context => !WaitForNpcs,
+                                    new Action(context => { _isBehaviorDone = true;})),
+                                new Decorator(context => HuntingGrounds.Waypoints.Count() > 1,
+                                    new Action(context =>  { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); })),
+                                new CompositeThrottle(TimeSpan.FromSeconds(30),
+                                    new Action(context =>
+                                    {
+                                        string message = string.Format("Waiting for {0} to respawn.", 
+                                                                        string.Join(", ", MobIds.Select(m => FindMobName(m))));
+                                        TreeRoot.StatusText = message;
 
-                                else if (HuntingGrounds.Waypoints.Count() > 1)
-                                    { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }
-
-                                else
-                                {
-                                    string message = string.Format("Waiting for {0} to respawn.", 
-                                                                    string.Join(", ", MobIds.Select(m => FindMobName(m))));
-                                    LogInfo(message);
-                                    TreeRoot.StatusText = message;
-                                }
-                            })),
+                                        var exclusions = Debug_ShowExclusions();
+                                        LogInfo("{0}{1}{2}", message, (!string.IsNullOrEmpty(exclusions) ? "\n" : ""), exclusions);
+                                    }))
+                                )),
 
                         new Sequence(
                             new Action(context =>
@@ -1176,27 +1177,27 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             if (wowObject == null)
                 { return false; }
 
+            bool baseQualifiers = 
+                IsViable(wowObject)
+                && !_interactBlacklist.Contains(wowObject)
+                && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location)))
+                && !IsInCompetition(wowObject);
+
+            // We're done, if not a WoWUnit...
             WoWUnit wowUnit = wowObject.ToUnit();
             if (wowUnit == null)
-            {
-                return
-                    IsViable(wowObject)
-                    && !_interactBlacklist.Contains(wowObject)
-                    && !IsInCompetition(wowObject);
-            }
-                                    
+                { return baseQualifiers; }
+                
+            // Additional qualifiers for WoWUnits...        
             return
-                IsViable(wowUnit)
-                && !_interactBlacklist.Contains(wowUnit)
+                baseQualifiers
                 && (!NotMoving || !wowUnit.IsMoving)
-                && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowUnit.Location)))
                 && ((AuraIdsOnMob.Length <= 0) || wowUnit.GetAllAuras().Any(a => AuraIdsOnMob.Contains(a.SpellId)))
                 && ((AuraIdsMissingFromMob.Length <= 0) || !wowUnit.GetAllAuras().Any(a => AuraIdsMissingFromMob.Contains(a.SpellId)))
-                && ((MobState == NpcStateType.DontCare)
-                    || ((MobState == NpcStateType.Dead) && wowUnit.IsDead)
-                    || ((MobState == NpcStateType.Alive) && wowUnit.IsAlive)
-                    || ((MobState == NpcStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft)))
-                && !IsInCompetition(wowUnit);
+                && ((MobState == MobStateType.DontCare)
+                    || ((MobState == MobStateType.Dead) && wowUnit.IsDead)
+                    || ((MobState == MobStateType.Alive) && wowUnit.IsAlive)
+                    || ((MobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft)));
         }
 
 
@@ -1306,6 +1307,97 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         #endregion
 
 
+        #region Debug
+        private string Debug_ShowExclusions()
+        {
+            IEnumerable<WoWObject> interactCandidates =
+                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true)
+                where
+                    IsViable(wowObject)
+                    && MobIds.Contains((int)wowObject.Entry)
+                select wowObject;
+
+            if (MobIds.Count() <= 1)
+            {
+                StringBuilder excludeReasons = new StringBuilder();
+
+                excludeReasons.Append("Excluded Units:");
+                excludeReasons.AppendLine();
+                foreach (var wowObject in interactCandidates)
+                {
+                    excludeReasons.Append("    ");
+                    excludeReasons.Append(Debug_TellWhyExcluded(wowObject));
+                    excludeReasons.AppendLine();
+                }
+
+                return excludeReasons.ToString();
+            }
+
+            return string.Empty;
+        }
+
+
+        private string Debug_TellWhyExcluded(WoWObject wowObject)
+        {
+            List<string> reasons = new List<string>();
+
+            if (!IsViable(wowObject))
+                { return "[NotViable]"; }
+
+            if (wowObject.Distance > CollectionDistance)
+                { reasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
+
+            if (_interactBlacklist.Contains(wowObject))
+                { reasons.Add("Blacklisted"); }
+
+            if (IgnoreMobsInBlackspots && Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
+                { reasons.Add("InBlackspot"); }
+
+            if (IsInCompetition(wowObject))
+            {
+                reasons.Add(string.Format("InCompetition({0} players within {1:F1})",
+                    FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count(),
+                    NonCompeteDistance));
+            }
+
+            WoWUnit wowUnit = wowObject.ToUnit();
+            if (wowUnit != null)
+            {
+                var wowUnitAuras = wowUnit.GetAllAuras().ToList();
+
+                if (NotMoving && wowUnit.IsMoving)
+                    { reasons.Add("Moving"); }
+
+                if ((AuraIdsOnMob.Length > 0) && !wowUnitAuras.Any(a => AuraIdsOnMob.Contains(a.SpellId)))
+                {
+                    reasons.Add(string.Format("MissingRequiredAura({0})",
+                        string.Join(",", AuraIdsOnMob.Select(i => i.ToString()))));
+                }
+
+                if ((AuraIdsMissingFromMob.Length > 0) && wowUnitAuras.Any(a => AuraIdsMissingFromMob.Contains(a.SpellId)))
+                {
+                    reasons.Add(string.Format("HasUnwantedAura({0})",
+                        string.Join(",", wowUnitAuras.Where(a => AuraIdsMissingFromMob.Contains(a.SpellId)).Select(a => a.SpellId.ToString()))
+                        ));
+                }
+
+                if (!((MobState == MobStateType.DontCare)
+                        || ((MobState == MobStateType.Dead) && wowUnit.IsDead)
+                        || ((MobState == MobStateType.Alive) && wowUnit.IsAlive)
+                        || ((MobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < MobHpPercentLeft))))
+                {
+                    if (MobState == MobStateType.BelowHp)
+                        { reasons.Add(string.Format("!{0}({1}%)", MobState, MobHpPercentLeft)); }
+                    else
+                        { reasons.Add(string.Format("!{0}", MobState)); }
+                }
+            }
+
+            return string.Format("{0} [{1}]", wowObject.Name, string.Join(",", reasons));
+        }
+        #endregion
+
+
         #region Local Blacklist
         // The HBcore 'global' blacklist will also prevent looting.  We don't want that.
         // Since the HBcore blacklist is not built to instantiate, we have to roll our
@@ -1368,8 +1460,36 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             }
         }
         #endregion
-        
-        
+
+
+        #region TreeSharp extensions
+        public class CompositeThrottle : DecoratorContinue
+        {
+            public CompositeThrottle(TimeSpan throttleTime, Composite composite)
+                : base(composite)
+            {
+                _throttleTime = throttleTime;
+                // Timer was created with "0" time--this makes it "good to go" for first iteration
+                _throttle.Reset();
+            }
+
+
+            protected override bool CanRun(object context)
+            {
+                if (!_throttle.IsFinished)
+                    { return false; }
+                
+                _throttle.WaitTime = _throttleTime;
+                _throttle.Reset();
+                return true;
+            }
+
+            private readonly TimeSpan _throttleTime;
+            private readonly WaitTimer _throttle = new WaitTimer(TimeSpan.FromSeconds(0));
+        }
+        #endregion
+
+
         #region XML parsing
 
         public class WaypointType : XmlUtilClass_ElementParser

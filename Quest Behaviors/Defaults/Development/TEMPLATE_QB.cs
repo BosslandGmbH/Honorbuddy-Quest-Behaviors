@@ -46,6 +46,7 @@ using System.Threading;
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -641,6 +642,34 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
         #region Pet Helpers
         // Cut-n-paste any Quest Behaviors/Development/PetControl helper methods you need, here...
+        #endregion
+
+
+        #region TreeSharp extensions
+        public class CompositeThrottle : DecoratorContinue
+        {
+            public CompositeThrottle(TimeSpan throttleTime, Composite composite)
+                : base(composite)
+            {
+                _throttleTime = throttleTime;
+                // Timer was created with "0" time--this makes it "good to go" for first iteration
+                _throttle.Reset();
+            }
+
+
+            protected override bool CanRun(object context)
+            {
+                if (!_throttle.IsFinished)
+                    { return false; }
+                
+                _throttle.WaitTime = _throttleTime;
+                _throttle.Reset();
+                return true;
+            }
+
+            private readonly TimeSpan _throttleTime;
+            private readonly WaitTimer _throttle = new WaitTimer(TimeSpan.FromSeconds(0));
+        }
         #endregion
 
 
