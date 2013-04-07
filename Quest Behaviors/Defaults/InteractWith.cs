@@ -462,8 +462,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private WaypointType CurrentHuntingGroundWaypoint { get; set; }
         private readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
-        private TimeSpan Delay_AfterItemUse { get { return VariantTimeSpan(400, 900); } }
-        private TimeSpan Delay_Interaction { get { return VariantTimeSpan(900, 1900); } }
+        private TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
+        private TimeSpan Delay_Interaction { get { return TimeSpan.FromMilliseconds(_random.Next(900, 1900)); } }
         private int GossipOptionIndex { get; set; }
         private WoWItem ItemToUse { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -707,11 +707,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                 // If interact target is no longer viable, try to find another...s
                 new Decorator(context => !IsViableForInteracting(SelectedInteractTarget),
-                    new Action(context =>
-                    {
-                        SelectedInteractTarget = FindBestInteractTarget();
-                        return RunStatus.Failure;   // fall through
-                    })),
+                    new PrioritySelector(
+                        UtilityBehavior_CloseOpenFrames(),
+                        new Action(context =>
+                        {
+                            Me.ClearTarget();
+                            SelectedInteractTarget = FindBestInteractTarget();
+                            return RunStatus.Failure;   // fall through
+                        })
+                    )),
 
 
                 #region Deal with mob we've selected for interaction...
@@ -800,7 +804,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new Decorator(context => Me.IsMoving,
                                     new Sequence(
                                         new Action(context => { WoWMovement.MoveStop(); }),
-                                        new WaitContinue(Delay_LagDuration, context => false, new ActionAlwaysSucceed())
+                                        new WaitContinue(Delay_LagDuration, context => !Me.IsMoving, new ActionAlwaysSucceed())
                                     )),
                                     
     
@@ -815,16 +819,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         {
                                             LogInfo("Looting {0}", SelectedInteractTarget.Name);
                                             LootFrame.Instance.LootAll();
+                                            return RunStatus.Failure; // fall through
                                         }),
-                                        new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
-                                        // Make certain loot frame didn't morph into another frame type...
-                                        new Decorator(context => LootFrame.Instance.IsVisible,
-                                            new Sequence(
-                                                new Action(context => { LootFrame.Instance.Close(); }),
-                                                new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
-                                                    new Action(context => { Me.ClearTarget(); }))
-                                            ))
+                                        // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
+                                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
                                     )),
+
                                 #endregion
 
 
@@ -869,22 +869,51 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                     new WaitContinue(Delay_Interaction, selectedTargetNameContext => !GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
                                                 )
                                             )),
-                                        new DecoratorContinue(context => InteractByGossipOptions.Length <= 0,
-                                            new Sequence(
-                                                new Action(context => { LogError("[PROFILE ERROR]: Gossip frame not expected--ignoring."); }),
-                                                new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed())
-                                            )),
-                                        // Make certain gossip frame didn't morph into another frame type (e.g., merchant frame)...
-                                        new Decorator(context => GossipFrame.Instance.IsVisible,
-                                            new Sequence(
-                                                new Action(context => { GossipFrame.Instance.Close(); }),
-                                                new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
-                                                    new Action(context => { Me.ClearTarget(); }))
-                                            ))
+
+                                        // Only a problem if Gossip frame, and not also another frame type...
+                                        new DecoratorContinue(context => (InteractByGossipOptions.Length <= 0) && GossipFrame.Instance.IsVisible && !IsMultipleFramesVisible(),
+                                            new Action(context => { LogWarning("[PROFILE ERROR]: Gossip frame not expected--ignoring."); })),
+
+                                        // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
+                                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
                                     )),
                                 #endregion
 
 
+                                #region Deal with quest frame, if open...
+                                // Side-effect of interacting with some NPCs for quests...
+                                new Decorator(context => QuestFrame.Instance.IsVisible,
+                                    new Sequence(
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.Accept,
+                                            new Action(context => { QuestFrame.Instance.AcceptQuest(); })),
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.Complete,
+                                            new Action(context => { QuestFrame.Instance.CompleteQuest(); })),
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.Continue,
+                                            new Action(context => { QuestFrame.Instance.ClickContinue(); })),
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior && !IsMultipleFramesVisible(),
+                                            new Action(context =>
+                                            {
+                                                LogInfo("Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
+                                                    SelectedInteractTarget.Name);
+                                                _isBehaviorDone = true;
+                                            })),
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile && !IsMultipleFramesVisible(),
+                                            new Action(context =>
+                                            {
+                                                LogError("[PROFILE ERROR]: {0} provided an unexpected Quest frame--terminating profile."
+                                                    + "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
+                                                    + " the behavior how to handle this situation.",
+                                                    SelectedInteractTarget.Name);
+                                                TreeRoot.Stop();
+                                                _isBehaviorDone = true;
+                                            })),
+
+                                        // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
+                                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
+                                    )),
+                                #endregion
+                                        
+                                        
                                 #region Deal with merchant frame, if open...
                                 new Decorator(context => MerchantFrame.Instance.IsVisible,
                                     new Sequence(
@@ -930,17 +959,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 ++Counter;
                                             }
 
-                                            else
+                                            else if (!IsMultipleFramesVisible())
                                                 { LogError("[PROFILE ERROR] Merchant frame not expected--ignoring."); }
                                         }),
-                                        new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
-                                        // Make certain merchant frame didn't morph into another frame type...
-                                        new Decorator(context => MerchantFrame.Instance.IsVisible,
-                                            new Sequence(
-                                                new Action(context => { MerchantFrame.Instance.Close(); }),
-                                                new DecoratorContinue(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
-                                                    new Action(context => { Me.ClearTarget(); }))
-                                            ))
+
+                                        // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
+                                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
                                     )),
                                 #endregion
 
@@ -955,14 +979,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             new Action(context => { QuestFrame.Instance.CompleteQuest(); })),
                                         new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.Continue,
                                             new Action(context => { QuestFrame.Instance.ClickContinue(); })),
-                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior,
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior && !IsMultipleFramesVisible(),
                                             new Action(context =>
                                             {
                                                 LogInfo("Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
                                                     SelectedInteractTarget.Name);
                                                 _isBehaviorDone = true;
                                             })),
-                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile,
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile && !IsMultipleFramesVisible(),
                                             new Action(context =>
                                             {
                                                 LogError("[PROFILE ERROR]: {0} provided an unexpected Quest frame--terminating profile."
@@ -972,14 +996,27 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 TreeRoot.Stop();
                                                 _isBehaviorDone = true;
                                             })),
-                                        new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
-                                        // Make certain merchant frame didn't morph into another frame type...
-                                        new Decorator(context => QuestFrame.Instance.IsVisible,
-                                            new Action(context => { QuestFrame.Instance.Close(); }))
+
+                                        // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
+                                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
                                     )),
                                 #endregion
-                                        
-                                        
+
+
+                                #region Close out any visible frames, before interacting with next target...
+                                new Decorator(context => GossipFrame.Instance.IsVisible
+                                                        || MerchantFrame.Instance.IsVisible
+                                                        || QuestFrame.Instance.IsVisible
+                                                        || TaxiFrame.Instance.IsVisible
+                                                        || TrainerFrame.Instance.IsVisible,
+                                    new Sequence(
+                                        new Decorator(context => (Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected,
+                                            new Action(context => { Me.ClearTarget(); })),
+                                        UtilityBehavior_CloseOpenFrames()
+                                    )),
+                                #endregion
+
+
                                 #region Interact with, or use item on, selected target...
                                 new Decorator(context => (ItemToUse != null) && (ItemToUse.CooldownTimeLeft > TimeSpan.Zero),
                                     new Action(context => { LogInfo("Waiting for {0} cooldown", ItemToUse.Name); })),
@@ -1009,15 +1046,20 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         )),
                                     // Peg tally, if follow-up actions not expected...
                                     new DecoratorContinue(context => !IsFrameExpectedFromInteraction(),
-                                        new Action(context =>
-                                        {
-                                            BlacklistInteractTarget(SelectedInteractTarget);
-                                            _waitTimer.Restart();
-                                            ++Counter;
+                                        new Sequence(
+                                            new WaitContinue(TimeSpan.FromSeconds(15),
+                                                context => (ItemToUse == null) || !(Me.IsCasting || Me.IsChanneling),
+                                                new ActionAlwaysSucceed()),
+                                            new Action(context =>
+                                            {
+                                                BlacklistInteractTarget(SelectedInteractTarget);
+                                                _waitTimer.Restart();
+                                                ++Counter;
 
-                                            if ((Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected)
-                                                { Me.ClearTarget(); }
-                                        }))
+                                                if ((Me.CurrentTarget == SelectedInteractTarget) && !KeepTargetSelected)
+                                                    { Me.ClearTarget(); }
+                                            })
+                                        ))
                                 )
                                 #endregion
                         ))
@@ -1174,7 +1216,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 (InteractByBuyingItemId > 0)
                 || (InteractByBuyingItemInSlotNum > -1)
                 || (InteractByGossipOptions.Length > 0)
-                || (InteractByQuestFrameAction != QuestFrameDisposition.Ignore);
+                || (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
+                || (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
+                || (InteractByQuestFrameAction == QuestFrameDisposition.Continue);
         }
 
 
@@ -1194,6 +1238,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 // mobs are up a stairway and we're looking at them through a guardrail and
                 // other boundary conditions.
                 : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
+        }
+
+
+        private bool IsMultipleFramesVisible()
+        {
+            int score =
+                (GossipFrame.Instance.IsVisible ? 1 : 0)
+                + (MerchantFrame.Instance.IsVisible ? 1 : 0)
+                + (QuestFrame.Instance.IsVisible ? 1 : 0)
+                + (TaxiFrame.Instance.IsVisible ? 1 : 0)
+                + (TrainerFrame.Instance.IsVisible ? 1 : 0);
+
+            return score > 1;
         }
 
 
@@ -1302,16 +1359,29 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
             return string.Format("{0}s", milliSeconds / 1000);
         }
-        
-
-        private static TimeSpan VariantTimeSpan(int milliSecondsMin, int milliSecondsMax)
-        {
-            return TimeSpan.FromMilliseconds(_random.Next(milliSecondsMin, milliSecondsMax));
-        }
         #endregion
 
 
         #region Utility Behavior
+        private Composite UtilityBehavior_CloseOpenFrames()
+        {
+            return new PrioritySelector(
+                new Decorator(context => GossipFrame.Instance.IsVisible,
+                    new Action(context => { GossipFrame.Instance.Close(); })),
+                new Decorator(context => MerchantFrame.Instance.IsVisible,
+                    new Action(context => { MerchantFrame.Instance.Close(); })),
+                new Decorator(context => QuestFrame.Instance.IsVisible,
+                    new Action(context => { QuestFrame.Instance.Close(); })),
+                new Decorator(context => TaxiFrame.Instance.IsVisible,
+                    // HBCORE BUG: TaxiFrame does not have a close method
+                    // new Action(context => { TaxiFrame.Instance.Close(); }),
+                    new Action(context => { LogError("Unable to close Taxi Frame"); })),
+                new Decorator(context => TrainerFrame.Instance.IsVisible,
+                    new Action(context => { TrainerFrame.Instance.Close(); }))
+            );
+        }
+
+
         private Composite UtilityBehavior_Rest()
         {
             return new Decorator(context => RoutineManager.Current.NeedRest,
@@ -1501,7 +1571,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
             public bool Contains(ulong guid)
             {
-                return (_blackList.ContainsKey(guid) && (_blackList[guid] > DateTime.Now));
+                DateTime expiry;
+                if (_blackList.TryGetValue(guid, out expiry))
+                    { return (expiry > DateTime.Now); }
+
+                return false;
             }
 
 
