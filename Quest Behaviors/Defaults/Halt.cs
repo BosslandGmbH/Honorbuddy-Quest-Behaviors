@@ -148,7 +148,8 @@ namespace Honorbuddy.Quest_Behaviors.Halt
                 Logging.Write(LogLevel.Diagnostic, newColor, "\n\n    " + Message + "\n");
 
                 TreeRoot.GoalText = Message;
-                TreeRoot.Stop();
+                LogMessage("info", "Halting bot");
+                TreeRoot.Stop("Bot stop requested by Halt quest behavior.");
             }
         }
 
