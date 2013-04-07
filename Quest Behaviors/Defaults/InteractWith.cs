@@ -88,9 +88,19 @@
 //
 // Interaction by Quest frames:
 //      InteractByQuestFrameDisposition [optional; Default: Ignore]
-//          [Allowed values: Accept, Complete, Continue, Ignore]
+//          [Allowed values: Accept, Complete, Continue, Ignore, TerminateBehavior]
 //          This attribute determines the behavior's response should the NPC
 //          with which we've interacted offer us a quest frame.
+//          Accept/Complete/Continue
+//              clicks on the appropriate button in the offered quest frame.
+//              The behavior continues after the appropriate button is clicked.
+//          Ignore
+//              closes the offered quest frame, and continues with the behavior.
+//          TerminateBehavior
+//              closes the offered quest frame, and terminates the behavior.
+//              This is useful in situations where the Quest frame was unexpected,
+//              but tells us what 'state' an NPC may be in.  See the "By Any Means Necessary"
+//              in the Examples section below.
 //
 // Interact by Using Item:
 //      InteractByUsingItemId [optional; Default: none]
@@ -202,6 +212,34 @@
 
 
 #region Examples
+// "By Any Means Necessary" (http://wowhead.com/quest=9978)
+// This is a difficult quest for a number of reasons. First, a bug in the WoWclient indicates the quest
+// is always completed, whether it is or not.  Thus we can not use an "IsCompleted" test to make decisions.
+// Because of this bug, we cannot associate a QuestId attribute with our invocation of InteractWith.
+// Second, Empoor may be in one of two states.  In one state, he'll offer us a gossip frame, and we must gossip
+// and finish the ensuing fight before we can turn in the quest.  In the other state, he allows us to turn in
+// the quest immediately (this happens when someone else has just fought him, and he stays in the second state
+// for a while).
+// To solve the problem, we arrange for InteractWith to gossip with the NPC.  If he offers the Quest frame,
+// we terminate the 'gossip' behavior (via providing the InteractByQuestFrameDisposition="TerminateBehavior"
+// attribute.
+//      <!-- A couple of states for Empoor:
+//      	1. We may need to gossip, do the fight, then turn in quest
+//  	   	2. Someone else may have started and finished the fight already, and we can
+//      		turn in quest immediately.
+//      	NB: The WoWclient makes this quest appears complete, even though its not.
+//      	So, we can't use the "IsQuestCompleted()" qualifier as a valid check.
+//      	-->
+//      <CustomBehavior File="InteractWith" MobId="18482" GossipOptions="1"
+//      	InteractByQuestFrameDisposition="TerminateBehavior" >
+//      	<HuntingGrounds>
+//      		<Hotspot Name="Tuurem" X="-2037.871" Y="4377.199" Z="1.805441" />
+//      		<Hotspot Name="Shattrath upper ring" X="-1955.325" Y="5029.867" Z="31.30444" />
+//      		<Hotspot Name="Shattrath tunnel entrance" X="-1548.137" Y="5079.232" Z="-17.91318" />
+//      	</HuntingGrounds>
+//      </CustomBehavior>
+//      <TurnIn QuestName="By Any Means Necessary" QuestId="9978" TurnInName="Empoor" TurnInId="18482" />
+//
 // "Fear No Evil" (http://wowhead.com/quest=28809)
 // Revive four injured soldiers (by interacting with them) using Paxton's Prayer Book (http://wowhead.com/item=65733).
 //      <CustomBehavior File="InteractWith" QuestId="28809" MobId="50047" NumOfTimes="4"
@@ -260,7 +298,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             DontCare,
         }
 
-        public enum NavigationType
+        public enum NavigationModeType
         {
             Mesh,
             CTM,
@@ -279,6 +317,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             Complete,
             Continue,
             Ignore,
+            TerminateBehavior,
+            TerminateProfile
         }
 
         public InteractWith(Dictionary<string, string> args)
@@ -309,7 +349,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     ?? GetAttributeAsNullable<bool>("Loot", false, null, null) /* Legacy name--don't use*/
                     ?? false;
                 InteractByQuestFrameAction = GetAttributeAsNullable<QuestFrameDisposition>("InteractByQuestFrameDisposition", false, null, null)
-                    ?? QuestFrameDisposition.Ignore;
+                    ?? QuestFrameDisposition.TerminateProfile;
                 InteractByUsingItemId = GetAttributeAsNullable<int>("InteractByUsingItemId", false, ConstrainAs.ItemId, null) ?? 0;
 
 
@@ -330,13 +370,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
                 KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-                NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
+                NavigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationModeType.Mesh;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 0.0;
                 NotMoving = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
-                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-                
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;            
                 
                 // Semantic coherency / covariant dependency checks --
                 if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
@@ -400,7 +439,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public double MobHpPercentLeft { get; private set; }
         public int[] MobIds { get; private set; }
         public MobStateType MobState { get; private set; }
-        public NavigationType NavigationState { get; private set; }
+        public NavigationModeType NavigationMode { get; private set; }
         public ObjectType ObjType { get; private set; }
         public double NonCompeteDistance { get; private set; }
         public bool NotMoving { get; private set; }
@@ -525,9 +564,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         {
             get
             {
-                return (_isBehaviorDone     // normal completion
-                        || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                return
+                    _isBehaviorDone     // normal completion
+                    || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
+                    || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
             }
         }
 
@@ -693,8 +733,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new Decorator(ret => (SelectedInteractTarget.DistanceSqr > Range * Range)
                                                 || (!IsInLineOfSight(SelectedInteractTarget)
                                                     && (SelectedInteractTarget.DistanceSqr > SelectedInteractTarget.InteractRangeSqr)),
-                            new Switch<NavigationType>(ret => NavigationState,
-                                new SwitchArgument<NavigationType>(NavigationType.CTM,
+                            new Switch<NavigationModeType>(ret => NavigationMode,
+                                new SwitchArgument<NavigationModeType>(NavigationModeType.CTM,
                                     new Action(ret =>
                                     {
                                         TreeRoot.StatusText = string.Format("Moving to interact with {0} (dist: {1:F1}{2})",
@@ -703,7 +743,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         WoWMovement.ClickToMove(SelectedInteractTarget.Location);
                                     })),
 
-                                new SwitchArgument<NavigationType>(NavigationType.Mesh,
+                                new SwitchArgument<NavigationModeType>(NavigationModeType.Mesh,
                                     new PrioritySelector(
                                         new Decorator(ret => !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedInteractTarget.Location)
                                                             && (!Me.IsFlying || !Me.IsOnTransport),
@@ -723,7 +763,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         })
                                     )),
 
-                                new SwitchArgument<NavigationType>(NavigationType.None,
+                                new SwitchArgument<NavigationModeType>(NavigationModeType.None,
                                     new Action(ret =>
                                     {
                                         TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedInteractTarget);
@@ -793,29 +833,41 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     new Sequence(
                                         new DecoratorContinue(context => InteractByGossipOptions.Length > 0,
                                             new Sequence(selectedTargetNameContext => SelectedInteractTarget.Name,
-                                                new Action(selectedTargetNameContext => { LogInfo("Gossiping with {0}", (string)selectedTargetNameContext); }),
-                                                new Action(selectedTargetNameContext => { GossipOptionIndex = 0; }),
-                                                new WhileLoop(RunStatus.Success, selectedTargetNameContext => GossipOptionIndex < InteractByGossipOptions.Length,
-                                                    new Action(selectedTargetNameContext => { GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipOptionIndex++]); }),
-                                                    new WaitContinue(Delay_Interaction, selectedTargetNameContext => false, new ActionAlwaysSucceed())
-                                                ),
                                                 new Action(selectedTargetNameContext =>
                                                 {
-                                                    // NB: The SelectedInteractTarget may no longer be viable after gossiping.
-                                                    // For instance, the NPC may disappear, or if the toon was forced on a taxi ride
-                                                    // as a result of the gossip, the SelectedInteractTarget will no longer be viable
-                                                    // once we land.
-                                                    LogInfo("Gossip with {0} complete.", (string)selectedTargetNameContext);
-
-                                                    // NB: Some merchants require that we gossip with them before purchase.
-                                                    // If the caller has also specified a "buy item", then we're not done yet.
-                                                    if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
+                                                    LogInfo("Gossiping with {0}", (string)selectedTargetNameContext);
+                                                    GossipOptionIndex = 0;
+                                                }),
+                                                new WhileLoop(RunStatus.Success, selectedTargetNameContext => GossipOptionIndex < InteractByGossipOptions.Length,
+                                                    new Action(selectedTargetNameContext =>
                                                     {
-                                                        BlacklistInteractTarget(SelectedInteractTarget);
-                                                        _waitTimer.Restart();
-                                                        ++Counter;
-                                                    }
-                                                })
+                                                        GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipOptionIndex]);
+                                                        ++GossipOptionIndex;
+
+                                                        // If gossip is complete, claim credit...
+                                                        // Frequently, the last gossip option in a chain will start a fight.  If this happens,
+                                                        // and we don't claim credit, the behavior will hang trying to re-try a gossip with the NPC,
+                                                        // and the NPC doesn't want to gossip any more.
+                                                        if (GossipOptionIndex >= InteractByGossipOptions.Length)
+                                                        {
+                                                            // NB: The SelectedInteractTarget may no longer be viable after gossiping.
+                                                            // For instance, the NPC may disappear, or if the toon was forced on a taxi ride
+                                                            // as a result of the gossip, the SelectedInteractTarget will no longer be viable
+                                                            // once we land.
+                                                            LogInfo("Gossip with {0} complete.", (string)selectedTargetNameContext);
+
+                                                            // NB: Some merchants require that we gossip with them before purchase.
+                                                            // If the caller has also specified a "buy item", then we're not done yet.
+                                                            if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
+                                                            {
+                                                                BlacklistInteractTarget(SelectedInteractTarget);
+                                                                _waitTimer.Restart();
+                                                                ++Counter;
+                                                            }
+                                                        }
+                                                    }),
+                                                    new WaitContinue(Delay_Interaction, selectedTargetNameContext => !GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
+                                                )
                                             )),
                                         new DecoratorContinue(context => InteractByGossipOptions.Length <= 0,
                                             new Sequence(
@@ -903,6 +955,23 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             new Action(context => { QuestFrame.Instance.CompleteQuest(); })),
                                         new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.Continue,
                                             new Action(context => { QuestFrame.Instance.ClickContinue(); })),
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior,
+                                            new Action(context =>
+                                            {
+                                                LogInfo("Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
+                                                    SelectedInteractTarget.Name);
+                                                _isBehaviorDone = true;
+                                            })),
+                                        new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile,
+                                            new Action(context =>
+                                            {
+                                                LogError("[PROFILE ERROR]: {0} provided an unexpected Quest frame--terminating profile."
+                                                    + "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
+                                                    + " the behavior how to handle this situation.",
+                                                    SelectedInteractTarget.Name);
+                                                TreeRoot.Stop();
+                                                _isBehaviorDone = true;
+                                            })),
                                         new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
                                         // Make certain merchant frame didn't morph into another frame type...
                                         new Decorator(context => QuestFrame.Instance.IsVisible,
@@ -973,8 +1042,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                                         string.Join(", ", MobIds.Select(m => FindMobName(m))));
                                         TreeRoot.StatusText = message;
 
-                                        var exclusions = Debug_ShowExclusions();
-                                        LogInfo("{0}{1}{2}", message, (!string.IsNullOrEmpty(exclusions) ? "\n" : ""), exclusions);
+                                        string exclusions = Debug_ShowExclusions();
+                                        if (!string.IsNullOrEmpty(exclusions))
+                                        {
+                                            message += System.Environment.NewLine;
+                                            message += "Excluded Units:";
+                                            message += System.Environment.NewLine;
+                                            message += exclusions;
+                                        }
+                                        LogInfo("{0}", message);
                                     }))
                                 )),
 
@@ -1031,6 +1107,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     MobIds.Contains((int)wowObject.Entry)
                     && (wowObject.DistanceSqr < collectionDistanceSqr)
                     && IsViableForInteracting(wowObject)
+                    && ((NavigationMode != NavigationModeType.Mesh) || Navigator.CanNavigateFully(Me.Location, wowObject.Location))
                 // NB: we use a weighted vertical difference to make mobs higher or lower
                 // than us 'more expensive' to get to.  This is important in tunnels/caves
                 // where mobs may be within X feet of us, but they are below or above us,
@@ -1064,30 +1141,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
         // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWUnit> FindMobsTargetingMeOrPet()
+        private IEnumerable<WoWUnit> FindNonFriendlyNpcTargetingMeOrPet()
         {
             return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
-                    unit.IsValid
-                    && unit.IsAlive
-                    && !unit.IsFriendly
-                    && ((unit.CurrentTarget == Me)
-                        || (Me.GotAlivePet && unit.CurrentTarget == Me.Pet))
-                    && !Blacklist.Contains(unit, BlacklistFlags.Combat)
-                select unit;
-        }
-
-
-        // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWUnit> FindNonFriendlyTargetingMeOrPet()
-        {
-            return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                where
-                    IsViableForFighting(unit)
-                    && unit.IsTargetingMeOrPet
-                select unit;
+                    IsViableForFighting(wowUnit)
+                    && !wowUnit.IsPlayer
+                    && wowUnit.IsTargetingMeOrPet
+                select wowUnit;
         }
         
         
@@ -1168,6 +1230,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             return
                 IsViable(wowUnit)
                 && wowUnit.IsAlive
+                && !wowUnit.IsFriendly
+                && wowUnit.Attackable
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
         }
 
@@ -1297,7 +1361,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 new Decorator(context => !IsViableForFighting(MobTargetingUs),
                     new Action(context =>
                     {
-                        MobTargetingUs = FindNonFriendlyTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
+                        MobTargetingUs = FindNonFriendlyNpcTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
                         return RunStatus.Failure;   // fall through
                     })),
 
@@ -1323,8 +1387,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             {
                 StringBuilder excludeReasons = new StringBuilder();
 
-                excludeReasons.Append("Excluded Units:");
-                excludeReasons.AppendLine();
                 foreach (var wowObject in interactCandidates)
                 {
                     excludeReasons.Append("    ");
@@ -1349,11 +1411,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             if (wowObject.Distance > CollectionDistance)
                 { reasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
 
+            if ((NavigationMode == NavigationModeType.Mesh) && !Navigator.CanNavigateFully(Me.Location, wowObject.Location))
+                { reasons.Add("NonNavigable"); }
+
             if (_interactBlacklist.Contains(wowObject))
                 { reasons.Add("Blacklisted"); }
 
             if (IgnoreMobsInBlackspots && Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
-                { reasons.Add("InBlackspot"); }
+                { reasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location)); }
 
             if (IsInCompetition(wowObject))
             {
@@ -1471,9 +1536,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             public CompositeThrottle(TimeSpan throttleTime, Composite composite)
                 : base(composite)
             {
-                _throttleTime = throttleTime;
-                // Timer was created with "0" time--this makes it "good to go" for first iteration
-                _throttle.Reset();
+                _throttle.WaitTime = throttleTime;
+                // _throttle was created with "0" time--this makes it "good to go" 
+                // on first visit to CompositeThrottle node
             }
 
 
@@ -1482,12 +1547,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 if (!_throttle.IsFinished)
                     { return false; }
                 
-                _throttle.WaitTime = _throttleTime;
                 _throttle.Reset();
                 return true;
             }
 
-            private readonly TimeSpan _throttleTime;
             private readonly WaitTimer _throttle = new WaitTimer(TimeSpan.FromSeconds(0));
         }
         #endregion
