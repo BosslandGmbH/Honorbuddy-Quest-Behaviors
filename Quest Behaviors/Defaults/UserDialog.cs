@@ -621,6 +621,8 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                                                                      directiveRequester);
 
                 TreeRoot.StatusText = terminationMessage;
+                
+                DialogText = DialogText.Replace(@"\n", System.Environment.NewLine).Replace(@"\t", "\t");
                 LogMessage(messageType, "[{0}] {1}\nDisposition: {2}", DialogTitle, DialogText, terminationMessage);
             }
 
