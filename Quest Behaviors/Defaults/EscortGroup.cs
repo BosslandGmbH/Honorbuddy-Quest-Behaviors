@@ -541,14 +541,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-            if ((QuestId != 0) && (quest == null))
-            {
-                LogError("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
-                IsAttributeProblem = true;
-            }
-
             _searchPath = ParsePath("SearchPath");
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -582,6 +574,8 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 5;    // don't pull anything we don't have to
                 
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
                 TreeRoot.GoalText = string.Format(
                     "{0}: \"{1}\"\nLooting and Harvesting are disabled while Escort in progress",
                     this.GetType().Name,
