@@ -178,7 +178,6 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                                             && !Me.Mounted
                                             && IsViableForFighting(wowUnitDelegate(context))
                                             && (Me.Pet.CurrentTarget != wowUnitDelegate(context))
-                                            && !wowUnitDelegate(context).IsFriendly
                                             && CanCastPetAction(spellName),
                 new Action(context => CastPetAction(spellName, wowUnitDelegate(context))));
         }
@@ -204,7 +203,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             return new Decorator(context => Me.GotAlivePet
                                             && !Me.Mounted
                                             && CanCastPetAction(spellName)
-                                            && (!IsPetActionActive(spellName) || IsViable(Me.Pet.CurrentTarget)),
+                                            && (!IsPetActionActive(spellName) || IsViableForFighting(Me.Pet.CurrentTarget)),
                 new Action(context => CastPetAction(spellName)));
         }
         

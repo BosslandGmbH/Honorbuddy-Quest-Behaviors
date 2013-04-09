@@ -8,11 +8,16 @@
 	it also might need fixes due to new actionbar code,
 	for me wow says "you can't do that" and no buttons seem to be pressed
 
+* CombatUseItemOnV2
+	+ Behavior needs to deal with items that cause 
+
 * InteractWith testing needed:
 	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
+	+ Needs a timer that blacklists target for a bit, if it can't be interacted with within a reasonable period of time.
 	+ Old InteractWith can't see Hargan Bronzewing to buy riding training--see if problem still exists with new InteractWith:
 		http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
-
+	+ Needs to help out with "randomized" daily quests: SelectGossipAvailableQuest(GetNumGossipAvailableQuests())
+		
 * KillUntilComplete
 	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive
 	+ Behavior 'stands around' far too much
@@ -117,6 +122,17 @@ GENERAL PROFILE ISSUES:
 	Any chance of using Flightor as the nav while swimming?
 
 
+HBCORE BUGS
+===========
+* Sell/Repair runs
+	Vendor runs can happen at any time.  The repair run may be done at a time the profile
+	has temporarily turned off the use of mounts.   When HBcore decides a vendor run is
+	needed, it should make certain UseMount is turned on, and PullDistance set to something sane
+	during the run.  The original values should be restored when the run is complete.
+
+
 TO RETIRE:
 ==========
-
+* (pending) BasicInteratWith
+* (pending) BasicUseObject
+* (pending) UseItemOn

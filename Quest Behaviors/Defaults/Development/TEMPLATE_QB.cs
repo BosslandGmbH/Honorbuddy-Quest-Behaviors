@@ -82,6 +82,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
                 // Tunables...
                 CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
+                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 25.0;
 
                 Blackspots = new List<Blackspot>()
@@ -115,6 +116,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
         // Variables for Attributes provided by caller
         public double CombatMaxEngagementRangeDistance { get; private set; }
+        public bool IgnoreMobsInBlackspots { get; private set; }
         public int QuestId { get; private set; }
         public int QuestObjectiveIndex { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -350,18 +352,45 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
         #region Helpers
 
+        //  9Apr2013-02:01UTC chinajade
+        private string FindMobName(int mobId)
+        {
+            WoWObject wowObject = ObjectManager.GetObjectsOfType<WoWObject>(true)
+                                .Where(o => o.Entry == mobId)
+                                .FirstOrDefault();
+
+            return (wowObject != null) ? wowObject.Name : string.Format("MobId({0})", mobId);
+        }
+
+
         // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWUnit> FindNonFriendlyTargetingMeOrPet()
+        private IEnumerable<WoWUnit> FindNonFriendlyNpcTargetingMeOrPet()
         {
             return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
-                    IsViableForFighting(unit)
-                    && unit.IsTargetingMeOrPet
-                select unit;
+                    IsViableForFighting(wowUnit)
+                    && !wowUnit.IsPlayer
+                    && wowUnit.IsTargetingMeOrPet
+                    && wowUnit.Distance <= CharacterSettings.Instance.PullDistance
+                select wowUnit;
         }
         
         
+        // 24Feb2013-08:11UTC chinajade
+        private IEnumerable<WoWObject> FindObjectsFromIds(IEnumerable<int> objectIds)
+        {
+            ContractRequires(objectIds != null, () => "objectIds argument may not be null");
+
+            return
+                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                where
+                    IsViable(wowObject)
+                    && objectIds.Contains((int)wowObject.Entry)
+                select wowObject;
+        }
+
+
         // 25Feb2013-12:50UTC chinajade
         private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
         {
@@ -381,7 +410,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             ContractRequires(unitIds != null, () => "unitIds argument may not be null");
 
             return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
                     IsViable(unit)
                     && unitIds.Contains((int)unit.Entry)
@@ -406,6 +435,12 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             return group.Any(u => u.Combat || (u.GotAlivePet && u.Pet.Combat));
         }
 
+        
+        private bool IsInCompetition(WoWObject wowObject)
+        {
+            return FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count() > 0;
+        }
+        
         
         //  23Mar2013-05:38UTC chinajade
         private bool IsInLineOfSight(WoWObject wowObject)
@@ -455,16 +490,23 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 IsViable(wowUnit)
                 && wowUnit.IsAlive
                 && !wowUnit.IsFriendly
+                && wowUnit.Attackable
                 && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
         }
 
 
         // 24Feb2013-08:11UTC chinajade
+        private LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
         private bool IsViableForInteracting(WoWObject wowObject)
         {
+            if (wowObject == null)
+                { return false; }
+
             return
                 IsViable(wowObject)
-                && !Blacklist.Contains(wowObject, BlacklistFlags.Node);
+                && !_interactBlacklist.Contains(wowObject)
+                && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location)))
+                && !IsInCompetition(wowObject);
         }
 
 
@@ -473,10 +515,42 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         {
             return
                 IsViableForFighting(wowUnit)
-                && (wowUnit.TappedByAllThreatLists || !wowUnit.TaggedByOther);
+                && (wowUnit.TappedByAllThreatLists || wowUnit.TaggedByMe || !wowUnit.TaggedByOther);
         }
 
 
+        //  9Mar2013-12:34UTC chinajade
+        private string PrettyMoney(ulong totalCopper)
+        {
+            ulong moneyCopper = totalCopper % 100;
+            totalCopper /= 100;
+
+            ulong moneySilver = totalCopper % 100;
+            totalCopper /= 100;
+
+            ulong moneyGold = totalCopper;
+
+            string formatString =
+                (moneyGold > 0) ? "{0}g{1:D2}s{2:D2}c"
+                : (moneySilver > 0) ? "{1}s{2:D2}c"
+                : "{2}c";
+
+            return string.Format(formatString, moneyGold, moneySilver, moneyCopper);
+        }
+
+
+        //  9Mar2013-12:34UTC chinajade
+        private string PrettyTime(TimeSpan duration)
+        {
+            double milliSeconds = duration.TotalMilliseconds;
+
+            return
+                (milliSeconds < 1000) ? string.Format("{0}ms", milliSeconds)
+                : ((milliSeconds % 1000) == 0) ? string.Format("{0}s", milliSeconds / 1000)
+                : string.Format("{0:F3}s", milliSeconds / 1000);
+        }
+
+        
         // 12Mar2013-08:27UTC chinajade
         private IEnumerable<T> ToEnumerable<T>(T item)
         {
@@ -502,8 +576,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
                 new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
                     new PrioritySelector(
-                        new Decorator(targetContext => !((((WoWUnit)targetContext).CurrentTarget == Me)
-                                                        || (Me.GotAlivePet && ((WoWUnit)targetContext).CurrentTarget == Me.Pet)),
+                        new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
                             new PrioritySelector(
                                 new Action(targetContext =>
                                 {
@@ -518,7 +591,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         private Composite UtilityBehavior_InteractWithMob(WoWUnitDelegate unitToInteract)
         {
             return new PrioritySelector(interactUnitContext => unitToInteract(interactUnitContext),
-                new Decorator(interactUnitContext => IsViable((WoWUnit)interactUnitContext),
+                new Decorator(interactUnitContext => IsViableForInteracting((WoWUnit)interactUnitContext),
                     new PrioritySelector(
                         // Show user which unit we're going after...
                         new Decorator(interactUnitContext => Me.CurrentTarget != (WoWUnit)interactUnitContext,
@@ -628,7 +701,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 new Decorator(context => !IsViableForFighting(MobTargetingUs),
                     new Action(context =>
                     {
-                        MobTargetingUs = FindNonFriendlyTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
+                        MobTargetingUs = FindNonFriendlyNpcTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
                         return RunStatus.Failure;   // fall through
                     })),
 
@@ -651,9 +724,9 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             public CompositeThrottle(TimeSpan throttleTime, Composite composite)
                 : base(composite)
             {
-                _throttleTime = throttleTime;
-                // Timer was created with "0" time--this makes it "good to go" for first iteration
-                _throttle.Reset();
+                _throttle.WaitTime = throttleTime;
+                // _throttle was created with "0" time--this makes it "good to go" 
+                // on first visit to CompositeThrottle node
             }
 
 
@@ -662,12 +735,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 if (!_throttle.IsFinished)
                     { return false; }
                 
-                _throttle.WaitTime = _throttleTime;
                 _throttle.Reset();
                 return true;
             }
 
-            private readonly TimeSpan _throttleTime;
             private readonly WaitTimer _throttle = new WaitTimer(TimeSpan.FromSeconds(0));
         }
         #endregion
@@ -806,8 +877,87 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         #endregion
 
 
-        #region Extensions_WoWPoint
-        // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWPoint helper methods you need, here...
+        #region Local Blacklist
+        // The HBcore 'global' blacklist will also prevent looting.  We don't want that.
+        // Since the HBcore blacklist is not built to instantiate, we have to roll our
+        // own.  <sigh>
+        public class LocalBlacklist
+        {
+            public LocalBlacklist(TimeSpan maxSweepTime)
+            {
+                _maxSweepTime = maxSweepTime;
+                _stopWatchForSweeping.Start();
+            }
+
+            private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+            private TimeSpan _maxSweepTime;
+            private Stopwatch _stopWatchForSweeping = new Stopwatch();
+
+
+            public void Add(ulong guid, TimeSpan timeSpan)
+            {
+                if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
+                    { RemoveExpired(); }
+
+                _blackList[guid] = DateTime.Now.Add(timeSpan);
+            }
+
+
+            public void Add(WoWObject wowObject, TimeSpan timeSpan)
+            {
+                if (wowObject != null)
+                    { Add(wowObject.Guid, timeSpan); }
+            }
+
+
+            public bool Contains(ulong guid)
+            {
+                DateTime expiry;
+                if (_blackList.TryGetValue(guid, out expiry))
+                    { return (expiry > DateTime.Now); }
+
+                return false;
+            }
+
+
+            public bool Contains(WoWObject wowObject)
+            {
+                return (wowObject == null)
+                    ? false
+                    : Contains(wowObject.Guid);
+            }
+
+
+            public void RemoveExpired()
+            {
+                DateTime now = DateTime.Now;
+
+                List<ulong> expiredEntries = (from key in _blackList.Keys
+                                                where (_blackList[key] < now)
+                                                select key).ToList();
+
+                foreach (ulong entry in expiredEntries)
+                    { _blackList.Remove(entry); }
+
+                _stopWatchForSweeping.Restart();
+            }
+        }
         #endregion
     }
+
+
+    #region Extensions to WoWPoint
+    public static class Extensions_WoWPoint
+    {
+        // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWPoint helper methods you need, here...
+    }
+    #endregion
+
+
+    #region Extentions to WoWUnit
+    public static class Extensions_WoWUnit
+    {
+        // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWUnit helper methods you need, here...
+    }
+    #endregion
 }

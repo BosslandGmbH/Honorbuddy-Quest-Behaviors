@@ -148,8 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-        public static double SurfacePathDistance(this WoWPoint start,
-                                                    WoWPoint destination)
+        public static double SurfacePathDistance(this WoWPoint start, WoWPoint destination)
         {
             WoWPoint[] groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
 
