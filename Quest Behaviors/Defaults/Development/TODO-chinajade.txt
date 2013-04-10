@@ -113,13 +113,29 @@ NEEDED QUEST BEHAVIORS:
 	* Needs a maximum time limit we're willing to wait.
 
 
-GENERAL PROFILE ISSUES:
-=======================
+GENERAL PROFILE ISSUES (KICK):
+==============================
 * Stay on Apoc/Nesox about getting unified QB directory DLL.
 	We can't reuse any code until this problem is solved.
 
 * Currently underwater nav is handled by each behavior, and slightly differently.
 	Any chance of using Flightor as the nav while swimming?
+
+
+GENERAL PROFILE ISSUES (THEBRODIEMAN):
+======================================
+* INTERACTWITH
+	* I had some trouble in the past. again didnt know who to bring it up to...ended up doing a workaround in a plugin.
+	  Tried interacting with statues. On right-click they should either die, or attack you. InteractWith couldn't/wouldn't
+	  interact with the mob, and would sit endlessly...have you heard of this issue yet?
+		+ Hard as a Rock/No Stone Unturned (two quests, identical requirements, neutral faction)
+		+ QuestIds 30304, 30299 respectively MobId="63447" MobId2="63556"
+
+* PERFORMTRADESKILLON
+  [5:24:32 PM] TheBrodieMan: oh oh oh PerformTradeskillOn has been acting up. i need to test it myself
+  but it seems alot of people it has been trying to parse the spellbook rather than the tradeskill window.
+  i dont know if its UI related yet, but its been since 5.2
+	+ Cloud Serpent dailies, there are 2 quests
 
 
 HBCORE BUGS
@@ -133,6 +149,7 @@ HBCORE BUGS
 
 TO RETIRE:
 ==========
-* (pending) BasicInteratWith
-* (pending) BasicUseObject
-* (pending) UseItemOn
+* (pending) BasicInteratWith => InteractWith
+* (pending) BasicUseObject => InteractWith
+* (pending) UseItemOn => InteractWith
+* (pdnding) UseItemTargetLocation => InteractWith

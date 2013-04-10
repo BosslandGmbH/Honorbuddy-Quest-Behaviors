@@ -1159,12 +1159,16 @@ LogInfo("ABILITY: {0}", ability.ToString());
             {
                 RequestAzimuth(-Math.PI / 2);
                 Limit_Down = CurrentAzimuth;
+
+                return true; // TODO finish this
             }
 
             private bool DiscoverUp()
             {
                 RequestAzimuth(Math.PI / 2);
                 Limit_Up = CurrentAzimuth;
+
+                return true; // TODO finish this
             }
 
             public void RequestAzimuth(double requestedAzimuth)
@@ -1177,7 +1181,7 @@ LogInfo("ABILITY: {0}", ability.ToString());
         private double HeadingOffset { get; set; }
         private double HeadingIncrement { get; set; }
         private double OriginalHeading { get; set; }
-        public void UtilityBehaviorPS_DiscoverArticulationLimits()
+        public Composite UtilityBehaviorPS_DiscoverArticulationLimits()
         {
             const double Tolerance_Azimuth = 0.05;
             const double Tolerance_Heading = 0.05;
@@ -1244,15 +1248,16 @@ LogInfo("ABILITY: {0}", ability.ToString());
 
                         Func<double, double> acquireHeadingLimit = (desiredHeading) =>
                         {
-                            // Start from original heading...
-                            while (Math.Abs(
-                            Me.SetFacing(originalHeading);
-                        for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
-                        {
-                            Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading + headingOffset));
-                            limitLeft = WoWMathHelper.NormalizeRadian(facingListener.Rotation);
-            LogInfo("Left: {0:F2} (offset: {1:F2})", limitLeft, headingOffset);
-                        }
+                            // TODO: FINISH THIS
+            //                // Start from original heading...
+            //                while (Math.Abs(
+            //                Me.SetFacing(originalHeading);
+            //            for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
+            //            {
+            //                Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading + headingOffset));
+            //                limitLeft = WoWMathHelper.NormalizeRadian(facingListener.Rotation);
+            //LogInfo("Left: {0:F2} (offset: {1:F2})", limitLeft, headingOffset);
+            //            }
 
                             return 0.0;
                         };

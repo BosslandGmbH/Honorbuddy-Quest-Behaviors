@@ -356,8 +356,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         private string FindMobName(int mobId)
         {
             WoWObject wowObject = ObjectManager.GetObjectsOfType<WoWObject>(true)
-                                .Where(o => o.Entry == mobId)
-                                .FirstOrDefault();
+                                .FirstOrDefault(o => o.Entry == mobId);
 
             return (wowObject != null) ? wowObject.Name : string.Format("MobId({0})", mobId);
         }
@@ -878,27 +877,26 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         #region Local Blacklist
-        // The HBcore 'global' blacklist will also prevent looting.  We don't want that.
-        // Since the HBcore blacklist is not built to instantiate, we have to roll our
-        // own.  <sigh>
+        // NB: The HBcore's blacklist will preserve 'blacklist state' between profile calls to this behavior.
+        // The 'blacklist state' will also be preserved if Honorbuddy is stop/startedby the user.
+        // We don't want either of these behaviors--we want the state to be pristine between profile
+        // calls to this behavior, or if Honorbuddy is stop/started.  Thus, we roll our own blacklist
+        // which will be disposed along with the behavior.
         public class LocalBlacklist
         {
             public LocalBlacklist(TimeSpan maxSweepTime)
             {
-                _maxSweepTime = maxSweepTime;
-                _stopWatchForSweeping.Start();
+                _sweepTimer = new WaitTimer(maxSweepTime);
+                _sweepTimer.WaitTime = maxSweepTime;
             }
 
             private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
-            private TimeSpan _maxSweepTime;
-            private Stopwatch _stopWatchForSweeping = new Stopwatch();
+            private WaitTimer _sweepTimer = null;
 
 
             public void Add(ulong guid, TimeSpan timeSpan)
             {
-                if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
-                    { RemoveExpired(); }
-
+                RemoveExpired();
                 _blackList[guid] = DateTime.Now.Add(timeSpan);
             }
 
@@ -930,16 +928,19 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
             public void RemoveExpired()
             {
-                DateTime now = DateTime.Now;
+                if (_sweepTimer.IsFinished)
+                {
+                    DateTime now = DateTime.Now;
 
-                List<ulong> expiredEntries = (from key in _blackList.Keys
-                                                where (_blackList[key] < now)
-                                                select key).ToList();
+                    List<ulong> expiredEntries = (from key in _blackList.Keys
+                                                    where (_blackList[key] < now)
+                                                    select key).ToList();
 
-                foreach (ulong entry in expiredEntries)
-                    { _blackList.Remove(entry); }
+                    foreach (ulong entry in expiredEntries)
+                        { _blackList.Remove(entry); }
 
-                _stopWatchForSweeping.Restart();
+                    _sweepTimer.Reset();
+                }
             }
         }
         #endregion
@@ -947,17 +948,11 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
     #region Extensions to WoWPoint
-    public static class Extensions_WoWPoint
-    {
         // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWPoint helper methods you need, here...
-    }
     #endregion
 
 
     #region Extentions to WoWUnit
-    public static class Extensions_WoWUnit
-    {
         // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWUnit helper methods you need, here...
-    }
     #endregion
 }
