@@ -371,7 +371,9 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                     ? IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
                     : false;
 
-                return (_isBehaviorDone     // normal completion
+                bool counterDone = ((QuestId <= 0) && (_castCounter >= CastNum));
+
+                return (counterDone || _isBehaviorDone     // normal completion
                         || isQuestObjectiveComplete
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
@@ -471,6 +473,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
                         return RunStatus.Failure;   // fall thru
                     }),
+
 
                     // Proceed if we're not in combat, or are ignoring it...
                     new Decorator(context => !Me.Combat || IgnoreCombat,
