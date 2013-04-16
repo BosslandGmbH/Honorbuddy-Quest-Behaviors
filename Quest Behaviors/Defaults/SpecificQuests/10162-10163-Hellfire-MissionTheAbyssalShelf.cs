@@ -224,7 +224,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                         r=>
                             {
                                 Flyer.Interact();
-                                GossipFrame.Instance.SelectGossipOption(0);
+                                GossipFrame.Instance.SelectGossipOption(1);
 
 
 
@@ -287,7 +287,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                 if (!Me.OnTaxi)
                 {
                     Flyer.Interact();
-                    GossipFrame.Instance.SelectGossipOption(0);
+                    GossipFrame.Instance.SelectGossipOption(1);
                 }
                 else if (Bomb.Cooldown > 0)
                 {
