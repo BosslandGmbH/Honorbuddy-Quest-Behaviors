@@ -38,14 +38,20 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 25Feb2013-12:50UTC chinajade
-        public IEnumerable<WoWUnit> FindHostileNpcWithinAggroRangeOFDestination(WoWPoint destination, double extraRangePadding = 0.0)
+        public IEnumerable<WoWUnit> FindHostileNpcWithinAggroRangeOFDestination(
+            WoWPoint destination,
+            double extraRangePadding = 0.0,
+            Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
         {
+            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => new List<int>());
+
             return
                 from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
                     IsViableForFighting(wowUnit)
                     && wowUnit.IsHostile
                     && !wowUnit.IsPlayer
+                    && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry)
                     && (wowUnit.Location.Distance(destination) <= (wowUnit.MyAggroRange + extraRangePadding))
                 select wowUnit;
         }

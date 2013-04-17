@@ -10,6 +10,7 @@
 
 #region Usings
 using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
@@ -359,9 +360,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         public Composite UtilityBehaviorPS_SpankMobWithinAggroRange(ProvideWoWPointDelegate destinationDelegate,
-                                                                    ProvideDoubleDelegate extraRangePaddingDelegate = null)
+                                                                    ProvideDoubleDelegate extraRangePaddingDelegate = null,
+                                                                    Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
         {
             extraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
+            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => new List<int>());
 
             return new Decorator(context => !Me.Combat,
                 new PrioritySelector(
@@ -371,7 +374,10 @@ namespace Honorbuddy.QuestBehaviorCore
                         new Action(context =>
                         {
                             _ubpsSpankMobWithinAggroRange_Mob =
-                                FindHostileNpcWithinAggroRangeOFDestination(destinationDelegate(context), extraRangePaddingDelegate(context))
+                                FindHostileNpcWithinAggroRangeOFDestination(
+                                    destinationDelegate(context),
+                                    extraRangePaddingDelegate(context),
+                                    excludedUnitIdsDelegate)
                                 .OrderBy(u => u.DistanceSqr).FirstOrDefault();
                             return RunStatus.Failure;   // fall through
                         })),
