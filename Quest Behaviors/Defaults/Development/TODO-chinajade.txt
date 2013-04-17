@@ -29,6 +29,22 @@
 			<CustomBehavior File="InteractWith" MobId="195600" ObjectType="GameObject" Range="14" InteractByQuestFrameDisposition="Complete" X="-183.6784" Y="1117.673" Z="90.28101" />
 		if i use the InteractByQuestFrameDisposition="Complete" with range=14 doesnt work
 		if i use only interact works
+	+ InteractWith needs a MinRange
+	+ Navigation needs to fall back to Flightor before falling back to click-to-move.
+		Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
+	+ TheBrodieMan 2013Apr14
+		came across an issue with IW while coding the PvP quests in IoT. Theres a bomb that needs to be placed by IW'ing with a mark on a wall.
+		he wall has a lip over it. Im not sure if its the proximity to water or the lip, bu IW won't click on it, says "NoLoS" even though it 
+		is clickable (and seeable) from where we stand. Problem persists both water walking, floating, and swimming.
+		any way to "ignore" LoS so it will click regardless?
+		Think i found the issue: Object saying interact range is 2 yds. I have Range set to 5 in the CB. Closest you can get to it is 3.5 yds
+		(wall and environment prevents closer) and its still clickable...am i screwed cuz of WoW?
+	+ TheBrodieMan 2013Apr15
+		rechecked my IW code for 2 click item use. Range was set to 15. Unfortunately it moves to point blank before attempting.
+	+ Cava 2013Apr14
+		hello again, just to report about interactwith, i think i found one new thing about the behavior, if enemy mob target and atack pet,
+		toon will stay quiet just watching, do not help pet, do not atack, do not pick itens, do not use "interact" after pet dies, then
+		toon keep going ( combat mob , interact etc)
 		
 * KillUntilComplete
 	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive
@@ -133,6 +149,16 @@ GENERAL PROFILE ISSUES (KICK):
 * Currently underwater nav is handled by each behavior, and slightly differently.
 	Any chance of using Flightor as the nav while swimming?
 
+* Uldum
+	[06:54:41.338 N] Enabling Check at 08:54:41
+	[06:54:41.338 D] Checktimer has Finished its Total wait of 5 Minutes, Enabling Item Check for next Opportunity
+	[06:54:41.338 N] Will Run Next Check At 08:59:41
+	[06:54:41.338 D] EnableCheck was Passed!
+	[06:54:41.438 D] Turning off Check Since Done!
+	[06:54:56.688 N] [InteractWith-v419(info) @line 890]: Waiting for Salhet to respawn.
+	Excluded Units:
+		Salhet [NonNavigable]
+
 
 GENERAL PROFILE ISSUES (THEBRODIEMAN):
 ======================================
@@ -161,7 +187,20 @@ HBCORE BUGS
 
 TO RETIRE:
 ==========
-* (pending) BasicInteratWith => InteractWith
+* (pending) BasicInteractWith => InteractWith
 * (pending) BasicUseObject => InteractWith
+* (pending) CombatUseItemOn => CombatUseItemOnV2
+* (pending) DefendObject => EscortGroup
+* (pending) Escort => EscortGroup
+* (pending) SetHearthstone => InteractWith
+* (pending) StandAndKill => EscortGroup
+* (pending) UseGameObject => InteractWith
 * (pending) UseItemOn => InteractWith
-* (pdnding) UseItemTargetLocation => InteractWith
+* (pending) UseItemTargetLocation => InteractWith
+
+POTENTIALLY TO RETIRE:
+======================
+* CastSpellOn => InteractWith (requires minor mods)
+* KillUntilComplete => SlayTheFools
+* NoCombatMoveTo => RunLikeHell
+* WaterBehavior => CollectThings
