@@ -29,12 +29,21 @@
 //          "too far away", some Combat Routines refuse to engage it for killing.  This
 //          value moves the toon within an appropriate distance to the requested target
 //          so the Combat Routine will perform as expected.
+//      IgnoreMobsInBlackspots [optional; Default: true]
+//          When true, any mobs within (or too near) a blackspot will be ignored
+//          in the list of viable targets that are considered for item use.
 //      MovementBy [optional; Default: NavigatorPreferred]
-//          [allowed values: ClickToMoveOnly/NavigatorOnly/NavigatorPreferred]
+//          [allowed values: ClickToMoveOnly/NavigatorOnly/NavigatorPreferred/None]
 //          Allows alternative navigation techniques.  You should provide this argument
 //          only when an area is unmeshed, or not meshed well.  If ClickToMoveOnly
 //          is specified, the area must be free of obstacles; otherwise, the toon
 //          will get hung up.
+//      NonCompeteDistance [optional; Default: 20]
+//          If a player is within this distance of a target that looks
+//          interesting to us, we'll ignore the target.  The assumption is that the player may
+//          be going for the same target, and we don't want to draw attention.
+//          Shared resources, such as Vendors, Innkeepers, Trainers, etc. are never considered
+//          to be "in competition".
 //
 // THINGS TO KNOW:
 //
