@@ -352,46 +352,50 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                 FollowPath.DismissPetIfNeeded();
                             })),
 
-                        // If we've consumed our ingress path, we're done...
-                        new Decorator(context => !Path_Ingress.Any(),
-                            new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
+                        // If we've an Ingress path to follow, use it...
+                        new Decorator(context => Path_Ingress != null,
+                            new PrioritySelector(
+                                // If we've consumed our ingress path, we're done...
+                                new Decorator(context => !Path_Ingress.Any(),
+                                    new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
 
-                        new Switch<SafePathType.StrategyType>(context => FollowPath.Strategy,
-                            #region State: DEFAULT
-                            new Action(context =>   // default case
-                            {
-                                LogMaintenanceError("FollowPathStrategyType({0}) is unhandled", FollowPath.Strategy);
-                                TreeRoot.Stop();
-                                State_MainBehavior = StateType_MainBehavior.BehaviorDone;
-                            }),
-                            #endregion
-
-
-                            #region Strategy: Stalk Mob at Avoid Distance Strategy
-                            new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
-                                new Decorator(context => (Mob_ToAvoid != null) && (Mob_ToAvoid.Distance < AvoidDistance),
-                                    new PrioritySelector(
-                                        new Decorator(context => Me.IsMoving,
-                                            new Action(context => { WoWMovement.MoveStop(); })),
-                                        new ActionAlwaysSucceed()
-                                    ))),
-                            #endregion
+                                new Switch<SafePathType.StrategyType>(context => FollowPath.Strategy,
+                                    #region State: DEFAULT
+                                    new Action(context =>   // default case
+                                    {
+                                        LogMaintenanceError("FollowPathStrategyType({0}) is unhandled", FollowPath.Strategy);
+                                        TreeRoot.Stop();
+                                        State_MainBehavior = StateType_MainBehavior.BehaviorDone;
+                                    }),
+                                    #endregion
 
 
-                            #region Strategy: Wait for Avoid Distance
-                            new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.WaitForAvoidDistance,
-                                new PrioritySelector(
-                                    // No addition action needed to implement strategy for now
-                                ))
-                            #endregion
-                        ),
+                                    #region Strategy: Stalk Mob at Avoid Distance Strategy
+                                    new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
+                                        new Decorator(context => (Mob_ToAvoid != null) && (Mob_ToAvoid.Distance < AvoidDistance),
+                                            new PrioritySelector(
+                                                new Decorator(context => Me.IsMoving,
+                                                    new Action(context => { WoWMovement.MoveStop(); })),
+                                                new ActionAlwaysSucceed()
+                                            ))),
+                                    #endregion
 
-                        // If we've arrived at the current ingress waypoint, dequeue it...
-                        new Decorator(context => Me.Location.Distance(Path_Ingress.Peek().Location) <= Navigator.PathPrecision,
-                            new Action(context => { Path_Ingress.Dequeue(); })),
 
-                        // Follow the prescribed ingress path...
-                        UtilityBehaviorPS_MoveTo(context => Path_Ingress.Peek().Location, context => "follow ingress path")
+                                    #region Strategy: Wait for Avoid Distance
+                                    new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.WaitForAvoidDistance,
+                                        new PrioritySelector(
+                                            // No addition action needed to implement strategy for now
+                                        ))
+                                    #endregion
+                                ),
+
+                                // If we've arrived at the current ingress waypoint, dequeue it...
+                                new Decorator(context => Me.Location.Distance(Path_Ingress.Peek().Location) <= Navigator.PathPrecision,
+                                    new Action(context => { Path_Ingress.Dequeue(); })),
+
+                                // Follow the prescribed ingress path...
+                                UtilityBehaviorPS_MoveTo(context => Path_Ingress.Peek().Location, context => "follow ingress path")
+                            ))
                     ))
             );
         }
