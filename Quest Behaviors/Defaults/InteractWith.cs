@@ -583,7 +583,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 // as the profile writer expects.  They expect the delay to be executed if the interaction
                 // succeeded.
                 new Decorator(context => !_waitTimerAfterInteracting.IsFinished,
-                    new Action(context => { TreeRoot.StatusText = string.Format("Completing wait of {0}", PrettyTime(_waitTimerAfterInteracting.WaitTime)); })),
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
+                            PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterInteracting.TimeLeft.TotalSeconds)),
+                            PrettyTime(_waitTimerAfterInteracting.WaitTime));
+                    })),
 
                 // Counter is used to determine 'done'...
                 new Decorator(context => Counter >= NumOfTimes,
@@ -620,7 +625,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         // Take out any nearby mobs that will aggro, if we get close to destination...
                         new Decorator(context => !Me.IsFlying,
                             UtilityBehaviorPS_SpankMobWithinAggroRange(context => SelectedInteractTarget.Location,
-                                                                       context => SelectedInteractTarget.InteractRange)),
+                                                                       context => SelectedInteractTarget.InteractRange,
+                                                                       () => MobIds /*excluded mobs*/)),
 
                         // Show user the target that's interesting to us...
                         new Decorator(context => Me.CurrentTarget != SelectedInteractTarget,
