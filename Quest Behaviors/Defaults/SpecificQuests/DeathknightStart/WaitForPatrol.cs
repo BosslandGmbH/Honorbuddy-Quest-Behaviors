@@ -145,12 +145,12 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
+using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -158,7 +158,6 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using System.Xml.Linq;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
@@ -167,23 +166,9 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 {
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\WaitForPatrol")]
-    public class WaitForPatrol : CustomForcedBehavior
+    public class WaitForPatrol : QuestBehaviorBase
     {
         #region Consructor and Argument Processing
-
-        public enum FollowPathStrategyType
-        {
-            WaitForAvoidDistance,
-            StalkMobAtAvoidDistance
-        }
-
-        public enum MovementByType
-        {
-            ClickToMoveOnly,
-            NavigatorOnly,
-            NavigatorPreferred,
-        }
-
 
         public WaitForPatrol(Dictionary<string, string> args)
             : base(args)
@@ -191,22 +176,15 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             try
             {
                 AvoidDistance = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new[] { "Distance" }) ?? 20.0;
-                MobId_ToAvoid = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
-                MobId_ToMoveNear = GetAttributeAsNullable<int>("MoveToMobId", false, ConstrainAs.MobId, new[] { "MoveToMobID" }) ?? 0;
+                MobIdToAvoid = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
+                MobIdToMoveNear = GetAttributeAsNullable<int>("MoveToMobId", false, ConstrainAs.MobId, new[] { "MoveToMobID" }) ?? 0;
                 SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-
                 // Tunables...
-                MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.NavigatorPreferred;
+
 
                 // Semantic coherency / covariant dependency checks --
-                if ((MobId_ToMoveNear == 0) && (SafespotLocation == WoWPoint.Empty))
+                if ((MobIdToMoveNear == 0) && (SafespotLocation == WoWPoint.Empty))
                 {
                     LogError("Either MoveToMobId or X/Y/Z (for the safe spot) must be specified.");
                     IsAttributeProblem = true;
@@ -230,21 +208,13 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
         // Attributes provided by caller
         public double AvoidDistance { get; private set; }
-        public int MobId_ToAvoid { get; private set; }
-        public int MobId_ToMoveNear { get; private set; }
-        private MovementByType MovementBy { get; set; }
+        public int MobIdToAvoid { get; private set; }
+        public int MobIdToMoveNear { get; private set; }
         public WoWPoint SafespotLocation { get; private set; }
-
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         #endregion
 
 
         #region Private and Convenience variables
-        public delegate WoWPoint LocationDelegate(object context);
-        public delegate string MessageDelegate(object context);
-        public delegate double RangeDelegate(object context);
 
         private enum StateType_MainBehavior
         {
@@ -254,37 +224,24 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             BehaviorDone,
         };
 
-        public bool FollowPathDismissPet { get; set; }
-        private double FollowPathEgressDistance { get; set; }
-        public FollowPathStrategyType FollowPathStrategy { get; set; }
-        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+        private SafePathType FollowPath { get; set; }
         private WoWUnit Mob_ToAvoid { get; set; }
         private WoWUnit Mob_ToMoveNear { get; set; }
-        private Queue<WoWPoint> Path_Egress { get; set; }
-        private Queue<WoWPoint> Path_Ingress { get; set; }
+        private Queue<WaypointType> Path_Egress { get; set; }
+        private Queue<WaypointType> Path_Ingress { get; set; }
         private StateType_MainBehavior State_MainBehavior
         {
             get { return _state_MainBehavior; }
             set
             {
                 // For DEBUGGING...
-                //if (_state_MainBehavior != value)
-                //    { LogMessage("info", "State_MainBehavior: {0}", value); }
+                if (_state_MainBehavior != value)
+                    { LogDeveloperInfo("State_MainBehavior: {0}", value); }
 
                 _state_MainBehavior = value;
             }
         }
 
-
-        private Composite _behaviorTreeHook_CombatMain = null;
-        private Composite _behaviorTreeHook_CombatOnly = null;
-        private Composite _behaviorTreeHook_DeathMain = null;
-        private Composite _behaviorTreeHook_Main = null;
-        private ConfigMemento _configMemento = null;
-        private IEnumerable<WoWPoint> _followPath = null;
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
         private StateType_MainBehavior _state_MainBehavior;
         #endregion
 
@@ -300,107 +257,18 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         {
             Dispose(false);
         }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-                
-                // Clean up unmanaged resources (if any) here...
-
-                // NB: we don't unhook _behaviorTreeHook_Main
-                // This was installed when HB created the behavior, and its up to HB to unhook it
-
-                if (_behaviorTreeHook_CombatMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-                    _behaviorTreeHook_CombatMain = null;
-                }
-
-                if (_behaviorTreeHook_CombatOnly != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
-                    _behaviorTreeHook_CombatOnly = null;
-                }
-
-                if (_behaviorTreeHook_DeathMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-                    _behaviorTreeHook_DeathMain = null;
-                }
-
-                // Restore configuration...
-                if (_configMemento != null)
-                {
-                    _configMemento.Dispose();
-                    _configMemento = null;
-                }
-
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
-
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-        
-        public void BotEvents_OnBotStop(EventArgs args)
-        {
-            Dispose();
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
-        {
-            return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
         public override void OnStart()
         {
-            ParseFollowPath("FollowPath");
-            _followPath = ParsePath("FollowPath");
-
-            if (FollowPathEgressDistance >= AvoidDistance)
-            {
-                LogError("EgressDistance({0:F1}) must be less than AvoidDistance({1:F1})",
-                    FollowPathEgressDistance, AvoidDistance);
-                IsAttributeProblem = true;
-            }
+            // FollowPath processing...
+            // NB: We had to defer this processing from the constructor, because XElement isn't available
+            // to parse child XML nodes until OnStart() is called.
+            FollowPath = SafePathType.GetOrCreate(Element, "FollowPath", AvoidDistance / 3.0, SafespotLocation);
+            IsAttributeProblem |= FollowPath.IsAttributeProblem;
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -411,15 +279,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
-
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                OnStart_BaseQuestBehavior();
 
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
@@ -430,52 +290,41 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-                
-                PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-
-                LogMessage("info", "Moving to safe spot {0} until '{1}' moves {2:F1} yards away.",
+                LogInfo("Moving to safe spot {0} until '{1}' moves {2:F1} yards away.",
                             SafespotLocation,
-                            GetMobNameFromId(MobId_ToAvoid),
+                            GetMobNameFromId(MobIdToAvoid),
                             AvoidDistance);
 
                 State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
-
-                _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
-                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
-                TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
             }
         }
         #endregion
 
 
         #region Main Behaviors
-        private Composite CreateBehavior_CombatMain()
+        protected override Composite CreateBehavior_CombatMain()
         {
             return new PrioritySelector(
                 // If we are following the path to the destination...
                 new Decorator(context => State_MainBehavior == StateType_MainBehavior.FollowingPathToDestination,
                     new PrioritySelector(
                         // If no path specified, we're done...
-                        new Decorator(context => _followPath.Count() <= 0,
+                        new Decorator(context => !FollowPath.Waypoints.Any(),
                             new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
 
                         // If Mob_ToAvoid is too close, abandon current ingress, and find egress path back to safespot...
                         new Decorator(context => Mob_ToAvoid != null,
-                            new Decorator(context => ((Mob_ToAvoid.Distance < FollowPathEgressDistance) || Me.Combat)
+                            new Decorator(context => ((Mob_ToAvoid.Distance < FollowPath.EgressDistance) || Me.Combat)
                                                     && (Path_Egress == null),
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Moving back to safespot due to {0}.",
+                                    LogInfo("Moving back to safespot due to {0}.",
                                         Me.Combat
                                         ? "combat"
                                         : string.Format("{0} too close (dist: {1:F1})", Mob_ToAvoid.Name, Mob_ToAvoid.Distance));
                                     Path_Ingress = null;
-                                    Path_Egress = FindEgressPath();
+                                    Path_Egress = FollowPath.FindPath_Egress(Mob_ToAvoid);
                                 }))
                             ),
 
@@ -483,14 +332,14 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         new Decorator(context => Path_Egress != null,
                             new PrioritySelector(
                                 // If we've come to the end of our egress path, move back to safe spot...
-                                new Decorator(context => Path_Egress.Count() == 0,
+                                new Decorator(context => !Path_Egress.Any(),
                                     new Action(context => { State_MainBehavior = StateType_MainBehavior.MovingToSafespot; })),
 
                                 // If we've arriaved at the current waypoint, dequeue it...
-                                new Decorator(context => Me.Location.Distance(Path_Egress.Peek()) <= Navigator.PathPrecision,
+                                new Decorator(context => Me.Location.Distance(Path_Egress.Peek().Location) <= Navigator.PathPrecision,
                                     new Action(context => { Path_Egress.Dequeue(); })),
 
-                                UtilityBehavior_MoveTo(context => Path_Egress.Peek(), context => "back to safe spot")
+                                UtilityBehaviorPS_MoveTo(context => Path_Egress.Peek().Location, context => "safe spot")
                             )),
 
                         // If we don't have a current ingress path to follow, build it...
@@ -499,19 +348,19 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                             new Action(context =>
                             {
                                 Path_Egress = null;
-                                Path_Ingress = FindIngressPath();
-                                DismissPet();
+                                Path_Ingress = FollowPath.FindPath_Ingress();
+                                FollowPath.DismissPetIfNeeded();
                             })),
 
                         // If we've consumed our ingress path, we're done...
-                        new Decorator(context => Path_Ingress.Count() <= 0,
+                        new Decorator(context => !Path_Ingress.Any(),
                             new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
 
-                        new Switch<FollowPathStrategyType>(context => FollowPathStrategy,
+                        new Switch<SafePathType.StrategyType>(context => FollowPath.Strategy,
                             #region State: DEFAULT
                             new Action(context =>   // default case
                             {
-                                LogMaintenanceError("FollowPathStrategyType({0}) is unhandled", FollowPathStrategy);
+                                LogMaintenanceError("FollowPathStrategyType({0}) is unhandled", FollowPath.Strategy);
                                 TreeRoot.Stop();
                                 State_MainBehavior = StateType_MainBehavior.BehaviorDone;
                             }),
@@ -519,7 +368,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 
                             #region Strategy: Stalk Mob at Avoid Distance Strategy
-                            new SwitchArgument<FollowPathStrategyType>(FollowPathStrategyType.StalkMobAtAvoidDistance,
+                            new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
                                 new Decorator(context => (Mob_ToAvoid != null) && (Mob_ToAvoid.Distance < AvoidDistance),
                                     new PrioritySelector(
                                         new Decorator(context => Me.IsMoving,
@@ -530,7 +379,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 
                             #region Strategy: Wait for Avoid Distance
-                            new SwitchArgument<FollowPathStrategyType>(FollowPathStrategyType.WaitForAvoidDistance,
+                            new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.WaitForAvoidDistance,
                                 new PrioritySelector(
                                     // No addition action needed to implement strategy for now
                                 ))
@@ -538,17 +387,17 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         ),
 
                         // If we've arrived at the current ingress waypoint, dequeue it...
-                        new Decorator(context => Me.Location.Distance(Path_Ingress.Peek()) <= Navigator.PathPrecision,
+                        new Decorator(context => Me.Location.Distance(Path_Ingress.Peek().Location) <= Navigator.PathPrecision,
                             new Action(context => { Path_Ingress.Dequeue(); })),
 
                         // Follow the prescribed ingress path...
-                        UtilityBehavior_MoveTo(context => Path_Ingress.Peek(), context => "to follow ingress path")
+                        UtilityBehaviorPS_MoveTo(context => Path_Ingress.Peek().Location, context => "follow ingress path")
                     ))
             );
         }
 
 
-        private Composite CreateBehavior_CombatOnly()
+        protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
                 // If we get in combat while waiting for Mob to clear, move back to safespot when combat complete...
@@ -562,7 +411,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         }
 
 
-        private Composite CreateBehavior_DeathMain()
+        protected override Composite CreateBehavior_DeathMain()
         {
             return new PrioritySelector(
                 // empty, for now
@@ -570,15 +419,15 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         }
 
 
-        private Composite CreateMainBehavior()
+        protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
 
                 // Update information for this BT visit...
                 new Action(context =>
                 {
-                    Mob_ToAvoid = FindUnitsFromIds(MobId_ToAvoid).FirstOrDefault();
-                    Mob_ToMoveNear = FindUnitsFromIds(MobId_ToMoveNear).FirstOrDefault();
+                    Mob_ToAvoid = FindUnitsFromIds(ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault();
+                    Mob_ToMoveNear = FindUnitsFromIds(ToEnumerable<int>(MobIdToMoveNear)).FirstOrDefault();
                     return RunStatus.Failure;  // fall thru
                 }),
 
@@ -604,7 +453,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.MovingToSafespot,
                         new PrioritySelector(
                             // If a "Move Near" mob was specified, move to it...
-                            new Decorator(context => MobId_ToMoveNear != 0,
+                            new Decorator(context => MobIdToMoveNear != 0,
                                 new PrioritySelector(
                                     new Decorator(context => Mob_ToMoveNear != null,
                                         new PrioritySelector(
@@ -613,20 +462,20 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                                 new Action(context => { Mob_ToMoveNear.Target(); })),
 
                                             // Move to mob...
-                                            UtilityBehavior_MoveTo(context => Mob_ToMoveNear.Location, context => Mob_ToMoveNear.Name)
+                                            UtilityBehaviorPS_MoveTo(context => Mob_ToMoveNear.Location, context => Mob_ToMoveNear.Name)
                                         )),
 
                                     // Need to wait for Mob to respawn...
                                     new Decorator(context => Mob_ToMoveNear == null,
                                         new Action(context =>
                                         {
-                                            TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetMobNameFromId(MobId_ToMoveNear));
+                                            TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetMobNameFromId(MobIdToMoveNear));
                                         }))
                                 )),
 
                             // No "Move Near" mob, so use the provided Safe spot coordinates...
-                            new Decorator(context => MobId_ToMoveNear == 0,
-                                UtilityBehavior_MoveTo(context => SafespotLocation, context => "to safespot")),
+                            new Decorator(context => MobIdToMoveNear == 0,
+                                UtilityBehaviorPS_MoveTo(context => SafespotLocation, context => "to safespot")),
 
                             // Dismount once we've arrived at mob...
                             new Decorator(context => Me.Mounted,
@@ -645,18 +494,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     #region State: Waiting for Mob to Clear
                     new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.WaitingForMobToClear,
                         new PrioritySelector(
-                            // If AvoidNpc is not around, we're done...
-                            new Decorator(context => Mob_ToAvoid == null,
-                                new Action(context =>
-                                {
-                                    Me.ClearTarget();
-                                    Path_Ingress = null;
-                                    Path_Egress = null;
-                                    State_MainBehavior = StateType_MainBehavior.FollowingPathToDestination;
-                                })),
-
-                            // If AvoidNpc is prescribed distance away, and facing away from us, we're done...
-                            new Decorator(context => (Mob_ToAvoid.Distance > AvoidDistance) && !Mob_ToAvoid.IsFacing(Me),
+                            // If AvoidNpc is not around,
+                            // or if AvoidNpc is prescribed distance away, and facing away from us,
+                            // we're done...
+                            new Decorator(context => (Mob_ToAvoid == null)
+                                                     || ((Mob_ToAvoid.Distance > AvoidDistance) && !Mob_ToAvoid.IsSafelyFacing(Me)),
                                 new Action(context =>
                                 {
                                     Me.ClearTarget();
@@ -701,9 +543,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         new PrioritySelector(
                             new Action(context =>
                             {
-                                LogMessage("info", "Finished");
                                 Me.ClearTarget();
-                                _isBehaviorDone = true;
+                                BehaviorDone();
                             })
                         ))
                     #endregion
@@ -711,487 +552,5 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             ));
         }
         #endregion
-
-
-        #region Helpers
-        private void DismissPet()
-        {
-            if (FollowPathDismissPet && Me.GotAlivePet)
-                { Lua.DoString("DismissPet()"); }
-        }
-
-
-        private Queue<WoWPoint> FindEgressPath()
-        {
-            List<WoWPoint> theWayOut = new List<WoWPoint>(_followPath);
-
-            theWayOut.Reverse();
-
-            WoWPoint egressStartPoint =
-                (from point in theWayOut
-                    let mobDistanceToPoint = point.Distance(Mob_ToAvoid.Location)
-                    let myDistanceToPoint = point.Distance(Me.Location)
-                where
-                    myDistanceToPoint < mobDistanceToPoint
-                orderby
-                    myDistanceToPoint
-                select point)
-                .FirstOrDefault();
-
-            while (theWayOut[0] != egressStartPoint)
-                { theWayOut.RemoveAt(0); }
-
-            return new Queue<WoWPoint>(theWayOut);
-        }
-
-
-        private Queue<WoWPoint> FindIngressPath()
-        {
-            List<WoWPoint> theWayIn = new List<WoWPoint>(_followPath);
-
-            theWayIn.Reverse();
-
-            WoWPoint ingressStartPoint =
-                (from point in theWayIn
-                    let myDistanceToPoint = point.Distance(Me.Location)
-                orderby
-                    myDistanceToPoint
-                select point)
-                .FirstOrDefault();
-
-            while (theWayIn[0] != ingressStartPoint)
-                { theWayIn.RemoveAt(0); }
-
-            return new Queue<WoWPoint>(_followPath);
-        }
-
-
-        private IEnumerable<WoWUnit> FindUnitsFromIds(params int[] unitIds)
-        {
-            ContractRequires(unitIds != null, () => "unitIds argument may not be null");
-
-            return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
-                where
-                    unit.IsValid
-                    && unit.IsAlive
-                    && unitIds.Contains((int)unit.Entry)
-                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
-                select unit;
-        }
-
-
-        private string GetMobNameFromId(int wowUnitId)
-        {
-            WoWUnit wowUnit = FindUnitsFromIds(wowUnitId).FirstOrDefault();
-
-            return (wowUnit != null)
-                ? wowUnit.Name
-                : string.Format("MobId({0})", wowUnitId);
-        }
-
-
-        /// <returns>RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary</returns>
-        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
-                                                MessageDelegate locationNameDelegate,
-                                                RangeDelegate precisionDelegate = null)
-        {
-            ContractRequires(locationDelegate != null, () => "locationRetriever may not be null");
-            ContractRequires(locationNameDelegate != null, () => "locationNameDelegate may not be null");
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
-            return new PrioritySelector(locationContext => locationDelegate(locationContext),
-                new Decorator(locationContext => !Me.Mounted
-                                                    && Mount.CanMount()
-                                                    && Mount.ShouldMount((WoWPoint)locationContext),
-                    new Action(locationContext => { Mount.MountUp(() => (WoWPoint)locationContext); })),
-
-                new Decorator(locationContext => (Me.Location.Distance((WoWPoint)locationContext) > precisionDelegate(locationContext)),
-                    new Sequence(
-                        new Action(locationContext =>
-                        {
-                            WoWPoint destination = (WoWPoint)locationContext;
-                            string locationName = locationNameDelegate(locationContext) ?? destination.ToString();
-                            MoveResult moveResult = MoveResult.Failed;
-
-                            TreeRoot.StatusText = "Moving " + locationName;
-
-                            // Use Navigator to get there, if allowed...
-                            if ((MovementBy == MovementByType.NavigatorPreferred) || (MovementBy == MovementByType.NavigatorOnly))
-                            {
-                                if (!Me.IsSwimming)
-                                    { moveResult = Navigator.MoveTo(destination); }
-                            }
-
-                            // If Navigator fails, fall back to click-to-move...
-                            if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
-                            {
-                                if (MovementBy == MovementByType.NavigatorOnly)
-                                {
-                                    LogMessage("warning", "Failed to move--is area unmeshed?");
-                                    return RunStatus.Failure;
-                                }
-
-                                WoWMovement.ClickToMove(destination);
-                            }
-
-                            return RunStatus.Success;
-                        }),
-
-                        new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                    ))
-                );
-        }
-        #endregion
-
-
-        #region XML parsing
-        public void ParseFollowPath(string xmlElementName)
-        {
-            XElement element = Element.Elements(xmlElementName).FirstOrDefault();
-
-            if (element != null)
-            {
-                XAttribute xDismissPet = element.Attribute("DismissPet");
-                XAttribute xEgressDistance = element.Attribute("EgressDistance");
-                XAttribute xStrategy = element.Attribute("Strategy");
-
-                try
-                {
-                    FollowPathDismissPet = 
-                        (xDismissPet != null)
-                        ? UtilTo<bool>(xDismissPet.Name.ToString(), xDismissPet.Value)
-                        : false;
-                }
-                catch(Exception) { IsAttributeProblem = true; }
-
-                try
-                {
-                    FollowPathEgressDistance =
-                        (xEgressDistance != null)
-                        ? UtilTo<double>(xEgressDistance.Name.ToString(), xEgressDistance.Value)
-                        : (AvoidDistance / 3.0);
-                }
-                catch(Exception) { IsAttributeProblem = true; }
-
-                try
-                {
-                    FollowPathStrategy =
-                        (xStrategy != null)
-                        ? UtilTo<FollowPathStrategyType>(xStrategy.Name.ToString(), xStrategy.Value)
-                        : FollowPathStrategyType.StalkMobAtAvoidDistance;
-                }
-                catch(Exception) { IsAttributeProblem = true; }
-            }
-        }
-
-        // never returns null, but the returned Queue may be empty
-        public Queue<WoWPoint> ParsePath(string pathElementName)
-        {
-            var descendants = Element.Descendants(pathElementName).Elements();
-            Queue<WoWPoint> path = new Queue<WoWPoint>();
-
-            if (descendants.Count() > 0)
-            {
-                foreach (XElement element in descendants.Where(elem => elem.Name == "Hotspot"))
-                {
-                    string elementAsString = element.ToString();
-                    bool isAttributeMissing = false;
-
-                    XAttribute xAttribute = element.Attribute("X");
-                    if (xAttribute == null)
-                    {
-                        LogMessage("error", "Unable to locate X attribute for {0}", elementAsString);
-                        isAttributeMissing = true;
-                    }
-
-                    XAttribute yAttribute = element.Attribute("Y");
-                    if (yAttribute == null)
-                    {
-                        LogMessage("error", "Unable to locate Y attribute for {0}", elementAsString);
-                        isAttributeMissing = true;
-                    }
-
-                    XAttribute zAttribute = element.Attribute("Z");
-                    if (zAttribute == null)
-                    {
-                        LogMessage("error", "Unable to locate Z attribute for {0}", elementAsString);
-                        isAttributeMissing = true;
-                    }
-
-                    if (isAttributeMissing)
-                    {
-                        IsAttributeProblem = true;
-                        continue;
-                    }
-
-                    bool isParseProblem = false;
-
-                    double x = 0.0;
-                    if (!double.TryParse(xAttribute.Value, out x))
-                    {
-                        LogMessage("error", "Unable to parse X attribute for {0}", elementAsString);
-                        isParseProblem = true;
-                    }
-
-                    double y = 0.0;
-                    if (!double.TryParse(yAttribute.Value, out y))
-                    {
-                        LogMessage("error", "Unable to parse Y attribute for {0}", elementAsString);
-                        isParseProblem = true;
-                    }
-
-                    double z = 0.0;
-                    if (!double.TryParse(zAttribute.Value, out z))
-                    {
-                        LogMessage("error", "Unable to parse Z attribute for {0}", elementAsString);
-                        isParseProblem = true;
-                    }
-
-                    if (isParseProblem)
-                    {
-                        IsAttributeProblem = true;
-                        continue;
-                    }
-
-                    path.Enqueue(new WoWPoint(x, y, z));
-                }
-            }
-
-            return path;
-        }
-
-
-        /// <summary>
-        /// Converts the provide TEXT into the requested type.  If the conversion fails,
-        /// an exception is thrown.
-        /// </summary>
-        /// <typeparam name="T"></typeparam>
-        /// <param name="attributeValueAsString"></param>
-        /// <returns>the type-specific representation of the provided string, or
-        /// 'null' if the string was malformed.</returns>
-        /// <throw>InvalidCastException</throw>
-        /// <throw>FormatException</throw>
-        /// <throw>OverflowException</throw>
-        /// <throw>ArgumentNullException</throw>
-        private T         UtilTo<T>(string  attributeName,
-                                    string  attributeValueAsString)
-        {
-            Type    concreteType    = typeof(T);
-
-            // Booleans require special handling...
-            if (concreteType == typeof(bool))
-            {
-                int tmpInt;
-
-                if (int.TryParse(attributeValueAsString, out tmpInt))
-                {
-                    attributeValueAsString = (tmpInt != 0) ? "true" : "false";
-
-                    LogWarning("Attribute's '{0}' value was provided as an integer (saw '{1}')--a boolean was expected.\n"
-                                + "The integral value '{1}' was converted to Boolean({2}).\n"
-                                + "Please update the profile to provide '{2}' for this value.",
-                                attributeName,
-                                tmpInt,
-                                attributeValueAsString);
-                }
-
-                // Fall through for normal boolean conversion
-            }
-
-
-            // Enums require special handling...
-            else if (concreteType.IsEnum)
-            {
-                // Enums require special handling...
-                bool    isConversionSuccess = true;
-                T       tmpValue            = default(T);
-
-                try                 { tmpValue = (T)Enum.Parse(concreteType, attributeValueAsString, true); }
-                catch (Exception)   { isConversionSuccess = false; }
-                
-                if (isConversionSuccess && Enum.IsDefined(concreteType, tmpValue))
-                {
-                    int tmpInt;
-
-                    // If the provided value was a number instead of Enum name, ask the profile writer to fix it...
-                    // This is not fatal, so we let it go without flagging IsAttributeProblem.
-                    if (int.TryParse(attributeValueAsString, out tmpInt))
-                    {
-                        LogWarning("The '{0}' attribute's value '{1}' has been implicitly converted"
-                                    + " to the corresponding enumeration '{2}'.\n"
-                                    + "Please use the enumeration name '{2}' instead of a number.",
-                                    attributeName,
-                                    tmpInt,
-                                    tmpValue.ToString());
-                    }
-                    
-                    return (tmpValue);
-                }
-
-                LogError("The value '{0}' is not a member of the {1} enumeration.  Allowed values: {2}",
-                    attributeValueAsString, concreteType.Name,
-                    string.Join(", ", Enum.GetValues(typeof(T)).Cast<T>().Select(v => v.ToString())));
-                return (default(T));
-            }
-
-
-            try
-                { return ((T)Convert.ChangeType(attributeValueAsString, concreteType)); }
-            catch (Exception except)
-            {
-                LogError("The '{0}' attribute's value (saw '{1}') is malformed. ({2})",
-                    attributeName, attributeValueAsString, except.GetType().Name);
-                throw;
-            }
-        }
-        #endregion
-
-
-        #region Diagnostic Methods
-        // These are needed by a number of the pre-supplied methods...
-        public delegate bool    ContractPredicateDelegate();
-        public delegate string  StringProviderDelegate();
-
-        /// <summary>
-        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
-        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
-        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
-        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
-        /// so we don't pay a performance penalty to build an error message that is not used
-        /// when ISCONTRACTOKAY is true.</para></description></item>
-        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
-        /// dynamically compile parts of the project at run time.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="isContractOkay"></param>
-        /// <param name="stringProviderDelegate"></param>
-        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
-        ///  30Jun2012-15:58UTC chinajade
-        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
-        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
-        ///  throughout the code.
-        public bool ContractRequires(bool isContractOkay, StringProviderDelegate stringProviderDelegate)
-        {
-            if (!isContractOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
-                StackTrace  trace   = new StackTrace(1);
-
-                LogMessage("error", "[CONTRACT VIOLATION] {0}\nLocation:\n{1}",
-                                        message, trace.ToString());
-            }
-
-            return isContractOkay;
-        }
-
-
-        /// <summary>
-        /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
-        /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
-        /// <para>This is useful when emitting log messages.</para>
-        /// </summary>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * This method uses reflection--making it relatively 'expensive' to call.
-        /// Use it with caution.</para></description></item>
-        /// </list></para>
-        /// <returns></returns>
-        ///  7Jul2012-20:26UTC chinajade
-        public static string    GetMyMethodName(bool  showDeclaringType   = false)
-        {
-            var method  = (new StackTrace(1)).GetFrame(0).GetMethod();
-
-            if (showDeclaringType)
-                { return (method.DeclaringType + "." + method.Name); }
-
-            return (method.Name);
-        }
-
-
-        /// <summary>
-        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogDeveloperInfo(string message, params object[] args)
-        {
-            LogMessage("debug", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogError(string message, params object[] args)
-        {
-            LogMessage("error", message, args);
-        }
-        
-        
-        /// <summary>
-        /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
-        /// action a user can perform in the field for these types of errors.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        ///  30Jun2012-15:58UTC chinajade
-        public void LogMaintenanceError(string message, params object[] args)
-        {
-            string          formattedMessage    = string.Format(message, args);
-            StackTrace      trace               = new StackTrace(1);
-
-            LogMessage("error", "[MAINTENANCE ERROR] {0}\nLocation:\n{1}", formattedMessage, trace.ToString());
-        }
-
-
-        /// <summary>
-        /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogWarning(string message, params object[] args)
-        {
-            LogMessage("warning", message, args);
-        }
-        #endregion
-    }
-
-
-    public class CompositeThrottle : DecoratorContinue
-    {
-        public CompositeThrottle(TimeSpan throttleTime,
-                                 Composite composite)
-            : base(composite)
-        {
-            _hasRunOnce = false;
-            _throttle = new Stopwatch();
-            _throttleTime = throttleTime;
-
-            _throttle.Reset();
-            _throttle.Start();
-        }
-
-
-        protected override bool CanRun(object context)
-        {
-            if (_hasRunOnce && (_throttle.Elapsed < _throttleTime))
-            { return (false); }
-
-            _hasRunOnce = true;
-            _throttle.Reset();
-            _throttle.Start();
-
-            return (true);
-        }
-
-        private bool _hasRunOnce;
-        private readonly Stopwatch _throttle;
-        private readonly TimeSpan _throttleTime;
     }
 }
