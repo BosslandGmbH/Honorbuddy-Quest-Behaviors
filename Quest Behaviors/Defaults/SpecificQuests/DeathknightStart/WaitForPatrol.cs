@@ -404,6 +404,13 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
+                // NB: Since we highlight the target we're watching while we're waiting...
+                // If we get into combat, we don't Honorbuddy running off to chase the currently highlighted
+                // target (its usually an elite).  So, if the selected target not attacking us, we clear the target,
+                // so Honorbuddy can make a proper target selection.
+                new Decorator(context => (Me.CurrentTarget != null) && !Me.CurrentTarget.IsTargetingMeOrPet,
+                    new Action(context => { Me.ClearTarget(); })),
+
                 // If we get in combat while waiting for Mob to clear, move back to safespot when combat complete...
                 new Decorator(context => State_MainBehavior == StateType_MainBehavior.WaitingForMobToClear,
                     new Action(context =>
@@ -501,8 +508,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                             // If AvoidNpc is not around,
                             // or if AvoidNpc is prescribed distance away, and facing away from us,
                             // we're done...
-                            new Decorator(context => (Mob_ToAvoid == null)
-                                                     || ((Mob_ToAvoid.Distance > AvoidDistance) && !Mob_ToAvoid.IsSafelyFacing(Me)),
+                            new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
                                 new Action(context =>
                                 {
                                     Me.ClearTarget();
@@ -554,6 +560,22 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     #endregion
  
             ));
+        }
+        #endregion
+
+
+        #region Helpers
+        private bool IsSafeToMoveToDestination(WoWUnit avoidNpc)
+        {
+            // Its safe to move when:
+            // * avoidNpc is not around
+            // * avoidNpc is not in combat, and its the prescribed distance away, and facing away from us.
+            // NB: We use the 'combat' check because if the avoidNpc is in combat, he situation of 'safe to move'
+            // can rapidly change.  This usually happens when the NPC is busy killing another player.
+            return !IsViable(avoidNpc)
+                    || (!avoidNpc.Combat
+                        && (avoidNpc.Distance > AvoidDistance)
+                        && !avoidNpc.IsSafelyFacing(Me));
         }
         #endregion
     }
