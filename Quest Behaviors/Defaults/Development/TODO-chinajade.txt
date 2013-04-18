@@ -4,6 +4,8 @@
 	+ Navigation needs to fall back to Flightor before falling back to click-to-move.
 		Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
 
+* BarrelHook needs to unhook itself if specific quests aren't in our log.
+
 * ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
  
 * ButtonPressOnChat, (request from Laria):
@@ -21,7 +23,8 @@
 	+ Old InteractWith can't see Hargan Bronzewing to buy riding training--see if problem still exists with new InteractWith:
 		http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
 	+ Needs to help out with "randomized" daily quests: SelectGossipAvailableQuest(GetNumGossipAvailableQuests())
-	+ found a problem with interactwith, its not a big deal nothing hurgent but isnt working like expected. Some time the normal turnin doesnt work because mob/object its too far away and bot cant reach it, usualy i use interactwith to open the window then i use lua run macro click gossipcompletequest. tested the interactwith with option to turn in quest  and ranged=15, bot still want run to near object (distance 4 i think), so bot ignored my range 15 with option to turn in
+	+ found a problem with interactwith, its not a big deal nothing hurgent but isnt working like expected. Some time the normal turnin doesnt work because mob/object
+	  its too far away and bot cant reach it, usualy i use interactwith to open the window then i use lua run macro click gossipcompletequest. tested the interactwith with option to turn in quest  and ranged=15, bot still want run to near object (distance 4 i think), so bot ignored my range 15 with option to turn in
 		How do you turn in from 15 feet away when interact range is 4.75 feet?
 		some mobs/object doesnt work with short distance
 		for turnin quest, let me explain think about one large stone the stone have like 30 yards FAT, the turn in cant reach middle of stone
@@ -33,6 +36,10 @@
 			<CustomBehavior File="InteractWith" MobId="195600" ObjectType="GameObject" Range="14" InteractByQuestFrameDisposition="Complete" X="-183.6784" Y="1117.673" Z="90.28101" />
 		if i use the InteractByQuestFrameDisposition="Complete" with range=14 doesnt work
 		if i use only interact works
+	+ its the new Useitem if i enable IgnoreCombat="True" behavior dont have any check me.isdead,
+	  so even toon is dead behavior still keep going, dont allow ress
+	  and ignorecombat in IW dont work
+	  (Requested to see log next time it happens--could be exceptions being thrown from anywhere).
 
 	+ TheBrodieMan 2013Apr14
 		came across an issue with IW while coding the PvP quests in IoT. Theres a bomb that needs to be placed by IW'ing with a mark on a wall.

@@ -148,25 +148,6 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Apr2013-04:41UTC chinajade
         public bool IsInCompetition(WoWObject wowObject)
         {
-            bool isSharedResource = false;
-            var wowGameObject = wowObject.ToGameObject();
-            var wowUnit = wowObject.ToUnit();
-
-            isSharedResource |= (wowGameObject != null) && _sharedGameObjectTypes.Contains(wowGameObject.SubType);
-            isSharedResource |= (wowUnit != null) && wowUnit.TappedByAllThreatLists;
-            isSharedResource |= (wowUnit != null) && !wowUnit.IsHostile
-                                && (wowUnit.IsAnyTrainer
-                                    || wowUnit.IsAnyVendor
-                                    || wowUnit.IsAuctioneer
-                                    || wowUnit.IsBanker
-                                    || wowUnit.IsFlightMaster
-                                    || wowUnit.IsGuard
-                                    || wowUnit.IsGuildBanker
-                                    || wowUnit.IsInnkeeper
-                                    || wowUnit.IsQuestGiver
-                                    || wowUnit.IsStableMaster
-                                   );
-
             ProvideBoolDelegate excludeGroupMembers = (potentialGroupMember =>
             {
                 var asWoWPlayer = potentialGroupMember as WoWPlayer;
@@ -174,20 +155,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 return (asWoWPlayer != null) && !asWoWPlayer.IsInMyParty;
             });
 
-            return !isSharedResource && FindPlayersNearby(wowObject.Location, NonCompeteDistance, excludeGroupMembers).Any();
+            return !IsSharedWorldResource(wowObject)
+                    && FindPlayersNearby(wowObject.Location, NonCompeteDistance, excludeGroupMembers).Any();
         }
-        private readonly WoWGameObjectType[] _sharedGameObjectTypes =
-        {
-            WoWGameObjectType.Binder,           // sets hearthstone
-            WoWGameObjectType.Door,
-            WoWGameObjectType.GuildBank,
-            WoWGameObjectType.Mailbox,
-            WoWGameObjectType.MeetingStone,
-            WoWGameObjectType.QuestGiver,
-            WoWGameObjectType.SpellCaster,      // portals
-            WoWGameObjectType.Transport,
-        };
-        
+
         
         //  23Mar2013-05:38UTC chinajade
         public bool IsInLineOfSight(WoWObject wowObject)
@@ -219,7 +190,43 @@ namespace Honorbuddy.QuestBehaviorCore
             return
                 Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
         }
-        
+
+
+        // 16Apr2013-10:11UTC chinajade
+        public bool IsSharedWorldResource(WoWObject wowObject)
+        {
+            bool isSharedResource = false;
+            var wowGameObject = wowObject.ToGameObject();
+            var wowUnit = wowObject.ToUnit();
+
+            isSharedResource |= (wowGameObject != null) && _sharedGameObjectTypes.Contains(wowGameObject.SubType);
+            isSharedResource |= (wowUnit != null) && wowUnit.TappedByAllThreatLists;
+            isSharedResource |= (wowUnit != null) && !wowUnit.IsHostile
+                                && (wowUnit.IsAnyTrainer
+                                    || wowUnit.IsAnyVendor
+                                    || wowUnit.IsAuctioneer
+                                    || wowUnit.IsBanker
+                                    || wowUnit.IsFlightMaster
+                                    || wowUnit.IsGuard
+                                    || wowUnit.IsGuildBanker
+                                    || wowUnit.IsInnkeeper
+                                    || wowUnit.IsQuestGiver
+                                    || wowUnit.IsStableMaster
+                                   );
+            
+            return isSharedResource;
+        }
+        private readonly WoWGameObjectType[] _sharedGameObjectTypes =
+        {
+            WoWGameObjectType.Binder,           // sets hearthstone
+            WoWGameObjectType.Door,
+            WoWGameObjectType.GuildBank,
+            WoWGameObjectType.Mailbox,
+            WoWGameObjectType.MeetingStone,
+            WoWGameObjectType.QuestGiver,
+            WoWGameObjectType.SpellCaster,      // portals
+            WoWGameObjectType.Transport,
+        };        
         
         // 24Feb2013-08:11UTC chinajade
         public bool IsViable(WoWObject wowObject)

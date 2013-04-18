@@ -354,7 +354,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
                 // Basic attributes...
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
+                FactionIds = GetNumberedAttributesAsArray<int>("FactionId", 0, ConstrainAs.MobId, null );
                 AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.AuraId, null);
                 AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.AuraId, null);
 
@@ -402,6 +403,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;            
                 
                 // Semantic coherency / covariant dependency checks --
+                if (!MobIds.Any() && !FactionIds.Any())
+                {
+                    LogProfileError("You must specify one or more MobIdN, one or more FactionIdN, or both.");   
+                    IsAttributeProblem = true;
+                }
+
                 const double rangeEpsilon = 3.0;
                 if ((RangeMax - RangeMin) < rangeEpsilon)
                 {
@@ -447,6 +454,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public int[] AuraIdsMissingFromMob { get; private set; }
         public int BuyItemCount { get; private set; }
         public double CollectionDistance { get; private set; }
+        public int[] FactionIds { get; private set; }
         public WoWPoint HuntingGroundCenter { get; private set; }
         public bool IgnoreCombat { get; private set; }
         public int InteractByBuyingItemId { get; private set; }
@@ -1053,7 +1061,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 { return TimeSpan.Zero; }
 
             WoWUnit wowUnit = selectedTarget.ToUnit();
-            bool isShortBlacklist = (wowUnit != null) && (wowUnit.IsVendor || wowUnit.IsFlightMaster);
+            bool isShortBlacklist = (wowUnit != null) && IsSharedWorldResource(wowUnit);
             TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : 180);
 
             BlacklistForInteracting(selectedTarget, blacklistDuration);
@@ -1087,10 +1095,21 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             double collectionDistanceSqr = CollectionDistance * CollectionDistance;
             const double minionWeighting = 1000;
 
+            Func<WoWObject, bool>   isInterestingToUs =
+                ((wowObject) =>
+                {
+                    WoWUnit wowUnit = wowObject.ToUnit();
+
+                    return MobIds.Contains((int)wowObject.Entry)
+                            || ((wowUnit != null) && FactionIds.Contains((int)wowUnit.FactionId));
+                });
+
             WoWObject entity = 
-               (from wowObject in FindObjectsFromIds(MobIds)
+               (from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                 where
-                    (wowObject.DistanceSqr < collectionDistanceSqr)
+                    IsViable(wowObject)
+                    && isInterestingToUs(wowObject)
+                    && (wowObject.DistanceSqr < collectionDistanceSqr)
                     && IsInteractNeeded(wowObject)
                     && ((MovementBy != MovementByType.NavigatorOnly) || Navigator.CanNavigateFully(Me.Location, wowObject.Location))
                 orderby

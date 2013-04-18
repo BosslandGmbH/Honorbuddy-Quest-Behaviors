@@ -30,10 +30,12 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class QuestBehaviorBase
     {
+        public const double TAU = (2 * Math.PI);
+
         /// <summary>
         /// Returns the normalized ANGLEINRADIANS to the closed interval [-PI..+PI]
         /// </summary>
-        /// <param name="radians"></param>
+        /// <param name="angleInRadians"></param>
         /// <returns></returns>
         public static double NormalizeAngleToPi(double angleInRadians)
         {
