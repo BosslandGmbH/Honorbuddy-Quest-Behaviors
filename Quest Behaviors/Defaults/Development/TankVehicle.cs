@@ -43,27 +43,19 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Threading;
-using System.Xml;
 using System.Xml.Linq;
 
-using Bots.Quest;
-using Bots.Quest.Objectives;
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
+using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Pathing;
 using System.Text;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
@@ -72,7 +64,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviors.TankVehicle
 {
-    public class TankVehicle : CustomForcedBehavior
+    public class TankVehicle : QuestBehaviorBase
     {
         #region Consructor and Argument Processing
         public TankVehicle(Dictionary<string, string> args)
@@ -83,14 +75,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                 MobIds_UnoccupiedVehicle = GetNumberedAttributesAsArray<int>("UnoccupiedVehicleId", 1, ConstrainAs.MobId, null);
                 VehicleAcquisitionArea = GetAttributeAsNullable<WoWPoint>("VehicleAcquisitionArea", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
-                // Quest handling...
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-
                 // Tunables...
-                CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
-                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 25.0;
 
                 MobIds = new int[]
                 {
@@ -118,15 +103,9 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
 
 
         // Variables for Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-        public double CombatMaxEngagementRangeDistance { get; private set; }
-        public Queue<WoWPoint> HuntingGrounds { get; private set; }
         public int[] MobIds { get; private set; }
         public IEnumerable<int> MobIds_UnoccupiedVehicle { get; private set; }
-        public double NonCompeteDistance { get; private set; }
         public WoWPoint VehicleAcquisitionArea { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -142,15 +121,10 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
             Hunting,
         }
 
-        public delegate WoWPoint LocationDelegate(object context);
-        public delegate string StringDelegate(object context);
-        public delegate double RangeDelegate(object context);
-        public delegate WoWUnit WoWUnitDelegate(object context);
-
-        private ArticulationLimitsType ArticulationLimits { get; set; }
-        private IEnumerable<int> AuraIds_OccupiedVehicle = null;
-        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
-        private LocalPlayer Me { get { return StyxWoW.Me; } }
+        private IEnumerable<int> AuraIds_OccupiedVehicle { get; set; }
+        private WaypointType CurrentWaypoint { get; set; }
+        private HuntingGroundsType HuntingGrounds { get; set; }
+        private WoWPoint HuntingGroundCenter { get; set; }
         private IEnumerable<QuestGoalType> QuestGoals { get; set; }
         private WoWUnit SelectedTarget { get; set; }
         private StateType_MainBehavior State_MainBehavior
@@ -167,14 +141,8 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
         private WoWUnit UnoccupiedVehicle { get; set; }
         private IEnumerable<VehicleAbility> VehicleAbilities { get; set; }
         private VehicleAbility VehicleSpeedBurstAbility { get; set; }
-
-        private Composite _behaviorTreeHook_CombatMain = null;
-        private Composite _behaviorTreeHook_CombatOnly = null;
-        private Composite _behaviorTreeHook_DeathMain = null;
-        private Composite _behaviorTreeHook_Main = null;
-        private ConfigMemento _configMemento = null;
-        private bool _isBehaviorDone = false;
-        private bool _isDisposed = false;
+        private VehicleWeaponMoverType VehicleWeaponMover { get; set; }
+        
         private StateType_MainBehavior _state_MainBehavior;
         #endregion
 
@@ -184,117 +152,20 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
         {
             Dispose(false);
         }
-
-
-        // 24Feb2013-08:10UTC chinajade
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-
-                // NB: we don't unhook _behaviorTreeHook_Main
-                // This was installed when HB created the behavior, and its up to HB to unhook it
-
-                if (_behaviorTreeHook_CombatMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-                    _behaviorTreeHook_CombatMain = null;
-                }
-
-                if (_behaviorTreeHook_CombatOnly != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
-                    _behaviorTreeHook_CombatOnly = null;
-                }
-
-                if (_behaviorTreeHook_DeathMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-                    _behaviorTreeHook_DeathMain = null;
-                }
-
-                // Restore configuration...
-                if (_configMemento != null)
-                {
-                    _configMemento.Dispose();
-                    _configMemento = null;
-                }
-
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
-
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        public void BotEvents_OnBotStop(EventArgs args)
-        {
-            Dispose();
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
-        {
-            return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return _isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
-            }
-        }
-
-
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            // Hunting ground processing...
+            // NB: We had to defer this processing from the constructor, because XElement isn't available
+            // to parse child XML nodes until OnStart() is called.
+            HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+            IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
-            if ((QuestId != 0) && (quest == null))
-            {
-                LogError("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
-                IsAttributeProblem = true;
-            }
-
-            HuntingGrounds = new Queue<WoWPoint>(
-                XmlUtil_ParseSubtree<HotspotType>(HotspotType.Create, "HuntingGrounds", "Hotspot")
-                .Select(h => h.ToWoWPoint));
             QuestGoals = XmlUtil_ParseSubtree<QuestGoalType>(QuestGoalType.Create, "Objectives", "QuestObjective");
-
-            if (HuntingGrounds.Count() <= 0)
-            {
-                LogError("No <HuntingGrounds> sub-element has been specified, and it is required");
-                IsAttributeProblem = true;
-            }
 
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -306,15 +177,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
-
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                OnStart_BaseQuestBehavior();
 
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
@@ -327,11 +190,6 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
 
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
-
                 AuraIds_OccupiedVehicle = GetOccupiedVehicleAuraIds();
 
                 if (Me.InVehicle)
@@ -341,30 +199,24 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                         { LogInfo(wowPetSpell.ToString_FullInfo()); }
                 }
 
-                _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
-                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
-                TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-
-                PlayerQuest quest2 = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                if (quest2 != null)
+                if (quest != null)
                 {
                     foreach (var objective in quest.GetObjectives())
                     {
                         LogInfo(objective.ToString_FullInfo());
                     }
                 }
+
+                CurrentWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
             }
         }
         #endregion
 
 
         #region Main Behaviors
-        private Composite CreateBehavior_CombatMain()
+        protected override Composite CreateBehavior_CombatMain()
         {
             return new Decorator(context => !IsDone,
                 new PrioritySelector(
@@ -383,7 +235,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                         {
                             LogMaintenanceError("BehaviorState({0}) is unhandled", State_MainBehavior);
                             TreeRoot.Stop();
-                            _isBehaviorDone = true;
+                            BehaviorDone();
                         }),
                         #endregion
 
@@ -408,38 +260,27 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                                                     .FirstOrDefault();
                                             })),
 
-                                        new Decorator(context => ArticulationLimits == null,
+                                        new Decorator(context => VehicleWeaponMover == null,
                                             new Action(context =>
                                             {
-                                                ArticulationLimits = DiscoverArticulationLimitsOfVehicleWeapon();
-                                                LogInfo("{0}", ArticulationLimits.ToString());
+                                                VehicleWeaponMover = new VehicleWeaponMoverType();
+                                                LogInfo("{0}", VehicleWeaponMover.ToString());
                                             })),
 
                                         new Action(context =>
                                         {
                                             // Locate nearest waypoint in hunting ground to start...
-                                            WoWPoint nearestWaypoint =
-                                               (from point in HuntingGrounds
-                                                orderby Me.Location.Distance(point)
-                                                select point)
-                                                .FirstOrDefault();
-
-                                            while (HuntingGrounds.Peek() != nearestWaypoint)
-                                            {
-                                                WoWPoint currentWaypoint = HuntingGrounds.Dequeue();
-                                                HuntingGrounds.Enqueue(currentWaypoint);
-                                            }
-
+                                            CurrentWaypoint = HuntingGrounds.FindNearestWaypoint(Me.Location);
                                             State_MainBehavior = StateType_MainBehavior.Hunting;
                                         })
                                     )),
 
                                 // Move to and mount any free vehicle we've found...
-                                UtilityBehavior_InteractWithMob(context => UnoccupiedVehicle),
+                                UtilityBehaviorPS_InteractWithMob(context => UnoccupiedVehicle),
 
                                 // If no vehicle to be found, move to the Vehicle acquisition area...
                                 new Decorator(context => UnoccupiedVehicle == null,
-                                    UtilityBehavior_MoveTo(context => VehicleAcquisitionArea, context => "Vehicle acquisition area"))
+                                    UtilityBehaviorPS_MoveTo(context => VehicleAcquisitionArea, context => "Vehicle acquisition area"))
                             )),
                         #endregion
 
@@ -452,7 +293,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                                 new Decorator(context => !Me.InVehicle,
                                     new Action(context =>
                                     {
-                                        ArticulationLimits = null;
+                                        VehicleWeaponMover = null;
                                         VehicleAbilities = null;
                                         State_MainBehavior = StateType_MainBehavior.AcquiringVehicle;
                                     })),
@@ -462,15 +303,15 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                                     new Action(context =>
                                     {
                                         Lua.DoString("VehicleExit()");
-                                        _isBehaviorDone = true;
+                                        BehaviorDone();
                                     })),
 
                                 // If targets in the area, have at them...
                                 new Decorator(context => IsViable(SelectedTarget),
                                     new PrioritySelector(
                                         // Make certain were within the prescribed range for engagement...
-                                        new Decorator(context => Me.Location.Distance(SelectedTarget.Location) > CombatMaxEngagementRangeDistance,
-                                            UtilityBehavior_MoveTo(
+                                        new Decorator(context => Me.Location.Distance(SelectedTarget.Location) > CombatMaxEngagementDistance,
+                                            UtilityBehaviorPS_MoveTo(
                                                 context => SelectedTarget.Location,
                                                 context => string.Format("within range of '{0}'", SelectedTarget.Name))) //, // TODO
 
@@ -478,12 +319,10 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                                     )),
 
                                 // Dequeue current waypoint if we've arrived...
-                                new Decorator(context => Me.Location.Distance(HuntingGrounds.Peek()) <= Navigator.PathPrecision,
+                                new Decorator(context => Me.Location.Distance(CurrentWaypoint.Location) < CurrentWaypoint.Radius,
                                     new Action(context =>
                                     {
-                                        // Rotate to the next waypoint
-                                        WoWPoint currentWaypoint = HuntingGrounds.Dequeue();
-                                        HuntingGrounds.Enqueue(currentWaypoint);
+                                        CurrentWaypoint = HuntingGrounds.FindNextWaypoint(CurrentWaypoint.Location);
                                     })),
 
                                 // Apply speed burst if we have one...
@@ -498,7 +337,9 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                                     })),
 
                                 // Otherwise, move to next hotspot...
-                                UtilityBehavior_MoveTo(context => HuntingGrounds.Peek(), context => "to next hunting ground waypoint")
+                                UtilityBehaviorPS_MoveTo(
+                                    context => CurrentWaypoint.Location,
+                                    context => string.Format("hunting ground waypoint '{0}'", CurrentWaypoint.Name))
                             ))
                         #endregion
                     )
@@ -506,7 +347,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
         }
 
 
-        private Composite CreateBehavior_CombatOnly()
+        protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
                 // Prevent the Combat routine from running while we're in the vehicle...
@@ -516,7 +357,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
         }
 
 
-        private Composite CreateBehavior_DeathMain()
+        protected override Composite CreateBehavior_DeathMain()
         {
             return new PrioritySelector(
                 // empty, for now
@@ -524,64 +365,23 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
         }
 
 
-        private Composite CreateMainBehavior()
+        protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
 
                 // If quest is done, behavior is done...
                 new Decorator(context => IsDone,
-                    new Action(context =>
-                    {
-                        _isBehaviorDone = true;
-                        LogInfo("Finished");
-                    }))
+                    new Action(context => { BehaviorDone();}))
             );
         }
         #endregion
 
 
         #region Helpers
-        public class ArticulationLimitsType
-        {
-            public ArticulationLimitsType(double up, double down, double left, double right)
-            {
-                Down = down;
-                Left = left;
-                Right = right;
-                Up = up;
-            }
-
-            public bool IsWithinAzimuthArticulation(double angle)
-            {
-                // In WoW, larger Azimuths are "up"...
-                return (angle >= Down) && (angle <= Up);
-            }
-
-            public bool IsWithinHeadingArticulation(double angle)
-            {
-                // In WoW, larger headings are "Left"..
-                return (angle >= Right) && (angle <= Left);
-            }
-
-            public override string ToString()
-            {
-                return string.Format("<ArticulationLimitsType"
-                    + " Up=\"{0}\" Down=\"{1}\" Left=\"{2}\" Right=\"{3}\"",
-                    Up, Down, Left, Right);
-            }
-
-            public double Down { get; private set; }     // azimuth in Radians
-            public double Left { get; private set; }     // relative heading in Radians
-            public double Right { get; private set; }    // relative heading in Radians
-            public double Up { get; private set; }       // azimuth in Radians
-        };
-
-
         public class VehicleAbility
         {
-            public VehicleAbility(CustomForcedBehavior behavior, WoWPetSpell wowPetSpell)
+            public VehicleAbility(WoWPetSpell wowPetSpell)
             {
-                _behavior = behavior;
                 _wowPetSpell = wowPetSpell;
 
                 ActionBarIndex = wowPetSpell.ActionBarIndex +1;
@@ -754,7 +554,7 @@ IsAbilityReady();
 
 
         // NB: In WoW, larger headings are to left, and larger Azimuths are up
-        private void AimAndFire(WoWUnit target, double muzzleVelocity, ArticulationLimitsType articulation)
+        private void AimAndFire(WoWUnit target, double muzzleVelocity, VehicleWeaponMoverType vehicleWeaponMover)
         {
             //if (Me.InVehicle && (target != null))
             //{
@@ -787,97 +587,6 @@ IsAbilityReady();
         }
 
 
-        public ArticulationLimitsType DiscoverArticulationLimitsOfVehicleWeapon()
-        {
-            if (!Me.InVehicle)
-                { return null; }
-
-            WoWObject faceListener = (Me.Transport != null) ? Me.Transport : Me;
-            bool hasAngleControl = Lua.GetReturnVal<bool>("return IsVehicleAimAngleAdjustable();", 0);
-            Stopwatch movementTimeout = new Stopwatch();
-            double originalAzimuth = NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
-            float originalHeading = Me.RenderFacing;
-
-            double down = 0.0;
-            double up = 0.0;
-
-            // Discover Azimuth limits...
-            if (hasAngleControl)
-            {
-                double desiredAzimuth = (Math.PI / 2);
-                movementTimeout.Restart();
-                do
-                {
-                    Lua.DoString("VehicleAimRequestAngle({0})", (Math.PI / 2));
-                    up = NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
-                } while ((up < desiredAzimuth) && (movementTimeout.ElapsedMilliseconds < 1000));
-
-                desiredAzimuth = (-Math.PI / 2);
-                movementTimeout.Restart();
-                do
-                {
-                    Lua.DoString("VehicleAimRequestAngle({0})", -(Math.PI / 2));
-                    down = NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
-                } while ((down > desiredAzimuth) && (movementTimeout.ElapsedMilliseconds < 1000));
-
-                Lua.DoString("VehicleAimRequestAngle({0})", originalAzimuth);
-            }
-
-            // Discover Heading limits...
-
-            // We want to force turning in a particular direction (CCW) to determine 'left' limits...
-            const float headingIncrement = (float)Math.PI / 16;
-            float headingOffset;
-            double left = 0.0;
-            double right = 0.0;
-
-
-            Me.SetFacing(originalHeading);
-            for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
-            {
-                Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading + headingOffset));
-                left = WoWMathHelper.NormalizeRadian(faceListener.Rotation);
-LogInfo("Left: {0:F2} (offset: {1:F2})", left, headingOffset);
-            }
-
-            Me.SetFacing(originalHeading);
-            for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
-            {
-                Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading - headingOffset));
-                right = WoWMathHelper.NormalizeRadian(faceListener.Rotation);
-LogInfo("Right: {0:F2} (offset: {1:F2})", right, headingOffset);
-            }
-
-            // Return to original heading...
-            Me.SetFacing((float)originalHeading);
-
-            return new ArticulationLimitsType(up, down, left, right);
-        }
-
-
-        public IEnumerable<VehicleAbility> DiscoverVehicleAbilities()
-        {
-            // If not in vehicle, no way to discover abilities...
-            if (!Me.InVehicle)
-                { return null; }
-
-            var abilities = new List<VehicleAbility>();
-
-            foreach (var wowPetSpell in Me.PetSpells)
-            {
-                if (wowPetSpell.Spell != null)
-                {
-                    var ability = new VehicleAbility(this, wowPetSpell);
-                    abilities.Add(ability);
-LogInfo("ABILITY: {0}", ability.ToString());
-//LogInfo("SPELL: {0}", wowPetSpell.Spell.ToString_FullInfo());
-                }
-            }
-
-            return abilities;
-        }
-
-
         private WoWUnit FindBestTarget()
         {
             IEnumerable<int> targetMobIds =
@@ -894,37 +603,10 @@ LogInfo("ABILITY: {0}", ability.ToString());
         }
 
 
-        // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
-        {
-            return
-                from player in ObjectManager.GetObjectsOfType<WoWPlayer>()
-                where
-                    player.IsAlive
-                    && player.Location.Distance(location) < radius
-                select player;
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds)
-        {
-            ContractRequires(unitIds != null, () => "unitIds argument may not be null");
-
-            return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
-                where
-                    IsViable(unit)
-                    && unitIds.Contains((int)unit.Entry)
-                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
-                select unit;
-        }
-
-
         private WoWUnit FindUnoccupiedVehicle(IEnumerable<int> mobIds_UnoccupiedVehicle)
         {
             ContractRequires(mobIds_UnoccupiedVehicle != null,
-                () => "mobIds_UnoccupiedVehicle argument may not be null");
+                context => "mobIds_UnoccupiedVehicle argument may not be null");
 
             return
                 (from vehicle in FindUnitsFromIds(mobIds_UnoccupiedVehicle)
@@ -935,387 +617,162 @@ LogInfo("ABILITY: {0}", ability.ToString());
                  select vehicle)
                  .FirstOrDefault();
         }
-
-
-        /// <summary>
-        /// <para>Reads the "Quest Behaviors/DATA/AuraIds_OccupiedVehicle.xml" file, and returns an IEnumerable
-        /// of all the AuraIds that are represent Vehicles that are occupied.</para>
-        /// <para>If the da file has malformed entries (which it should never be), error messages
-        /// will be emitted.</para>
-        /// </summary>
-        /// <returns>the IEnumerable may be empty, but it will never be null.</returns>
-        //  7Mar2013-02:28UTC chinajade
-        public IEnumerable<int> GetOccupiedVehicleAuraIds()
-        {
-            List<int> occupiedVehicleAuraIds = new List<int>();
-            string auraDataFileName = Path.Combine(GlobalSettings.Instance.QuestBehaviorsPath, "DATA", "AuraIds_OccupiedVehicle.xml");
-
-            if (!File.Exists(auraDataFileName))
-            {
-                LogWarning("Unable to locate Occupied Vehicle Aura database (in {0}).  Vehicles will be unqualified"
-                    + "--this may cause us to follow vehicles occupied by other players.",
-                    auraDataFileName);
-                return occupiedVehicleAuraIds;
-            }
-
-            XDocument xDoc = XDocument.Load(auraDataFileName);
-
-            foreach (XElement aura in xDoc.Descendants("Auras").Elements())
-            {
-                string elementAsString = aura.ToString();
-
-                XAttribute spellIdAttribute = aura.Attribute("SpellId");
-                if (spellIdAttribute == null)
-                {
-                    LogError("Unable to locate SpellId attribute for {0}", elementAsString);
-                    continue;
-                }
-
-                int auraSpellId;
-                if (!int.TryParse(spellIdAttribute.Value, out auraSpellId))
-                {
-                    LogError("Unable to parse SpellId attribute for {0}", elementAsString);
-                    continue;
-                }
-
-                occupiedVehicleAuraIds.Add(auraSpellId);
-            }
-
-            return occupiedVehicleAuraIds;
-        }
-
-
-        private string GetMobNameFromId(int wowUnitId)
-        {
-            WoWUnit wowUnit = FindUnitsFromIds(new int[] { wowUnitId }).FirstOrDefault();
-
-            return (wowUnit != null)
-                ? wowUnit.Name
-                : string.Format("MobId({0})", wowUnitId);
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
-        {
-            if (Me.QuestLog.GetQuestById((uint)questId) == null)
-                { return false; }
-
-            int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
-
-            return
-                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsViable(WoWUnit wowUnit)
-        {
-            return
-                (wowUnit != null)
-                && wowUnit.IsValid
-                && wowUnit.IsAlive
-                && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
-        }
-        #endregion
-
-
-        #region Utility Behaviors
-        private Composite UtilityBehavior_InteractWithMob(WoWUnitDelegate unitToInteract)
-        {
-            return new PrioritySelector(interactUnitContext => unitToInteract(interactUnitContext),
-                new Decorator(interactUnitContext => IsViable((WoWUnit)interactUnitContext),
-                    new PrioritySelector(
-                        // Show user which unit we're going after...
-                        new Decorator(interactUnitContext => Me.CurrentTarget != (WoWUnit)interactUnitContext,
-                            new Action(interactUnitContext => { ((WoWUnit)interactUnitContext).Target(); })),
-
-                        // If not within interact range, move closer...
-                        new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
-                            new Action(interactUnitContext =>
-                            {
-                                LogDeveloperInfo("Moving to interact with {0}", ((WoWUnit)interactUnitContext).Name);
-                                Navigator.MoveTo(((WoWUnit)interactUnitContext).Location);
-                            })),
-
-                        new Decorator(interactUnitContext => Me.IsMoving,
-                            new Action(interactUnitContext => { WoWMovement.MoveStop(); })),
-                        new Decorator(interactUnitContext => !Me.IsFacing((WoWUnit)interactUnitContext),
-                            new Action(interactUnitContext => { Me.SetFacing((WoWUnit)interactUnitContext); })),
-
-                        // Blindly interact...
-                        // Ideally, we would blacklist the unit if the interact failed.  However, the HB API
-                        // provides no CanInteract() method (or equivalent) to make this determination.
-                        new Action(interactUnitContext =>
-                        {
-                            LogDeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
-                            ((WoWUnit)interactUnitContext).Interact();
-                            return RunStatus.Failure;
-                        }),
-                        new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
-                    )));
-        }
-
-
-        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
-                                                    StringDelegate locationNameDelegate,
-                                                    RangeDelegate precisionDelegate = null)
-        {
-            ContractRequires(locationDelegate != null, () => "locationRetriever may not be null");
-            ContractRequires(locationNameDelegate != null, () => "locationNameDelegate may not be null");
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
-            return new PrioritySelector(locationContext => locationDelegate(locationContext),
-                new Decorator(locationContext => !Me.InVehicle && !Me.Mounted
-                                                    && Mount.CanMount()
-                                                    && Mount.ShouldMount((WoWPoint)locationContext),
-                    new Action(locationContext => { Mount.MountUp(() => (WoWPoint)locationContext); })),
-
-                new Decorator(locationContext => (Me.Location.Distance((WoWPoint)locationContext) > precisionDelegate(locationContext)),
-                    new Sequence(
-                        new Action(context =>
-                        {
-                            WoWPoint destination = locationDelegate(context);
-                            string locationName = locationNameDelegate(context) ?? destination.ToString();
-
-                            TreeRoot.StatusText = "Moving to " + locationName;
-
-                            MoveResult moveResult = Navigator.MoveTo(destination);
-
-                            // If Navigator couldn't move us, resort to click-to-move...
-                            if (!((moveResult == MoveResult.Moved)
-                                    || (moveResult == MoveResult.ReachedDestination)
-                                    || (moveResult == MoveResult.PathGenerated)))
-                            {
-                                WoWMovement.ClickToMove(destination);
-                            }
-                        }),
-                        new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                    ))
-                );
-        }
-        #endregion
-
-
-        #region Pet Helpers
-        // Cut-n-paste any PetControl helper methods you need, here...
         #endregion
 
 
         #region Vehicle Behaviors
-        private class ArticulationDiscoveryStateType
+
+        public IEnumerable<VehicleAbility> DiscoverVehicleAbilities()
         {
-            public ArticulationDiscoveryStateType()
-            {
-                OriginalAzimuth = CurrentAzimuth;
-                OriginalHeading = CurrentHeading;
+            // If not in vehicle, no way to discover abilities...
+            if (!Me.InVehicle)
+                { return null; }
 
-                if (!HasAngleControl)
+            var abilities = new List<VehicleAbility>();
+
+            foreach (var wowPetSpell in Me.PetSpells)
+            {
+                if (wowPetSpell.Spell != null)
                 {
-                    IsDiscovered_Up = true;
-                    IsDiscovered_Down = true;
-                    Limit_Up = OriginalAzimuth;
-                    Limit_Down = OriginalAzimuth;
+                    var ability = new VehicleAbility(wowPetSpell);
+                    abilities.Add(ability);
+LogInfo("ABILITY: {0}", ability.ToString());
+//LogInfo("SPELL: {0}", wowPetSpell.Spell.ToString_FullInfo());
                 }
             }
 
-            public double CurrentAzimuth
-            {
-                get { return NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0)); }
-            }
-
-            public double CurrentHeading
-            {
-                get
-                {
-                    WoWObject facingListener = (StyxWoW.Me.Transport != null) ? StyxWoW.Me.Transport : StyxWoW.Me;
-                    return WoWMathHelper.NormalizeRadian(facingListener.Rotation);
-                }
-            }
-
-            public WoWObject FacingListener
-            {
-                get { return (StyxWoW.Me.Transport != null) ? StyxWoW.Me.Transport : StyxWoW.Me; }
-            }
-
-            public bool HasAngleControl
-            {
-                get { return Lua.GetReturnVal<bool>("return IsVehicleAimAngleAdjustable();", 0); }
-            }
-
-            public bool IsDiscovered_Down { get; set; }
-            public bool IsDiscovered_Left { get; set; }
-            public bool IsDiscovered_Right { get; set; }
-            public bool IsDiscovered_Up { get; set; }
-            public double Limit_Down { get; set; }
-            public double Limit_Left { get; set; }
-            public double Limit_Right { get; set; }
-            public double Limit_Up { get; set; }
-            public double OriginalAzimuth { get; private set; }
-            public double OriginalHeading { get; private set; }
-
-
-            private bool DiscoverDown()
-            {
-                RequestAzimuth(-Math.PI / 2);
-                Limit_Down = CurrentAzimuth;
-
-                return true; // TODO finish this
-            }
-
-            private bool DiscoverUp()
-            {
-                RequestAzimuth(Math.PI / 2);
-                Limit_Up = CurrentAzimuth;
-
-                return true; // TODO finish this
-            }
-
-            public void RequestAzimuth(double requestedAzimuth)
-            {
-                Lua.DoString("VehicleAimRequestAngle({0})", requestedAzimuth);
-            }
+            return abilities;
         }
 
-        private ArticulationDiscoveryStateType ArticulationDiscoveryState = null;
-        private double HeadingOffset { get; set; }
-        private double HeadingIncrement { get; set; }
-        private double OriginalHeading { get; set; }
-        public Composite UtilityBehaviorPS_DiscoverArticulationLimits()
+
+        public class VehicleWeaponMoverType
         {
-            const double Tolerance_Azimuth = 0.05;
-            const double Tolerance_Heading = 0.05;
+            public VehicleWeaponMoverType()
+            {
+                // TODO: Throw exception if not in the vehicle
+                AzimuthBaseAbsolute = AzimuthCurrentAbsolute();
+                HeadingBaseAbsolute = HeadingCurrentAbsolute();
 
-            return new Decorator(context => Me.InVehicle,
-                new PrioritySelector(
-                    new Decorator(context => ArticulationDiscoveryState == null,
-                        new Action(context => { ArticulationDiscoveryState = new ArticulationDiscoveryStateType(); })),
+                DiscoverArticulationLimits();
+            }
 
-                            
-                    // Left...
-                    new Decorator(context => !ArticulationDiscoveryState.IsDiscovered_Left,
-                        new Sequence(
-                            new Action(context =>
-                            {
-                                OriginalHeading = ArticulationDiscoveryState.FacingListener.Rotation;
-                                HeadingOffset = 0.0;
-                                HeadingIncrement = Math.PI / 16;
-                            }),
-                            new WhileLoop(RunStatus.Success, context => HeadingOffset <= (Math.PI + HeadingIncrement/2),
-                                new Action(context => { Me.SetFacing(WoWMathHelper.NormalizeRadian((float)(OriginalHeading + HeadingOffset))); }),
-                                new Wait(TimeSpan.FromMilliseconds(1000),
-                                    context => Math.Abs(ArticulationDiscoveryState.FacingListener.Rotation - HeadingOffset) < Tolerance_Heading,
-                                    new ActionAlwaysSucceed()),
-                                new Action(context =>
-                                {
-                                    ArticulationDiscoveryState.Limit_Left = ArticulationDiscoveryState.CurrentHeading;
-                                    HeadingOffset += HeadingIncrement;
-                                })
-                            ),
-                            new Action(context => { ArticulationDiscoveryState.IsDiscovered_Left = true; })
-                        )),
-
-                    // Right...
-                    new Decorator(context => !ArticulationDiscoveryState.IsDiscovered_Right,
-                        new PrioritySelector(
-                        )),
-
-                    // Capture discoveries...
-                    new Action(context =>
-                    {
-                        WoWObject facingListener = (Me.Transport != null) ? Me.Transport : Me;
-                        Stopwatch maxReactionTimer = new Stopwatch();
-
-                        Func<double> azimuthCurrent = () => { return NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0)); };
-                        Action<double> azimuthRequest = (requestedAzimuth) => { Lua.DoString("VehicleAimRequestAngle({0})", requestedAzimuth); };
-
-                        Func<double, double> acquireAzimuthLimit = (desiredAzimuth) =>
-                            {
-                                const double azimuthTolerance = 0.05;
-                                const int maxReactionTimeInMilliseconds = 1000;
-
-                                azimuthRequest(desiredAzimuth);
-
-                                maxReactionTimer.Restart();
-                                while ((maxReactionTimer.ElapsedMilliseconds < maxReactionTimeInMilliseconds)
-                                        && (Math.Abs(azimuthCurrent() - desiredAzimuth) > azimuthTolerance))
-                                {
-                                    // empty
-                                }
-
-                                return azimuthCurrent();
-                            };
-
-                        Func<double, double> acquireHeadingLimit = (desiredHeading) =>
-                        {
-                            // TODO: FINISH THIS
-            //                // Start from original heading...
-            //                while (Math.Abs(
-            //                Me.SetFacing(originalHeading);
-            //            for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
-            //            {
-            //                Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading + headingOffset));
-            //                limitLeft = WoWMathHelper.NormalizeRadian(facingListener.Rotation);
-            //LogInfo("Left: {0:F2} (offset: {1:F2})", limitLeft, headingOffset);
-            //            }
-
-                            return 0.0;
-                        };
-
-                        Func<double> headingCurrent = () => { return ((Me.Transport != null) ? Me.Transport : Me).Rotation; };
-                        Action<double> headingRequest = (desiredHeading) =>
-                        {
-                            const double headingTolerance = 0.05;
-                            const int maxReactionTimeInMilliseconds = 1000;
-
-                            desiredHeading = WoWMathHelper.NormalizeRadian((float)desiredHeading);
-                            while ((maxReactionTimer.ElapsedMilliseconds < maxReactionTimeInMilliseconds)
-                                    && (Math.Abs(headingCurrent() - desiredHeading) > headingTolerance))
-                            {
-                                Me.SetFacing((float)desiredHeading);
-                            }
-                        };
-
-                        // Discover Azimuth limits...
-                        double originalAzimuth = azimuthCurrent(); // capture original azimuth
-                        double limitUp = acquireAzimuthLimit(Math.PI / 2);
-                        double limitDown = acquireAzimuthLimit(-Math.PI / 2);
-                        azimuthRequest(originalAzimuth);    // restore original azimuth
-LogWarning("UP Discovered as: {0:F1}", limitUp);
-LogWarning("DOWN Discovered as: {0:F1}", limitDown);
-
-                        // Discover Heading limits...
-
-                        // We want to force turning in a particular direction (CCW) to determine 'left' limits...
-                        const float headingIncrement = (float)Math.PI / 16;
-                        float headingOffset;
-                        double limitLeft = 0.0;
-                        double limitRight = 0.0;
-                        float originalHeading = facingListener.Rotation;
+            public double AzimuthCurrentAbsolute()
+            {
+                return NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
+            }
 
 
-                        Me.SetFacing(originalHeading);
-                        for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
-                        {
-                            Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading + headingOffset));
-                            limitLeft = WoWMathHelper.NormalizeRadian(facingListener.Rotation);
-            LogInfo("Left: {0:F2} (offset: {1:F2})", limitLeft, headingOffset);
-                        }
+            public void AzimuthRequestAbsolute(double absoluteAzimuth)
+            {
+                Lua.DoString("VehicleAimRequestAngle({0})", absoluteAzimuth);
+            }
 
-                        Me.SetFacing(originalHeading);
-                        for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
-                        {
-                            Me.SetFacing(WoWMathHelper.NormalizeRadian(originalHeading - headingOffset));
-                            limitRight = WoWMathHelper.NormalizeRadian(facingListener.Rotation);
-            LogInfo("Right: {0:F2} (offset: {1:F2})", limitRight, headingOffset);
-                        }
 
-                        // Return to original heading...
-                        Me.SetFacing((float)originalHeading);
+            public void DiscoverArticulationLimits()
+            {
+                AzimuthRequestAbsolute(TAU / 4);
+                AzimuthLimitUpper = AzimuthCurrentAbsolute();
 
-                        //return new ArticulationLimitsType(up, down, left, right);
-                    })
-            ));
+                AzimuthRequestAbsolute(-TAU / 4);
+                AzimuthLimitLower = AzimuthCurrentAbsolute();
+         
+                const double headingIncrement = TAU/16;
+                double headingOffset;
+                for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset += headingIncrement)
+                {
+                    HeadingRequestRelative(headingOffset);
+                    if (Math.Abs(HeadingCurrentRelative() - headingOffset) > EpsilonHeading)
+                        { break; }
+                }
+                HeadingLimitRelativeCcw = HeadingCurrentRelative();
+
+                for (headingOffset = 0.0f; headingOffset <= (Math.PI + headingIncrement/2); headingOffset -= headingIncrement)
+                {
+                    HeadingRequestRelative(headingOffset);
+                    if (Math.Abs(HeadingCurrentRelative() - headingOffset) > EpsilonHeading)
+                        { break; }
+                }
+                HeadingLimitRelativeCw = HeadingCurrentRelative();
+            }
+
+
+            // Returns Milliseconds we expect to make the heading move...
+            private int EstimatedMaxReactionTime(double headingRadiansDesired, double headingRadiansCurrent)
+            {
+                // Assume slowest unit can turn a full circle in 8 seconds...
+                const double expectedWorseCaseTurnRate = TAU / 8000;
+
+                // We want the smaller of the angle or its complement...
+                double movementAngle = Math.Abs(headingRadiansDesired - headingRadiansCurrent);
+                double maxRadianMovement = Math.Min(movementAngle, (TAU - movementAngle));
+
+                return (int)(maxRadianMovement / expectedWorseCaseTurnRate);
+            }
+
+            public double HeadingCurrentAbsolute()
+            {
+                return _headingObserver.Rotation;
+            }
+
+
+            public double HeadingCurrentRelative()
+            {
+                return HeadingCurrentAbsolute() - HeadingBaseAbsolute;
+            }
+
+
+            public void HeadingRequestAbsolute(double absoluteRadianHeading)
+            {
+                int estimatedMaxReactionTime = EstimatedMaxReactionTime(absoluteRadianHeading, HeadingCurrentAbsolute());
+
+                absoluteRadianHeading = WoWMathHelper.NormalizeRadian((float)absoluteRadianHeading);
+                _maxReactionTimer.Restart();
+
+                while ((_maxReactionTimer.ElapsedMilliseconds < estimatedMaxReactionTime)
+                        && (Math.Abs(HeadingCurrentAbsolute() - absoluteRadianHeading) > EpsilonHeading))
+                {
+                    StyxWoW.Me.SetFacing((float)absoluteRadianHeading);   
+                }
+            }
+
+
+            public void HeadingRequestRelative(double relativeRadianHeading)
+            {
+                HeadingRequestAbsolute((float)(relativeRadianHeading + HeadingBaseAbsolute));
+            }
+
+
+            public bool IsWithinAzimuthArticulation_Absolute(double desiredAzimuth)
+            {
+                // In WoW, larger Azimuths are "up"...
+                return (desiredAzimuth >= AzimuthLimitLower) && (desiredAzimuth <= AzimuthLimitUpper);
+            }
+
+            public bool IsWithinHeadingArticulation_Relative(double desiredRelativeHeading)
+            {
+                // In WoW, larger headings are "Left"..
+                return (desiredRelativeHeading >= HeadingLimitRelativeCw) && (desiredRelativeHeading <= HeadingLimitRelativeCcw);
+            }
+
+            public override string ToString()
+            {
+                return string.Format("<ArticulationLimitsType"
+                    + " AzimuthLimitUpper=\"{0}\" AzimuthLimitLower=\"{1}\""
+                    + " HeadingLimitRelativeCcw=\"{2}\" HeadingLimitRelativeCw=\"{3}\" />",
+                    AzimuthLimitUpper, AzimuthLimitLower, HeadingLimitRelativeCcw, HeadingLimitRelativeCw);
+            }
+            
+            private double AzimuthLimitLower { get; set; }       // azimuth in Radians
+            private double AzimuthLimitUpper { get; set; }       // azimuth in Radians
+            private double AzimuthBaseAbsolute { get; set; }
+            private double HeadingBaseAbsolute { get; set; }
+            private double HeadingLimitRelativeCcw { get; set; } // relative heading in Radians
+            private double HeadingLimitRelativeCw { get; set; }  // relative heading in Radians
+            private readonly WoWObject _headingObserver = (StyxWoW.Me.Transport ?? StyxWoW.Me);
+            private readonly Stopwatch _maxReactionTimer = new Stopwatch();
+            private const double EpsilonAzimuth = 0.05;   // radians
+            private const double EpsilonHeading = 0.05;   // radians
+
         }
         #endregion
 
@@ -1324,7 +781,7 @@ LogWarning("DOWN Discovered as: {0:F1}", limitDown);
         public double? CalculateBallisticLaunchAngle(
             WoWUnit target,
             double muzzleVelocityInFps,
-            ArticulationLimitsType articulationRange)
+            VehicleWeaponMoverType vehicleWeaponMover)
         {
             if (target == null)
                 { return null; }
@@ -1347,30 +804,16 @@ LogWarning("DOWN Discovered as: {0:F1}", limitDown);
 
             // Prefer the 'lower' angle, if its within the articulation range...
             double root = Math.Atan((v0Sqr - radicalTerm) / (g * distance2D));
-            if (articulationRange.IsWithinAzimuthArticulation(root))
+            if (vehicleWeaponMover.IsWithinAzimuthArticulation_Absolute(root))
                 { return root; }
 
             // First root provides no solution, try second root...
             root = Math.Atan((v0Sqr + radicalTerm) / (g * distance2D));
-            if (articulationRange.IsWithinAzimuthArticulation(root))
+            if (vehicleWeaponMover.IsWithinAzimuthArticulation_Absolute(root))
                 { return root; }
 
             // Both solutions are out of the vehicle's articulation capabilities, return "no solution"...
             return null;
-        }
-
-
-
-        /// <summary>
-        /// Returns the normalized ANGLEINRADIANS to the closed interval [-PI..+PI]
-        /// </summary>
-        /// <param name="radians"></param>
-        /// <returns></returns>
-        public static double NormalizeAngleToPi(double angleInRadians)
-        {
-            while (angleInRadians > Math.PI)  { angleInRadians -= (2 * Math.PI); }
-            while (angleInRadians < -Math.PI) { angleInRadians += (2 * Math.PI); }
-            return (angleInRadians);
         }
         #endregion
 
@@ -1513,369 +956,5 @@ LogWarning("DOWN Discovered as: {0:F1}", limitDown);
             CustomForcedBehavior _parent;
         }
         #endregion
-
-
-        #region Diagnostic Methods
-        public delegate string StringProviderDelegate();
-
-        /// <summary>
-        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
-        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
-        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
-        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
-        /// so we don't pay a performance penalty to build an error message that is not used
-        /// when ISCONTRACTOKAY is true.</para></description></item>
-        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
-        /// dynamically compile parts of the project at run time.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="isContractOkay"></param>
-        /// <param name="stringProviderDelegate"></param>
-        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
-        ///  30Jun2012-15:58UTC chinajade
-        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
-        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
-        ///  throughout the code.
-        public bool ContractRequires(bool isContractOkay, StringProviderDelegate stringProviderDelegate)
-        {
-            if (!isContractOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
-                StackTrace  trace   = new StackTrace(1);
-
-                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}", message, trace.ToString());
-            }
-
-            return isContractOkay;
-        }
-
-
-        /// <summary>
-        /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
-        /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
-        /// <para>This is useful when emitting log messages.</para>
-        /// </summary>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * This method uses reflection--making it relatively 'expensive' to call.
-        /// Use it with caution.</para></description></item>
-        /// </list></para>
-        /// <returns></returns>
-        ///  7Jul2012-20:26UTC chinajade
-        public static string    GetMyMethodName(bool  showDeclaringType   = false)
-        {
-            var method  = (new StackTrace(1)).GetFrame(0).GetMethod();
-
-            if (showDeclaringType)
-                { return (method.DeclaringType + "." + method.Name); }
-
-            return (method.Name);
-        }
-
-
-        /// <summary>
-        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogDeveloperInfo(string message, params object[] args)
-        {
-            LogMessage("debug", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogError(string message, params object[] args)
-        {
-            LogMessage("error", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Normal information to keep user informed.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogInfo(string message, params object[] args)
-        {
-            LogMessage("info", message, args);
-        }
-        
-        
-        /// <summary>
-        /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
-        /// action a user can perform in the field for these types of errors.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        ///  30Jun2012-15:58UTC chinajade
-        public void LogMaintenanceError(string message, params object[] args)
-        {
-            string          formattedMessage    = string.Format(message, args);
-            StackTrace      trace               = new StackTrace(1);
-
-            LogMessage("error", "[MAINTENANCE ERROR] {0}\nLocation:\n{1}", formattedMessage, trace.ToString());
-        }
-
-
-        /// <summary>
-        /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogWarning(string message, params object[] args)
-        {
-            LogMessage("warning", message, args);
-        }
-        #endregion
     }
-
-
-    #region DEBUG
-    public static class DebugExtensions
-    {
-        // 9Mar2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this PlayerQuest playerQuest, bool useCompactForm = false, int indentLevel = 0)
-        {
-            var tmp = new StringBuilder();
-
-            if (playerQuest != null)
-            {
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                tmp.AppendFormat("<PlayerQuest Key_Id=\"{0}\" Key_Name=\"{1}\"", playerQuest.Id, playerQuest.Name);
-                tmp.AppendFormat("{0}CompletionText=\"{1}\"", fieldSeparator, playerQuest.CompletionText);
-                tmp.AppendFormat("{0}Description=\"{1}\"", fieldSeparator, playerQuest.Description);
-                tmp.AppendFormat("{0}FlagsPvP=\"{1}\"", fieldSeparator, playerQuest.FlagsPVP);
-                tmp.AppendFormat("{0}Id=\"{1}\"", fieldSeparator, playerQuest.Id);
-                tmp.AppendFormat("{0}InternalInfo=\"{1}\"", fieldSeparator, playerQuest.InternalInfo);
-                tmp.AppendFormat("{0}IsAutoAccepted=\"{1}\"", fieldSeparator, playerQuest.IsAutoAccepted);
-                tmp.AppendFormat("{0}IsCompleted=\"{1}\"", fieldSeparator, playerQuest.IsCompleted);
-                tmp.AppendFormat("{0}IsDaily=\"{1}\"", fieldSeparator, playerQuest.IsDaily);
-                tmp.AppendFormat("{0}IsFailed=\"{1}\"", fieldSeparator, playerQuest.IsFailed);
-                tmp.AppendFormat("{0}IsPartyQuest=\"{1}\"", fieldSeparator, playerQuest.IsPartyQuest);
-                tmp.AppendFormat("{0}IsSharable=\"{1}\"", fieldSeparator, playerQuest.IsShareable);
-                tmp.AppendFormat("{0}IsStayAliveQuest=\"{1}\"", fieldSeparator, playerQuest.IsStayAliveQuest);
-                tmp.AppendFormat("{0}IsWeekly=\"{1}\"", fieldSeparator, playerQuest.IsWeekly);
-                tmp.AppendFormat("{0}Level=\"{1}\"", fieldSeparator, playerQuest.Level);
-                tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, playerQuest.Name);
-                tmp.AppendFormat("{0}NormalObjectiveRequiredCounts=\"{1}\"", fieldSeparator,
-                    (playerQuest.NormalObjectiveRequiredCounts == null)
-                    ? "NONE"
-                    : string.Join(", ", playerQuest.NormalObjectiveRequiredCounts.Select(c => c.ToString())));
-                tmp.AppendFormat("{0}Objectives=\"{1}\"", fieldSeparator,
-                    (playerQuest.Objectives == null)
-                    ? "NONE"
-                    : string.Join(",", playerQuest.Objectives.Select(o => string.Format("{0}  \"{1}\"", fieldSeparator, o))));
-                tmp.AppendFormat("{0}ObjectiveText=\"{1}\"", fieldSeparator, playerQuest.ObjectiveText);
-                tmp.AppendFormat("{0}RequiredLevel=\"{1}\"", fieldSeparator, playerQuest.RequiredLevel);
-                tmp.AppendFormat("{0}RewardMoney=\"{1}\"", fieldSeparator, playerQuest.RewardMoney);
-                tmp.AppendFormat("{0}RewardMoneyAtMaxLevel=\"{1}\"", fieldSeparator, playerQuest.RewardMoneyAtMaxLevel);
-                tmp.AppendFormat("{0}RewardNumTalentPoints=\"{1}\"", fieldSeparator, playerQuest.RewardNumTalentPoints);
-                tmp.AppendFormat("{0}RewardSpell=\"{1}\"", fieldSeparator, 
-                    (playerQuest.RewardSpell == null)
-                    ? null
-                    : ToString_FullInfo(playerQuest.RewardSpell, false, indentLevel +4));
-                tmp.AppendFormat("{0}RewardSpellId=\"{1}\"", fieldSeparator, playerQuest.RewardSpellId);
-                tmp.AppendFormat("{0}RewardTitleId=\"{1}\"", fieldSeparator, playerQuest.RewardTitleId);
-                tmp.AppendFormat("{0}RewardXp=\"{1}\"", fieldSeparator, playerQuest.RewardXp);
-                tmp.AppendFormat("{0}SubDescription=\"{1}\"", fieldSeparator, playerQuest.SubDescription);
-                tmp.AppendFormat("{0}SuggestedPlayers=\"{1}\"", fieldSeparator, playerQuest.SuggestedPlayers);
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-            }
-
-            return tmp.ToString();
-        }
-
-
-        // 9Mar2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this Styx.WoWInternals.Quest.QuestObjective questObjective, bool useCompactForm = false, int indentLevel = 0)
-        {
-            var tmp = new StringBuilder();
-
-            var indent = string.Empty.PadLeft(indentLevel);
-            var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-            tmp.AppendFormat("<QuestObjective Key_Index=\"{0}\"", questObjective.Index);
-            tmp.AppendFormat("{0}Count=\"{1}\"", fieldSeparator, questObjective.Count);
-            tmp.AppendFormat("{0}ID=\"{1}\"", fieldSeparator, questObjective.ID);
-            tmp.AppendFormat("{0}Index=\"{1}\"", fieldSeparator, questObjective.Index);
-            tmp.AppendFormat("{0}IsEmpty=\"{1}\"", fieldSeparator, questObjective.IsEmpty);
-            tmp.AppendFormat("{0}Objective=\"{1}\"", fieldSeparator, questObjective.Objective);
-            tmp.AppendFormat("{0}Type=\"{1}\"", fieldSeparator, questObjective.Type);
-            tmp.AppendFormat("{0}/>", fieldSeparator);
-
-            return tmp.ToString();
-        }
-
-
-        //  9Mar2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this SpellEffect spellEffect, bool useCompactForm = false, int indentLevel = 0)
-        {
-            var tmp = new StringBuilder();
-
-            if (spellEffect != null)
-            {
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                tmp.AppendFormat("<SpellEffect Key_TriggerSpell=\"{0}\"", spellEffect.TriggerSpell);
-                tmp.AppendFormat("{0}Amplitude=\"{1}\"", fieldSeparator, spellEffect.Amplitude);
-                tmp.AppendFormat("{0}AuraType=\"{1}\"", fieldSeparator, spellEffect.AuraType);
-                tmp.AppendFormat("{0}BasePoints=\"{1}\"", fieldSeparator, spellEffect.BasePoints);
-                tmp.AppendFormat("{0}ChainTarget=\"{1}\"", fieldSeparator, spellEffect.ChainTarget);
-                tmp.AppendFormat("{0}EffectType=\"{1}\"", fieldSeparator, spellEffect.EffectType);
-                tmp.AppendFormat("{0}ImplicitTargetA=\"{1}\"", fieldSeparator, spellEffect.ImplicitTargetA);
-                tmp.AppendFormat("{0}ImplicitTargetB=\"{1}\"", fieldSeparator, spellEffect.ImplicitTargetB);
-                tmp.AppendFormat("{0}ItemType=\"{1}\"", fieldSeparator, spellEffect.ItemType);
-                tmp.AppendFormat("{0}Mechanic=\"{1}\"", fieldSeparator, spellEffect.Mechanic);
-                tmp.AppendFormat("{0}MiscValueA=\"{1}\"", fieldSeparator, spellEffect.MiscValueA);
-                tmp.AppendFormat("{0}MiscValueB=\"{1}\"", fieldSeparator, spellEffect.MiscValueB);
-                tmp.AppendFormat("{0}MultipleValue=\"{1}\"", fieldSeparator, spellEffect.MultipleValue);
-                tmp.AppendFormat("{0}PointsPerComboPoint=\"{1}\"", fieldSeparator, spellEffect.PointsPerComboPoint);
-                tmp.AppendFormat("{0}RadiusIndex=\"{1}\"", fieldSeparator, spellEffect.RadiusIndex);
-                tmp.AppendFormat("{0}RealPointsPerLevel=\"{1}\"", fieldSeparator, spellEffect.RadiusIndex);
-                tmp.AppendFormat("{0}SpellClassMask=\"{1}\"", fieldSeparator, spellEffect.SpellClassMask);
-                tmp.AppendFormat("{0}TriggerSpell=\"{1}\"", fieldSeparator, spellEffect.TriggerSpell);
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-            }
-
-            return tmp.ToString();
-        }
-
-
-        //  9Mar2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this WoWMissile wowMissile, bool useCompactForm = false, int indentLevel = 0)
-        {
-            var tmp = new StringBuilder();
-
-            if (wowMissile != null)
-            {
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                bool isInFlight = WoWMissile.InFlightMissiles.FirstOrDefault(m => m.BaseAddress == wowMissile.BaseAddress) != null;
-
-                tmp.AppendFormat("<WoWMissile Key_Spell=\"{0}\" BaseAddress=\"0x{1:x}\"",
-                    ((wowMissile.Spell == null) ? "UNKNOWN" : wowMissile.Spell.Name),
-                    (wowMissile.BaseAddress));
-                tmp.AppendFormat("{0}Caster=\"{1}\"", fieldSeparator,
-                    (wowMissile.Caster == null) ? "UNKNOWN" : wowMissile.Caster.Name);
-                tmp.AppendFormat("{0}CasterGuid=\"0x{1:x}\" <!--Me=\"0x{2:x}\" MyVehicle=\"0x{3:x}\" -->",
-                    fieldSeparator, wowMissile.Caster.Guid, StyxWoW.Me.Guid, StyxWoW.Me.TransportGuid);
-                tmp.AppendFormat("{0}FirePosition=\"{1}\"", fieldSeparator, wowMissile.FirePosition);
-                tmp.AppendFormat("{0}Flags=\"0x{1:x}\"", fieldSeparator, wowMissile.Flags);
-                tmp.AppendFormat("{0}ImpactPosition=\"{1}\" <!--dist: {2:F1}-->", fieldSeparator, wowMissile.ImpactPosition,
-                    wowMissile.ImpactPosition.Distance(StyxWoW.Me.Location));
-                tmp.AppendFormat("{0}IsInFlight=\"{1}\"", fieldSeparator, isInFlight);
-                tmp.AppendFormat("{0}Position=\"{1}\" <!--dist: {2:F1}-->", fieldSeparator, wowMissile.Position,
-                    wowMissile.Position.Distance(StyxWoW.Me.Location));
-                tmp.AppendFormat("{0}Spell=\"{1}\"", fieldSeparator,
-                    (wowMissile.Spell == null) ? "NONE" : wowMissile.Spell.Name);
-                tmp.AppendFormat("{0}SpellId=\"{1}\"", fieldSeparator, wowMissile.SpellId);
-                tmp.AppendFormat("{0}SpellVisualId=\"{1}\"", fieldSeparator, wowMissile.SpellVisualId);
-                tmp.AppendFormat("{0}Target=\"{1}\"", fieldSeparator,
-                    (wowMissile.Target == null) ? "NONE" : wowMissile.Target.Name);
-                tmp.AppendFormat("{0}TargetGuid=\"0x{1:x}\"", fieldSeparator, wowMissile.TargetGuid);
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-            }
-
-            return tmp.ToString();
-        }
-
-
-        //  9Mar2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this WoWPetSpell wowPetSpell, bool useCompactForm = false, int indentLevel = 0)
-        {
-            StringBuilder tmp = new StringBuilder();
-
-            if (wowPetSpell != null)
-            {
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                tmp.AppendFormat("<WoWPetSpell Key_ActionBarIndex=\"{0}\"", wowPetSpell.ActionBarIndex);
-                tmp.AppendFormat("{0}Action=\"{1}\"", fieldSeparator, wowPetSpell.Action);
-                tmp.AppendFormat("{0}Cooldown=\"{1}\"", fieldSeparator, wowPetSpell.Cooldown);
-                tmp.AppendFormat("{0}Spell=\"{1}\"", fieldSeparator,
-                    (wowPetSpell.Spell == null)
-                    ? "NONE"
-                    : ToString_FullInfo(wowPetSpell.Spell, useCompactForm, indentLevel + 4));
-                tmp.AppendFormat("{0}SpellType=\"{1}\"", fieldSeparator, wowPetSpell.SpellType);
-                tmp.AppendFormat("{0}Stance=\"{1}\"", fieldSeparator, wowPetSpell.Stance);
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-            }
-
-            return tmp.ToString();
-        }
-
-
-        //  9Mar2013-07:55UTC chinajade
-        public static string ToString_FullInfo(this WoWSpell wowSpell, bool useCompactForm = false, int indentLevel = 0)
-        {
-            StringBuilder tmp = new StringBuilder();
-
-            if (wowSpell != null)
-            {
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                tmp.AppendFormat("<WoWSpell Key_Id=\"{0}\" Key_Name=\"{1}\"", wowSpell.Id, wowSpell.Name);
-                tmp.AppendFormat("{0}BaseCooldown=\"{1}\"", fieldSeparator, wowSpell.BaseCooldown);
-                // tmp.AppendFormat("{0}BaseDuration=\"{1}\"", fieldSeparator, wowSpell.BaseDuration);
-                tmp.AppendFormat("{0}BaseLevel=\"{1}\"", fieldSeparator, wowSpell.BaseLevel);
-                tmp.AppendFormat("{0}CanCast=\"{1}\"", fieldSeparator, wowSpell.CanCast);
-                tmp.AppendFormat("{0}CastTime=\"{1}\"", fieldSeparator, wowSpell.CastTime);
-                tmp.AppendFormat("{0}Category=\"{1}\"", fieldSeparator, wowSpell.Category);
-                tmp.AppendFormat("{0}CooldownTime=\"{1}\"", fieldSeparator, wowSpell.Cooldown);
-                tmp.AppendFormat("{0}CooldownTimeLeft=\"{1}\"", fieldSeparator, wowSpell.CooldownTimeLeft);
-                tmp.AppendFormat("{0}CreatesItemId=\"{1}\"", fieldSeparator, wowSpell.CreatesItemId);
-                tmp.AppendFormat("{0}DispellType=\"{1}\"", fieldSeparator, wowSpell.DispelType);
-                // tmp.AppendFormat("{0}DurationPerLevel=\"{1}\"", fieldSeparator, wowSpell.DurationPerLevel);
-                tmp.AppendFormat("{0}HasRange=\"{1}\"", fieldSeparator, wowSpell.HasRange);
-                tmp.AppendFormat("{0}Id=\"{1}\"", fieldSeparator, wowSpell.Id);
-                tmp.AppendFormat("{0}IsFunnel=\"{1}\"", fieldSeparator, wowSpell.IsFunnel);
-                tmp.AppendFormat("{0}IsMelee=\"{1}\"", fieldSeparator, wowSpell.IsMeleeSpell);
-                tmp.AppendFormat("{0}IsSelfOnly=\"{1}\"", fieldSeparator, wowSpell.IsSelfOnlySpell);
-                tmp.AppendFormat("{0}Level: {1}", fieldSeparator, wowSpell.Level);
-                // tmp.AppendFormat("{0}MaxDuration=\"{1}\"", fieldSeparator, wowSpell.MaxDuration);
-                tmp.AppendFormat("{0}MaxRange=\"{1}\"", fieldSeparator, wowSpell.MaxRange);
-                tmp.AppendFormat("{0}MaxStackCount=\"{1}\"", fieldSeparator, wowSpell.MaxStackCount);
-                tmp.AppendFormat("{0}MaxTargets=\"{1}\"", fieldSeparator, wowSpell.MaxTargets);
-                tmp.AppendFormat("{0}Mechanic=\"{1}\"", fieldSeparator, wowSpell.Mechanic);
-                tmp.AppendFormat("{0}MinRange=\"{1}\"", fieldSeparator, wowSpell.MinRange);
-                tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, wowSpell.Name);
-                tmp.AppendFormat("{0}PowerCost=\"{1}\"", fieldSeparator, wowSpell.PowerCost);
-                tmp.AppendFormat("{0}ResearchProjectId=\"{1}\"", fieldSeparator, wowSpell.ResearchProjectId);
-                tmp.AppendFormat("{0}School=\"{1}\"", fieldSeparator, wowSpell.School);
-                tmp.AppendFormat("{0}SpellDescriptionVariableId=\"{1}\"", fieldSeparator, wowSpell.SpellDescriptionVariableId);
-
-                tmp.AppendFormat("{0}SpellEffects=\"{1}\"", fieldSeparator, (wowSpell.SpellEffects.Count() == 0) ? " NONE" : "");
-                foreach (var effect in wowSpell.SpellEffects)
-                    { tmp.AppendFormat("{0}  {1}", fieldSeparator, ToString_FullInfo(effect, useCompactForm, indentLevel + 4)); }
-
-                tmp.AppendFormat("{0}SpellMissileId=\"{1}\"", fieldSeparator, wowSpell.SpellMissileId);
-                tmp.AppendFormat("{0}TargetType=\"0x{1:x}\"", fieldSeparator, wowSpell.TargetType);
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-            }
-
-            return tmp.ToString();
-        }
-
-
-        //  9Mar2013-07:55UTC chinajade
-        public static ulong Util_AbbreviatedGuid(ulong guid)
-        {
-            return guid & 0x0ffffff;
-        }
-    }
-    #endregion
 }

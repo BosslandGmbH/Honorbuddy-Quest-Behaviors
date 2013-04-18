@@ -9,12 +9,9 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
-using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Xml.Linq;
 
 using Styx.Helpers;
@@ -33,15 +30,11 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <returns>the IEnumerable may be empty, but it will never be null.</returns>
         //  7Mar2013-02:28UTC chinajade
-        public IEnumerable<int> GetOccupiedVehicleAuraIds()
+        public static IEnumerable<int> GetOccupiedVehicleAuraIds()
         {
-            List<int> occupiedVehicleAuraIds = new List<int>();
-            // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-            // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-            string auraDataFileName = Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
-                                                    GlobalSettings.Instance.QuestBehaviorsPath,
-                                                    "DATA",
-                                                    "AuraIds_OccupiedVehicle.xml");
+            var occupiedVehicleAuraIds = new List<int>();
+
+            string auraDataFileName = GetDataFileFullPath("AuraIds_OccupiedVehicle.xml");
 
             if (!File.Exists(auraDataFileName))
             {
@@ -75,6 +68,18 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
             return occupiedVehicleAuraIds;
+        }
+
+
+        private static string GetDataFileFullPath(string fileName)
+        {
+            // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
+            // QBs supplied in the Honorbuddy/Default Profiles/. directory.
+            return Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
+                                GlobalSettings.Instance.QuestBehaviorsPath,
+                                "QuestBehaviorCore",
+                                "Data",
+                                fileName);
         }
     }
 }

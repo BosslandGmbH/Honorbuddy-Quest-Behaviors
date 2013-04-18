@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Styx;
+using Styx.Common.Helpers;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.WoWInternals;
@@ -26,6 +27,18 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class QuestBehaviorBase
     {
+        // 18Apr2013-10:41UTC chinajade
+        private void AntiAfk()
+        {
+	        if (_afkTimer.IsFinished)
+	        {
+		        WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(100));
+		        _afkTimer.Reset();
+	        }   
+        }
+        private readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
+
+
         // 11Apr2013-04:41UTC chinajade
         public string GetMobNameFromId(int wowUnitId)
         {
