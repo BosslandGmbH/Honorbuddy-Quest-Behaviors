@@ -1,5 +1,9 @@
 ﻿TODO
 ====
+* QuestBehaviorCore
+	+ Navigation needs to fall back to Flightor before falling back to click-to-move.
+		Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
+
 * ButtonPress/* behaviors need to take the CombatRoutine out of the equation with TreeHooks.
  
 * ButtonPressOnChat, (request from Laria):
@@ -29,9 +33,7 @@
 			<CustomBehavior File="InteractWith" MobId="195600" ObjectType="GameObject" Range="14" InteractByQuestFrameDisposition="Complete" X="-183.6784" Y="1117.673" Z="90.28101" />
 		if i use the InteractByQuestFrameDisposition="Complete" with range=14 doesnt work
 		if i use only interact works
-	+ InteractWith needs a MinRange
-	+ Navigation needs to fall back to Flightor before falling back to click-to-move.
-		Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
+
 	+ TheBrodieMan 2013Apr14
 		came across an issue with IW while coding the PvP quests in IoT. Theres a bomb that needs to be placed by IW'ing with a mark on a wall.
 		he wall has a lip over it. Im not sure if its the proximity to water or the lip, bu IW won't click on it, says "NoLoS" even though it 
@@ -68,6 +70,13 @@
 	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-9.html#post1092429
+
+* VehicleMover
+	+ http://www.wowhead.com/quest=13560
+	[9:55:55 AM] Natfoth (Nathaniel Farthington): it would never finish, no matter what I had the count set to,
+	no matter if I removed all the quest stuff, IsDone never passed unless the quest was completed with a Quest ID
+	[2:43:57 PM] Chinajade: Good, a relatively low one.  Remember what race/class you were?
+	[2:44:07 PM] Natfoth (Nathaniel Farthington): night elf monk
 
 * 27779-Uldum-Gnomebliteration.cs:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626
@@ -128,6 +137,10 @@ NEEDED QUEST BEHAVIORS:
 
 * Mobile tank vehicle behavior that can actually aim at targets
 
+* Return To Bindpoint
+	+ Try to use Hearthstone first
+	+ If hearthstone on cooldown, hoof it
+
 * Stationary Cannon (Worgen starting area--level 5-ish)
 	* For By Blood and Ash
 		+ Mount Rebel Cannon (35317)
@@ -143,9 +156,6 @@ NEEDED QUEST BEHAVIORS:
 
 GENERAL PROFILE ISSUES (KICK):
 ==============================
-* Stay on Apoc/Nesox about getting unified QB directory DLL.
-	We can't reuse any code until this problem is solved.
-
 * Currently underwater nav is handled by each behavior, and slightly differently.
 	Any chance of using Flightor as the nav while swimming?
 
