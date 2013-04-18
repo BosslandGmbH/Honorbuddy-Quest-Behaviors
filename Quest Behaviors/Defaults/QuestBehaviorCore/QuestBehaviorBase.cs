@@ -309,11 +309,11 @@ namespace Honorbuddy.QuestBehaviorCore
         #endregion
 
 
-        protected void BehaviorDone()
+        protected void BehaviorDone(string extraMessage = null)
         {
             if (!_isBehaviorDone)
             {
-                LogDeveloperInfo("{0} behavior complete.", GetType().Name);
+                LogDeveloperInfo("{0} behavior complete.  {1}", GetType().Name, (extraMessage ?? string.Empty));
                 _isBehaviorDone = true;
             }
         }

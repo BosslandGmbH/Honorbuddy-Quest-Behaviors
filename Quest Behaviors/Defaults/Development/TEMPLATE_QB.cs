@@ -39,25 +39,11 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
-using CommonBehaviors.Actions;
-using Styx;
-using Styx.Common;
-using Styx.Common.Helpers;
-using Styx.CommonBot;
-using Styx.CommonBot.POI;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Pathing;
-using System.Text;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
-using Styx.WoWInternals.World;
-using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
@@ -66,7 +52,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
     [CustomBehaviorFileName(@"Development\TEMPLATE_QB")]
-    public partial class TEMPLATE_QB : CustomForcedBehavior
+    public partial class TEMPLATE_QB : QuestBehaviorBase
     {
         #region Consructor and Argument Processing
         public TEMPLATE_QB(Dictionary<string, string> args)
@@ -132,23 +118,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         #region Private and Convenience variables
-        public delegate WoWPoint LocationDelegate(object context);
-        public delegate string StringDelegate(object context);
-        public delegate double RangeDelegate(object context);
-        public delegate WoWUnit WoWUnitDelegate(object context);
-
-        private readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
-        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
-        private LocalPlayer Me { get { return StyxWoW.Me; } }
-
-        private Composite _behaviorTreeHook_CombatMain = null;
-        private Composite _behaviorTreeHook_CombatOnly = null;
-        private Composite _behaviorTreeHook_DeathMain = null;
-        private Composite _behaviorTreeHook_Main = null;
-        private ConfigMemento _configMemento = null;
-        private bool _isBehaviorDone = false;
-        private bool _isDisposed = false;
-        public static Random _random = new Random((int)DateTime.Now.Ticks);
+        // Add what you need here...
         #endregion
 
 
@@ -157,109 +127,28 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         {
             Dispose(false);
         }
-
-
-        // 24Feb2013-08:10UTC chinajade
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-
-                // NB: we don't unhook _behaviorTreeHook_Main
-                // This was installed when HB created the behavior, and its up to HB to unhook it
-
-                if (_behaviorTreeHook_CombatMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-                    _behaviorTreeHook_CombatMain = null;
-                }
-
-                if (_behaviorTreeHook_CombatOnly != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
-                    _behaviorTreeHook_CombatOnly = null;
-                }
-
-                if (_behaviorTreeHook_DeathMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-                    _behaviorTreeHook_DeathMain = null;
-                }
-
-                // Restore configuration...
-                if (_configMemento != null)
-                {
-                    _configMemento.Dispose();
-                    _configMemento = null;
-                }
-
-                BlackspotManager.RemoveBlackspots(Blackspots);
-
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
-
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        public void BotEvents_OnBotStop(EventArgs args)
-        {
-            Dispose();
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
-        {
-            return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
-        }
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+        // Dispose provided by QuestBehaviorBase.
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return _isBehaviorDone     // normal completion
-                        || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
-            }
-        }
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-            if ((QuestId != 0) && (quest == null))
-            {
-                LogError("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
-                IsAttributeProblem = true;
-            }
+            // Acquisition and checking of any sub-elements go here.
+            // A common example:
+            //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+            //     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -270,47 +159,25 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                // This will do basic initialization of the behavior, and set the Goal text...
+                OnStart_BaseQuestBehavior();
 
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
-
-                // Disable any settings that may interfere with the escort --
-                // When we escort, we don't want to be distracted by other things.
-                // NOTE: these settings are restored to their normal values when the behavior completes
-                // or the bot is stopped.
+                // Setup settings to prevent interference with your behavior --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
                 CharacterSettings.Instance.HarvestHerbs = false;
                 CharacterSettings.Instance.HarvestMinerals = false;
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
-
-                BlackspotManager.AddBlackspots(Blackspots);
-
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
-
-                _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
-                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
-                TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
             }
         }
         #endregion
 
 
         #region Main Behaviors
-        private Composite CreateBehavior_CombatMain()
+        protected override Composite CreateBehavior_CombatMain()
         {
             return new PrioritySelector(
                 // empty, for now
@@ -318,7 +185,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-        private Composite CreateBehavior_CombatOnly()
+        protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
                 // empty, for now
@@ -326,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-        private Composite CreateBehavior_DeathMain()
+        protected override Composite CreateBehavior_DeathMain()
         {
             return new PrioritySelector(
                 // empty, for now
@@ -334,625 +201,15 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-        private Composite CreateMainBehavior()
+        protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
 
                 // If quest is done, behavior is done...
                 new Decorator(context => IsDone,
-                    new Action(context =>
-                    {
-                        _isBehaviorDone = true;
-                        LogInfo("Finished");
-                    }))
+                    new Action(context => { BehaviorDone(); }))
                 );
-        }
-        #endregion
-
-
-        #region Helpers
-
-        //  9Apr2013-02:01UTC chinajade
-        private string FindMobName(int mobId)
-        {
-            WoWObject wowObject = ObjectManager.GetObjectsOfType<WoWObject>(true)
-                                .FirstOrDefault(o => o.Entry == mobId);
-
-            return (wowObject != null) ? wowObject.Name : string.Format("MobId({0})", mobId);
-        }
-
-
-        // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWUnit> FindNonFriendlyNpcTargetingMeOrPet()
-        {
-            return
-                from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                where
-                    IsViableForFighting(wowUnit)
-                    && !wowUnit.IsPlayer
-                    && wowUnit.IsTargetingMeOrPet
-                    && wowUnit.Distance <= CharacterSettings.Instance.PullDistance
-                select wowUnit;
-        }
-        
-        
-        // 24Feb2013-08:11UTC chinajade
-        private IEnumerable<WoWObject> FindObjectsFromIds(IEnumerable<int> objectIds)
-        {
-            ContractRequires(objectIds != null, () => "objectIds argument may not be null");
-
-            return
-                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                where
-                    IsViable(wowObject)
-                    && objectIds.Contains((int)wowObject.Entry)
-                select wowObject;
-        }
-
-
-        // 25Feb2013-12:50UTC chinajade
-        private IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius)
-        {
-            return
-                from player in ObjectManager.GetObjectsOfType<WoWPlayer>(true, false)
-                where
-                    IsViable(player)
-                    && player.IsAlive
-                    && player.Location.Distance(location) < radius
-                select player;
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds)
-        {
-            ContractRequires(unitIds != null, () => "unitIds argument may not be null");
-
-            return
-                from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                where
-                    IsViable(unit)
-                    && unitIds.Contains((int)unit.Entry)
-                select unit;
-        }
-
-
-        private string GetMobNameFromId(int wowUnitId)
-        {
-            WoWUnit wowUnit = FindUnitsFromIds(new int[] { wowUnitId }).FirstOrDefault();
-
-            return (wowUnit != null)
-                ? wowUnit.Name
-                : string.Format("MobId({0})", wowUnitId);
-        }
-
-
-        // returns true, if any member of GROUP (or their pets) is in combat
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsAnyInCombat(IEnumerable<WoWUnit> group)
-        {
-            return group.Any(u => u.Combat || (u.GotAlivePet && u.Pet.Combat));
-        }
-
-        
-        private bool IsInCompetition(WoWObject wowObject)
-        {
-            return FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count() > 0;
-        }
-        
-        
-        //  23Mar2013-05:38UTC chinajade
-        private bool IsInLineOfSight(WoWObject wowObject)
-        {
-            WoWUnit wowUnit = wowObject.ToUnit();
-
-            return (wowUnit == null)
-                ? wowObject.InLineOfSight
-                // NB: For WoWUnit, we do two checks.  This keeps us out of trouble when the
-                // mobs are up a stairway and we're looking at them through a guardrail and
-                // other boundary conditions.
-                : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
-        }
-        
-        
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
-        {
-            // If quest and objective was not specified, obviously its not complete...
-            if ((questId <= 0) || (objectiveIndex <= 0))
-                { return false; }
-
-            // If quest is not in our log, obviously its not complete...
-            if (Me.QuestLog.GetQuestById((uint)questId) == null)
-                { return false; }
-
-            int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
-
-            return
-                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsViable(WoWObject wowObject)
-        {
-            return
-                (wowObject != null)
-                && wowObject.IsValid;
-        }
-        
-        
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsViableForFighting(WoWUnit wowUnit)
-        {
-            return
-                IsViable(wowUnit)
-                && wowUnit.IsAlive
-                && !wowUnit.IsFriendly
-                && wowUnit.Attackable
-                && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
-        private bool IsViableForInteracting(WoWObject wowObject)
-        {
-            if (wowObject == null)
-                { return false; }
-
-            return
-                IsViable(wowObject)
-                && !_interactBlacklist.Contains(wowObject)
-                && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location)))
-                && !IsInCompetition(wowObject);
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        private bool IsViableForPulling(WoWUnit wowUnit)
-        {
-            return
-                IsViableForFighting(wowUnit)
-                && (wowUnit.TappedByAllThreatLists || wowUnit.TaggedByMe || !wowUnit.TaggedByOther);
-        }
-
-
-        //  9Mar2013-12:34UTC chinajade
-        private string PrettyMoney(ulong totalCopper)
-        {
-            ulong moneyCopper = totalCopper % 100;
-            totalCopper /= 100;
-
-            ulong moneySilver = totalCopper % 100;
-            totalCopper /= 100;
-
-            ulong moneyGold = totalCopper;
-
-            string formatString =
-                (moneyGold > 0) ? "{0}g{1:D2}s{2:D2}c"
-                : (moneySilver > 0) ? "{1}s{2:D2}c"
-                : "{2}c";
-
-            return string.Format(formatString, moneyGold, moneySilver, moneyCopper);
-        }
-
-
-        //  9Mar2013-12:34UTC chinajade
-        private string PrettyTime(TimeSpan duration)
-        {
-            double milliSeconds = duration.TotalMilliseconds;
-
-            return
-                (milliSeconds < 1000) ? string.Format("{0}ms", milliSeconds)
-                : ((milliSeconds % 1000) == 0) ? string.Format("{0}s", milliSeconds / 1000)
-                : string.Format("{0:F3}s", milliSeconds / 1000);
-        }
-
-        
-        // 12Mar2013-08:27UTC chinajade
-        private IEnumerable<T> ToEnumerable<T>(T item)
-        {
-            yield return item;
-        }
-
-
-        private static TimeSpan VariantTimeSpan(int milliSecondsMin, int milliSecondsMax)
-        {
-            return TimeSpan.FromMilliseconds(_random.Next(milliSecondsMin, milliSecondsMax));
-        }
-        #endregion
-
-
-        #region Utility Behaviors
-        /// <summary>
-        /// This behavior quits attacking the mob, once the mob is targeting us.
-        /// </summary>
-        // 24Feb2013-08:11UTC chinajade
-        private Composite UtilityBehavior_GetMobsAttention(WoWUnitDelegate selectedTargetDelegate)
-        {
-
-            return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
-                new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
-                    new PrioritySelector(
-                        new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
-                            new PrioritySelector(
-                                new Action(targetContext =>
-                                {
-                                    LogInfo("Getting attention of {0}", ((WoWUnit)targetContext).Name);
-                                    return RunStatus.Failure;
-                                }),
-                                UtilityBehavior_SpankMob(selectedTargetDelegate)))
-                    )));
-        }
-
-
-        private Composite UtilityBehavior_InteractWithMob(WoWUnitDelegate unitToInteract)
-        {
-            return new PrioritySelector(interactUnitContext => unitToInteract(interactUnitContext),
-                new Decorator(interactUnitContext => IsViableForInteracting((WoWUnit)interactUnitContext),
-                    new PrioritySelector(
-                        // Show user which unit we're going after...
-                        new Decorator(interactUnitContext => Me.CurrentTarget != (WoWUnit)interactUnitContext,
-                            new Action(interactUnitContext => { ((WoWUnit)interactUnitContext).Target(); })),
-
-                        // If not within interact range, move closer...
-                        new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
-                            new Action(interactUnitContext =>
-                            {
-                                LogDeveloperInfo("Moving to interact with {0}", ((WoWUnit)interactUnitContext).Name);
-                                Navigator.MoveTo(((WoWUnit)interactUnitContext).Location);
-                            })),
-
-                        new Decorator(interactUnitContext => Me.IsMoving,
-                            new Action(interactUnitContext => { WoWMovement.MoveStop(); })),
-                        new Decorator(interactUnitContext => !Me.IsFacing((WoWUnit)interactUnitContext),
-                            new Action(interactUnitContext => { Me.SetFacing((WoWUnit)interactUnitContext); })),
-
-                        // Blindly interact...
-                        // Ideally, we would blacklist the unit if the interact failed.  However, the HB API
-                        // provides no CanInteract() method (or equivalent) to make this determination.
-                        new Action(interactUnitContext =>
-                        {
-                            LogDeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
-                            ((WoWUnit)interactUnitContext).Interact();
-                            return RunStatus.Failure;
-                        }),
-                        new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
-                    )));
-        }
-
-
-        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
-                                                    StringDelegate locationNameDelegate,
-                                                    RangeDelegate precisionDelegate = null)
-        {
-            ContractRequires(locationDelegate != null, () => "locationRetriever may not be null");
-            ContractRequires(locationNameDelegate != null, () => "locationNameDelegate may not be null");
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
-            return new PrioritySelector(locationContext => locationDelegate(locationContext),
-                new Decorator(locationContext => !Me.InVehicle && !Me.Mounted
-                                                    && Mount.CanMount()
-                                                    && Mount.ShouldMount((WoWPoint)locationContext),
-                    new Action(locationContext => { Mount.MountUp(() => (WoWPoint)locationContext); })),
-
-                new Decorator(locationContext => (Me.Location.Distance((WoWPoint)locationContext) > precisionDelegate(locationContext)),
-                    new Sequence(
-                        new Action(context =>
-                        {
-                            WoWPoint destination = locationDelegate(context);
-                            string locationName = locationNameDelegate(context) ?? destination.ToString();
-
-                            TreeRoot.StatusText = "Moving to " + locationName;
-
-                            MoveResult moveResult = Navigator.MoveTo(destination);
-
-                            // If Navigator couldn't move us, resort to click-to-move...
-                            if (!((moveResult == MoveResult.Moved)
-                                    || (moveResult == MoveResult.ReachedDestination)
-                                    || (moveResult == MoveResult.PathGenerated)))
-                            {
-                                WoWMovement.ClickToMove(destination);
-                            }
-                        }),
-                        new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                    ))
-                );
-        }
-        
-        
-        /// <summary>
-        /// Unequivocally engages mob in combat.
-        /// </summary>
-        // 24Feb2013-08:11UTC chinajade
-        private Composite UtilityBehavior_SpankMob(WoWUnitDelegate selectedTargetDelegate)
-        {
-            return new PrioritySelector(targetContext => selectedTargetDelegate(targetContext),
-                new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
-                    new PrioritySelector(               
-                        new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CharacterSettings.Instance.PullDistance,
-                            new Action(targetContext => { Navigator.MoveTo(((WoWUnit)targetContext).Location); })),
-                        new Decorator(targetContext => Me.CurrentTarget != (WoWUnit)targetContext,
-                            new Action(targetContext =>
-                            {
-                                BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill);
-                                ((WoWUnit)targetContext).Target();
-                                if (Me.Mounted)
-                                    { Mount.Dismount(); }
-                            })),
-                        new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
-                            new PrioritySelector(
-                                new Decorator(targetContext => RoutineManager.Current.CombatBehavior != null,
-                                    RoutineManager.Current.CombatBehavior),
-                                new Action(targetContext => { RoutineManager.Current.Combat(); })
-                            ))
-                    )));
-        }
-
-        
-        private WoWUnit MobTargetingUs { get; set; }
-        private Composite UtilityBehavior_SpankMobTargetingUs()
-        {
-            return new PrioritySelector(
-                // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
-                // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                new Decorator(context => !IsViableForFighting(MobTargetingUs),
-                    new Action(context =>
-                    {
-                        MobTargetingUs = FindNonFriendlyNpcTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
-                        return RunStatus.Failure;   // fall through
-                    })),
-
-                // Spank any mobs we find being naughty...
-                new Decorator(context => MobTargetingUs != null,
-                    UtilityBehavior_SpankMob(context => MobTargetingUs))
-            );
-        }
-        #endregion
-
-
-        #region Pet Helpers
-        // Cut-n-paste any Quest Behaviors/Development/PetControl helper methods you need, here...
-        #endregion
-
-
-        #region TreeSharp extensions
-        public class CompositeThrottle : DecoratorContinue
-        {
-            public CompositeThrottle(TimeSpan throttleTime, Composite composite)
-                : base(composite)
-            {
-                _throttle.WaitTime = throttleTime;
-                // _throttle was created with "0" time--this makes it "good to go" 
-                // on first visit to CompositeThrottle node
-            }
-
-
-            protected override bool CanRun(object context)
-            {
-                if (!_throttle.IsFinished)
-                    { return false; }
-                
-                _throttle.Reset();
-                return true;
-            }
-
-            private readonly WaitTimer _throttle = new WaitTimer(TimeSpan.FromSeconds(0));
-        }
-        #endregion
-
-
-        #region Diagnostic Methods
-        public delegate string StringProviderDelegate();
-
-        /// <summary>
-        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
-        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
-        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
-        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
-        /// so we don't pay a performance penalty to build an error message that is not used
-        /// when ISCONTRACTOKAY is true.</para></description></item>
-        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
-        /// dynamically compile parts of the project at run time.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="isContractOkay"></param>
-        /// <param name="stringProviderDelegate"></param>
-        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
-        ///  30Jun2012-15:58UTC chinajade
-        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
-        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
-        ///  throughout the code.
-        public bool ContractRequires(bool isContractOkay, StringProviderDelegate stringProviderDelegate)
-        {
-            if (!isContractOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
-                StackTrace  trace   = new StackTrace(1);
-
-                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
-            }
-
-            return isContractOkay;
-        }
-
-
-        /// <summary>
-        /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
-        /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
-        /// <para>This is useful when emitting log messages.</para>
-        /// </summary>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * This method uses reflection--making it relatively 'expensive' to call.
-        /// Use it with caution.</para></description></item>
-        /// </list></para>
-        /// <returns></returns>
-        ///  7Jul2012-20:26UTC chinajade
-        public static string    GetMyMethodName(bool  showDeclaringType   = false)
-        {
-            var method  = (new StackTrace(1)).GetFrame(0).GetMethod();
-
-            if (showDeclaringType)
-                { return (method.DeclaringType + "." + method.Name); }
-
-            return (method.Name);
-        }
-
-
-        /// <summary>
-        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogDeveloperInfo(string message, params object[] args)
-        {
-            LogMessage("debug", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogError(string message, params object[] args)
-        {
-            LogMessage("error", message, args);
-        }
-           
-        
-        /// <summary>
-        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogFatal(string message, params object[] args)
-        {
-            LogMessage("fatal", message, args);
-        }  
-        
-        
-        /// <summary>
-        /// <para>Normal information to keep user informed.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogInfo(string message, params object[] args)
-        {
-            LogMessage("info", message, args);
-        }
-        
-        
-        /// <summary>
-        /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
-        /// action a user can perform in the field for these types of errors.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        ///  30Jun2012-15:58UTC chinajade
-        public void LogMaintenanceError(string message, params object[] args)
-        {
-            string          formattedMessage    = string.Format(message, args);
-            StackTrace      trace               = new StackTrace(1);
-
-            LogMessage("error", "[MAINTENANCE ERROR] {0}\nLocation:\n{1}", formattedMessage, trace.ToString());
-        }
-
-
-        /// <summary>
-        /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogWarning(string message, params object[] args)
-        {
-            LogMessage("warning", message, args);
-        }
-        #endregion
-
-
-        #region Local Blacklist
-        // NB: The HBcore's blacklist will preserve 'blacklist state' between profile calls to this behavior.
-        // The 'blacklist state' will also be preserved if Honorbuddy is stop/startedby the user.
-        // We don't want either of these behaviors--we want the state to be pristine between profile
-        // calls to this behavior, or if Honorbuddy is stop/started.  Thus, we roll our own blacklist
-        // which will be disposed along with the behavior.
-        public class LocalBlacklist
-        {
-            public LocalBlacklist(TimeSpan maxSweepTime)
-            {
-                _sweepTimer = new WaitTimer(maxSweepTime);
-                _sweepTimer.WaitTime = maxSweepTime;
-            }
-
-            private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
-            private WaitTimer _sweepTimer = null;
-
-
-            public void Add(ulong guid, TimeSpan timeSpan)
-            {
-                RemoveExpired();
-                _blackList[guid] = DateTime.Now.Add(timeSpan);
-            }
-
-
-            public void Add(WoWObject wowObject, TimeSpan timeSpan)
-            {
-                if (wowObject != null)
-                    { Add(wowObject.Guid, timeSpan); }
-            }
-
-
-            public bool Contains(ulong guid)
-            {
-                DateTime expiry;
-                if (_blackList.TryGetValue(guid, out expiry))
-                    { return (expiry > DateTime.Now); }
-
-                return false;
-            }
-
-
-            public bool Contains(WoWObject wowObject)
-            {
-                return (wowObject == null)
-                    ? false
-                    : Contains(wowObject.Guid);
-            }
-
-
-            public void RemoveExpired()
-            {
-                if (_sweepTimer.IsFinished)
-                {
-                    DateTime now = DateTime.Now;
-
-                    List<ulong> expiredEntries = (from key in _blackList.Keys
-                                                    where (_blackList[key] < now)
-                                                    select key).ToList();
-
-                    foreach (ulong entry in expiredEntries)
-                        { _blackList.Remove(entry); }
-
-                    _sweepTimer.Reset();
-                }
-            }
         }
         #endregion
     }
-
-
-    #region Extensions to WoWPoint
-        // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWPoint helper methods you need, here...
-    #endregion
-
-
-    #region Extentions to WoWUnit
-        // Cut-n-paste any Quest Behaviors/Development/Extensions_WoWUnit helper methods you need, here...
-    #endregion
 }
