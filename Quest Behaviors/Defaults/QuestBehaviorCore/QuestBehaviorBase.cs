@@ -92,7 +92,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
                 MaxDismountHeight = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
                 MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.NavigatorPreferred;
-                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 20.0;
+                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
 
                 // Semantic coherency / covariant dependency checks --
                 if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
@@ -269,7 +269,7 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        protected void OnStart_BaseQuestBehavior()
+        protected void OnStart_BaseQuestBehavior(string extraDescription = null)
         {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -293,9 +293,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
+                    "{0}: \"{1}\"\n{2}",
                     GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
+                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"),
+                    (extraDescription ?? string.Empty));
 
                 _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);

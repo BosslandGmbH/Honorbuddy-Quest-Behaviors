@@ -521,7 +521,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                OnStart_BaseQuestBehavior();
+                OnStart_BaseQuestBehavior(string.Join(", ", MobIds.Select(m => GetMobNameFromId(m)).Distinct()));
                 
                 CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
                 _waitTimerAfterInteracting.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
@@ -552,6 +552,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
+                new Action(context =>
+                {
+                    CloseOpenFrames();
+                    return RunStatus.Failure;   // fall through
+                }),
+
                 // If current target is not attackable, blacklist it...
                 new Decorator(context => (Me.CurrentTarget != null)
                                 && (Me.CurrentTarget != SelectedInteractTarget)
@@ -576,19 +582,23 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
-
                 // Delay, if necessary...
                 // NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
                 // that don't have an associated quest, and put the behavior in a <While> loop will not behave
                 // as the profile writer expects.  They expect the delay to be executed if the interaction
                 // succeeded.
                 new Decorator(context => !_waitTimerAfterInteracting.IsFinished,
-                    new Action(context =>
-                    {
-                        TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
-                            PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterInteracting.TimeLeft.TotalSeconds)),
-                            PrettyTime(_waitTimerAfterInteracting.WaitTime));
-                    })),
+                    new PrioritySelector(
+                        // Take out any nearby mobs that aggro on us while we wait...
+                        new Decorator(context => !Me.IsFlying,
+                            UtilityBehaviorPS_SpankMobTargetingUs()),
+                        new Action(context =>
+                        {
+                            TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
+                                PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterInteracting.TimeLeft.TotalSeconds)),
+                                PrettyTime(_waitTimerAfterInteracting.WaitTime));
+                        })
+                    )),
 
                 // Counter is used to determine 'done'...
                 new Decorator(context => Counter >= NumOfTimes,
@@ -721,32 +731,47 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             BindingEventState = BindingEventStateType.BindingEventUnhooked;
                                             GossipPageIndex = 0;
                                         }),
-                                        new WhileLoop(RunStatus.Success, context => GossipPageIndex < InteractByGossipOptions.Length,
+
+                                        new WhileLoop(RunStatus.Success, context => !IsDone && (GossipPageIndex < InteractByGossipOptions.Length),
                                             new Action(context =>
                                             {
-                                                var gossipOptionEntry =
-                                                    GossipFrame.Instance.GossipOptionEntries
-                                                    .FirstOrDefault(o => o.Index == InteractByGossipOptions[GossipPageIndex]);
+                                                GossipEntry gossipEntry;
 
-                                                if (gossipOptionEntry.Index != InteractByGossipOptions[GossipPageIndex])
+                                                try
                                                 {
-                                                    CloseOpenFrames();
-                                                    Me.ClearTarget();
-                                                    LogProfileError(
-                                                        "{0} is not offering gossip option {1} on page {2}--stopping Honorbuddy.",
+                                                    // NB: This clumsiness is because HB defines the default GossipEntry with an
+                                                    // an Index of 0.  Since this is a valid gossip option index, this leaves us with
+                                                    // no way to determine the difference between the 'default' value, and a valid
+                                                    // value. So, we try to get the gossip entry using First() (vs. FirstOrDefault()),
+                                                    // and if an exception gets thrown, we know the entry is not present.
+                                                    if (GossipFrame.Instance.GossipOptionEntries == null)
+                                                        { throw new InvalidOperationException(); }
+                                                    
+                                                    gossipEntry = GossipFrame.Instance.GossipOptionEntries
+                                                        .First(o => o.Index == InteractByGossipOptions[GossipPageIndex]);
+                                                }
+                                                catch (InvalidOperationException)
+                                                {
+                                                    LogError(
+                                                        "{0} is not offering gossip option {1} on page {2}."
+                                                        + "  Did competing player alter NPC state?"
+                                                        + "  Did you stop/start Honorbuddy?"
+                                                        + "  Terminating behavior.",
                                                         GetName(SelectedInteractTarget),
                                                         InteractByGossipOptions[GossipPageIndex] +1,
                                                         GossipPageIndex +1);
+                                                    CloseOpenFrames();
+                                                    Me.ClearTarget();
                                                     BehaviorDone();
                                                     return;
                                                 }
 
                                                 // Log the gossip option we're about to take...
                                                 LogDeveloperInfo("Selecting Gossip Option({0}) on page {1}: \"{2}\"",
-                                                    gossipOptionEntry.Index +1, GossipPageIndex +1, gossipOptionEntry.Text);
+                                                    gossipEntry.Index +1, GossipPageIndex +1, gossipEntry.Text);
 
                                                 // If Innkeeper 'binding option', arrange to confirm ensuing popup...
-                                                if (gossipOptionEntry.Type == GossipEntry.GossipEntryType.Binder)
+                                                if (gossipEntry.Type == GossipEntry.GossipEntryType.Binder)
                                                 {
                                                     BindingEventState = BindingEventStateType.BindingEventHooked;
                                                     Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
@@ -982,10 +1007,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     new PrioritySelector(
                         new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
                             new PrioritySelector(
-                                new Decorator(context => !WaitForNpcs,
-                                    new Action(context => { BehaviorDone();  })),
-                                new Decorator(context => HuntingGrounds.Waypoints.Count() > 1,
-                                    new Action(context =>  { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); })),
+                                // Show excluded units *before* we take action.  This aids in profile debugging (e.g., WaitForNpcs="false")...
                                 new CompositeThrottle(TimeSpan.FromSeconds(30),
                                     new Action(context =>
                                     {
@@ -1002,7 +1024,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             message += exclusions;
                                         }
                                         LogInfo("{0}", message);
-                                    }))
+                                    })),
+                                new Decorator(context => !WaitForNpcs,
+                                    new Action(context => { BehaviorDone();  })),
+                                new Decorator(context => HuntingGrounds.Waypoints.Count() > 1,
+                                    new Action(context =>  { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }))
+
                                 )),
 
                         UtilityBehaviorPS_MoveTo(
