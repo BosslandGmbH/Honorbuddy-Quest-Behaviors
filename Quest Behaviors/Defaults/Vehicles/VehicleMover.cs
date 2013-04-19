@@ -186,7 +186,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
                 // Tunables...
-                CastNum = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
+                NumOfTimes = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
                 CastTime = GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null) ?? 1500;
                 Hop = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
@@ -224,7 +224,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
         // Attributes provided by caller
         public int AuraId_ProxyVehicle { get; private set; }
-        public int CastNum { get; private set; }
+        public int NumOfTimes { get; private set; }
         public int CastTime { get; private set; }
         public bool Hop { get; private set; }
         public bool IgnoreCombat { get; private set; }
@@ -313,7 +313,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                         // Until we close that distance, we'll head towards the provided location.
                         // As soon as we "see" the mob, we'll switch to the mob as the destination.
                         FinalDestination = Destination;
-                        FinalDestinationName = "to destination";
+                        FinalDestinationName = "destination";
                     
                         if (MobIds.Count() > 0)
                         {
@@ -326,7 +326,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                     { nearestMob.Target(); }
 
                                 FinalDestination = nearestMob.Location;
-                                FinalDestinationName = "to " + nearestMob.Name;
+                                FinalDestinationName = nearestMob.Name;
                             }
                         }
 
@@ -410,7 +410,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                     new Action(context => { BehaviorDone(); })),
 
                 // If we've cast the spell the expected number of times, we're done...
-                new Decorator(context => CastCounter >= CastNum,
+                new Decorator(context => CastCounter >= NumOfTimes,
                     new Action(context => { BehaviorDone(); }))
             );
         }
@@ -443,7 +443,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                         new Action(context =>
                         {
                             LogWarning("SpellId({0}) is not known--ignoring the cast", SpellId);
-                            CastCounter = CastNum; // force 'done'
+                            CastCounter = NumOfTimes +1; // force 'done'
                         })),
 
                     // If the spell is on cooldown, we need to wait...
@@ -463,6 +463,9 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                             // available in vehicles.
                             Lua.DoString(luaCastSpellCommand);
                             ++CastCounter;
+
+                            if (CastCounter >= NumOfTimes)
+                                { BehaviorDone(); }
                         }),
                         new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
                     )
