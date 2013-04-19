@@ -60,6 +60,9 @@
     <Compile Include="ArgentTournament\TheGrandMelee.cs" />
     <Compile Include="AscendInWater.cs" />
     <Compile Include="BarrelHook.cs" />
+    <Compile Include="BasicInteractWith.cs" />
+    <Compile Include="BasicUseObject.cs" />
+    <Compile Include="QuestBehaviorCore\UtilitiesDeprecation.cs" />
     <Compile Include="QuestBehaviorCore\Types.cs" />
     <Compile Include="QuestBehaviorCore\Extensions_WoWUnit.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorBase.cs" />
@@ -78,8 +81,8 @@
     <Compile Include="QuestBehaviorCore\LocalBlacklist.cs" />
     <Compile Include="QuestBehaviorCore\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors.cs" />
-    <Compile Include="BasicInteractWith.cs" />
-    <Compile Include="BasicUseObject.cs" />
+    <Compile Include="Deprecated\BasicInteractWith.cs" />
+    <Compile Include="Deprecated\BasicUseObject.cs" />
     <Compile Include="BasicVehicleBehaviour.cs" />
     <Compile Include="ButtonPress\ButtonPressOnAura.cs" />
     <Compile Include="ButtonPress\ButtonPressOnChat.cs" />

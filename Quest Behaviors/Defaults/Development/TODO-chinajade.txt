@@ -18,6 +18,10 @@
 	+ Behavior needs to deal with items that cause 
 
 * InteractWith testing needed:
+	+ Rework InteractWith to use items and interact during combat
+		A good test is "Nature's Repisal" a level 7 Night Elf quest conducted in a cave with bad LoS issues.
+		Use Natfoth profile and switch out UseItemTargetLocation for this quest.
+	+ Target not being temporarily blacklisted after UsingItem.
 	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Needs a timer that blacklists target for a bit, if it can't be interacted with within a reasonable period of time.
 	+ Old InteractWith can't see Hargan Bronzewing to buy riding training--see if problem still exists with new InteractWith:
@@ -50,10 +54,6 @@
 		(wall and environment prevents closer) and its still clickable...am i screwed cuz of WoW?
 	+ TheBrodieMan 2013Apr15
 		rechecked my IW code for 2 click item use. Range was set to 15. Unfortunately it moves to point blank before attempting.
-	+ Cava 2013Apr14
-		hello again, just to report about interactwith, i think i found one new thing about the behavior, if enemy mob target and atack pet,
-		toon will stay quiet just watching, do not help pet, do not atack, do not pick itens, do not use "interact" after pet dies, then
-		toon keep going ( combat mob , interact etc)
 		
 * KillUntilComplete
 	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive
