@@ -1101,7 +1101,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         {
             if (InteractByBuyingItemInSlotNum != -1)
             {
-                DeprecationWarning_Attribute(Element,
+                DeprecationWarning_Attribute(Element, "InteractByBuyingItemInSlotNum/BuySlot", 
                     "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
                     + "Please replace them with InteractByBuyingItemId attribute."
                     + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
@@ -1110,7 +1110,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
             if (Args.Keys.Contains("Nav"))
             {
-                DeprecationWarning_Attribute(Element,
+                DeprecationWarning_Attribute(Element, "Nav",
                     string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
                                     + "  Please update profile to use MovementBy, instead.",
                                     Args["Nav"],
@@ -1119,7 +1119,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 
             if (Args.Keys.Contains("ObjectType"))
             {
-                DeprecationWarning_Attribute(Element,
+                DeprecationWarning_Attribute(Element, "ObjectType",
                     "The ObjectType attribute is no longer used by InteractWith."
                     + "  You may safely remove it from the profile call to the InteractWith behavior.");
             }

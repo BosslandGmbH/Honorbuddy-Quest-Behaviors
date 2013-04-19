@@ -26,10 +26,16 @@ namespace Honorbuddy.QuestBehaviorCore
     public partial class QuestBehaviorBase
     {
         // 19Apr2013-05:58UTC chinajade
-        public static void DeprecationWarning_Attribute(XElement xElement, string message)
+        public static void DeprecationWarning_Attribute(XElement xElement, string attributeName, string message)
         {
-            LogWarning("{1}{0}[Ref: \"{2}\" {3}]{0}",
-                Environment.NewLine, message, GetProfileName(), GetProfileLineNumber(xElement));
+            const int audioDelayInMilliseconds = 150;
+
+            LogWarning("DEPRECATED ATTRIBUTE ({1}):{0}{2}{0}[Ref: \"{3}\" {4}]{0}",
+                Environment.NewLine, attributeName, message, GetProfileName(), GetProfileLineNumber(xElement));
+
+            SystemSounds.Asterisk.Play();
+            Thread.Sleep(audioDelayInMilliseconds);
+            SystemSounds.Asterisk.Play();
         }
 
 
