@@ -33,32 +33,39 @@
 // *** is _not_ repeated here, to prevent documentation inconsistencies.
 //
 // Basic Attributes:
-//      AuraIdOnMobN [optional; Default: none]
-//          Selects only MobIdN that have AuraIdOnMobN on them.
-//      AuraIdMissingFromMob [optional; Default: none]
-//          Selects only MobIdN that have do not have AuraIdMissingFromMobN on them.
-//      MobIdN [at least one MobIdN is REQUIRED]
+//      FactionIdN [at least one FactionIdN or one MobIdN is REQUIRED]
+//          Identifies the faction of the mobs on which the interaction should take place.
+//          If you specify both MobIdN and FactionIdN, the two sets will be combined,
+//          and any target that fulfillseither MobIdN or FactionIdN will be selected for interaction.
+//      MobIdN [at least one FactionIdN or one MobIdN is REQUIRED]
 //          Identifies the mobs on which the interaction should take place.
-//          These Ids can represent either NPCs (WoWUnit) or Object (WoWObject);
-//          however, the two cannot be mixed.  To choose the 'flavor' of the
-//          Id, set the ObjectType attribute appropriately.
-//          This attribute may be safely combined with AuraIdOnMobN, AuraIdMissingFromMobN,
-//          and MobIdN.
-//      MobState [optional; Default: Alive]
-//          [Allowed values: Alive, AliveNotInCombat, BelowHp, Dead, DontCare]
-//          This represents the state the NPC must be in when searching for targets
-//          with which we can interact.
-//          (NB: You probably don't want to select "BelowHp"--it is here for backward
-//           compatibility only.  I.e., You do not want to use this behavior to
-//          "fight a mob then use an item"--as it is *very* unreliable
-//          in performing that action.  Instead, use the CombatUseItemOnV2 behavior.) 
+//          The MobIdN can represent either an NPC (WoWUnit) or an Object (WoWObject).
+//          The two types can freely be mixed.
+//          If you specify both MobIdN and FactionIdN, the two sets will be combined,
+//          and any target that fulfillseither MobIdN or FactionIdN will be selected for interaction.
 //      NumOfTimes [optional; Default: 1]
 //          This is the number of times the behavior should interact with MobIdN.
 //          Once this value is achieved, the behavior considers itself done.
 //          If the Quest or QuestObjectiveIndex completes prior to reaching this
 //          count, the behavior also terminates.
-//      ObjectType [DEPRECATED]
-//          This option should no longer be specified--the behavior just 'figures it out'
+//
+// Potential Target Qualifiers:
+//      AuraIdOnMobN [optional; Default: none]
+//          This attribute qualifies a target that fullfills the MobIdN or FactionIdN selection.
+//          The target *must* possess an aura that matches one of the defined 
+//          AuraIdMissingFromMobN, in order to be considered a target for interaction.
+//      AuraIdMissingFromMob [optional; Default: none]
+//          This attribute qualifies a target that fullfills the MobIdN or FactionIdN selection.
+//          The target must *not* possess an aura that matches one of the defined 
+//          AuraIdMissingFromMobN, in order to be considered a target for interaction.
+//      MobState [optional; Default: Alive]
+//          [Allowed values: Alive, AliveNotInCombat, BelowHp, Dead, DontCare]
+//          This attribute qualifies the state the MobIdN or FactionIdN must be in,
+//          when selecting targets for interaction.
+//          (NB: You probably don't want to select "BelowHp"--it is here for backward
+//           compatibility only.  I.e., You do not want to use this behavior to
+//          "fight a mob then use an item"--as it is *very* unreliable
+//          in performing that action.  Instead, use the CombatUseItemOnV2 behavior.) 
 //
 // Interaction by Buying Items:
 //      BuyItemCount [optional; Default: 1]
@@ -88,8 +95,8 @@
 //          have changed.
 //
 // Interaction by Quest frames:
-//      InteractByQuestFrameDisposition [optional; Default: Ignore]
-//          [Allowed values: Accept, Complete, Continue, Ignore, TerminateBehavior]
+//      InteractByQuestFrameDisposition [optional; Default: TerminateProfile]
+//          [Allowed values: Accept/Complete/Continue/Ignore/TerminateBehavior/TerminateProfile]
 //          This attribute determines the behavior's response should the NPC
 //          with which we've interacted offer us a quest frame.
 //          Accept/Complete/Continue
@@ -198,7 +205,7 @@
 //                  will be sought.
 //
 // THiNGS TO KNOW:
-// * As a design choice, this behavior waits a uses a variant amount of time when 'clicking on things'.
+// * As a design choice, this behavior waits a variant amount of time when 'clicking on things'.
 //      We try to simulate an attentive human as much as possible.
 //
 // * The InteractByGossipOptions and InteractByBuyingItemId attributes can be combined to get to
@@ -209,23 +216,25 @@
 //      will automatically confirm the request to bind at the location.  After the binding is complete
 //      InteractWith displays a confirmation message of the new bind location.
 //
-// * The BuySlot attribute is still present for backward compatibility--but DO NOT USE IT!
-//      This attribute is deprecated, and BuySlot presents a number of problems.
-//      If a vendor presents 'seasonal' or limited-quantity wares, the slot number
-//      for the desired item can change.
-//      OLD DOX: Buys the item from the slot. Slots are:    0 1
-//                                                          2 3
-//                                                          4 5
-//                                                          6 7
-//                                                          page2
-//                                                          8 9 etc.
-//
-//  * The Nav attribute is deprecated--prefer MovementBy, instead.
-//      For support reasons, here is the old documentation:
-//          Nav [optional; Default: not any]
-//          [Allowed values: CTM, Mesh, None]
-//          This attribute is no longer used--use MovementBy, instead.
-//          (See documentation in QuestBehaviorBase for details).
+// * Deprecated attributes:
+//      + BuySlot
+//          This attribute is deprecated, and BuySlot presents a number of problems.
+//          If a vendor presents 'seasonal' or limited-quantity wares, the slot number
+//          for the desired item can change.
+//          OLD DOX: Buys the item from the slot. Slots are:    0 1
+//                                                              2 3
+//                                                              4 5
+//                                                              6 7
+//                                                              page2
+//                                                              8 9 etc.
+//      + ObjectType
+//          This option should no longer be specified--the behavior just 'figures it out'
+//      + Nav--prefer MovementBy, instead.
+//          For support reasons, here is the old documentation:
+//              Nav [optional; Default: not any]
+//              [Allowed values: CTM, Mesh, None]
+//              This attribute is no longer used--use MovementBy, instead.
+//              (See documentation in QuestBehaviorBase for details).
 //
 #endregion
 
@@ -386,14 +395,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 var navigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" });
-                if (navigationMode != null)
-                {
-                    MovementBy =
-                        (navigationMode == NavigationModeType.CTM) ? MovementByType.ClickToMoveOnly
-                        : (navigationMode == NavigationModeType.Mesh) ? MovementByType.NavigatorPreferred
-                        : MovementByType.None;
-                    LogWarning("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"", navigationMode, MovementBy);
-                }
                 NotMoving = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
                 PreInteractMountStrategy = GetAttributeAsNullable<MountStrategyType>("PreInteractMountStrategy", false, null, null)
                     ?? MountStrategyType.None;
@@ -428,9 +429,26 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 + "*****");
                 }
 
+                if (navigationMode != null)
+                {
+                    MovementBy =
+                        (navigationMode == NavigationModeType.CTM) ? MovementByType.ClickToMoveOnly
+                        : (navigationMode == NavigationModeType.Mesh) ? MovementByType.NavigatorPreferred
+                        : MovementByType.None;
+                    LogWarning("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+                                + "  Please update profile to use MovementBy, instead.", navigationMode, MovementBy);
+                }
+                
                 // These attributes are no longer used, but here for backward compatibility (it prevents 'complaining' if profiles supply them)...
                 GetAttributeAsNullable<MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
+                if (args.Keys.Contains("ObjectType"))
+                {
+                    LogWarning("The ObjectType attribute is no longer used by InteractWith."
+                                + "You may safely remove it from the profile call to the InteractWith behavior.");
+                }
 
+
+                // Pre-processing into a form we can use directly...
                 for (int i = 0; i < InteractByGossipOptions.Length; ++i)
                     { InteractByGossipOptions[i] -= 1; }
             }
