@@ -282,7 +282,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                QuestBehaviorBase.DeprecationWarning(Element, "BasicInteractWith", "InteractWith", BuildReplacementArguments());
+                QuestBehaviorBase.DeprecationWarning_Behavior(Element, "BasicInteractWith", "InteractWith", BuildReplacementArguments());
 
                 TreeRoot.GoalText = "Interacting with " + MobName;
             }

@@ -25,14 +25,20 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class QuestBehaviorBase
     {
-        public static void DeprecationWarning(XElement xElement, string oldBehaviorName, string newBehaviorName, Dictionary<string, string> replacementAttributes)
+        // 19Apr2013-05:58UTC chinajade
+        public static void DeprecationWarning_Attribute(XElement xElement, string message)
+        {
+            LogWarning("{1}{0}[Ref: \"{2}\" {3}]{0}",
+                Environment.NewLine, message, GetProfileName(), GetProfileLineNumber(xElement));
+        }
+
+
+        // 19Apr2013-05:58UTC chinajade
+        public static void DeprecationWarning_Behavior(XElement xElement, string oldBehaviorName, string newBehaviorName, Dictionary<string, string> replacementAttributes)
         {
             string attributes =
                 string.Join(" ", replacementAttributes.Select(kvp => string.Format("{0}=\"{1}\"", kvp.Key, kvp.Value)));
             const int audioDelayInMilliseconds = 150;
-            string location = ((xElement != null) && ((IXmlLineInfo)xElement).HasLineInfo())
-                ? (" @line " + ((IXmlLineInfo)xElement).LineNumber.ToString())
-                : " @unknown line";
 
             LogWarning("{0}/********************{0}DEPRECATED BEHAVIOR ({1}){0}"
                 + "The {1} behavior has been deprecated, but will continue to function as originally designed."
@@ -42,8 +48,8 @@ namespace Honorbuddy.QuestBehaviorCore
                 Environment.NewLine,
                 oldBehaviorName,
                 newBehaviorName,
-                ProfileManager.CurrentOuterProfile.Name,
-                location,
+                GetProfileName(),
+                GetProfileLineNumber(xElement),
                 string.Format("<CustomBehavior File=\"{0}\" {1} />", newBehaviorName, attributes));
 
             SystemSounds.Asterisk.Play();
@@ -53,6 +59,22 @@ namespace Honorbuddy.QuestBehaviorCore
             SystemSounds.Asterisk.Play();
             Thread.Sleep(audioDelayInMilliseconds);
             SystemSounds.Asterisk.Play();
+        }
+
+
+        // 19Apr2013-05:46UTC chinajade
+        public static string GetProfileLineNumber(XElement xElement)
+        {
+            return ((xElement != null) && ((IXmlLineInfo)xElement).HasLineInfo())
+                ? ("@line " + ((IXmlLineInfo)xElement).LineNumber.ToString())
+                : "@unknown line";            
+        }
+
+
+        // 19Apr2013-05:58UTC chinajade
+        public static string GetProfileName()
+        {
+            return ProfileManager.CurrentOuterProfile.Name;
         }
     }
 }

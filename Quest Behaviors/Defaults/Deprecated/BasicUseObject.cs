@@ -229,7 +229,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicUseObject
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                QuestBehaviorBase.DeprecationWarning(Element, "BasicUseObject", "InteractWith", BuildReplacementArguments());
+                QuestBehaviorBase.DeprecationWarning_Behavior(Element, "BasicUseObject", "InteractWith", BuildReplacementArguments());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

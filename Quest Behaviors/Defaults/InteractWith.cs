@@ -394,7 +394,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
                 KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-                var navigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" });
                 NotMoving = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
                 PreInteractMountStrategy = GetAttributeAsNullable<MountStrategyType>("PreInteractMountStrategy", false, null, null)
                     ?? MountStrategyType.None;
@@ -419,34 +418,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                 // Deprecated attributes...
                 InteractByBuyingItemInSlotNum = GetAttributeAsNullable<int>("InteractByBuyingItemInSlotNum", false, new ConstrainTo.Domain<int>(-1, 100), new [] { "BuySlot" }) ?? -1;
-                if (InteractByBuyingItemInSlotNum != -1)
-                {
-                    LogWarning("*****\n"
-                                + "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
-                                + "Please replace them with InteractByBuyingItemId attribute."
-                                + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
-                                + "if the vendor is offering seasonal or other such items.\n"
-                                + "*****");
-                }
-
+                GetAttributeAsNullable<MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
+                var navigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" });
                 if (navigationMode != null)
                 {
                     MovementBy =
                         (navigationMode == NavigationModeType.CTM) ? MovementByType.ClickToMoveOnly
                         : (navigationMode == NavigationModeType.Mesh) ? MovementByType.NavigatorPreferred
                         : MovementByType.None;
-                    LogWarning("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-                                + "  Please update profile to use MovementBy, instead.", navigationMode, MovementBy);
                 }
-                
-                // These attributes are no longer used, but here for backward compatibility (it prevents 'complaining' if profiles supply them)...
-                GetAttributeAsNullable<MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
-                if (args.Keys.Contains("ObjectType"))
-                {
-                    LogWarning("The ObjectType attribute is no longer used by InteractWith."
-                                + "You may safely remove it from the profile call to the InteractWith behavior.");
-                }
-
 
                 // Pre-processing into a form we can use directly...
                 for (int i = 0; i < InteractByGossipOptions.Length; ++i)
@@ -547,6 +527,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                EmitDeprecationWarnings();
+
                 OnStart_BaseQuestBehavior(string.Join(", ", MobIds.Select(m => GetMobNameFromId(m)).Distinct()));
                 
                 CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
@@ -1112,6 +1094,35 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             }
             if (TrainerFrame.Instance.IsVisible)
                 { TrainerFrame.Instance.Close(); }
+        }
+
+
+        private void EmitDeprecationWarnings()
+        {
+            if (InteractByBuyingItemInSlotNum != -1)
+            {
+                DeprecationWarning_Attribute(Element,
+                    "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
+                    + "Please replace them with InteractByBuyingItemId attribute."
+                    + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
+                    + " if the vendor is offering seasonal or other such items.");
+            }
+
+            if (Args.Keys.Contains("Nav"))
+            {
+                DeprecationWarning_Attribute(Element,
+                    string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+                                    + "  Please update profile to use MovementBy, instead.",
+                                    Args["Nav"],
+                                    MovementBy));
+            }
+                
+            if (Args.Keys.Contains("ObjectType"))
+            {
+                DeprecationWarning_Attribute(Element,
+                    "The ObjectType attribute is no longer used by InteractWith."
+                    + "  You may safely remove it from the profile call to the InteractWith behavior.");
+            }
         }
 
 
