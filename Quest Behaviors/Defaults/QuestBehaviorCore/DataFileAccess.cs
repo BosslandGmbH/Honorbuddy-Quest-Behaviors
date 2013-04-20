@@ -20,7 +20,7 @@ using Styx.Helpers;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         /// <summary>
         /// <para>Reads the "Quest Behaviors/DATA/AuraIds_OccupiedVehicle.xml" file, and returns an IEnumerable

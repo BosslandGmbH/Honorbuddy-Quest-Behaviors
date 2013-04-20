@@ -34,10 +34,11 @@
 //      MobId1, MobId2, ... MobIdN [at least one MobId is REQUIRED]
 //          Identifies the mobs on which the item should be used.
 //      NumOfTimesToUseItem [REQUIRED if a QuestId is not provided; otherwise IGNORED]
-//          Specifies the number of items the item should be used on the identified mobs
-//          before the behavior considers itself 'complete'.
-//          This value is only used if we're not in the context of a quest.  If a quest is specified,
-//          the quest determines whether or not the behavior is complete.
+//          The behavior considers itself complete when the item has been used this number
+//          of times.
+//          If the behavior is also associated with a quest or quest objective, then the behavior
+//          will also terminate when the quest or objective completes.  This may happen before
+//          the NumOfTimesToUseItem has been consumed.
 //      UseWhenMeHasAuraId [at least one of the UseWhen* attributes is REQUIRED; Default: none]
 //          When the toon acquires the identified AuraId, the item is used on the mob.
 //          If multiple UseWhen* attributes are provided, the item is used when _any_
@@ -196,6 +197,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -257,40 +259,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 RecallPetAtMobPercentHealth = GetAttributeAsNullable<double>("RecallPetAtMobPercentHealth", false, ConstrainAs.Percent, null) ?? UseWhenMobHasHealthPercent;
                 UseItemStrategy = GetAttributeAsNullable<UseItemStrategyType>("UseItemStrategy", false, null, null) ?? UseItemStrategyType.UseItemOncePerTarget;
                 WaitTimeAfterItemUse = GetAttributeAsNullable<int>("WaitTimeAfterItemUse", false, ConstrainAs.Milliseconds, null) ?? 0;
-
-
-                // Semantic coherency / covariant dependency checks --
-                if ((UseWhenMeHasAuraId <= 0)
-                    && (UseWhenMeMissingAuraId <= 0)
-                    && (UseWhenMobCastingSpellId <= 0)
-                    && (UseWhenMobHasAuraId <= 0)
-                    && (UseWhenMobMissingAuraId <= 0)
-                    && (UseWhenMobHasHealthPercent <= 0))
-                {
-                    LogError("One or more of the following attributes must be specified:\n"
-                                + "UseWhenMeHasAuraId, UseWhenMeMissingAuraId, UseWhenMobCastingSpellId,"
-                                + " UseWhenMobHasAuraId, UseWhenMobMissingAuraId, UseWhenMobHasHpPercentLeft");
-                    IsAttributeProblem = true;
-                }
-
-
-                if ((ItemAppliesAuraId <= 0)
-                    && ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
-                        || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)
-                        || (QuestId <= 0)))
-                {
-                    LogError("For a UseItemStrategy of {0}, ItemAppliesAuraId must be specified",
-                        UseItemStrategy);
-                    IsAttributeProblem = true;
-                }
-
-
-                if ((QuestId > 0) && (NumOfTimesToUseItem > 1))
-                {
-                    LogError("The NumOfTimesToUseItem attribute should only be specified when behavior"
-                        + "  is not associated with a quest (i.e., the QuestId attribute is not specified)");
-                    IsAttributeProblem = true;
-                }
             }
 
             catch (Exception except)
@@ -328,6 +296,35 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id: CombatUseItemOn.cs 273 2013-01-22 23:00:43Z natfoth $"); } }
         public override string SubversionRevision { get { return ("$Revision: 273 $"); } }
+
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            // Empty, for now
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            UsageCheck_SemanticCoherency(xElement,
+                ((UseWhenMeHasAuraId <= 0)
+                    && (UseWhenMeMissingAuraId <= 0)
+                    && (UseWhenMobCastingSpellId <= 0)
+                    && (UseWhenMobHasAuraId <= 0)
+                    && (UseWhenMobMissingAuraId <= 0)
+                    && (UseWhenMobHasHealthPercent <= 0)),
+                context => "One or more of the following attributes must be specified:\n"
+                            + "UseWhenMeHasAuraId, UseWhenMeMissingAuraId, UseWhenMobCastingSpellId,"
+                            + " UseWhenMobHasAuraId, UseWhenMobMissingAuraId, UseWhenMobHasHpPercentLeft");
+
+            UsageCheck_SemanticCoherency(xElement,
+                ((ItemAppliesAuraId <= 0)
+                    && ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
+                        || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)
+                        || (QuestId <= 0))),
+                context => string.Format("For a UseItemStrategy of {0}, ItemAppliesAuraId must be specified",
+                                        UseItemStrategy));
+        }
         #endregion
 
 
@@ -341,10 +338,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 
         #region Destructor, Dispose, and cleanup
-        ~CombatUseItemOnV2()
-        {
-            Dispose(false);
-        }
+        // Empty, for now
         #endregion
 
 
@@ -358,21 +352,21 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
             IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
             
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(
+                string.Format("Using {0} on {1}",
+                    GetItemNameFromId(ItemId),
+                    string.Join(", ", MobIds.Select(m => GetMobNameFromId(m)).Distinct())));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                OnStart_BaseQuestBehavior();
-
                 ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == ItemId));
                 if (ItemToUse == null)
                 {
-                    LogError("[PROFILE ERROR] Unable to locate ItemId({0}) in our bags", ItemId);
+                    LogError("[PROFILE ERROR] Unable to locate in our bags", GetItemNameFromId(ItemId));
                     TreeRoot.Stop();
                     BehaviorDone();
                 }
@@ -572,7 +566,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 
         #region Helpers
-
 
         public WoWUnit FindBestTarget()
         {

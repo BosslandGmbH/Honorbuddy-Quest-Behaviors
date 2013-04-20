@@ -21,7 +21,7 @@ using Styx.CommonBot.Profiles;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         /// <summary>
         /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>

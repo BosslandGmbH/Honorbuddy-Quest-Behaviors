@@ -23,48 +23,41 @@ using Styx.CommonBot.Profiles;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
-        // 19Apr2013-05:58UTC chinajade
-        public static void DeprecationWarning_Attribute(XElement xElement, string attributeName, string message)
-        {
-            const int audioDelayInMilliseconds = 150;
-
-            LogWarning("DEPRECATED ATTRIBUTE ({1}):{0}{2}{0}[Ref: \"{3}\" {4}]{0}",
-                Environment.NewLine, attributeName, message, GetProfileName(), GetProfileLineNumber(xElement));
-
-            SystemSounds.Asterisk.Play();
-            Thread.Sleep(audioDelayInMilliseconds);
-            SystemSounds.Asterisk.Play();
-        }
-
-
         // 19Apr2013-05:58UTC chinajade
         public static void DeprecationWarning_Behavior(XElement xElement, string oldBehaviorName, string newBehaviorName, Dictionary<string, string> replacementAttributes)
         {
-            string attributes =
-                string.Join(" ", replacementAttributes.Select(kvp => string.Format("{0}=\"{1}\"", kvp.Key, kvp.Value)));
-            const int audioDelayInMilliseconds = 150;
+            if (QuestBehaviorCoreSettings.Instance.LogNotifyOn_OnDeprecatedBehaviorUse)
+            {
+                string attributes =
+                    string.Join(" ", replacementAttributes.Select(kvp => string.Format("{0}=\"{1}\"", kvp.Key, kvp.Value)));
 
-            LogWarning("{0}/********************{0}DEPRECATED BEHAVIOR ({1}){0}"
-                + "The {1} behavior has been deprecated, but will continue to function as originally designed."
-                + "  Please replace the use of the {1} behavior with the {2} behavior.{0}"
-                + "The affected profile is \"{3}\", and the replacement command to accomplish this task is:{0}{4}:    {5}{0}"
-                + "********************/{0}",
-                Environment.NewLine,
-                oldBehaviorName,
-                newBehaviorName,
-                GetProfileName(),
-                GetProfileLineNumber(xElement),
-                string.Format("<CustomBehavior File=\"{0}\" {1} />", newBehaviorName, attributes));
+                LogWarning(
+                    "{0}/********************{0}DEPRECATED BEHAVIOR ({1}){0}"
+                    + "The {1} behavior has been deprecated, but will continue to function as originally designed."
+                    + "  Please replace the use of the {1} behavior with the {2} behavior.{0}"
+                    + "The affected profile is \"{3}\", and the replacement command to accomplish this task is:{0}{4}:    {5}{0}"
+                    + "********************/{0}",
+                    Environment.NewLine,
+                    oldBehaviorName,
+                    newBehaviorName,
+                    GetProfileName(),
+                    GetProfileLineNumber(xElement),
+                    string.Format("<CustomBehavior File=\"{0}\" {1} />", newBehaviorName, attributes));
 
-            SystemSounds.Asterisk.Play();
-            Thread.Sleep(audioDelayInMilliseconds);
-            SystemSounds.Asterisk.Play();
-            Thread.Sleep(audioDelayInMilliseconds);
-            SystemSounds.Asterisk.Play();
-            Thread.Sleep(audioDelayInMilliseconds);
-            SystemSounds.Asterisk.Play();
+                if (QuestBehaviorCoreSettings.Instance.AudibleNotify_OnDeprecatedBehaviorUse)
+                {
+                    const int audioDelayInMilliseconds = 150;
+                    SystemSounds.Asterisk.Play();
+                    Thread.Sleep(audioDelayInMilliseconds);
+                    SystemSounds.Asterisk.Play();
+                    Thread.Sleep(audioDelayInMilliseconds);
+                    SystemSounds.Asterisk.Play();
+                    Thread.Sleep(audioDelayInMilliseconds);
+                    SystemSounds.Asterisk.Play();
+                }
+            }
         }
 
 
@@ -81,6 +74,55 @@ namespace Honorbuddy.QuestBehaviorCore
         public static string GetProfileName()
         {
             return ProfileManager.CurrentOuterProfile.Name;
+        }
+
+        // 20Apr2013-01:23UTC chinajade
+        public static string GetProfileReference(XElement xElement)
+        {
+            return string.Format("[Ref: \"{0}\" {1}]", GetProfileName(), GetProfileLineNumber(xElement));
+        }
+
+        
+        // 19Apr2013-05:58UTC chinajade
+        public void UsageCheck_DeprecatedAttribute(XElement xElement, bool deprecatedAttributeEncounteredPredicate,
+                                                    string attributeName, ProvideStringDelegate messageDelegate)
+        {
+            if (QuestBehaviorCoreSettings.Instance.LogNotifyOn_OnDeprecatedAttributeUse)
+            {
+                if (deprecatedAttributeEncounteredPredicate)
+                {
+                    LogWarning("DEPRECATED ATTRIBUTE ({1}):{0}{2}{0}{3}{0}",
+                        Environment.NewLine, attributeName, messageDelegate(null), GetProfileReference(xElement));
+
+                    if (QuestBehaviorCoreSettings.Instance.AudibleNotify_OnDeprecatedAttributeUse)
+                    {
+                        const int audioDelayInMilliseconds = 150;
+                        SystemSounds.Asterisk.Play();
+                        Thread.Sleep(audioDelayInMilliseconds);
+                        SystemSounds.Asterisk.Play();
+                    }
+                }
+            }
+        }        
+
+        
+        // 19Apr2013-05:58UTC chinajade
+        public void UsageCheck_SemanticCoherency(XElement xElement, bool incoherencyPredicate, ProvideStringDelegate messageDelegate)
+        {
+            if (incoherencyPredicate)
+            {
+                LogError("PROFILE ERROR: {1}{0}{2}{0}",
+                    Environment.NewLine, messageDelegate(null), GetProfileReference(xElement));
+                IsAttributeProblem = true;
+
+                if (QuestBehaviorCoreSettings.Instance.AudibleNotify_OnSemanticIncoherency)
+                {
+                    const int audioDelayInMilliseconds = 150;
+                    SystemSounds.Asterisk.Play();
+                    Thread.Sleep(audioDelayInMilliseconds);
+                    SystemSounds.Asterisk.Play();
+                }
+            }
         }
     }
 }

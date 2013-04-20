@@ -10,6 +10,8 @@
 
 #region Usings
 using System;
+using System.Media;
+using System.Threading;
 
 using Styx;
 using Styx.Common.Helpers;
@@ -44,6 +46,47 @@ namespace Honorbuddy.QuestBehaviorCore
     }
 
 
+    public class ExceptionCatchingWrapper : PrioritySelector
+    {
+        public ExceptionCatchingWrapper(QuestBehaviorBase questBehaviorBase, Composite unwrappedChild)
+            : base(unwrappedChild)
+        {
+            _questBehaviorBase = questBehaviorBase;
+        }
+
+        private readonly QuestBehaviorBase _questBehaviorBase;
+
+
+        public override RunStatus Tick(object context)
+        {
+            try
+            {
+                return base.Tick(context);
+            }
+
+            catch (Exception except)
+            {
+                if (except.GetType() != typeof(ThreadAbortException))
+                {
+                    if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)
+                    {
+                        QuestBehaviorBase.LogError("PROFILE EXCEPTION CONTEXT: {0}",
+                            QuestBehaviorBase.GetProfileReference(_questBehaviorBase.Element));
+                        SystemSounds.Asterisk.Play();
+                    }
+                    else
+                    {
+                        QuestBehaviorBase.LogDeveloperInfo("PROFILE EXCEPTION CONTEXT: {0}",
+                            QuestBehaviorBase.GetProfileReference(_questBehaviorBase.Element));
+                    }
+                }
+
+                throw;
+            }
+        }
+    }
+
+
     //
     // This behavior wraps the child behaviors in a 'frame lock' which can provide
     // a big performance improvement if the child behaviors makes multiple HB API
@@ -54,14 +97,14 @@ namespace Honorbuddy.QuestBehaviorCore
         public FrameLockSelector(params Composite[] children)
             : base(children)
         {
-            /*empty*/
+            // empty
         }
 
 
         public FrameLockSelector(ContextChangeHandler contextChange, params Composite[] children)
             : base(contextChange, children)
         {
-            /*empty*/
+            // empty
         }
 
 

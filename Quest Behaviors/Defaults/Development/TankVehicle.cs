@@ -83,8 +83,6 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                     37921,  // Orc War machine
                     37938,  // Orc Outrider
                 };
-
-                // Semantic coherency / covariant dependency checks --
             }
 
             catch (Exception except)
@@ -111,6 +109,18 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
+
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            // empty, for now
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            // empty, for now
+        }
         #endregion
 
 
@@ -148,10 +158,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
 
 
         #region Destructor, Dispose, and cleanup
-        ~TankVehicle()
-        {
-            Dispose(false);
-        }
+        // Empty, for now...
         #endregion
 
 
@@ -166,19 +173,15 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
             IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
             QuestGoals = XmlUtil_ParseSubtree<QuestGoalType>(QuestGoalType.Create, "Objectives", "QuestObjective");
-
-
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(string.Empty);
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                OnStart_BaseQuestBehavior();
-
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
                 // NOTE: these settings are restored to their normal values when the behavior completes

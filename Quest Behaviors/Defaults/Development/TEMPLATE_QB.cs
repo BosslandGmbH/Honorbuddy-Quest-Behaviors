@@ -39,6 +39,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot.Profiles;
@@ -60,29 +61,9 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         {
             try
             {
-                // Quest handling...
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 5), null) ?? 0;
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-                // Tunables...
-                CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
-                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
-                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 25.0;
-
-                Blackspots = new List<Blackspot>()
-                {
-                    // empty for now
-                };
-
-
-                // Semantic coherency / covariant dependency checks --
-                if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
-                {
-                    LogError("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided", QuestObjectiveIndex);
-                    IsAttributeProblem = true;
-                }
+                // Behavior-specific attributes...
             }
 
             catch (Exception except)
@@ -101,19 +82,36 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         // Variables for Attributes provided by caller
-        public double CombatMaxEngagementRangeDistance { get; private set; }
-        public bool IgnoreMobsInBlackspots { get; private set; }
-        public int QuestId { get; private set; }
-        public int QuestObjectiveIndex { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-        public IEnumerable<Blackspot> Blackspots { get; private set; }
-        public double NonCompeteDistance { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
+
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElment)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
         #endregion
 
 
@@ -123,10 +121,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         #region Destructor, Dispose, and cleanup
-        ~TEMPLATE_QB()
-        {
-            Dispose(false);
-        }
+        // Empty, for now...
         #endregion
 
 
@@ -149,19 +144,15 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             // A common example:
             //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
             //     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(string.Empty);
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // This will do basic initialization of the behavior, and set the Goal text...
-                OnStart_BaseQuestBehavior();
-
                 // Setup settings to prevent interference with your behavior --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
                 // by Honorbuddy, or the bot is stopped.

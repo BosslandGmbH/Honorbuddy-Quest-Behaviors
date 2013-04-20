@@ -54,6 +54,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 using Styx;
 using Styx.Common;
@@ -68,7 +69,7 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase : CustomForcedBehavior
+    public abstract partial class QuestBehaviorBase : CustomForcedBehavior
     {
         #region Consructor and Argument Processing
         protected QuestBehaviorBase(Dictionary<string, string> args)
@@ -93,13 +94,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 MaxDismountHeight = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
                 MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.NavigatorPreferred;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
-
-                // Semantic coherency / covariant dependency checks --
-                if ((QuestObjectiveIndex > 0) && (QuestId <= 0))
-                {
-                    LogError("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided", QuestObjectiveIndex);
-                    IsAttributeProblem = true;
-                }
             }
 
             catch (Exception except)
@@ -232,7 +226,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
         protected sealed override Composite CreateBehavior()
         {
-            return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
+            return _behaviorTreeHook_Main
+                ?? (_behaviorTreeHook_Main = new ExceptionCatchingWrapper(this, CreateMainBehavior()));
         }
 
 
@@ -243,34 +238,46 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        public override bool IsDone
+        public sealed override bool IsDone
         {
             get
             { 
-                return IsDone_BaseQuestBehavior();
+                return _isBehaviorDone     // normal completion
+                        || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
             }
         }
 
 
         public override void OnStart()
         {
-            OnStart_BaseQuestBehavior();
+            OnStart_QuestBehaviorCore();
         }
         #endregion
 
 
         #region Base class primitives
 
-        protected bool IsDone_BaseQuestBehavior()
+        /// <summary>
+        /// <para>This reports problems, and stops BT processing if there was a problem with attributes...
+        /// We had to defer this action, as the 'profile line number' is not available during the element's
+        /// constructor call.</para>
+        /// <para>It also captures the user's configuration, and installs Behavior Tree hooks.  The items will
+        /// be restored when the behavior terminates, or Honorbuddy is stopped.</para>
+        /// </summary>
+        /// <param name="extraGoalTextDescription"></param>
+        protected void OnStart_QuestBehaviorCore(string extraGoalTextDescription = null)
         {
-            return _isBehaviorDone     // normal completion
-                    || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                    || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
-        }
+            UsageCheck_SemanticCoherency(Element,
+                ((QuestObjectiveIndex > 0) && (QuestId <= 0)),
+                context => string.Format("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided",
+                                        QuestObjectiveIndex));
+            EvaluateUsage_SemanticCoherency(Element);
 
+            // Deprecated attributes...
+            // TODO: Do this later, after we've made a sweep through Kick's profiles...
+            EvaluateUsage_DeprecatedAttributes(Element);
 
-        protected void OnStart_BaseQuestBehavior(string extraDescription = null)
-        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -295,14 +302,16 @@ namespace Honorbuddy.QuestBehaviorCore
                 TreeRoot.GoalText = string.Format(
                     "{0}: \"{1}\"\n{2}",
                     GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"),
-                    (extraDescription ?? string.Empty));
+                    ((quest != null)
+                        ? string.Format("\"{0}\" ({1})", quest.Name, QuestId)
+                        : "In Progress (no associated quest)"),
+                    (extraGoalTextDescription ?? string.Empty));
 
-                _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
+                _behaviorTreeHook_CombatMain = new ExceptionCatchingWrapper(this, CreateBehavior_CombatMain());
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
+                _behaviorTreeHook_CombatOnly = new ExceptionCatchingWrapper(this, CreateBehavior_CombatOnly());
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
+                _behaviorTreeHook_DeathMain = new ExceptionCatchingWrapper(this, CreateBehavior_DeathMain());
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
             }
         }
@@ -317,6 +326,43 @@ namespace Honorbuddy.QuestBehaviorCore
                 _isBehaviorDone = true;
             }
         }
+
+
+        /// <summary>
+        /// <para>This method should check for use of deprecated attributes by the profile.
+        /// It should make calls to UsageCheck_DeprecatedAttribute() to accomplish the task.</para>
+        /// </summary>
+        /// <param name="xElement"></param>
+        protected abstract void EvaluateUsage_DeprecatedAttributes(XElement xElement);
+        //{
+        //     // EXAMPLE: 
+        //    UsageCheck_DeprecatedAttribute(xElement,
+        //        Args.Keys.Contains("Nav"),
+        //        "Nav",
+        //        context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+        //                                  + "  Please update profile to use MovementBy, instead.",
+        //                                  Args["Nav"], MovementBy));
+        // }
+
+
+        /// <summary>
+        /// <para>This method should perform any semantic coherency, or covariant dependency checks needed
+        /// by the behavior.  It should make calls to UsageCheck_SemanticCoherency() to accomplish the task.</para>
+        /// </summary>
+        /// <param name="xElement"></param>
+        protected abstract void EvaluateUsage_SemanticCoherency(XElement xElement);
+        //{
+        //    // EXAMPLE:
+        //    UsageCheck_SemanticCoherency(xElement,
+        //        (!MobIds.Any() && !FactionIds.Any()),
+        //        context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+        //
+        //    const double rangeEpsilon = 3.0;
+        //    UsageCheck_SemanticCoherency(xElement,
+        //        ((RangeMax - RangeMin) < rangeEpsilon),
+        //        context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+        //                      RangeMax, rangeEpsilon, RangeMin)); 
+        //}
 
         #region Main Behaviors
         protected virtual Composite CreateBehavior_CombatMain()

@@ -1,8 +1,8 @@
 ﻿TODO
 ====
-* QuestBehaviorCore
-	+ Navigation needs to fall back to Flightor before falling back to click-to-move.
-		Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
+* AbandonQuest
+	+ Needs a feature to jettison all quests we've left behind.
+		This is a tricky proposition, but needed to prevent incomplete quests from cluttering our logs.
 
 * BarrelHook needs to unhook itself if specific quests aren't in our log.
 
@@ -14,13 +14,20 @@
 	it also might need fixes due to new actionbar code,
 	for me wow says "you can't do that" and no buttons seem to be pressed
 
+* CollectThings
+	* Needs to be adapted to new QuestBehaviorCore framework
+	* Needs to tell why its 'waiting for mobs to respawn'
+
 * CombatUseItemOnV2
 	+ Behavior needs to deal with items that cause 
 
 * InteractWith testing needed:
+	+ MinRange/MaxRange goobered
+		http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-4.html#post1127123
 	+ Rework InteractWith to use items and interact during combat
 		A good test is "Nature's Repisal" a level 7 Night Elf quest conducted in a cave with bad LoS issues.
 		Use Natfoth profile and switch out UseItemTargetLocation for this quest.
+	+ If MobState="Dead" specified, and alive targets in area, help them get "Dead" so we can interact.
 	+ Target not being temporarily blacklisted after UsingItem.
 	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Needs a timer that blacklists target for a bit, if it can't be interacted with within a reasonable period of time.
@@ -44,6 +51,8 @@
 	  so even toon is dead behavior still keep going, dont allow ress
 	  and ignorecombat in IW dont work
 	  (Requested to see log next time it happens--could be exceptions being thrown from anywhere).
+	+ Giwin claims InteractWith doesn't work underwater: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/116066-interactwith-not-working-underwater.html#post1126570
+		As example he gave Frederick's Fish Fancy - Quest - World of Warcraft (http://www.thebuddyforum.com/redirect-to/?redirect=http%3A%2F%2Fwww.wowhead.com%2Fquest%3D27450%2Ffredericks-fish-fancy).
 
 	+ TheBrodieMan 2013Apr14
 		came across an issue with IW while coding the PvP quests in IoT. Theres a bomb that needs to be placed by IW'ing with a mark on a wall.
@@ -60,6 +69,9 @@
 	+ Behavior 'stands around' far too much
 	+ Needs a HuntingGrounds element
 	+ DeathKnight start area: "Nowhere to Run And Nowhere to Hide" is a good test
+	+ Needs to clear mobs that will aggro otw to our target mob.
+	+ Needs to pick targets based on SurfacePathDistance
+	+ Needs to define complete as "KillCount"
 
 * LoadProfile is not constructing relative path names correctly:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
@@ -97,6 +109,17 @@
 	
 * 52781-Persuasive Strike
 	+ ?
+
+
+QUESTBEHAVIORCORE FRAMEWORK
+===========================
+* When moving to hunting ground center, and no other waypoints, we need to randomize location
+
+* Navigator should prefer flying, if conditions are right
+	+ Outside, CanFly, distance is far enough, etc.
+
+* Navigation needs to fall back to Flightor before falling back to click-to-move.
+	Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
 
 
 KICK'S PROFILES:
@@ -141,6 +164,11 @@ NEEDED QUEST BEHAVIORS:
 	* Needs to guarantee stealth
 	* Needs to guarantee approaching mob from behind
 	* Use distract if necessary
+
+* HearthOrHoofIt
+	* Needs to do inter-continental travel via instructions in a Data file.
+	* Needs to use the mage's/druid/deathknight abilities if possible.
+	* Use hearthstone if not on cooldown, and it makes sense.
 
 * Mobile tank vehicle behavior that can actually aim at targets
 

@@ -25,7 +25,7 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         private LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
@@ -219,7 +219,10 @@ namespace Honorbuddy.QuestBehaviorCore
         private readonly WoWGameObjectType[] _sharedGameObjectTypes =
         {
             WoWGameObjectType.Binder,           // sets hearthstone
-            WoWGameObjectType.Door,
+            // NOT: WoWGameObjectType.Door,
+            // Although it would be nice to include doors, NPCs locked in cages that require a key to open
+            // are "door" subtypes.  If we walked up and took one of these resources while it was in competition
+            // that would not be good.  Thus, we exclude it from our list of 'shared resources'.
             WoWGameObjectType.GuildBank,
             WoWGameObjectType.Mailbox,
             WoWGameObjectType.MeetingStone,

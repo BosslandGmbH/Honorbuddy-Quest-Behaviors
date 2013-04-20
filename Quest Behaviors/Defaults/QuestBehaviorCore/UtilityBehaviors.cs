@@ -30,7 +30,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         /// <summary>
         /// Descends to a height safe for dismounting.  "Safe" is defined as 'not flying, or no more than

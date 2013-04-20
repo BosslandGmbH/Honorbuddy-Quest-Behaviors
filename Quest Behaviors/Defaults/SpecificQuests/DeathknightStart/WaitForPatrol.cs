@@ -146,6 +146,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -182,13 +183,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
                 // Tunables...
 
-
-                // Semantic coherency / covariant dependency checks --
-                if ((MobIdToMoveNear == 0) && (SafespotLocation == WoWPoint.Empty))
-                {
-                    LogError("Either MoveToMobId or X/Y/Z (for the safe spot) must be specified.");
-                    IsAttributeProblem = true;
-                }
             }
 
             catch (Exception except)
@@ -211,6 +205,20 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         public int MobIdToAvoid { get; private set; }
         public int MobIdToMoveNear { get; private set; }
         public WoWPoint SafespotLocation { get; private set; }
+
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            // Empty, for now
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            UsageCheck_SemanticCoherency(xElement,
+                ((MobIdToMoveNear == 0) && (SafespotLocation == WoWPoint.Empty)),
+                context => "Either MoveToMobId or X/Y/Z (for the safe spot) must be specified.");
+        }
         #endregion
 
 
@@ -269,18 +277,19 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             // to parse child XML nodes until OnStart() is called.
             FollowPath = SafePathType.GetOrCreate(Element, "FollowPath", AvoidDistance / 3.0, SafespotLocation);
             IsAttributeProblem |= FollowPath.IsAttributeProblem;
-
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(
+                string.Format("Using safe spot {0} until '{1}' moves {2:F1} yards away.",
+                    SafespotLocation,
+                    GetMobNameFromId(MobIdToAvoid),
+                    AvoidDistance));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                OnStart_BaseQuestBehavior();
-
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
                 // NOTE: these settings are restored to their normal values when the behavior completes
@@ -290,11 +299,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-
-                LogInfo("Moving to safe spot {0} until '{1}' moves {2:F1} yards away.",
-                            SafespotLocation,
-                            GetMobNameFromId(MobIdToAvoid),
-                            AvoidDistance);
 
                 State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
             }

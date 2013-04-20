@@ -62,6 +62,8 @@
     <Compile Include="BarrelHook.cs" />
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
+    <Compile Include="NoControlVehicle.cs" />
+    <Compile Include="QuestBehaviorCore\QuestBehaviorCoreSettings.cs" />
     <Compile Include="QuestBehaviorCore\UtilitiesDeprecation.cs" />
     <Compile Include="QuestBehaviorCore\Types.cs" />
     <Compile Include="QuestBehaviorCore\Extensions_WoWUnit.cs" />
@@ -126,7 +128,8 @@
     <Compile Include="MrFishIt.cs" />
     <Compile Include="MyCTM.cs" />
     <Compile Include="NoCombatMoveTo.cs" />
-    <Compile Include="NoControlVehicle.cs" />
+    <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
+    <Compile Include="Vehicles\NoControlVehicle.cs" />
     <Compile Include="NPCAssistance.cs" />
     <Compile Include="PerformTradeskillOn.cs" />
     <Compile Include="RunLikeHell.cs" />
@@ -240,6 +243,8 @@
     <Compile Include="VehicleBehavior.cs" />
     <Compile Include="Vehicles\CannonControl.cs" />
     <Compile Include="Vehicles\FlyingVehicle.cs" />
+    <Compile Include="Vehicles\MountVehOnly.cs" />
+    <Compile Include="Vehicles\VehicleBehavior.cs" />
     <Compile Include="Vehicles\VehicleMover.cs" />
     <Compile Include="WaitTimer.cs" />
     <Compile Include="WaterBehavior.cs" />

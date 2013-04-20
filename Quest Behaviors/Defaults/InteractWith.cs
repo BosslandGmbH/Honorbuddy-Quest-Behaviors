@@ -313,6 +313,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -401,20 +402,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 0.0;
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;            
-                
-                // Semantic coherency / covariant dependency checks --
-                if (!MobIds.Any() && !FactionIds.Any())
-                {
-                    LogProfileError("You must specify one or more MobIdN, one or more FactionIdN, or both.");   
-                    IsAttributeProblem = true;
-                }
-
-                const double rangeEpsilon = 3.0;
-                if ((RangeMax - RangeMin) < rangeEpsilon)
-                {
-                    LogProfileError("Range({0}) must be at least {1} greater than MinRange({2}).", RangeMax, rangeEpsilon, RangeMin);
-                    IsAttributeProblem = true;   
-                }
 
                 // Deprecated attributes...
                 InteractByBuyingItemInSlotNum = GetAttributeAsNullable<int>("InteractByBuyingItemInSlotNum", false, new ConstrainTo.Domain<int>(-1, 100), new [] { "BuySlot" }) ?? -1;
@@ -472,6 +459,46 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         public double RangeMin { get; private set; }
         public bool WaitForNpcs { get; private set; }
         public int WaitTime { get; private set; }
+
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            UsageCheck_DeprecatedAttribute(xElement,
+                (InteractByBuyingItemInSlotNum != -1),
+                "InteractByBuyingItemInSlotNum/BuySlot", 
+                context => "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
+                            + "Please replace them with InteractByBuyingItemId attribute."
+                            + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
+                            + " if the vendor is offering seasonal or other such items.");
+
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("Nav"),
+                "Nav",
+                context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+                                        + "  Please update profile to use MovementBy, instead.",
+                                        Args["Nav"],
+                                        MovementBy));
+
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("ObjectType"),
+                "ObjectType",
+                context => "The ObjectType attribute is no longer used by InteractWith."
+                            + "  You may safely remove it from the profile call to the InteractWith behavior.");
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            UsageCheck_SemanticCoherency(xElement,
+                (!MobIds.Any() && !FactionIds.Any()),
+                context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+
+            const double rangeEpsilon = 3.0;
+            UsageCheck_SemanticCoherency(xElement,
+                ((RangeMax - RangeMin) < RangeMinMaxEpsilon),
+                context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+                                        RangeMax, RangeMinMaxEpsilon, RangeMin)); 
+        }
         #endregion
 
 
@@ -490,6 +517,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private int GossipPageIndex { get; set; }
         private HuntingGroundsType HuntingGrounds { get; set; }
         private WoWItem ItemToUse { get; set; }
+        private double RangeMinMaxEpsilon = 3.0;
         private WoWObject SelectedInteractTarget { get; set; }
 
         private WaitTimer _waitTimerAfterInteracting = new WaitTimer(TimeSpan.Zero);
@@ -516,21 +544,21 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             // NB: We had to defer this processing from the constructor, because XElement isn't available
             // to parse child XML nodes until OnStart() is called.
             HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
-            IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-            
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;          
+
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(
+                string.Format("Interacting {0} {1}",
+                    ((InteractByUsingItemId > 0)
+                    ? string.Format("by using {0} on", GetItemNameFromId(InteractByUsingItemId))
+                    : "with"),
+                    string.Join(", ", MobIds.Select(m => GetMobNameFromId(m)).Distinct())));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                EmitDeprecationWarnings();
-
-                OnStart_BaseQuestBehavior(string.Join(", ", MobIds.Select(m => GetMobNameFromId(m)).Distinct()));
-                
                 CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
                 _waitTimerAfterInteracting.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
 
@@ -1094,35 +1122,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             }
             if (TrainerFrame.Instance.IsVisible)
                 { TrainerFrame.Instance.Close(); }
-        }
-
-
-        private void EmitDeprecationWarnings()
-        {
-            if (InteractByBuyingItemInSlotNum != -1)
-            {
-                DeprecationWarning_Attribute(Element, "InteractByBuyingItemInSlotNum/BuySlot", 
-                    "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
-                    + "Please replace them with InteractByBuyingItemId attribute."
-                    + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
-                    + " if the vendor is offering seasonal or other such items.");
-            }
-
-            if (Args.Keys.Contains("Nav"))
-            {
-                DeprecationWarning_Attribute(Element, "Nav",
-                    string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-                                    + "  Please update profile to use MovementBy, instead.",
-                                    Args["Nav"],
-                                    MovementBy));
-            }
-                
-            if (Args.Keys.Contains("ObjectType"))
-            {
-                DeprecationWarning_Attribute(Element, "ObjectType",
-                    "The ObjectType attribute is no longer used by InteractWith."
-                    + "  You may safely remove it from the profile call to the InteractWith behavior.");
-            }
         }
 
 

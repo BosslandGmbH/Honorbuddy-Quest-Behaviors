@@ -28,7 +28,7 @@ using System.Text;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         public const double TAU = (2 * Math.PI);
 

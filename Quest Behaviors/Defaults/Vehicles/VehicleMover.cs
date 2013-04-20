@@ -150,6 +150,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -195,12 +196,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                     ? MovementByType.NavigatorPreferred
                     : MovementByType.ClickToMoveOnly;
 
-                // These attributes are no longer used, but here for backward compatibility (it prevents 'complaining' if profiles supply them)...
-
-
-                // Semantic coherency / covariant dependency checks --
-
-
                 // For backward compatibility, we do not error off on an invalid SpellId, but merely warn the user...
                 if ((1 <= SpellId) && (SpellId <= 12))
                 {
@@ -237,6 +232,23 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
+
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("UseNavigator"),
+                "UseNavigator",
+                context => string.Format("Automatically converted UseNavigator=\"{0}\" attribute into MovementBy=\"{1}\"."
+                                        + "  Please update profile to use MovementBy, instead.",
+                                        Args["UseNavigator"], MovementBy));
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            // empty, for now...
+        }
         #endregion
 
 
@@ -262,18 +274,18 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         #region Overrides of CustomForcedBehavior
 
         public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+        {       
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(
+                string.Format("Returning {0} to {1}",
+                    string.Join(", ", VehicleIds.Select(o => GetMobNameFromId(o)).Distinct()),
+                    Destination));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                OnStart_BaseQuestBehavior();
-                
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
                 // NOTE: these settings are restored to their normal values when the behavior completes
@@ -284,11 +296,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
-
-                TreeRoot.StatusText = string.Format("{0}: Returning {1} to {2}",
-                                    GetType().Name,
-                                    string.Join(", ", VehicleIds.Select(o => GetMobNameFromId(o)).Distinct()),
-                                    Destination);
 
                 AuraIds_OccupiedVehicle = GetOccupiedVehicleAuraIds();
             }

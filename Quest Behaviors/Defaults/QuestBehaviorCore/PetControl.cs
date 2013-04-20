@@ -24,7 +24,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         /// <summary>
         /// <para>Returns true if you can cast the PETACTIONNAME; otherwise, false.</para>

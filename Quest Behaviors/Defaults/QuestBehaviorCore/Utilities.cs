@@ -17,6 +17,7 @@ using Styx;
 using Styx.Common.Helpers;
 using Styx.Helpers;
 using Styx.Pathing;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
@@ -25,7 +26,7 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class QuestBehaviorBase
+    public abstract partial class QuestBehaviorBase
     {
         // 18Apr2013-10:41UTC chinajade
         private void AntiAfk()
@@ -39,10 +40,21 @@ namespace Honorbuddy.QuestBehaviorCore
         private readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
 
 
+        // 20Apr2013-12:50UTC chinajade
+        public string GetItemNameFromId(int wowItemId)
+        {
+            var wowItem = Me.CarriedItems.FirstOrDefault(i => (i.Entry == wowItemId));
+
+            return (wowItem != null)
+                ? wowItem.Name
+                : string.Format("ItemId({0})", wowItemId);
+        }
+
+        
         // 11Apr2013-04:41UTC chinajade
         public string GetMobNameFromId(int wowUnitId)
         {
-            WoWUnit wowUnit = FindUnitsFromIds(ToEnumerable<int>(wowUnitId)).FirstOrDefault();
+            var wowUnit = FindUnitsFromIds(ToEnumerable<int>(wowUnitId)).FirstOrDefault();
 
             return (wowUnit != null)
                 ? wowUnit.Name
