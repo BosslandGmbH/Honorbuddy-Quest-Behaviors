@@ -32,8 +32,8 @@
 //      IgnoreMobsInBlackspots [optional; Default: true]
 //          When true, any mobs within (or too near) a blackspot will be ignored
 //          in the list of viable targets that are considered for item use.
-//      MovementBy [optional; Default: NavigatorPreferred]
-//          [allowed values: ClickToMoveOnly/NavigatorOnly/NavigatorPreferred/None]
+//      MovementBy [optional; Default: FlightorPreferred]
+//          [allowed values: ClickToMoveOnly/FlightorPreferred/NavigatorOnly/NavigatorPreferred/None]
 //          Allows alternative navigation techniques.  You should provide this argument
 //          only when an area is unmeshed, or not meshed well.  If ClickToMoveOnly
 //          is specified, the area must be free of obstacles; otherwise, the toon
@@ -92,7 +92,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 CombatMaxEngagementDistance = GetAttributeAsNullable<double>("CombatMaxEngagementDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
                 IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
                 MaxDismountHeight = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
-                MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.NavigatorPreferred;
+                MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.FlightorPreferred;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
             }
 

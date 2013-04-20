@@ -273,6 +273,9 @@
     <Content Include="Development\Unit Tests\UseItemOn\UseItemOn-ExtinguishingHope.xml" />
     <Content Include="Development\Unit Tests\UserSettings\UserSettings Test.xml" />
   </ItemGroup>
+  <ItemGroup>
+    <None Include="ClassDiagram1.cd" />
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>
     <VisualStudio AllowExistingFolder="true" />

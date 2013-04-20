@@ -48,6 +48,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public enum MovementByType
         {
             ClickToMoveOnly,
+            FlightorPreferred,
             NavigatorOnly,
             NavigatorPreferred,
             None

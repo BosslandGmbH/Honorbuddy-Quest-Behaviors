@@ -256,8 +256,17 @@ namespace Honorbuddy.QuestBehaviorCore
                             {
                                 var moveResult = MoveResult.Failed;
 
+                                // Use Flightor, if allowed...
+                                if ((MovementBy == MovementByType.FlightorPreferred) && Me.IsOutdoors && Me.MovementInfo.CanFly)
+                                {
+                                    Flightor.MoveTo(_ubpsMoveTo_Location);
+                                    // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
+                                    moveResult = MoveResult.Moved;
+                                }
+
                                 // Use Navigator to get there, if allowed...
-                                if ((MovementBy == MovementByType.NavigatorPreferred) || (MovementBy == MovementByType.NavigatorOnly))
+                                else if ((MovementBy == MovementByType.NavigatorPreferred) || (MovementBy == MovementByType.NavigatorOnly)
+                                            || (MovementBy == MovementByType.FlightorPreferred))
                                 {
                                     if (!Me.IsSwimming)
                                         { moveResult = Navigator.MoveTo(_ubpsMoveTo_Location); }
