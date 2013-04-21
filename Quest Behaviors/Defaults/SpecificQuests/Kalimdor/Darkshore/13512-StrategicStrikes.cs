@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -68,6 +69,8 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         // Private properties
         private int Counter { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+        static readonly WaitTimer Timer = WaitTimer.OneSecond;
 
 
         public WoWPoint KillLocation
@@ -168,11 +171,13 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
                                           ),
 
                             new Decorator(
-                                   ret => StyxWoW.Me.HasAura("Unstable Lightning Blast"),
-                                       new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.StrafeLeft))),
+                                   ret => StyxWoW.Me.HasAura("Unstable Lightning Blast") && Timer.IsFinished,
+                                   new Sequence(
+                                       new Action(ret => Timer.Reset()),
+                                       new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.StrafeLeft)))),
 
                             new Decorator(
-                                   ret => StyxWoW.Me.IsMoving,
+                                   ret => (StyxWoW.Me.IsMoving && KillSheya) || (StyxWoW.Me.IsMoving && !KillSheya && Timer.IsFinished),
                                    new Sequence(
                                        new Action(ret => WoWMovement.MoveStop()),
                                        new ActionAlwaysSucceed())),

@@ -197,6 +197,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
@@ -478,6 +479,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                                 // NB: Neither the HB API nor the WoW API give us a way to determine
                                                 // if an item was successfully used (i.e., we weren't interrupted while
                                                 // we were trying to use it).
+												
+												Thread.Sleep(500);
+												SpellManager.ClickRemoteLocation(SelectedTarget.Location);
                                             })
                                         )),
 

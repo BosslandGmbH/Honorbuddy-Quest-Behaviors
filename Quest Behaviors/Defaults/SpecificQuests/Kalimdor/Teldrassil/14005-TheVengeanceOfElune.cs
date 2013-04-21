@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -154,7 +155,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
                                            new Action(ret => WoWMovement.MoveStop())),
                                        new Decorator(ret => StyxWoW.Me.HealthPercent < 30,
                                            new Sequence(
-                                                new Action(ret => Lua.DoString("CastPetAction({0})", 0)),
+                                                new Action(ret => Lua.DoString("RunMacroText('/click OverrideActionBarButton1')")),
                                                 new Action(ret => SpellManager.ClickRemoteLocation(StyxWoW.Me.Location)))))),
 
   
@@ -168,9 +169,11 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
                                        new Decorator(ret => Me.IsMoving,
                                            new Action(ret => WoWMovement.MoveStop())),
                                        new Sequence(
-                                            new Action(ret => Lua.DoString("CastPetAction({0})", 1)),
+                                            new Action(ret => Lua.DoString("RunMacroText('/click OverrideActionBarButton2')")),
                                             new Action(ret => Thread.Sleep(2000)),
-                                            new Action(ret => Lua.DoString("CastPetAction({0})", 2)))))
+                                            new Action(ret => Lua.DoString("RunMacroText('/click OverrideActionBarButton3')"))))),
+
+                            new ActionAlwaysSucceed()
 
 
                     ))));
