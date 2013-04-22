@@ -37,7 +37,8 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
 {
-    [CustomBehaviorFileName(@"BasicInteractWith")]
+    [CustomBehaviorFileName(@"Deprecated\BasicInteractWith")]
+    [CustomBehaviorFileName(@"BasicInteractWith")]  // Deprecated location--do not use
     public class BasicInteractWith : CustomForcedBehavior
     {
         public BasicInteractWith(Dictionary<string, string> args)

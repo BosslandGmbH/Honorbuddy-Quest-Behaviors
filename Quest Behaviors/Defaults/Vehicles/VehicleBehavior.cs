@@ -23,7 +23,8 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 {
-    [CustomBehaviorFileName(@"VehicleBehavior")]
+    [CustomBehaviorFileName(@"Vehicles\VehicleBehavior")]
+    [CustomBehaviorFileName(@"VehicleBehavior")]  // Deprecated location--do not use
     public class VehicleBehavior : CustomForcedBehavior
     {
         /// <summary>

@@ -22,8 +22,6 @@
 	+ Behavior needs to deal with items that cause 
 
 * InteractWith testing needed:
-	+ MinRange/MaxRange goobered
-		http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-4.html#post1127123
 	+ Rework InteractWith to use items and interact during combat
 		A good test is "Nature's Repisal" a level 7 Night Elf quest conducted in a cave with bad LoS issues.
 		Use Natfoth profile and switch out UseItemTargetLocation for this quest.
@@ -31,8 +29,6 @@
 	+ Target not being temporarily blacklisted after UsingItem.
 	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Needs a timer that blacklists target for a bit, if it can't be interacted with within a reasonable period of time.
-	+ Old InteractWith can't see Hargan Bronzewing to buy riding training--see if problem still exists with new InteractWith:
-		http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111275-problem-kicks-58-70-aliance-bag-space-issue.html#post1084681
 	+ Needs to help out with "randomized" daily quests: SelectGossipAvailableQuest(GetNumGossipAvailableQuests())
 	+ found a problem with interactwith, its not a big deal nothing hurgent but isnt working like expected. Some time the normal turnin doesnt work because mob/object
 	  its too far away and bot cant reach it, usualy i use interactwith to open the window then i use lua run macro click gossipcompletequest. tested the interactwith with option to turn in quest  and ranged=15, bot still want run to near object (distance 4 i think), so bot ignored my range 15 with option to turn in
@@ -47,12 +43,10 @@
 			<CustomBehavior File="InteractWith" MobId="195600" ObjectType="GameObject" Range="14" InteractByQuestFrameDisposition="Complete" X="-183.6784" Y="1117.673" Z="90.28101" />
 		if i use the InteractByQuestFrameDisposition="Complete" with range=14 doesnt work
 		if i use only interact works
-	+ its the new Useitem if i enable IgnoreCombat="True" behavior dont have any check me.isdead,
-	  so even toon is dead behavior still keep going, dont allow ress
-	  and ignorecombat in IW dont work
 	  (Requested to see log next time it happens--could be exceptions being thrown from anywhere).
-	+ Giwin claims InteractWith doesn't work underwater: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/116066-interactwith-not-working-underwater.html#post1126570
-		As example he gave Frederick's Fish Fancy - Quest - World of Warcraft (http://www.thebuddyforum.com/redirect-to/?redirect=http%3A%2F%2Fwww.wowhead.com%2Fquest%3D27450%2Ffredericks-fish-fancy).
+	+ Giwin claims InteractWith doesn't work underwater
+		+ See: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/116066-interactwith-not-working-underwater.html#post1126570
+		+ Example he gave Frederick's Fish Fancy - Quest - World of Warcraft (http://www.thebuddyforum.com/redirect-to/?redirect=http%3A%2F%2Fwww.wowhead.com%2Fquest%3D27450%2Ffredericks-fish-fancy).
 
 	+ TheBrodieMan 2013Apr14
 		came across an issue with IW while coding the PvP quests in IoT. Theres a bomb that needs to be placed by IW'ing with a mark on a wall.
@@ -76,10 +70,6 @@
 * LoadProfile is not constructing relative path names correctly:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
 	+ [20:50:36.197 D] Activity: Loading profile 'C:\WoW Plus\A-1 HB\Profiles\Kick's Profiles\Kick's Profiles\1-90 Questing Profile Pack\MoP\..\GoTo\..\MoP\[N - Quest] MoP Train Flying LP [Kick].xml'
-
-* MyCTM
-	+ Needs to take a path of points
-	+ Needs to gracefully recover from combat situations
 
 * UseItemOn
 	+ Doesn't re-face target on which to use item, if it gets in combat
@@ -115,11 +105,12 @@ QUESTBEHAVIORCORE FRAMEWORK
 ===========================
 * When moving to hunting ground center, and no other waypoints, we need to randomize location
 
-* Navigator should prefer flying, if conditions are right
-	+ Outside, CanFly, distance is far enough, etc.
+* UtilityBehavior_MoveTo
+	+ Do some testing with flying quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
+	+ If flying and make it 'indoors', land before continuing.
+	+ Can Flightor be used to do underwater navigation?
 
-* Navigation needs to fall back to Flightor before falling back to click-to-move.
-	Helps with quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
+* Do we need a Data/SharedResources.xml file to augment IsInCompetition() calculations?
 
 
 KICK'S PROFILES:
@@ -172,9 +163,17 @@ NEEDED QUEST BEHAVIORS:
 
 * Mobile tank vehicle behavior that can actually aim at targets
 
-* Return To Bindpoint
-	+ Try to use Hearthstone first
-	+ If hearthstone on cooldown, hoof it
+* PartyRendezvous
+	* Might be useful in dailies
+	* Details here: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/113041-setting-up-raf-questing.html#post1101781
+
+* PathTo
+	* Use QuestBehaviorCore composite navigator
+	* Allow Combat, or not
+	* Allow Rest/Healing self or not
+	* Allow pet to be put away, or not
+	* Allow mounting, or not
+	* Should deprecate MyCTM, NoCombatMoveTo, RunLikeHell
 
 * Stationary Cannon (Worgen starting area--level 5-ish)
 	* For By Blood and Ash
@@ -182,6 +181,9 @@ NEEDED QUEST BEHAVIORS:
 		+ Just aim on Bloodfang Stalker(35229)
 		+ Use Button 1 (Rebel Cannon, http://www.wowhead.com/spell=67279) 
 		+ Prefer nearest mobs
+
+* UseItem
+	* Needs to retry the item if it is a form of a beacon (e.g., Hearthstone, Kirin Tor recall, etc).
 
 * WaitForCompetitionToClear
 	* Waits for players to clear a position
@@ -230,13 +232,17 @@ HBCORE BUGS
 	during the run.  The original values should be restored when the run is complete.
 
 
-TO RETIRE:
-==========
+IN RETIREMENT QUEUE:
+====================
 * (pending) BasicInteractWith => InteractWith
 * (pending) BasicUseObject => InteractWith
+
+TO RETIRE:
+==========
 * (pending) CombatUseItemOn => CombatUseItemOnV2
 * (pending) DefendObject => EscortGroup
 * (pending) Escort => EscortGroup
+* (pending) MyCTM => RunLikeHell
 * (pending) SetHearthstone => InteractWith
 * (pending) StandAndKill => EscortGroup
 * (pending) UseGameObject => InteractWith

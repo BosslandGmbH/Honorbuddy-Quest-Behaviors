@@ -25,7 +25,8 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 {
-    [CustomBehaviorFileName(@"NoControlVehicle")]
+    [CustomBehaviorFileName(@"Vehicles\NoControlVehicle")]
+    [CustomBehaviorFileName(@"NoControlVehicle")]  // Deprecated location--do not use
     public class NoControlVehicle : CustomForcedBehavior
     {
         /// <summary>

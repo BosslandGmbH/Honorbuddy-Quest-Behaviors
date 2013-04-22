@@ -27,7 +27,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
     /// ##Syntax##
     /// X,Y,Z: The location where you want to move to
     /// </summary>
-    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\IntotheRealmofShadows")]
+    [CustomBehaviorFileName(@"Deprecated\IntotheRealmofShadows")]
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\IntotheRealmofShadows")]  // Deprecated location--do not use
     public class IntotheRealmofShadows : CustomForcedBehavior
     {
         public IntotheRealmofShadows(Dictionary<string, string> args)

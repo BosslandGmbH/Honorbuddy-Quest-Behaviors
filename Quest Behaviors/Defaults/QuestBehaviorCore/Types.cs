@@ -9,6 +9,8 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+using System;
+
 using Styx;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -61,5 +63,20 @@ namespace Honorbuddy.QuestBehaviorCore
         public delegate double ProvideDoubleDelegate(object context);
         public delegate WoWPoint ProvideWoWPointDelegate(object context);
         public delegate WoWUnit ProvideWoWUnitDelegate(object context);
+
+
+        public class ContractException : SystemException
+        {
+            public ContractException()
+            {
+                // empty
+            }
+
+            public ContractException(string message)
+                : base(message)
+            {
+                // empty   
+            }
+        }
     }
 }

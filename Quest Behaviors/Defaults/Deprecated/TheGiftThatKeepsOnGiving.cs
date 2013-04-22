@@ -40,7 +40,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
     /// [Optional]MinionCount: Number of minions to gather. Used for the quest "The Gift That Keeps On Giving" Default: 0(By:HighVoltz)
     /// [Optional] X,Y,Z: The general location where theese objects can be found
     /// </summary>
-    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving")]
+    [CustomBehaviorFileName(@"Deprecated\TheGiftThatKeepsOnGiving")]
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving")]  // Deprecated location--do not use
     public class TheGiftThatKeepsOnGiving : CustomForcedBehavior
     {
         public TheGiftThatKeepsOnGiving(Dictionary<string, string> args)

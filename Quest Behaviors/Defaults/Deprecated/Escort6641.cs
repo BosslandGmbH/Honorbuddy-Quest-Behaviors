@@ -15,7 +15,8 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.Escort6641
 {
-    [CustomBehaviorFileName(@"Escort6641")]
+    [CustomBehaviorFileName(@"Deprecated\Escort6641")]
+    [CustomBehaviorFileName(@"Escort6641")]  // Deprecated location--do not use
     public class Escort6641 : CustomForcedBehavior
     {
         public Escort6641(Dictionary<string, string> args)

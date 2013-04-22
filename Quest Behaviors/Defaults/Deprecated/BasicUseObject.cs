@@ -21,7 +21,8 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.BasicUseObject
 {
-    [CustomBehaviorFileName(@"BasicUseObject")]
+    [CustomBehaviorFileName(@"Deprecated\BasicUseObject")]
+    [CustomBehaviorFileName(@"BasicUseObject")]  // Deprecated location--do not use
     public class BasicUseObject : CustomForcedBehavior
     {
         public BasicUseObject(Dictionary<string, string> args)

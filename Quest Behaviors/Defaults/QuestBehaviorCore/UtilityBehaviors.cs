@@ -356,7 +356,20 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Decorator(context => !IsViableForFighting(_ubpsSpankMobTargetingUs_Mob),
                         new Action(context =>
                         {
-                            _ubpsSpankMobTargetingUs_Mob = FindNonFriendlyNpcTargetingMeOrPet().OrderBy(u => u.DistanceSqr).FirstOrDefault();
+                            ProvideBoolDelegate extraQualifiers =
+                            (obj) =>
+                            {
+                                var wowUnit = obj as WoWUnit;
+
+                                return (wowUnit != null)
+                                    // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                                    && !wowUnit.PlayerControlled;
+                            };
+                            
+                            _ubpsSpankMobTargetingUs_Mob =
+                                FindNonFriendlyNpcTargetingMeOrPet(extraQualifiers)
+                                .OrderBy(u => u.DistanceSqr)
+                                .FirstOrDefault();
                             return RunStatus.Failure;   // fall through
                         })),
 
@@ -382,12 +395,24 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Decorator(context => !IsViableForFighting(_ubpsSpankMobWithinAggroRange_Mob),
                         new Action(context =>
                         {
+                            ProvideBoolDelegate extraQualifiers =
+                            (obj) =>
+                            {
+                                var wowUnit = obj as WoWUnit;
+
+                                return (wowUnit != null)
+                                    // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                                    && !wowUnit.PlayerControlled
+                                    && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry);
+                            };
+
                             _ubpsSpankMobWithinAggroRange_Mob =
-                                FindHostileNpcWithinAggroRangeOFDestination(
+                                FindHostileUnitsWithinAggroRangeOFDestination(
                                     destinationDelegate(context),
                                     extraRangePaddingDelegate(context),
-                                    excludedUnitIdsDelegate)
+                                    extraQualifiers)
                                 .OrderBy(u => u.DistanceSqr).FirstOrDefault();
+
                             return RunStatus.Failure;   // fall through
                         })),
 

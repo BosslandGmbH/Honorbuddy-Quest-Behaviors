@@ -132,12 +132,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Private and Convenience variables
-        protected TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
-        protected TimeSpan Delay_Interaction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
-        protected readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
-        protected readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
-        protected LocalPlayer Me { get { return StyxWoW.Me; } }
-
         private Composite _behaviorTreeHook_CombatMain;
         private Composite _behaviorTreeHook_CombatOnly;
         private Composite _behaviorTreeHook_DeathMain;
@@ -147,7 +141,12 @@ namespace Honorbuddy.QuestBehaviorCore
         private bool _isDisposed;
 
         // Statics
-        public static Random _random = new Random((int)DateTime.Now.Ticks);
+        protected static TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
+        protected static TimeSpan Delay_Interaction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
+        protected static readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
+        protected static readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
+        protected static LocalPlayer Me { get { return StyxWoW.Me; } }
+        public static readonly Random _random = new Random((int)DateTime.Now.Ticks);
         #endregion
 
 
@@ -300,12 +299,14 @@ namespace Honorbuddy.QuestBehaviorCore
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"\n{2}",
+                    "{1}: \"{2}\"{0}{3}{0}{0}{4}",
+                    Environment.NewLine,
                     GetType().Name,
                     ((quest != null)
-                        ? string.Format("\"{0}\" ({1})", quest.Name, QuestId)
+                        ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
                         : "In Progress (no associated quest)"),
-                    (extraGoalTextDescription ?? string.Empty));
+                    (extraGoalTextDescription ?? string.Empty),
+                    GetProfileReference(Element));
 
                 _behaviorTreeHook_CombatMain = new ExceptionCatchingWrapper(this, CreateBehavior_CombatMain());
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);

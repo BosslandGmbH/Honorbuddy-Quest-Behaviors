@@ -31,7 +31,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
     /// X,Y,Z: The location where you want to move to
     /// </summary>
     /// 
-    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\FindAndBeatNpcs")]
+    [CustomBehaviorFileName(@"Deprecated\FindAndBeatNpcs")]
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\FindAndBeatNpcs")]  // Deprecated location--do not use
     public class FindAndBeatNpcs : CustomForcedBehavior
     {
         public FindAndBeatNpcs(Dictionary<string, string> args)

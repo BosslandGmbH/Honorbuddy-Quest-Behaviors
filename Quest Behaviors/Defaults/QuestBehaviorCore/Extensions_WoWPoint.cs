@@ -248,10 +248,20 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
 
+            // Include distance it takes us to get from start point to first point in path...
             float pathDistance = start.Distance(groundPath[0]);
 
+            // Include distance it takes us to get from last point in path to destination...
+            pathDistance += groundPath[groundPath.Length - 1].Distance(destination);
+
+            // Include distance for each point in path...
             for (int i = 0; i < (groundPath.Length - 1); ++i)
                 { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
+
+            // Sanity check...
+            QuestBehaviorBase.ContractProvides(
+                pathDistance >= start.Distance(destination),
+                context => "Surface path distance must be equal to or greater than straight-line distance.");
 
             return (pathDistance);
         }

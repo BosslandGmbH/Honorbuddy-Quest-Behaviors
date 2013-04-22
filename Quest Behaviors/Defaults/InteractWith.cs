@@ -1,4 +1,4 @@
-﻿// Behavior originally contributed by Nesox / rework by Chinajade
+﻿// Behavior originally contributed by Nesox / completely reworked by Chinajade
 //
 // LICENSE:
 // This work is licensed under the
@@ -215,6 +215,10 @@
 // * If the InteractByGossipOptions selects a "bind to this location" option, then InteractWith
 //      will automatically confirm the request to bind at the location.  After the binding is complete
 //      InteractWith displays a confirmation message of the new bind location.
+//
+// * The behavior pro-actively clears mobs within aggro range of the selected interact target.
+//      This prevents the mobs from interfering with the interaction.  If IgnoreCombat="true",
+//      then this pro-active clearing is also turned off.
 //
 // * Deprecated attributes:
 //      + BuySlot
@@ -987,7 +991,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                         #region Interact with, or use item on, selected target...
                         new Decorator(context => (ItemToUse != null) && (ItemToUse.CooldownTimeLeft > TimeSpan.Zero),
-                            new Action(context => { LogDeveloperInfo("Waiting for {0} cooldown", ItemToUse.Name); })),
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText = string.Format("Waiting for {0} cooldown ({1} remaining)",
+                                    ItemToUse.Name,
+                                    PrettyTime(TimeSpan.FromSeconds((int)ItemToUse.CooldownTimeLeft.TotalSeconds)));
+                            })),
 
                         new Sequence(
                             // Interact by item use...
@@ -1312,7 +1321,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 { reasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
 
             if ((MovementBy == MovementByType.NavigatorOnly) && !Navigator.CanNavigateFully(Me.Location, wowObject.Location))
-                { reasons.Add("NonNavigable"); }
+                { reasons.Add("NotMeshNavigable"); }
 
             if (IsBlacklistedForInteraction(wowObject))
                 { reasons.Add("Blacklisted"); }

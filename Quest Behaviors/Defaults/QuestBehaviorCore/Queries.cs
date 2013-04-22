@@ -38,20 +38,19 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 25Feb2013-12:50UTC chinajade
-        public IEnumerable<WoWUnit> FindHostileNpcWithinAggroRangeOFDestination(
+        public IEnumerable<WoWUnit> FindHostileUnitsWithinAggroRangeOFDestination(
             WoWPoint destination,
             double extraRangePadding = 0.0,
-            Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
+            ProvideBoolDelegate extraQualifiers = null)
         {
-            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => new List<int>());
+            extraQualifiers = extraQualifiers ?? (context => true);
 
             return
                 from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
                     IsViableForFighting(wowUnit)
-                    && wowUnit.IsHostile
-                    && !wowUnit.IsPlayer
-                    && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry)
+                    && wowUnit.IsHostile      
+                    && extraQualifiers(wowUnit)
                     && (wowUnit.Location.SurfacePathDistance(destination) <= (wowUnit.MyAggroRange + extraRangePadding))
                 select wowUnit;
         }
@@ -60,14 +59,12 @@ namespace Honorbuddy.QuestBehaviorCore
         // 25Feb2013-12:50UTC chinajade
         public IEnumerable<WoWUnit> FindNonFriendlyNpcTargetingMeOrPet(ProvideBoolDelegate extraQualifiers = null)
         {
-            extraQualifiers = extraQualifiers ?? (wowUnitContext => true);
-
+            extraQualifiers = extraQualifiers ?? (context => true);
 
             return
                 from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
                     IsViableForFighting(wowUnit)
-                    && !wowUnit.IsPlayer
                     && wowUnit.IsTargetingMeOrPet
                     && extraQualifiers(wowUnit)
                 select wowUnit;

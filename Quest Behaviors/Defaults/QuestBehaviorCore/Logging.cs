@@ -50,10 +50,25 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
                 string message = provideStringProviderDelegate(null) ?? "NO MESSAGE PROVIDED";
-                StackTrace trace   = new StackTrace(1);
+                var trace   = new StackTrace(1);
 
                 LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
-                throw new ArgumentException(message);
+                throw new ContractException(message);
+            }
+
+            return isContractOkay;
+        }
+
+        public static bool ContractProvides(bool isContractOkay, ProvideStringDelegate provideStringProviderDelegate)
+        {
+            if (!isContractOkay)
+            {
+                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
+                string message = provideStringProviderDelegate(null) ?? "NO MESSAGE PROVIDED";
+                var trace   = new StackTrace(1);
+
+                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
+                throw new ContractException(message);
             }
 
             return isContractOkay;
