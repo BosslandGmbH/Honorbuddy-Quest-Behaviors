@@ -70,8 +70,8 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         private int Counter { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
-        static readonly WaitTimer Timer = WaitTimer.OneSecond;
-
+        static readonly WaitTimer MoveTimer = WaitTimer.OneSecond;
+        private static readonly WaitTimer Timer = new WaitTimer(TimeSpan.FromSeconds(3));
 
         public WoWPoint KillLocation
         {
@@ -174,10 +174,11 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
                                    ret => StyxWoW.Me.HasAura("Unstable Lightning Blast") && Timer.IsFinished,
                                    new Sequence(
                                        new Action(ret => Timer.Reset()),
+                                       new Action(ret => MoveTimer.Reset()),
                                        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.StrafeLeft)))),
 
                             new Decorator(
-                                   ret => (StyxWoW.Me.IsMoving && KillSheya) || (StyxWoW.Me.IsMoving && !KillSheya && Timer.IsFinished),
+                                   ret => (StyxWoW.Me.IsMoving && KillSheya) || (StyxWoW.Me.IsMoving && !KillSheya && MoveTimer.IsFinished),
                                    new Sequence(
                                        new Action(ret => WoWMovement.MoveStop()),
                                        new ActionAlwaysSucceed())),
