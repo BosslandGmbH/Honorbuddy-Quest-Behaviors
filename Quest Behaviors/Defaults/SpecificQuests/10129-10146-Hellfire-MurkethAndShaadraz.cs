@@ -213,45 +213,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
         }
 
 
-        public Composite BombOne
-        {
-            get
-            {
-                return
-                    new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId) && GatewayMurketh != null,
-                        new Action(r=>
-                                       {
-                                           Bomb.Use();
-                                           SpellManager.ClickRemoteLocation(GatewayMurketh.Location);
-
-
-                                       })
-                        
-                        
-                        
-                        );
-            }
-        }
-
-        public Composite BombTwo
-        {
-            get
-            {
-                return
-                    new Decorator(r => !IsObjectiveComplete(2, (uint)QuestId) && GatewayShaadraz != null,
-                        new Action(r =>
-                        {
-                            Bomb.Use();
-                            SpellManager.ClickRemoteLocation(GatewayShaadraz.Location);
-
-
-                        })
-
-
-
-                        );
-            }
-        }
 
         //Sigh, were on a taxi so we need todo dirty shit
         public override void OnTick()
@@ -262,6 +223,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
 
                 if (!Me.OnTaxi)
                 {
+					Logging.Write("Not on taxi");
                     Flyer.Interact();
                     GossipFrame.Instance.SelectGossipOption(0);
                 }
@@ -271,25 +233,25 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                 }
                 else if (!IsObjectiveComplete(1, (uint)QuestId) && GatewayMurketh != null)
                 {
+				Logging.Write("GatewayMurketh");
                     Bomb.Use();
                     SpellManager.ClickRemoteLocation(GatewayMurketh.Location);
                 }
                 else if (!IsObjectiveComplete(2, (uint)QuestId) && GatewayShaadraz != null)
                 {
+				Logging.Write("GatewayShaadraz");
                     Bomb.Use();
                     SpellManager.ClickRemoteLocation(GatewayShaadraz.Location);
                 }
+				else if(IsObjectiveComplete(2, (uint)QuestId) && IsObjectiveComplete(1, (uint)QuestId))
+				{
+					_isBehaviorDone = true;
+				}
             }
 
         }
 
-
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,GetOn, BombOne,BombTwo , new ActionAlwaysSucceed())));
-        }
-
-        
+   
 
         public override void Dispose()
         {

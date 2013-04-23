@@ -167,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UndyingTwilight
                     spell = "Moonfire";
                     break;
                 case WoWClass.Paladin:
-                    spell = "Judgement";
+                    spell = "Judgment";
                     break;
                 case WoWClass.Priest:
                     spell = "Shadow Word: Pain";
@@ -275,11 +275,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UndyingTwilight
             }
         }
 
-        public List<WoWUnit> NotTagged
+        public WoWUnit NotTagged
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != 44683 && u.IsHostile && u.IsAlive && !u.TaggedByMe && u.CurrentTarget != null && u.CurrentTarget != Me && u.HealthPercent < 50).OrderBy(u => u.Distance).ToList();
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != 44683 && u.IsHostile && u.IsAlive && !u.TaggedByMe && u.CurrentTarget != null && u.CurrentTarget != Me && u.HealthPercent < 50).OrderBy(u => u.Distance).FirstOrDefault();
             }
         }
 
@@ -305,8 +305,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UndyingTwilight
                 return new Action(delegate
                 {
                     Navigator.PlayerMover.MoveStop();
-                    NotTagged[0].Target();
-                    NotTagged[0].Face();
+                    NotTagged.Target();
+                    NotTagged.Face();
                     PullMob();
                 });
             }
@@ -333,7 +333,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UndyingTwilight
         {
             get
             {
-                return new Decorator(ret => !IsObjectiveComplete(2, (uint)QuestId), new Decorator(r => RagerTagged == null,PullOne));
+                return new Decorator(ret => !IsObjectiveComplete(2, (uint)QuestId) && RagerTagged == null && Rager != null, PullOne);
             }
         }
 
@@ -352,7 +352,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UndyingTwilight
         {
             get
             {
-                return new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId) && Tagged.Count < 3, PullOther);
+                return new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId) && Tagged.Count < 3 && NotTagged != null, PullOther);
             }
         }
 

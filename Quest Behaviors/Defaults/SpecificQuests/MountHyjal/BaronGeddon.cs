@@ -55,291 +55,140 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
         public BaronGeddon(Dictionary<string, string> args)
             : base(args)
         {
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                AuraId = GetAttributeAsNullable<int>("AuraId", false, ConstrainAs.AuraId, null) ?? 74813;        // should be 74813 - Inferno - http://www.wowhead.com/spell=74813
-                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;    // dist from point to search for mob
-                ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 54463;         // should be 54463 - Flameseer's Staff
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;  // point to start at/run to when mob has AuraId
-                // ...also used as center point for mob search area
-                MobId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, null) ?? 40147;           //  should be 40147 - Baron Geddon
-                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;            // should be 25464 for http://www.wowhead.com/quest=25464
-                /* */
-                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range = GetAttributeAsNullable("Range", false, ConstrainAs.Range, null) ?? 18;              // should be 18 or less (see http://www.wowhead.com/spell=75192)
-                // note: wowhead says 10, but actual testing shows 18+ which decreases damage taken
 
-                _bombWait = new Stopwatch();
-                _castTime = new Stopwatch();
-                _isBehaviorDone = IsQuestComplete();
-            }
-
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
-                IsAttributeProblem = true;
-            }
+                QuestId = 25464;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+ 
         }
-
-
-        // Attributes provided by caller
-        public int AuraId { get; private set; }
-        public double CollectionDistance { get; private set; }
-        public int ItemId { get; private set; }
-        public WoWPoint Location { get; private set; }
-        public int MobId { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public double Range { get; private set; }
-
-        // Private variables for internal state
-        private Stopwatch _bombWait;
-        private Stopwatch _castTime;
+        public int QuestId { get; set; }
         private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private bool _moveToCoordYet;
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
+
+        //<Vendor Name="Zhao-Ren" Entry="55786" Type="Repair" X="713.9167" Y="4168.126" Z="213.846" />
+        //<Vendor Name="Baron Geddon" Entry="40147" Type="Repair" X="5434.25" Y="-2800.19" Z="1516.105" />
+
         private Composite _root;
-
-        // Private properties
-        private WoWItem Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId)); } }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
-        private WoWUnit Mob
-        {
-            get
-            {
-                WoWUnit @object = (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .OrderBy(ret => ret.Distance)
-                                       .FirstOrDefault(obj => !_npcBlacklist.Contains(obj.Guid)
-                                                       && obj.Distance < CollectionDistance
-                                                       && obj.Entry == MobId));
-                if (@object != null)
-                { LogMessage("debug", @object.Name); }
-                return @object;
-            }
-        }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: BaronGeddon.cs 254 2012-12-04 19:17:46Z dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 254 $"); } }
-
-
-        ~BaronGeddon()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        public bool DoWeHaveQuest()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest != null;
-        }
-
-        public bool IsQuestComplete()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-        public bool HasAura(WoWUnit unit, int auraId)
-        {
-            WoWAura aura = (from a in unit.Auras
-                            where a.Value.SpellId == auraId
-                            select a.Value).FirstOrDefault();
-            return aura != null;
-        }
-
-
-        #region Overrides of CustomForcedBehavior
-
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-                // done with QB?
-                    new Decorator(ret => IsQuestComplete(),
-                        new PrioritySelector(
-                            new Decorator(ret => Location.Distance(Me.Location) > 3,
-                                new Action(ret => Navigator.MoveTo(Location))),
-                            new Decorator(ret => !HasAura(Me, 82924) && 1000 < _bombWait.ElapsedMilliseconds && _bombWait.ElapsedMilliseconds > 12000,
-                                new Action(ret => _isBehaviorDone = true)),
-                            new Action(delegate
-                                {
-                                    TreeRoot.StatusText = "Waiting for Living Bomb - " + Location;
-                                    if (!_bombWait.IsRunning)
-                                        _bombWait.Start();
-                                })
-                            )
-                        ),
-                // move to safe spot initially
-                    new Decorator(ret => !_moveToCoordYet,
-                        new PrioritySelector(
-                            new Decorator(ret => Location.Distance(Me.Location) < 3,
-                                new Action(ret => _moveToCoordYet = true)),
-                            new Sequence(
-                                new Action(delegate { TreeRoot.StatusText = "Move to start - " + Location; }),
-                                new Action(ret => Navigator.MoveTo(Location)))
-                            )
-                        ),
-                // have current mob
-                    new Decorator(ret => Mob != null,
-                        new PrioritySelector(
-
-                            // target quest mob
-                            new Decorator(ret => Mob != null && Mob != Me.CurrentTarget,
-                                new Action(ret => (Mob as WoWUnit).Target())),
-
-                            // need to move ( timer or aura )
-                            new Decorator(ret => _castTime.ElapsedMilliseconds > 5000 || HasAura(Mob as WoWUnit, AuraId),
-                                new PrioritySelector(
-                            // if at safe spot then wait
-                                    new Decorator(ret => Location.Distance(Me.Location) < 3,
-                                        new Action(delegate
-                                        {
-                                            if (!HasAura(Mob as WoWUnit, AuraId))
-                                                TreeRoot.StatusText = "Wait to see - " + Mob.Name;
-                                            else
-                                            {
-                                                TreeRoot.StatusText = "Wait till clear - " + Mob.Name;
-                                                _castTime.Reset();   // clear timer now that we see aura
-                                            }
-                                        })),
-                                    new Action(delegate
-                                    {
-                                        TreeRoot.StatusText = "Move away to - " + Location;
-                                        Navigator.MoveTo(Location);
-                                    }))
-                                ),
-
-                            // need to attack
-                            new PrioritySelector(
-                                new Decorator(ret => Mob.Distance > Range,
-                                    new Action(delegate
-                                    {
-                                        TreeRoot.StatusText = "Moving in - " + Mob.Name;
-                                        Navigator.MoveTo(WoWMovement.CalculatePointFrom(Mob.Location, (float)(Range - 1)));
-                                    })),
-                                new Decorator(ret => Me.IsMoving,
-                                    new Sequence(
-                                        new Action( ret => WoWMovement.MoveStop()),
-                                        new WaitContinue( TimeSpan.FromMilliseconds(500), ret => !Me.IsMoving, new ActionAlwaysSucceed())
-                                        )
-                                    ),
-                                new Decorator(ret => _castTime.IsRunning,
-                                    new Action(ret => 0)),
-                                new Sequence(
-                                    new Action(delegate
-                                    {
-                                        TreeRoot.StatusText = "Using item on - " + Mob.Name;
-                                        (Mob as WoWUnit).Target();
-
-                                        if (Item == null)
-                                        {
-                                            LogMessage("fatal", "Could not locate ItemId({0}) in inventory.", ItemId);
-                                            return;
-                                        }
-
-                                        WoWMovement.Face(Mob.Guid);
-
-                                        Item.UseContainerItem();
-                                        _castTime.Start();
-                                    }),
-                                    CreateWaitForLagDuration()
-                                    )
-                                )
-                            )
-                        )
-                    )
-                );
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
+        
+        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
+        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
+        
         public override bool IsDone
         {
             get
             {
-                // different handling than most quests, becuase
-                // .. when we reach the IsQuestCompleted state 
-                // .. it has to run back out of danger before
-                // .. leaving the QB.
-                //
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                return _isBehaviorDone;
             }
+        }
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
         }
 
         public override void OnStart()
         {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
             OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                {
+                    var currentRoot = TreeRoot.Current.Root;
+                    if (currentRoot is GroupComposite)
+                    {
+                        var root = (GroupComposite)currentRoot;
+                        root.InsertChild(0, CreateBehavior());
+                    }
+                }
+
+                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
             }
         }
 
-        /// <summary>
-        /// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
-        /// </summary>
-        /// <returns></returns>
-        public static Composite CreateWaitForLagDuration()
+
+        public WoWUnit Barron
         {
-            return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true).FirstOrDefault(u => u.Entry == 40147);
+            }
         }
 
-        #endregion
+        public WoWItem Rod
+        {
+            get { return StyxWoW.Me.BagItems.FirstOrDefault(r => r.Entry == 54463); }
+        }
+
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
+        }
+        private bool IsObjectiveComplete(int objectiveId, uint questId)
+        {
+            if (Me.QuestLog.GetQuestById(questId) == null)
+            {
+                return false;
+            }
+            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
+            return
+                Lua.GetReturnVal<bool>(
+                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
+        }
+
+        public Composite DoneYet
+        {
+            get
+            {
+                return
+                    new Decorator(ret => IsQuestComplete() && safe.Distance(Me.Location) < 3 && !Me.Combat, new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+
+            }
+        }
+
+        //Safe
+        //<Vendor Name="dd" Entry="0" Type="Repair" X="" />
+        WoWPoint safe = new WoWPoint(5410.753,-2771.448,1516.072);
+        //Attack
+        //<Vendor Name="dd" Entry="0" Type="Repair" X="" />
+        WoWPoint attack = new WoWPoint(5417.539,-2792.542,1515.283);
+        public Composite DpsHim
+        {
+            get
+            {
+                return new Decorator(r => !Barron.HasAura("Inferno"), new PrioritySelector(
+                    
+                    new Decorator(r=>attack.Distance(Me.Location) > 3, new Action(r=>Navigator.MoveTo(attack))),
+                    //new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != Barron, new Action(r=>Barron.Target())),
+                    new Decorator(r=> Me.IsCasting || Me.IsChanneling, new ActionAlwaysSucceed()),
+                    new Decorator(r=> Rod != null && Rod.Cooldown <= 0, new Action(r=>Rod.Use(Barron.Guid)))
+
+                    
+                    
+                    ));
+            }
+        }
+        public Composite RunAway
+        {
+            get
+            {
+                return new Decorator(r => Barron == null || Barron.HasAura("Inferno") || IsQuestComplete(),
+
+                                     new Decorator(r => safe.Distance(Me.Location) > 3,new Action(r => Navigator.MoveTo(safe))));
+
+            }
+        }
+
+
+
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,RunAway,DpsHim, new ActionAlwaysSucceed())));
+        }
+        
     }
 }
