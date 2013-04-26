@@ -11,6 +11,7 @@
 #region Usings
 using System;
 
+using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -61,19 +62,16 @@ namespace Honorbuddy.QuestBehaviorCore
         public delegate bool ProvideBoolDelegate(object context);
         public delegate string ProvideStringDelegate(object context);
         public delegate double ProvideDoubleDelegate(object context);
+        public delegate HuntingGroundsType ProvideHuntingGroundsDelegate(object context);
         public delegate WoWPoint ProvideWoWPointDelegate(object context);
+        public delegate WoWObject ProvideWoWObjectDelegate(object context);
         public delegate WoWUnit ProvideWoWUnitDelegate(object context);
 
 
         public class ContractException : SystemException
         {
-            public ContractException()
-            {
-                // empty
-            }
-
-            public ContractException(string message)
-                : base(message)
+            public ContractException(string message = null)
+                : base(message ?? string.Empty)
             {
                 // empty   
             }

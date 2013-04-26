@@ -12,12 +12,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 using Styx;
 using Styx.Common.Helpers;
+using Styx.CommonBot;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
@@ -40,6 +41,28 @@ namespace Honorbuddy.QuestBehaviorCore
         private readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
 
 
+        // 25Apr2013-09:15UTC chinajade
+        public TimeSpan GetEstimatedMaxTimeToDestination(WoWPoint destination)
+        {
+            double distanceToCover = 
+                (Me.IsSwimming || Me.IsFlying)
+                ? Me.Location.Distance(destination)
+                : Me.Location.SurfacePathDistance(destination);
+
+            double myMovementSpeed =
+                Me.IsSwimming
+                ? Me.MovementInfo.SwimmingForwardSpeed
+                : Me.MovementInfo.RunSpeed;
+
+            double timeToDestination = distanceToCover / myMovementSpeed;
+
+            timeToDestination = Math.Max(timeToDestination, 20.0);  // 20sec hard lower limit
+            timeToDestination *= 2.5;   // factor of safety
+
+            return (TimeSpan.FromSeconds(timeToDestination));            
+        }
+
+
         // 20Apr2013-12:50UTC chinajade
         public string GetItemNameFromId(int wowItemId)
         {
@@ -52,26 +75,29 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 11Apr2013-04:41UTC chinajade
-        public string GetMobNameFromId(int wowUnitId)
+        public string GetObjectNameFromId(int wowObjectId)
         {
-            var wowUnit = FindUnitsFromIds(ToEnumerable<int>(wowUnitId)).FirstOrDefault();
+            var wowObject = FindObjectsFromIds(ToEnumerable<int>(wowObjectId)).FirstOrDefault();
 
-            return (wowUnit != null)
-                ? wowUnit.Name
-                : string.Format("MobId({0})", wowUnitId);
+            return (wowObject != null)
+                ? wowObject.Name
+                : string.Format("MobId({0})", wowObjectId);
         }
 
 
         public static WoWPoint GetPointToGainDistance(WoWObject target, double minDistanceNeeded)
         {
             var minDistance = (float)(minDistanceNeeded + /*epsilon*/(2 * Navigator.PathPrecision));
+            var myLocation = Me.Location;
 
             Func<WoWObject, WoWPoint, bool> isPointViable = (selectedTarget, potentialDestination) =>
             {
+                var targetLocation = selectedTarget.Location;
+
                 return
-                    selectedTarget.Location.Distance(potentialDestination) > minDistance
-                    && (StyxWoW.Me.Location.Distance(potentialDestination) < selectedTarget.Location.Distance(potentialDestination))
-                    && GameWorld.IsInLineOfSight(potentialDestination, selectedTarget.Location);
+                    targetLocation.Distance(potentialDestination) > minDistance
+                    && (myLocation.Distance(potentialDestination) < targetLocation.Distance(potentialDestination))
+                    && GameWorld.IsInLineOfSight(potentialDestination, targetLocation);
             };
 
             // If the previously calculated point is still viable, use it...
@@ -93,7 +119,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             wowObject.IsValid
                             && isPointViable(target, wowObject.Location)
                         orderby
-                            StyxWoW.Me.Location.SurfacePathDistance(wowObject.Location)
+                            myLocation.SurfacePathDistance(wowObject.Location)
                         select wowObject)
                         .FirstOrDefault();
                 }
@@ -101,15 +127,34 @@ namespace Honorbuddy.QuestBehaviorCore
 
             _gainDistancePoint =
                 (moveTowardsObject != null)
-                ? moveTowardsObject.Location
-                // Resort to brute force...
-                : WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, target.Location, minDistance);
+                    ? moveTowardsObject.Location
+                    // Resort to brute force...
+                    : WoWMathHelper.CalculatePointFrom(myLocation, target.Location, minDistance);
   
             return _gainDistancePoint;
         }
         private static WoWPoint _gainDistancePoint;
 
 
+        // 25Apr2013-11:42UTC chinajade
+        public string GetVersionedBehaviorName()
+        {
+            Func<string, string>    utilStripSubversionDecorations =
+                (subversionString) =>
+                {
+                    var regexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
+
+                    return regexSvnDecoration.Replace(subversionString, "$1").Trim();
+                };
+
+            return _versionedBehaviorName ?? (_versionedBehaviorName = 
+                string.Format("{0}-v{1}",
+                    GetType().Name,
+                    utilStripSubversionDecorations(SubversionRevision)));
+        }       
+        private string _versionedBehaviorName = null;
+        
+        
         //  9Mar2013-12:34UTC chinajade
         public static string PrettyMoney(ulong totalCopper)
         {
@@ -133,11 +178,12 @@ namespace Honorbuddy.QuestBehaviorCore
         //  9Mar2013-12:34UTC chinajade
         public static string PrettyTime(TimeSpan duration)
         {
-            double milliSeconds = duration.TotalMilliseconds;
+            int milliSeconds = (int)duration.TotalMilliseconds;
 
             return
-                (milliSeconds < 1000) ? string.Format("{0}ms", milliSeconds)
-                : (((int)milliSeconds % 1000) == 0) ? string.Format("{0}s", milliSeconds / 1000)
+                (milliSeconds == 0) ? "0s"  // we prefer zero expressed in terms of seconds, instead of milliseconds
+                : (milliSeconds < 1000) ? string.Format("{0}ms", milliSeconds)
+                : ((milliSeconds % 1000) == 0) ? string.Format("{0}s", milliSeconds / 1000)
                 : string.Format("{0:F3}s", milliSeconds / 1000);
         }
 
@@ -146,6 +192,22 @@ namespace Honorbuddy.QuestBehaviorCore
         public static IEnumerable<T> ToEnumerable<T>(T item)
         {
             yield return item;
+        }
+
+
+        protected void UpdateGoalText(string extraGoalTextDescription)
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+            TreeRoot.GoalText = string.Format(
+                "{1}: \"{2}\"{0}{3}{0}{0}{4}",
+                Environment.NewLine,
+                GetType().Name,
+                ((quest != null)
+                    ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
+                    : "In Progress (no associated quest)"),
+                (extraGoalTextDescription ?? string.Empty),
+                GetProfileReference(Element));            
         }
     }
 }

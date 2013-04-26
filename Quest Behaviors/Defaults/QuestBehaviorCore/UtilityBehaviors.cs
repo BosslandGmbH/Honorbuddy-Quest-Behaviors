@@ -62,7 +62,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             LogDeveloperInfo("Descending before dismount");
                             Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend);
                         }),
-                        new WaitContinue(Delay_WoWClientMovementThrottle,
+                        new WaitContinue(Throttle_WoWClientMovement,
                             context => isReadyToDismount(context) || !Me.IsMoving,
                             new ActionAlwaysSucceed())
                     )),
@@ -75,7 +75,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             LogDeveloperInfo("Stopping descent");
                             WoWMovement.MoveStop(WoWMovement.MovementDirection.Descend);
                         }),
-                        new WaitContinue(Delay_WoWClientMovementThrottle,
+                        new WaitContinue(Throttle_WoWClientMovement,
                             context => !Me.MovementInfo.IsDescending,
                             new ActionAlwaysSucceed())
                     ))
@@ -157,17 +157,17 @@ namespace Honorbuddy.QuestBehaviorCore
                     _ubpsGetMobsAttention_Mob = selectedTargetDelegate(context);
                     return RunStatus.Failure; // fall through
                 }),
-                new Decorator(context => IsViableForFighting(_ubpsGetMobsAttention_Mob),
+                new Decorator(context => IsViableForFighting(_ubpsGetMobsAttention_Mob)
+                                        && !_ubpsGetMobsAttention_Mob.IsTargetingMeOrPet,
                     new PrioritySelector(
-                        new Decorator(context => !_ubpsGetMobsAttention_Mob.IsTargetingMeOrPet,
-                            new PrioritySelector(
-                                new Action(context =>
-                                {
-                                    LogInfo("Getting attention of {0}", _ubpsGetMobsAttention_Mob.Name);
-                                    return RunStatus.Failure;
-                                }),
-                                UtilityBehaviorPS_SpankMob(selectedTargetDelegate)))
-                    )));
+                        new CompositeThrottle(TimeSpan.FromSeconds(3),
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText = string.Format("Getting attention of {0}", _ubpsGetMobsAttention_Mob.Name);
+                                return RunStatus.Failure;   // fall through
+                            })),
+                        UtilityBehaviorPS_SpankMob(selectedTargetDelegate)))
+                    );
         }
         private WoWUnit _ubpsGetMobsAttention_Mob;
 
@@ -175,55 +175,110 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <summary>
         /// Simple right-click interaction with the UNITTOINTERACT.
         /// </summary>
-        /// <param name="unitToInteract"></param>
+        /// <param name="objectToInteract"></param>
         /// <returns></returns>
-        // TODO: Convert this to take a WoWObject instead of a WoWUnit
         // 24Feb2013-08:11UTC chinajade
-        public Composite UtilityBehaviorPS_InteractWithMob(ProvideWoWUnitDelegate unitToInteract)
+        public Composite UtilityBehaviorPS_InteractWithMob(ProvideWoWObjectDelegate objectToInteract)
         {
             return new PrioritySelector(
                 new Action(context =>
                 { 
-                    _ubpsInteractWithMob_Mob = unitToInteract(context);
+                    _ubpsInteractWithMob_WowObject = objectToInteract(context);
+                    _ubpsInteractWithMob_AsWowUnit = _ubpsInteractWithMob_WowObject.ToUnit();
                     return RunStatus.Failure;   // fall through
                 }),
-                new Decorator(context => IsViableForInteracting(_ubpsInteractWithMob_Mob),
+                new Decorator(context => IsViableForInteracting(_ubpsInteractWithMob_WowObject),
                     new PrioritySelector(
                         // Show user which unit we're going after...
-                        new Decorator(context => Me.CurrentTarget != _ubpsInteractWithMob_Mob,
-                            new Action(context => { _ubpsInteractWithMob_Mob.Target(); })),
+                        new Decorator(context => (_ubpsInteractWithMob_AsWowUnit != null)
+                                                && (Me.CurrentTarget != _ubpsInteractWithMob_AsWowUnit),
+                            new Action(context => { _ubpsInteractWithMob_AsWowUnit.Target(); })),
 
                         // If not within interact range, move closer...
-                        new Decorator(context => !_ubpsInteractWithMob_Mob.WithinInteractRange,
-                            new Sequence(
-                                new Action(context =>
-                                {
-                                    LogDeveloperInfo("Moving to interact with {0}", _ubpsInteractWithMob_Mob.Name);
-                                }),
-                                UtilityBehaviorPS_MoveTo(interactUnitContext => _ubpsInteractWithMob_Mob.Location,
-                                                         interactUnitContext => _ubpsInteractWithMob_Mob.Name)
-                            )),
+                        new Decorator(context => !_ubpsInteractWithMob_WowObject.WithinInteractRange,
+                            UtilityBehaviorPS_MoveTo(interactUnitContext => _ubpsInteractWithMob_WowObject.Location,
+                                                     interactUnitContext => string.Format("interact with {0}", _ubpsInteractWithMob_WowObject.Name))),
 
                         new Decorator(context => Me.IsMoving,
                             new Action(context => { WoWMovement.MoveStop(); })),
-                        new Decorator(context => !Me.IsFacing(_ubpsInteractWithMob_Mob),
-                            new Action(context => { Me.SetFacing(_ubpsInteractWithMob_Mob); })),
+                        new Decorator(context => !Me.IsFacing(_ubpsInteractWithMob_WowObject.Location),
+                            new Action(context => { Me.SetFacing(_ubpsInteractWithMob_WowObject.Location); })),
 
                         // Blindly interact...
                         // Ideally, we would blacklist the unit if the interact failed.  However, the HB API
                         // provides no CanInteract() method (or equivalent) to make this determination.
                         new Action(context =>
                         {
-                            LogDeveloperInfo("Interacting with {0}", _ubpsInteractWithMob_Mob.Name);
-                            _ubpsInteractWithMob_Mob.Interact();
+                            LogDeveloperInfo("Interacting with {0}", _ubpsInteractWithMob_WowObject.Name);
+                            _ubpsInteractWithMob_WowObject.Interact();
                             return RunStatus.Failure;
                         }),
-                        new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
+                        new Wait(Delay_Interaction, context => false, new ActionAlwaysSucceed())
                     )));
         }
-        private WoWUnit _ubpsInteractWithMob_Mob;
+        private WoWObject _ubpsInteractWithMob_WowObject;
+        private WoWUnit _ubpsInteractWithMob_AsWowUnit;
 
 
+        // 22Apr2013-09:02UTC chinajade
+        public Composite UtilityBehaviorPS_MountAsNeeded(ProvideWoWPointDelegate destinationDelegate,
+                                                            CanRunDecoratorDelegate suppressMountUse = null)
+        {
+            ContractRequires(destinationDelegate != null, context => "locationRetriever may not be null");
+            suppressMountUse = suppressMountUse ?? (context => false);
+
+            const int AuraId_AquaticForm = 1066;
+            const int AuraId_WarlockUnendingBreath = 5697;
+            const int SpellId_DruidAquaticForm = 1066;
+            const int SpellId_WarlockUnendingBreath = 5697;
+
+            return
+                new CompositeThrottle(TimeSpan.FromMilliseconds(3000),
+                    new PrioritySelector(
+                        new Decorator(context => Me.IsSwimming,
+                            new Action(context =>
+                            {
+                                if (SpellManager.CanCast(SpellId_DruidAquaticForm) && !Me.HasAura(AuraId_AquaticForm))
+                                    { SpellManager.Cast(SpellId_DruidAquaticForm); }
+
+                                else if (SpellManager.CanCast(SpellId_WarlockUnendingBreath) && !Me.HasAura(AuraId_WarlockUnendingBreath))
+                                    { SpellManager.Cast(SpellId_WarlockUnendingBreath); }
+
+                                return RunStatus.Failure;
+                            })
+                        ),
+
+                        new Decorator(context => !Me.IsSwimming,
+                            new Decorator(context => !suppressMountUse(context)
+                                                    && !Me.InVehicle
+                                                    && !Me.Mounted
+                                                    && Mount.CanMount()
+                                                    && Mount.ShouldMount(_ubpsMoveTo_Location),
+                                new Action(context =>
+                                {
+                                    Mount.MountUp(() => destinationDelegate(context));
+                                    return RunStatus.Failure;
+                                })
+                            ))
+                    ));
+        }
+
+
+        // 22Apr2013-12:45UTC chinajade
+        public Composite UtilityBehaviorPS_MoveTo(ProvideHuntingGroundsDelegate huntingGroundsProvider)
+        {
+            ContractRequires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
+
+            return new PrioritySelector(
+                UtilityBehaviorPS_MoveTo(
+                    context => huntingGroundsProvider(context).CurrentWaypoint().Location,
+                    context => string.Format("hunting ground waypoint '{0}'",
+                                            huntingGroundsProvider(context).CurrentWaypoint().Name))
+                                            );
+        }
+
+    
+        // 24Feb2013-08:11UTC chinajade
         public Composite UtilityBehaviorPS_MoveTo(ProvideWoWPointDelegate destinationDelegate,
                                                     ProvideStringDelegate destinationNameDelegate,
                                                     ProvideDoubleDelegate precisionDelegate = null,
@@ -232,8 +287,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             ContractRequires(destinationDelegate != null, context => "locationRetriever may not be null");
             ContractRequires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
-            precisionDelegate = precisionDelegate ?? (context => Me.Mounted ? 8.0 : 5.0);
-            suppressMountUse = suppressMountUse ?? (context => false);
+            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
             locationObserver = locationObserver ?? (context => Me.Location);
 
             return new Decorator(context => MovementBy != MovementByType.None,
@@ -243,57 +297,113 @@ namespace Honorbuddy.QuestBehaviorCore
                         _ubpsMoveTo_Location = destinationDelegate(context);
                         return RunStatus.Failure;   // fall through
                     }),
-                    new Decorator(context => !suppressMountUse(context) && !Me.InVehicle && !Me.Mounted
-                                                        && Mount.CanMount()
-                                                        && Mount.ShouldMount(_ubpsMoveTo_Location),
-                        new Action(context => { Mount.MountUp(() => _ubpsMoveTo_Location); })),
+                    UtilityBehaviorPS_MountAsNeeded(destinationDelegate, suppressMountUse),
 
                     new Decorator(context => (locationObserver(context).Distance((_ubpsMoveTo_Location)) > precisionDelegate(context)),
                         new Sequence(
-                            new CompositeThrottle(TimeSpan.FromMilliseconds(1000),
-                                new Action(context => {TreeRoot.StatusText = "Moving to " + (destinationNameDelegate(context) ?? _ubpsMoveTo_Location.ToString()); })),
-                            new Action(context =>
-                            {
-                                var moveResult = MoveResult.Failed;
-
-                                // Use Flightor, if allowed...
-                                if ((MovementBy == MovementByType.FlightorPreferred) && Me.IsOutdoors && Me.MovementInfo.CanFly)
+                            new CompositeThrottleContinue(TimeSpan.FromMilliseconds(1000),
+                                new Action(context => { TreeRoot.StatusText = "Moving to " + (destinationNameDelegate(context) ?? _ubpsMoveTo_Location.ToString()); })),
+                            new CompositeThrottleContinue(Throttle_WoWClientMovement,
+                                new Action(context =>
                                 {
-                                    Flightor.MoveTo(_ubpsMoveTo_Location);
-                                    // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
-                                    moveResult = MoveResult.Moved;
-                                }
+                                    var moveResult = MoveResult.Failed;
 
-                                // Use Navigator to get there, if allowed...
-                                else if ((MovementBy == MovementByType.NavigatorPreferred) || (MovementBy == MovementByType.NavigatorOnly)
-                                            || (MovementBy == MovementByType.FlightorPreferred))
-                                {
-                                    if (!Me.IsSwimming)
-                                        { moveResult = Navigator.MoveTo(_ubpsMoveTo_Location); }
-                                }
-
-                                // If Navigator couldn't move us, resort to click-to-move if allowed...
-                                if (!((moveResult == MoveResult.Moved)
-                                        || (moveResult == MoveResult.ReachedDestination)
-                                        || (moveResult == MoveResult.PathGenerated)))
-                                {
-                                    if (MovementBy == MovementByType.NavigatorOnly)
+                                    // Use Flightor, if allowed...
+                                    if ((MovementBy == MovementByType.FlightorPreferred) && Me.IsOutdoors && Me.MovementInfo.CanFly)
                                     {
-                                        LogWarning("Failed to mesh move--is area unmeshed? Or, are we flying or swimming?");
-                                        return RunStatus.Failure;
+                                        Flightor.MoveTo(_ubpsMoveTo_Location);
+                                        // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
+                                        moveResult = MoveResult.Moved;
                                     }
 
-                                    WoWMovement.ClickToMove(_ubpsMoveTo_Location);
-                                }
+                                    // Use Navigator to get there, if allowed...
+                                    else if ((MovementBy == MovementByType.NavigatorPreferred) || (MovementBy == MovementByType.NavigatorOnly)
+                                                || (MovementBy == MovementByType.FlightorPreferred))
+                                    {
+                                        if (!Me.IsSwimming)
+                                            { moveResult = Navigator.MoveTo(_ubpsMoveTo_Location); }
+                                    }
 
-                                return RunStatus.Success;
-                            }),
-                            new WaitContinue(Delay_WoWClientMovementThrottle, context => false, new ActionAlwaysSucceed())
+                                    // If Navigator couldn't move us, resort to click-to-move if allowed...
+                                    if (!((moveResult == MoveResult.Moved)
+                                            || (moveResult == MoveResult.ReachedDestination)
+                                            || (moveResult == MoveResult.PathGenerated)))
+                                    {
+                                        if (MovementBy == MovementByType.NavigatorOnly)
+                                        {
+                                            LogWarning("Failed to mesh move--is area unmeshed? Or, are we flying or swimming?");
+                                            return RunStatus.Failure;
+                                        }
+
+                                        WoWMovement.ClickToMove(_ubpsMoveTo_Location);
+                                    }
+
+                                    return RunStatus.Success;
+                                }))
                         ))  
                     ));
         }
         private WoWPoint _ubpsMoveTo_Location;
         
+
+        // 22Apr2013-01:15UTC chinajade
+        public Composite UtilityBehaviorPS_NoMobsAtCurrentWaypoint(ProvideHuntingGroundsDelegate huntingGroundsProvider,
+                                                                    ProvideBoolDelegate terminateBehaviorIfNoTargetsProvider = null,
+                                                                    Func<object, IEnumerable<string>> huntedMobNamesProvider = null,
+                                                                    ProvideStringDelegate huntedMobExclusions = null)
+        {
+            ContractRequires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
+            terminateBehaviorIfNoTargetsProvider = terminateBehaviorIfNoTargetsProvider ?? (context => false);
+            huntedMobNamesProvider = huntedMobNamesProvider ?? (context => Enumerable.Empty<string>());
+            huntedMobExclusions = huntedMobExclusions ?? (context => string.Empty);
+
+            return
+                new PrioritySelector(
+                    // Terminate of no targets available?
+                    new Decorator(context => terminateBehaviorIfNoTargetsProvider(context),
+                        new Action(context =>
+                        {
+                            string message = "No mobs in area--terminating due to WaitForNpcs=\"false\"";
+                            TreeRoot.StatusText = message;
+
+                            // Show excluded units before terminating.  This aids in profile debugging if WaitForNpcs="false"...
+                            string excludedUnitReasons = huntedMobExclusions(context);
+                            if (!string.IsNullOrEmpty(excludedUnitReasons))
+                            {
+                                message += excludedUnitReasons;
+                                LogDeveloperInfo("{0}", message);                                            
+                            }
+                            BehaviorDone();
+                        })),
+
+                    // Move to next hunting ground waypoint...
+                    UtilityBehaviorPS_MoveTo(huntingGroundsProvider),
+
+                    // Only one hunting ground waypoint to move to?
+                    new CompositeThrottle(context => huntingGroundsProvider(context).Waypoints.Count() <= 1,
+                        TimeSpan.FromSeconds(30),
+                        new Action(context =>
+                        {
+                            string message = "Waiting for respawn";
+
+                            if (huntedMobNamesProvider(context).Any())
+                            {
+                                message += " of ";
+                                message += string.Join(", ", huntedMobNamesProvider(context));
+                            }
+                                
+                            TreeRoot.StatusText = message;
+
+                            string excludedUnitReasons = huntedMobExclusions(context);
+                            if (!string.IsNullOrEmpty((excludedUnitReasons)))
+                            {
+                                message += excludedUnitReasons;
+                                LogDeveloperInfo("{0}", message);
+                            }
+                        }))
+                );
+        }
+
         
         // 11Apr2013-04:52UTC chinajade
         public Composite UtilityBehaviorPS_Rest()
@@ -308,7 +418,7 @@ namespace Honorbuddy.QuestBehaviorCore
         
 
         /// <summary>
-        /// Unequivocally engages mob in combat.
+        /// Unequivocally engages mob in combat.  Does no checking for being untagged, etc.
         /// </summary>
         /// <remarks>24Feb2013-08:11UTC chinajade</remarks>
         public Composite UtilityBehaviorPS_SpankMob(ProvideWoWUnitDelegate selectedTargetDelegate)
@@ -320,20 +430,28 @@ namespace Honorbuddy.QuestBehaviorCore
                     return RunStatus.Failure;   // fall through     
                 }),
                 new Decorator(context => IsViableForFighting(_ubpsSpankMob_Mob),
-                    new PrioritySelector(               
-                        new Decorator(context => _ubpsSpankMob_Mob.Distance > CharacterSettings.Instance.PullDistance,
-                            UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
-                                                     context => _ubpsSpankMob_Mob.Name)),
+                    new PrioritySelector(
                         new Decorator(context => Me.CurrentTarget != _ubpsSpankMob_Mob,
                             new Action(context =>
                             {
-                                BotPoi.Current = new BotPoi(_ubpsSpankMob_Mob, PoiType.Kill);
+                                // NB: We target the mob before setting the POI.Kill.  This makes
+                                // Combat Routines happier.
                                 _ubpsSpankMob_Mob.Target();
-                                if (Me.Mounted)
-                                    { Mount.Dismount(); }
+                                BotPoi.Current = new BotPoi(_ubpsSpankMob_Mob, PoiType.Kill);
+                                return RunStatus.Failure; // fall through
                             })),
-                        new Decorator(context => !_ubpsSpankMob_Mob.IsTargetingMeOrPet,
+/*TODO*/                        new Decorator(context => true, // !Me.Combat,
                             new PrioritySelector(
+                                // NB: Some Combat Routines (CR) will stall when asked to kill things from too far away.
+                                // So, we manually move the toon within reasonable range before asking the CR to kill it.
+                                // Note that some behaviors will set the PullDistance to zero or one while they run, but we don't want to
+                                // actually get that close to engage, so we impose a lower bound of 23 feet that we move before handing
+                                // things over to the combat routine.
+                                new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
+                                    UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
+                                                             context => _ubpsSpankMob_Mob.Name)),
+                                new Decorator(context => Me.Mounted,
+                                    new Action(context => { Mount.Dismount(); })),
                                 new Decorator(context => RoutineManager.Current.CombatBehavior != null,
                                     RoutineManager.Current.CombatBehavior),
                                 new Action(context => { RoutineManager.Current.Combat(); })
@@ -349,34 +467,45 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <returns></returns>
         public Composite UtilityBehaviorPS_SpankMobTargetingUs()
         {
-            return new Decorator(context => !Me.Combat,
-                new PrioritySelector(
-                    // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
-                    // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                    new Decorator(context => !IsViableForFighting(_ubpsSpankMobTargetingUs_Mob),
-                        new Action(context =>
-                        {
-                            ProvideBoolDelegate extraQualifiers =
-                            (obj) =>
-                            {
-                                var wowUnit = obj as WoWUnit;
+            Func<object, bool> isInterestingToUs =
+                (obj) =>
+                {
+                    var wowUnit = obj as WoWUnit;
 
-                                return (wowUnit != null)
-                                    // exclude opposing faction: both players and their pets show up as "PlayerControlled"
-                                    && !wowUnit.PlayerControlled;
-                            };
+                    return
+                        IsViableForFighting(wowUnit)
+                        && (wowUnit.IsTargetingMeOrPet
+                            || wowUnit.IsTargetingAnyMinion
+                            || wowUnit.IsTargetingMyPartyMember)
+                        // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                        && !wowUnit.PlayerControlled;                                 
+                };
                             
-                            _ubpsSpankMobTargetingUs_Mob =
-                                FindNonFriendlyNpcTargetingMeOrPet(extraQualifiers)
-                                .OrderBy(u => u.DistanceSqr)
-                                .FirstOrDefault();
-                            return RunStatus.Failure;   // fall through
-                        })),
+            return new PrioritySelector(
+                // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
+                // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
+                new Decorator(context => !isInterestingToUs(_ubpsSpankMobTargetingUs_Mob),
+                    new Action(context =>
+                    {
+                        _ubpsSpankMobTargetingUs_Mob =
+                            ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                            .Where(u => isInterestingToUs(u))
+                            .OrderBy(u => u.DistanceSqr)
+                            .FirstOrDefault();
 
-                    // Spank any mobs we find being naughty...
-                    new Decorator(context => _ubpsSpankMobTargetingUs_Mob != null,
-                        UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobTargetingUs_Mob))
-                ));
+                        return RunStatus.Failure;   // fall through
+                    })),
+
+                // Spank any mobs we find being naughty...
+                new CompositeThrottle(context => _ubpsSpankMobTargetingUs_Mob != null,
+                    TimeSpan.FromMilliseconds(3000),
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText = string.Format("Spanking {0} that has targeted us.",
+                            _ubpsSpankMobTargetingUs_Mob.Name);                                    
+                    })),
+                UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobTargetingUs_Mob)
+            );
         }
         private WoWUnit _ubpsSpankMobTargetingUs_Mob;
 
@@ -388,38 +517,50 @@ namespace Honorbuddy.QuestBehaviorCore
             extraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
             excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => new List<int>());
 
+            Func<object, bool> isInterestingToUs =
+                (obj) =>
+                {
+                    WoWUnit wowUnit = obj as WoWUnit;
+
+                    return
+                        IsViableForFighting(wowUnit)
+                        && wowUnit.IsHostile
+                        && wowUnit.IsUntagged()
+                        // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                        && !wowUnit.PlayerControlled
+                        // exclude any units that are candidates for interacting
+                        && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry)
+                        && (wowUnit.Location.SurfacePathDistance(destinationDelegate(obj)) <= (wowUnit.MyAggroRange + extraRangePaddingDelegate(obj)));
+                };
+        
             return new Decorator(context => !Me.Combat,
                 new PrioritySelector(
-                    // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
-                    // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                    new Decorator(context => !IsViableForFighting(_ubpsSpankMobWithinAggroRange_Mob),
+                    // If a mob is within aggro range of our destination, deal with it immediately...
+                    // Otherwise, it will interrupt our attempt to interact or use items.
+                    new Decorator(context => !isInterestingToUs(_ubpsSpankMobWithinAggroRange_Mob),
                         new Action(context =>
                         {
-                            ProvideBoolDelegate extraQualifiers =
-                            (obj) =>
-                            {
-                                var wowUnit = obj as WoWUnit;
-
-                                return (wowUnit != null)
-                                    // exclude opposing faction: both players and their pets show up as "PlayerControlled"
-                                    && !wowUnit.PlayerControlled
-                                    && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry);
-                            };
-
                             _ubpsSpankMobWithinAggroRange_Mob =
-                                FindHostileUnitsWithinAggroRangeOFDestination(
-                                    destinationDelegate(context),
-                                    extraRangePaddingDelegate(context),
-                                    extraQualifiers)
-                                .OrderBy(u => u.DistanceSqr).FirstOrDefault();
+                                ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                .Where(o => isInterestingToUs(o))
+                                .OrderBy(u => u.DistanceSqr)
+                                .FirstOrDefault();
 
                             return RunStatus.Failure;   // fall through
                         })),
 
                     // Spank any mobs we find being naughty...
-                    new Decorator(context => _ubpsSpankMobWithinAggroRange_Mob != null,
-                        UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobWithinAggroRange_Mob))
-                ));
+                    new CompositeThrottle(context => _ubpsSpankMobWithinAggroRange_Mob != null,
+                        TimeSpan.FromMilliseconds(3000),
+                        new Action(context =>
+                        {
+                            TreeRoot.StatusText = string.Format("Spanking {0}({1}) within aggro range ({2:F1}) of our destination.",
+                                _ubpsSpankMobWithinAggroRange_Mob.Name,
+                                _ubpsSpankMobWithinAggroRange_Mob.Entry,
+                                (_ubpsSpankMobWithinAggroRange_Mob.MyAggroRange + extraRangePaddingDelegate(context)));                                    
+                        })),
+                    UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobWithinAggroRange_Mob)
+            ));
         }
         private WoWUnit _ubpsSpankMobWithinAggroRange_Mob;
     }

@@ -35,40 +35,6 @@ namespace Honorbuddy.QuestBehaviorCore
             if (wowObject != null)
                 { _interactBlacklist.Add(wowObject.Guid, duration); }
         }
-
-        
-        // 25Feb2013-12:50UTC chinajade
-        public IEnumerable<WoWUnit> FindHostileUnitsWithinAggroRangeOFDestination(
-            WoWPoint destination,
-            double extraRangePadding = 0.0,
-            ProvideBoolDelegate extraQualifiers = null)
-        {
-            extraQualifiers = extraQualifiers ?? (context => true);
-
-            return
-                from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                where
-                    IsViableForFighting(wowUnit)
-                    && wowUnit.IsHostile      
-                    && extraQualifiers(wowUnit)
-                    && (wowUnit.Location.SurfacePathDistance(destination) <= (wowUnit.MyAggroRange + extraRangePadding))
-                select wowUnit;
-        }
-        
-        
-        // 25Feb2013-12:50UTC chinajade
-        public IEnumerable<WoWUnit> FindNonFriendlyNpcTargetingMeOrPet(ProvideBoolDelegate extraQualifiers = null)
-        {
-            extraQualifiers = extraQualifiers ?? (context => true);
-
-            return
-                from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                where
-                    IsViableForFighting(wowUnit)
-                    && wowUnit.IsTargetingMeOrPet
-                    && extraQualifiers(wowUnit)
-                select wowUnit;
-        }
         
         
         // 24Feb2013-08:11UTC chinajade
@@ -225,7 +191,7 @@ namespace Honorbuddy.QuestBehaviorCore
             WoWGameObjectType.MeetingStone,
             WoWGameObjectType.QuestGiver,
             WoWGameObjectType.SpellCaster,      // portals
-            WoWGameObjectType.Transport,
+            WoWGameObjectType.Transport
         };        
         
         // 24Feb2013-08:11UTC chinajade

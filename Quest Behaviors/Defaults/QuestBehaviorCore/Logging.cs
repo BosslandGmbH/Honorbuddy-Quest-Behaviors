@@ -217,25 +217,5 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         private static CustomForcedBehavior BehaviorLoggingContext { get; set; }
-
-
-        //private void SetLoggingContext(QuestBehaviorBase baseQuestBehavior)
-        //{
-        //    VersionedBehaviorName = (baseQuestBehavior == null)
-        //        ? VersionedBehaviorName = string.Empty
-        //        : string.Format("{0}-v{1}",
-        //                        baseQuestBehavior.GetType().Name,
-        //                        UtilStripSubversionDecorations(SubversionRevision));
-        //}
-
-
-        //private static string UtilStripSubversionDecorations(string subversionString)
-        //{
-
-        //    return (RegexSvnDecoration.Replace(subversionString, "$1").Trim());
-        //}
-
-        //private static readonly Regex RegexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
-        //private static string VersionedBehaviorName = string.Empty;
     }
 }

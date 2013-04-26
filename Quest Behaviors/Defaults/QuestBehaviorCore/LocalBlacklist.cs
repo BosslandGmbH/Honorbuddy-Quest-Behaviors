@@ -30,8 +30,7 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         public LocalBlacklist(TimeSpan maxSweepTime)
         {
-            _sweepTimer = new WaitTimer(maxSweepTime);
-            _sweepTimer.WaitTime = maxSweepTime;
+            _sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
         }
 
         private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();

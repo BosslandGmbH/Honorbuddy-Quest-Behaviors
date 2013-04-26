@@ -19,7 +19,19 @@
 	* Needs to tell why its 'waiting for mobs to respawn'
 
 * CombatUseItemOnV2
-	+ Behavior needs to deal with items that cause 
+	+ hi chinajade, im at work , thats why im using forum PM
+		the CombatUseItemOnV2 its realy better than CombatUseItemOn and i always try use it but in my opinion have one problem than old CombatUseItemOn dont have its the simple use item.
+		Some quests request toon to use item (some on mob some just use it) but dont apply aura, examples
+		use item= remove elite status
+		use item= change mob
+		use item=char obtain 1 flask
+		use item= etc etc
+		the old CombatUseItemOn can do that but... cant add 2 or more Hotspots, and the important thing cant work underwater
+		your CombatUseItemOnV2 can have 2 or more hotspots ( wich is amazing) can go underwater ( wich is magnifique) but cant work without aura.
+		what about if you add one option like SingleUseItem="True" and behavior ignore auras etc like this:
+		mobhealth=30% usetimes="10" SingleUseItem="True"
+
+QB will use item 10 times on mob when have less than 30% and close behavior after that 
 
 * InteractWith testing needed:
 	+ Rework InteractWith to use items and interact during combat
@@ -97,12 +109,20 @@
 	  ObjectManager.GetObjectsOfType() can be re-populated.
 	+ May need to put a "gnomes killed" timer in place to abandon the current vehicle, and go fetch a fresh one
 	
+* 29918-FourWinds-ALessonInBravery.cs
+	+ People report dying while riding the birds--looks like maybe a Singular issue.  May need a mini combat routine since bird may count as a 'vehicle'.
+	    If so, steal it from Monk 1-12 behavior (that does pole dancing stuff): 29663-PandaStarter-TheLessonoftheBalancedRock.cs.
+	+ Example: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-5.html#post1132773
+
 * 52781-Persuasive Strike
 	+ ?
 
 
 QUESTBEHAVIORCORE FRAMEWORK
 ===========================
+* The UserSettings/OnBotStop interferes with QuestBehaviorCore's OnBotStop.  Figure out a way to process
+	events from various hooks installed at different times by different processes in the correct order.
+
 * When moving to hunting ground center, and no other waypoints, we need to randomize location
 
 * UtilityBehavior_MoveTo

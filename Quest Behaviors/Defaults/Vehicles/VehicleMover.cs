@@ -279,7 +279,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
             OnStart_QuestBehaviorCore(
                 string.Format("Returning {0} to {1}",
-                    string.Join(", ", VehicleIds.Select(o => GetMobNameFromId(o)).Distinct()),
+                    string.Join(", ", VehicleIds.Select(o => GetObjectNameFromId(o)).Distinct()),
                     Destination));
 
             // If the quest is complete, this behavior is already done...
@@ -375,11 +375,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                                      context => FinalDestinationName,
                                                      context => Precision,
                                                      context => IsInVehicle(),
-                                                     context => LocationObserver()),
-                            new Decorator(context => Me.IsMoving,
+                                                     context => ProxyObserver().Location),
+                            new Decorator(context => ProxyObserver().IsMoving,
                                 new Sequence(
                                     new Action(context => { WoWMovement.MoveStop(); }),
-                                    new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
+                                    new WaitContinue(Delay_LagDuration, context => false, new ActionAlwaysSucceed())
                                 )),
 
                             // Arrived at destination, use spell if necessary...
@@ -439,10 +439,10 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             return new Decorator(context => IsInVehicle() && (SpellId > 0),
                 new PrioritySelector(
                     // Stop moving so we can cast...
-                    new Decorator(context => Me.IsMoving,
+                    new Decorator(context => ProxyObserver().IsMoving,
                         new Sequence(
                             new Action(context => { WoWMovement.MoveStop(); }),
-                            new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
+                            new WaitContinue(Delay_LagDuration, context => false, new ActionAlwaysSucceed())
                         )),
                         
                     // If we cannot retrieve the spell info, its a bad SpellId...
@@ -471,7 +471,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                             Lua.DoString(luaCastSpellCommand);
                             ++CastCounter;
 
-                            if (CastCounter >= NumOfTimes)
+                            // If we're objective bound, the objective needs to complete regardless of the counter...
+                            if ((QuestObjectiveIndex <= 0) && (CastCounter >= NumOfTimes))
                                 { BehaviorDone(); }
                         }),
                         new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
@@ -501,15 +502,15 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         }
 
         
-        private WoWPoint LocationObserver()
+        private WoWUnit ProxyObserver()
         {
             if (Me.HasAura(AuraId_ProxyVehicle))
             {
                 if (VehicleUnoccupied != null)
-                    { return VehicleUnoccupied.Location; }
+                    { return VehicleUnoccupied; }
             }
 
-            return Me.Location;
+            return Me;
         }
         #endregion
     }

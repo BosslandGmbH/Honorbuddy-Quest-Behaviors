@@ -10,11 +10,11 @@
 
 #region Usings
 using System;
+using System.Diagnostics;
 using System.Media;
 using System.Threading;
 
 using Styx;
-using Styx.Common.Helpers;
 using Styx.TreeSharp;
 
 #endregion
@@ -22,27 +22,95 @@ using Styx.TreeSharp;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public class CompositeThrottle : DecoratorContinue
+    public class CompositeThrottle : Decorator
     {
         public CompositeThrottle(TimeSpan throttleTime, Composite composite)
+            : this(context => true, throttleTime, composite)
+        {
+            // empty
+        }
+
+
+        public CompositeThrottle(CanRunDecoratorDelegate predicateDelegate, TimeSpan throttleTime, Composite composite)
             : base(composite)
         {
-            _throttle.WaitTime = throttleTime;
-            // _throttle was created with "0" time--this makes it "good to go" 
-            // on first visit to CompositeThrottle node
+            _predicateDelegate = predicateDelegate;
+            _throttleTime = throttleTime;
         }
 
 
         protected override bool CanRun(object context)
         {
-            if (!_throttle.IsFinished)
-                { return false; }
-                
-            _throttle.Reset();
-            return true;
+            if (_predicateDelegate(context))
+            {
+                bool canRun = IsFinished;
+
+                if (IsFinished)
+                    { _throttle.Restart(); }
+
+                return canRun;
+            }
+
+            if (_throttle.IsRunning)
+                {_throttle.Stop(); }
+
+            return false;
         }
 
-        private readonly WaitTimer _throttle = new WaitTimer(TimeSpan.FromSeconds(0));
+        private bool IsFinished
+        {
+            get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
+        }
+
+        private readonly CanRunDecoratorDelegate _predicateDelegate;
+        private readonly Stopwatch _throttle = new Stopwatch();
+        private readonly TimeSpan _throttleTime;
+    }
+
+
+    public class CompositeThrottleContinue : DecoratorContinue
+    {
+        public CompositeThrottleContinue(TimeSpan throttleTime, Composite composite)
+            : this(context => true, throttleTime, composite)
+        {
+            // empty
+        }
+
+        
+        public CompositeThrottleContinue(CanRunDecoratorDelegate predicateDelegate, TimeSpan throttleTime, Composite composite)
+            : base(composite)
+        {
+            _predicateDelegate = predicateDelegate;
+            _throttleTime = throttleTime;
+        }
+
+
+        protected override bool CanRun(object context)
+        {
+            if (_predicateDelegate(context))
+            {
+                bool canRun = IsFinished;
+
+                if (IsFinished)
+                    { _throttle.Restart(); }
+
+                return canRun;
+            }
+
+            if (_throttle.IsRunning)
+                {_throttle.Stop(); }
+
+            return false;
+        }
+
+        private bool IsFinished
+        {
+            get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
+        }
+
+        private readonly CanRunDecoratorDelegate _predicateDelegate;
+        private readonly Stopwatch _throttle = new Stopwatch();
+        private readonly TimeSpan _throttleTime;
     }
 
 
@@ -68,16 +136,19 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (except.GetType() != typeof(ThreadAbortException))
                 {
+                    var message = string.Format("{0} EXCEPTION CONTEXT: {1}",
+                        _questBehaviorBase.GetVersionedBehaviorName(),
+                        QuestBehaviorBase.GetProfileReference(_questBehaviorBase.Element));
+
+
                     if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)
                     {
-                        QuestBehaviorBase.LogError("PROFILE EXCEPTION CONTEXT: {0}",
-                            QuestBehaviorBase.GetProfileReference(_questBehaviorBase.Element));
+                        QuestBehaviorBase.LogError(message);
                         SystemSounds.Asterisk.Play();
                     }
                     else
                     {
-                        QuestBehaviorBase.LogDeveloperInfo("PROFILE EXCEPTION CONTEXT: {0}",
-                            QuestBehaviorBase.GetProfileReference(_questBehaviorBase.Element));
+                        QuestBehaviorBase.LogDeveloperInfo(message);
                     }
                 }
 

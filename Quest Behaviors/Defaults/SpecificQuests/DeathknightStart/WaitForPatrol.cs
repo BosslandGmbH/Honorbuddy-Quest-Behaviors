@@ -283,7 +283,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             OnStart_QuestBehaviorCore(
                 string.Format("Using safe spot {0} until '{1}' moves {2:F1} yards away.",
                     SafespotLocation,
-                    GetMobNameFromId(MobIdToAvoid),
+                    GetObjectNameFromId(MobIdToAvoid),
                     AvoidDistance));
 
             // If the quest is complete, this behavior is already done...
@@ -484,7 +484,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                     new Decorator(context => Mob_ToMoveNear == null,
                                         new Action(context =>
                                         {
-                                            TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetMobNameFromId(MobIdToMoveNear));
+                                            TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetObjectNameFromId(MobIdToMoveNear));
                                         }))
                                 )),
 
@@ -532,7 +532,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                                 new Action(context =>
                                 {
                                     TreeRoot.StatusText = string.Format(
-                                                            "Waiting for '{0}' (dist: {1:F1}) to move {2:F1} yards away, and pathing away from us.",
+                                                            "Waiting for '{0}' to move {1:F1}/{2:F1} yards away, and pathing away from us.",
                                                             Mob_ToAvoid.Name,
                                                             Mob_ToAvoid.Distance,
                                                             AvoidDistance);

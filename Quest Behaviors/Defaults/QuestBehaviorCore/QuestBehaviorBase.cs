@@ -61,7 +61,6 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 #endregion
@@ -136,7 +135,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_CombatOnly;
         private Composite _behaviorTreeHook_DeathMain;
         private Composite _behaviorTreeHook_Main;
-        private ConfigMemento _configMemento;
+        private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
         private bool _isDisposed;
 
@@ -144,7 +143,7 @@ namespace Honorbuddy.QuestBehaviorCore
         protected static TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
         protected static TimeSpan Delay_Interaction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
         protected static readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
-        protected static readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(250);
+        protected static readonly TimeSpan Throttle_WoWClientMovement = TimeSpan.FromMilliseconds(100);
         protected static LocalPlayer Me { get { return StyxWoW.Me; } }
         public static readonly Random _random = new Random((int)DateTime.Now.Ticks);
         #endregion
@@ -197,10 +196,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
 
                 // Restore configuration...
-                if (_configMemento != null)
+                if (_mementoSettings != null)
                 {
-                    _configMemento.Dispose();
-                    _configMemento = null;
+                    _mementoSettings.Dispose();
+                    _mementoSettings = null;
                 }
 
                 TreeRoot.GoalText = string.Empty;
@@ -267,6 +266,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="extraGoalTextDescription"></param>
         protected void OnStart_QuestBehaviorCore(string extraGoalTextDescription = null)
         {
+            // Semantic coherency / covariant dependency checks...
             UsageCheck_SemanticCoherency(Element,
                 ((QuestObjectiveIndex > 0) && (QuestId <= 0)),
                 context => string.Format("QuestObjectiveIndex of '{0}' specified, but no corresponding QuestId provided",
@@ -292,21 +292,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _mementoSettings = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = string.Format(
-                    "{1}: \"{2}\"{0}{3}{0}{0}{4}",
-                    Environment.NewLine,
-                    GetType().Name,
-                    ((quest != null)
-                        ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
-                        : "In Progress (no associated quest)"),
-                    (extraGoalTextDescription ?? string.Empty),
-                    GetProfileReference(Element));
+                UpdateGoalText(extraGoalTextDescription);
 
                 _behaviorTreeHook_CombatMain = new ExceptionCatchingWrapper(this, CreateBehavior_CombatMain());
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);

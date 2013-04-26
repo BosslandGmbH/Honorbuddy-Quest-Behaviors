@@ -34,7 +34,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 { name =  obj.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
 
             else
-                { name = string.Format("{0}.{1:F4}", obj.Name, (obj.Guid & GuidMask)); }
+                { name = string.Format("{0}.{1:X4}", obj.Name, (obj.Guid & GuidMask)); }
 
             return name;
         }

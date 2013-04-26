@@ -358,7 +358,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             OnStart_QuestBehaviorCore(
                 string.Format("Using {0} on {1}",
                     GetItemNameFromId(ItemId),
-                    string.Join(", ", MobIds.Select(m => GetMobNameFromId(m)).Distinct())));
+                    string.Join(", ", MobIds.Select(m => GetObjectNameFromId(m)).Distinct())));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.

@@ -22,12 +22,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class HuntingGroundsType : QuestBehaviorXmlBase
     {        
+        #region Consructor and Argument Processing
         public enum WaypointVisitStrategyType
         {
             InOrder,
             Random,
         }
         
+        // 22Mar2013-11:49UTC chinajade
         public HuntingGroundsType(XElement xElement)
             : base(xElement)
         {
@@ -73,14 +75,39 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
+        #endregion
+
+        #region Private and Convenience variables
+        private WaypointType _currentWaypoint = null;
+        private readonly WaypointType _initialPositionWaypoint = new WaypointType(StyxWoW.Me.Location, "my initial position");
+        #endregion
 
 
+        // 22Mar2013-11:49UTC chinajade
         public void AppendWaypoint(WoWPoint wowPoint, string name = "", double radius = 7.0)
         {
             Waypoints.Add(new WaypointType(wowPoint, name, radius));
         }
 
 
+        // 22Apr2013-12:50UTC chinajade
+        public WaypointType CurrentWaypoint(WoWPoint? currentLocation = null)
+        {
+            currentLocation = currentLocation ?? StyxWoW.Me.Location;
+
+            // If no current waypoint, initialize it...
+            if (_currentWaypoint == null)
+                { _currentWaypoint = FindFirstWaypoint(currentLocation.Value); }
+
+            // If we're within range of the current waypoint, find the next one...
+            if (currentLocation.Value.Distance(_currentWaypoint.Location) <= _currentWaypoint.Radius)
+                { _currentWaypoint = FindNextWaypoint(_currentWaypoint.Location); }
+
+            return _currentWaypoint;
+        }
+
+
+        // 22Mar2013-11:49UTC chinajade
         public WaypointType FindFirstWaypoint(WoWPoint currentLocation)
         {
             return (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
@@ -89,22 +116,43 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
+        // 22Mar2013-11:49UTC chinajade
         public WaypointType FindNearestWaypoint(WoWPoint currentLocation)
         {
+            // If no waypoints, our initial position is all we have...
+            if (!Waypoints.Any())
+                { return _initialPositionWaypoint; }
+
+            bool isMeFlyingOrSwimming = StyxWoW.Me.IsFlying || StyxWoW.Me.IsSwimming;
+            
             return
                (from waypoint in Waypoints
-                orderby waypoint.Location.Distance(currentLocation)
+                orderby
+                   (isMeFlyingOrSwimming
+                        ? waypoint.Location.Distance(currentLocation)
+                        : waypoint.Location.SurfacePathDistance(currentLocation))
                 select waypoint)
                 .FirstOrDefault();
         }
 
 
+        // 22Mar2013-11:49UTC chinajade
         public WaypointType FindNextWaypoint(WoWPoint currentLocation)
         {
+            // If no waypoints, our initial position is all we have...
+            if (!Waypoints.Any())
+                { return _initialPositionWaypoint; }
+
             if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
             {
+                // NB: If this selects the same waypoint as the current one,
+                // the calling code will just return here again until we get
+                // something suitable.  If there is just one waypoint on the list,
+                // its the best that can be done.  We can't weed out the 'current waypoint'
+                // with a 'where' clause, because that would return nothing if there
+                // was only one point on the list.
                 return
-                    (from waypoint in Waypoints
+                   (from waypoint in Waypoints
                     orderby QuestBehaviorBase._random.Next()
                     select waypoint)
                     .FirstOrDefault();
@@ -112,7 +160,13 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             // If we haven't reached the nearest waypoint yet, use it...
             var nearestWaypoint = FindNearestWaypoint(currentLocation);
-            if (nearestWaypoint.Location.Distance(currentLocation) > nearestWaypoint.Radius)
+
+            double distanceToWaypoint =
+                (StyxWoW.Me.IsFlying || StyxWoW.Me.IsSwimming)
+                    ? nearestWaypoint.Location.Distance(currentLocation)
+                    : nearestWaypoint.Location.SurfacePathDistance(currentLocation);
+
+            if (distanceToWaypoint > nearestWaypoint.Radius)
                 { return nearestWaypoint; }
 
             var queue = new Queue<WaypointType>(Waypoints);
@@ -159,6 +213,45 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             return huntingGrounds;
         }
+
+
+        // We must support 'implied containers' for backward compatibility purposes.
+        // An 'implied container' is just a list of <Hotspot> without the <HuntingGrounds> container.  As such, we use defaults.
+        // This method will first look for the 'new style' (with container), and if that fails, looks for just a list of hotspots with
+        // which we can construct the object.
+        // 22Apr2013-10:29UTC chinajade
+        public static HuntingGroundsType GetOrCreate_ImpliedContainer(XElement parentElement, string elementName, WoWPoint? defaultHuntingGroundCenter = null)
+        {
+            var huntingGrounds = GetOrCreate(parentElement, elementName, defaultHuntingGroundCenter);
+
+            // If 'new form' succeeded, we're done...
+            if (!huntingGrounds.IsAttributeProblem)
+                { return huntingGrounds; }
+
+            // 'Old form' we have to dig out the Hotspots manually...
+            huntingGrounds = new HuntingGroundsType(new XElement(elementName));
+            if (!huntingGrounds.IsAttributeProblem)
+            {
+                var waypoints = new List<WaypointType>();
+
+                int unnamedWaypointNumber = 0;
+                foreach (XElement childElement in parentElement.Elements().Where(elem => (elem.Name == "Hotspot")))
+                {
+                    var waypoint = new WaypointType(childElement);
+
+                    if (!waypoint.IsAttributeProblem)
+                    {
+                        if (string.IsNullOrEmpty(waypoint.Name))
+                            {  waypoint.Name = string.Format("UnnamedWaypoint{0}", ++unnamedWaypointNumber); }
+                        waypoints.Add(waypoint);
+                    }
+
+                    huntingGrounds.IsAttributeProblem |= waypoint.IsAttributeProblem;
+                }                
+            }
+
+            return huntingGrounds;
+        }
         
         
         public override string ToString()
@@ -167,6 +260,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
+        // 22Mar2013-11:49UTC chinajade
         public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
         {
             var tmp = new StringBuilder();
