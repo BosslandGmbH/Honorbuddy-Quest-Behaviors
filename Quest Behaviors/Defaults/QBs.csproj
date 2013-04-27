@@ -66,7 +66,6 @@
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
     <Compile Include="CollectThings2.cs" />
-    <Compile Include="InteractWith2.cs" />
     <Compile Include="NoControlVehicle.cs" />
     <Compile Include="QuestBehaviorCore\Queries_Database.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorCoreSettings.cs" />

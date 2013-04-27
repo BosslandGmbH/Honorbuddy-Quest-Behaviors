@@ -202,7 +202,7 @@ namespace Honorbuddy.QuestBehaviorCore
             TreeRoot.GoalText = string.Format(
                 "{1}: \"{2}\"{0}{3}{0}{0}{4}",
                 Environment.NewLine,
-                GetType().Name,
+                GetVersionedBehaviorName(),
                 ((quest != null)
                     ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
                     : "In Progress (no associated quest)"),

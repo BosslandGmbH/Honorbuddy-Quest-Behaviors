@@ -465,8 +465,10 @@ namespace Honorbuddy.QuestBehaviorCore
         /// Targets and kills any mob targeting Self or Pet.
         /// </summary>
         /// <returns></returns>
-        public Composite UtilityBehaviorPS_SpankMobTargetingUs()
+        public Composite UtilityBehaviorPS_SpankMobTargetingUs(Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
         {
+            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
+
             Func<object, bool> isInterestingToUs =
                 (obj) =>
                 {
@@ -478,7 +480,9 @@ namespace Honorbuddy.QuestBehaviorCore
                             || wowUnit.IsTargetingAnyMinion
                             || wowUnit.IsTargetingMyPartyMember)
                         // exclude opposing faction: both players and their pets show up as "PlayerControlled"
-                        && !wowUnit.PlayerControlled;                                 
+                        && !wowUnit.PlayerControlled
+                        // exclude any units that are candidates for interacting
+                        && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry);                                                     
                 };
                             
             return new PrioritySelector(
@@ -515,7 +519,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                                     Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
         {
             extraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
-            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => new List<int>());
+            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
 
             Func<object, bool> isInterestingToUs =
                 (obj) =>

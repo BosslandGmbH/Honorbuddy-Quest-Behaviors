@@ -28,9 +28,14 @@
 //          The item must exist in the backpack; otherwise, Honorbuddy will be stopped.
 //      ItemAppliesAuraId [REQUIRED, if UseItemStrategy is UseItemOncePerTarget or UseItemOncePerTargetDontDefend,
 //          or if a QuestId is not provided]
+//          [allowed values: AssumeItemUseAlwaysSucceeds, or an aura id]
 //          This is the aura that the item applies to the target once the item is used.  This is our only
 //          means of telling if the Item use was successful.  (If no aura was applied, we must have been
 //          interrupted in trying to use it, and need to keep trying).
+//          If ItemAppliesAuraId="AssumeItemUseAlwaysSucceeds" should *only* be specified if there is no
+//          distinguishable aura that is applied to the target when the item is used.  If this attribute,
+//          is specified, there is no opportunity to figure out if the item use succeeded or not, and
+//          could result in premature termination of the behavior.
 //      MobId1, MobId2, ... MobIdN [at least one MobId is REQUIRED]
 //          Identifies the mobs on which the item should be used.
 //      NumOfTimesToUseItem [REQUIRED if a QuestId is not provided; otherwise IGNORED]
@@ -197,13 +202,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+using System.Text;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
+using JetBrains.Annotations;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -227,7 +234,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         {
             UseItemOncePerTarget,
             UseItemOncePerTargetDontDefend,
-            UseItemContinuouslyOnTarget,
+            [UsedImplicitly] UseItemContinuouslyOnTarget,
             UseItemContinuouslyOnTargetDontDefend,
         }
 
@@ -240,7 +247,13 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                 // Primary attributes...
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                ItemAppliesAuraId = GetAttributeAsNullable<int>("ItemAppliesAuraId", false, ConstrainAs.AuraId, null) ?? 0;
+
+                string itemUseAlwaysSucceeds = GetAttributeAs<string>("ItemAppliesAuraId", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                if (itemUseAlwaysSucceeds == "AssumeItemUseAlwaysSucceeds")
+                    { ItemUseAlwaysSucceeds = true; }
+                else
+                    { ItemAppliesAuraId = GetAttributeAsNullable<int>("ItemAppliesAuraId", false, ConstrainAs.AuraId, null) ?? 0; } 
+
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
                 UseWhenMeHasAuraId = GetAttributeAsNullable<int>("UseWhenMeHasAuraId", false, ConstrainAs.AuraId, null) ?? 0;
                 UseWhenMeMissingAuraId = GetAttributeAsNullable<int>("UseWhenMeMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
@@ -252,7 +265,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // Either HuntingGroundCenter or <HuntingGrounds> subelement must be provided...
                 // The sanity check for this is done in OnStart() since that's where we must do
                 // all sub-element processing due to the way CustomForcedBehavior is architected.
-                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
 
                 // Tunables...
                 MaxRangeToUseItem = GetAttributeAsNullable<double>("MaxRangeToUseItem", false, ConstrainAs.Range, null) ?? 25.0;
@@ -278,21 +291,22 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 
         // Variables for Attributes provided by caller
-        public WoWPoint HuntingGroundCenter { get; private set; }
-        public int ItemId { get; private set; }
-        public int ItemAppliesAuraId { get; private set; }
-        public double MaxRangeToUseItem { get; private set; }
-        public int[] MobIds { get; private set; }
-        public int NumOfTimesToUseItem { get; private set; }
-        public double RecallPetAtMobPercentHealth { get; private set; }
-        public UseItemStrategyType UseItemStrategy { get; private set; }
-        public int UseWhenMobCastingSpellId { get; private set; }
-        public int UseWhenMeMissingAuraId { get; private set; }
-        public int UseWhenMeHasAuraId { get; private set; }
-        public int UseWhenMobMissingAuraId { get; private set; }
-        public int UseWhenMobHasAuraId { get; private set; }
-        public double UseWhenMobHasHealthPercent { get; private set; }
-        public int WaitTimeAfterItemUse { get; private set; }
+        private WoWPoint? HuntingGroundCenter { get; set; }
+        private int ItemId { get; set; }
+        private int ItemAppliesAuraId { get; set; }
+        private bool ItemUseAlwaysSucceeds { get; set; }
+        private double MaxRangeToUseItem { get; set; }
+        private int[] MobIds { get; set; }
+        private int NumOfTimesToUseItem { get; set; }
+        private double RecallPetAtMobPercentHealth { get; set; }
+        private UseItemStrategyType UseItemStrategy { get; set; }
+        private int UseWhenMobCastingSpellId { get; set; }
+        private int UseWhenMeMissingAuraId { get; set; }
+        private int UseWhenMeHasAuraId { get; set; }
+        private int UseWhenMobMissingAuraId { get; set; }
+        private int UseWhenMobHasAuraId { get; set; }
+        private double UseWhenMobHasHealthPercent { get; set; }
+        private int WaitTimeAfterItemUse { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id: CombatUseItemOn.cs 273 2013-01-22 23:00:43Z natfoth $"); } }
@@ -301,7 +315,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            // Empty, for now
+            // empty, for now
         }
 
 
@@ -320,6 +334,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
             UsageCheck_SemanticCoherency(xElement,
                 ((ItemAppliesAuraId <= 0)
+                    && (!ItemUseAlwaysSucceeds)
                     && ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
                         || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)
                         || (QuestId <= 0))),
@@ -331,10 +346,11 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         #region Private and Convenience variables
         private int Counter { get; set; }
-        private WaypointType CurrentHuntingGroundWaypoint { get; set; }
         private HuntingGroundsType HuntingGrounds { get; set; }
         private WoWItem ItemToUse { get; set; }
         private WoWUnit SelectedTarget { get; set; }
+        
+        private readonly WaitTimer _waitTimerAfterUsingItem = new WaitTimer(TimeSpan.Zero);
         #endregion
 
 
@@ -367,19 +383,18 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == ItemId));
                 if (ItemToUse == null)
                 {
-                    LogError("[PROFILE ERROR] Unable to locate in our bags", GetItemNameFromId(ItemId));
+                    LogError("[PROFILE ERROR] Unable to locate {0} in our bags", GetItemNameFromId(ItemId));
                     TreeRoot.Stop();
                     BehaviorDone();
                 }
 
-                CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
+                _waitTimerAfterUsingItem.WaitTime = TimeSpan.FromMilliseconds(WaitTimeAfterItemUse);
             }
         }
         #endregion
 
 
         #region Main Behaviors
-        
         protected override Composite CreateBehavior_CombatMain()
         {
             return new Decorator(context => IsViableForItemUse(SelectedTarget),
@@ -420,7 +435,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     // If any mob aggros on us while are heading to deal with SelectedTarget, finish aggro mob first...
                     // NB: We don't want to wait until the mob hits us and we get in combat;
                     // otherwise, we may wind up at our target with multiple mobs to fight.
-                    UtilityBehaviorPS_SpankMobTargetingUs()
+                    UtilityBehaviorPS_SpankMobTargetingUs(() => MobIds)
                 )
             );
         }
@@ -463,7 +478,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                             // If time to use the item, do so...
                             new Decorator(context => IsViable(ItemToUse) && IsUseItemNeeded(SelectedTarget),
                                 new PrioritySelector(
-
                                     new Decorator(context => !IsOnCooldown(ItemToUse),
                                         new Sequence(
                                             new Action(context =>
@@ -476,12 +490,17 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                                     ItemToUse.Name, SelectedTarget.Name, SelectedTarget.HealthPercent);
 
                                                 ItemToUse.Use(SelectedTarget.Guid);
+                                                _waitTimerAfterUsingItem.Reset();
                                                 // NB: Neither the HB API nor the WoW API give us a way to determine
                                                 // if an item was successfully used (i.e., we weren't interrupted while
                                                 // we were trying to use it).
-												
-												Thread.Sleep(500);
-												SpellManager.ClickRemoteLocation(SelectedTarget.Location);
+                                            }),
+                                            new WaitContinue(TimeSpan.FromMilliseconds(500), context => false, new ActionAlwaysSucceed()),
+                                            new Action(context =>
+                                            {
+                                                SpellManager.ClickRemoteLocation(SelectedTarget.Location);
+                                                if (ItemUseAlwaysSucceeds)
+                                                    { ++Counter; }
                                             })
                                         )),
 
@@ -506,64 +525,66 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
+                // Delay, if necessary...
+                // NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
+                // that don't have an associated quest, and put the behavior in a <While> loop will not behave
+                // as the profile writer expects.  They expect the delay to be executed if the interaction
+                // succeeded.
+                new Decorator(context => !_waitTimerAfterUsingItem.IsFinished,
+                    new PrioritySelector(
+                        // Take out any nearby mobs that aggro on us while we wait...
+                        new Decorator(context => !Me.IsFlying,
+                            UtilityBehaviorPS_SpankMobTargetingUs(() => MobIds)),
+                        new Action(context =>
+                        {
+                            TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
+                                PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterUsingItem.TimeLeft.TotalSeconds)),
+                                PrettyTime(_waitTimerAfterUsingItem.WaitTime));
+                        })
+                    )),
 
                 // If quest is done, behavior is done...
                 new Decorator(context => IsDone,
-                    new Action(context =>
-                    {
-                        LogInfo("Finished");
-                        BehaviorDone();
-                    })),
+                    new Action(context => { BehaviorDone(); })),
 
                 // Done due to count completing?
-                new Decorator(context => Counter >= NumOfTimesToUseItem,
+                new Decorator(context => (QuestObjectiveIndex <= 0) && (Counter >= NumOfTimesToUseItem),
                     new Action(context => { BehaviorDone(); })),
 
                 // If item is no longer viable to use, warn user and we're done...
                 new Decorator(context => !IsViable(ItemToUse),
                     new Action(context =>
                     {
-                        LogError("We no longer have a viable Item({0}) to use--terminating", ItemId);
-                        TreeRoot.Stop();
+                        LogWarning("We no longer have a viable {0} to use--terminating behavior.", GetItemNameFromId(ItemId));
                         BehaviorDone();
                     })),
 
                 // If no viable target, find a new mob to harass...
                 new Decorator(context => !IsViableForItemUse(SelectedTarget),
-                    new PrioritySelector(
-                        new Action(context =>
-                        {
-                            Me.ClearTarget();
-                            SelectedTarget = FindBestTarget();
+                    new Action(context =>
+                    {
+                        Me.ClearTarget();
+                        SelectedTarget = FindBestTarget();
 
-                            // Target selected mob as feedback to user...
-                            if ((SelectedTarget != null) && (Me.CurrentTarget != SelectedTarget))
-                                { SelectedTarget.Target(); }
+                        // Target selected mob as feedback to user...
+                        if ((SelectedTarget != null) && (Me.CurrentTarget != SelectedTarget))
+                            { SelectedTarget.Target(); }
 
-                            return RunStatus.Failure;   // fall through
-                        }),
-
-                        // If we couldn't find a mob, move back to center of hunting grounds...
-                        new Decorator(context => SelectedTarget == null,
-                            new PrioritySelector(
-                                new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
-                                    new Action(context => { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); })),
-
-                                UtilityBehaviorPS_MoveTo(
-                                    context => CurrentHuntingGroundWaypoint.Location,
-                                    context => string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name)
-                                               ? "to next hunting ground waypoint"
-                                               : string.Format("to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name)
-                                    ),
-
-                                new Decorator(context => Me.Location.Distance(HuntingGroundCenter) <= Navigator.PathPrecision,
-                                    new Action(context => { LogInfo("Waiting for mobs to respawn."); }))
-                            ))
-                    )),
-
+                        return RunStatus.Failure;   // fall through
+                    })),
+                
                 // Pick a fight, if needed...
                 new Decorator(context => !Me.Combat && IsViableForItemUse(SelectedTarget),
-                    UtilityBehaviorPS_GetMobsAttention(context => SelectedTarget))
+                    UtilityBehaviorPS_GetMobsAttention(context => SelectedTarget)),
+
+                // No mobs in immediate vicinity...
+                // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
+                // this sub-behavior will terminate the overall behavior.
+                UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
+                    context => HuntingGrounds,
+                    context => false,
+                    context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
+                    context => Debug_BuildExclusions())
             );
         }
         #endregion
@@ -571,11 +592,11 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         #region Helpers
 
-        public WoWUnit FindBestTarget()
+        private WoWUnit FindBestTarget()
         {
             return
                (from wowUnit in FindUnitsFromIds(MobIds)
-                where IsUseItemNeeded(wowUnit)
+                where IsViableForItemUse(wowUnit)
                 orderby wowUnit.Distance
                 select wowUnit)
                 .FirstOrDefault();
@@ -588,16 +609,16 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         }
 
 
-        private bool IsUseItemNeeded(WoWUnit target)
+        private bool IsUseItemNeeded(WoWUnit wowUnit)
         {
             return
-                IsViableForItemUse(target)
+                IsViableForItemUse(wowUnit)
                 && ((UseWhenMeHasAuraId > 0) && Me.HasAura(UseWhenMeHasAuraId))
                     || ((UseWhenMeMissingAuraId > 0) && !Me.HasAura(UseWhenMeMissingAuraId))
-                    || ((UseWhenMobCastingSpellId > 0) && (target.CastingSpellId == UseWhenMobCastingSpellId))
-                    || ((UseWhenMobHasAuraId > 0) && target.HasAura(UseWhenMobHasAuraId))
-                    || ((UseWhenMobMissingAuraId > 0) && !target.HasAura(UseWhenMobMissingAuraId))
-                    || ((UseWhenMobHasHealthPercent > 0) && (target.HealthPercent <= UseWhenMobHasHealthPercent));
+                    || ((UseWhenMobCastingSpellId > 0) && (wowUnit.CastingSpellId == UseWhenMobCastingSpellId))
+                    || ((UseWhenMobHasAuraId > 0) && wowUnit.HasAura(UseWhenMobHasAuraId))
+                    || ((UseWhenMobMissingAuraId > 0) && !wowUnit.HasAura(UseWhenMobMissingAuraId))
+                    || ((UseWhenMobHasHealthPercent > 0) && wowUnit.IsAlive && (wowUnit.HealthPercent <= UseWhenMobHasHealthPercent));
         }
 
 
@@ -608,6 +629,80 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 IsViableForInteracting(wowUnit)
                 && wowUnit.IsAlive
                 && !wowUnit.HasAura(ItemAppliesAuraId);
+        }
+        #endregion
+
+
+        #region Debug
+        private string Debug_BuildExclusions()
+        {
+            IEnumerable<WoWObject> interactCandidates =
+                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true)
+                where
+                    IsViable(wowObject)
+                    && MobIds.Contains((int)wowObject.Entry)
+                select wowObject;
+
+            var excludedUnitReasons = new StringBuilder();
+
+            foreach (var wowObject in interactCandidates)
+            {
+                excludedUnitReasons.Append("    ");
+                excludedUnitReasons.Append(Debug_TellWhyExcluded(wowObject));
+                excludedUnitReasons.AppendLine();
+            }
+
+            if (excludedUnitReasons.Length > 0)
+            {
+                excludedUnitReasons.Insert(0, string.Format("{0}Excluded Units:{0}",
+                    Environment.NewLine));
+            }
+
+            return excludedUnitReasons.ToString();
+        }
+
+
+        private string Debug_TellWhyExcluded(WoWObject wowObject)
+        {
+            var reasons = new List<string>();
+
+            if (!IsViable(wowObject))
+                { return "[NotViable]"; }
+
+            if ((MovementBy == MovementByType.NavigatorOnly) && !Navigator.CanNavigateFully(Me.Location, wowObject.Location))
+                { reasons.Add("NotMeshNavigable"); }
+
+            if (IsBlacklistedForInteraction(wowObject))
+                { reasons.Add("Blacklisted"); }
+
+            if (IgnoreMobsInBlackspots && Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
+                { reasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location)); }
+
+            if (IsInCompetition(wowObject))
+            {
+                reasons.Add(string.Format("InCompetition({0} players within {1:F1})",
+                    FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count(),
+                    NonCompeteDistance));
+            }
+
+            WoWUnit wowUnit = wowObject.ToUnit();
+            if (wowUnit != null)
+            {
+                var wowUnitAuras = wowUnit.GetAllAuras().ToList();
+                
+                if (!wowUnit.IsAlive)
+                {
+                    reasons.Add("!IsAlive");
+                }
+                
+                var itemAppliedAura = wowUnitAuras.FirstOrDefault(a => a.SpellId == ItemAppliesAuraId);
+                if ((ItemAppliesAuraId > 0) && (itemAppliedAura != null))
+                {
+                    reasons.Add(string.Format("HasItemAura({0},{1})", itemAppliedAura.Name, itemAppliedAura.SpellId));
+                }
+            }
+
+            return string.Format("{0} [{1}]", wowObject.Name, string.Join(",", reasons));
         }
         #endregion
     }

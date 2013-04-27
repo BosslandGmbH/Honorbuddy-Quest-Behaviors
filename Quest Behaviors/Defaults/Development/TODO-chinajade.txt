@@ -159,6 +159,8 @@ KICK'S PROFILES:
 		* <CustomBehavior File="InteractWith" QuestId="27793" MobId="46768" GossipOptions="1" MobState="Alive" X="-6920.016" Y="-3446.434" Z="197.6488" />
 		* Memelook's report: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1110777
 
+* "Finding your Center" (31) needs a behavior developed for it (ally, jade forest)
+
 
 NEEDED QUEST BEHAVIORS:
 =======================
