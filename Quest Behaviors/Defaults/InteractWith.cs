@@ -720,7 +720,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
                 #region Deal with mob we've selected for interaction...
-                new Decorator(context => SelectedInteractTarget != null,
+                new Decorator(context => IsViable(SelectedInteractTarget),
                     new PrioritySelector(
 
                         // Take out any nearby mobs that will aggro, if we get close to destination...
@@ -900,7 +900,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private Composite SubBehaviorPS_HandleFramesComplete()
         {
-            return
+            return new PrioritySelector(
                 new Decorator(context => GossipFrame.Instance.IsVisible
                                         || MerchantFrame.Instance.IsVisible
                                         || QuestFrame.Instance.IsVisible
@@ -910,16 +910,26 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     {
                         TreeRoot.StatusText = string.Format("Interaction with {0} complete.", GetName(SelectedInteractTarget));
                         CloseOpenFrames();
-
-                        BlacklistInteractTarget(SelectedInteractTarget);
                         _waitTimerAfterInteracting.Reset();
                         ++Counter;
 
-                        if (IsClearTargetNeeded(SelectedInteractTarget))
-                            { Me.ClearTarget(); }
+                        // Some mobs go non-viable immediately after interacting with them...
+                        if (IsViable(SelectedInteractTarget))
+                        {
+                            BlacklistInteractTarget(SelectedInteractTarget);
+                            if (IsClearTargetNeeded(SelectedInteractTarget))
+                                { Me.ClearTarget(); }
+                        }
 
                         SelectedInteractTarget = null;
-                    }));
+                    })),
+
+                // Some mobs go non-viable immediately after interacting with them...
+                // For instance, interacting with mobs that give you automatic taxi rides.
+                // We must guard against trying to interact with them further.
+                new Decorator(context => !IsViable(SelectedInteractTarget),
+                    new Action(context => { SelectedInteractTarget = null; }))
+                );
         }
 
 
