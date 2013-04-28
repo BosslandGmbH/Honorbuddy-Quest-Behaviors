@@ -123,7 +123,7 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
         
-        //  23Mar2013-05:38UTC chinajade
+        // 23Mar2013-05:38UTC chinajade
         public bool IsInLineOfSight(WoWObject wowObject)
         {
             WoWUnit wowUnit = wowObject.ToUnit();
@@ -137,6 +137,26 @@ namespace Honorbuddy.QuestBehaviorCore
         }
         
         
+        // 28Apr2013-03:38UTC chinajade
+        public bool IsMob_StateTypeMatch(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft)
+        {
+            if (requestedMobState == MobStateType.DontCare)
+                { return true; }
+            
+            WoWUnit wowUnit = wowObject.ToUnit();
+            if (wowUnit != null)
+            {
+                return
+                    ((requestedMobState == MobStateType.Alive) && wowUnit.IsAlive)
+                    || ((requestedMobState == MobStateType.AliveNotInCombat) && wowUnit.IsAlive && !wowUnit.Combat)
+                    || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead)
+                    || ((requestedMobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < mobHpPercentLeft)); 
+            }
+
+            return false;
+        }
+
+
         // 24Feb2013-08:11UTC chinajade
         public bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
         {

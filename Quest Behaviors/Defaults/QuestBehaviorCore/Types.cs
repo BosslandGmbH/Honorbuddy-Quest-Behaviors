@@ -23,10 +23,12 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         public enum MobStateType
         {
+            // NPC states
             Alive,
             AliveNotInCombat,
             BelowHp,
             Dead,
+
             DontCare,
         }
 
