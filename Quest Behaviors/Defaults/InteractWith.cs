@@ -880,14 +880,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                         GetName(SelectedInteractTarget),
                                                         SelectedInteractTarget.Entry,
                                                         SelectedInteractTarget.Distance,
-                                                        IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS")))
-                        ),
+                                                        IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS"))
+                        )),
 
                     // Prep to interact...
                     UtilityBehaviorPS_MoveStop(),
-                    UtilityBehaviorPS_ExecuteMountStrategy(context => PreInteractMountStrategy),                                    
-                    new Decorator(context => !Me.IsSafelyFacing(SelectedInteractTarget),
-                        new Action(context => { Me.SetFacing(SelectedInteractTarget.Location); }))           
+                    UtilityBehaviorPS_ExecuteMountStrategy(context => PreInteractMountStrategy),
+                    UtilityBehaviorPS_FaceMob(context => SelectedInteractTarget)          
             );
         }
 
@@ -1255,8 +1254,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         /// </summary>
         private string GetName(WoWObject target)
         {
-            return IsViable(target)
-                       ? target.Name
+            return IsViable(target) ? target.Name
                        : (target == SelectedInteractTarget) ? "selected target"
                        : (target.ToUnit() != null) ? "unit"
                        : "object";
@@ -1280,22 +1278,24 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
 
 
-        private bool IsDistanceCloseNeeded(WoWObject target)
+        private bool IsDistanceCloseNeeded(WoWObject wowObject)
         {
-            double targetDistance = target.Distance;
+            double targetDistance = MovementObserver.Location.Distance(wowObject.Location);
 
             bool canInteract =
                 (ItemToUse != null)
-                ? (targetDistance <= RangeMax) && (IgnoreLoSToTarget || IsInLineOfSight(target))    // Items need LoS to use
+                ? (targetDistance <= RangeMax) && (IgnoreLoSToTarget || IsInLineOfSight(wowObject))    // Items need LoS to use
                 : (targetDistance <= RangeMax);     // Interactions just require being within range
 
             return !canInteract;
         }
 
 
-        private bool IsDistanceGainNeeded(WoWObject target)
+        private bool IsDistanceGainNeeded(WoWObject wowObject)
         {
-            return target.Distance < RangeMin;
+            double targetDistance = MovementObserver.Location.Distance(wowObject.Location);
+
+            return targetDistance < RangeMin;
         }
 
 

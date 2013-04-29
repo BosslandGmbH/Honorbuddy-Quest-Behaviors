@@ -49,37 +49,34 @@ namespace Honorbuddy.QuestBehaviorCore
 
             Func<object, bool> isReadyToDismount = (context =>
             {
-                return
-                    !StyxWoW.Me.IsFlying
-                    || StyxWoW.Me.GetTraceLinePos().IsOverGroundOrWater(maxDismountHeightDelegate(context));
+                return !Me.IsFlying
+                        || (Me.GetTraceLinePos().HeightOverGroundOrWater() < maxDismountHeightDelegate(context));
             });
 
             return new PrioritySelector(
                 // Descend, if needed...
-                new Decorator(context => !isReadyToDismount(context), 
-                    new Sequence(
+                new Decorator(context => !isReadyToDismount(context),
+                    new PrioritySelector(
+                        new Decorator(context => !Me.MovementInfo.IsDescending,
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText = "Descending before dismount";
+                                WoWMovement.Move(WoWMovement.MovementDirection.Descend);
+                            })),
                         new Action(context =>
                         {
-                            LogDeveloperInfo("Descending before dismount");
-                            Navigator.PlayerMover.Move(WoWMovement.MovementDirection.Descend);
-                        }),
-                        new WaitContinue(Throttle_WoWClientMovement,
-                            context => isReadyToDismount(context) || !Me.IsMoving,
-                            new ActionAlwaysSucceed())
+                            TreeRoot.StatusText = string.Format("Descending from {0:F1}", 
+                                Me.GetTraceLinePos().HeightOverGroundOrWater());
+                        })
                     )),
 
                 // Stop descending...
                 new Decorator(context => Me.MovementInfo.IsDescending,
-                    new Sequence(
-                        new Action(context =>
-                        {
-                            LogDeveloperInfo("Stopping descent");
-                            WoWMovement.MoveStop(WoWMovement.MovementDirection.Descend);
-                        }),
-                        new WaitContinue(Throttle_WoWClientMovement,
-                            context => !Me.MovementInfo.IsDescending,
-                            new ActionAlwaysSucceed())
-                    ))
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText = "Descent Stopped";
+                        WoWMovement.MoveStop(WoWMovement.MovementDirection.Descend);
+                    }))
             );
         }
 
@@ -100,6 +97,8 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>17Apr2013-03:11UTC chinajade</remarks>
         public Composite UtilityBehaviorPS_ExecuteMountStrategy(Func<object, MountStrategyType> mountStrategyDelegate)
         {
+            ContractRequires(mountStrategyDelegate != null, context => "mountStrategyDelegate != null");
+
             return new Decorator(context => mountStrategyDelegate(context) != MountStrategyType.None,
                 new PrioritySelector(
                     new Decorator(context => Me.IsShapeshifted()
@@ -109,7 +108,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             UtilityBehaviorPS_DescendForDismount(context => MaxDismountHeight),
                             new Action(context =>
                             {
-                                LogDeveloperInfo("Canceling shapeshift form.");
+                                TreeRoot.StatusText = "Canceling shapeshift form.";
                                 Lua.DoString("CancelShapeshiftForm()");
                             })
                         )),
@@ -122,14 +121,18 @@ namespace Honorbuddy.QuestBehaviorCore
                             new Decorator(context => Me.IsShapeshifted(),
                                 new Action(context =>
                                 {
-                                    LogDeveloperInfo("Canceling 'mounted' shapeshift form.");
+                                    TreeRoot.StatusText = "Canceling 'mounted' shapeshift form.";
                                     Lua.DoString("CancelShapeshiftForm()");
                                 })),
-                            new Decorator(context => Me.Mounted,
+                            new Decorator(context => Me.IsMounted(),
                                 new Action(context =>
                                 {
-                                    LogDeveloperInfo("Dismounting");
-                                    Mount.Dismount();
+                                    TreeRoot.StatusText = "Dismounting";
+
+                                    // Mount.Dismount() uses the Flightor landing system, which sometimes get stuck
+                                    // a yard or two above the landing zone...
+                                    // So, we opt to dismount via LUA since we've controlled the landing ourselves.
+                                    Lua.DoString("Dismount()");
                                 }))
                             )),
                         
@@ -139,12 +142,22 @@ namespace Honorbuddy.QuestBehaviorCore
                         // We make up a destination for MountUp() that is far enough away, it will always choose to mount...
                         new Action(context =>
                         {
-                            LogDeveloperInfo("Mounting");
+                            TreeRoot.StatusText = "Mounting";
                             Mount.MountUp(() => Me.Location.Add(1000.0, 1000.0, 1000.0));
                         }))
             ));
         }
 
+        
+        // 29Apr2013-05:20UTC chinajade
+        public Composite UtilityBehaviorPS_FaceMob(ProvideWoWObjectDelegate wowObjectDelegate)
+        {
+            ContractRequires(wowObjectDelegate != null, context => "wowObjectDelegate != null");
+
+            return new Decorator(context => !MovementObserver.IsSafelyFacing(wowObjectDelegate(context)),
+                new Action(context => { Me.SetFacing(wowObjectDelegate(context).Location); }));
+        }
+        
         
         /// <summary>
         /// This behavior quits attacking the mob, once the mob is targeting us.
@@ -152,6 +165,8 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-08:11UTC chinajade
         public Composite UtilityBehaviorPS_GetMobsAttention(ProvideWoWUnitDelegate selectedTargetDelegate)
         {
+            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+
             return new PrioritySelector(
                 new Action(context =>
                 {
@@ -176,15 +191,17 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <summary>
         /// Simple right-click interaction with the UNITTOINTERACT.
         /// </summary>
-        /// <param name="objectToInteract"></param>
+        /// <param name="interactObjectDelegate"></param>
         /// <returns></returns>
         // 24Feb2013-08:11UTC chinajade
-        public Composite UtilityBehaviorPS_InteractWithMob(ProvideWoWObjectDelegate objectToInteract)
+        public Composite UtilityBehaviorPS_InteractWithMob(ProvideWoWObjectDelegate interactObjectDelegate)
         {
+            ContractRequires(interactObjectDelegate != null, context => "interactObjectDelegate != null");
+
             return new PrioritySelector(
                 new Action(context =>
                 { 
-                    _ubpsInteractWithMob_WowObject = objectToInteract(context);
+                    _ubpsInteractWithMob_WowObject = interactObjectDelegate(context);
                     _ubpsInteractWithMob_AsWowUnit = _ubpsInteractWithMob_WowObject.ToUnit();
                     return RunStatus.Failure;   // fall through
                 }),
@@ -200,10 +217,8 @@ namespace Honorbuddy.QuestBehaviorCore
                             UtilityBehaviorPS_MoveTo(interactUnitContext => _ubpsInteractWithMob_WowObject.Location,
                                                      interactUnitContext => string.Format("interact with {0}", _ubpsInteractWithMob_WowObject.Name))),
 
-                        new Decorator(context => Me.IsMoving,
-                            new Action(context => { WoWMovement.MoveStop(); })),
-                        new Decorator(context => !Me.IsFacing(_ubpsInteractWithMob_WowObject.Location),
-                            new Action(context => { Me.SetFacing(_ubpsInteractWithMob_WowObject.Location); })),
+                        UtilityBehaviorPS_MoveStop(),
+                        UtilityBehaviorPS_FaceMob(context => _ubpsInteractWithMob_WowObject),
 
                         // Blindly interact...
                         // Ideally, we would blacklist the unit if the interact failed.  However, the HB API
@@ -268,10 +283,10 @@ namespace Honorbuddy.QuestBehaviorCore
         // 29Apr2013-05:20UTC chinajade
         public Composite UtilityBehaviorPS_MoveStop()
         {
-            return new Decorator(context => Me.IsMoving,
+            return new Decorator(context => MovementObserver.IsMoving,
                 new Sequence(
                     new Action(context => { Navigator.PlayerMover.MoveStop(); }),
-                    new Wait(Delay_LagDuration, context => !Me.IsMoving, new ActionAlwaysSucceed())
+                    new Wait(Delay_LagDuration, context => MovementObserver.IsMoving, new ActionAlwaysSucceed())
                 ));
         }
 
@@ -300,7 +315,7 @@ namespace Honorbuddy.QuestBehaviorCore
             ContractRequires(destinationDelegate != null, context => "locationRetriever may not be null");
             ContractRequires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
             precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-            locationObserver = locationObserver ?? (context => Me.Location);
+            locationObserver = locationObserver ?? (context => MovementObserver.Location);
 
             return new Decorator(context => MovementBy != MovementByType.None,
                 new PrioritySelector(
@@ -435,6 +450,8 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>24Feb2013-08:11UTC chinajade</remarks>
         public Composite UtilityBehaviorPS_SpankMob(ProvideWoWUnitDelegate selectedTargetDelegate)
         {
+            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+
             return new PrioritySelector(
                 new Action(context =>
                 {
@@ -529,6 +546,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                                     ProvideDoubleDelegate extraRangePaddingDelegate = null,
                                                                     Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
         {
+            ContractRequires(destinationDelegate != null, context => "destinationDelegate != null");
             extraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
             excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
 

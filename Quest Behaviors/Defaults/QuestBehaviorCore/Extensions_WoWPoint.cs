@@ -166,6 +166,24 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 29Apr2013-09:51UTC chinajade
+        public static double HeightOverGroundOrWater(this WoWPoint location, double probeDistance = 300.0)
+        {
+            WoWPoint hitLocation;
+            WoWPoint destination = location.Add(0.0, 0.0, -probeDistance);
+
+            var isObstructed = GameWorld.TraceLine(location, destination,
+                                                   GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures
+                                                   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid
+                                                   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
+                                                   out hitLocation);
+
+            return isObstructed
+                ? location.Distance(hitLocation)
+                : double.MaxValue;          
+        }
+        
+        
         /// <summary>
         /// Returns true, if ground is within DISTANCE _below_ you.
         /// </summary>

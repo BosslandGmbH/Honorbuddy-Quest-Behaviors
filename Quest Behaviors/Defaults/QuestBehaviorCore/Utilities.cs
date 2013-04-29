@@ -155,6 +155,20 @@ namespace Honorbuddy.QuestBehaviorCore
         private string _versionedBehaviorName = null;
         
         
+        /// <summary>
+        /// <para>The Movement observer is a vehicle, if we are in a vehicle.  Or "Me", if we are not.
+        /// The observer should be used to make all movement and distance decisions.</para>
+        /// <para>The returned value will never be null.</para>
+        /// </summary>
+        /// <remarks>29Apr2013-09:39UTC chinajade</remarks>
+        // A number of quests put us in the bodies of NPCs.  These bodies are frequently implemented
+        // as vehicles.  An example of such a quest is "SI:7 Report: Hostile Natives".
+        public static WoWUnit MovementObserver
+        {
+            get { return (Me.Transport as WoWUnit) ?? Me; }
+        }
+
+
         //  9Mar2013-12:34UTC chinajade
         public static string PrettyMoney(ulong totalCopper)
         {

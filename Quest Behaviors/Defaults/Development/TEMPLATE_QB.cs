@@ -10,7 +10,7 @@
 
 #region Summary and Documentation
 // QUICK DOX:
-// TEMPLATE.cs is a skeleton for creating new quest behaviors.
+// TEMPLATE_QB.cs is a skeleton for creating new quest behaviors.
 //
 // Quest binding:
 //      QuestId [REQUIRED if EscortCompleteWhen=QuestComplete; Default:none]:
@@ -33,7 +33,7 @@
 // THINGS TO KNOW:
 //
 // EXAMPLE:
-//     <CustomBehavior File="TEMPLATE" />
+//     <CustomBehavior File="TEMPLATE_QB" />
 #endregion
 
 #region Usings
@@ -55,7 +55,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
     [CustomBehaviorFileName(@"Development\TEMPLATE_QB")]
     public partial class TEMPLATE_QB : QuestBehaviorBase
     {
-        #region Consructor and Argument Processing
+        #region Constructor and Argument Processing
         public TEMPLATE_QB(Dictionary<string, string> args)
             : base(args)
         {
