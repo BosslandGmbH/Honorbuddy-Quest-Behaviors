@@ -482,14 +482,6 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
         public override void OnStart()
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-            if ((QuestId != 0) && (quest == null))
-            {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
-                IsAttributeProblem = true;
-            }
-
             _safespots = ParsePath("Safespots");
             if (_safespots.Count() <= 0)
             {
@@ -528,6 +520,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 25;
                 
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
                 TreeRoot.GoalText = string.Format(
                     "{0}: \"{1}\"\nLooting and Harvesting are disabled while event in progress",
                     this.GetType().Name,
