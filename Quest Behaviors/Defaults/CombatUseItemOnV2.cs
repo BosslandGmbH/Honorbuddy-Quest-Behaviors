@@ -496,6 +496,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                                 // we were trying to use it).
                                             }),
                                             new WaitContinue(TimeSpan.FromMilliseconds(500), context => false, new ActionAlwaysSucceed()),
+                                            new WaitContinue(TimeSpan.FromSeconds(15),
+                                                context => (ItemToUse == null) || !(Me.IsCasting || Me.IsChanneling),
+                                                new ActionAlwaysSucceed()),
                                             new Action(context =>
                                             {
                                                 SpellManager.ClickRemoteLocation(SelectedTarget.Location);
