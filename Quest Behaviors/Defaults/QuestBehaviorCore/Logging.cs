@@ -195,7 +195,16 @@ namespace Honorbuddy.QuestBehaviorCore
         ///  30Jun2012-15:58UTC chinajade
         public static void LogProfileError(string message, params object[] args)
         {
-            LogFatal("[PROFILE ERROR] {0}", string.Format(message, args));
+            var outMessage = string.Format(message, args);
+
+            if (BehaviorLoggingContext != null)
+            {
+                outMessage += string.Format("{0}    {1}",
+                    Environment.NewLine,
+                    GetProfileReference(BehaviorLoggingContext.Element));
+            }
+
+            LogFatal("[PROFILE ERROR] {0}", outMessage);
         }
         
         
