@@ -844,6 +844,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         {
             return
                 new PrioritySelector(
+                    new Decorator(context => IsDistanceGainNeeded(SelectedInteractTarget),
+                        UtilityBehaviorPS_MoveTo(
+                            context => GetPointToGainDistance(SelectedInteractTarget, RangeMin),
+                            context => string.Format("gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
+                                GetName(SelectedInteractTarget),
+                                SelectedInteractTarget.Entry,
+                                SelectedInteractTarget.Distance,
+                                RangeMin))),
+
                     new Decorator(context => IsDistanceCloseNeeded(SelectedInteractTarget),
                         new PrioritySelector(
                             new Decorator(context => MovementBy == MovementByType.NavigatorOnly
@@ -868,32 +877,17 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             UtilityBehaviorPS_MoveTo(
                                 context => SelectedInteractTarget.Location,
                                 context => string.Format("interact with {0} (id: {1}, dist: {2:F1}{3})",
-                                    GetName(SelectedInteractTarget),
-                                    SelectedInteractTarget.Entry,
-                                    SelectedInteractTarget.Distance,
-                                    IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS")))
+                                                        GetName(SelectedInteractTarget),
+                                                        SelectedInteractTarget.Entry,
+                                                        SelectedInteractTarget.Distance,
+                                                        IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS")))
                         ),
 
-                    new Decorator(context => IsDistanceGainNeeded(SelectedInteractTarget),
-                        UtilityBehaviorPS_MoveTo(
-                            context => GetPointToGainDistance(SelectedInteractTarget, RangeMin),
-                            context => string.Format("gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
-                                GetName(SelectedInteractTarget),
-                                SelectedInteractTarget.Entry,
-                                SelectedInteractTarget.Distance,
-                                RangeMin))),
-
-                    // Pre-interact (dis)mount strategy...
-                    UtilityBehaviorPS_ExecuteMountStrategy(context => PreInteractMountStrategy),
-                                    
                     // Prep to interact...
-                    new Decorator(context => Me.IsMoving,
-                        new Sequence(
-                            new Action(context => { WoWMovement.MoveStop(); }),
-                            new WaitContinue(Delay_LagDuration, context => !Me.IsMoving, new ActionAlwaysSucceed())
-                        )),
+                    UtilityBehaviorPS_MoveStop(),
+                    UtilityBehaviorPS_ExecuteMountStrategy(context => PreInteractMountStrategy),                                    
                     new Decorator(context => !Me.IsSafelyFacing(SelectedInteractTarget),
-                        new Action  (context => { Me.SetFacing(SelectedInteractTarget.Location); }))              
+                        new Action(context => { Me.SetFacing(SelectedInteractTarget.Location); }))           
             );
         }
 

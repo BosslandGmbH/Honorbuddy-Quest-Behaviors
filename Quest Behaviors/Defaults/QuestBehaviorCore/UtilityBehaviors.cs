@@ -264,6 +264,17 @@ namespace Honorbuddy.QuestBehaviorCore
                     ));
         }
 
+        
+        // 29Apr2013-05:20UTC chinajade
+        public Composite UtilityBehaviorPS_MoveStop()
+        {
+            return new Decorator(context => Me.IsMoving,
+                new Sequence(
+                    new Action(context => { Navigator.PlayerMover.MoveStop(); }),
+                    new Wait(Delay_LagDuration, context => !Me.IsMoving, new ActionAlwaysSucceed())
+                ));
+        }
+
 
         // 22Apr2013-12:45UTC chinajade
         public Composite UtilityBehaviorPS_MoveTo(ProvideHuntingGroundsDelegate huntingGroundsProvider)
@@ -300,7 +311,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     }),
                     UtilityBehaviorPS_MountAsNeeded(destinationDelegate, suppressMountUse),
 
-                    new Decorator(context => (locationObserver(context).Distance((_ubpsMoveTo_Location)) > precisionDelegate(context)),
+                    new Decorator(context => (locationObserver(context).Distance(_ubpsMoveTo_Location) > precisionDelegate(context)),
                         new Sequence(
                             new CompositeThrottleContinue(TimeSpan.FromMilliseconds(1000),
                                 new Action(context => { TreeRoot.StatusText = "Moving to " + (destinationNameDelegate(context) ?? _ubpsMoveTo_Location.ToString()); })),
@@ -435,29 +446,26 @@ namespace Honorbuddy.QuestBehaviorCore
                         new Decorator(context => Me.CurrentTarget != _ubpsSpankMob_Mob,
                             new Action(context =>
                             {
-                                // NB: We target the mob before setting the POI.Kill.  This makes
-                                // Combat Routines happier.
                                 _ubpsSpankMob_Mob.Target();
                                 BotPoi.Current = new BotPoi(_ubpsSpankMob_Mob, PoiType.Kill);
                                 return RunStatus.Failure; // fall through
                             })),
-/*TODO*/                        new Decorator(context => true, // !Me.Combat,
-                            new PrioritySelector(
-                                // NB: Some Combat Routines (CR) will stall when asked to kill things from too far away.
-                                // So, we manually move the toon within reasonable range before asking the CR to kill it.
-                                // Note that some behaviors will set the PullDistance to zero or one while they run, but we don't want to
-                                // actually get that close to engage, so we impose a lower bound of 23 feet that we move before handing
-                                // things over to the combat routine.
-                                new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
-                                    UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
-                                                             context => _ubpsSpankMob_Mob.Name)),
-                                new Decorator(context => Me.Mounted,
-                                    new Action(context => { Mount.Dismount(); })),
-                                new Decorator(context => RoutineManager.Current.CombatBehavior != null,
-                                    RoutineManager.Current.CombatBehavior),
-                                new Action(context => { RoutineManager.Current.Combat(); })
-                            ))
-                    )));
+
+                        // NB: Some Combat Routines (CR) will stall when asked to kill things from too far away.
+                        // So, we manually move the toon within reasonable range before asking the CR to kill it.
+                        // Note that some behaviors will set the PullDistance to zero or one while they run, but we don't want to
+                        // actually get that close to engage, so we impose a lower bound of 23 feet that we move before handing
+                        // things over to the combat routine.
+                        new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
+                            UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
+                                                    context => _ubpsSpankMob_Mob.Name)),
+                        new Decorator(context => Me.Mounted,
+                            new Action(context => { Mount.Dismount(); })),
+                        new Decorator(context => RoutineManager.Current.CombatBehavior != null,
+                            RoutineManager.Current.CombatBehavior),
+                        new Action(context => { RoutineManager.Current.Combat(); })
+                    ))
+                );
         }
         private WoWUnit _ubpsSpankMob_Mob;
 
