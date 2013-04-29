@@ -478,9 +478,16 @@ namespace Honorbuddy.QuestBehaviorCore
                                                     context => _ubpsSpankMob_Mob.Name)),
                         new Decorator(context => Me.Mounted,
                             new Action(context => { Mount.Dismount(); })),
-                        new Decorator(context => RoutineManager.Current.CombatBehavior != null,
-                            RoutineManager.Current.CombatBehavior),
-                        new Action(context => { RoutineManager.Current.Combat(); })
+
+                        // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
+                        // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
+                        // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
+                        // So, no need to duplicate that work here.
+                        new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
+                            RoutineManager.Current.HealBehavior),
+                        new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
+                            RoutineManager.Current.CombatBuffBehavior),
+                        RoutineManager.Current.CombatBehavior
                     ))
                 );
         }
@@ -542,6 +549,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private WoWUnit _ubpsSpankMobTargetingUs_Mob;
 
 
+        // 24Feb2013-08:11UTC chinajade
         public Composite UtilityBehaviorPS_SpankMobWithinAggroRange(ProvideWoWPointDelegate destinationDelegate,
                                                                     ProvideDoubleDelegate extraRangePaddingDelegate = null,
                                                                     Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
