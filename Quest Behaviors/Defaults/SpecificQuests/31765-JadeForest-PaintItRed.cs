@@ -200,10 +200,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
 
         }
 
+        public Composite EnsureTarget
+        {
+            get
+            {
+                return new Decorator(r=> Me.GotTarget && !Me.CurrentTarget.IsHostile, new Action(r=>Me.ClearTarget()));
+            }
+        }
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, KillSoldier, KillCannon)));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,EnsureTarget, KillSoldier, KillCannon)));
         }
     }
 }
