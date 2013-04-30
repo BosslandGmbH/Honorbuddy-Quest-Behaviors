@@ -43,7 +43,8 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 TurnInId = GetAttributeAsNullable<int>("TurnInId", true, ConstrainAs.MobId, null) ?? 0;
-                TurnInLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                TurnInName = GetAttributeAs<string>("TurnInName", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+				TurnInLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
             }
 
             catch (Exception except)
@@ -67,6 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public int TurnInId { get; private set; }
+		public string TurnInName { get; private set; }
         public WoWPoint TurnInLocation { get; private set; }
 
         // Private properties
@@ -156,7 +158,7 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInLocation);
+                QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInName, TurnInLocation);
 
                 if (QuestTurnIn == null)
                 { LogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
