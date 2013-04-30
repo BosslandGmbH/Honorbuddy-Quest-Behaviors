@@ -8,9 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using CommonBehaviors.Actions;
-using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
@@ -20,13 +18,12 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.ArgentTournament.GetKraken
+namespace Styx.Bot.Quest_Behaviors
 {
-    [CustomBehaviorFileName(@"ArgentTournament\GetKraken")]
+[CustomBehaviorFileName(@"ArgentTournament\GetKraken")]
     public class GetKraken : CustomForcedBehavior
     {
         ~GetKraken()
@@ -170,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.GetKraken
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write("[Pet] Casting {0}", action);
+            Logging.Write(string.Format("[Pet] Casting {0}", action));
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }

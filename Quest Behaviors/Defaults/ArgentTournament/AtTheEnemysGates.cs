@@ -8,9 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using CommonBehaviors.Actions;
-using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -22,17 +20,18 @@ using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.ArgentTournament.AtTheEnemysGates
+
+namespace Styx.Bot.Quest_Behaviors
 {
-    [CustomBehaviorFileName(@"ArgentTournament\AtTheEnemysGates")]
-    public class AtTheEnemysGate : CustomForcedBehavior
+	[CustomBehaviorFileName(@"ArgentTournament\AtTheEnemysGates")]
+    public class EnemysGate : CustomForcedBehavior
     {
-        ~AtTheEnemysGate()
+        ~EnemysGate()
         {
             Dispose(false);
         }
 
-        public AtTheEnemysGate(Dictionary<string, string> args)
+        public EnemysGate(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -67,6 +66,8 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.AtTheEnemysGates
         }
 
         uint[] Mounts = new uint[]{34125};
+        private uint[] Enemy;// = new uint[] { 33384, 33306,33285,33382,33383};
+        private uint[] EnemyDebuff;// = new uint[] { 64816, 64811, 64812, 64813, 64815 };
 
         WoWItem HordeLance()
         {
@@ -185,7 +186,7 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.AtTheEnemysGates
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write("[Pet] Casting {0}", action);
+            Logging.Write(string.Format("[Pet] Casting {0}", action));
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }

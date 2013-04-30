@@ -8,26 +8,25 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using Bots.Quest;
 using CommonBehaviors.Actions;
-using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Database;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.ArgentTournament.SpecialTurnIn
+
+namespace Styx.Bot.Quest_Behaviors
 {
-    [CustomBehaviorFileName(@"ArgentTournament\SpecialTurnIn")]
+[CustomBehaviorFileName(@"ArgentTournament\SpecialTurnIn")]
     public class SpecialTurnIn : CustomForcedBehavior
     {
         ~SpecialTurnIn()
@@ -221,9 +220,9 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.SpecialTurnIn
             }
             if (!QuestManager.GossipFrame.IsVisible)
             {
-               /* if (QuestManager.QuestFrame.IsVisible)
+                if (QuestManager.QuestFrame.IsVisible)
                 {
-                    List<uint> quests = QuestManager.QuestFrame.Quests;
+                    List<uint> quests = QuestManager.QuestFrame.ActiveQuests.Select(r=>(uint)r.Id).ToList();
                     if ((QuestId != -1) && !quests.Contains((uint) QuestId))
                     {
                         QuestManager.QuestFrame.Close();
@@ -241,7 +240,7 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.SpecialTurnIn
                             }
                         }
                     }
-                }*/
+                }
             }
             else
             {
@@ -250,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.SpecialTurnIn
                 {
                     if ((QuestId == -1) || (activeQuests[j].Id == QuestId))
                     {
-                        PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) activeQuests[j].Id);
+                        PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)activeQuests[j].Id);
                         if ((QuestId != -1) || quest.IsCompleted)
                         {
                             QuestManager.GossipFrame.SelectActiveQuest(activeQuests[j].Index);

@@ -8,9 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using CommonBehaviors.Actions;
-using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -19,21 +17,22 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.ArgentTournament.BattleofTheCitadel
-{
+
+namespace Styx.Bot.Quest_Behaviors
+{	
+
     [CustomBehaviorFileName(@"ArgentTournament\BattleofTheCitadel")]
-    public class Citadel : CustomForcedBehavior
+    public class BattleofTheCitadel : CustomForcedBehavior
     {
-        ~Citadel()
+        ~BattleofTheCitadel()
         {
             Dispose(false);
         }
 
-        public Citadel(Dictionary<string, string> args)
+        public BattleofTheCitadel(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -68,6 +67,8 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.BattleofTheCitadel
         }
 
         uint[] Mounts = new uint[]{34125};
+        private uint[] Enemy;// = new uint[] { 33384, 33306,33285,33382,33383};
+        private uint[] EnemyDebuff;// = new uint[] { 64816, 64811, 64812, 64813, 64815 };
 
         WoWItem HordeLance()
         {
@@ -186,7 +187,7 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.BattleofTheCitadel
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write("[Pet] Casting {0}", action);
+            Logging.Write(string.Format("[Pet] Casting {0}", action));
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }
@@ -427,11 +428,12 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.BattleofTheCitadel
                                                                              {
                                                                                  if (Me.CurrentTarget.Distance > 8)
                                                                                      Me.CurrentTarget.Face();
-                                                                                 
+                                                                                 using (StyxWoW.Memory.AcquireFrame())
+                                                                                 {
                                                                                      UsePetSkill("Thrust");
                                                                                      UsePetSkill("Charge");
                                                                                      UsePetSkill("Shield-Breaker");
-                                                                                 
+                                                                                 }
                                                                              }
 
                                                                          }

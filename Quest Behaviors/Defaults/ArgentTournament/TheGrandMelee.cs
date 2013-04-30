@@ -4,29 +4,29 @@
 //     
 //
 
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
+using Bots.Quest;
 using CommonBehaviors.Actions;
-using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Database;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.ArgentTournament.TheGrandMelee
+
+namespace Styx.Bot.Quest_Behaviors
 {
-    [CustomBehaviorFileName(@"ArgentTournament\TheGrandMelee")]
+[CustomBehaviorFileName(@"ArgentTournament\TheGrandMelee")]
     public class TheGrandMelee : CustomForcedBehavior
     {
         ~TheGrandMelee()
@@ -179,7 +179,7 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.TheGrandMelee
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write("[Pet] Casting {0}", action);
+            Logging.Write(string.Format("[Pet] Casting {0}", action));
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }
@@ -312,11 +312,12 @@ namespace Honorbuddy.Quest_Behaviors.ArgentTournament.TheGrandMelee
                                                                      {
                                                                          if (Me.CurrentTarget.Distance > 8)
                                                                                 Me.CurrentTarget.Face();
-                                                                         
+                                                                         using (StyxWoW.Memory.AcquireFrame())
+                                                                         {
                                                                              UsePetSkill("Thrust");
                                                                              UsePetSkill("Charge");
                                                                              UsePetSkill("Shield-Breaker");
-                                                                         
+                                                                         }
                                                                      }
                                                                  }
                         ))
