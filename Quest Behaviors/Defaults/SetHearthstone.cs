@@ -64,6 +64,8 @@ namespace Honorbuddy.Quest_Behaviors.SetHearthstone
 
         public override void OnStart()
         {
+            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
+
             TreeRoot.GoalText = _goalText;
             Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmBinder);
         }

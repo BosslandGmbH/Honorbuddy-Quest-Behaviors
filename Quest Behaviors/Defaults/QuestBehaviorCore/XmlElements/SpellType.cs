@@ -12,24 +12,22 @@ using System;
 using System.Text;
 using System.Xml.Linq;
 
-using Styx;
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
-    public class WaypointType : QuestBehaviorXmlBase
+    public class SpellType : QuestBehaviorXmlBase
     {        
-        public WaypointType(XElement xElement)
+        public SpellType(XElement xElement)
             : base(xElement)
         {
             try
             {
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-                Radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
+                SpellId = GetAttributeAsNullable<int>("SpellId", true, ConstrainAs.SpellId, null) ?? 0;
 
                 if (string.IsNullOrEmpty(Name))
-                    { Name = GetDefaultName(Location); }
+                    { Name = GetDefaultName(SpellId); }
 
                 HandleAttributeProblem();
             }
@@ -46,16 +44,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
         }
 
-        public WaypointType(WoWPoint location, string name = "", double radius = 10.0)
+        public SpellType(int spellId, string name = null)
         {
-            Location = location;
-            Name = name ?? GetDefaultName(location);
-            Radius = radius;
+            Name = name ?? GetDefaultName(SpellId);
+            SpellId = spellId;
         }
 
-        public WoWPoint Location { get; set; }
         public string Name { get; set; }
-        public double Radius { get; set; }
+        public int SpellId { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -75,19 +71,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var indent = string.Empty.PadLeft(indentLevel);
             var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
-            tmp.AppendFormat("<WaypointType");
-            tmp.AppendFormat("{0}Location=\"{1}\"", fieldSeparator, Location);
+            tmp.AppendFormat("<Spell");
+            tmp.AppendFormat("{0}SpellId=\"{1}\"", fieldSeparator, SpellId);
             tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
-            tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, Radius);
             tmp.AppendFormat("{0}/>", fieldSeparator);
 
             return tmp.ToString();
         }
 
 
-        private string GetDefaultName(WoWPoint wowPoint)
+        private string GetDefaultName(int spellId)
         {
-            return string.Format("Waypoint({0})", wowPoint.ToString());   
+            return string.Format("SpellId({0})", spellId);
         }
     }
 }

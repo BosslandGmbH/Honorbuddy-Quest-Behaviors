@@ -56,7 +56,6 @@
   <ItemGroup>
     <Compile Include="AbandonQuest.cs" />
     <Compile Include="ArgentTournament\AtTheEnemysGates.cs" />
-    <Compile Include="ArgentTournament\BattleBeforeTheCitadel.cs" />
     <Compile Include="ArgentTournament\BattleofTheCitadel.cs" />
     <Compile Include="ArgentTournament\GetKraken.cs" />
     <Compile Include="ArgentTournament\SpecialTurnIn.cs" />
@@ -66,14 +65,17 @@
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
     <Compile Include="CollectThings2.cs" />
-    <Compile Include="ForcedDismount2.cs" />
+    <Compile Include="CollectThings3.cs" />
     <Compile Include="NoControlVehicle.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityBehaviors2.cs" />
     <Compile Include="QuestBehaviorCore\Queries_Database.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorCoreSettings.cs" />
     <Compile Include="QuestBehaviorCore\UtilitiesDeprecation.cs" />
     <Compile Include="QuestBehaviorCore\Types.cs" />
     <Compile Include="QuestBehaviorCore\Extensions_WoWUnit.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorBase.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\SwimBreathType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\SpellType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SafePathType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\HuntingGroundsType.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorXmlBase.cs" />
@@ -134,6 +136,8 @@
     <Compile Include="MrFishIt.cs" />
     <Compile Include="MyCTM.cs" />
     <Compile Include="NoCombatMoveTo.cs" />
+    <Compile Include="SpecificQuests\28113-Felwood-BreaktheUnbreakable.cs" />
+    <Compile Include="TaxiRide.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
     <Compile Include="Vehicles\NoControlVehicle.cs" />
     <Compile Include="NPCAssistance.cs" />
@@ -278,6 +282,8 @@
     <Content Include="Development\Unit Tests\InteractWith\InteractWith-MerchantBuyWrongItem.xml" />
     <Content Include="Development\Unit Tests\UseItemOn\UseItemOn-ExtinguishingHope.xml" />
     <Content Include="Development\Unit Tests\UserSettings\UserSettings Test.xml" />
+    <Content Include="QuestBehaviorCore\Data\PluginCategory.xml" />
+    <Content Include="QuestBehaviorCore\Data\SwimBreath.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>

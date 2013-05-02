@@ -215,7 +215,7 @@ namespace Honorbuddy.QuestBehaviorCore
         };        
         
         // 24Feb2013-08:11UTC chinajade
-        public bool IsViable(WoWObject wowObject)
+        public static bool IsViable(WoWObject wowObject)
         {
             return
                 (wowObject != null)

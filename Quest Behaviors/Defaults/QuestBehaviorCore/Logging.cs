@@ -12,6 +12,7 @@
 using System;
 using System.Diagnostics;
 using System.Windows.Media;
+using System.Xml.Linq;
 
 using Styx.Common;
 using Styx.CommonBot;
@@ -97,6 +98,33 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 30Apr2013-06:20UTC chinajade
+        public static string BuildLogMessage(string messageType, string format, params object[] args)
+        {
+            var versionedBehaviorName =
+                (BehaviorLoggingContext != null)
+                    ? GetVersionedBehaviorName(BehaviorLoggingContext)
+                    : string.Empty;
+                                    
+            return string.Format("[{0}({1})] {2}",
+                versionedBehaviorName,
+                messageType,
+                BuildMessageWithContext(null, format, args));           
+        }
+
+
+        // 30Apr2013-06:20UTC chinajade
+        public static string BuildMessageWithContext(XElement xElement, string format, params object[] args)
+        {
+            var context =
+                (xElement != null)
+                    ? string.Format("{0}    {1}", Environment.NewLine, GetXmlFileReference(xElement))
+                    : string.Empty;
+                                    
+            return string.Format("{0}{1}", string.Format(format, args), context);           
+        }
+        
+        
         /// <summary>
         /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
         /// </summary>
@@ -104,13 +132,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="args"></param>
         public static void LogDeveloperInfo(string message, params object[] args)
         {
-            if (BehaviorLoggingContext != null)
-            {
-                BehaviorLoggingContext.LogMessage("debug", message, args);
-                return;
-            }
-            
-            Logging.WriteDiagnostic(Colors.LimeGreen, message, args);
+            Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", message, args));
         }
         
         
@@ -121,13 +143,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="args"></param>
         public static void LogError(string message, params object[] args)
         {
-            if (BehaviorLoggingContext != null)
-            {
-                BehaviorLoggingContext.LogMessage("error", message, args);
-                return;
-            }
-            
-            Logging.Write(Colors.Red, message, args);
+            Logging.Write(Colors.Red, BuildLogMessage("error", message, args));
         }
            
         
@@ -138,13 +154,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="args"></param>
         public static void LogFatal(string message, params object[] args)
         {
-            if (BehaviorLoggingContext != null)
-            {
-                BehaviorLoggingContext.LogMessage("fatal", message, args);
-                return;
-            }
-            
-            Logging.Write(Colors.Red, message, args);
+            Logging.Write(Colors.Red, BuildLogMessage("fatal", message, args));
             TreeRoot.Stop("Fatal error in quest behavior, or profile.");
         }
         
@@ -156,13 +166,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="args"></param>
         public static void LogInfo(string message, params object[] args)
         {
-            if (BehaviorLoggingContext != null)
-            {
-                BehaviorLoggingContext.LogMessage("info", message, args);
-                return;
-            }
-            
-            Logging.Write(Colors.CornflowerBlue, message, args);
+            Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", message, args));
         }
         
         
@@ -215,13 +219,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="args"></param>
         public static void LogWarning(string message, params object[] args)
         {
-            if (BehaviorLoggingContext != null)
-            {
-                BehaviorLoggingContext.LogMessage("warning", message, args);
-                return;
-            }
-
-            Logging.Write(Colors.DarkOrange, message, args);
+            Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", message, args));
         }
 
 

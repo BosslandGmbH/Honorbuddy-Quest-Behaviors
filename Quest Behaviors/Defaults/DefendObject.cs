@@ -123,7 +123,7 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
 
         public override void OnStart()
         {
-            
+            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "EscortGroup");
         }
 
         private void PopulateList()

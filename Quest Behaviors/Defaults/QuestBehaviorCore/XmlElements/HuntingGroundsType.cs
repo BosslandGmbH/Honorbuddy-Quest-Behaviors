@@ -39,22 +39,17 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
                 Waypoints = new List<WaypointType>();
 
-                int unnamedWaypointNumber = 0;
                 foreach (XElement childElement in xElement.Elements().Where(elem => (elem.Name == "Hotspot")))
                 {
                     var waypoint = new WaypointType(childElement);
 
                     if (!waypoint.IsAttributeProblem)
-                    {
-                        if (string.IsNullOrEmpty(waypoint.Name))
-                            {  waypoint.Name = string.Format("UnnamedWaypoint{0}", ++unnamedWaypointNumber); }
-                        Waypoints.Add(waypoint);
-                    }
+                        { Waypoints.Add(waypoint); }
 
                     IsAttributeProblem |= waypoint.IsAttributeProblem;
                 }
 
-                OnStart_HandleAttributeProblem();
+                HandleAttributeProblem();
             }
 
             catch (Exception except)
@@ -78,7 +73,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #endregion
 
         #region Private and Convenience variables
-        private WaypointType _currentWaypoint = null;
+        private WaypointType _currentWaypoint;
         private readonly WaypointType _initialPositionWaypoint = new WaypointType(StyxWoW.Me.Location, "my initial position");
         #endregion
 

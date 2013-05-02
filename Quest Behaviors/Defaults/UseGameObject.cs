@@ -185,6 +185,8 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
 
         public override void OnStart()
         {
+            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
+
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.

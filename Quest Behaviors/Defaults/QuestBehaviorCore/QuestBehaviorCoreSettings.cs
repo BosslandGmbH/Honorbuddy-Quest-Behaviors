@@ -99,6 +99,13 @@ namespace Honorbuddy.QuestBehaviorCore
         [DisplayName("Log Notify on Deprecated Behavior Use")]
         [Description("Emits a message to the Log, when a profile uses a deprecated behavior.")]
         public bool LogNotifyOn_OnDeprecatedBehaviorUse { get; set; }
+
+        [Setting]
+        [DefaultValue(true)]
+        [Category("Warnings")]
+        [DisplayName("Log and Audible Notification on behaviors planned for deprecation")]
+        [Description("Emits a message to the Log and chimes, when a profile uses a behavior scheduled for deprecation.")]
+        public bool LogNotifyOn_OnScheduledForDeprecation { get; set; }
         #endregion
     }
 }

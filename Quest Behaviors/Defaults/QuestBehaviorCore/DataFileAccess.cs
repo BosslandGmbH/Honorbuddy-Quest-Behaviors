@@ -12,8 +12,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Xml.Linq;
 
+using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx.Helpers;
 #endregion
 
@@ -44,30 +46,36 @@ namespace Honorbuddy.QuestBehaviorCore
                 return occupiedVehicleAuraIds;
             }
 
-            XDocument xDoc = XDocument.Load(auraDataFileName);
+            XDocument xDoc = XDocument.Load(auraDataFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
 
-            foreach (XElement aura in xDoc.Descendants("Auras").Elements())
+            foreach (var childElement in xDoc.Descendants("Aura"))
             {
-                string elementAsString = aura.ToString();
+                var aura = new SpellType(childElement);
 
-                XAttribute spellIdAttribute = aura.Attribute("SpellId");
-                if (spellIdAttribute == null)
-                {
-                    LogError("Unable to locate SpellId attribute for {0}", elementAsString);
-                    continue;
-                }
-
-                int auraSpellId;
-                if (!int.TryParse(spellIdAttribute.Value, out auraSpellId))
-                {
-                    LogError("Unable to parse SpellId attribute for {0}", elementAsString);
-                    continue;
-                }
-
-                occupiedVehicleAuraIds.Add(auraSpellId);
+                if (!aura.IsAttributeProblem)
+                    { occupiedVehicleAuraIds.Add(aura.SpellId); }
             }
 
             return occupiedVehicleAuraIds;
+        }
+
+
+        // 30Apr2013-09:09UTC chinajade
+        public static SwimBreathType GetSwimBreathInfo()
+        {
+            string swimBreathFileName = GetDataFileFullPath("SwimBreath.xml");
+
+            if (!File.Exists(swimBreathFileName))
+            {
+                LogWarning("Unable to locate Swim Breath database (in {0}).  Will only be able to catch breath"
+                            + " at water's surface.",
+                    swimBreathFileName);
+                return null;
+            }
+
+            XDocument xDoc = XDocument.Load(swimBreathFileName, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+
+            return new SwimBreathType(xDoc.Elements("SwimBreath").FirstOrDefault());
         }
 
 

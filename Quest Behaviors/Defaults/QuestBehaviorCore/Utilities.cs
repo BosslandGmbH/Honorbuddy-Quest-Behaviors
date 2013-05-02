@@ -13,10 +13,14 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Xml;
+using System.Xml.Linq;
 
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.WoWInternals;
@@ -64,7 +68,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 20Apr2013-12:50UTC chinajade
-        public string GetItemNameFromId(int wowItemId)
+        public static string GetItemNameFromId(int wowItemId)
         {
             var wowItem = Me.CarriedItems.FirstOrDefault(i => (i.Entry == wowItemId));
 
@@ -75,9 +79,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 11Apr2013-04:41UTC chinajade
-        public string GetObjectNameFromId(int wowObjectId)
+        public static string GetObjectNameFromId(int wowObjectId)
         {
-            var wowObject = FindObjectsFromIds(ToEnumerable<int>(wowObjectId)).FirstOrDefault();
+            var wowObject =
+                ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                .FirstOrDefault(o => IsViable(o) && (o.Entry == wowObjectId));
 
             return (wowObject != null)
                 ? wowObject.Name
@@ -136,25 +142,68 @@ namespace Honorbuddy.QuestBehaviorCore
         private static WoWPoint _gainDistancePoint;
 
 
-        // 25Apr2013-11:42UTC chinajade
-        public string GetVersionedBehaviorName()
+        // 19Apr2013-05:58UTC chinajade
+        public static string GetProfileName()
         {
+            return ProfileManager.CurrentOuterProfile.Name ?? "UnknownProfile";
+        }
+
+
+        // 20Apr2013-01:23UTC chinajade
+        public static string GetProfileReference(XElement xElement)
+        {
+            var location =
+                ((xElement != null) && ((IXmlLineInfo)xElement).HasLineInfo())
+                ? ("@line " + ((IXmlLineInfo)xElement).LineNumber.ToString())
+                : "@unknown line";   
+ 
+            return string.Format("[Ref: \"{0}\" {1}]", GetProfileName(), location);
+        }
+        
+
+        // 25Apr2013-11:42UTC chinajade
+        public static string GetVersionedBehaviorName(CustomForcedBehavior cfb)
+        {
+            if (_versionedBehaviorLastCfb == cfb)
+                { return _versionedBehaviorName; }
+
             Func<string, string>    utilStripSubversionDecorations =
-                (subversionString) =>
+                (subversionRevision) =>
                 {
                     var regexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
 
-                    return regexSvnDecoration.Replace(subversionString, "$1").Trim();
+                    return regexSvnDecoration.Replace(subversionRevision, "$1").Trim();
                 };
 
-            return _versionedBehaviorName ?? (_versionedBehaviorName = 
-                string.Format("{0}-v{1}",
-                    GetType().Name,
-                    utilStripSubversionDecorations(SubversionRevision)));
+            var behaviorName = (cfb != null) ? cfb.GetType().Name : "UnknownBehavior";
+            var versionNumber = (cfb != null) ? utilStripSubversionDecorations(cfb.SubversionRevision) : "0";
+
+            _versionedBehaviorLastCfb = cfb;
+            _versionedBehaviorName = string.Format("{0}-v{1}", behaviorName, versionNumber);
+
+            return _versionedBehaviorName;
         }       
-        private string _versionedBehaviorName = null;
+        private static string _versionedBehaviorName;
+        private static CustomForcedBehavior _versionedBehaviorLastCfb;        
         
-        
+
+        //  1May2013-07:49UTC chinajade
+        public static string GetXmlFileReference(XElement xElement)
+        {
+            string fileLocation =
+                ((xElement == null) || string.IsNullOrEmpty(xElement.BaseUri))
+                    ? QuestBehaviorBase.GetProfileName()
+                    : xElement.BaseUri;
+
+            var lineLocation =
+                ((xElement != null) && ((IXmlLineInfo)xElement).HasLineInfo())
+                ? ("@line " + ((IXmlLineInfo)xElement).LineNumber.ToString())
+                : "@unknown line";
+
+            return string.Format("[Ref: \"{0}\" {1}]", fileLocation, lineLocation);
+        }
+
+
         /// <summary>
         /// <para>The Movement observer is a vehicle, if we are in a vehicle.  Or "Me", if we are not.
         /// The observer should be used to make all movement and distance decisions.</para>
@@ -216,7 +265,7 @@ namespace Honorbuddy.QuestBehaviorCore
             TreeRoot.GoalText = string.Format(
                 "{1}: \"{2}\"{0}{3}{0}{0}{4}",
                 Environment.NewLine,
-                GetVersionedBehaviorName(),
+                GetVersionedBehaviorName(this),
                 ((quest != null)
                     ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
                     : "In Progress (no associated quest)"),

@@ -16,57 +16,18 @@
 
 * CollectThings
 	* Needs to be adapted to new QuestBehaviorCore framework
-	* Needs to tell why its 'waiting for mobs to respawn'
-
-* CombatUseItemOnV2
-	+ hi chinajade, im at work , thats why im using forum PM
-		the CombatUseItemOnV2 its realy better than CombatUseItemOn and i always try use it but in my opinion have one problem than old CombatUseItemOn dont have its the simple use item.
-		Some quests request toon to use item (some on mob some just use it) but dont apply aura, examples
-		use item= remove elite status
-		use item= change mob
-		use item=char obtain 1 flask
-		use item= etc etc
-		the old CombatUseItemOn can do that but... cant add 2 or more Hotspots, and the important thing cant work underwater
-		your CombatUseItemOnV2 can have 2 or more hotspots ( wich is amazing) can go underwater ( wich is magnifique) but cant work without aura.
-		what about if you add one option like SingleUseItem="True" and behavior ignore auras etc like this:
-		mobhealth=30% usetimes="10" SingleUseItem="True"
-
-QB will use item 10 times on mob when have less than 30% and close behavior after that 
+	* Needs to tell why its 'waiting for mobs to respawn' 
 
 * InteractWith testing needed:
 	+ Rework InteractWith to use items and interact during combat
 		A good test is "Nature's Repisal" a level 7 Night Elf quest conducted in a cave with bad LoS issues.
 		Use Natfoth profile and switch out UseItemTargetLocation for this quest.
 	+ If MobState="Dead" specified, and alive targets in area, help them get "Dead" so we can interact.
-	+ Target not being temporarily blacklisted after UsingItem.
 	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Needs a timer that blacklists target for a bit, if it can't be interacted with within a reasonable period of time.
-	+ Needs to help out with "randomized" daily quests: SelectGossipAvailableQuest(GetNumGossipAvailableQuests())
-	+ found a problem with interactwith, its not a big deal nothing hurgent but isnt working like expected. Some time the normal turnin doesnt work because mob/object
-	  its too far away and bot cant reach it, usualy i use interactwith to open the window then i use lua run macro click gossipcompletequest. tested the interactwith with option to turn in quest  and ranged=15, bot still want run to near object (distance 4 i think), so bot ignored my range 15 with option to turn in
-		How do you turn in from 15 feet away when interact range is 4.75 feet?
-		some mobs/object doesnt work with short distance
-		for turnin quest, let me explain think about one large stone the stone have like 30 yards FAT, the turn in cant reach middle of stone
-		because midle its 15 yards away from bot
-		this works:
-			<CustomBehavior File="InteractWith" MobId="195600" ObjectType="GameObject" Range="14" X="-183.6784" Y="1117.673" Z="90.28101" />
-			<CustomBehavior File="RunMacro" Macro="/click QuestFrameCompleteQuestButton" NumOfTimes="1" WaitTime="1000" />
-		this not
-			<CustomBehavior File="InteractWith" MobId="195600" ObjectType="GameObject" Range="14" InteractByQuestFrameDisposition="Complete" X="-183.6784" Y="1117.673" Z="90.28101" />
-		if i use the InteractByQuestFrameDisposition="Complete" with range=14 doesnt work
-		if i use only interact works
-	  (Requested to see log next time it happens--could be exceptions being thrown from anywhere).
 	+ Giwin claims InteractWith doesn't work underwater
 		+ See: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/116066-interactwith-not-working-underwater.html#post1126570
 		+ Example he gave Frederick's Fish Fancy - Quest - World of Warcraft (http://www.thebuddyforum.com/redirect-to/?redirect=http%3A%2F%2Fwww.wowhead.com%2Fquest%3D27450%2Ffredericks-fish-fancy).
-
-	+ TheBrodieMan 2013Apr14
-		came across an issue with IW while coding the PvP quests in IoT. Theres a bomb that needs to be placed by IW'ing with a mark on a wall.
-		he wall has a lip over it. Im not sure if its the proximity to water or the lip, bu IW won't click on it, says "NoLoS" even though it 
-		is clickable (and seeable) from where we stand. Problem persists both water walking, floating, and swimming.
-		any way to "ignore" LoS so it will click regardless?
-		Think i found the issue: Object saying interact range is 2 yds. I have Range set to 5 in the CB. Closest you can get to it is 3.5 yds
-		(wall and environment prevents closer) and its still clickable...am i screwed cuz of WoW?
 	+ TheBrodieMan 2013Apr15
 		rechecked my IW code for 2 click item use. Range was set to 15. Unfortunately it moves to point blank before attempting.
 		
@@ -91,13 +52,6 @@ QB will use item 10 times on mob when have less than 30% and close behavior afte
 	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-9.html#post1092429
-
-* VehicleMover
-	+ http://www.wowhead.com/quest=13560
-	[9:55:55 AM] Natfoth (Nathaniel Farthington): it would never finish, no matter what I had the count set to,
-	no matter if I removed all the quest stuff, IsDone never passed unless the quest was completed with a Quest ID
-	[2:43:57 PM] Chinajade: Good, a relatively low one.  Remember what race/class you were?
-	[2:44:07 PM] Natfoth (Nathaniel Farthington): night elf monk
 
 * 27779-Uldum-Gnomebliteration.cs:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626
@@ -127,7 +81,6 @@ QUESTBEHAVIORCORE FRAMEWORK
 
 * UtilityBehavior_MoveTo
 	+ Do some testing with flying quests like Pomfruit Pickup (http://www.wowhead.com/quest=30231)
-	+ If flying and make it 'indoors', land before continuing.
 	+ Can Flightor be used to do underwater navigation?
 
 * Do we need a Data/SharedResources.xml file to augment IsInCompetition() calculations?
@@ -264,12 +217,13 @@ TO RETIRE:
 * (pending) CombatUseItemOn => CombatUseItemOnV2
 * (pending) DefendObject => EscortGroup
 * (pending) Escort => EscortGroup
-* (pending) MyCTM => RunLikeHell
 * (pending) SetHearthstone => InteractWith
-* (pending) StandAndKill => EscortGroup
 * (pending) UseGameObject => InteractWith
 * (pending) UseItemOn => InteractWith
-* (pending) UseItemTargetLocation => InteractWith
+
+* (pending?) MyCTM => RunLikeHell
+* (pending?) StandAndKill => EscortGroup
+* (pending?) UseItemTargetLocation => InteractWith
 
 POTENTIALLY TO RETIRE:
 ======================

@@ -575,6 +575,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
         public override void OnStart()
         {
+            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
+
             // Hunting ground processing...
             IList<HuntingGroundType> tmpHuntingGrounds;
             IsAttributeProblem |= XmlUtil_ParseSubelements<HuntingGroundType>(this, HuntingGroundType.Create, Element, "HuntingGrounds", out tmpHuntingGrounds);

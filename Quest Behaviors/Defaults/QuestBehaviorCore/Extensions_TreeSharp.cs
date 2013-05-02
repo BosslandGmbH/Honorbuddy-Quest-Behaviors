@@ -22,6 +22,7 @@ using Styx.TreeSharp;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
+    // 20Apr2013-04:32UTC chinajade
     public class CompositeThrottle : Decorator
     {
         public CompositeThrottle(TimeSpan throttleTime, Composite composite)
@@ -68,6 +69,7 @@ namespace Honorbuddy.QuestBehaviorCore
     }
 
 
+    // 20Apr2013-04:32UTC chinajade
     public class CompositeThrottleContinue : DecoratorContinue
     {
         public CompositeThrottleContinue(TimeSpan throttleTime, Composite composite)
@@ -114,6 +116,7 @@ namespace Honorbuddy.QuestBehaviorCore
     }
 
 
+    // 20Apr2013-04:32UTC chinajade
     public class ExceptionCatchingWrapper : PrioritySelector
     {
         public ExceptionCatchingWrapper(QuestBehaviorBase questBehaviorBase, Composite unwrappedChild)
@@ -136,10 +139,10 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (except.GetType() != typeof(ThreadAbortException))
                 {
-                    var message = string.Format("{0} EXCEPTION CONTEXT: {1}",
-                        _questBehaviorBase.GetVersionedBehaviorName(),
-                        QuestBehaviorBase.GetProfileReference(_questBehaviorBase.Element));
-
+                    var message = QuestBehaviorBase.BuildMessageWithContext(_questBehaviorBase.Element,
+                        "{0} EXCEPTION CONTEXT ({1}):",
+                        QuestBehaviorBase.GetVersionedBehaviorName(_questBehaviorBase),
+                        except.GetType().Name);
 
                     if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)
                     {
@@ -163,6 +166,7 @@ namespace Honorbuddy.QuestBehaviorCore
     // a big performance improvement if the child behaviors makes multiple HB API
     // calls that internally run off a frame in WoW in one CC pulse.
     //
+    // 20Apr2013-04:32UTC chinajade
     public class FrameLockSelector : PrioritySelector
     {
         public FrameLockSelector(params Composite[] children)

@@ -537,7 +537,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
         #region Private and Convenience variables
-
         private enum BindingEventStateType
         {
             BindingEventUnhooked,
@@ -561,6 +560,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
         private int GossipPageIndex { get; set; }
         private HuntingGroundsType HuntingGrounds { get; set; }
+        private bool IsInteractInterrupted { get; set; }
         private WoWItem ItemToUse { get; set; }
         private const double RangeMinMaxEpsilon = 3.0;
         private WoWObject SelectedInteractTarget { get; set; }
@@ -577,6 +577,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         ~InteractWith()
         {
             Dispose(false);
+        }
+
+        protected override void Dispose(bool isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInteractionInterrupted);
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", HandleInteractionInterrupted);
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED_QUIET", HandleInteractionInterrupted);
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInteractionInterrupted);
+
+                base.Dispose(isExplicitlyInitiatedDispose);
+            }
         }
         #endregion
 
@@ -626,6 +639,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     LogProfileError("Unable to locate ItemId({0}) in our bags", InteractByUsingItemId);
                     BehaviorDone();
                 }
+
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInteractionInterrupted);
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", HandleInteractionInterrupted);
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED_QUIET", HandleInteractionInterrupted);
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInteractionInterrupted);
             }
         }
 
@@ -699,7 +717,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     )),
 
                 // Counter is used to determine 'done'...
-                new Decorator(context => Counter >= NumOfTimes,
+                // NB: If QuestObjectiveIndex was specified, we don't care what counter is.  Instead,
+                // we want the objective to complete.
+                new Decorator(context => (QuestObjectiveIndex == 0) && (Counter >= NumOfTimes),
                     new Action(context => { BehaviorDone(); })),
                     
                 // If quest is done, behavior is done...
@@ -769,6 +789,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             })),
 
                         new Sequence(
+                            // Setup to monitor success...
+                            new Action(context => { IsInteractInterrupted = false; }),
+
                             // Interact by item use...
                             new DecoratorContinue(context => ItemToUse != null,
                                 new Sequence(
@@ -789,38 +812,55 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
                                         new Action(context => { Lua.DoString("SpellStopTargeting()"); }))
                                 )),
+
                             // Interact by right-click...
                             new DecoratorContinue(context => ItemToUse == null,
                                 new Sequence(
                                     new Action(context => { SelectedInteractTarget.Interact(); }),
-                                    new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed())
+                                    new WaitContinue(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed())
                                 )),
+
+                            // Record usage...
+                            new Action(context =>
+                            {
+                                LogDeveloperInfo("{0} {1}",
+                                    ((ItemToUse != null)
+                                        ? string.Format("Used {0}({1}) on", ItemToUse.Name, ItemToUse.Entry)
+                                        : "Interacted with"),
+                                    GetName(SelectedInteractTarget));
+                            }),
+
+                            // Wait for any spellcasting to complete...
+                            // NB: Some interactions or item usages take time, and the WoWclient models
+                            // this as spellcasting.
+                            new WaitContinue(TimeSpan.FromSeconds(15),
+                                context => (ItemToUse == null) || !(Me.IsCasting || Me.IsChanneling),
+                                new ActionAlwaysSucceed()),
+                            new DecoratorContinue(context => IsInteractInterrupted,
+                                new Sequence(
+                                    // Give whatever issue encountered a chance to settle...
+                                    new Action(context =>
+                                    {
+                                        LogWarning("{0} interrupted--trying again.",
+                                            ((ItemToUse != null) ? "Item use" : "Interaction"));
+                                    }),
+                                    // Wait, not WaitContinue--we want the Sequence to fail when delay complete...
+                                    new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
+                                )),
+                            
                             // Peg tally, if follow-up actions not expected...
                             new DecoratorContinue(context => !IsFrameExpectedFromInteraction(),
-                                new Sequence(
-                                    new Action(context =>
-                                    {
-                                        LogDeveloperInfo("{0} {1}",
-                                            ((ItemToUse != null)
-                                                ? string.Format("Used {0}({1}) on", ItemToUse.Name, ItemToUse.Entry)
-                                                : "Interacted with"),
-                                            GetName(SelectedInteractTarget));
-                                    }),
-                                    new WaitContinue(TimeSpan.FromSeconds(15),
-                                        context => (ItemToUse == null) || !(Me.IsCasting || Me.IsChanneling),
-                                        new ActionAlwaysSucceed()),
-                                    new Action(context =>
-                                    {
-                                        BlacklistInteractTarget(SelectedInteractTarget);
-                                        _waitTimerAfterInteracting.Reset();
-                                        ++Counter;
+                                new Action(context =>
+                                {
+                                    BlacklistInteractTarget(SelectedInteractTarget);
+                                    _waitTimerAfterInteracting.Reset();
+                                    ++Counter;
 
-                                        if (IsClearTargetNeeded(SelectedInteractTarget))
-                                            { Me.ClearTarget(); }
+                                    if (IsClearTargetNeeded(SelectedInteractTarget))
+                                        { Me.ClearTarget(); }
 
-                                        SelectedInteractTarget = null;
-                                    })
-                                ))
+                                    SelectedInteractTarget = null;
+                                }))
                         )
                         #endregion
                 )),
@@ -829,11 +869,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 // No mobs in immediate vicinity...
                 // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
                 // this sub-behavior will terminate the overall behavior.
-                UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
-                    context => HuntingGrounds,
-                    context => !WaitForNpcs,
-                    context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
-                    context => Debug_BuildExclusions())
+                new Decorator(context => !IsViable(SelectedInteractTarget),
+                    UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
+                        context => HuntingGrounds,
+                        context => !WaitForNpcs,
+                        context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
+                        context => Debug_BuildExclusions()))
             );
         }
         #endregion
@@ -1007,7 +1048,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 }
                                             }
                                         }),
-                                        new WaitContinue(Delay_Interaction, context => !GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
+                                        new WaitContinue(Delay_AfterInteraction, context => !GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
                                     )
                                 )),
 
@@ -1016,7 +1057,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new Action(context => { LogWarning("[PROFILE ERROR]: Gossip frame not expected--ignoring."); })),
 
                             // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                            new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
+                            new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
                         )),
 
                     // Tell user if he is now bound to a new location...
@@ -1024,7 +1065,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new Wait(TimeSpan.FromSeconds(10),
                             context => BindingEventState == BindingEventStateType.BindingEventFired,
                             new Sequence(
-                                new WaitContinue(Delay_Interaction, context => false, new ActionAlwaysSucceed()),
+                                new WaitContinue(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed()),
                                 new Action(context =>
                                 {
                                     Lua.DoString("ConfirmBinder(); StaticPopup_Hide('CONFIRM_BINDER')");
@@ -1065,7 +1106,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             return RunStatus.Failure; // fall through
                         }),
                         // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
+                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
                     ));
         }
 
@@ -1122,7 +1163,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         }),
 
                         // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
+                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
                     ));
         }
 
@@ -1159,7 +1200,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             })),
 
                         // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                        new Wait(Delay_Interaction, context => false, new ActionAlwaysFail())
+                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
                     ));
         }
         #endregion
@@ -1266,6 +1307,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             BindingEventState = BindingEventStateType.BindingEventFired;
         }
         
+
+        private void HandleInteractionInterrupted(object sender, LuaEventArgs args)
+        {
+            if (args.Args[0].ToString() == "player")
+                { IsInteractInterrupted = true; }
+        }
+
 
         private bool IsClearTargetNeeded(WoWObject wowObject)
         {

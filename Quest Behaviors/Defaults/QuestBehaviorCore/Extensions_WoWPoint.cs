@@ -10,10 +10,14 @@
 
 #region Usings
 using System;
+using System.Collections.Generic;
 using System.Linq;
+using System.Windows.Media;
 
 using Styx;
+using Styx.Common;
 using Styx.Pathing;
+using Styx.WoWInternals;
 using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -300,6 +304,273 @@ namespace Honorbuddy.QuestBehaviorCore
                                              out hitLocation));
 
             return (hitResult ? hitLocation : WoWPoint.Empty);
+        }
+
+
+        // Returns default(WoWPoint) if not usable Flightor location can be found...
+        //  2May2013-12:25UTC chinajade
+        public static WoWPoint FindFlightorUsableLocation(this WoWPoint destination)
+        {
+            // If we're not using flight, or not close enough to destination, then no massaging needed...
+            if (!Me.IsFlying || (Me.Location.Distance(destination) > 100) || destination.IsFlightorUsable() )
+                { return destination; }
+
+            // If the last value we returned is still good, use it...
+            if (_lastFlightorDestination == destination)
+                { return _lastFlightorUsableLocation; }
+
+            // Find a new outdoor solution...
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                // Try to find landing spot looking at terrain...
+                WoWPoint landingSpot =
+                   (from viableSpot in destination.ViableLandingSpotGenerator()
+                    orderby viableSpot.SurfacePathDistance(destination)
+                    select viableSpot)
+                    .FirstOrDefault();
+
+                if (landingSpot != default(WoWPoint))
+                {
+                    _lastFlightorDestination = destination;
+                    _lastFlightorUsableLocation = landingSpot;
+                    return _lastFlightorUsableLocation;
+                }
+
+                // Try to find landing spot looking for a nearby outdoor mob...
+                var outdoorObject =
+                    (from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                    let wowUnit = wowObject.ToUnit()
+                    orderby
+                        wowObject.Location.SurfacePathDistance(destination)
+                        + (((wowUnit != null) && wowUnit.IsHostile) ? 50 : 0)
+                    where
+                        wowObject.IsValid
+                        && wowObject.IsOutdoors
+                        && ((wowUnit == null)
+                            || ((wowUnit != null) && !wowUnit.PlayerControlled))
+                        && wowObject.Location.IsFlightorUsable()
+                        && Navigator.CanNavigateFully(destination, wowObject.Location)
+                    select wowObject)
+                    .FirstOrDefault();
+
+                if (outdoorObject != null)
+                {
+                    Logging.Write(Colors.HotPink, "OUTDOOR MOB: {0} ({1}, dist:{2});  Dest: {3} (dist: {4})",
+                        outdoorObject.Name,
+                        outdoorObject.Location,
+                        outdoorObject.Location.Distance(destination),
+                        destination,
+                        Me.Location.Distance(destination));
+
+                    _lastFlightorDestination = destination;
+                    _lastFlightorUsableLocation = outdoorObject.Location;
+                    return _lastFlightorUsableLocation;
+                }
+            }
+
+            // Unable to find suitable landing spot...
+            return default(WoWPoint);
+        }
+        private static WoWPoint _lastFlightorDestination;
+        private static WoWPoint _lastFlightorUsableLocation;
+
+
+        //  2May2013-12:25UTC chinajade
+        public static bool IsFlightorUsable(this WoWPoint location, double? height = null)
+        {
+            height = height ?? 35.0;
+            QuestBehaviorBase.ContractRequires(height > 0.0, context => "height > 0.0");
+
+            WoWPoint[]      hitLocations;
+            bool[]          hitResults;
+            WorldLine[]     invertedCone = location.CreateCone_Vertical(height.Value, height.Value, 8, 0.0, true, true, true);
+
+            GameWorld.MassTraceLine(invertedCone,
+                                    GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+                                    out hitResults,
+                                    out hitLocations);
+
+            return (hitResults.Sum(hitResult => (hitResult ? 1 : 0))  <  4);
+        }
+
+
+        /// <summary>
+        /// <para>Creates a vertically-oriented cone of LINECOUNT rays based on WOWPOINT.
+        /// The cone has a base of CONEBASERADIUS and a height of CONEHEIGHT.
+        /// The caller may offset the created cone using ZOFFSET.</para>
+        /// <para>The cone is normally created upright with the base in the same X-Y plane
+        /// as the WOWPOINT, and the apex at CONEHEIGHT above the WOWPOINT.  If INVERTCONE is true, the
+        /// geometry is rearranged such that the cone's apex rests on the WOWPOINT,
+        /// and the base is CONEHEIGHT above the WOWPOINT.</para>
+        /// <para>If INCLUDENORMALVECTOR is true, the number of lines returned is incremented
+        /// by one, and the cone's 'normal' vector will be included as the first item
+        /// in the returned set of lines.</para>
+        /// <para>Normally, the rays of the returned cone will be built from the base to
+        /// the apex--regardless of whether the cone is upright or inverted.
+        /// If RAYSFROMAPEXTOBASE is true, the direction of the rays will be
+        /// reversed, and are built from the apex to the base.</para>
+        /// </summary>
+        /// <param name="wowPoint"></param>
+        /// <param name="coneBaseRadius">the radius to use for the base of the cone.
+        /// Must be on the partially-closed interval (0..double.MaxValue]</param>
+        /// <param name="coneHeight">the height to use for the cone.
+        /// Must be on the partially-closed interval (0..double.MaxValue]</param>
+        /// <param name="lineCount">the number of lines used to construct the cone.</param>
+        /// <param name="zOffset">vertical offset which is applied to the constructed cone.</param>
+        /// <param name="invertCone">if true, the cone is built with its apex resting on
+        /// the provided WoWPoint and the base is at <paramref name="coneHeight"/>.  If false,
+        /// the cone is built with its apex at <paramref name="coneHeight"/>, and the base
+        /// resides in the same X-Y plane as the provided WoWPoint.</param>
+        /// <param name="includeNormalVector">if true, the 'normal' vector of the cone is
+        /// added to the returned set of lines.  The normal vector will be the first element
+        /// in the returned set.</param>
+        /// <param name="raysFromApexToBase">if true, the rays comprising the cone start at the
+        /// apex, and end at the cone's base.  If false, the rays start at the base, and terminate
+        /// at the apex.</param>
+        /// <returns>a set of lines representing the sides of a vertically-oriented cone.
+        /// The normal vector may
+        /// also be included as the first element in the returned set of lines if the
+        /// <paramref name="includeNormalVector"/> value requires such.</returns>
+        /// <remarks>
+        /// <para>* Shapes are useful for collision and 'drop-off' detection when coupled
+        /// with MassTraceLine().</para>
+        /// <para>* About Rays (or Vectors)</para>
+        /// <para>Rays are more than a simple set of lines--they also specify a
+        /// direction.  For instance, knowing the direction in which the rays are built is important if
+        /// the caller intends to use the returned set of lines as an argument to MassTraceLine().
+        /// The answer MassTraceLine() provides can change based on the direction in which
+        /// the rays were built.</para>
+        /// <para>Consider the example of a toon standing in a tower.  Above the toon lies a
+        /// platform, and at a further distance above the platform lies the tower's roof.
+        /// If we built a ray from the toon's location out through the roof, then used
+        /// it in a MassTraceLine(), the MassTraceLine() would return the 'hit point' as the
+        /// the platform's location.  If we built the same ray in the opposite direction--
+        /// from above the roof down to the toon, the MassTraceLine() would return the
+        /// 'hit point' as the roof's location.</para>
+        /// </remarks>
+        //  2May2013-12:25UTC chinajade
+        public static WorldLine[]       CreateCone_Vertical(this WoWPoint       wowPoint,
+                                                            double              coneBaseRadius,
+                                                            double              coneHeight,
+                                                            int                 lineCount,
+                                                            double              zOffset,
+                                                            bool                invertCone,
+                                                            bool                includeNormalVector,
+                                                            bool                raysFromApexToBase)
+        {
+            QuestBehaviorBase.ContractRequires(coneBaseRadius > 0.0, context => "coneBaseRadius > 0.0");
+            QuestBehaviorBase.ContractRequires(coneHeight > 0.0, context => "coneHeight > 0.0");
+            QuestBehaviorBase.ContractRequires(lineCount > 0, context => "lineCount > 0");
+
+            var     cone                = new WorldLine[lineCount + (includeNormalVector  ? 1  : 0)];
+            double  deltaZOfConeApex    = coneHeight + zOffset;
+            double  deltaZOfConeBase    = 0.0 + zOffset;
+            int     perimeterIndex      = -1;
+            double  turnIncrement       = QuestBehaviorBase.TAU / lineCount;
+
+            // If user wants the cone inverted, swap the z contibution for the Apex and Base...
+            if (invertCone)
+            {
+                double  tmp     = deltaZOfConeApex;
+
+                deltaZOfConeApex = deltaZOfConeBase;
+                deltaZOfConeBase = tmp;
+            }
+
+            WoWPoint        apex    = wowPoint.Add(0.0, 0.0, deltaZOfConeApex);
+
+            // The 'normal vector' will be the first vector in the returned array, if it was requested...
+            if (includeNormalVector)
+            {
+                WoWPoint    basePoint = wowPoint.Add(0.0, 0.0, deltaZOfConeBase);
+
+                ++perimeterIndex;
+                if (raysFromApexToBase)
+                {
+                    cone[perimeterIndex].Start = apex;
+                    cone[perimeterIndex].End   = basePoint;
+                }
+                else
+                {
+                    cone[perimeterIndex].Start = basePoint;
+                    cone[perimeterIndex].End   = apex;
+                }
+            }
+
+            // Create the other vectors in the cylinder...
+            for (double turnFraction = 0.0;   turnFraction < QuestBehaviorBase.TAU;  turnFraction += turnIncrement )
+            {
+                WoWPoint    basePoint = wowPoint.AddPolarXY(turnFraction, coneBaseRadius, deltaZOfConeBase);
+
+                ++perimeterIndex;
+                if (raysFromApexToBase)
+                {
+                    cone[perimeterIndex].Start = apex;
+                    cone[perimeterIndex].End   = basePoint;
+                }
+                else
+                {
+                    cone[perimeterIndex].Start = basePoint;
+                    cone[perimeterIndex].End   = apex;
+                }
+            }
+         
+            return (cone);
+        }
+
+
+        // Generates potential landing points around destination by:
+        // * Creating points on a circle of N points around the destination.
+        // * The circle radius keeps increasing
+        // * As the circle gets larger, the number of points, N, on the circle increase.
+        //
+        //  2May2013-12:25UTC chinajade                
+        private static IEnumerable<WoWPoint>  ViableLandingSpotGenerator(this WoWPoint destination)
+        {
+            var potentialLandingSpots = new List<WoWPoint>();
+
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(17.5, 15.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(22.5, 15.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(27.5, 15.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(32.5, 15.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(40.0, 15.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(50.0, 15.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(60.0, 25.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(75.0, 25.0));
+            potentialLandingSpots.AddRange(destination.CreateCircleXY_OnSurface(100.0, 25.0));
+
+            var viableLandingSpots =
+                from landingSpot in potentialLandingSpots
+                where 
+                    Navigator.CanNavigateFully(landingSpot, destination)
+                    && landingSpot.IsFlightorUsable()
+                select landingSpot;
+
+            return viableLandingSpots;
+        }
+
+
+        //  2May2013-12:25UTC chinajade
+        public static IList<WoWPoint> CreateCircleXY_OnSurface(this WoWPoint circleCenter,
+                                                               double radius,
+                                                               double arcLength)
+        {
+            QuestBehaviorBase.ContractRequires(radius > 0.0, context => "radius > 0.0");
+            QuestBehaviorBase.ContractRequires(arcLength > 0.0, context => "arcLength > 0.0");
+            QuestBehaviorBase.ContractRequires(arcLength <= radius, context => "arcLength <= radius");
+
+            var circle = new List<WoWPoint>();
+            double turnIncrement = arcLength / radius;
+
+            for (double turnFactor = 0.0;    turnFactor < QuestBehaviorBase.TAU;    turnFactor += turnIncrement)
+            {
+                WoWPoint newPoint = circleCenter.AddPolarXY(turnFactor, radius, 0.0);
+
+                Navigator.FindHeight(newPoint.X, newPoint.Y, out newPoint.Z);
+                circle.Add(newPoint);
+            }      
+
+            return (circle);
         }
     }
 }

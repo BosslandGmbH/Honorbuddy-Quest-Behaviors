@@ -137,11 +137,11 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_Main;
         private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
-        private bool _isDisposed;
+        protected bool _isDisposed { get; private set; }
 
         // Statics
         protected static TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
-        protected static TimeSpan Delay_Interaction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
+        protected static TimeSpan Delay_AfterInteraction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
         protected static readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         protected static readonly TimeSpan Throttle_WoWClientMovement = TimeSpan.FromMilliseconds(100);
         protected static LocalPlayer Me { get { return StyxWoW.Me; } }
@@ -157,7 +157,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:10UTC chinajade
-        protected void Dispose(bool isExplicitlyInitiatedDispose)
+        protected virtual void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {

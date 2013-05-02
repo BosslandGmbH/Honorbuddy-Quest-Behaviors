@@ -52,7 +52,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     IsAttributeProblem |= waypoint.IsAttributeProblem;
                 }
 
-                OnStart_HandleAttributeProblem();
+                HandleAttributeProblem();
             }
 
             catch (Exception except)

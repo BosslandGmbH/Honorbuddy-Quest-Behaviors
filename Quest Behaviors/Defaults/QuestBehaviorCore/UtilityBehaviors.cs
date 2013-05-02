@@ -229,7 +229,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             _ubpsInteractWithMob_WowObject.Interact();
                             return RunStatus.Failure;
                         }),
-                        new Wait(Delay_Interaction, context => false, new ActionAlwaysSucceed())
+                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed())
                     )));
         }
         private WoWObject _ubpsInteractWithMob_WowObject;
@@ -269,7 +269,10 @@ namespace Honorbuddy.QuestBehaviorCore
                                                     && !Me.InVehicle
                                                     && !Me.Mounted
                                                     && Mount.CanMount()
-                                                    && Mount.ShouldMount(_ubpsMoveTo_Location),
+                                                    && (Mount.ShouldMount(_ubpsMoveTo_Location)
+                                                        || (Me.Location.SurfacePathDistance(_ubpsMoveTo_Location) > CharacterSettings.Instance.MountDistance)
+                                                        // This allows Me.MovementInfo.CanFly to have a chance at evaluating 'true' in rough terrain
+                                                        || !Navigator.CanNavigateFully(Me.Location, _ubpsMoveTo_Location)),
                                 new Action(context =>
                                 {
                                     Mount.MountUp(() => destinationDelegate(context));
@@ -338,14 +341,29 @@ namespace Honorbuddy.QuestBehaviorCore
                                     // Use Flightor, if allowed...
                                     if ((MovementBy == MovementByType.FlightorPreferred) && Me.IsOutdoors && Me.MovementInfo.CanFly)
                                     {
-                                        Flightor.MoveTo(_ubpsMoveTo_Location);
-                                        // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
-                                        moveResult = MoveResult.Moved;
+                                        var immediateDestination = _ubpsMoveTo_Location.FindFlightorUsableLocation();
+
+                                        if (immediateDestination == default(WoWPoint))
+                                            { moveResult = MoveResult.Failed; }
+
+                                        else if (Me.Location.Distance(immediateDestination) > Navigator.PathPrecision)
+                                        {
+                                            // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
+                                            Flightor.MoveTo(immediateDestination, 15.0f);
+                                            moveResult = MoveResult.Moved;
+                                        }
+                                        
+                                        else if (Me.IsFlying)
+                                        {
+                                            WoWMovement.Move(WoWMovement.MovementDirection.Descend, TimeSpan.FromMilliseconds(400));
+                                            moveResult = MoveResult.Moved;
+                                        }
                                     }
 
                                     // Use Navigator to get there, if allowed...
-                                    else if ((MovementBy == MovementByType.NavigatorPreferred) || (MovementBy == MovementByType.NavigatorOnly)
-                                                || (MovementBy == MovementByType.FlightorPreferred))
+                                    if ((MovementBy == MovementByType.NavigatorPreferred)
+                                        || (MovementBy == MovementByType.NavigatorOnly)
+                                        || (moveResult == MoveResult.Failed))
                                     {
                                         if (!Me.IsSwimming)
                                             { moveResult = Navigator.MoveTo(_ubpsMoveTo_Location); }
