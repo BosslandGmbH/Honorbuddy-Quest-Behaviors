@@ -148,8 +148,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
 
 
                     new PrioritySelector(
-                        new Decorator(r => power <= 60, new Action(r => UsePetAbility("Focus"))),
-                        new Decorator(r => power >= 40, new Action(r => UsePetAbility("Relax")))
+                        new Decorator(r => power <= 40, new Action(r => UsePetAbility("Focus"))),
+                        new Decorator(r => power >= 60, new Action(r => UsePetAbility("Relax")))
 
 
 
