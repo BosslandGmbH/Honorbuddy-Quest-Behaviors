@@ -187,7 +187,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
         {
             get
             {
-                return new Decorator(r => Malfurion == null, new PrioritySelector(
+                return new Decorator(r => Malfurion == null && Cenarius != null, new PrioritySelector(
 
                                                                  new Action(r=>
                                                                                 {
