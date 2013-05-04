@@ -239,7 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new PrioritySelector(DoneYet,Story, KillAdds, KillBoss));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone,new PrioritySelector(DoneYet,Story, KillAdds, KillBoss)));
         }
 
 
