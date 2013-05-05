@@ -564,7 +564,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                             new Decorator(context => IsViable(ItemToUse) && IsUseItemNeeded(SelectedTarget),
                                 new PrioritySelector(
                                     // Halt combat until we are able to use the item...
-                                    new Decorator(context => !ItemToUse.Usable,
+                                    new Decorator(context => !ItemToUse.Usable
+                                                                && ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
+                                                                    || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)),
                                         new Action(context =>
                                         {
                                             // We use LUA to stop casting, since SpellManager.StopCasting() doesn't seem to work...
@@ -573,6 +575,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                             
                                             if (Me.IsMoving)
                                                 { WoWMovement.MoveStop(); }
+
+                                            TreeRoot.StatusText = string.Format("Combat halted--waiting for {0} to become usable.", ItemToUse.Name);
                                         })),
 
                                     new Sequence(
