@@ -15,6 +15,7 @@ using System.Linq;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -186,54 +187,6 @@ namespace Honorbuddy.QuestBehaviorCore
                     );
         }
         private WoWUnit _ubpsGetMobsAttention_Mob;
-
-
-        /// <summary>
-        /// Simple right-click interaction with the UNITTOINTERACT.
-        /// </summary>
-        /// <param name="interactObjectDelegate"></param>
-        /// <returns></returns>
-        // 24Feb2013-08:11UTC chinajade
-        public Composite UtilityBehaviorPS_InteractWithMob(ProvideWoWObjectDelegate interactObjectDelegate)
-        {
-            ContractRequires(interactObjectDelegate != null, context => "interactObjectDelegate != null");
-
-            return new PrioritySelector(
-                new Action(context =>
-                { 
-                    _ubpsInteractWithMob_WowObject = interactObjectDelegate(context);
-                    _ubpsInteractWithMob_AsWowUnit = _ubpsInteractWithMob_WowObject.ToUnit();
-                    return RunStatus.Failure;   // fall through
-                }),
-                new Decorator(context => IsViableForInteracting(_ubpsInteractWithMob_WowObject),
-                    new PrioritySelector(
-                        // Show user which unit we're going after...
-                        new Decorator(context => (_ubpsInteractWithMob_AsWowUnit != null)
-                                                && (Me.CurrentTarget != _ubpsInteractWithMob_AsWowUnit),
-                            new Action(context => { _ubpsInteractWithMob_AsWowUnit.Target(); })),
-
-                        // If not within interact range, move closer...
-                        new Decorator(context => !_ubpsInteractWithMob_WowObject.WithinInteractRange,
-                            UtilityBehaviorPS_MoveTo(interactUnitContext => _ubpsInteractWithMob_WowObject.Location,
-                                                     interactUnitContext => string.Format("interact with {0}", _ubpsInteractWithMob_WowObject.Name))),
-
-                        UtilityBehaviorPS_MoveStop(),
-                        UtilityBehaviorPS_FaceMob(context => _ubpsInteractWithMob_WowObject),
-
-                        // Blindly interact...
-                        // Ideally, we would blacklist the unit if the interact failed.  However, the HB API
-                        // provides no CanInteract() method (or equivalent) to make this determination.
-                        new Action(context =>
-                        {
-                            LogDeveloperInfo("Interacting with {0}", _ubpsInteractWithMob_WowObject.Name);
-                            _ubpsInteractWithMob_WowObject.Interact();
-                            return RunStatus.Failure;
-                        }),
-                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed())
-                    )));
-        }
-        private WoWObject _ubpsInteractWithMob_WowObject;
-        private WoWUnit _ubpsInteractWithMob_AsWowUnit;
 
 
         // 22Apr2013-09:02UTC chinajade
@@ -449,18 +402,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 );
         }
 
-        
-        // 11Apr2013-04:52UTC chinajade
-        public Composite UtilityBehaviorPS_Rest()
-        {
-            return new Decorator(context => RoutineManager.Current.NeedRest,
-                new PrioritySelector(
-                    new Decorator(context => RoutineManager.Current.RestBehavior != null,
-                        RoutineManager.Current.RestBehavior),
-                    new Action(context => { RoutineManager.Current.Rest(); })
-                ));
-        }
-        
 
         /// <summary>
         /// Unequivocally engages mob in combat.  Does no checking for being untagged, etc.
@@ -516,9 +457,9 @@ namespace Honorbuddy.QuestBehaviorCore
         /// Targets and kills any mob targeting Self or Pet.
         /// </summary>
         /// <returns></returns>
-        public Composite UtilityBehaviorPS_SpankMobTargetingUs(Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
+        public Composite UtilityBehaviorPS_SpankMobTargetingUs(Func<object, IEnumerable<WoWUnit>> excludedUnitsDelegate = null)
         {
-            excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
+            excludedUnitsDelegate = excludedUnitsDelegate ?? (context => Enumerable.Empty<WoWUnit>());
 
             Func<object, bool> isInterestingToUs =
                 (obj) =>
@@ -535,7 +476,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         // Do not pull mobs on the AvoidMobs list
                         && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
                         // exclude any units that are candidates for interacting
-                        && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry);                                                     
+                        && !excludedUnitsDelegate(obj).Contains(wowUnit);                                                     
                 };
                             
             return new PrioritySelector(
@@ -624,5 +565,228 @@ namespace Honorbuddy.QuestBehaviorCore
             ));
         }
         private WoWUnit _ubpsSpankMobWithinAggroRange_Mob;
+            
+
+        /// <summary>
+        /// <para>Uses item defined by WOWITEMDELEGATE on target defined by SELECTEDTARGETDELEGATE.</para>
+        /// <para>Notes:<list type="bullet">
+        /// <item><description><para>* It is up to the caller to assure that all preconditions have been met for
+        /// using the item (i.e., the target is in range, the item is off cooldown, etc).</para></description></item>
+        /// <item><description><para> * If item use was successful, BT is provided with RunStatus.Success;
+        /// otherwise, RunStatus.Failure is returned (e.g., item is not ready for use,
+        /// item use was interrupted by combat, etc).</para></description></item>
+        /// <item><description><para>* It is up to the caller to blacklist the target, or select a new target
+        /// after successful item use.</para></description></item>
+        /// </list></para>
+        /// </summary>
+        /// <param name="selectedTargetDelegate">may NOT be null.  The target provided by the delegate should be viable.</param>
+        /// <param name="wowItemDelegate">may NOT be null.  The item provided by the delegate should be viable, and ready for use.</param>
+        /// <returns></returns>
+        public Composite UtilityBehaviorSeq_UseItemOn(ProvideWoWItemDelegate wowItemDelegate,
+                                                     ProvideWoWObjectDelegate selectedTargetDelegate)
+        {
+            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+            ContractRequires(wowItemDelegate != null, context => "wowItemDelegate != null");
+
+            return new Sequence(
+                new DecoratorContinue(context => !IsViable(_ubseqUseItemOn_SelectedTarget = selectedTargetDelegate(context)),
+                    new Action(context =>
+                    {
+                        LogWarning("Target is not viable!");
+                        return RunStatus.Failure;                        
+                    })),
+
+                new DecoratorContinue(context => !IsViable(_ubseqUseItemOn_ItemToUse = wowItemDelegate(context)),
+                    new Action(context =>
+                    {
+                        LogWarning("We do not possess the item to use on {0}!", _ubseqUseItemOn_SelectedTarget.Name);
+                        return RunStatus.Failure;
+                    })),
+
+                new DecoratorContinue(context => !_ubseqUseItemOn_ItemToUse.Usable,
+                    new Action(context =>
+                    {
+                        LogWarning("{0} is not usable (yet).", _ubseqUseItemOn_ItemToUse.Name);
+                        return RunStatus.Failure;
+                    })),
+
+                // Use the item...
+                new Action(context =>
+                {
+                    // Set up 'interrupted use' detection...
+                    // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
+                    // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
+                    // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
+                    UtilityBehaviorSeq_UseItemOn_HandlersHook();
+
+                    // Notify user of intent...
+                    var message = string.Format("Using '{0}' on '{1}'",
+                                                _ubseqUseItemOn_ItemToUse.Name,
+                                                _ubseqUseItemOn_SelectedTarget.Name);
+
+                    var selectedTargetAsWoWUnit = _ubseqUseItemOn_SelectedTarget as WoWUnit;
+                    if (selectedTargetAsWoWUnit != null)
+                        { message += string.Format(" (health: {0:F1})", selectedTargetAsWoWUnit.HealthPercent); }
+
+                    LogInfo(message);
+
+                    // Do it...
+                    _ubseqUseItemOn_IsUseItemInterrupted = false;    
+                    _ubseqUseItemOn_ItemToUse.Use(_ubseqUseItemOn_SelectedTarget.Guid);
+                }),
+                new WaitContinue(Delay_AfterItemUse, context => false, new ActionAlwaysSucceed()),
+
+                // If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
+                new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
+                    new Sequence(
+                        new Action(context => { SpellManager.ClickRemoteLocation(_ubseqUseItemOn_SelectedTarget.Location); }),
+                        new WaitContinue(Delay_AfterItemUse,
+                            context => StyxWoW.Me.CurrentPendingCursorSpell == null,
+                            new ActionAlwaysSucceed()),
+                        // If we've leftover spell cursor dangling, clear it...
+                        // NB: This can happen for "use item on location" type activites where you get interrupted
+                        // (e.g., a walk-in mob).
+                        new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
+                            new Action(context => { Lua.DoString("SpellStopTargeting()"); }))       
+                    )),
+
+                // Wait for any casting to complete...
+                // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+                new WaitContinue(TimeSpan.FromSeconds(15),
+                    context => !(Me.IsCasting || Me.IsChanneling),
+                    new ActionAlwaysSucceed()),
+
+                // Were we interrupted in item use?
+                new Action(context => { UtilityBehaviorSeq_UseItemOn_HandlersUnhook(); }),
+                new DecoratorContinue(context => _ubseqUseItemOn_IsUseItemInterrupted,
+                    new Sequence(
+                        new Action(context => { LogDeveloperInfo("Use of {0} interrupted.", _ubseqUseItemOn_ItemToUse.Name); }),
+                        // Give whatever issue encountered a chance to settle...
+                        // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
+                        new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
+                    ))
+            );
+        }
+        private bool _ubseqUseItemOn_IsUseItemInterrupted;
+        private WoWItem _ubseqUseItemOn_ItemToUse;
+        private WoWObject _ubseqUseItemOn_SelectedTarget;
+
+        private void UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted(object sender, LuaEventArgs args)
+        {
+            if (args.Args[0].ToString() == "player")
+            {
+                LogDeveloperInfo("Interrupted via {0} Event.", args.EventName);
+                _ubseqUseItemOn_IsUseItemInterrupted = true;
+            }
+        }
+
+        private void UtilityBehaviorSeq_UseItemOn_HandlersHook()
+        {
+            Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted);
+            Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted);
+            Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted);
+        }
+
+        private void UtilityBehaviorSeq_UseItemOn_HandlersUnhook()
+        {
+            Lua.Events.DetachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted);
+            Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted);
+            Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", UtilityBehaviorSeq_UseItemOn_HandleUseItemInterrupted);    
+        }
+
+
+
+        public Composite UtilityBehaviorSeq_InteractWith(ProvideWoWObjectDelegate selectedTargetDelegate,
+                                                        ProvideBoolDelegate doMovementDelegate = null)
+        {
+            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+            doMovementDelegate = doMovementDelegate ?? (context => true);
+
+            return new Sequence(
+                new DecoratorContinue(context => !IsViable(_ubseqInteractWith_SelectedTarget = selectedTargetDelegate(context)),
+                    new Action(context =>
+                    {
+                        LogWarning("Target is not viable!");
+                        return RunStatus.Failure;                        
+                    })),
+
+                new DecoratorContinue(context => doMovementDelegate(context),
+                    new PrioritySelector(
+                        // Show user which unit we're going after...
+                        new Decorator(context => (_ubseqInteractWith_SelectedTarget.ToUnit() != null)
+                                                    && (Me.CurrentTarget != _ubseqInteractWith_SelectedTarget),
+                            new Action(context => { _ubseqInteractWith_SelectedTarget.ToUnit().Target(); })),
+
+                        // If not within interact range, move closer...
+                        new Decorator(context => !_ubseqInteractWith_SelectedTarget.WithinInteractRange,
+                            UtilityBehaviorPS_MoveTo(interactUnitContext => _ubseqInteractWith_SelectedTarget.Location,
+                                                     interactUnitContext => string.Format("interact with {0}", _ubseqInteractWith_SelectedTarget.Name))),
+
+                        UtilityBehaviorPS_MoveStop(),
+                        UtilityBehaviorPS_FaceMob(context => _ubseqInteractWith_SelectedTarget),
+                        new ActionAlwaysSucceed()
+                    )),
+
+                // Interact with the mob...
+                new Action(context =>
+                {
+                    // Set up 'interrupted use' detection...
+                    // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
+                    // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
+                    // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
+                    UtilityBehaviorSeq_InteractWith_HandlersHook();
+
+                    // Notify user of intent...
+                    LogInfo("Interacting with '{0}'", _ubseqInteractWith_SelectedTarget.Name);
+
+                    // Do it...
+                    _ubseqInteractWith_IsInteractInterrupted = false;    
+                    _ubseqInteractWith_SelectedTarget.Interact();
+                }),
+                new WaitContinue(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed()),
+
+                // Wait for any casting to complete...
+                // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+                new WaitContinue(TimeSpan.FromSeconds(15),
+                    context => !(Me.IsCasting || Me.IsChanneling),
+                    new ActionAlwaysSucceed()),
+
+                // Were we interrupted in item use?
+                new Action(context => { UtilityBehaviorSeq_InteractWith_HandlersUnhook(); }),
+                new DecoratorContinue(context => _ubseqInteractWith_IsInteractInterrupted,
+                    new Sequence(
+                        new Action(context => { LogDeveloperInfo("Interaction with {0} interrupted.", _ubseqInteractWith_SelectedTarget.Name); }),
+                        // Give whatever issue encountered a chance to settle...
+                        // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
+                        new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
+                    ))  
+            );
+        }
+        private bool _ubseqInteractWith_IsInteractInterrupted;
+        private WoWObject _ubseqInteractWith_SelectedTarget;
+
+        private void UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted(object sender, LuaEventArgs args)
+        {
+            if (args.Args[0].ToString() == "player")
+            {
+                LogDeveloperInfo("Interrupted via {0} Event.", args.EventName);
+                _ubseqInteractWith_IsInteractInterrupted = true;
+            }
+        }
+
+        private void UtilityBehaviorSeq_InteractWith_HandlersHook()
+        {
+            Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted);
+            Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted);
+            Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted);
+        }
+
+        private void UtilityBehaviorSeq_InteractWith_HandlersUnhook()
+        {
+            Lua.Events.DetachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted);
+            Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted);
+            Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", UtilityBehaviorSeq_InteractWith_HandleInteractInterrupted);    
+        }
+
     }
 }

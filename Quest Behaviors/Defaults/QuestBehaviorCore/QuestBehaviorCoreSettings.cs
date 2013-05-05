@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 
@@ -25,7 +26,11 @@ namespace Honorbuddy.QuestBehaviorCore
         public QuestBehaviorCoreSettings()
             : base(FullPathToSettingsFile())
         {
-            // empty
+            if (MonitoredBehaviors == null)
+            {
+                MonitoredBehaviors = new string[] { "BEHAVIOR_CLASS_NAME" };
+                Save();
+            }
         }
 
         private static QuestBehaviorCoreSettings _instance;
@@ -81,6 +86,13 @@ namespace Honorbuddy.QuestBehaviorCore
                         + "  This allows the profile/quest behavior writer to quickly locate which line in the profile is associated with"
                         + " the thrown exception")]
         public bool LogProfileContextOnExceptions { get; set; }
+
+        [Setting]
+        [Category("Debug")]
+        [DisplayName("List of Monitored Behaviors")]
+        [Description("Monitored Behaviors will cause an audible alert and a warning message to be emitting to the log"
+                    + " when the behavior is used.")]
+        public string[] MonitoredBehaviors { get; set; }
         #endregion
 
         

@@ -279,7 +279,7 @@ namespace Honorbuddy.QuestBehaviors.TankVehicle
                                     )),
 
                                 // Move to and mount any free vehicle we've found...
-                                UtilityBehaviorPS_InteractWithMob(context => UnoccupiedVehicle),
+                                UtilityBehaviorSeq_InteractWith(context => UnoccupiedVehicle),
 
                                 // If no vehicle to be found, move to the Vehicle acquisition area...
                                 new Decorator(context => UnoccupiedVehicle == null,

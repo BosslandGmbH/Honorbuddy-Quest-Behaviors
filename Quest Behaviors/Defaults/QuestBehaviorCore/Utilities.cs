@@ -46,7 +46,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 25Apr2013-09:15UTC chinajade
-        public TimeSpan GetEstimatedMaxTimeToDestination(WoWPoint destination)
+        public TimeSpan CalculateMaxTimeToDestination(WoWPoint destination, bool includeSafetyMargin = true)
         {
             double distanceToCover = 
                 (Me.IsSwimming || Me.IsFlying)
@@ -60,8 +60,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
             double timeToDestination = distanceToCover / myMovementSpeed;
 
-            timeToDestination = Math.Max(timeToDestination, 20.0);  // 20sec hard lower limit
-            timeToDestination *= 2.5;   // factor of safety
+            if (includeSafetyMargin)
+            {
+                timeToDestination = Math.Max(timeToDestination, 20.0);  // 20sec hard lower limit
+                timeToDestination *= 2.5;   // factor of safety
+            }
 
             return (TimeSpan.FromSeconds(timeToDestination));            
         }
@@ -241,13 +244,22 @@ namespace Honorbuddy.QuestBehaviorCore
         //  9Mar2013-12:34UTC chinajade
         public static string PrettyTime(TimeSpan duration)
         {
-            int milliSeconds = (int)duration.TotalMilliseconds;
+            string format = string.Empty;
 
-            return
-                (milliSeconds == 0) ? "0s"  // we prefer zero expressed in terms of seconds, instead of milliseconds
-                : (milliSeconds < 1000) ? string.Format("{0}ms", milliSeconds)
-                : ((milliSeconds % 1000) == 0) ? string.Format("{0}s", milliSeconds / 1000)
-                : string.Format("{0:F3}s", milliSeconds / 1000);
+            if ((int)duration.TotalMilliseconds == 0)
+                { return "0s"; }
+            else if (duration.Hours > 0)
+                { format = "{0}h{1:D2}m{2:D2}s"; }
+            else if (duration.Minutes > 0)
+                { format = "{1}m{2:D2}s"; }
+            else if ((duration.Seconds > 0) && (duration.Milliseconds > 0))
+                { format = "{2}.{3:F3}s"; }
+            else if (duration.Seconds > 0)
+                { format = "{2}s"; }
+            else if (duration.Milliseconds > 0)
+                { format = "{3}ms"; }
+
+            return string.Format(format, duration.Hours, duration.Minutes, duration.Seconds, duration.Milliseconds);
         }
 
         

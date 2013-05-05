@@ -54,6 +54,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Xml.Linq;
 
 using Styx;
@@ -274,7 +275,6 @@ namespace Honorbuddy.QuestBehaviorCore
             EvaluateUsage_SemanticCoherency(Element);
 
             // Deprecated attributes...
-            // TODO: Do this later, after we've made a sweep through Kick's profiles...
             EvaluateUsage_DeprecatedAttributes(Element);
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -286,6 +286,13 @@ namespace Honorbuddy.QuestBehaviorCore
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                // Monitored Behaviors...
+                if (QuestBehaviorCoreSettings.Instance.MonitoredBehaviors.Contains(GetType().Name))
+                {
+                    LogWarning("MONITORED BEHAVIOR: {0}", GetType().Name);
+                    AudibleNotifyOn(true);
+                }
+
                 // The ConfigMemento() class captures the user's existing configuration.
                 // After its captured, we can change the configuration however needed.
                 // When the memento is dispose'd, the user's original configuration is restored.

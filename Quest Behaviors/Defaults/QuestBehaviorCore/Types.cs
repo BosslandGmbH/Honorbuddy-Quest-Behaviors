@@ -13,6 +13,7 @@ using System;
 
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -65,8 +66,9 @@ namespace Honorbuddy.QuestBehaviorCore
         public delegate string ProvideStringDelegate(object context);
         public delegate double ProvideDoubleDelegate(object context);
         public delegate HuntingGroundsType ProvideHuntingGroundsDelegate(object context);
-        public delegate WoWPoint ProvideWoWPointDelegate(object context);
+        public delegate WoWItem ProvideWoWItemDelegate(object context);
         public delegate WoWObject ProvideWoWObjectDelegate(object context);
+        public delegate WoWPoint ProvideWoWPointDelegate(object context);
         public delegate WoWUnit ProvideWoWUnitDelegate(object context);
 
 
