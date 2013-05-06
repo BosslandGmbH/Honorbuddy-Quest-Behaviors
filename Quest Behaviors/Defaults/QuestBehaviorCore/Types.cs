@@ -13,7 +13,6 @@ using System;
 
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
-using Styx.Common.Helpers;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -22,6 +21,20 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public abstract partial class QuestBehaviorBase
     {
+        //----------
+        // Commonly used 'Constants'
+        //
+        protected static TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
+        protected static TimeSpan Delay_AfterInteraction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
+        protected static readonly TimeSpan Delay_LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
+        protected static readonly TimeSpan Throttle_WoWClientMovement = TimeSpan.FromMilliseconds(100);
+        protected static LocalPlayer Me { get { return StyxWoW.Me; } }
+        public static readonly Random _random = new Random((int)DateTime.Now.Ticks);
+
+
+        //----------
+        // Types
+        //
         public enum MobStateType
         {
             // NPC states

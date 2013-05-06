@@ -8,67 +8,10 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
-#region Usings
-using System.Collections.Generic;
-using System.Linq;
-
-using Styx.WoWInternals.WoWObjects;
-#endregion
-
-
-namespace Honorbuddy.QuestBehaviorCore
-{
-    public static class Extensions_WoWUnit
-    {
-        /// <summary>
-        /// Similar to WoWUnit.Mounted, but also tests for auras that provide a 'mounted' characteristic.
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The following auras count as 'mounted' auras:
-        /// Druid(Flight Form), Druid(Swift Fight Form, Druid(Travel Form), Shaman(Ghost Wolf),
-        /// Worgen(Running Wild).</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="wowUnit"></param>
-        /// <returns></returns>
-        public static bool IsMounted(this WoWUnit wowUnit)
-        {
-            return (wowUnit.Mounted
-                    || wowUnit.GetAllAuras().Any(a => _mountedAuras.Contains(a.SpellId)));
-        }
-        private readonly static int[] _mountedAuras =
-            {
-                33943,      // Druid: Flight Form
-                40120,      // Druid: Swift Flight Form
-                  783,      // Druid: Travel Form
-                 2645,      // Shaman: Ghost Wolf
-                87840,      // Worgen: Running Wild
-            };
-
-
-        // 16Apr2013-10:34UTC chinajade
-        public static bool IsShapeshifted(this WoWUnit wowUnit)
-        {
-            return wowUnit.GetAllAuras().Any(a => _shapeshiftAuras.Contains(a.SpellId));
-        }
-        private readonly static int[] _shapeshiftAuras =
-            {
-                 1066,      // Druid: Aquatic Form
-                 5487,      // Druid: Bear Form
-                  768,      // Druid: Cat Form
-                33943,      // Druid: Flight Form
-                40120,      // Druid: Swift Flight Form
-                  783,      // Druid: Travel Form
-                 2645,      // Shaman: Ghost Wolf
-                87840,      // Worgen: Running Wild
-            };
-
-
-        // 11Apr2013-07:48UTC chinajade
-        public static bool IsUntagged(this WoWUnit wowUnit)
-        {
-            return (wowUnit.TappedByAllThreatLists
-                    || wowUnit.TaggedByMe
-                    || !wowUnit.TaggedByOther);
-        }
-    }
-}
+// The extenions contained in this file have been distributed to the QuestBehaviorCore/Extensions/
+// subdirectory to make them more managable.
+//
+// This comment file has been left in place to prevent 'symbol conflicts' for users that do
+// 'upgrade installs' of Honorbuddy.  The current Honorbuddy at the time of this writing is .557.
+// This file should be deleted as soon as it safe to do so (won't create problems for 'upgrade installers').
+//

@@ -17,6 +17,9 @@ using System.Xml.Linq;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
+
+using Action = Styx.TreeSharp.Action;
 #endregion
 
 
@@ -183,6 +186,17 @@ namespace Honorbuddy.QuestBehaviorCore
             var trace = new StackTrace(1);
 
             LogError("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", formattedMessage, trace.ToString());
+        }
+
+
+        //  5May2013-09:04UTC chinajade
+        public static Composite LogMarkerPS(ProvideStringDelegate messageDelegate)
+        {
+            return new Action(context =>
+            {
+                Logging.Write(Colors.Fuchsia, BuildLogMessage("marker", messageDelegate(context)));
+                return RunStatus.Failure;
+            });
         }
 
 

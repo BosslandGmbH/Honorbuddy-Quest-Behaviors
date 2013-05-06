@@ -8,35 +8,10 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
-#region Usings
-using Styx.WoWInternals.WoWObjects;
-#endregion
-
-
-namespace Honorbuddy.QuestBehaviorCore
-{
-    public static class Extensions_WoWObject
-    {
-        // Mostly stolen from Singular
-        // 12Apr2013-06:29UTC chinajade
-        public static string SafeName(this WoWObject obj)
-        {
-            const ulong GuidMask = 0x0ffff;
-
-            if (obj.IsMe)
-                { return "Me"; }
-
-            string name;
-            if (obj is WoWPlayer)
-                { name = ((WoWPlayer)obj).Class.ToString(); }
-
-            else if ((obj is WoWUnit) && obj.ToUnit().IsPet)
-                { name =  obj.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
-
-            else
-                { name = string.Format("{0}.{1:X4}", obj.Name, (obj.Guid & GuidMask)); }
-
-            return name;
-        }
-    }
-}
+// The extenions contained in this file have been distributed to the QuestBehaviorCore/Extensions/
+// subdirectory to make them more managable.
+//
+// This comment file has been left in place to prevent 'symbol conflicts' for users that do
+// 'upgrade installs' of Honorbuddy.  The current Honorbuddy at the time of this writing is .557.
+// This file should be deleted as soon as it safe to do so (won't create problems for 'upgrade installers').
+//
