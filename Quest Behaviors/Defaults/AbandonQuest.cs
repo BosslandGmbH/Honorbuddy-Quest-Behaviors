@@ -15,6 +15,11 @@
 //                  Failed:     abandon quest only if failed
 //                  Incomplete: abandon incomplete quests (failed and any not complete)  
 //
+//      WaitTime [optional; Default: 1500ms]
+//          Defines the number of milliseconds to wait after the quest abandon before carrying on.
+//          This allows the WoWclient to update its state (and HBcore to 'catch up' to it),
+//          before proceeding with the rest of the profile.
+//
 //  Examples:   
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="All" />
@@ -24,10 +29,15 @@
 using System;
 using System.Collections.Generic;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
+
+using Action = Styx.TreeSharp.Action;
 
 
 namespace Honorbuddy.Quest_Behaviors.AbandonQuest
@@ -50,6 +60,7 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
             {
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
                 Type = GetAttributeAsNullable<AbandonType>("Type", false, null, null) ?? AbandonType.Incomplete;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;   
             }
 
             catch (Exception except)
@@ -68,12 +79,15 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
 
 
         // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public AbandonType Type { get; private set; }
+        private int QuestId { get; set; }
+        private AbandonType Type { get; set; }
+        private int WaitTime { get; set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
+        private Composite _root;
+        private readonly WaitTimer _waitTimerAfterAbandon = new WaitTimer(TimeSpan.Zero);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -113,6 +127,23 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
 
         #region Overrides of CustomForcedBehavior
 
+        protected override Composite CreateBehavior()
+        {
+            return (_root ?? (_root = new PrioritySelector(
+                // Delay, if necessary...
+                new Decorator(context => !_waitTimerAfterAbandon.IsFinished,
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
+                            QuestBehaviorBase.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterAbandon.TimeLeft.TotalSeconds)),
+                            QuestBehaviorBase.PrettyTime(_waitTimerAfterAbandon.WaitTime));
+                    })),
+
+                new Action(context => { _isBehaviorDone = true; })
+            )));
+        }
+
+
         public override void Dispose()
         {
             Dispose(true);
@@ -143,13 +174,22 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 if (quest == null)
-                { LogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId); }
+                {
+                    LogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId);
+                    _isBehaviorDone = true;
+                }
 
                 else if ((quest != null) && quest.IsCompleted && (Type != AbandonType.All))
-                { LogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name); }
+                {
+                    LogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name);
+                    _isBehaviorDone = true;
+                }
 
                 else if ((quest != null) && !quest.IsFailed && (Type == AbandonType.Failed))
-                { LogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name); }
+                {
+                    LogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name);
+                    _isBehaviorDone = true;
+                }
 
                 else
                 {
@@ -157,9 +197,10 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                     QuestLog ql = new QuestLog();
                     ql.AbandonQuestById((uint)QuestId);
                     LogMessage("info", "Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
-                }
 
-                _isBehaviorDone = true;
+                    _waitTimerAfterAbandon.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
+                    _waitTimerAfterAbandon.Reset();
+                }
             }
         }
 
