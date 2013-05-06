@@ -1384,6 +1384,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private bool IsClearTargetNeeded(WoWObject wowObject)
         {
+            if (wowObject == null)
+                { return false; }
+
             WoWUnit wowUnit = wowObject.ToUnit();
 
             return
