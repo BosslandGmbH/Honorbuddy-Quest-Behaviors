@@ -244,7 +244,7 @@ namespace Honorbuddy.QuestBehaviorCore
             bool isViableForInteracting =
                 IsViable(wowObject)
                 && !IsBlacklistedForInteraction(wowObject)
-                && (!IgnoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
+                && (IgnoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
                 && !IsInCompetition(wowObject);
 
             // We're done, if not a WoWUnit...
