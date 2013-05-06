@@ -184,6 +184,7 @@
 //          is only one waypoint, the behavior will stand and wait for MobIdN to respawn.
 //          If false, and the behavior cannot locate MobIdN in the immediate area, the behavior
 //          considers itself complete.
+//          Please see "Things to know", below.
 //      WaitTime [optional; Default: 0ms]
 //          Defines the number of milliseconds to wait after the interaction is successfully
 //          conducted before carrying on with the behavior on other mobs.
@@ -238,6 +239,14 @@
 // * If you are trying to gossip with NPCs that are in combat, this behavior will help the NPC
 //      kill the mob so the NPC will leave combat.  This is necessary because many NPCs will not
 //      gossip when they are in combat.
+//
+// * Be careful when specifying the WaitForNpcs="true".
+//      The 'interact blacklist' is internal to the behavior.  The means the blacklist is destroyed
+//      any time the behavior exits, and a fresh one is created upon re-entry to the behavior.
+//      This means InteractWith does not know which mobs have already been interacted and which
+//      have not, when WaitForNpcs="true".  The can cause slow progress as the failure detection
+//      mechnaisms built into the behavior kick in and re-exclude non-viable mobs as they are
+//      rediscovered.
 //
 // * Deprecated attributes:
 //      + BuySlot
