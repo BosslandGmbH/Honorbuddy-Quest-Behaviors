@@ -11,6 +11,7 @@
 #region Usings
 using System;
 
+using Bots.Grind;
 using Styx.CommonBot;
 using Styx.CommonBot.Routines;
 using Styx.TreeSharp;
@@ -60,12 +61,14 @@ namespace Honorbuddy.QuestBehaviorCore
             // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
             // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
             // So, no need to duplicate that work here.
-            return new PrioritySelector(
-                new Decorator(context => RoutineManager.Current.HealBehavior != null,
-                    RoutineManager.Current.HealBehavior),
-                new Decorator(context => RoutineManager.Current.RestBehavior != null,
-                    RoutineManager.Current.RestBehavior)
-            );
+            return new Decorator(context => !Me.Combat,
+                new PrioritySelector(
+                    new Decorator(context => RoutineManager.Current.HealBehavior != null,
+                        RoutineManager.Current.HealBehavior),
+                    new Decorator(context => RoutineManager.Current.RestBehavior != null,
+                        RoutineManager.Current.RestBehavior),
+                    LevelBot.CreateLootBehavior()
+                ));
         }
         
     }

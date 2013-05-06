@@ -114,7 +114,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return new PrioritySelector(
                 // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
                 // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                new Decorator(context => !isInterestingToUs(_ubpsSpankMobTargetingUs_Mob),
+                new Decorator(context => !IsViableForFighting(_ubpsSpankMobTargetingUs_Mob),
                     new Action(context =>
                     {
                         using (StyxWoW.Memory.AcquireFrame())
@@ -174,7 +174,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 new PrioritySelector(
                     // If a mob is within aggro range of our destination, deal with it immediately...
                     // Otherwise, it will interrupt our attempt to interact or use items.
-                    new Decorator(context => !isInterestingToUs(_ubpsSpankMobWithinAggroRange_Mob),
+                    new Decorator(context => !IsViableForFighting(_ubpsSpankMobWithinAggroRange_Mob),
                         new Action(context =>
                         {
                             _ubpsSpankMobWithinAggroRange_Mob =
