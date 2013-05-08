@@ -95,7 +95,7 @@
 //          have changed.
 //
 // Interaction by Quest frames:
-//      InteractByQuestFrameDisposition [optional; Default: TerminateBehavior]
+//      InteractByQuestFrameDisposition [optional; Default: TerminateProfile]
 //          [Allowed values: Accept/Complete/Continue/Ignore/TerminateBehavior/TerminateProfile]
 //          This attribute determines the behavior's response should the NPC
 //          with which we've interacted offer us a quest frame.
@@ -426,7 +426,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     ?? GetAttributeAsNullable<bool>("Loot", false, null, null) /* Legacy name--don't use*/
                     ?? false;
                 InteractByQuestFrameAction = GetAttributeAsNullable<QuestFrameDisposition>("InteractByQuestFrameDisposition", false, null, null)
-                    ?? QuestFrameDisposition.TerminateBehavior;
+                    ?? QuestFrameDisposition.TerminateProfile;
                 InteractByUsingItemId = GetAttributeAsNullable<int>("InteractByUsingItemId", false, ConstrainAs.ItemId, null) ?? 0;
 
 
