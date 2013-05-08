@@ -1267,6 +1267,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             {
                                 LogDeveloperInfo("Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
                                     GetName(SelectedInteractTarget));
+                                CloseOpenFrames(true);
                                 BehaviorDone();
                             })),
                         new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile && !IsMultipleFramesVisible(),
@@ -1276,6 +1277,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     + "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
                                     + " the behavior how to handle this situation.",
                                     GetName(SelectedInteractTarget));
+                                CloseOpenFrames(true);
                                 BehaviorDone();
                             })),
 
