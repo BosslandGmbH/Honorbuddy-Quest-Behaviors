@@ -17,6 +17,7 @@ using System.Threading;
 using Styx;
 using Styx.TreeSharp;
 
+using Action = Styx.TreeSharp.Action;
 #endregion
 
 
@@ -157,6 +158,25 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 throw;
             }
+        }
+    }
+
+
+    //  8May2013-08:10UTC Mastahg
+    class FailLogger : Action
+    {
+        public FailLogger(object data)
+        {
+            _data = data;
+        }
+
+        private readonly object _data;
+
+
+        protected override RunStatus Run(object context)
+        {
+            QuestBehaviorBase.LogDeveloperInfo(_data.ToString());
+            return RunStatus.Failure;
         }
     }
 
