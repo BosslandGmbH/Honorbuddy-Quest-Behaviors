@@ -18,12 +18,11 @@
 	* Needs to be adapted to new QuestBehaviorCore framework
 	* Needs to tell why its 'waiting for mobs to respawn' 
 
+* EscortGroup
+	* Needs to be adapted to new QuestBehaviorCore framework
+
 * InteractWith testing needed:
-	+ Rework InteractWith to use items and interact during combat
-		A good test is "Nature's Repisal" a level 7 Night Elf quest conducted in a cave with bad LoS issues.
-		Use Natfoth profile and switch out UseItemTargetLocation for this quest.
-	+ If MobState="Dead" specified, and alive targets in area, help them get "Dead" so we can interact.
-	+ This needs to be convered to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
+	+ This needs to be converted to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Giwin claims InteractWith doesn't work underwater
 		+ See: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/116066-interactwith-not-working-underwater.html#post1126570
 		+ Example he gave Frederick's Fish Fancy - Quest - World of Warcraft (http://www.thebuddyforum.com/redirect-to/?redirect=http%3A%2F%2Fwww.wowhead.com%2Fquest%3D27450%2Ffredericks-fish-fancy).
@@ -86,9 +85,21 @@ QUESTBEHAVIORCORE FRAMEWORK
 
 * Do we need a Data/SharedResources.xml file to augment IsInCompetition() calculations?
 
+* Need a way to capture 'reasons' of exclusion in FindBestTarget() methods and the predicates they use.
 
-KICK'S PROFILES:
-================
+* Need support for 'special instructions'
+	+ UseItemWheMeHasAura
+	+ UseItemWhenMeMissingAura
+	+ UseItemOnMobWhenHasAura
+	+ UseItemOnMobWhenMissingAura
+	+ etc.
+
+
+PROFILES:
+=========
+* Deepholm: Elemental Energy
+	+ See problem report here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-4.html#post1142895
+
 * Change PullDistance="25"/"30" to PullDistance="original"
 	+ This one's going to take a while--its half a million lines of profile code to scour.
 
@@ -114,6 +125,11 @@ KICK'S PROFILES:
 		* Memelook's report: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1110777
 
 * "Finding your Center" (31) needs a behavior developed for it (ally, jade forest)
+
+* Ringo escort in Un'goro. (Cava)
+	+ Ringo apparently doesn't have auras to tell when the canteen can and cannot be used.
+	+ If you try to use the canteen at the wrong time, IW will blacklist mob after a few times, because the canteen use is 'interrupted'.
+	+ http://pastie.org/7810287
 
 
 NEEDED QUEST BEHAVIORS:
