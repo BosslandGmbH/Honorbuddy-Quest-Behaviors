@@ -106,8 +106,8 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == 44995 && i.Cooldown == 0); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 14005-TheVengeanceOfElune.cs 249 2012-09-19 01:31:37Z natfoth $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 249 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~StrategicStrikes()

@@ -116,8 +116,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: CombatUseItemOn.cs 249 2012-09-19 01:31:37Z natfoth $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 249 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         ~FourWindsStudentsNoMore()
         {

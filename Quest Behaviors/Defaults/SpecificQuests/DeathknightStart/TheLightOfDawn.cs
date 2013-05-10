@@ -112,8 +112,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
         private StateType_Behavior _state_Behavior;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: TheLightOfDawn.cs 249 2012-09-19 01:31:37Z natfoth $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 249 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         #region Destructor, Dispose, and cleanup

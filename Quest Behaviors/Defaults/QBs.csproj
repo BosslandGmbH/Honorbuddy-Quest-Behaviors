@@ -64,6 +64,12 @@
     <Compile Include="BarrelHook.cs" />
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
+    <Compile Include="Development\DataAccess.cs" />
+    <Compile Include="Development\Extensions_WoWObject.cs" />
+    <Compile Include="Development\Extensions_WoWPoint.cs" />
+    <Compile Include="Development\MathHelpers.cs" />
+    <Compile Include="Development\MeshNavigation.cs" />
+    <Compile Include="Development\PetControl.cs" />
     <Compile Include="NoControlVehicle.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_FullInfo.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_TreeSharp.cs" />
@@ -276,21 +282,6 @@
   <ItemGroup>
     <Content Include="QuestBehaviorCore\Data\AuraIds_OccupiedVehicle.xml" />
     <Content Include="Development\TODO-chinajade.txt" />
-    <Content Include="Development\Unit Tests\CombatUseItemOnV2\CombatUseItemOnV2-CamelTow.xml" />
-    <Content Include="Development\Unit Tests\CombatUseItemOnV2\CombatUseItemOnV2-DoTheImpPossible.xml" />
-    <Content Include="Development\Unit Tests\CombatUseItemOnV2\CombatUseItemOnV2-UnlimitedPotential.xml" />
-    <Content Include="Development\Unit Tests\EscortGroup\EscortGroup Test-BurlapTrail1.xml" />
-    <Content Include="Development\Unit Tests\EscortGroup\EscortGroup Test-NefersetPrison.xml" />
-    <Content Include="Development\Unit Tests\EscortGroup\EscortGroup Test-NoPlaceToRun.xml" />
-    <Content Include="Development\Unit Tests\EscortGroup\EscortGroup Test-ReUnited.xml" />
-    <Content Include="Development\Unit Tests\EscortGroup\EscortGroup Test-Students No More.xml" />
-    <Content Include="Development\Unit Tests\GetOutOfGroundEffectAndAuras\GetOutOfGroundEffectAndAuras Test-A Celestial Experience.xml" />
-    <Content Include="Development\Unit Tests\GetOutOfGroundEffectAndAuras\GetOutOfGroundEffectAndAuras-BreakingTheEmperorsShield.xml" />
-    <Content Include="Development\Unit Tests\InteractWith\InteractWith-FearNoEvil.xml" />
-    <Content Include="Development\Unit Tests\InteractWith\InteractWith-MerchantBuyNoMoney.xml" />
-    <Content Include="Development\Unit Tests\InteractWith\InteractWith-MerchantBuyWrongItem.xml" />
-    <Content Include="Development\Unit Tests\UseItemOn\UseItemOn-ExtinguishingHope.xml" />
-    <Content Include="Development\Unit Tests\UserSettings\UserSettings Test.xml" />
     <Content Include="QuestBehaviorCore\Data\PluginCategory.xml" />
     <Content Include="QuestBehaviorCore\Data\SwimBreath.xml" />
   </ItemGroup>

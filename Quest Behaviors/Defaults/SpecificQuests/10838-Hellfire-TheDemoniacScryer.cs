@@ -40,8 +40,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
         public int ItemId = 31606;
         public int MobId = 22258;
         public Stopwatch TimeOut = new Stopwatch();
-        public override string SubversionId { get { return ("$Id: 10838.cs 191 2011-08-02 18:59:20Z Azenius $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 1 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         private ConfigMemento _configMemento;
         private bool _isBehaviorDone;

@@ -66,8 +66,8 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: AscendInWater.cs 184 2011-06-26 21:59:04Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 184 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         static readonly WaitTimer Timer = WaitTimer.OneSecond;

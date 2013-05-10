@@ -176,8 +176,8 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseItemTargetLocation.cs 217 2012-02-11 16:52:02Z Nesox $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 217 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UsePetAbility()
