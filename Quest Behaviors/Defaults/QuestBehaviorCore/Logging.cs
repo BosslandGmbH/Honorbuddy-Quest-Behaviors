@@ -131,33 +131,33 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <summary>
         /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogDeveloperInfo(string message, params object[] args)
+        public static void LogDeveloperInfo(string format, params object[] args)
         {
-            Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", message, args));
+            Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", format, args));
         }
         
         
         /// <summary>
         /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogError(string message, params object[] args)
+        public static void LogError(string format, params object[] args)
         {
-            Logging.Write(Colors.Red, BuildLogMessage("error", message, args));
+            Logging.Write(Colors.Red, BuildLogMessage("error", format, args));
         }
            
         
         /// <summary>
         /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogFatal(string message, params object[] args)
+        public static void LogFatal(string format, params object[] args)
         {
-            Logging.Write(Colors.Red, BuildLogMessage("fatal", message, args));
+            Logging.Write(Colors.Red, BuildLogMessage("fatal", format, args));
             TreeRoot.Stop("Fatal error in quest behavior, or profile.");
         }
         
@@ -165,11 +165,11 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <summary>
         /// <para>Normal information to keep user informed.</para>
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogInfo(string message, params object[] args)
+        public static void LogInfo(string format, params object[] args)
         {
-            Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", message, args));
+            Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", format, args));
         }
         
         
@@ -177,12 +177,12 @@ namespace Honorbuddy.QuestBehaviorCore
         /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
         /// action a user can perform in the field for these types of errors.
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         ///  30Jun2012-15:58UTC chinajade
-        public static void LogMaintenanceError(string message, params object[] args)
+        public static void LogMaintenanceError(string format, params object[] args)
         {
-            string formattedMessage = string.Format(message, args);
+            string formattedMessage = string.Format(format, args);
             var trace = new StackTrace(1);
 
             LogError("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", formattedMessage, trace.ToString());
@@ -208,32 +208,23 @@ namespace Honorbuddy.QuestBehaviorCore
         /// There is no corrective action a user or the behavior can perform to work around these types
         /// of errors; thus, they are always considered fatal.
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
         ///  30Jun2012-15:58UTC chinajade
-        public static void LogProfileError(string message, params object[] args)
+        public static void LogProfileError(string format, params object[] args)
         {
-            var outMessage = string.Format(message, args);
-
-            if (BehaviorLoggingContext != null)
-            {
-                outMessage += string.Format("{0}    {1}",
-                    Environment.NewLine,
-                    GetProfileReference(BehaviorLoggingContext.Element));
-            }
-
-            LogFatal("[PROFILE ERROR] {0}", outMessage);
+            LogFatal("[PROFILE ERROR] {0}", string.Format(format, args));
         }
         
         
         /// <summary>
         /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
         /// </summary>
-        /// <param name="message"></param>
+        /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogWarning(string message, params object[] args)
+        public static void LogWarning(string format, params object[] args)
         {
-            Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", message, args));
+            Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", format, args));
         }
 
 
