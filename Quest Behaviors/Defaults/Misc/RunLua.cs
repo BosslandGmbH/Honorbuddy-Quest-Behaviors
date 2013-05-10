@@ -5,19 +5,13 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-
+using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 
@@ -30,7 +24,8 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
     /// Lua: the lua script to run
     /// NumOfTimes: (Optional) - The number of times to execute this script. default:1
     /// QuestId: (Optional) - the quest to perform this action on
-    /// WaitTime: (Optional) - The time in milliseconds to wait before executing the next. default:0
+    /// WaitTime: (Optional) - The time in milliseconds to wait before executing the next. default: 0ms
+    ///                         This is a Post-LUA delay.
     /// </summary>
     [CustomBehaviorFileName(@"Misc\RunLua")]
     public class RunLua : CustomForcedBehavior
@@ -67,18 +62,19 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 
 
         // Attributes provided by caller
-        public string LuaCommand { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public int WaitTime { get; private set; }
+        private string LuaCommand { get; set; }
+        private int NumOfTimes { get; set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
+        private int WaitTime { get; set; }
 
         // Private variables for internal state
         private int _counter;
+        private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-        private readonly Stopwatch _waitStopwatch = new Stopwatch();
+        private readonly WaitTimer _waitTimer = new WaitTimer(TimeSpan.Zero);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -120,23 +116,26 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 
         protected override Composite CreateBehavior()
         {
-            return _root ??
-                (_root = new PrioritySelector(
+            return _root ?? (_root = new PrioritySelector(
+                // Wait for post-LUA timer to expire...
+                new Decorator(context => !_waitTimer.IsFinished,
+                    new ActionAlwaysSucceed()),
 
-                    new Action(c =>
-                    {
-                        if (!_waitStopwatch.IsRunning && WaitTime > 0)
-                            _waitStopwatch.Start();
+                // If we've met our completion count, we're done...
+                new Decorator(context => _counter >= NumOfTimes,
+                    new Action(context => { _isBehaviorDone = true; })),
 
-                        if (_waitStopwatch.ElapsedMilliseconds < WaitTime)
-                            return;
-
-                        Lua.DoString(LuaCommand);
-                        _counter++;
-                        _waitStopwatch.Reset();
-                    })
-                ));
+                // Run the LUA command...
+                new Action(c =>
+                {
+                    Lua.DoString(LuaCommand);
+                    _counter++;
+                    _waitTimer.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
+                    _waitTimer.Reset();
+                }))
+            );
         }
+
 
         public override void Dispose()
         {
@@ -149,7 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
         {
             get
             {
-                return ((_counter >= NumOfTimes)     // normal completion
+                return (_isBehaviorDone     // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
@@ -168,9 +167,12 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
             {
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
                 TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
-                                                    this.GetType().Name, LuaCommand, NumOfTimes, WaitTime);
+                                                    GetType().Name, LuaCommand, NumOfTimes, WaitTime);
+
+                // NB: The _waitTimer is initialzed to zero, so there will be no 'initial delay'.
+                // This is what the user expects.
             }
         }
 
