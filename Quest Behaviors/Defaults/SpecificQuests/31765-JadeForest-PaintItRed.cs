@@ -139,21 +139,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
         }
 
 
-        private void shoot()
+        private void shoot(WoWUnit who)
         {
-            var v = Me.CurrentTarget.Location - StyxWoW.Me.Transport.Location;
+            var v = who.Location - StyxWoW.Me.Transport.Location;
             v.Normalize();
             Lua.DoString(string.Format("local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta);", Math.Asin(v.Z)));
 
 
             //If the target is moving, the projectile is not instant
-            if (Me.CurrentTarget.IsMoving)
+            if (who.IsMoving)
             {
-                WoWMovement.ClickToMove(Me.CurrentTarget.Location.RayCast(StyxWoW.Me.CurrentTarget.Rotation, 10f));
+                WoWMovement.ClickToMove(Me.CurrentTarget.Location.RayCast(who.Rotation, 10f));
             }
             else
             {
-                WoWMovement.ClickToMove(Me.CurrentTarget.Location);
+                WoWMovement.ClickToMove(who.Location);
             }
             //Fire pew pew
             Lua.DoString("CastPetAction({0})", 1);
@@ -169,14 +169,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
                 return
 
 
-                    new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId),new PrioritySelector(
-                        new Decorator(r=>  !Me.GotTarget && Solider != null, new Action(r=>Solider.Target())),
-                        new Decorator(r=>  Me.GotTarget, new Action(r=>shoot()))
-                        
-                        
-                        
-                        ));
-                    
+                    new Decorator(r => !IsObjectiveComplete(1, (uint) QuestId) && Solider != null,
+                                  new Action(r => shoot(Solider)));
+
+
             }
 
         }
@@ -188,13 +184,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
                 return
 
 
-                    new Decorator(r => !IsObjectiveComplete(2, (uint)QuestId), new PrioritySelector(
-                        new Decorator(r => Cannon != null && (!Me.GotTarget || Me.CurrentTarget.Entry != Cannon.Entry), new Action(r => Cannon.Target())),
-                        new Decorator(r => Me.GotTarget, new Action(r => shoot()))
+                    new Decorator(r => !IsObjectiveComplete(2, (uint) QuestId) && Cannon != null,
+                                  new Action(r => shoot(Cannon)));
 
-
-
-                        ));
 
             }
 
