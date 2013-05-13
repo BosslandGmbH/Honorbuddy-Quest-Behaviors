@@ -217,7 +217,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
                     spell = "Moonfire";
                     break;
                 case WoWClass.Paladin:
-                    spell = "Judgement";
+                    spell = "Judgment";
                     break;
                 case WoWClass.Priest:
                     spell = "Shadow Word: Pain";
