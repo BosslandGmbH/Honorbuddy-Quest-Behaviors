@@ -21,6 +21,13 @@
 * EscortGroup
 	* Needs to be adapted to new QuestBehaviorCore framework
 
+* GetOutOfGroundEffectsAndAuras
+	loving the new moveoutofaura CB, but I have one request
+	for instance stonecore mount boss has 2 abilities 
+	but, the lava fissures spawn, which spawn lava something ie fire on the ground
+	and the boss doesnt actually cause it, hence it wont avoid it
+	would it be possible to add 4th option to move out of an effect no matter how the effect gets there
+
 * InteractWith testing needed:
 	+ This needs to be converted to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Giwin claims InteractWith doesn't work underwater
@@ -74,6 +81,8 @@
 
 QUESTBEHAVIORCORE FRAMEWORK
 ===========================
+* UtilityBehaviorPS & UtilityBehaviorSeq needs to be their own classes rather than part of QuestBehaviorCore
+
 * The UserSettings/OnBotStop interferes with QuestBehaviorCore's OnBotStop.  Figure out a way to process
 	events from various hooks installed at different times by different processes in the correct order.
 
@@ -166,6 +175,9 @@ NEEDED QUEST BEHAVIORS:
 	* Allow pet to be put away, or not
 	* Allow mounting, or not
 	* Should deprecate MyCTM, NoCombatMoveTo, RunLikeHell
+
+* ProfileTuner
+	* EchoTiger's idea from here: http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/118745-suggestion-profile-option-menu.html#post1149747
 
 * Stationary Cannon (Worgen starting area--level 5-ish)
 	* For By Blood and Ash

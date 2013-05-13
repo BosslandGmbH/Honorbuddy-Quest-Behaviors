@@ -76,6 +76,7 @@
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWObject.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWPoint.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWUnit.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityBehaviors\UtilityBehaviors_Misc.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\UtilityBehaviors_SwimBreath.cs" />
     <Compile Include="QuestBehaviorCore\Queries_Database.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorCoreSettings.cs" />
@@ -153,6 +154,7 @@
     <Compile Include="NoCombatMoveTo.cs" />
     <Compile Include="SpecificQuests\28113-Felwood-BreaktheUnbreakable.cs" />
     <Compile Include="TaxiRide.cs" />
+    <Compile Include="ToggleCombat.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
     <Compile Include="Vehicles\NoControlVehicle.cs" />
     <Compile Include="NPCAssistance.cs" />

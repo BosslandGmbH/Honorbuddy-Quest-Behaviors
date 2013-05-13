@@ -76,8 +76,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
         // Delegates
         public delegate bool ProvideBoolDelegate(object context);
-        public delegate string ProvideStringDelegate(object context);
+        public delegate int ProvideIntDelegate(object context);
         public delegate double ProvideDoubleDelegate(object context);
+        public delegate string ProvideStringDelegate(object context);
         public delegate HuntingGroundsType ProvideHuntingGroundsDelegate(object context);
         public delegate WoWItem ProvideWoWItemDelegate(object context);
         public delegate WoWObject ProvideWoWObjectDelegate(object context);

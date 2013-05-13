@@ -581,7 +581,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private WoWObject SelectedInteractTarget { get; set; }
 
         private readonly WaitTimer _waitTimerAfterInteracting = new WaitTimer(TimeSpan.Zero);
-        private readonly WaitTimer _waitTimerForItemToAppear = new WaitTimer(TimeSpan.Zero);
+        private WaitTimer _waitTimerForItemToAppear = null;
         private WaitTimer _timerToReachDestination = null;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -636,12 +636,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 CharacterSettings.Instance.PullDistance = 0;
 
                 _waitTimerAfterInteracting.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
-
-                // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
-                // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
-                // for the item to show up, if its going to.
-                _waitTimerForItemToAppear.WaitTime = TimeSpan.FromSeconds(5);
-                _waitTimerForItemToAppear.Reset();
             }
         }
 
@@ -689,25 +683,16 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new Action(context => { BehaviorDone(); })),
 
                     // If WoWclient has not placed items in our bag, wait for it...
-                    // If it doesn't show up in a reasonable time, we're done.
+                    // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
+                    // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
+                    // for the item to show up, if its going to.
                     new Decorator(context => (InteractByUsingItemId > 0) && !IsViable(ItemToUse),
                         new PrioritySelector(
-                            new Decorator(context => _waitTimerForItemToAppear.IsFinished,
-                                new Action(context =>
-                                {
-                                    LogProfileError(BuildMessageWithContext(Element,
-                                        "Unable to locate {0} in our bags--terminating behavior.",
-                                        GetItemNameFromId(InteractByUsingItemId)));
-                                    BehaviorDone();                                    
-                                })),
-                            new Decorator(context => ItemToUse == null,
-                                new Action(context =>
-                                {
-                                    TreeRoot.StatusText = string.Format("Waiting {0} for {1} to arrive in our bags.",
-                                        PrettyTime(_waitTimerForItemToAppear.WaitTime),
-                                        GetItemNameFromId(InteractByUsingItemId));
-                                    ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
-                                }))
+                            UtilityBehaviorPS_WaitForInventoryItem(context => InteractByUsingItemId),
+                            new Action(context =>
+                            {
+                                ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
+                            })
                         )),
                         
                     // If we've an alive target to make dead, go make it so...
@@ -1505,6 +1490,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             {
                 excludedUnitReasons.Insert(0, string.Format("{0}Excluded Units:{0}",
                     Environment.NewLine));
+                excludedUnitReasons.AppendFormat("{0}    {1}",
+                    Environment.NewLine,
+                    GetXmlFileReference(Element));
             }
 
             return excludedUnitReasons.ToString();
