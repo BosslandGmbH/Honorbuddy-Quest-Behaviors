@@ -636,6 +636,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 CharacterSettings.Instance.PullDistance = 0;
 
                 _waitTimerAfterInteracting.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
+
+                // NB: With the post-.557 HB releases, Honorbuddy will keep the NPC dialog boxes up
+                // after a <PickUp> directive.  This looks more human like, and is a good thing.
+                // Unfortunately, a <PickUp> immediate followed by an <InteractWith> will cause InteractWith
+                // to see an unexpected quest dialog frame.  To prevent problems, we close all dialogs
+                // when InteractWith is started, here.
+                CloseOpenFrames(true);
             }
         }
 
