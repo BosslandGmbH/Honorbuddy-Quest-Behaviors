@@ -207,7 +207,7 @@ namespace Honorbuddy.Quest_Behaviors.SlayTheFools
             {
                 return
                     new Decorator(
-                        r => Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly),
+                        r => Me.CurrentTarget == null || (Me.CurrentTarget.IsFriendly || Me.CurrentTarget.IsDead),
                         SelectNew);
 
             }
@@ -218,8 +218,9 @@ namespace Honorbuddy.Quest_Behaviors.SlayTheFools
             get
             {
                 return
-                    
-                        new Decorator(ret => Me.Combat, DoDps);
+                    new PrioritySelector(
+					new Decorator(r=>Me.Mounted,new Action(r=>Flightor.MountHelper.Dismount())),
+                        new Decorator(ret => Me.Combat, DoDps));
             }
         }
 
@@ -282,7 +283,7 @@ namespace Honorbuddy.Quest_Behaviors.SlayTheFools
                     }
                 }
 
- 
+
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " +
