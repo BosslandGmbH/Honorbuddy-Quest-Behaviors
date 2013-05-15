@@ -65,8 +65,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 new PrioritySelector(
                     new Decorator(context => RoutineManager.Current.HealBehavior != null,
                         RoutineManager.Current.HealBehavior),
+                    new Decorator(context => RoutineManager.Current.NeedHeal,
+                        new Action(context => { RoutineManager.Current.Heal(); })),
                     new Decorator(context => RoutineManager.Current.RestBehavior != null,
                         RoutineManager.Current.RestBehavior),
+                    new Decorator(context => RoutineManager.Current.NeedRest,
+                        new Action(context => { RoutineManager.Current.Rest(); })),
                     LevelBot.CreateLootBehavior()
                 ));
         }

@@ -654,6 +654,18 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         {
             return new Decorator(context => !IsDone,
                 new PrioritySelector(
+                    // Force recalculation of time to reach destination after combat completes...
+                    new Decorator(context => Me.Combat,
+                        new Action(context =>
+                        {
+                            _timerToReachDestination = null;
+                            CloseOpenFrames(true);
+                            return RunStatus.Failure;   // fall through
+                        })),
+
+                    new Decorator(context => !Me.Combat,
+                        UtilityBehaviorPS_HealAndRest()),
+
                     // If a mob is targeting us, deal with it immediately, so our interact actions won't be interrupted...
                     new Decorator(context => !IgnoreCombat
                                             && !Me.IsFlying
@@ -663,9 +675,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                                         .Where(o => o.ToUnit() != null)
                                                                         .Select(o => o.ToUnit()))),
 
-                    new Decorator(context => !Me.Combat,
-                        UtilityBehaviorPS_HealAndRest()),
-                            
                     // Delay, if necessary...
                     // NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
                     // that don't have an associated quest, and put the behavior in a <While> loop will not behave
@@ -876,14 +885,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
-                new Action(context =>
-                {
-                    CloseOpenFrames(true);
-                    // Force recalculation of time to reach destination after combat completes...
-                    _timerToReachDestination = null;
-                    return RunStatus.Failure;   // fall through
-                }),
-                    
                 // If current target is not attackable, blacklist it...
                 new Decorator(context => (Me.CurrentTarget != null) && !Me.CurrentTarget.Attackable,
                     new Action(context =>
