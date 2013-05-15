@@ -48,6 +48,8 @@ namespace Honorbuddy.QuestBehaviorCore
         // 25Apr2013-09:15UTC chinajade
         public TimeSpan CalculateMaxTimeToDestination(WoWPoint destination, bool includeSafetyMargin = true)
         {
+            const double upperLimitOnMaxTime = 10/*mins*/ * 60/*secs*/;
+
             double distanceToCover = 
                 (Me.IsSwimming || Me.IsFlying)
                 ? Me.Location.Distance(destination)
@@ -65,6 +67,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 timeToDestination = Math.Max(timeToDestination, 20.0);  // 20sec hard lower limit
                 timeToDestination *= 2.5;   // factor of safety
             }
+
+            // Place an upper limit on the maximum time to reach the destination...
+            // NB: We can get times that are effectively 'infinite' in situations where the Navigator
+            // was unable to calculate a path to the target.  This puts an upper limit on such
+            // bogus values.
+            timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime);
 
             return (TimeSpan.FromSeconds(timeToDestination));            
         }

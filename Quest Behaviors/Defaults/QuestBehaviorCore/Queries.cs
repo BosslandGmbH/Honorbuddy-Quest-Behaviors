@@ -27,10 +27,10 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public abstract partial class QuestBehaviorBase
     {
-        private LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
+        private static readonly LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
         // 11Apr2013-03:56UTC chinajade
-        public void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
+        public static void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
         {
             if (wowObject != null)
                 { _interactBlacklist.Add(wowObject.Guid, duration); }
@@ -38,7 +38,7 @@ namespace Honorbuddy.QuestBehaviorCore
         
         
         // 24Feb2013-08:11UTC chinajade
-        public IEnumerable<WoWObject> FindObjectsFromIds(IEnumerable<int> objectIds, ProvideBoolDelegate extraQualifiers = null)
+        public static IEnumerable<WoWObject> FindObjectsFromIds(IEnumerable<int> objectIds, ProvideBoolDelegate extraQualifiers = null)
         {
             ContractRequires(objectIds != null, context => "objectIds argument may not be null");
             extraQualifiers = extraQualifiers ?? (wowObjectContext => true);
@@ -54,7 +54,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 25Feb2013-12:50UTC chinajade
-        public IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius, ProvideBoolDelegate extraQualifiers = null)
+        public static IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius, ProvideBoolDelegate extraQualifiers = null)
         {
             extraQualifiers = extraQualifiers ?? (wowPlayerContext => true);
 
@@ -70,7 +70,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-        public IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds, ProvideBoolDelegate extraQualifiers = null)
+        public static IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds, ProvideBoolDelegate extraQualifiers = null)
         {
             ContractRequires(unitIds != null, context => "unitIds argument may not be null");
             extraQualifiers = extraQualifiers ?? (wowUnitContext => true);
@@ -87,14 +87,14 @@ namespace Honorbuddy.QuestBehaviorCore
 
         // returns true, if any member of GROUP (or their pets) is in combat
         // 24Feb2013-08:11UTC chinajade
-        public bool IsAnyInCombat(IEnumerable<WoWUnit> group)
+        public static bool IsAnyInCombat(IEnumerable<WoWUnit> group)
         {
             return group.Any(u => u.Combat || (u.GotAlivePet && u.Pet.Combat));
         }
 
         
         // 11Apr2013-04:41UTC chinajade
-        public bool IsBlacklistedForInteraction(WoWObject wowObject)
+        public static bool IsBlacklistedForInteraction(WoWObject wowObject)
         {
             return _interactBlacklist.Contains(wowObject);
         }
@@ -124,7 +124,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 23Mar2013-05:38UTC chinajade
-        public bool IsInLineOfSight(WoWObject wowObject)
+        public static bool IsInLineOfSight(WoWObject wowObject)
         {
             WoWUnit wowUnit = wowObject.ToUnit();
 
@@ -138,7 +138,7 @@ namespace Honorbuddy.QuestBehaviorCore
         
         
         // 28Apr2013-03:38UTC chinajade
-        public bool IsMob_StateTypeMatch(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft)
+        public static bool IsMob_StateTypeMatch(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft)
         {
             if (requestedMobState == MobStateType.DontCare)
                 { return true; }
@@ -158,7 +158,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-        public bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
+        public static bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
         {
             // If quest and objective was not specified, obviously its not complete...
             if ((questId <= 0) || (objectiveIndex <= 0))
@@ -176,7 +176,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 16Apr2013-10:11UTC chinajade
-        public bool IsSharedWorldResource(WoWObject wowObject)
+        public static bool IsSharedWorldResource(WoWObject wowObject)
         {
             bool isSharedResource = false;
             var wowGameObject = wowObject.ToGameObject();
@@ -199,7 +199,7 @@ namespace Honorbuddy.QuestBehaviorCore
             
             return isSharedResource;
         }
-        private readonly WoWGameObjectType[] _sharedGameObjectTypes =
+        private static readonly WoWGameObjectType[] _sharedGameObjectTypes =
         {
             WoWGameObjectType.Binder,           // sets hearthstone
             // NOT: WoWGameObjectType.Door,
@@ -224,7 +224,7 @@ namespace Honorbuddy.QuestBehaviorCore
         
         
         // 24Feb2013-08:11UTC chinajade
-        public bool IsViableForFighting(WoWUnit wowUnit)
+        public static bool IsViableForFighting(WoWUnit wowUnit)
         {
             return
                 IsViable(wowUnit)
@@ -257,7 +257,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-        public bool IsViableForPulling(WoWUnit wowUnit)
+        public static bool IsViableForPulling(WoWUnit wowUnit)
         {
             return IsViableForFighting(wowUnit)
                     && wowUnit.IsUntagged();
