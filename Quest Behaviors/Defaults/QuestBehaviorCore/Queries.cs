@@ -27,10 +27,12 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public abstract partial class QuestBehaviorBase
     {
-        private static readonly LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
+        // Do NOT make this static!
+        // We need a 'fresh list' each time the QB is started; otherwise, very bad things happen.
+        private readonly LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
         // 11Apr2013-03:56UTC chinajade
-        public static void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
+        public void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
         {
             if (wowObject != null)
                 { _interactBlacklist.Add(wowObject.Guid, duration); }
@@ -94,7 +96,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 11Apr2013-04:41UTC chinajade
-        public static bool IsBlacklistedForInteraction(WoWObject wowObject)
+        public bool IsBlacklistedForInteraction(WoWObject wowObject)
         {
             return _interactBlacklist.Contains(wowObject);
         }
