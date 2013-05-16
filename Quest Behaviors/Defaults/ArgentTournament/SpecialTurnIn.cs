@@ -222,7 +222,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 if (QuestManager.QuestFrame.IsVisible)
                 {
-                    List<uint> quests = QuestManager.QuestFrame.ActiveQuests.Select(r=>(uint)r.Id).ToList();
+                    List<uint> quests = QuestManager.GossipFrame.ActiveQuests.Select(r=>(uint)r.Id).ToList();
                     if ((QuestId != -1) && !quests.Contains((uint) QuestId))
                     {
                         QuestManager.QuestFrame.Close();
@@ -238,22 +238,6 @@ namespace Styx.Bot.Quest_Behaviors
                                 QuestManager.GossipFrame.SelectActiveQuest(i);
                                 return RunStatus.Success;
                             }
-                        }
-                    }
-                }
-            }
-            else
-            {
-                List<GossipQuestEntry> activeQuests = QuestManager.GossipFrame.ActiveQuests;
-                for (int j = 0; j < activeQuests.Count; j++)
-                {
-                    if ((QuestId == -1) || (activeQuests[j].Id == QuestId))
-                    {
-                        PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)activeQuests[j].Id);
-                        if ((QuestId != -1) || quest.IsCompleted)
-                        {
-                            QuestManager.GossipFrame.SelectActiveQuest(activeQuests[j].Index);
-                            return RunStatus.Success;
                         }
                     }
                 }
