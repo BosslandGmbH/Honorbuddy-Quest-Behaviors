@@ -57,8 +57,11 @@ namespace Honorbuddy.QuestBehaviorCore
                             })),
                         new Action(context =>
                         {
-                            TreeRoot.StatusText = string.Format("Descending from {0:F1}", 
-                                Me.GetTraceLinePos().HeightOverGroundOrWater());
+                            const double probeHeight = 400.0;
+                            var height = Me.GetTraceLinePos().HeightOverGroundOrWater(probeHeight);
+
+                            TreeRoot.StatusText = string.Format("Descending from {0}",
+                                ((height > probeHeight) ? "unknown height" : string.Format("{0:F1}", height)));
                         })
                     )),
 
