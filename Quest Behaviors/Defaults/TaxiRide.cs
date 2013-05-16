@@ -77,7 +77,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
 {
-   [CustomBehaviorFileName(@"Cava\TaxiRide")]
+   [CustomBehaviorFileName(@"TaxiRide")]
 
 
     public class TaxiRide : CustomForcedBehavior
