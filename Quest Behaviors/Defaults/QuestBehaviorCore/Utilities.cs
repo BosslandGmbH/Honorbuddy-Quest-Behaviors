@@ -170,7 +170,20 @@ namespace Honorbuddy.QuestBehaviorCore
  
             return string.Format("[Ref: \"{0}\" {1}]", GetProfileName(), location);
         }
-        
+
+
+        // 15May2013-11:42UTC chinajade
+        public static string GetSpellNameFromId(int spellId)
+        {
+            SpellFindResults spellInfo; 
+            bool isSpellFound = SpellManager.FindSpell(spellId, out spellInfo);
+
+            return
+                isSpellFound
+                ? spellInfo.Original.Name
+                : string.Format("SpellId({0}", spellId);
+        }
+
 
         // 25Apr2013-11:42UTC chinajade
         public static string GetVersionedBehaviorName(CustomForcedBehavior cfb)

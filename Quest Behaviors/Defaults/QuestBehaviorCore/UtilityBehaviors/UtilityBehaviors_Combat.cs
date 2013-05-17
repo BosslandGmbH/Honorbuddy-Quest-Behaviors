@@ -12,9 +12,11 @@
 using System;
 
 using Bots.Grind;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Routines;
 using Styx.TreeSharp;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
@@ -74,6 +76,114 @@ namespace Honorbuddy.QuestBehaviorCore
                     LevelBot.CreateLootBehavior()
                 ));
         }
-        
+
+
+        // 16May2013-04:52UTC chinajade
+        public static Composite UtilityBehaviorPS_MiniCombatRoutine()
+        {
+            return new Switch<WoWClass>(context => Me.Class,
+                // Default
+                TryAutoAttack(),
+
+                new SwitchArgument<WoWClass>(WoWClass.DeathKnight,
+                    new PrioritySelector(
+                        TryCast(49998),     // Death Strike: http://wowhead.com/spell=49998
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Druid,
+                    new PrioritySelector(
+                        TryCast(5176, context => !Me.HasAura(768)),      // Wrath: http://wowhead.com/spell=5176
+                        TryCast(768, context => !Me.HasAura(768)),       // Cat Form: http://wowhead.com/spell=768
+                        TryCast(1822),      // Rake: http://wowhead.com/spell=1822
+                        TryCast(22568),     // Ferocious Bite: http://wowhead.com/spell=22568
+                        TryCast(33917),     // Mangle: http://wowhead.com/spell=33917
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Hunter,
+                    new PrioritySelector(
+                        TryCast(3044),      // Arcane Shot: http://wowhead.com/spell=3044
+                        TryCast(56641),     // Steady Shot: http://wowhead.com/spell=56641
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Mage,
+                    new PrioritySelector(
+                        TryCast(44614),     // Frostfire Bolt: http://wowhead.com/spell=44614
+                        TryCast(126201),    // Frostbolt: http://wowhead.com/spell=126201
+                        TryCast(2136),      // Fire Blast: http://wowhead.com/spell=2136
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Monk,
+                    new PrioritySelector(
+                        TryCast(100780),    // Jab: http://wowhead.com/spell=100780
+                        TryCast(100787),    // Tiger Palm: http://wowhead.com/spell=100787
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Paladin,
+                    new PrioritySelector(
+                        TryCast(35395),     // Crusader Strike: http://wowhead.com/spell=35395
+                        TryCast(20271),     // Judgment: http://wowhead.com/spell=20271
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Priest,
+                    new PrioritySelector(
+                        TryCast(15407),     // Mind Flay: http://wowhead.com/spell=15407
+                        TryCast(585),       // Smite: http://wowhead.com/spell=585
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Rogue,
+                    new PrioritySelector(
+                        TryCast(2098),      // Eviscerate: http://wowhead.com/spell=2098
+                        TryCast(1752),      // Sinster Strike: http://wowhead.com/spell=1752
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Shaman,
+                    new PrioritySelector(
+                        TryCast(403),       // Lightning Bolt: http://wowhead.com/spell=403
+                        TryCast(73899),     // Primal Strike: http://wowhead.com/spell=73899
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Warlock,
+                    new PrioritySelector(
+                        TryCast(686),       // Shadow Bolt: http://wowhead.com/spell=686
+                        TryAutoAttack()
+                    )),
+
+                new SwitchArgument<WoWClass>(WoWClass.Warrior,
+                    new PrioritySelector(
+                        TryCast(78),        // Heroic Strike: http://wowhead.com/spell=78
+                        TryCast(34428),     // Victory Rush: http://wowhead.com/spell=34428
+                        TryAutoAttack()
+                    ))
+            );
+        }
+
+
+        private static Composite TryCast(int spellId, QuestBehaviorBase.ProvideBoolDelegate requirements = null)
+        {
+            requirements = requirements ?? (context => true);
+
+            return new Decorator(context => SpellManager.CanCast(spellId) && requirements(context),
+                new Action(context =>
+                {
+                    LogDeveloperInfo("MiniCombatRoutine used {0}", QuestBehaviorBase.GetSpellNameFromId(spellId));
+                    SpellManager.Cast(spellId);
+                }));
+        }
+
+
+        private static Composite TryAutoAttack()
+        {
+            return new Decorator(context => !Me.IsAutoAttacking,
+                new Action(context => { Lua.DoString("StartAttack()"); }));
+        }
     }
 }

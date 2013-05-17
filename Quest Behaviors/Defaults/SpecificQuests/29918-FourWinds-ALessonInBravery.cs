@@ -13,13 +13,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using System.Timers;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Pathing;
@@ -28,7 +27,6 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
-using Timer = System.Timers.Timer;
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
@@ -39,7 +37,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         public FourWindsLessonInBravery(Dictionary<string, string> args)
             : base(args)
         {
-
             try
             {
                 QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 29918;
@@ -63,9 +60,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 
 
         // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
+
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -73,39 +71,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         private Composite _root;
 
         // Private properties
+        const int AuraId_Mangle = 105373;
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        private bool _onBird;
-
-        public static WoWPoint RopeGameObjectLocation = new WoWPoint(238.4929, -393.3196, 247.5843);
-
-        private WoWItem Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == 75208)); } }
-
-        public WoWUnit Enemy
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => u.Entry == 56171 && !u.IsDead && u.Distance < 199)
-                                     .OrderBy(u => u.Distance).FirstOrDefault());
-            }
-        }
-
-        public WoWGameObject RopeGameObject
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWGameObject>()
-                                     .Where(u => u.Entry == 215319)
-                                     .OrderBy(u => u.Distance).FirstOrDefault());
-            }
-        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
-
-        public static WaitTimer GetOnTimer = new WaitTimer(TimeSpan.FromSeconds(1));
 
 
         ~FourWindsLessonInBravery()
@@ -118,9 +89,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         {
             if (!_isDisposed)
             {
-
-                ClawClick.Enabled = false;
-                ClawClick = null;
                 // NOTE: we should call any Dispose() method for any managed or unmanaged
                 // resource, if that resource provides a Dispose() method.
 
@@ -142,95 +110,89 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         }
 
         
-
-
         #region Overrides of CustomForcedBehavior
-
-
-        //<Vendor Name="Great White Plainshawk" Entry="56171" Type="Repair" X="279.5976" Y="-490.9407" Z="323.0689" />
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsObjectiveComplete(2, (uint)QuestId), new Action(delegate
+                return new Decorator(ret => QuestBehaviorBase.IsQuestObjectiveComplete(QuestId, 2),
+                    new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
+
 
         public WoWItem Rope
         {
             get { return Me.BagItems.FirstOrDefault(r => r.Entry == 75208); }
         }
+
+
         public WoWUnit GiantAssBird
-        {
-            
+        {         
             get
             {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.IsAlive && r.Entry == 56171).OrderBy(
-                        r => r.Distance).FirstOrDefault();
+                if (!QuestBehaviorBase.IsViable(_giantAssBird))
+                {
+                    _giantAssBird =
+                        ObjectManager.GetObjectsOfType<WoWUnit>()
+                        .Where(r => r.IsAlive && r.Entry == 56171)
+                        .OrderBy(r => r.Distance)
+                        .FirstOrDefault();
+                }
+
+                return _giantAssBird;
             }
         }
+        private WoWUnit _giantAssBird;
+
+
         public Composite GetOnBird
         {
             get
             {
                 return
-                    new Decorator(ret => !Me.InVehicle, new PrioritySelector(
-                        new Decorator(r => GiantAssBird != null, new Action(r => { 
-                            
-                            GiantAssBird.Target();
-                                                                                     Navigator.MoveTo(
-                                                                                         GiantAssBird.Location);
-                                                                                     Rope.Use();
-
-
-
-                        }))
-
-
-                                                            ));
-
+                    new Decorator(ret => !Me.InVehicle,
+                        new PrioritySelector(
+                            new Decorator(r => QuestBehaviorBase.IsViable(GiantAssBird),
+                                new Action(r =>
+                                {
+                                    GiantAssBird.Target();
+                                    Navigator.MoveTo(GiantAssBird.Location);
+                                    Rope.Use();
+                                }))
+                            ));
             }
         }
+
+
         public Composite KillBird
         {
             get
             {
-                return
-                    new Decorator(ret => Me.InVehicle, new PrioritySelector(
+                return new Decorator(ret => Me.InVehicle,
+                    new PrioritySelector(
+                        // Get back on bid when tossed off...
+                        new Decorator(context => Me.HasAura(AuraId_Mangle),
+                            new Action(context => { Lua.DoString("RunMacroText('/click ExtraActionButton1')");  })),
 
-                        new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != GiantAssBird,new Action(r=>GiantAssBird.Target())),
+                        // Make certain bird stays targeted...
+                        new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != GiantAssBird,
+                            new Action(r=>
+                            {
+                                GiantAssBird.Target();
+                                BotPoi.Current = new BotPoi(GiantAssBird, PoiType.Kill);
+                            })),
 
+                        // Spank bird (use backup MiniCombatRoutine if main CR doesn't attack in vehicles...
                         RoutineManager.Current.CombatBuffBehavior,
-                RoutineManager.Current.CombatBehavior
-
-
-                                                           ));
-
+                        RoutineManager.Current.CombatBehavior,
+                        QuestBehaviorBase.UtilityBehaviorPS_MiniCombatRoutine()
+                    ));
             }
         }
 
@@ -256,15 +218,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
             }
         }
 
-        private Timer ClawClick;
-        void ClawClick_Elapsed(object sender, ElapsedEventArgs e)
-        {
-           if (Me.InVehicle)
-           {
-               Lua.DoString("RunMacroText('/click ExtraActionButton1')");
-           }
-        }
-
 
         public override void OnStart()
         {
@@ -277,13 +230,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
-                ClawClick = new Timer();
-                ClawClick.Elapsed += ClawClick_Elapsed;
-                ClawClick.Interval = 5000;
-                ClawClick.Enabled = true;
-
-
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
                 {
                     var currentRoot = TreeRoot.Current.Root;
@@ -293,7 +239,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                         root.InsertChild(0, CreateBehavior());
                     }
                 }
-
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

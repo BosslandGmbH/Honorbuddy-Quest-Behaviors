@@ -10,6 +10,7 @@
 
 #region Usings
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Media;
 using System.Threading;
@@ -23,6 +24,53 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
+    // 15May2013-04:32UTC chinajade
+    class ActionFail : Composite
+    {
+        public ActionFail() { }
+
+        public ActionFail(ActionDelegate action)
+        {
+            Runner = action;
+        }
+
+        public ActionFail(ActionSucceedDelegate action)
+        {
+            FailRunner = action;
+        }
+
+        public ActionDelegate Runner { get; private set; }
+        public ActionSucceedDelegate FailRunner { get; private set; }
+
+        protected virtual RunStatus Run(object context)
+        {
+            return RunStatus.Failure;
+        }
+
+        protected RunStatus RunAction(object context)
+        {
+            if (Runner != null)
+                return Runner(context);
+            if (FailRunner != null)
+            {
+                FailRunner(context);
+                return RunStatus.Failure;
+            }
+            RunStatus runStatus = Run(context);
+
+            return runStatus;
+        }
+
+        protected override sealed IEnumerable<RunStatus> Execute(object context)
+        {
+            while ((LastStatus = RunAction(context)) == RunStatus.Running)
+                yield return RunStatus.Running;
+
+            yield return LastStatus.Value;
+        }
+    }
+
+
     // 20Apr2013-04:32UTC chinajade
     public class CompositeThrottle : Decorator
     {
