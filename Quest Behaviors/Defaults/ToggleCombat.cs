@@ -26,12 +26,12 @@
 // * If you disable the Combat Routine with this behavior, it is *completely* disabled.
 //      No buffing, no healing, no pet summoning, no combat.
 //
-// * It is harmless to call this behavior to disable the Combat Routine, if it is already
-//      disabled.  Conversely, it is harmless to enable a Combat Routine that is already
-//      enabled.
+// * You should NOT attempt to disable the Combat Routine more than once, without an intervening
+//      enable.  To do such, will cause unexpected results--requiring an Honorbuddy restart
+//      to repair.
 //
 // * The behavior blindly toggles to the state specified in CombatEnabled.  (I.e., there
-//      is no 'nesting' of calls to this behavior.
+//      is no 'nesting' of calls to this behavior.)
 //
 #endregion
 
