@@ -1,14 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -48,9 +46,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 		static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(12259));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
 		WoWPoint endloc = new WoWPoint(2798.203, -2510.08, 99.77123);
-		WoWPoint startloc = new WoWPoint(2939.488, -2525.839, 127.3586);
-		WoWPoint flyloc = new WoWPoint(2788.155, -2508.851, 56.05595);
-		
+        WoWPoint startloc = new WoWPoint(2898.371, -2556.437, 137.9079);
+        WoWPoint flyloc = new WoWPoint(2788.155, -2508.851, 56.05595);
+
+
         #region Overrides of CustomForcedBehavior
 		public List<WoWUnit> objmob
         {
@@ -130,11 +129,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							}
 							if (objmob.Count > 0)
 							{
-								objmob[0].Target();
-                                objmob[0].Face();
-								//WoWMovement.ClickToMove(objmob[0].Location);
+                                // If out of range, move closer...
+                                if (objmob[0].Distance > 40)
+                                {
+                                    WoWMovement.ClickToMove(objmob[0].Location);
+                                    return RunStatus.Success;
+                                }
+
+                                // Stop moving, if close enough...
                                 if (me.IsMoving || me.CharmedUnit.IsMoving)
                                     WoWMovement.ClickToMove(me.CharmedUnit.Location);
+
+                                objmob[0].Target();
+                                objmob[0].Face();
+
+                                var v = objmob[0].Location - StyxWoW.Me.Location;
+                                v.Normalize();
+                                Lua.DoString(string.Format(
+                                    "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta);",
+                                    Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
+
 								//Thread.Sleep(100);
 								//Lua.DoString("UseAction(122, 'target', 'LeftButton')");
 								//Lua.DoString("UseAction(121, 'target', 'LeftButton')");
