@@ -71,7 +71,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         private Composite _root;
 
         // Private properties
-        const int AuraId_Mangle = 105373;
+        private const int AuraId_Mangle = 105373;
+        private IEnumerable<int> AuraIds_OccupiedVehicle; 
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -139,9 +140,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                 if (!QuestBehaviorBase.IsViable(_giantAssBird))
                 {
                     _giantAssBird =
-                        ObjectManager.GetObjectsOfType<WoWUnit>()
-                        .Where(r => r.IsAlive && r.Entry == 56171)
-                        .OrderBy(r => r.Distance)
+                       (from wowUnit in QuestBehaviorBase.FindUnitsFromIds(QuestBehaviorBase.ToEnumerable<int>(56171))
+                        where
+                            wowUnit.IsAlive
+                            // Eliminate bird vehicles occupied by other players...
+                            && !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
+                        orderby wowUnit.Distance
+                        select wowUnit)
                         .FirstOrDefault();
                 }
 
@@ -178,7 +183,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                     new PrioritySelector(
                         // Get back on bid when tossed off...
                         new Decorator(context => Me.HasAura(AuraId_Mangle),
-                            new Action(context => { Lua.DoString("RunMacroText('/click ExtraActionButton1')");  })),
+                            new Sequence(
+                                // Small variant delay to prevent looking like a bot...
+                                new WaitContinue(
+                                    QuestBehaviorBase.Delay_BeforeButtonClick,
+                                    context => false,
+                                    new ActionAlwaysSucceed()),
+                                new Action(context => { Lua.DoString("RunMacroText('/click ExtraActionButton1')");  })
+                            )),
 
                         // Make certain bird stays targeted...
                         new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != GiantAssBird,
@@ -243,6 +255,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
+
+                AuraIds_OccupiedVehicle = QuestBehaviorBase.GetOccupiedVehicleAuraIds();
             }
         }
 
