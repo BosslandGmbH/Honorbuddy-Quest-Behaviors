@@ -1568,7 +1568,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 }
             }
 
-            return string.Format("{0} [{1}]", wowObject.Name, string.Join(",", reasons));
+            return string.Format("{0} [{1}]", wowObject.SafeName(), string.Join(",", reasons));
         }
         #endregion
     }
