@@ -80,6 +80,10 @@
 //          http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //
 // Tunables:
+//      CollectionDistance [optional; Default: 100.0]
+//          Measured from the toon's current location, this value specifies
+//          the maximum distance that should be searched when looking for
+//          a viable MobId with which to interact.
 //      IgnoreMobsInBlackspots [optional; Default: true]
 //          When true, any mobs within (or too near) a blackspot will be ignored
 //          in the list of viable targets that are considered for item use.
@@ -273,6 +277,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
 
                 // Tunables...
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 MaxRangeToUseItem = GetAttributeAsNullable<double>("MaxRangeToUseItem", false, ConstrainAs.Range, null) ?? 25.0;
                 NumOfTimesToUseItem = GetAttributeAsNullable<int>("NumOfTimesToUseItem", false, ConstrainAs.RepeatCount, null) ?? 1;
                 RecallPetAtMobPercentHealth = GetAttributeAsNullable<double>("RecallPetAtMobPercentHealth", false, ConstrainAs.Percent, null) ?? UseWhenMobHasHealthPercent;
@@ -296,6 +301,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 
         // Variables for Attributes provided by caller
+        private double CollectionDistance { get; set; }
         private WoWPoint? HuntingGroundCenter { get; set; }
         private int ItemId { get; set; }
         private int ItemAppliesAuraId { get; set; }
@@ -621,8 +627,10 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                 var targets =
                    from wowUnit in FindUnitsFromIds(MobIds)
-                    where IsViableForItemUse(wowUnit)
-                    orderby
+                    where
+                        IsViableForItemUse(wowUnit)
+                        && (wowUnit.Distance < CollectionDistance)
+                   orderby
                         (isFlyingOrSwimming 
                             ? Me.Location.Distance(wowUnit.Location)
                             : Me.Location.SurfacePathDistance(wowUnit.Location))
