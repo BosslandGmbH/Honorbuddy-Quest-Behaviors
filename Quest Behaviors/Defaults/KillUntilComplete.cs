@@ -137,7 +137,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                     case Styx.WoWClass.Hunter:
                         return SpellManager.Spells["Arcane Shot"];
                     case Styx.WoWClass.Mage:
-                        return SpellManager.Spells["Frostbolt"];
+                        return SpellManager.Spells["Frostfirebolt"];
                     case Styx.WoWClass.Priest:
                         return SpellManager.Spells["Smite"];
                     case Styx.WoWClass.Shaman:
