@@ -38,7 +38,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="petActionName">may not be null. Examples include: "Follow", "Attack", "Passive", "Growl".</param>
         /// <returns></returns>
         // 24Feb2013-07:42UTC chinajade
-        public bool CanCastPetAction(string petActionName)
+        public static bool CanCastPetAction(string petActionName)
         {
             ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
 
@@ -54,6 +54,13 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 15May2013-07:42UTC chinajade
+        public static bool CanPetBeDismissed()
+        {
+            return Lua.GetReturnVal<bool>("return PetCanBeDismissed()", 0);
+        }
+
+
         /// <summary>
         /// <para>Casts the PETACTIONNAME.</para>
         /// <para>Notes:<list type="bullet">
@@ -66,7 +73,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="petActionName">may not be null. Examples include: "Follow", "Attack", "Passive", "Growl".</param>
         // 24Feb2013-07:42UTC chinajade
-        public void CastPetAction(string petActionName)
+        public static void CastPetAction(string petActionName)
         {
             ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
 
@@ -96,7 +103,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="petActionName">may not be null. Examples include: "Follow", "Attack", "Passive", "Growl".</param>
         /// <param name="wowUnit">may not be null</param>
         // 24Feb2013-07:42UTC chinajade
-        public void CastPetAction(string petActionName, WoWUnit wowUnit)
+        public static void CastPetAction(string petActionName, WoWUnit wowUnit)
         {
             ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
             ContractRequires(wowUnit != null, context => "wowUnit may not be null");
@@ -117,6 +124,20 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 15May2013-07:42UTC chinajade
+        public static void DismissPet()
+        {
+            Lua.DoString("PetDismiss()");
+
+            // Remove totems (or DK's ghoul--which is Totem #1)...
+            // Ref: http://wowprogramming.com/docs/api/DestroyTotem
+            for (int totemNum = 1; totemNum <= 4;  ++totemNum)
+                { Lua.DoString(string.Format("DestroyTotem({0})", totemNum)); }
+
+            // TODO: Need to eliminate minions here, also
+        }
+
+
         /// <summary>
         /// <para>Returns true if the pet is executing the PETACTIONNAME.</para>
         /// <para>The way the WoWclient works, because a PetAction is active doesn't necessarily mean it is being immediately obeyed.</para>
@@ -131,7 +152,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="petActionName">may not be null. Examples include: "Follow", "Attack", "Passive"</param>
         /// <returns></returns>
         // 24Feb2013-07:42UTC chinajade
-        public bool IsPetActionActive(string petActionName)
+        public static bool IsPetActionActive(string petActionName)
         {
             ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
 
@@ -156,11 +177,11 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="wowUnitDelegate">may not be null</param>
         /// <returns>a behavior tree Composite suitable for use in a (Priority)Selector container</returns>
-        public Composite UtilityBehaviorPS_PetActionAttack(ProvideWoWUnitDelegate wowUnitDelegate)
+        public static Composite UtilityBehaviorPS_PetActionAttack(ProvideWoWUnitDelegate wowUnitDelegate)
         {
             ContractRequires(wowUnitDelegate != null, context => "wowUnitDelegate may not be null");
 
-            string spellName = "Attack";
+            const string spellName = "Attack";
 
             // NB: We can't issue "Attack" directive while mounted, so don't try...
             return new Decorator(context => Me.GotAlivePet
@@ -184,9 +205,9 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </list></para>
         /// </summary>
         /// <returns>a behavior tree Composite suitable for use in a (Priority)Selector container</returns>
-        public Composite UtilityBehaviorPS_PetActionFollow()
+        public static Composite UtilityBehaviorPS_PetActionFollow()
         {
-            string spellName = "Follow";
+            const string spellName = "Follow";
 
             // NB: We can't issue "Follow" directive while mounted, so don't try...
             return new Decorator(context => Me.GotAlivePet
@@ -209,7 +230,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="petStanceNameDelegate"></param>
         /// <returns>a behavior tree Composite suitable for use in a (Priority)Selector container</returns>
-        public Composite UtilityBehaviorPS_PetSetStance(ProvideStringDelegate petStanceNameDelegate)
+        public static Composite UtilityBehaviorPS_PetSetStance(ProvideStringDelegate petStanceNameDelegate)
         {
             string[] knownStanceNames = { "Assist", "Defensive", "Passive" };
 
