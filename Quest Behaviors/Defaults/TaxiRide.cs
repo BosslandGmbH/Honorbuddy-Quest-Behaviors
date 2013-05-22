@@ -51,9 +51,9 @@
 // DestName="Fizzle &amp; Pozzik" or DestName="s Speedbarge, Thousand Needles"
 //
 // EXAMPLES:
-// <CustomBehavior File="Cava\TaxiRide" MobId="12345" NpcState="Alive" TaxiNumber="2" />
-// <CustomBehavior File="Cava\TaxiRide" MobId="12345" DestName="Orgrimmar" WaitTime="1000" />
-// <CustomBehavior File="Cava\TaxiRide" MobId="12345" DestName="ViewNodesOnly" />
+// <CustomBehavior File="TaxiRide" MobId="12345" NpcState="Alive" TaxiNumber="2" />
+// <CustomBehavior File="TaxiRide" MobId="12345" DestName="Orgrimmar" WaitTime="1000" />
+// <CustomBehavior File="TaxiRide" MobId="12345" DestName="ViewNodesOnly" />
 #endregion
 
 #region Usings
@@ -77,9 +77,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
 {
-   [CustomBehaviorFileName(@"TaxiRide")]
-
-
+    [CustomBehaviorFileName(@"TaxiRide")]
     public class TaxiRide : CustomForcedBehavior
     {
 	#region Constructor and argument processing  
