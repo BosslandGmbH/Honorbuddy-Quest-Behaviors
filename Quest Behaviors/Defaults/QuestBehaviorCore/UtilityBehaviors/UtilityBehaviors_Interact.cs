@@ -78,8 +78,13 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 // Wait for any casting to complete...
                 // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+                // NB: We can't test for IsCasting or IsChanneling--we must instead look for a valid spell being cast.
+                //      There are some quests that require actions where the WoWclient returns 'true' for IsCasting,
+                //      but there is no valid spell being cast.  We want the behavior to move on immediately in these
+                //      conditions.  An example of such an interaction is removing 'tangler' vines in the Tillers
+                //      daily quest area.
                 new WaitContinue(TimeSpan.FromSeconds(15),
-                    context => !(Me.IsCasting || Me.IsChanneling),
+                    context => (Me.CastingSpell == null) && (Me.ChanneledSpell == null),
                     new ActionAlwaysSucceed()),
 
                 // Were we interrupted in item use?

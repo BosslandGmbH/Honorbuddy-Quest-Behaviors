@@ -200,6 +200,16 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        //  26May2013-09:04UTC chinajade
+        public static Composite LogMarkerSeq(ProvideStringDelegate messageDelegate)
+        {
+            return new Action(context =>
+            {
+                Logging.Write(Colors.Fuchsia, BuildLogMessage("marker", messageDelegate(context)));
+            });
+        }
+
+
         /// <summary>
         /// ProfileErrors occur as a result of the profile attempting to use a behavior in a manner for which
         /// it was not intended.  Such errors also occur because behavior entry criteria are not met.
