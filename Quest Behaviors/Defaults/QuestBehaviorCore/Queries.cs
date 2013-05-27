@@ -120,8 +120,13 @@ namespace Honorbuddy.QuestBehaviorCore
                 return (asWoWPlayer != null) && !asWoWPlayer.IsInMyParty;
             });
 
+            // Is WoWUnit claimed by another player?
+            WoWUnit wowUnit = wowObject.ToUnit();
+            bool isTagged = ((wowUnit != null) && !wowUnit.IsUntagged());
+
             return !IsSharedWorldResource(wowObject)
-                    && FindPlayersNearby(wowObject.Location, NonCompeteDistance, excludeGroupMembers).Any();
+                    && (FindPlayersNearby(wowObject.Location, NonCompeteDistance, excludeGroupMembers).Any()
+                        || isTagged);
         }
 
         
@@ -249,12 +254,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 && (IgnoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
                 && !IsInCompetition(wowObject);
 
-            // We're done, if not a WoWUnit...
-            WoWUnit wowUnit = wowObject.ToUnit();
-            if (wowUnit == null)
-                { return isViableForInteracting; }
-
-            return isViableForInteracting && wowUnit.IsUntagged();
+            return isViableForInteracting;
         }
 
 
