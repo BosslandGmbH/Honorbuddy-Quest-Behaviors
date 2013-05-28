@@ -16,7 +16,6 @@ using System.Xml.Linq;
 
 using Styx;
 using Styx.Pathing;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 
@@ -87,10 +86,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public void DismissPetIfNeeded()
         {
             if (DismissPet && StyxWoW.Me.GotAlivePet)
-                { Lua.DoString("DismissPet()"); }
+                { QuestBehaviorBase.DismissPet(); }
         }
         
-
+        /// <summary>
+        /// <para>Returns an egress path, which is simply a reversal of the path we used to ingress.
+        /// If MOBTOAVOID is provided, we use the mob's location to determine our starting point
+        /// in the egress path.</para>
+        /// <para>This method never returns null, but may return an empty queue if there is no
+        /// egress path.</para>
+        /// </summary>
+        /// <param name="mobToAvoid"></param>
+        /// <returns></returns>
         public Queue<WaypointType> FindPath_Egress(WoWUnit mobToAvoid)
         {
             var theWayOut = new List<WaypointType>(Waypoints);
@@ -117,6 +124,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
+        /// <summary>
+        /// <para>Returns an ingress path to the destination.</para>
+        /// <para>This method never returns null, but may return an empty queue if there is no
+        /// egress path.</para>
+        /// </summary>
+        /// <returns></returns>
         public Queue<WaypointType> FindPath_Ingress()
         {
             var theWayIn = new List<WaypointType>(Waypoints);

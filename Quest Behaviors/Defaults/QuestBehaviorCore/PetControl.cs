@@ -127,7 +127,8 @@ namespace Honorbuddy.QuestBehaviorCore
         // 15May2013-07:42UTC chinajade
         public static void DismissPet()
         {
-            Lua.DoString("PetDismiss()");
+            if (CanPetBeDismissed())
+                { Lua.DoString("PetDismiss()"); } 
 
             // Remove totems (or DK's ghoul--which is Totem #1)...
             // Ref: http://wowprogramming.com/docs/api/DestroyTotem

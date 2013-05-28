@@ -32,6 +32,8 @@
 	would it be possible to add 4th option to move out of an effect no matter how the effect gets there
 
 * InteractWith testing needed:
+	+ InteractByCastingSpellOn & make sure it works for "cast spell on 'self'"
+	+ InteractByCollectingItemId
 	+ BlacklistInteractTarget needs to emit message as to why blacklisted (but, warning or info or debug?--it varies).
 	+ This needs to be converted to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Giwin claims InteractWith doesn't work underwater
@@ -54,6 +56,11 @@
 * LoadProfile is not constructing relative path names correctly:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
 	+ [20:50:36.197 D] Activity: Loading profile 'C:\WoW Plus\A-1 HB\Profiles\Kick's Profiles\Kick's Profiles\1-90 Questing Profile Pack\MoP\..\GoTo\..\MoP\[N - Quest] MoP Train Flying LP [Kick].xml'
+
+* SlayTheFools
+	* Retire KillUntilComplete in favor of SlayTheFools
+	* Dox: "Mostly useful when in toon is thrown into combat (due to environment), but nothing is attacking us
+	* Beef up to take a HuntingGrounds
 
 * UseItemOn
 	+ Doesn't re-face target on which to use item, if it gets in combat

@@ -83,10 +83,7 @@
 //      This means you should choose the safe spot such that the mob is facing away
 //      from you when you want to declare 'area clear'.
 // * All looting and harvesting is turned off while the event is in progress.
-// * This behavior does _not_ alter the PullDistance.  As such, the area in which we're
-//      waiting will be kept clear of all mobs within PullDistance while we're waiting.
-//      For classes that may move around a lot while fighting (i.e., Mages with blink),
-//      you will want to choose your wait spot and pull distance judiciously.
+// * This behavior sets the PullDistance to zero while it is in operation.
 // * If both MoveToMobId _and_ X/Y/Z are specified, the MoveToMobId takes precedence.
 //      I.e., the behavior will move to the MoveToMobId as a safe spot _instead_
 //      of the specified X/Y/Z location.
@@ -113,6 +110,7 @@
 //          This arranges to follow the AvoidMobId at a safe distance.
 //
 #endregion
+
 
 #region Examples
 // "Breaking Out is Hard to Do" (http://wowhead.com/quest=26587).
@@ -166,23 +164,24 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 {
-    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\WaitForPatrol")]
+    [CustomBehaviorFileName(@"WaitForPatrol")]
+    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\WaitForPatrol")]  // old location
     public class WaitForPatrol : QuestBehaviorBase
     {
         #region Consructor and Argument Processing
-
         public WaitForPatrol(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+
                 AvoidDistance = GetAttributeAsNullable<double>("AvoidDistance", true, ConstrainAs.Range, new[] { "Distance" }) ?? 20.0;
                 MobIdToAvoid = GetAttributeAsNullable<int>("AvoidMobId", true, ConstrainAs.MobId, new[] { "MobId" }) ?? 0;
                 MobIdToMoveNear = GetAttributeAsNullable<int>("MoveToMobId", false, ConstrainAs.MobId, new[] { "MoveToMobID" }) ?? 0;
                 SafespotLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
                 // Tunables...
-
             }
 
             catch (Exception except)
@@ -201,38 +200,37 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 
         // Attributes provided by caller
-        public double AvoidDistance { get; private set; }
-        public int MobIdToAvoid { get; private set; }
-        public int MobIdToMoveNear { get; private set; }
-        public WoWPoint SafespotLocation { get; private set; }
+        private double AvoidDistance { get; set; }
+        private int MobIdToAvoid { get; set; }
+        private int MobIdToMoveNear { get; set; }
+        private WoWPoint SafespotLocation { get; set; }
 
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            // Empty, for now
+            // empty, for now
         }
 
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
-            UsageCheck_SemanticCoherency(xElement,
-                ((MobIdToMoveNear == 0) && (SafespotLocation == WoWPoint.Empty)),
-                context => "Either MoveToMobId or X/Y/Z (for the safe spot) must be specified.");
+            // empty, for now
         }
         #endregion
 
 
         #region Private and Convenience variables
-
         private enum StateType_MainBehavior
         {
             MovingToSafespot,  // Initial state
             WaitingForMobToClear,
-            FollowingPathToDestination,
-            BehaviorDone,
+            PathIngressing,
+            PathRetreating,
+            DestinationReached,
         };
 
         private SafePathType FollowPath { get; set; }
+        private bool IsMoveBackToSafespotNeeded { get; set; }
         private WoWUnit Mob_ToAvoid { get; set; }
         private WoWUnit Mob_ToMoveNear { get; set; }
         private Queue<WaypointType> Path_Egress { get; set; }
@@ -252,8 +250,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
         private StateType_MainBehavior _state_MainBehavior;
         #endregion
-
-        private static readonly TimeSpan ThrottleUserStatusUpdate = TimeSpan.FromSeconds(1);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -299,6 +295,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
+                CharacterSettings.Instance.PullDistance = 0;
 
                 State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
             }
@@ -309,99 +306,41 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         #region Main Behaviors
         protected override Composite CreateBehavior_CombatMain()
         {
-            return new PrioritySelector(
-                // If we are following the path to the destination...
-                new Decorator(context => State_MainBehavior == StateType_MainBehavior.FollowingPathToDestination,
-                    new PrioritySelector(
-                        // If no path specified, we're done...
-                        new Decorator(context => !FollowPath.Waypoints.Any(),
-                            new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
+            return new Decorator(context => !IsDone,
+                new PrioritySelector(
+                    new Decorator(context => !IsViable(Mob_ToAvoid),
+                        new ActionFail(context => { Mob_ToAvoid = FindUnitsFromIds(ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault(); })),
+                            
+                    new Decorator(context => !IsViable(Mob_ToMoveNear),
+                        new ActionFail(context => { Mob_ToMoveNear = FindUnitsFromIds(ToEnumerable<int>(MobIdToMoveNear)).FirstOrDefault(); })),
 
-                        // If Mob_ToAvoid is too close, abandon current ingress, and find egress path back to safespot...
-                        new Decorator(context => Mob_ToAvoid != null,
-                            new Decorator(context => ((Mob_ToAvoid.Distance < FollowPath.EgressDistance) || Me.Combat)
-                                                    && (Path_Egress == null),
-                                new Action(context =>
-                                {
-                                    LogInfo("Moving back to safespot due to {0}.",
-                                        Me.Combat
-                                        ? "combat"
-                                        : string.Format("{0} too close (dist: {1:F1})", Mob_ToAvoid.Name, Mob_ToAvoid.Distance));
-                                    Path_Ingress = null;
-                                    Path_Egress = FollowPath.FindPath_Egress(Mob_ToAvoid);
-                                }))
-                            ),
+                    // Stateful Operation:
+                    // NB: We do not allow combat in all states.  Fighting is mostl limited to our 'safespot' position.
+                    new Switch<StateType_MainBehavior>(context => State_MainBehavior,
+                        new Action(context =>   // default case
+                        {
+                            var message = string.Format("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
+                            LogMaintenanceError(message);
+                            TreeRoot.Stop();
+                            BehaviorDone(message);
+                        }),
 
-                        // If we are egressing, follow the Yellow Brick Road...
-                        new Decorator(context => Path_Egress != null,
-                            new PrioritySelector(
-                                // If we've come to the end of our egress path, move back to safe spot...
-                                new Decorator(context => !Path_Egress.Any(),
-                                    new Action(context => { State_MainBehavior = StateType_MainBehavior.MovingToSafespot; })),
+                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.MovingToSafespot,
+                            StateBehaviorPS_MovingToSafeSpot()),
 
-                                // If we've arriaved at the current waypoint, dequeue it...
-                                new Decorator(context => Me.Location.Distance(Path_Egress.Peek().Location) <= Navigator.PathPrecision,
-                                    new Action(context => { Path_Egress.Dequeue(); })),
+                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.WaitingForMobToClear,
+                            StateBehaviorPS_WaitingForMobToClear()),
+                        
+                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathIngressing,
+                            StateBehaviorPS_PathIngressing()),
 
-                                UtilityBehaviorPS_MoveTo(context => Path_Egress.Peek().Location, context => "safe spot")
-                            )),
+                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathRetreating,
+                            StateBehaviorPS_PathRetreating()),
 
-                        // If we don't have a current ingress path to follow, build it...
-                        new Decorator(context => ((Mob_ToAvoid == null) || (Mob_ToAvoid.Distance > AvoidDistance))
-                                                && (Path_Ingress == null),
-                            new Action(context =>
-                            {
-                                Path_Egress = null;
-                                Path_Ingress = FollowPath.FindPath_Ingress();
-                                FollowPath.DismissPetIfNeeded();
-                            })),
-
-                        // If we've an Ingress path to follow, use it...
-                        new Decorator(context => Path_Ingress != null,
-                            new PrioritySelector(
-                                // If we've consumed our ingress path, we're done...
-                                new Decorator(context => !Path_Ingress.Any(),
-                                    new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
-
-                                new Switch<SafePathType.StrategyType>(context => FollowPath.Strategy,
-                                    #region State: DEFAULT
-                                    new Action(context =>   // default case
-                                    {
-                                        LogMaintenanceError("FollowPathStrategyType({0}) is unhandled", FollowPath.Strategy);
-                                        TreeRoot.Stop();
-                                        State_MainBehavior = StateType_MainBehavior.BehaviorDone;
-                                    }),
-                                    #endregion
-
-
-                                    #region Strategy: Stalk Mob at Avoid Distance Strategy
-                                    new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
-                                        new Decorator(context => (Mob_ToAvoid != null) && (Mob_ToAvoid.Distance < AvoidDistance),
-                                            new PrioritySelector(
-                                                new Decorator(context => Me.IsMoving,
-                                                    new Action(context => { WoWMovement.MoveStop(); })),
-                                                new ActionAlwaysSucceed()
-                                            ))),
-                                    #endregion
-
-
-                                    #region Strategy: Wait for Avoid Distance
-                                    new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.WaitForAvoidDistance,
-                                        new PrioritySelector(
-                                            // No addition action needed to implement strategy for now
-                                        ))
-                                    #endregion
-                                ),
-
-                                // If we've arrived at the current ingress waypoint, dequeue it...
-                                new Decorator(context => Me.Location.Distance(Path_Ingress.Peek().Location) <= Navigator.PathPrecision,
-                                    new Action(context => { Path_Ingress.Dequeue(); })),
-
-                                // Follow the prescribed ingress path...
-                                UtilityBehaviorPS_MoveTo(context => Path_Ingress.Peek().Location, context => "follow ingress path")
-                            ))
-                    ))
-            );
+                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.DestinationReached,
+                            StateBehaviorPS_DestinationReached())
+                    )
+                ));
         }
 
 
@@ -413,16 +352,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // target (its usually an elite).  So, if the selected target not attacking us, we clear the target,
                 // so Honorbuddy can make a proper target selection.
                 new Decorator(context => (Me.CurrentTarget != null) && !Me.CurrentTarget.IsTargetingMeOrPet,
-                    new Action(context => { Me.ClearTarget(); })),
-
-                // If we get in combat while waiting for Mob to clear, move back to safespot when combat complete...
-                new Decorator(context => State_MainBehavior == StateType_MainBehavior.WaitingForMobToClear,
-                    new Action(context =>
-                    {
-                        State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
-                        return RunStatus.Failure;
-                    }))
-                );
+                    new Action(context => { Me.ClearTarget(); }))
+            );
         }
 
 
@@ -437,133 +368,228 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
+                // empty, for now
+                new Decorator(context => IsDone,
+                    new PrioritySelector(
+                        new Action(context => { BehaviorDone(); return RunStatus.Failure; })
+                        ))
 
-                // Update information for this BT visit...
+            );
+        }
+        #endregion
+
+
+        #region State Behaviors
+        private Composite StateBehaviorPS_DestinationReached()
+        {
+            return new PrioritySelector(
                 new Action(context =>
                 {
-                    Mob_ToAvoid = FindUnitsFromIds(ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault();
-                    Mob_ToMoveNear = FindUnitsFromIds(ToEnumerable<int>(MobIdToMoveNear)).FirstOrDefault();
-                    return RunStatus.Failure;  // fall thru
-                }),
+                    Me.ClearTarget();
+                    BehaviorDone("Destination Reached");
+                })
+            );
+        }
 
 
-                // If quest is done, behavior is done...
-                new Decorator(context => IsDone,
-                    new Action(context => { State_MainBehavior = StateType_MainBehavior.BehaviorDone; })),
+        private Composite StateBehaviorPS_MovingToSafeSpot()
+        {
+            return new PrioritySelector(
+                UtilityBehaviorPS_SpankMobTargetingUs(),
+
+                new Decorator(context => !Me.Combat,
+                    UtilityBehaviorPS_HealAndRest()),
+                    
+                // If a "Move Near" mob was specified, move to it...
+                new Decorator(context => MobIdToMoveNear > 0,
+                    new PrioritySelector(
+                        new Decorator(context => IsViable(Mob_ToMoveNear),
+                            new PrioritySelector(
+                                // Target the MoveToNpc, as feedback to the user...
+                                new Decorator(context => Me.CurrentTarget != Mob_ToMoveNear,
+                                    new Action(context => { Mob_ToMoveNear.Target(); })),
+
+                                // Move to mob...
+                                UtilityBehaviorPS_MoveTo(context => Mob_ToMoveNear.Location, context => Mob_ToMoveNear.Name)
+                            )),
+
+                        // Need to wait for Mob to respawn...
+                        new Decorator(context => !IsViable(Mob_ToMoveNear),
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetObjectNameFromId(MobIdToMoveNear));
+                            }))
+                    )),
+
+                // No "Move Near" mob, so use the provided Safe spot coordinates...
+                new Decorator(context => MobIdToMoveNear <= 0,
+                    UtilityBehaviorPS_MoveTo(context => SafespotLocation, context => "safe spot")),
+
+                // Dismount once we've arrived at mob or destination...
+                new Decorator(context => Me.Mounted,
+                    new Action(context => { Mount.Dismount(); })),
+
+                // At safe spot, now wait for mob...
+                new Action(context =>
+                {
+                    TreeRoot.StatusText = string.Empty;
+                    State_MainBehavior = StateType_MainBehavior.WaitingForMobToClear;
+                })
+            );         
+        }
 
 
-                // Stateful Operation:
-                new Switch<StateType_MainBehavior>(context => State_MainBehavior,
-                    #region State: DEFAULT
+        private Composite StateBehaviorPS_PathIngressing()
+        {
+            return new PrioritySelector(
+                // If no Ingress path exists, build it...
+                new Decorator(context => Path_Ingress == null,
+                    new Action(context => { Path_Ingress = FollowPath.FindPath_Ingress(); })),
+
+                // If we've consumed our Ingress path (or the one we initially built is empty), we're done...
+                new Decorator(context => !Path_Ingress.Any(),
+                    new Action(context => { State_MainBehavior = StateType_MainBehavior.DestinationReached; })),
+
+                // If Mob_ToAvoid is too close or we get in combat, abandon current ingress, and retreat back to safespot...
+                new Decorator(context => IsViable(Mob_ToAvoid)
+                                        && ((Mob_ToAvoid.Distance < FollowPath.EgressDistance) || Me.Combat),
+                    new Action(context =>
+                    {
+                        Path_Ingress = null;
+                        Path_Egress = null;
+                        State_MainBehavior = StateType_MainBehavior.PathRetreating;
+                    })),
+
+                new Switch<SafePathType.StrategyType>(context => FollowPath.Strategy,
                     new Action(context =>   // default case
                     {
-                        LogMaintenanceError("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
+                        var message = string.Format("FollowPathStrategyType({0}) is unhandled", FollowPath.Strategy);
+                        LogMaintenanceError(message);
                         TreeRoot.Stop();
-                        State_MainBehavior = StateType_MainBehavior.BehaviorDone;
+                        BehaviorDone(message);
                     }),
-                    #endregion
 
+                    new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
+                        new Decorator(context => IsViable(Mob_ToAvoid) && (Mob_ToAvoid.Distance < AvoidDistance),
+                            new PrioritySelector(
+                                new Decorator(context => Me.IsMoving,
+                                    new Action(context => { WoWMovement.MoveStop(); })),
+                                new ActionAlwaysSucceed()
+                            ))),
 
-                    #region State: Moving to Safespot
-                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.MovingToSafespot,
+                    new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.WaitForAvoidDistance,
                         new PrioritySelector(
-                            // If a "Move Near" mob was specified, move to it...
-                            new Decorator(context => MobIdToMoveNear != 0,
-                                new PrioritySelector(
-                                    new Decorator(context => Mob_ToMoveNear != null,
-                                        new PrioritySelector(
-                                            // Target the MoveToNpc, as feedback to the user...
-                                            new Decorator(context => Me.CurrentTarget != Mob_ToMoveNear,
-                                                new Action(context => { Mob_ToMoveNear.Target(); })),
-
-                                            // Move to mob...
-                                            UtilityBehaviorPS_MoveTo(context => Mob_ToMoveNear.Location, context => Mob_ToMoveNear.Name)
-                                        )),
-
-                                    // Need to wait for Mob to respawn...
-                                    new Decorator(context => Mob_ToMoveNear == null,
-                                        new Action(context =>
-                                        {
-                                            TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetObjectNameFromId(MobIdToMoveNear));
-                                        }))
-                                )),
-
-                            // No "Move Near" mob, so use the provided Safe spot coordinates...
-                            new Decorator(context => MobIdToMoveNear == 0,
-                                UtilityBehaviorPS_MoveTo(context => SafespotLocation, context => "to safespot")),
-
-                            // Dismount once we've arrived at mob...
-                            new Decorator(context => Me.Mounted,
-                                new Action(context => { Mount.Dismount(); })),
-
-                            // At safe spot, now wait for mob...
-                            new Action(context =>
-                            {
-                                TreeRoot.StatusText = string.Empty;
-                                State_MainBehavior = StateType_MainBehavior.WaitingForMobToClear; 
-                            })
-                        )),
-                    #endregion
-
-
-                    #region State: Waiting for Mob to Clear
-                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.WaitingForMobToClear,
-                        new PrioritySelector(
-                            // If AvoidNpc is not around,
-                            // or if AvoidNpc is prescribed distance away, and facing away from us,
-                            // we're done...
-                            new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
-                                new Action(context =>
-                                {
-                                    Me.ClearTarget();
-                                    Path_Ingress = null;
-                                    Path_Egress = null;
-                                    State_MainBehavior = StateType_MainBehavior.FollowingPathToDestination;
-                                })),
-
-                            // Target and Face the AvoidNpc, as feedback to the user...
-                            new Decorator(context => Me.CurrentTarget != Mob_ToAvoid,
-                                new Action(context => { Mob_ToAvoid.Target(); })),
-                            new Decorator(context => !Me.IsSafelyFacing(Mob_ToAvoid),
-                                new Action(context => { Mob_ToAvoid.Face(); })),
-
-                            // Tell user what we're up to...
-                            new CompositeThrottle(ThrottleUserStatusUpdate,
-                                new Action(context =>
-                                {
-                                    TreeRoot.StatusText = string.Format(
-                                                            "Waiting for '{0}' to move {1:F1}/{2:F1} yards away, and pathing away from us.",
-                                                            Mob_ToAvoid.Name,
-                                                            Mob_ToAvoid.Distance,
-                                                            AvoidDistance);
-                                }))
-                        )),
-                    #endregion
-
-                        
-                    #region State: Following Path to Destination
-                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.FollowingPathToDestination,
-                        new PrioritySelector(
-                            // The "Follow Path to Destination" logic is handled in a Combat_Main hook.
-                            // If we get into a fight, and need to back out, we want to be certain we drag the mobs
-                            // back to the safespot before engaging them.  That cannot be done in the normal (non-combat)
-                            // main behavior, here.
-                        )),
-                    #endregion
-
-                        
-                    #region State: Behavior Done
-                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.BehaviorDone,
-                        new PrioritySelector(
-                            new Action(context =>
-                            {
-                                Me.ClearTarget();
-                                BehaviorDone();
-                            })
+                            // No addition action needed to implement strategy for now
                         ))
-                    #endregion
- 
-            ));
+                ),
+
+                // If we've arrived at the current ingress waypoint, dequeue it...
+                new Decorator(context => Me.Location.Distance(Path_Ingress.Peek().Location) <= Navigator.PathPrecision,
+                    new Action(context =>
+                    {
+                        FollowPath.DismissPetIfNeeded();
+                        Path_Ingress.Dequeue();
+                    })),
+
+                // Follow the prescribed ingress path, if its still safe to proceed...
+                new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
+                    UtilityBehaviorPS_MoveTo(context => Path_Ingress.Peek().Location, context => "follow ingress path")),
+
+                // If mob is heading our direction, hold position...
+                new Decorator(context => !IsSafeToMoveToDestination(Mob_ToAvoid),
+                    new Sequence(
+                        new Action(context =>
+                        {
+                            TreeRoot.StatusText = string.Format("Holding position to evaluate {0}'s actions.", Mob_ToAvoid.Name);
+                        }),
+                        UtilityBehaviorPS_MoveStop()
+                    ))
+            );
+        }
+
+
+        private Composite StateBehaviorPS_PathRetreating()
+        {
+            return new PrioritySelector(
+                // If no Egress path, build it...
+                new Decorator(context => Path_Egress == null,
+                    new Action(context =>
+                    {
+                        Path_Egress = FollowPath.FindPath_Egress(Mob_ToAvoid);
+                        LogInfo("Retreating back to safespot due to {0}.",
+                            Me.Combat
+                            ? "combat"
+                            : string.Format("{0} too close (dist: {1:F1})", Mob_ToAvoid.Name, Mob_ToAvoid.Distance));
+                    })),
+
+                // If we've come to the end of our egress path, move back to safe spot...
+                new Decorator(context => !Path_Egress.Any(),
+                    new Action(context =>
+                    {
+                        Path_Ingress = null;
+                        Path_Egress = null;
+                        State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
+                    })),
+
+                // If we've arrived at the current waypoint, dequeue it...
+                new Decorator(context => Me.Location.Distance(Path_Egress.Peek().Location) <= Navigator.PathPrecision,
+                    new Action(context => { Path_Egress.Dequeue(); })),
+
+                UtilityBehaviorPS_MoveTo(context => Path_Egress.Peek().Location, context => "retreat")
+            );
+        }
+        
+        
+        private Composite StateBehaviorPS_WaitingForMobToClear()
+        {
+            return new PrioritySelector(
+                // Spank any mob that targets us while we're waiting...
+                new Decorator(context => Me.Combat,
+                    new ActionFail(context => { IsMoveBackToSafespotNeeded = true; })),
+
+                UtilityBehaviorPS_SpankMobTargetingUs(),
+
+                new Decorator(context => !Me.Combat,
+                    new PrioritySelector(
+                        // If we get in combat while waiting for Mob to clear, move back to safespot when combat complete...
+                        new Decorator(context => IsMoveBackToSafespotNeeded,
+                            new Action(context =>
+                            {
+                                IsMoveBackToSafespotNeeded = false;
+                                State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
+                            })),
+                        UtilityBehaviorPS_HealAndRest()
+                    )),
+
+                // Target and Face the AvoidNpc, as feedback to the user...
+                new Decorator(context => Me.CurrentTarget != Mob_ToAvoid,
+                    new Action(context => { Mob_ToAvoid.Target(); })),
+                new Decorator(context => !Me.IsSafelyFacing(Mob_ToAvoid),
+                    new Action(context => { Mob_ToAvoid.Face(); })),
+
+                // If AvoidNpc is not around,
+                // or if AvoidNpc is prescribed distance away, and facing away from us,
+                // we're done...
+                new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
+                    new Action(context =>
+                    {
+                        FollowPath.DismissPetIfNeeded();
+                        Path_Ingress = null;
+                        Path_Egress = null;
+                        State_MainBehavior = StateType_MainBehavior.PathIngressing;
+                    })),
+
+                // Tell user what we're up to...
+                new CompositeThrottle(Throttle_UserUpdate,
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText =
+                            string.Format("Waiting for '{0}' to move {1:F1}/{2:F1} yards away, and pathing away from us.",
+                                Mob_ToAvoid.Name,
+                                Mob_ToAvoid.Distance,
+                                AvoidDistance);
+                    }))
+            );
         }
         #endregion
 
@@ -579,7 +605,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             return !IsViable(avoidNpc)
                     || (!avoidNpc.Combat
                         && (avoidNpc.Distance > AvoidDistance)
-                        && !avoidNpc.IsSafelyFacing(Me));
+                        && !avoidNpc.IsSafelyFacing(Me, 150));
         }
         #endregion
     }
