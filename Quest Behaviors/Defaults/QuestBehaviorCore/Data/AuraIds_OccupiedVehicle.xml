@@ -33,6 +33,7 @@
     ...28Feb2013-03:44UTC chinajade
  -->
 <Auras>
+    <Aura Name="Ride Vehicle Hardcoded" SpellId="46598" /> <!-- Steemwheedle Rescue Balloon for "Rocket Rescue": http://wowhead.com/spell=46598 -->
     <Aura Name="Stolen Horse" SpellId="52263" />  <!-- Havenshire Horse for "Grand Theft Palominio": http://wowhead.com/spell=52263 -->
     <Aura Name="Ride Vehicle" SpellId="68503" />  <!-- Glaive Thrower for "They Have Allies, But So Do We": http://wowhead.com/spell=68503 -->
     <Aura Name="Vehicle - Switch to Seat 2" SpellId="84224" /> <!-- Great White Plainshawk for "A Lesson in Bravery": http://wowhead.com/spell=84224 -->
@@ -40,6 +41,7 @@
     <Aura Name="Ride Vehicle" SpellId="84499" />  <!-- http://wowhead.com/spell=84499 -->
     <Aura Name="Ride Vehicle" SpellId="84896" />  <!-- http://wowhead.com/spell=84896 -->
     <Aura Name="Ride Vehicle" SpellId="85380" />  <!-- http://wowhead.com/spell=85380 -->
+    <Aura Name="Ride Vehicle Hardcoded" SpellId="86319" />  <!-- http://wowhead.com/spell=86319 -->
     <Aura Name="Ride Vehicle" SpellId="86826" />  <!-- http://wowhead.com/spell=86826 -->
     <Aura Name="Ride Vehicle" SpellId="87088" />  <!-- http://wowhead.com/spell=87088 -->
     <Aura Name="Ride Vehicle" SpellId="87171" />  <!-- http://wowhead.com/spell=87171 -->
@@ -81,6 +83,8 @@
     <Aura Name="Ride Vehicle" SpellId="119940" />  <!-- http://wowhead.com/spell=119940 -->
     <Aura Name="Ride Vehicle" SpellId="120059" />  <!-- http://wowhead.com/spell=120059 -->
     <Aura Name="Ride Vehicle" SpellId="121302" />  <!-- http://wowhead.com/spell=121302 -->
+    <Aura Name="Ride Vehicle Hardcoded" SpellId="125095" /> <!-- http://wowhead.com/spell=125095 -->
+    <Aura Name="Ride Vehicle Hardcoded" SpellId="125684" /> <!-- http://wowhead.com/spell=125684 -->
     <Aura Name="Ride Vehicle" SpellId="127283" />  <!-- http://wowhead.com/spell=127283 -->
     <Aura Name="Ride Vehicle" SpellId="127740" />  <!-- http://wowhead.com/spell=127740 -->
     <Aura Name="Ride Vehicle" SpellId="127827" />  <!-- http://wowhead.com/spell=127827 -->
