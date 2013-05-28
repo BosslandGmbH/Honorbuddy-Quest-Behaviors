@@ -62,11 +62,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 87840,      // Worgen: Running Wild
             };
 
-
+        
         // 11Apr2013-07:48UTC chinajade
         public static bool IsUntagged(this WoWUnit wowUnit)
         {
-            return (wowUnit.TappedByAllThreatLists
+            return (wowUnit != null)
+                && (wowUnit.TappedByAllThreatLists
                     || wowUnit.TaggedByMe
                     || !wowUnit.TaggedByOther);
         }

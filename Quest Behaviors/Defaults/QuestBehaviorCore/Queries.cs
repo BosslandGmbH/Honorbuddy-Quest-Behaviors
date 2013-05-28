@@ -156,7 +156,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 return
                     ((requestedMobState == MobStateType.Alive) && wowUnit.IsAlive)
                     || ((requestedMobState == MobStateType.AliveNotInCombat) && wowUnit.IsAlive && !wowUnit.Combat)
-                    || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead)
+                    || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead && wowUnit.IsUntagged())
                     || ((requestedMobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < mobHpPercentLeft)); 
             }
 
