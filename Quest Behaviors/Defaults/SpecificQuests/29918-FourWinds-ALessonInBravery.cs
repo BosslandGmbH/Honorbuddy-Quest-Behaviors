@@ -116,7 +116,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         {
             get
             {
-                return new Decorator(ret => QuestBehaviorBase.IsQuestObjectiveComplete(QuestId, 2),
+                return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 2),
                     new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";

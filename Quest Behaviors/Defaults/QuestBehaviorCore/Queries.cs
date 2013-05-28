@@ -165,21 +165,21 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-        public static bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
-        {
-            // If quest and objective was not specified, obviously its not complete...
-            if ((questId <= 0) || (objectiveIndex <= 0))
-                { return false; }
+        //public static bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
+        //{
+        //    // If quest and objective was not specified, obviously its not complete...
+        //    if ((questId <= 0) || (objectiveIndex <= 0))
+        //        { return false; }
 
-            // If quest is not in our log, obviously its not complete...
-            if (Me.QuestLog.GetQuestById((uint)questId) == null)
-                { return false; }
+        //    // If quest is not in our log, obviously its not complete...
+        //    if (Me.QuestLog.GetQuestById((uint)questId) == null)
+        //        { return false; }
 
-            int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
+        //    int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
 
-            return
-                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
-        }
+        //    return
+        //        Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
+        //}
 
 
         // 16Apr2013-10:11UTC chinajade

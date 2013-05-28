@@ -234,7 +234,7 @@ namespace Honorbuddy.QuestBehaviorCore
             get
             { 
                 return _isBehaviorDone     // normal completion
-                        || IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
+                        || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
             }
         }
