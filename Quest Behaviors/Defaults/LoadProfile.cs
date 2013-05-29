@@ -5,22 +5,13 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
-using Styx;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 
@@ -74,14 +65,7 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 
         // Private properties
         private String CurrentProfile { get { return (ProfileManager.XmlLocation); } }
-        private String NewProfilePath
-        {
-            get
-            {
-                string directory = Path.GetDirectoryName(CurrentProfile);
-                return (Path.Combine(directory, ProfileName));
-            }
-        }
+        private String NewProfilePath { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -131,19 +115,19 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
                             // If file does not exist, notify of problem...
                             new Decorator(ret => !File.Exists(NewProfilePath),
                                 new Action(delegate
-            {
-                LogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
-                _isBehaviorDone = true;
-            })),
+                                {
+                                    LogMessage("fatal", "Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
+                                    _isBehaviorDone = true;
+                                })),
 
                             // Load the specified profile...
                             new Sequence(
                                 new Action(delegate
-            {
-                TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
-                LogMessage("info", "Loading profile '{0}'", ProfileName);
-                ProfileManager.LoadNew(NewProfilePath, false);
-            }),
+                                {
+                                    TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
+                                    LogMessage("info", "Loading profile '{0}'", ProfileName);
+                                    ProfileManager.LoadNew(NewProfilePath, false);
+                                }),
                                 new WaitContinue(TimeSpan.FromMilliseconds(300), ret => false, new ActionAlwaysSucceed()),
                                 new Action(delegate { _isBehaviorDone = true; })
                                 )
@@ -179,6 +163,12 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
             if (!IsDone)
             {
                 TreeRoot.GoalText = this.GetType().Name + ": In Progress";
+
+                // Convert path name to absolute, and canonicalize it...
+                var absolutePath = Path.Combine(Path.GetDirectoryName(CurrentProfile), ProfileName);
+                absolutePath = Path.GetFullPath(absolutePath);
+                var canonicalPath = new Uri(absolutePath).LocalPath;
+                NewProfilePath = canonicalPath;
             }
         }
 

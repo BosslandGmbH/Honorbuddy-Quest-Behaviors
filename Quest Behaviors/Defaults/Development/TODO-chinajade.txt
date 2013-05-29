@@ -2,6 +2,8 @@
 ====
 * UtilityBehaviorPS_MoveTo
 	+ If Navigator* in use, and flying--land immediately.
+* Queries.cs
+	+ IsUntagged() => IsSharedOrUntagged()
 
 * AbandonQuest
 	+ Needs a feature to jettison all quests we've left behind.
@@ -52,11 +54,7 @@
 	+ Needs to clear mobs that will aggro otw to our target mob.
 	+ Needs to pick targets based on SurfacePathDistance
 	+ Needs to define complete as "KillCount"
-
-* LoadProfile is not constructing relative path names correctly:
-    + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111256-kicks-dread-wastes-gets-stuck-train-flying-loop.html#post1084501
-	+ [20:50:36.197 D] Activity: Loading profile 'C:\WoW Plus\A-1 HB\Profiles\Kick's Profiles\Kick's Profiles\1-90 Questing Profile Pack\MoP\..\GoTo\..\MoP\[N - Quest] MoP Train Flying LP [Kick].xml'
-
+	
 * SlayTheFools
 	* Retire KillUntilComplete in favor of SlayTheFools
 	* Dox: "Mostly useful when in toon is thrown into combat (due to environment), but nothing is attacking us
