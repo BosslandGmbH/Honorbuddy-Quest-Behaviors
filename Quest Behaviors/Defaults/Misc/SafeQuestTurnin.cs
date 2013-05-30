@@ -158,7 +158,7 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInLocation);
+                QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInName, TurnInLocation);
 
                 if (QuestTurnIn == null)
                 { LogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
