@@ -181,7 +181,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return
                 isSpellFound
                 ? spellInfo.Original.Name
-                : string.Format("SpellId({0}", spellId);
+                : string.Format("SpellId({0})", spellId);
         }
 
 
