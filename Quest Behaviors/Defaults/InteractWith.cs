@@ -49,7 +49,7 @@
 //          If the Quest or QuestObjectiveIndex completes prior to reaching this
 //          count, the behavior also terminates.
 //
-// Potential Target Qualifiers:
+// Optional Target Qualifiers:
 //      AuraIdOnMobN [optional; Default: none]
 //          This attribute qualifies a target that fullfills the MobIdN or FactionIdN selection.
 //          The target *must* possess an aura that matches one of the defined 
@@ -240,7 +240,7 @@
 //      kill the mob so the NPC will leave combat.  This is necessary because many NPCs will not
 //      gossip when they are in combat.
 //
-// * Be careful when specifying the WaitForNpcs="true".
+// * Be careful when specifying the WaitForNpcs="false".
 //      The 'interact blacklist' is internal to the behavior.  The means the blacklist is destroyed
 //      any time the behavior exits, and a fresh one is created upon re-entry to the behavior.
 //      This means InteractWith does not know which mobs have already been interacted and which
@@ -1487,7 +1487,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 && ((InteractByGossipOptions.Length <= 0) || wowUnit.Combat || wowUnit.CanGossip)
                 && ((AuraIdsOnMob.Length <= 0) || wowUnit.GetAllAuras().Any(a => AuraIdsOnMob.Contains(a.SpellId)))
                 && ((AuraIdsMissingFromMob.Length <= 0) || !wowUnit.GetAllAuras().Any(a => AuraIdsMissingFromMob.Contains(a.SpellId)))
-                && IsMob_StateTypeMatch(wowObject, mobState, MobHpPercentLeft);
+                && IsStateMatch_MobState(wowObject, mobState, MobHpPercentLeft);
         }
 
         
@@ -1590,7 +1590,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         ));
                 }
 
-                if (!IsMob_StateTypeMatch(wowUnit, MobState, MobHpPercentLeft))
+                if (!IsStateMatch_MobState(wowUnit, MobState, MobHpPercentLeft))
                 {
                     reasons.Add(MobState == MobStateType.BelowHp
                         ? string.Format("!{0}({1}%)", MobState, MobHpPercentLeft)

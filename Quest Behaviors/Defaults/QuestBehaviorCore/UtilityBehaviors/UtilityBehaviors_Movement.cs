@@ -69,7 +69,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                     CanRunDecoratorDelegate suppressMountUse = null,
                                                     ProvideWoWPointDelegate locationObserver = null)
         {
-            ContractRequires(destinationDelegate != null, context => "locationRetriever may not be null");
+            ContractRequires(destinationDelegate != null, context => "destinationDelegate may not be null");
             ContractRequires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
             precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
             locationObserver = locationObserver ?? (context => MovementObserver.Location);

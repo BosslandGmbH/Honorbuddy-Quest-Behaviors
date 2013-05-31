@@ -78,6 +78,24 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 30May2013-04:52UTC chinajade
+        public Composite UtilityBehaviorPS_Target(ProvideWoWObjectDelegate selectedTargetDelegate)
+        {
+            return new Action(context =>
+            {
+                var selectedTarget = selectedTargetDelegate(context).ToUnit();
+
+                if ((selectedTarget != null) && (Me.CurrentTarget != selectedTarget))
+                {
+                    selectedTarget.Target();
+                    return RunStatus.Success;
+                }
+
+                return RunStatus.Failure;
+            });
+        }
+
+
         // 16May2013-04:52UTC chinajade
         public static Composite UtilityBehaviorPS_MiniCombatRoutine()
         {

@@ -17,6 +17,7 @@ using System.Threading;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
@@ -31,11 +32,23 @@ namespace Honorbuddy.QuestBehaviorCore
         // We need a 'fresh list' each time the QB is started; otherwise, very bad things happen.
         private readonly LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
+        // 30May2013-03:56UTC chinajade
+        public static void BlacklistForCombat(WoWObject wowObject, TimeSpan duration)
+        {
+            if (wowObject != null)
+            {
+                Blacklist.Add(wowObject.Guid, BlacklistFlags.Combat, duration);
+            }
+        }
+
+
         // 11Apr2013-03:56UTC chinajade
         public void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
         {
             if (wowObject != null)
-                { _interactBlacklist.Add(wowObject.Guid, duration); }
+            { 
+                _interactBlacklist.Add(wowObject.Guid, duration); 
+            }
         }
         
         
@@ -94,11 +107,22 @@ namespace Honorbuddy.QuestBehaviorCore
             return group.Any(u => u.Combat || (u.GotAlivePet && u.Pet.Combat));
         }
 
-        
+
+        // 11Apr2013-04:41UTC chinajade
+        public static bool IsBlacklistedForCombat(WoWObject wowObject)
+        {
+            return (wowObject != null)
+                ? Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat)
+                : false;
+        }
+
+
         // 11Apr2013-04:41UTC chinajade
         public bool IsBlacklistedForInteraction(WoWObject wowObject)
         {
-            return _interactBlacklist.Contains(wowObject);
+            return (wowObject != null)
+                ? _interactBlacklist.Contains(wowObject.Guid)
+                : false;
         }
 
 
@@ -142,44 +166,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 // other boundary conditions.
                 : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
         }
-        
-        
-        // 28Apr2013-03:38UTC chinajade
-        public static bool IsMob_StateTypeMatch(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft)
-        {
-            if (requestedMobState == MobStateType.DontCare)
-                { return true; }
-            
-            WoWUnit wowUnit = wowObject.ToUnit();
-            if (wowUnit != null)
-            {
-                return
-                    ((requestedMobState == MobStateType.Alive) && wowUnit.IsAlive)
-                    || ((requestedMobState == MobStateType.AliveNotInCombat) && wowUnit.IsAlive && !wowUnit.Combat)
-                    || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead && wowUnit.IsUntagged())
-                    || ((requestedMobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < mobHpPercentLeft)); 
-            }
-
-            return false;
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        //public static bool IsQuestObjectiveComplete(int questId, int objectiveIndex)
-        //{
-        //    // If quest and objective was not specified, obviously its not complete...
-        //    if ((questId <= 0) || (objectiveIndex <= 0))
-        //        { return false; }
-
-        //    // If quest is not in our log, obviously its not complete...
-        //    if (Me.QuestLog.GetQuestById((uint)questId) == null)
-        //        { return false; }
-
-        //    int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
-
-        //    return
-        //        Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, questLogIndex), 2);
-        //}
 
 
         // 16Apr2013-10:11UTC chinajade
@@ -219,7 +205,81 @@ namespace Honorbuddy.QuestBehaviorCore
             WoWGameObjectType.QuestGiver,
             WoWGameObjectType.SpellCaster,      // portals
             WoWGameObjectType.Transport
-        };        
+        };
+
+
+        // 30May2013-08:11UTC chinajade
+        public static bool IsStateMatch_AurasWanted(WoWObject wowObject, IEnumerable<int> auraIdsWanted)
+        {
+            ContractRequires(wowObject != null, context => "wowObject != null");
+            ContractRequires(auraIdsWanted != null, context => "auraIdsWanted != null");
+
+            var wowUnit = wowObject as WoWUnit;
+
+            return
+                (wowUnit == null)           // Unit has no auras to check
+                || !auraIdsWanted.Any()     // No aura qualifiers provided
+                || wowUnit.GetAllAuras().Any(a => auraIdsWanted.Contains(a.SpellId));
+        }
+
+
+        // 30May2013-08:11UTC chinajade
+        public static bool IsStateMatch_AurasMissing(WoWObject wowObject, IEnumerable<int> auraIdsMissing)
+        {
+            ContractRequires(wowObject != null, context => "wowObject != null");
+            ContractRequires(auraIdsMissing != null, context => "auraIdsMissing != null");
+
+            var wowUnit = wowObject as WoWUnit;
+
+            return
+                (wowUnit == null)           // Unit has no auras to check
+                || !auraIdsMissing.Any()    // No aura qualifiers provided
+                || !wowUnit.GetAllAuras().Any(a => auraIdsMissing.Contains(a.SpellId));
+        }
+
+
+        // 30May2013-08:11UTC chinajade
+        public static bool IsStateMatch_MeshNavigable(WoWObject wowObject, MovementByType movementBy)
+        {
+            ContractRequires(wowObject != null, context => "wowObject != null");
+
+            return
+                (movementBy != MovementByType.NavigatorOnly)
+                || ((movementBy == MovementByType.NavigatorOnly)
+                    && !Navigator.CanNavigateFully(Me.Location, wowObject.Location));
+        }
+
+
+        // 30May2013-08:11UTC chinajade
+        public static bool IsStateMatch_IgnoreMobsInBlackspots(WoWObject wowObject, bool ignoreMobsInBlackspots)
+        {
+            return
+                ignoreMobsInBlackspots
+                || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location);
+        }
+
+
+        // 28Apr2013-03:38UTC chinajade
+        public static bool IsStateMatch_MobState(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft)
+        {
+            if (requestedMobState == MobStateType.DontCare)
+            {
+                return true;
+            }
+
+            WoWUnit wowUnit = wowObject.ToUnit();
+            if (wowUnit != null)
+            {
+                return
+                    ((requestedMobState == MobStateType.Alive) && wowUnit.IsAlive)
+                    || ((requestedMobState == MobStateType.AliveNotInCombat) && wowUnit.IsAlive && !wowUnit.Combat)
+                    || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead && wowUnit.IsUntagged())
+                    || ((requestedMobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < mobHpPercentLeft));
+            }
+
+            return false;
+        }
+        
         
         // 24Feb2013-08:11UTC chinajade
         public static bool IsViable(WoWObject wowObject)

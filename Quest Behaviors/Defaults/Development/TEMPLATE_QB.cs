@@ -32,9 +32,14 @@
 //
 // THINGS TO KNOW:
 //
+#endregion
+
+
+#region Examples
 // EXAMPLE:
 //     <CustomBehavior File="TEMPLATE_QB" />
 #endregion
+
 
 #region Usings
 using System;
@@ -53,7 +58,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
     [CustomBehaviorFileName(@"Development\TEMPLATE_QB")]
-    public partial class TEMPLATE_QB : QuestBehaviorBase
+    public class TEMPLATE_QB : QuestBehaviorBase
     {
         #region Constructor and Argument Processing
         public TEMPLATE_QB(Dictionary<string, string> args)
@@ -82,10 +87,6 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         // Variables for Attributes provided by caller
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
 
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
@@ -117,6 +118,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
         #region Private and Convenience variables
         // Add what you need here...
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -161,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
+                CharacterSettings.Instance.PullDistance = 0;    // don't pull anything unless we absolutely must
             }
         }
         #endregion
