@@ -487,7 +487,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 (from wowUnit in FindUnitsFromIds(VehicleIds)
                  where
                     !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
-                    && !IsInCompetition(wowUnit)
+                    && !IsInCompetition(wowUnit, NonCompeteDistance)
                     && wowUnit.IsUntagged()
                  orderby wowUnit.Distance
                  select wowUnit)

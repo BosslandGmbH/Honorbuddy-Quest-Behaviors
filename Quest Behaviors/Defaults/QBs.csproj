@@ -72,6 +72,7 @@
     <Compile Include="Development\PetControl.cs" />
     <Compile Include="NoControlVehicle.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_FullInfo.cs" />
+    <Compile Include="QuestBehaviorCore\Extensions\Extensions_LocalPlayer.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_TreeSharp.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWObject.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_WoWPoint.cs" />

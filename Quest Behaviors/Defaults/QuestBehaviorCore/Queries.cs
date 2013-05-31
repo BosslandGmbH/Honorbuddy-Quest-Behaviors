@@ -111,7 +111,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 11Apr2013-04:41UTC chinajade
-        public bool IsInCompetition(WoWObject wowObject)
+        public static bool IsInCompetition(WoWObject wowObject, double nonCompeteDistance)
         {
             ProvideBoolDelegate excludeGroupMembers = (potentialGroupMember =>
             {
@@ -125,7 +125,7 @@ namespace Honorbuddy.QuestBehaviorCore
             bool isTagged = ((wowUnit != null) && !wowUnit.IsUntagged());
 
             return !IsSharedWorldResource(wowObject)
-                    && (FindPlayersNearby(wowObject.Location, NonCompeteDistance, excludeGroupMembers).Any()
+                    && (FindPlayersNearby(wowObject.Location, nonCompeteDistance, excludeGroupMembers).Any()
                         || isTagged);
         }
 
@@ -252,7 +252,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 IsViable(wowObject)
                 && !IsBlacklistedForInteraction(wowObject)
                 && (IgnoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
-                && !IsInCompetition(wowObject);
+                && !IsInCompetition(wowObject, NonCompeteDistance);
 
             return isViableForInteracting;
         }

@@ -1556,7 +1556,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             if (IgnoreMobsInBlackspots && Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
                 { reasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location)); }
 
-            if (IsInCompetition(wowObject))
+            if (IsInCompetition(wowObject, NonCompeteDistance))
             {
                 reasons.Add(string.Format("InCompetition({0} players within {1:F1})",
                     FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count(),
