@@ -99,7 +99,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             //                              Args["Nav"], MovementBy));
         }
 
-        protected override void EvaluateUsage_SemanticCoherency(XElement xElment)
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
             //// EXAMPLE:
             //UsageCheck_SemanticCoherency(xElement,
