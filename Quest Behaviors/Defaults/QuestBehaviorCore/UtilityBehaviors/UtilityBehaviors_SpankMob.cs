@@ -61,9 +61,9 @@ namespace Honorbuddy.QuestBehaviorCore
                         // Note that some behaviors will set the PullDistance to zero or one while they run, but we don't want to
                         // actually get that close to engage, so we impose a lower bound of 23 feet that we move before handing
                         // things over to the combat routine.
-                        new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
-                            UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
-                                                    context => _ubpsSpankMob_Mob.Name)),
+                        // new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
+                        //    UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
+                        //                            context => _ubpsSpankMob_Mob.Name)),
                         new Decorator(context => Me.Mounted,
                             new Action(context => { Mount.Dismount(); })),
 
