@@ -667,13 +667,43 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         UtilityBehaviorPS_HealAndRest()),
 
                     // If a mob is targeting us, deal with it immediately, so our interact actions won't be interrupted...
+                    // NB: We try to not kill mobs that are attacking us, if they are possible interact targets.  However,
+                    // if they interrupt our interract attempt more than once, we kill them so we can progress.
                     new Decorator(context => !IgnoreCombat
                                             && !Me.IsFlying
                                             && ((ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll)
                                                 || (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsTargetingUs)),
-                       UtilityBehaviorPS_SpankMobTargetingUs(context => FindBestInteractTargets(MobState) /*excluded units*/
-                                                                        .Where(o => o.ToUnit() != null)
-                                                                        .Select(o => o.ToUnit()))),
+                        new PrioritySelector(
+                            // IF we're being attacked, and one of the attackers can be interacted with, switch targets...
+                            new Decorator(context => Me.Combat,
+                                new ActionFail(context =>
+                                {
+                                    var newTarget =
+                                       (from wowObject in FindInteractTargets(MobState)
+                                        let wowUnit = wowObject as WoWUnit
+                                        where
+                                            (wowUnit != null)
+                                            && (wowUnit.IsTargetingMeOrPet
+                                                || wowUnit.IsTargetingAnyMinion
+                                                || wowUnit.IsTargetingMyPartyMember)
+                                        orderby
+                                            wowObject.Distance
+                                        select wowObject)
+                                        .FirstOrDefault();
+
+                                    if ((newTarget != null) && (SelectedInteractTarget != newTarget))
+                                    {
+                                        Me.ClearTarget();
+                                        SelectedInteractTarget = newTarget;
+                                    }
+                                })),
+
+                            UtilityBehaviorPS_SpankMobTargetingUs(context => (InteractAttemptCount >= 1)
+                                                                            ? Enumerable.Empty<WoWUnit>()
+                                                                            : FindInteractTargets(MobState) /*excluded units*/
+                                                                              .Where(o => o.ToUnit() != null)
+                                                                              .Select(o => o.ToUnit()))
+                        )),
 
                     // Delay, if necessary...
                     // NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
@@ -697,7 +727,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     // If quest is done, behavior is done...
                     new Decorator(context => IsDone,
                         new Action(context => { BehaviorDone(); })),
-
+                        
                     // If WoWclient has not placed items in our bag, wait for it...
                     // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
                     // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
@@ -724,7 +754,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             {
                                 CloseOpenFrames();
                                 Me.ClearTarget();
-                                SelectedInteractTarget = FindBestInteractTargets(MobState).FirstOrDefault();
+                                SelectedInteractTarget = FindInteractTargets(MobState).FirstOrDefault();
                                 _timerToReachDestination = null;
                                 InteractAttemptCount = 0;
                                 if (SelectedInteractTarget != null)
@@ -734,7 +764,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 // But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
                                 if ((SelectedInteractTarget == null) && (MobState == MobStateType.Dead))
                                 {
-                                    SelectedAliveTarget = FindBestInteractTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
+                                    SelectedAliveTarget = FindInteractTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
                                     if (SelectedAliveTarget != null)
                                         { return RunStatus.Success; }
                                 }
@@ -1324,7 +1354,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         /// <summary> Current object we should interact with.</summary>
         /// <value> The object.</value>
-        private IEnumerable<WoWObject> FindBestInteractTargets(MobStateType mobState)
+        private IEnumerable<WoWObject> FindInteractTargets(MobStateType mobState)
         {
             double collectionDistanceSqr = CollectionDistance * CollectionDistance;
             bool isMeSwimmingOrFlying = Me.IsSwimming || Me.IsFlying;
