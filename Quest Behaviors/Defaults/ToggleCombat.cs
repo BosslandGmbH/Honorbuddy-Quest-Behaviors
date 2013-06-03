@@ -127,12 +127,7 @@ namespace Styx.Bot.Quest_Behaviors
         {
             get { return true; }
         }
-
-
-        static Composite _thoseFeet;
-        private static Composite ThoseFeet { get { return _thoseFeet ?? (_thoseFeet = new ActionAlwaysSucceed()); } }
-
-
+        
         public override void OnStart()
         {
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -148,12 +143,17 @@ namespace Styx.Bot.Quest_Behaviors
 
             if (_isCombatEnabled)
             {
-                TreeHooks.Instance.RemoveHook("Combat_Main", ThoseFeet);
+                Targeting.Instance.OnTargetListUpdateFinished += Instance_OnTargetListUpdateFinished;
             }
             else
             {
-                TreeHooks.Instance.InsertHook("Combat_Main",0,ThoseFeet);
+                Targeting.Instance.RemoveTargetsFilter -= Instance_OnTargetListUpdateFinished;
             }
+        }
+
+        static void Instance_OnTargetListUpdateFinished(object context)
+        {
+            Targeting.Instance.Clear();
         }
 
         #endregion
