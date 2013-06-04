@@ -274,7 +274,7 @@ namespace Honorbuddy.QuestBehaviorCore
             else if (duration.Minutes > 0)
                 { format = "{1}m{2:D2}s"; }
             else if ((duration.Seconds > 0) && (duration.Milliseconds > 0))
-                { format = "{2}.{3:F3}s"; }
+                { format = "{2}.{3:D3}s"; }
             else if (duration.Seconds > 0)
                 { format = "{2}s"; }
             else if (duration.Milliseconds > 0)

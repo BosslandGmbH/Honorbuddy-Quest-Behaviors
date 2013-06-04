@@ -30,7 +30,8 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         // Do NOT make this static!
         // We need a 'fresh list' each time the QB is started; otherwise, very bad things happen.
-        private readonly LocalBlacklist _interactBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
+        private readonly LocalBlacklist _interactBlacklist = new LocalBlacklist();
+        private readonly LocalBlacklist _pullingBlacklist = new LocalBlacklist();
 
         // 30May2013-03:56UTC chinajade
         public static void BlacklistForCombat(WoWObject wowObject, TimeSpan duration)
@@ -48,6 +49,15 @@ namespace Honorbuddy.QuestBehaviorCore
             if (wowObject != null)
             { 
                 _interactBlacklist.Add(wowObject.Guid, duration); 
+            }
+        }
+
+
+        public void BlacklistForPulling(WoWObject wowObject, TimeSpan duration)
+        {
+            if (wowObject != null)
+            {
+                _pullingBlacklist.Add(wowObject.Guid, duration);
             }
         }
         
@@ -126,6 +136,15 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 4Jun2013-04:41UTC chinajade
+        public bool IsBlacklistedForPulling(WoWObject wowObject)
+        {
+            return (wowObject != null)
+                ? _pullingBlacklist.Contains(wowObject.Guid)
+                : false;
+        }
+        
+        
         public static bool IsExceptionReportingNeeded(Exception except)
         {
             var typeOfException = except.GetType();
@@ -298,7 +317,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 && wowUnit.IsAlive
                 && !wowUnit.IsFriendly
                 && wowUnit.Attackable
-                && !Blacklist.Contains(wowUnit, BlacklistFlags.Combat);
+                && !IsBlacklistedForCombat(wowUnit);
         }
 
 
@@ -319,10 +338,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-        public static bool IsViableForPulling(WoWUnit wowUnit)
+        public bool IsViableForPulling(WoWUnit wowUnit)
         {
             return IsViableForFighting(wowUnit)
-                    && wowUnit.IsUntagged();
+                    && !IsBlacklistedForPulling(wowUnit)
+                    && !IsInCompetition(wowUnit, NonCompeteDistance);
         }
     }
 }

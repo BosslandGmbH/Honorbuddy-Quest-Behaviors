@@ -28,6 +28,11 @@ namespace Honorbuddy.QuestBehaviorCore
     // which will be disposed along with the behavior.
     public class LocalBlacklist
     {
+        public LocalBlacklist()
+            : this(TimeSpan.FromSeconds(30))
+        {
+        }
+
         public LocalBlacklist(TimeSpan maxSweepTime)
         {
             _sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };

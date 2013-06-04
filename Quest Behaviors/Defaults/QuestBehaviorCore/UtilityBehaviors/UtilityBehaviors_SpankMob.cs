@@ -15,11 +15,12 @@ using System.Linq;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -40,14 +41,50 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
+            var blacklistForPullTime = TimeSpan.FromSeconds(3 * 60);
+            var minTimeToEngagement = TimeSpan.FromSeconds(3);
+
             return new PrioritySelector(
                 new Action(context =>
                 {
-                    _ubpsSpankMob_Mob = selectedTargetDelegate(context);
+                    var selectedTarget = selectedTargetDelegate(context);
+                    var isMobChanged = (_ubpsSpankMob_Mob != selectedTarget);
+
+                    _ubpsSpankMob_Mob = selectedTarget;
+
+                    bool hasAggro = IsViable(_ubpsSpankMob_Mob) && _ubpsSpankMob_Mob.Aggro;
+                    if (hasAggro)
+                        { _ubpsSpankMob_EngagementTimer = null; }
+                    else if (IsViable(_ubpsSpankMob_Mob) && (isMobChanged || (_ubpsSpankMob_EngagementTimer == null)))
+                    {
+                        _ubpsSpankMob_EngagementTimer = new WaitTimer(CalculateMaxTimeToDestination(_ubpsSpankMob_Mob.Location, false)
+                                                                        + minTimeToEngagement);
+                        _ubpsSpankMob_EngagementTimer.Reset();
+                    }
+
                     return RunStatus.Failure;   // fall through     
                 }),
+
                 new Decorator(context => IsViableForFighting(_ubpsSpankMob_Mob),
                     new PrioritySelector(
+                        // If we are unable to engage an unaggro'd mob in a reasonable amount of time,
+                        // cancel attack, and blacklist mob...
+                        new Decorator(context => (_ubpsSpankMob_EngagementTimer != null)
+                                                && _ubpsSpankMob_EngagementTimer.IsFinished,
+                            new Action(context =>
+                            {
+                                if (!_ubpsSpankMob_Mob.Aggro)
+                                {
+                                    LogWarning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
+                                        _ubpsSpankMob_Mob.Name,
+                                        PrettyTime(_ubpsSpankMob_EngagementTimer.WaitTime),
+                                        PrettyTime(blacklistForPullTime));
+                                    BlacklistForPulling(_ubpsSpankMob_Mob, blacklistForPullTime);
+                                    _ubpsSpankMob_Mob = null;
+                                }
+                                _ubpsSpankMob_EngagementTimer = null;
+                            })), 
+                    
                         new Decorator(context => Me.CurrentTarget != _ubpsSpankMob_Mob,
                             new Action(context =>
                             {
@@ -71,18 +108,19 @@ namespace Honorbuddy.QuestBehaviorCore
                         // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
                         // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
                         // So, no need to duplicate that work here.
-                        new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
-                            RoutineManager.Current.HealBehavior),
-                        new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
-                            RoutineManager.Current.CombatBuffBehavior),
-                        RoutineManager.Current.CombatBehavior,
+                            new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
+                                RoutineManager.Current.HealBehavior),
+                            new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
+                                RoutineManager.Current.CombatBuffBehavior),
+                            RoutineManager.Current.CombatBehavior,
 
-                        // Keep fighting until mob is dead...
-                        new ActionAlwaysSucceed()
-                    ))
+                            // Keep fighting until mob is dead...
+                            new ActionAlwaysSucceed()
+                        ))
                 );
         }
         private WoWUnit _ubpsSpankMob_Mob;
+        private WaitTimer _ubpsSpankMob_EngagementTimer = new WaitTimer(TimeSpan.FromMilliseconds(7000));
 
         
         /// <summary>
@@ -99,7 +137,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     var wowUnit = obj as WoWUnit;
 
                     return
-                        IsViableForFighting(wowUnit)
+                        IsViableForPulling(wowUnit)
                         && (wowUnit.IsTargetingMeOrPet
                             || wowUnit.IsTargetingAnyMinion
                             || wowUnit.IsTargetingMyPartyMember)
@@ -114,15 +152,16 @@ namespace Honorbuddy.QuestBehaviorCore
             return new PrioritySelector(
                 // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
                 // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                new Decorator(context => !IsViableForFighting(_ubpsSpankMobTargetingUs_Mob),
+                new Decorator(context => !IsViableForPulling(_ubpsSpankMobTargetingUs_Mob),
                     new Action(context =>
                     {
                         using (StyxWoW.Memory.AcquireFrame())
                         {
                             _ubpsSpankMobTargetingUs_Mob =
-                                ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                .Where(u => isInterestingToUs(u))
-                                .OrderBy(u => u.DistanceSqr)
+                               (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                where isInterestingToUs(wowUnit)
+                                orderby wowUnit.SurfacePathDistance()
+                                select wowUnit)
                                 .FirstOrDefault();
                         }
 
@@ -130,14 +169,15 @@ namespace Honorbuddy.QuestBehaviorCore
                     })),
 
                 // Spank any mobs we find being naughty...
-                new CompositeThrottle(context => _ubpsSpankMobTargetingUs_Mob != null,
+                new CompositeThrottle(context => IsViable(_ubpsSpankMobTargetingUs_Mob),
                     TimeSpan.FromMilliseconds(3000),
                     new Action(context =>
                     {
                         TreeRoot.StatusText = string.Format("Spanking {0} that has targeted us.",
                             _ubpsSpankMobTargetingUs_Mob.Name);                                    
                     })),
-                UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobTargetingUs_Mob)
+                new Decorator(context => IsViable(_ubpsSpankMobTargetingUs_Mob),
+                    UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobTargetingUs_Mob))
             );
         }
         private WoWUnit _ubpsSpankMobTargetingUs_Mob;
@@ -158,7 +198,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     WoWUnit wowUnit = obj as WoWUnit;
 
                     return
-                        IsViableForFighting(wowUnit)
+                        IsViableForPulling(wowUnit)
                         && wowUnit.IsHostile
                         && wowUnit.IsUntagged()
                         // exclude opposing faction: both players and their pets show up as "PlayerControlled"
@@ -174,20 +214,21 @@ namespace Honorbuddy.QuestBehaviorCore
                 new PrioritySelector(
                     // If a mob is within aggro range of our destination, deal with it immediately...
                     // Otherwise, it will interrupt our attempt to interact or use items.
-                    new Decorator(context => !IsViableForFighting(_ubpsSpankMobWithinAggroRange_Mob),
+                    new Decorator(context => !IsViableForPulling(_ubpsSpankMobWithinAggroRange_Mob),
                         new Action(context =>
                         {
                             _ubpsSpankMobWithinAggroRange_Mob =
-                                ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                .Where(o => isInterestingToUs(o))
-                                .OrderBy(u => u.DistanceSqr)
+                               (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                                where isInterestingToUs(wowUnit)
+                                orderby wowUnit.SurfacePathDistance()
+                                select wowUnit)
                                 .FirstOrDefault();
 
                             return RunStatus.Failure;   // fall through
                         })),
 
                     // Spank any mobs we find being naughty...
-                    new CompositeThrottle(context => _ubpsSpankMobWithinAggroRange_Mob != null,
+                    new CompositeThrottle(context => IsViable(_ubpsSpankMobWithinAggroRange_Mob),
                         TimeSpan.FromMilliseconds(3000),
                         new Action(context =>
                         {
@@ -196,7 +237,8 @@ namespace Honorbuddy.QuestBehaviorCore
                                 _ubpsSpankMobWithinAggroRange_Mob.Entry,
                                 (_ubpsSpankMobWithinAggroRange_Mob.MyAggroRange + extraRangePaddingDelegate(context)));                                    
                         })),
-                    UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobWithinAggroRange_Mob)
+                    new Decorator(context => IsViable(_ubpsSpankMobWithinAggroRange_Mob),
+                        UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobWithinAggroRange_Mob))
             ));
         }
         private WoWUnit _ubpsSpankMobWithinAggroRange_Mob;

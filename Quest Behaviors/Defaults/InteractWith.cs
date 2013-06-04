@@ -674,21 +674,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             && ((ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll)
                                                 || (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsTargetingUs)),
                         new PrioritySelector(
-                            // IF we're being attacked, and one of the attackers can be interacted with, switch targets...
+                            // If we're being attacked, and one of the attackers can be interacted with, switch targets...
                             new Decorator(context => Me.Combat,
                                 new ActionFail(context =>
                                 {
                                     var newTarget =
                                        (from wowObject in FindInteractTargets(MobState)
-                                        let wowUnit = wowObject as WoWUnit
+                                        let wowUnit = wowObject.ToUnit()
                                         where
                                             (wowUnit != null)
-                                            && (wowUnit.IsTargetingMeOrPet
-                                                || wowUnit.IsTargetingAnyMinion
-                                                || wowUnit.IsTargetingMyPartyMember)
+                                            && wowUnit.Aggro
                                         orderby
-                                            wowObject.Distance
-                                        select wowObject)
+                                            wowUnit.SurfacePathDistance()
+                                        select wowUnit)
                                         .FirstOrDefault();
 
                                     if ((newTarget != null) && (SelectedInteractTarget != newTarget))
@@ -780,7 +778,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     context => HuntingGrounds,
                                     context => !WaitForNpcs,
                                     context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
-                                    context => Debug_BuildExclusions()))
+                                    context => TargetExclusionAnalysis.Analyze(Element,
+                                                    () => FindInterestingTargets(),
+                                                    TargetExclusionChecks)))
                         )),
 
                     #region Deal with mob we've selected for interaction...
@@ -1361,21 +1361,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             WoWPoint myLocation = Me.Location;
             const double minionWeighting = 1000;
 
-            Func<WoWObject, bool>   isInterestingToUs =
-                ((wowObject) =>
-                {
-                    WoWGameObject wowGameObject = wowObject.ToGameObject();
-                    WoWUnit wowUnit = wowObject.ToUnit();
-
-                    return (((wowGameObject != null) || (wowUnit != null)) && MobIds.Contains((int)wowObject.Entry))
-                            || ((wowUnit != null) && FactionIds.Contains((int)wowUnit.FactionId));
-                });
-
             var entities = 
-                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                from wowObject in FindInterestingTargets()
                 where
                     IsViable(wowObject)
-                    && isInterestingToUs(wowObject)
                     && (wowObject.DistanceSqr < collectionDistanceSqr)
                     && IsInteractNeeded(wowObject, mobState)
                     && ((MovementBy != MovementByType.NavigatorOnly) || Navigator.CanNavigateFully(myLocation, wowObject.Location))
@@ -1392,6 +1381,25 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 select wowObject;
 
             return entities;
+        }
+
+
+        private IEnumerable<WoWObject> FindInterestingTargets()
+        {
+            Func<WoWObject, bool> isInterestingToUs =
+                ((wowObject) =>
+                {
+                    WoWGameObject wowGameObject = wowObject.ToGameObject();
+                    WoWUnit wowUnit = wowObject.ToUnit();
+
+                    return (((wowGameObject != null) || (wowUnit != null)) && MobIds.Contains((int)wowObject.Entry))
+                            || ((wowUnit != null) && FactionIds.Contains((int)wowUnit.FactionId));
+                });
+
+            return
+                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                where isInterestingToUs(wowObject)
+                select wowObject;
         }
 
 
@@ -1502,103 +1510,33 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
             return score > 1;
         }
-        #endregion
 
 
-        #region Debug
-        private string Debug_BuildExclusions()
+        // 4JUn2013-08:11UTC chinajade
+        private List<string> TargetExclusionChecks(WoWObject wowObject)
         {
-            IEnumerable<WoWObject> interactCandidates =
-                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true)
-                where
-                    IsViable(wowObject)
-                    && MobIds.Contains((int)wowObject.Entry)
-                select wowObject;
+            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, NonCompeteDistance, IgnoreMobsInBlackspots);
 
-            var excludedUnitReasons = new StringBuilder();
-
-            foreach (var wowObject in interactCandidates)
-            {
-                excludedUnitReasons.Append("    ");
-                excludedUnitReasons.Append(Debug_TellWhyExcluded(wowObject));
-                excludedUnitReasons.AppendLine();
-            }
-
-            if (excludedUnitReasons.Length > 0)
-            {
-                excludedUnitReasons.Insert(0, string.Format("{0}Excluded Units:{0}",
-                    Environment.NewLine));
-                excludedUnitReasons.AppendFormat("{0}    {1}",
-                    Environment.NewLine,
-                    GetXmlFileReference(Element));
-            }
-
-            return excludedUnitReasons.ToString();
-        }
-
-
-        private string Debug_TellWhyExcluded(WoWObject wowObject)
-        {
-            var reasons = new List<string>();
-
-            if (!IsViable(wowObject))
-                { return "[NotViable]"; }
+            TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, AuraIdsOnMob, AuraIdsMissingFromMob);
+            TargetExclusionAnalysis.CheckMobState(exclusionReasons, wowObject, MobState, MobHpPercentLeft);
 
             if (wowObject.Distance > CollectionDistance)
-                { reasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
-
-            if ((MovementBy == MovementByType.NavigatorOnly) && !Navigator.CanNavigateFully(Me.Location, wowObject.Location))
-                { reasons.Add("NotMeshNavigable"); }
+                { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
 
             if (IsBlacklistedForInteraction(wowObject))
-                { reasons.Add("Blacklisted"); }
+                { exclusionReasons.Add("BlacklistedForInteract"); }
 
-            if (IgnoreMobsInBlackspots && Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
-                { reasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location)); }
-
-            if (IsInCompetition(wowObject, NonCompeteDistance))
-            {
-                reasons.Add(string.Format("InCompetition({0} players within {1:F1})",
-                    FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count(),
-                    NonCompeteDistance));
-            }
-
-            WoWUnit wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject.ToUnit();
             if (wowUnit != null)
             {
-                var wowUnitAuras = wowUnit.GetAllAuras().ToList();
-
                 if (NotMoving && wowUnit.IsMoving)
-                    { reasons.Add("Moving"); }
+                    { exclusionReasons.Add("Moving"); }
 
                 if ((InteractByGossipOptions.Length > 0) && !wowUnit.CanGossip)
-                    { reasons.Add("NoGossip"); }
-
-                if (!wowUnit.IsUntagged())
-                    { reasons.Add("Tagged"); }
-
-                if ((AuraIdsOnMob.Length > 0) && !wowUnitAuras.Any(a => AuraIdsOnMob.Contains(a.SpellId)))
-                {
-                    reasons.Add(string.Format("MissingRequiredAura({0})",
-                        string.Join(",", AuraIdsOnMob.Select(i => i.ToString()))));
-                }
-
-                if ((AuraIdsMissingFromMob.Length > 0) && wowUnitAuras.Any(a => AuraIdsMissingFromMob.Contains(a.SpellId)))
-                {
-                    reasons.Add(string.Format("HasUnwantedAura({0})",
-                        string.Join(",", wowUnitAuras.Where(a => AuraIdsMissingFromMob.Contains(a.SpellId)).Select(a => a.SpellId.ToString()))
-                        ));
-                }
-
-                if (!IsStateMatch_MobState(wowUnit, MobState, MobHpPercentLeft))
-                {
-                    reasons.Add(MobState == MobStateType.BelowHp
-                        ? string.Format("!{0}({1}%)", MobState, MobHpPercentLeft)
-                        : string.Format("!{0}", MobState));
-                }
+                    { exclusionReasons.Add("NoGossip"); }
             }
 
-            return string.Format("{0} [{1}]", wowObject.SafeName(), string.Join(",", reasons));
+            return exclusionReasons;
         }
         #endregion
     }

@@ -1,9 +1,8 @@
 ﻿TODO
 ====
-* UtilityBehaviorPS_MoveTo
-	+ If Navigator* in use, and flying--land immediately.
-* Queries.cs
-	+ IsUntagged() => IsSharedOrUntagged()
+* Need to refactor QBs for TargetAnalysis use
+* UtilityBehaviorPS_MoveTo: If Navigator* in use, and flying--land immediately.
+* Queries.cs: IsUntagged() => IsSharedOrUntagged()
 
 * AbandonQuest
 	+ Needs a feature to jettison all quests we've left behind.

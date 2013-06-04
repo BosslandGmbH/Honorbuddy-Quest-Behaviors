@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+using Styx;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -37,6 +38,18 @@ namespace Honorbuddy.QuestBehaviorCore
                 { name = string.Format("{0}.{1:X4}", obj.Name, (obj.Guid & GuidMask)); }
 
             return name;
+        }
+
+
+        public static double SurfacePathDistance(this WoWObject objectTo)
+        {
+            return StyxWoW.Me.SurfacePathDistance(objectTo);
+        }
+
+
+        public static double SurfacePathDistance(this WoWObject objectFrom, WoWObject objectTo)
+        {
+            return objectFrom.Location.SurfacePathDistance(objectTo.Location);
         }
     }
 }
