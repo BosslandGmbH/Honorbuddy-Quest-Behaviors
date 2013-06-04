@@ -480,7 +480,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                             context => HuntingGrounds,
                             context => false,
                             context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
-                            context => Debug_BuildExclusions()))
+                            context => TargetExclusionAnalysis.Analyze(Element,
+                                                    () => FindUnitsFromIds(MobIds),
+                                                    TargetExclusionChecks)))
                 ));
         }
 
@@ -675,84 +677,37 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 && wowUnit.Attackable
                 && (ItemUseAlwaysSucceeds || !wowUnit.HasAura(ItemAppliesAuraId));
         }
-        #endregion
 
 
-        #region Debug
-        private string Debug_BuildExclusions()
+        // 4JUn2013-08:11UTC chinajade
+        private List<string> TargetExclusionChecks(WoWObject wowObject)
         {
-            IEnumerable<WoWObject> interactCandidates =
-                from wowObject in FindUnitsFromIds(MobIds)
-                where
-                    IsViable(wowObject)
-                select wowObject;
+            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, NonCompeteDistance, IgnoreMobsInBlackspots);
 
-            var excludedUnitReasons = new StringBuilder();
-
-            foreach (var wowObject in interactCandidates)
-            {
-                excludedUnitReasons.Append("    ");
-                excludedUnitReasons.Append(Debug_TellWhyExcluded(wowObject));
-                excludedUnitReasons.AppendLine();
-            }
-
-            if (excludedUnitReasons.Length > 0)
-            {
-                excludedUnitReasons.Insert(0, string.Format("{0}Excluded Units:{0}",
-                    Environment.NewLine));
-                excludedUnitReasons.AppendFormat("{0}    {1}",
-                    Environment.NewLine,
-                    GetXmlFileReference(Element));
-            }
-
-            return excludedUnitReasons.ToString();
-        }
-
-
-        private string Debug_TellWhyExcluded(WoWObject wowObject)
-        {
-            var reasons = new List<string>();
-
-            if (!IsViable(wowObject))
-                { return "[NotViable]"; }
-
-            if ((MovementBy == MovementByType.NavigatorOnly) && !Navigator.CanNavigateFully(Me.Location, wowObject.Location))
-                { reasons.Add("NotMeshNavigable"); }
+            if (wowObject.Distance > CollectionDistance)
+                { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
 
             if (IsBlacklistedForInteraction(wowObject))
-                { reasons.Add("Blacklisted"); }
+                { exclusionReasons.Add("BlacklistedForInteract"); }
 
-            if (IgnoreMobsInBlackspots && Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
-                { reasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location)); }
-
-            if (IsInCompetition(wowObject, NonCompeteDistance))
-            {
-                reasons.Add(string.Format("InCompetition({0} players within {1:F1})",
-                    FindPlayersNearby(wowObject.Location, NonCompeteDistance).Count(),
-                    NonCompeteDistance));
-            }
-
-            WoWUnit wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject.ToUnit();
             if (wowUnit != null)
             {
-                var wowUnitAuras = wowUnit.GetAllAuras().ToList();
-                
                 if (!wowUnit.IsAlive)
-                {
-                    reasons.Add("!IsAlive");
-                }
-                
-                var itemAppliedAura = wowUnitAuras.FirstOrDefault(a => a.SpellId == ItemAppliesAuraId);
-                if ((ItemAppliesAuraId > 0) && (itemAppliedAura != null))
-                {
-                    reasons.Add(string.Format("HasItemAura({0},{1})", itemAppliedAura.Name, itemAppliedAura.SpellId));
-                }
+                    { exclusionReasons.Add("!IsAlive"); }
 
-                if (!wowUnit.IsUntagged())
-                    { reasons.Add("Tagged"); }
+                if (!wowUnit.Attackable)
+                    { exclusionReasons.Add("!Attackable"); } 
+                
+                var itemAppliedAura = wowUnit.GetAllAuras().FirstOrDefault(a => a.SpellId == ItemAppliesAuraId);
+                if ((ItemAppliesAuraId > 0) && (itemAppliedAura != null))
+                { 
+                    exclusionReasons.Add(string.Format("HasItemAura(\"{0}\",{1})",
+                        itemAppliedAura.Name, itemAppliedAura.SpellId));
+                }
             }
 
-            return string.Format("{0} [{1}]", wowObject.SafeName(), string.Join(",", reasons));
+            return exclusionReasons;
         }
         #endregion
     }
