@@ -984,11 +984,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                             UtilityBehaviorPS_MoveTo(
                                 context => SelectedInteractTarget.Location,
-                                context => string.Format("interact with {0} (id: {1}, dist: {2:F1}{3})",
+                                context => string.Format("interact with {0} (id: {1}, dist: {2:F1}{3}, TtB: {4})",
                                                         GetName(SelectedInteractTarget),
                                                         SelectedInteractTarget.Entry,
                                                         SelectedInteractTarget.Distance,
-                                                        IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS"))
+                                                        (IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS"),
+                                                        // Time-to-Blacklist
+                                                        PrettyTime(_timerToReachDestination.TimeLeft)))
                         )),
 
                     // If we expect to gossip, and mob in combat and offers no gossip, help mob...

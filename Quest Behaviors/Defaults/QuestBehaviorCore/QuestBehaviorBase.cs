@@ -72,10 +72,12 @@ namespace Honorbuddy.QuestBehaviorCore
     public abstract partial class QuestBehaviorBase : CustomForcedBehavior
     {
         #region Consructor and Argument Processing
-        protected QuestBehaviorBase(Dictionary<string, string> args)
+        protected QuestBehaviorBase(Dictionary<string, string> args,
+                                    bool isDoneChecksQuestProgress = true)
             : base(args)
         {
             BehaviorLoggingContext = this;
+            _isDoneChecksQuestProgress = isDoneChecksQuestProgress;
 
             try
             {
@@ -138,6 +140,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_Main;
         private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
+        private bool _isDoneChecksQuestProgress;
         protected bool _isDisposed { get; private set; }
         #endregion
 
@@ -235,7 +238,8 @@ namespace Honorbuddy.QuestBehaviorCore
             { 
                 return _isBehaviorDone     // normal completion
                         || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
+                        || (_isDoneChecksQuestProgress
+                            && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 

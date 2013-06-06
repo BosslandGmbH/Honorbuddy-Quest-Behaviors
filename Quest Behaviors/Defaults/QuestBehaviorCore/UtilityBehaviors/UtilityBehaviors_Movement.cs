@@ -119,8 +119,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                         || (MovementBy == MovementByType.NavigatorOnly)
                                         || (moveResult == MoveResult.Failed))
                                     {
-                                        if (!Me.IsSwimming)
-                                            { moveResult = Navigator.MoveTo(_ubpsMoveTo_Location); }
+                                        moveResult = Navigator.MoveTo(_ubpsMoveTo_Location);
                                     }
 
                                     // If Navigator couldn't move us, resort to click-to-move if allowed...
