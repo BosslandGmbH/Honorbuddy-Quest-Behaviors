@@ -24,6 +24,15 @@ namespace Honorbuddy.QuestBehaviorCore
         //----------
         // Commonly used 'Constants'
         //
+        public static TimeSpan Delay_AfterWeaponFire
+        {
+            get
+            {
+                return (_random.Next(1, 100) < 70)
+                        ? TimeSpan.FromMilliseconds(_random.Next(100, 350))
+                        : TimeSpan.FromMilliseconds(_random.Next(250, 1200));
+            }
+        }
         public static TimeSpan Delay_AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
         public static TimeSpan Delay_AfterInteraction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
         public static TimeSpan Delay_BeforeButtonClick { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }

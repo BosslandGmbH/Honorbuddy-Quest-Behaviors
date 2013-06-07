@@ -33,7 +33,7 @@ namespace Honorbuddy.QuestBehaviorCore
             _luaQuery_IsUsable = string.Format("return GetPetActionSlotUsable({0})", abilityIndex);
             _vehicleAbilityNameDefault = string.Format("VehicleAbility({0})", abilityIndex);
 
-            QuestBehaviorBase.LogWarning("NEW Weapon: {0}", Name);
+            QuestBehaviorBase.LogDeveloperInfo("NEW VehicleAbility{0}: {1}", AbilityIndex, Name);
         }
 
         public int AbilityIndex { get; private set; }

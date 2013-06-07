@@ -32,8 +32,8 @@
     <RootNamespace>QBs</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Honorbuddy">
-      <HintPath>..\Honorbuddy.exe</HintPath>
+    <Reference Include="Honorbuddy-clean">
+      <HintPath>..\Honorbuddy-clean.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -64,7 +64,6 @@
     <Compile Include="BarrelHook.cs" />
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
-    <Compile Include="Development\24910-Tanaris-RocketRescue2.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="Development\DataAccess.cs" />
     <Compile Include="Development\Extensions_WoWObject.cs" />
@@ -94,6 +93,9 @@
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\UtilityBehaviors_Interact.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\UtilityBehaviors_SpankMob.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\UtilityBehaviors_Movement.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\WeaponArticulation.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\VehicleAbility.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\VehicleWeapon.cs" />
     <Compile Include="QuestBehaviorCore\Utility\TargetAnalysis.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SwimBreathType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SpellType.cs" />
@@ -158,7 +160,7 @@
     <Compile Include="MyCTM.cs" />
     <Compile Include="NoCombatMoveTo.cs" />
     <Compile Include="SpecificQuests\28113-Felwood-BreaktheUnbreakable.cs" />
-    <Compile Include="Development\24910-Tanaris-RocketRescue.cs" />
+    <Compile Include="SpecificQuests\24910-Tanaris-RocketRescue.cs" />
     <Compile Include="TaxiRide.cs" />
     <Compile Include="ToggleCombat.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />

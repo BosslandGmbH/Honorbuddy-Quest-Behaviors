@@ -9,6 +9,8 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+using System;
+
 using Styx;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -18,24 +20,40 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public static class Extensions_WoWObject
     {
+        public static WoWPoint AnticipatedLocation(this WoWObject wowObject, TimeSpan atTime)
+        {
+            var wowUnit = wowObject.ToUnit();
+
+            if (wowUnit == null)
+                { return wowObject.Location; }
+
+            var anticipatedLocation =
+                wowUnit.Location.RayCast(
+                    wowUnit.RenderFacing, 
+                    (float)(wowUnit.MovementInfo.CurrentSpeed * atTime.TotalSeconds));
+
+            return (anticipatedLocation);
+        }
+
+
         // Mostly stolen from Singular
         // 12Apr2013-06:29UTC chinajade
-        public static string SafeName(this WoWObject obj)
+        public static string SafeName(this WoWObject wowObject)
         {
             const ulong GuidMask = 0x0ffff;
 
-            if (obj.IsMe)
+            if (wowObject.IsMe)
                 { return "Me"; }
 
             string name;
-            if (obj is WoWPlayer)
-                { name = ((WoWPlayer)obj).Class.ToString(); }
+            if (wowObject is WoWPlayer)
+                { name = ((WoWPlayer)wowObject).Class.ToString(); }
 
-            else if ((obj is WoWUnit) && obj.ToUnit().IsPet)
-                { name =  obj.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
+            else if ((wowObject is WoWUnit) && wowObject.ToUnit().IsPet)
+                { name =  wowObject.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
 
             else
-                { name = string.Format("{0}.{1:X4}", obj.Name, (obj.Guid & GuidMask)); }
+                { name = string.Format("{0}.{1:X4}", wowObject.Name, (wowObject.Guid & GuidMask)); }
 
             return name;
         }
