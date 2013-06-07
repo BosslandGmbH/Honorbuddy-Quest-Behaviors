@@ -30,7 +30,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 {
-    [CustomBehaviorFileName(@"24910-Tanaris-RocketRescue")]
+    [CustomBehaviorFileName(@"SpecificQuests\24910-Tanaris-RocketRescue")]
     public class RocketRescue_24910 : QuestBehaviorBase
     {
         #region Constructor and Argument Processing
