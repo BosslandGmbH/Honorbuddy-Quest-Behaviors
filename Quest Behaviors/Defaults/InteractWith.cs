@@ -1343,11 +1343,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 if (QuestFrame.Instance.IsVisible)
                     { QuestFrame.Instance.Close(); }
                 if (TaxiFrame.Instance.IsVisible)
-                {
-                    // HBCORE BUG: TaxiFrame does not have a close method
-                    // new Action(context => { TaxiFrame.Instance.Close(); }),
-                    LogError("Unable to close Taxi Frame");
-                }
+                    { TaxiFrame.Instance.Close(); }
                 if (TrainerFrame.Instance.IsVisible)
                     { TrainerFrame.Instance.Close(); }
             }
