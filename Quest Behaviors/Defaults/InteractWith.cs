@@ -232,6 +232,9 @@
 //      will automatically confirm the request to bind at the location.  After the binding is complete
 //      InteractWith displays a confirmation message of the new bind location.
 //
+// * If you specify MobState="Dead", but only alive mobs exist in the area, InteractWith
+//      will kill the alive mobs, and then try to interact with them once they are dead.
+//
 // * The behavior pro-actively clears mobs within aggro range of the selected interact target.
 //      This prevents the mobs from interfering with the interaction.  If IgnoreCombat="true",
 //      then this pro-active clearing is also turned off.
