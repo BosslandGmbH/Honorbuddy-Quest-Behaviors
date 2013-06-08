@@ -186,7 +186,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                             new Sequence(
                                 // Small variant delay to prevent looking like a bot...
                                 new WaitContinue(
-                                    QuestBehaviorBase.Delay_BeforeButtonClick,
+                                    Delay.BeforeButtonClick,
                                     context => false,
                                     new ActionAlwaysSucceed()),
                                 new Action(context => { Lua.DoString("RunMacroText('/click ExtraActionButton1')");  })

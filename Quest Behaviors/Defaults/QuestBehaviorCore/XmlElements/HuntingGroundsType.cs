@@ -56,9 +56,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             {
                 if (QuestBehaviorBase.IsExceptionReportingNeeded(except))
                 {
-                    QuestBehaviorBase.LogError("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE ({2}):\n{3}\n",
-                                               xElement.ToString(), except.Message, except.GetType().Name,
-                                               except.StackTrace);
+                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE ({2}):\n{3}\n",
+                        xElement.ToString(), except.Message, except.GetType().Name,
+                        except.StackTrace);
                 }
                 IsAttributeProblem = true;
             }
@@ -201,7 +201,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
                 if (!huntingGrounds.Waypoints.Any())
                 {
-                    QuestBehaviorBase.LogError("Neither the X/Y/Z attributes nor the <{0}> sub-element has been specified.", elementName);
+                    QBCLog.Error("Neither the X/Y/Z attributes nor the <{0}> sub-element has been specified.", elementName);
                     huntingGrounds.IsAttributeProblem = true;
                 }
             }

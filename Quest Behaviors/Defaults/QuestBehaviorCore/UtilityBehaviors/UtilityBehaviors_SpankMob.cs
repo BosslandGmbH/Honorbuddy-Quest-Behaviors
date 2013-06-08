@@ -39,7 +39,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>24Feb2013-08:11UTC chinajade</remarks>
         public Composite UtilityBehaviorPS_SpankMob(ProvideWoWUnitDelegate selectedTargetDelegate)
         {
-            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+            Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
             var blacklistForPullTime = TimeSpan.FromSeconds(3 * 60);
             var minTimeToEngagement = TimeSpan.FromSeconds(3);
@@ -75,7 +75,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             {
                                 if (!_ubpsSpankMob_Mob.Aggro)
                                 {
-                                    LogWarning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
+                                    QBCLog.Warning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
                                         _ubpsSpankMob_Mob.Name,
                                         PrettyTime(_ubpsSpankMob_EngagementTimer.WaitTime),
                                         PrettyTime(blacklistForPullTime));
@@ -188,7 +188,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                                     ProvideDoubleDelegate extraRangePaddingDelegate = null,
                                                                     Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
         {
-            ContractRequires(destinationDelegate != null, context => "destinationDelegate != null");
+            Contract.Requires(destinationDelegate != null, context => "destinationDelegate != null");
             extraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
             excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
 

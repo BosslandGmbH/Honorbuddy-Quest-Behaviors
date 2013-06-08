@@ -188,19 +188,19 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (except.GetType() != typeof(ThreadAbortException))
                 {
-                    var message = QuestBehaviorBase.BuildMessageWithContext(_questBehaviorBase.Element,
+                    var message = QBCLog.BuildMessageWithContext(_questBehaviorBase.Element,
                         "{0} EXCEPTION CONTEXT ({1}):",
-                        QuestBehaviorBase.GetVersionedBehaviorName(_questBehaviorBase),
+                        QBCLog.GetVersionedBehaviorName(_questBehaviorBase),
                         except.GetType().Name);
 
                     if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)
                     {
-                        QuestBehaviorBase.LogError(message);
+                        QBCLog.Error(message);
                         SystemSounds.Asterisk.Play();
                     }
                     else
                     {
-                        QuestBehaviorBase.LogDeveloperInfo(message);
+                        QBCLog.DeveloperInfo(message);
                     }
                 }
 
@@ -223,7 +223,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         protected override RunStatus Run(object context)
         {
-            QuestBehaviorBase.LogDeveloperInfo(_data.ToString());
+            QBCLog.DeveloperInfo(_data.ToString());
             return RunStatus.Failure;
         }
     }

@@ -38,9 +38,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             {
                 if (QuestBehaviorBase.IsExceptionReportingNeeded(except))
                 {
-                    QuestBehaviorBase.LogError("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE ({2}):\n{3}\n",
-                                               xElement.ToString(), except.Message, except.GetType().Name,
-                                               except.StackTrace);
+                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE ({2}):\n{3}\n",
+                        xElement.ToString(), except.Message, except.GetType().Name,
+                        except.StackTrace);
                 }
                 IsAttributeProblem = true;
             }

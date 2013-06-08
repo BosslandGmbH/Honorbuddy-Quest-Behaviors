@@ -40,7 +40,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             if (!File.Exists(auraDataFileName))
             {
-                LogWarning("Unable to locate Occupied Vehicle Aura database (in {0}).  Vehicles will be unqualified"
+                QBCLog.Warning("Unable to locate Occupied Vehicle Aura database (in {0}).  Vehicles will be unqualified"
                     + "--this may cause us to follow vehicles occupied by other players.",
                     auraDataFileName);
                 return occupiedVehicleAuraIds;
@@ -67,7 +67,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             if (!File.Exists(swimBreathFileName))
             {
-                LogWarning("Unable to locate Swim Breath database (in {0}).  Will only be able to catch breath"
+                QBCLog.Warning("Unable to locate Swim Breath database (in {0}).  Will only be able to catch breath"
                             + " at water's surface.",
                     swimBreathFileName);
                 return null;

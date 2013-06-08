@@ -31,8 +31,8 @@ namespace Honorbuddy.QuestBehaviorCore
             Func<IEnumerable<WoWObject>> candidateTargets,
             Func<WoWObject, List<string>> targetExclusionChecksProvider)
         {
-            QuestBehaviorBase.ContractRequires(candidateTargets != null, context => "candidateTargets != null");
-            QuestBehaviorBase.ContractRequires(targetExclusionChecksProvider != null, context => "funcTargetExclusionCheck != null");
+            Contract.Requires(candidateTargets != null, context => "candidateTargets != null");
+            Contract.Requires(targetExclusionChecksProvider != null, context => "funcTargetExclusionCheck != null");
 
             var excludedUnitReasons = new StringBuilder();
 
@@ -54,7 +54,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 excludedUnitReasons.Insert(0, string.Format("{0}Excluded Units:{0}", Environment.NewLine));
                 excludedUnitReasons.AppendFormat("{0}    {1}",
                     Environment.NewLine,
-                    QuestBehaviorBase.GetXmlFileReference(xElement));
+                    QBCLog.GetXmlFileReference(xElement));
             }
 
             return excludedUnitReasons.ToString();
@@ -68,7 +68,7 @@ namespace Honorbuddy.QuestBehaviorCore
             IEnumerable<int> auraIdsRequired,
             IEnumerable<int> auraIdsUnwanted)
         {
-            QuestBehaviorBase.ContractRequires(exclusionReasons != null, context => "reasons != null");
+            Contract.Requires(exclusionReasons != null, context => "reasons != null");
 
             if (QuestBehaviorBase.IsViable(wowObject))
             {
@@ -149,7 +149,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public static void CheckMobState(
             List<string> exclusionReasons,
             WoWObject wowObject,
-            QuestBehaviorBase.MobStateType mobState,
+            MobStateType mobState,
             double mobLowHealthThreshold)
         {
             var wowUnit = wowObject.ToUnit();
@@ -158,7 +158,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (!QuestBehaviorBase.IsStateMatch_MobState(wowUnit, mobState, mobLowHealthThreshold))
                 {
-                    exclusionReasons.Add(mobState == QuestBehaviorBase.MobStateType.BelowHp
+                    exclusionReasons.Add(mobState == MobStateType.BelowHp
                         ? string.Format("!{0}({1}%)", mobState, mobLowHealthThreshold)
                         : string.Format("!{0}", mobState));
                 }

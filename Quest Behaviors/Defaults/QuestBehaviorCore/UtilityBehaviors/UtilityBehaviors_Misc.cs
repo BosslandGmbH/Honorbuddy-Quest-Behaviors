@@ -34,7 +34,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public Composite UtilityBehaviorPS_WaitForInventoryItem(ProvideIntDelegate itemIdDelegate,
                                                                 ProvideIntDelegate maxWaitTimeInMillisecondsDelegate = null)
         {
-            ContractRequires(itemIdDelegate != null, context => "itemIdDelegate != null");
+            Contract.Requires(itemIdDelegate != null, context => "itemIdDelegate != null");
             maxWaitTimeInMillisecondsDelegate = maxWaitTimeInMillisecondsDelegate ?? (context => 5000);
 
             // NB: Two particular scenarios that this behavior must always perform correctly in...
@@ -66,7 +66,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     // If timer completes, time to call it quits...
                     if (_ubpsWaitForInventoryItem_WaitTimer.IsFinished)
                     {
-                        LogProfileError(BuildMessageWithContext(Element,
+                        QBCLog.ProfileError(QBCLog.BuildMessageWithContext(Element,
                             "Unable to locate {0} in our bags--terminating behavior.",
                             GetItemNameFromId(itemIdDelegate(context))));
                         BehaviorDone();                                      

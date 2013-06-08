@@ -31,7 +31,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 29Apr2013-05:20UTC chinajade
         public Composite UtilityBehaviorPS_FaceMob(ProvideWoWObjectDelegate wowObjectDelegate)
         {
-            ContractRequires(wowObjectDelegate != null, context => "wowObjectDelegate != null");
+            Contract.Requires(wowObjectDelegate != null, context => "wowObjectDelegate != null");
 
             return new Decorator(context => !MovementObserver.IsSafelyFacing(wowObjectDelegate(context)),
                 new Action(context => { Me.SetFacing(wowObjectDelegate(context).Location); }));
@@ -43,7 +43,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return new Decorator(context => MovementObserver.IsMoving,
                 new Sequence(
                     new Action(context => { Navigator.PlayerMover.MoveStop(); }),
-                    new Wait(Delay_LagDuration, context => MovementObserver.IsMoving, new ActionAlwaysSucceed())
+                    new Wait(Delay.LagDuration, context => MovementObserver.IsMoving, new ActionAlwaysSucceed())
                 ));
         }
 
@@ -51,7 +51,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 22Apr2013-12:45UTC chinajade
         public Composite UtilityBehaviorPS_MoveTo(ProvideHuntingGroundsDelegate huntingGroundsProvider)
         {
-            ContractRequires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
+            Contract.Requires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
 
             return new PrioritySelector(
                 UtilityBehaviorPS_MoveTo(
@@ -69,8 +69,8 @@ namespace Honorbuddy.QuestBehaviorCore
                                                     CanRunDecoratorDelegate suppressMountUse = null,
                                                     ProvideWoWPointDelegate locationObserver = null)
         {
-            ContractRequires(destinationDelegate != null, context => "destinationDelegate may not be null");
-            ContractRequires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
+            Contract.Requires(destinationDelegate != null, context => "destinationDelegate may not be null");
+            Contract.Requires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
             precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
             locationObserver = locationObserver ?? (context => MovementObserver.Location);
 
@@ -87,7 +87,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         new Sequence(
                             new CompositeThrottleContinue(TimeSpan.FromMilliseconds(1000),
                                 new Action(context => { TreeRoot.StatusText = "Moving to " + (destinationNameDelegate(context) ?? _ubpsMoveTo_Location.ToString()); })),
-                            new CompositeThrottleContinue(Throttle_WoWClientMovement,
+                            new CompositeThrottleContinue(Throttle.WoWClientMovement,
                                 new Action(context =>
                                 {
                                     var moveResult = MoveResult.Failed;
@@ -129,7 +129,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                     {
                                         if (MovementBy == MovementByType.NavigatorOnly)
                                         {
-                                            LogWarning("Failed to mesh move--is area unmeshed? Or, are we flying or swimming?");
+                                            QBCLog.Warning("Failed to mesh move--is area unmeshed? Or, are we flying or swimming?");
                                             return RunStatus.Failure;
                                         }
 
@@ -150,7 +150,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                                     Func<object, IEnumerable<string>> huntedMobNamesProvider = null,
                                                                     ProvideStringDelegate huntedMobExclusions = null)
         {
-            ContractRequires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
+            Contract.Requires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
             terminateBehaviorIfNoTargetsProvider = terminateBehaviorIfNoTargetsProvider ?? (context => false);
             huntedMobNamesProvider = huntedMobNamesProvider ?? (context => Enumerable.Empty<string>());
             huntedMobExclusions = huntedMobExclusions ?? (context => string.Empty);
@@ -172,7 +172,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             if (!string.IsNullOrEmpty(excludedUnitReasons))
                             {
                                 message += excludedUnitReasons;
-                                LogDeveloperInfo("{0}", message);                                            
+                                QBCLog.DeveloperInfo("{0}", message);                                            
                             }
                             BehaviorDone();
                         })),
@@ -196,7 +196,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             if (!string.IsNullOrEmpty((excludedUnitReasons)))
                             {
                                 message += excludedUnitReasons;
-                                LogDeveloperInfo("{0}", message);
+                                QBCLog.DeveloperInfo("{0}", message);
                             }
                         }))
                 );

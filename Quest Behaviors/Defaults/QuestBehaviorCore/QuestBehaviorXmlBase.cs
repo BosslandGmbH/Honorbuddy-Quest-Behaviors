@@ -206,7 +206,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 string  constraintViolationMessage  = constraints.Check(keyName, tmpResult);
                 if (constraintViolationMessage != null)
                 {
-                    QuestBehaviorBase.LogError(constraintViolationMessage);
+                    QBCLog.Error(constraintViolationMessage);
                     isError = true;
                     continue;
                 }
@@ -268,7 +268,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             if (resultList.Count < countRequired)
             {
-                QuestBehaviorBase.LogError(QuestBehaviorBase.BuildMessageWithContext(Element,
+                QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
                     "The attribute '{1}N' must be provided at least {2} times (saw it '{3}' times).{0}"
                     + "(E.g., ButtonText1, ButtonText2, ButtonText3, ...){0}"
                     + "Please modify to supply {2} attributes with a base name of '{1}'.",
@@ -350,7 +350,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             string  constraintViolationMessage  = constraints.Check(keyName, tmpResult);
             if (constraintViolationMessage != null)
             {
-                QuestBehaviorBase.LogError(constraintViolationMessage);
+                QBCLog.Error(constraintViolationMessage);
                 IsAttributeProblem = true;
                 return (null);
             }
@@ -381,7 +381,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
                 if (coordinatesAsString.Length != 3)
                 {
-                    QuestBehaviorBase.LogError(QuestBehaviorBase.BuildMessageWithContext(Element,
+                    QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
                         "The '{1}' attribute's value contribution (saw '{2}')"
                         + " doesn't have three coordinates (counted {3}).{0}"
                         + "Expect entries of the form \"x1,y1,z1 | x2,y2,z2 | x3,...\", or \"x1,y1,z1; x2,y2,z2; x3,...\"",
@@ -537,7 +537,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 {
                     attributeValueAsString = (tmpInt != 0) ? "true" : "false";
 
-                    QuestBehaviorBase.LogWarning(QuestBehaviorBase.BuildMessageWithContext(Element,
+                    QBCLog.Warning(QBCLog.BuildMessageWithContext(Element,
                         "Attribute's '{1}' value was provided as an integer (saw '{2}')--a boolean was expected.{0}"
                         + "The integral value '{2}' was converted to Boolean({3}).{0}"
                         + "Please update to provide '{3}' for this value.",
@@ -568,7 +568,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     int tmpInt;
                     if (int.TryParse(attributeValueAsString, out tmpInt))
                     {
-                        QuestBehaviorBase.LogWarning(QuestBehaviorBase.BuildMessageWithContext(Element,
+                        QBCLog.Warning(QBCLog.BuildMessageWithContext(Element,
                             "The '{1}' attribute's value '{2}' has been implicitly converted"
                             + " to the corresponding enumeration '{3}'.{0}"
                             + "Please use the enumeration name '{3}' instead of a number.",
@@ -580,7 +580,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 }
                 catch (Exception)
                 {
-                    QuestBehaviorBase.LogError(QuestBehaviorBase.BuildMessageWithContext(Element,
+                    QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
                         "The value '{1}' is not a member of the {2} enumeration."
                         + "  Allowed values: {3}",
                         Environment.NewLine,
@@ -599,7 +599,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 { return ((T)Convert.ChangeType(attributeValueAsString, concreteType)); }
             catch (Exception except)
             {
-                QuestBehaviorBase.LogError(QuestBehaviorBase.BuildMessageWithContext(Element,
+                QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
                     "The '{1}' attribute's value (saw '{2}') is malformed. ({3})",
                     Environment.NewLine,
                     attributeName,
@@ -661,7 +661,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 keyNames.AddRange(aliasNames);
                 keyNames.Sort();
 
-                QuestBehaviorBase.LogError(QuestBehaviorBase.BuildMessageWithContext(Element,
+                QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
                     "The attributes [{1}] are aliases for each other, and thus mutually exclusive.{0}"
                     + "Please specify the attribute by its preferred name '{2}'.",
                     Environment.NewLine,
@@ -684,7 +684,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
                 if (!string.IsNullOrEmpty(keyName))
                 {
-                    QuestBehaviorBase.LogWarning(QuestBehaviorBase.BuildMessageWithContext(Element,
+                    QBCLog.Warning(QBCLog.BuildMessageWithContext(Element,
                         "Found attribute via its alias name '{1}'.{0}"
                         + "Please update to use its primary name '{2}', instead.",
                         Environment.NewLine,
@@ -698,7 +698,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             // Attribute is required, but cannot be located...
             if (isAttributeRequired)
             {
-                QuestBehaviorBase.LogError(QuestBehaviorBase.BuildMessageWithContext(Element,
+                QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
                     "Attribute '{1}' is required, but was not provided.",
                     Environment.NewLine,
                     primaryName));
@@ -734,7 +734,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             foreach (string attributeName in unrecognizedAttributes)
             {
-                QuestBehaviorBase.LogWarning(QuestBehaviorBase.BuildMessageWithContext(Element,
+                QBCLog.Warning(QBCLog.BuildMessageWithContext(Element,
                     "Attribute '{1}' is not a recognized attribute--ignoring it.",
                     Environment.NewLine,
                     attributeName));

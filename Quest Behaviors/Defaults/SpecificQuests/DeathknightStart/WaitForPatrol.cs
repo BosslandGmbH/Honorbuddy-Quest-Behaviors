@@ -191,9 +191,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
-                        + "\nFROM HERE:\n"
-                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                                + "\nFROM HERE:\n"
+                                + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -242,7 +242,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             {
                 // For DEBUGGING...
                 if (_state_MainBehavior != value)
-                    { LogDeveloperInfo("State_MainBehavior: {0}", value); }
+                    { QBCLog.DeveloperInfo("State_MainBehavior: {0}", value); }
 
                 _state_MainBehavior = value;
             }
@@ -320,7 +320,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         new Action(context =>   // default case
                         {
                             var message = string.Format("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
-                            LogMaintenanceError(message);
+                            QBCLog.MaintenanceError(message);
                             TreeRoot.Stop();
                             BehaviorDone(message);
                         }),
@@ -464,7 +464,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     new Action(context =>   // default case
                     {
                         var message = string.Format("FollowPathStrategyType({0}) is unhandled", FollowPath.Strategy);
-                        LogMaintenanceError(message);
+                        QBCLog.MaintenanceError(message);
                         TreeRoot.Stop();
                         BehaviorDone(message);
                     }),
@@ -516,7 +516,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     new Action(context =>
                     {
                         Path_Egress = FollowPath.FindPath_Egress(Mob_ToAvoid);
-                        LogInfo("Retreating back to safespot due to {0}.",
+                        QBCLog.Info("Retreating back to safespot due to {0}.",
                             Me.Combat
                             ? "combat"
                             : string.Format("{0} too close (dist: {1:F1})", Mob_ToAvoid.Name, Mob_ToAvoid.Distance));
@@ -580,7 +580,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     })),
 
                 // Tell user what we're up to...
-                new CompositeThrottle(Throttle_UserUpdate,
+                new CompositeThrottle(Throttle.UserUpdate,
                     new Action(context =>
                     {
                         TreeRoot.StatusText =

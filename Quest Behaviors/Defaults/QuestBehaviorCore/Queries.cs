@@ -65,7 +65,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-08:11UTC chinajade
         public static IEnumerable<WoWObject> FindObjectsFromIds(IEnumerable<int> objectIds, ProvideBoolDelegate extraQualifiers = null)
         {
-            ContractRequires(objectIds != null, context => "objectIds argument may not be null");
+            Contract.Requires(objectIds != null, context => "objectIds argument may not be null");
             extraQualifiers = extraQualifiers ?? (wowObjectContext => true);
 
             return
@@ -97,7 +97,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-08:11UTC chinajade
         public static IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds, ProvideBoolDelegate extraQualifiers = null)
         {
-            ContractRequires(unitIds != null, context => "unitIds argument may not be null");
+            Contract.Requires(unitIds != null, context => "unitIds argument may not be null");
             extraQualifiers = extraQualifiers ?? (wowUnitContext => true);
 
             return
@@ -230,8 +230,8 @@ namespace Honorbuddy.QuestBehaviorCore
         // 30May2013-08:11UTC chinajade
         public static bool IsStateMatch_AurasWanted(WoWObject wowObject, IEnumerable<int> auraIdsWanted)
         {
-            ContractRequires(wowObject != null, context => "wowObject != null");
-            ContractRequires(auraIdsWanted != null, context => "auraIdsWanted != null");
+            Contract.Requires(wowObject != null, context => "wowObject != null");
+            Contract.Requires(auraIdsWanted != null, context => "auraIdsWanted != null");
 
             var wowUnit = wowObject as WoWUnit;
 
@@ -245,8 +245,8 @@ namespace Honorbuddy.QuestBehaviorCore
         // 30May2013-08:11UTC chinajade
         public static bool IsStateMatch_AurasMissing(WoWObject wowObject, IEnumerable<int> auraIdsMissing)
         {
-            ContractRequires(wowObject != null, context => "wowObject != null");
-            ContractRequires(auraIdsMissing != null, context => "auraIdsMissing != null");
+            Contract.Requires(wowObject != null, context => "wowObject != null");
+            Contract.Requires(auraIdsMissing != null, context => "auraIdsMissing != null");
 
             var wowUnit = wowObject as WoWUnit;
 
@@ -260,7 +260,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 30May2013-08:11UTC chinajade
         public static bool IsStateMatch_MeshNavigable(WoWObject wowObject, MovementByType movementBy)
         {
-            ContractRequires(wowObject != null, context => "wowObject != null");
+            Contract.Requires(wowObject != null, context => "wowObject != null");
 
             return
                 (movementBy != MovementByType.NavigatorOnly)

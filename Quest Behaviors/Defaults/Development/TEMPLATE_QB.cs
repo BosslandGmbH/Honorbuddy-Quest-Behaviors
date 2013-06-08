@@ -78,7 +78,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
                 // resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
                 IsAttributeProblem = true;

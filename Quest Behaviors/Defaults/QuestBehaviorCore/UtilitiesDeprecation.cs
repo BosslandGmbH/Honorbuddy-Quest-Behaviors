@@ -29,14 +29,14 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (QuestBehaviorCoreSettings.Instance.LogNotifyOn_OnDeprecatedBehaviorUse)
             {
-                var oldLoggingContext = BehaviorLoggingContext;
+                var oldLoggingContext = QBCLog.BehaviorLoggingContext;
 
-                BehaviorLoggingContext = cfb;
+                QBCLog.BehaviorLoggingContext = cfb;
 
                 string attributes =
                     string.Join(" ", replacementAttributes.Select(kvp => string.Format("{0}=\"{1}\"", kvp.Key, kvp.Value)));
 
-                LogWarning(BuildMessageWithContext(cfb.Element,
+                QBCLog.Warning(QBCLog.BuildMessageWithContext(cfb.Element,
                     "{0}/********************{0}DEPRECATED BEHAVIOR ({1}){0}"
                     + "The {1} behavior has been deprecated, but will continue to function as originally designed."
                     + "  Please replace the use of the {1} behavior with the {2} behavior.{0}"
@@ -50,7 +50,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     + Environment.NewLine);
 
                 AudibleNotifyOn(QuestBehaviorCoreSettings.Instance.AudibleNotify_OnDeprecatedBehaviorUse);
-                BehaviorLoggingContext = oldLoggingContext;
+                QBCLog.BehaviorLoggingContext = oldLoggingContext;
             }
         }
 
@@ -63,7 +63,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (deprecatedAttributeEncounteredPredicate)
                 {
-                    LogWarning(BuildMessageWithContext(xElement,
+                    QBCLog.Warning(QBCLog.BuildMessageWithContext(xElement,
                         "DEPRECATED ATTRIBUTE ({1}):{0}{2}{0}",
                         Environment.NewLine,
                         attributeName,
@@ -80,7 +80,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (incoherencyPredicate)
             {
-                LogError(BuildMessageWithContext(xElement,
+                QBCLog.Error(QBCLog.BuildMessageWithContext(xElement,
                     "PROFILE ERROR: {1}{0}",
                     Environment.NewLine,
                     messageDelegate(null)));
@@ -96,10 +96,10 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (QuestBehaviorCoreSettings.Instance.LogNotifyOn_OnScheduledForDeprecation)
             {
-                var oldLoggingContext = BehaviorLoggingContext;
+                var oldLoggingContext = QBCLog.BehaviorLoggingContext;
 
-                BehaviorLoggingContext = cfb;
-                LogWarning(BuildMessageWithContext(cfb.Element,
+                QBCLog.BehaviorLoggingContext = cfb;
+                QBCLog.Warning(QBCLog.BuildMessageWithContext(cfb.Element,
                     "SCHEDULED FOR DEPRECATION ({1}){0}"
                     + "Please replace the behavior with \"{2}\"",
                     Environment.NewLine,    
@@ -107,7 +107,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     replacementBehaviorName));
 
                 AudibleNotifyOn(true);
-                BehaviorLoggingContext = oldLoggingContext;
+                QBCLog.BehaviorLoggingContext = oldLoggingContext;
             }
         }
 

@@ -44,28 +44,28 @@ namespace Honorbuddy.QuestBehaviorCore
         public Composite UtilityBehaviorSeq_UseItemOn(ProvideWoWItemDelegate wowItemDelegate,
                                                      ProvideWoWObjectDelegate selectedTargetDelegate)
         {
-            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
-            ContractRequires(wowItemDelegate != null, context => "wowItemDelegate != null");
+            Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+            Contract.Requires(wowItemDelegate != null, context => "wowItemDelegate != null");
 
             return new Sequence(
                 new DecoratorContinue(context => !IsViable(_ubseqUseItemOn_SelectedTarget = selectedTargetDelegate(context)),
                     new Action(context =>
                     {
-                        LogWarning("Target is not viable!");
+                        QBCLog.Warning("Target is not viable!");
                         return RunStatus.Failure;                        
                     })),
 
                 new DecoratorContinue(context => !IsViable(_ubseqUseItemOn_ItemToUse = wowItemDelegate(context)),
                     new Action(context =>
                     {
-                        LogWarning("We do not possess the item to use on {0}!", _ubseqUseItemOn_SelectedTarget.Name);
+                        QBCLog.Warning("We do not possess the item to use on {0}!", _ubseqUseItemOn_SelectedTarget.Name);
                         return RunStatus.Failure;
                     })),
 
                 new DecoratorContinue(context => !_ubseqUseItemOn_ItemToUse.Usable,
                     new Action(context =>
                     {
-                        LogWarning("{0} is not usable (yet).", _ubseqUseItemOn_ItemToUse.Name);
+                        QBCLog.Warning("{0} is not usable (yet).", _ubseqUseItemOn_ItemToUse.Name);
                         return RunStatus.Failure;
                     })),
 
@@ -87,19 +87,19 @@ namespace Honorbuddy.QuestBehaviorCore
                     if (selectedTargetAsWoWUnit != null)
                         { message += string.Format(" (health: {0:F1})", selectedTargetAsWoWUnit.HealthPercent); }
 
-                    LogInfo(message);
+                    QBCLog.Info(message);
 
                     // Do it...
                     _ubseqUseItemOn_IsUseItemInterrupted = false;    
                     _ubseqUseItemOn_ItemToUse.Use(_ubseqUseItemOn_SelectedTarget.Guid);
                 }),
-                new WaitContinue(Delay_AfterItemUse, context => false, new ActionAlwaysSucceed()),
+                new WaitContinue(Delay.AfterItemUse, context => false, new ActionAlwaysSucceed()),
 
                 // If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
                 new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
                     new Sequence(
                         new Action(context => { SpellManager.ClickRemoteLocation(_ubseqUseItemOn_SelectedTarget.Location); }),
-                        new WaitContinue(Delay_AfterItemUse,
+                        new WaitContinue(Delay.AfterItemUse,
                             context => StyxWoW.Me.CurrentPendingCursorSpell == null,
                             new ActionAlwaysSucceed()),
                         // If we've leftover spell cursor dangling, clear it...
@@ -119,7 +119,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 new Action(context => { UtilityBehaviorSeq_UseItemOn_HandlersUnhook(); }),
                 new DecoratorContinue(context => _ubseqUseItemOn_IsUseItemInterrupted,
                     new Sequence(
-                        new Action(context => { LogDeveloperInfo("Use of {0} interrupted.", _ubseqUseItemOn_ItemToUse.Name); }),
+                        new Action(context => { QBCLog.DeveloperInfo("Use of {0} interrupted.", _ubseqUseItemOn_ItemToUse.Name); }),
                         // Give whatever issue encountered a chance to settle...
                         // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                         new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
@@ -134,7 +134,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (args.Args[0].ToString() == "player")
             {
-                LogDeveloperInfo("Interrupted via {0} Event.", args.EventName);
+                QBCLog.DeveloperInfo("Interrupted via {0} Event.", args.EventName);
                 _ubseqUseItemOn_IsUseItemInterrupted = true;
             }
         }

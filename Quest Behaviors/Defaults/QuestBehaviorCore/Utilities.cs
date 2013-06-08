@@ -12,12 +12,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text.RegularExpressions;
 using System.Xml;
 using System.Xml.Linq;
 
 using Styx;
-using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -185,49 +183,6 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        // 25Apr2013-11:42UTC chinajade
-        public static string GetVersionedBehaviorName(CustomForcedBehavior cfb)
-        {
-            if (_versionedBehaviorLastCfb == cfb)
-                { return _versionedBehaviorName; }
-
-            Func<string, string>    utilStripSubversionDecorations =
-                (subversionRevision) =>
-                {
-                    var regexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
-
-                    return regexSvnDecoration.Replace(subversionRevision, "$1").Trim();
-                };
-
-            var behaviorName = (cfb != null) ? cfb.GetType().Name : "UnknownBehavior";
-            var versionNumber = (cfb != null) ? utilStripSubversionDecorations(cfb.SubversionRevision) : "0";
-
-            _versionedBehaviorLastCfb = cfb;
-            _versionedBehaviorName = string.Format("{0}-v{1}", behaviorName, versionNumber);
-
-            return _versionedBehaviorName;
-        }       
-        private static string _versionedBehaviorName;
-        private static CustomForcedBehavior _versionedBehaviorLastCfb;        
-        
-
-        //  1May2013-07:49UTC chinajade
-        public static string GetXmlFileReference(XElement xElement)
-        {
-            string fileLocation =
-                ((xElement == null) || string.IsNullOrEmpty(xElement.BaseUri))
-                    ? QuestBehaviorBase.GetProfileName()
-                    : xElement.BaseUri;
-
-            var lineLocation =
-                ((xElement != null) && ((IXmlLineInfo)xElement).HasLineInfo())
-                ? ("@line " + ((IXmlLineInfo)xElement).LineNumber.ToString())
-                : "@unknown line";
-
-            return string.Format("[Ref: \"{0}\" {1}]", fileLocation, lineLocation);
-        }
-
-
         /// <summary>
         /// <para>The Movement observer is a vehicle, if we are in a vehicle.  Or "Me", if we are not.
         /// The observer should be used to make all movement and distance decisions.</para>
@@ -298,7 +253,7 @@ namespace Honorbuddy.QuestBehaviorCore
             TreeRoot.GoalText = string.Format(
                 "{1}: \"{2}\"{0}{3}{0}{0}{4}",
                 Environment.NewLine,
-                GetVersionedBehaviorName(this),
+                QBCLog.GetVersionedBehaviorName(this),
                 ((quest != null)
                     ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
                     : "In Progress (no associated quest)"),

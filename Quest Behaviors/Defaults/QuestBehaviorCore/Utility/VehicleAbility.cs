@@ -24,8 +24,8 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         public VehicleAbility(int abilityIndex /*[1..12]*/)
         {
-            QuestBehaviorBase.ContractRequires((1 <= abilityIndex) && (abilityIndex <= 12),
-                                                context => "1 <= abilityIndex) && (abilityIndex <= 12)");
+            Contract.Requires((1 <= abilityIndex) && (abilityIndex <= 12),
+                                context => "1 <= abilityIndex) && (abilityIndex <= 12)");
 
             AbilityIndex = abilityIndex;
             _luaCommand_UseAbility = string.Format("CastPetAction({0})", abilityIndex);
@@ -33,7 +33,7 @@ namespace Honorbuddy.QuestBehaviorCore
             _luaQuery_IsUsable = string.Format("return GetPetActionSlotUsable({0})", abilityIndex);
             _vehicleAbilityNameDefault = string.Format("VehicleAbility({0})", abilityIndex);
 
-            QuestBehaviorBase.LogDeveloperInfo("NEW VehicleAbility{0}: {1}", AbilityIndex, Name);
+            QBCLog.DeveloperInfo("NEW VehicleAbility{0}: {1}", AbilityIndex, Name);
         }
 
         public int AbilityIndex { get; private set; }
@@ -140,7 +140,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (!Me.InVehicle)
             {
-                QuestBehaviorBase.LogWarning("Attempted to use {0} while not in Vehicle!", Name);
+                QBCLog.Warning("Attempted to use {0} while not in Vehicle!", Name);
                 return false;
             }
 

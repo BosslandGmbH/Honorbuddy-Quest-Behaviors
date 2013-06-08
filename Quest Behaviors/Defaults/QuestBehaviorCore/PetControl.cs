@@ -40,7 +40,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-07:42UTC chinajade
         public static bool CanCastPetAction(string petActionName)
         {
-            ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
+            Contract.Requires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
@@ -75,17 +75,17 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-07:42UTC chinajade
         public static void CastPetAction(string petActionName)
         {
-            ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
+            Contract.Requires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
             {
-                LogMaintenanceError("or [USER ERROR]: PetAction('{0}') is either not known, or not hot-barred.",
+                QBCLog.MaintenanceError("or [USER ERROR]: PetAction('{0}') is either not known, or not hot-barred.",
                     petActionName);
                 return;
             }
 
-            LogDeveloperInfo("Instructing pet to \"{0}\"", petActionName);
+            QBCLog.DeveloperInfo("Instructing pet to \"{0}\"", petActionName);
             Lua.DoString("CastPetAction({0})", petAction.ActionBarIndex +1);
         }
 
@@ -105,18 +105,18 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-07:42UTC chinajade
         public static void CastPetAction(string petActionName, WoWUnit wowUnit)
         {
-            ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
-            ContractRequires(wowUnit != null, context => "wowUnit may not be null");
+            Contract.Requires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
+            Contract.Requires(wowUnit != null, context => "wowUnit may not be null");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
             {
-                LogMaintenanceError("or [USER ERROR]: PetAction('{0}') is either not known, or not hot-barred.",
+                QBCLog.MaintenanceError("or [USER ERROR]: PetAction('{0}') is either not known, or not hot-barred.",
                     petActionName);
                 return;
             }
 
-            LogDeveloperInfo("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
+            QBCLog.DeveloperInfo("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
             uint originalFocus = Me.CurrentFocus;
             StyxWoW.Me.SetFocus(wowUnit);
             Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
@@ -155,7 +155,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-07:42UTC chinajade
         public static bool IsPetActionActive(string petActionName)
         {
-            ContractRequires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
+            Contract.Requires(!string.IsNullOrEmpty(petActionName), context => "petActionName may not be null or empty");
 
             WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petActionName);
             if (petAction == null)
@@ -180,7 +180,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <returns>a behavior tree Composite suitable for use in a (Priority)Selector container</returns>
         public static Composite UtilityBehaviorPS_PetActionAttack(ProvideWoWUnitDelegate wowUnitDelegate)
         {
-            ContractRequires(wowUnitDelegate != null, context => "wowUnitDelegate may not be null");
+            Contract.Requires(wowUnitDelegate != null, context => "wowUnitDelegate may not be null");
 
             const string spellName = "Attack";
 
@@ -241,7 +241,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Decorator(petStanceNameContext => !knownStanceNames.Contains((string)petStanceNameContext),
                         new Action(petStanceNameContext =>
                         {
-                            LogMaintenanceError("Unknown pet stance '{0}'.  Must be one of: {1}",
+                            QBCLog.MaintenanceError("Unknown pet stance '{0}'.  Must be one of: {1}",
                                 (string)petStanceNameContext,
                                 string.Join(", ", knownStanceNames));
                         })),

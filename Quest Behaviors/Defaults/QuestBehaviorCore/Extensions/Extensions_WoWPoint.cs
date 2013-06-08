@@ -88,7 +88,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>17Apr2011-12:16UTC chinajade</remarks> 
         public static WoWPoint FanOutRandom(this WoWPoint location, double maxRadius)
         {
-            QuestBehaviorBase.ContractRequires(maxRadius >= 0.0, context => "maxRadius >= 0.0");
+            Contract.Requires(maxRadius >= 0.0, context => "maxRadius >= 0.0");
 
             const int CYLINDER_LINE_COUNT = 12;
             const int MAX_TRIES = 50;
@@ -197,7 +197,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>17Apr2011-12:16UTC chinajade</remarks> 
         public static bool IsOverGround(this WoWPoint location, double distance)
         {
-            QuestBehaviorBase.ContractRequires(distance >= 0.0, context => "distance >= 0.0");
+            Contract.Requires(distance >= 0.0, context => "distance >= 0.0");
 
             return (GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
                                         location.Add(0.0, 0.0, -distance),
@@ -214,7 +214,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>raphus 18/12/2012</remarks>
         public static bool IsOverGroundOrWater(this WoWPoint location, double distance)
         {
-            QuestBehaviorBase.ContractRequires(distance >= 0.0, context => "distance >= 0.0");
+            Contract.Requires(distance >= 0.0, context => "distance >= 0.0");
 
             return GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
                                        location.Add(0.0, 0.0, -distance),
@@ -233,7 +233,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>17Apr2011-12:16UTC chinajade</remarks> 
         public static bool IsOverWater(this WoWPoint location, double distance)
         {
-            QuestBehaviorBase.ContractRequires(distance >= 0.0, context => "distance >= 0.0");
+            Contract.Requires(distance >= 0.0, context => "distance >= 0.0");
 
             return GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
                                        location.Add(0.0, 0.0, -distance),
@@ -281,7 +281,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
 
             // Sanity check...
-            QuestBehaviorBase.ContractProvides(
+            Contract.Provides(
                 pathDistance >= start.Distance(destination),
                 context => "Surface path distance must be equal to or greater than straight-line distance.");
 
@@ -379,7 +379,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public static bool IsFlightorUsable(this WoWPoint location, double? height = null)
         {
             height = height ?? 35.0;
-            QuestBehaviorBase.ContractRequires(height > 0.0, context => "height > 0.0");
+            Contract.Requires(height > 0.0, context => "height > 0.0");
 
             WoWPoint[]      hitLocations;
             bool[]          hitResults;
@@ -458,9 +458,9 @@ namespace Honorbuddy.QuestBehaviorCore
                                                             bool                includeNormalVector,
                                                             bool                raysFromApexToBase)
         {
-            QuestBehaviorBase.ContractRequires(coneBaseRadius > 0.0, context => "coneBaseRadius > 0.0");
-            QuestBehaviorBase.ContractRequires(coneHeight > 0.0, context => "coneHeight > 0.0");
-            QuestBehaviorBase.ContractRequires(lineCount > 0, context => "lineCount > 0");
+            Contract.Requires(coneBaseRadius > 0.0, context => "coneBaseRadius > 0.0");
+            Contract.Requires(coneHeight > 0.0, context => "coneHeight > 0.0");
+            Contract.Requires(lineCount > 0, context => "lineCount > 0");
 
             var     cone                = new WorldLine[lineCount + (includeNormalVector  ? 1  : 0)];
             double  deltaZOfConeApex    = coneHeight + zOffset;
@@ -555,9 +555,9 @@ namespace Honorbuddy.QuestBehaviorCore
                                                                double radius,
                                                                double arcLength)
         {
-            QuestBehaviorBase.ContractRequires(radius > 0.0, context => "radius > 0.0");
-            QuestBehaviorBase.ContractRequires(arcLength > 0.0, context => "arcLength > 0.0");
-            QuestBehaviorBase.ContractRequires(arcLength <= radius, context => "arcLength <= radius");
+            Contract.Requires(radius > 0.0, context => "radius > 0.0");
+            Contract.Requires(arcLength > 0.0, context => "arcLength > 0.0");
+            Contract.Requires(arcLength <= radius, context => "arcLength <= radius");
 
             var circle = new List<WoWPoint>();
             double turnIncrement = arcLength / radius;

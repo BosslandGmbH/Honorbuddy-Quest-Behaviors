@@ -11,7 +11,9 @@
 #region Usings
 using System;
 using System.Diagnostics;
+using System.Text.RegularExpressions;
 using System.Windows.Media;
+using System.Xml;
 using System.Xml.Linq;
 
 using Styx.Common;
@@ -25,60 +27,8 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public abstract partial class QuestBehaviorBase
+    public class QBCLog
     {
-        /// <summary>
-        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
-        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
-        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
-        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
-        /// so we don't pay a performance penalty to build an error message that is not used
-        /// when ISCONTRACTOKAY is true.</para></description></item>
-        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
-        /// dynamically compile parts of the project at run time.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="isContractOkay"></param>
-        /// <param name="provideStringProviderDelegate"></param>
-        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
-        ///  30Jun2012-15:58UTC chinajade
-        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
-        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
-        ///  throughout the code.
-        public static bool ContractRequires(bool isContractOkay, ProvideStringDelegate provideStringProviderDelegate)
-        {
-            if (!isContractOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string message = provideStringProviderDelegate(null) ?? "NO MESSAGE PROVIDED";
-                var trace   = new StackTrace(1);
-
-                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
-                throw new ContractException(message);
-            }
-
-            return isContractOkay;
-        }
-
-        public static bool ContractProvides(bool isContractOkay, ProvideStringDelegate provideStringProviderDelegate)
-        {
-            if (!isContractOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string message = provideStringProviderDelegate(null) ?? "NO MESSAGE PROVIDED";
-                var trace   = new StackTrace(1);
-
-                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
-                throw new ContractException(message);
-            }
-
-            return isContractOkay;
-        }
-
-
         /// <summary>
         /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
         /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
@@ -133,7 +83,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogDeveloperInfo(string format, params object[] args)
+        public static void DeveloperInfo(string format, params object[] args)
         {
             Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", format, args));
         }
@@ -144,7 +94,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogError(string format, params object[] args)
+        public static void Error(string format, params object[] args)
         {
             Logging.Write(Colors.Red, BuildLogMessage("error", format, args));
         }
@@ -155,7 +105,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogFatal(string format, params object[] args)
+        public static void Fatal(string format, params object[] args)
         {
             Logging.Write(Colors.Red, BuildLogMessage("fatal", format, args));
             TreeRoot.Stop("Fatal error in quest behavior, or profile.");
@@ -167,7 +117,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogInfo(string format, params object[] args)
+        public static void Info(string format, params object[] args)
         {
             Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", format, args));
         }
@@ -180,17 +130,17 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="format"></param>
         /// <param name="args"></param>
         ///  30Jun2012-15:58UTC chinajade
-        public static void LogMaintenanceError(string format, params object[] args)
+        public static void MaintenanceError(string format, params object[] args)
         {
             string formattedMessage = string.Format(format, args);
             var trace = new StackTrace(1);
 
-            LogError("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", formattedMessage, trace.ToString());
+            Error("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", formattedMessage, trace.ToString());
         }
 
 
         //  5May2013-09:04UTC chinajade
-        public static Composite LogMarkerPS(ProvideStringDelegate messageDelegate)
+        public static Composite MarkerPS(ProvideStringDelegate messageDelegate)
         {
             return new Action(context =>
             {
@@ -201,7 +151,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         //  26May2013-09:04UTC chinajade
-        public static Composite LogMarkerSeq(ProvideStringDelegate messageDelegate)
+        public static Composite MarkerSeq(ProvideStringDelegate messageDelegate)
         {
             return new Action(context =>
             {
@@ -221,9 +171,9 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="format"></param>
         /// <param name="args"></param>
         ///  30Jun2012-15:58UTC chinajade
-        public static void LogProfileError(string format, params object[] args)
+        public static void ProfileError(string format, params object[] args)
         {
-            LogFatal("[PROFILE ERROR] {0}", string.Format(format, args));
+            Fatal("[PROFILE ERROR] {0}", string.Format(format, args));
         }
         
         
@@ -232,12 +182,55 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         /// <param name="format"></param>
         /// <param name="args"></param>
-        public static void LogWarning(string format, params object[] args)
+        public static void Warning(string format, params object[] args)
         {
             Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", format, args));
         }
 
 
-        private static CustomForcedBehavior BehaviorLoggingContext { get; set; }
+        public static CustomForcedBehavior BehaviorLoggingContext { get; set; }
+
+
+        // 25Apr2013-11:42UTC chinajade
+        public static string GetVersionedBehaviorName(CustomForcedBehavior cfb)
+        {
+            if (_versionedBehaviorLastCfb == cfb)
+            { return _versionedBehaviorName; }
+
+            Func<string, string> utilStripSubversionDecorations =
+                (subversionRevision) =>
+                {
+                    var regexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
+
+                    return regexSvnDecoration.Replace(subversionRevision, "$1").Trim();
+                };
+
+            var behaviorName = (cfb != null) ? cfb.GetType().Name : "UnknownBehavior";
+            var versionNumber = (cfb != null) ? utilStripSubversionDecorations(cfb.SubversionRevision) : "0";
+
+            _versionedBehaviorLastCfb = cfb;
+            _versionedBehaviorName = string.Format("{0}-v{1}", behaviorName, versionNumber);
+
+            return _versionedBehaviorName;
+        }
+        private static string _versionedBehaviorName;
+        private static CustomForcedBehavior _versionedBehaviorLastCfb;
+
+
+        //  1May2013-07:49UTC chinajade
+        public static string GetXmlFileReference(XElement xElement)
+        {
+            string fileLocation =
+                ((xElement == null) || string.IsNullOrEmpty(xElement.BaseUri))
+                    ? QuestBehaviorBase.GetProfileName()
+                    : xElement.BaseUri;
+
+            var lineLocation =
+                ((xElement != null) && ((IXmlLineInfo)xElement).HasLineInfo())
+                ? ("@line " + ((IXmlLineInfo)xElement).LineNumber.ToString())
+                : "@unknown line";
+
+            return string.Format("[Ref: \"{0}\" {1}]", fileLocation, lineLocation);
+        }
     }
 }

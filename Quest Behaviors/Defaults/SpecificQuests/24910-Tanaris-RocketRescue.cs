@@ -111,7 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
             {
                 // For DEBUGGING...
                 if (_behaviorState != value)
-                    { LogDeveloperInfo("BehaviorStateType: {0}", value); }
+                    { QBCLog.DeveloperInfo("BehaviorStateType: {0}", value); }
 
                 _behaviorState = value;
             }
@@ -190,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                     new Action(context =>   // default case
                     {
                         var message = string.Format("BehaviorStateType({0}) is unhandled", BehaviorState);
-                        LogMaintenanceError(message);
+                        QBCLog.MaintenanceError(message);
                         TreeRoot.Stop();
                         BehaviorDone(message);
                     }),
@@ -229,7 +229,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                 // Move to vehicle and enter...
                 new Decorator(context => IsViable(BalloonVehicle),
                     new PrioritySelector(
-                        new CompositeThrottle(Throttle_UserUpdate,
+                        new CompositeThrottle(Throttle.UserUpdate,
                             new Action(context =>
                             {
                                 TreeRoot.StatusText =
@@ -267,7 +267,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                 new Decorator(context => WeaponLifeRocket.IsWeaponUsable(),
                     new Action(context => { BehaviorState = BehaviorStateType.CompletingObjectives; })),
 
-                new CompositeThrottle(Throttle_UserUpdate,
+                new CompositeThrottle(Throttle.UserUpdate,
                     new Action(context => { TreeRoot.StatusText = "Riding out to hunting grounds"; }))
             );            
         }
@@ -284,7 +284,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                 new Decorator(context => Me.IsQuestComplete(QuestId),
                     new Action(context => { BehaviorState = BehaviorStateType.ReturningToBase; })),
 
-                new CompositeThrottle(Throttle_UserUpdate,
+                new CompositeThrottle(Throttle.UserUpdate,
                     new Action(context => { TreeRoot.StatusText = "Completing Quest Objectives"; })),
 
                 // Select new best target, if our current one is no longer useful...
@@ -327,7 +327,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 
                             return RunStatus.Success;
                         }),
-                        new WaitContinue(Delay_AfterWeaponFire, context => false, new ActionAlwaysSucceed())
+                        new WaitContinue(Delay.AfterWeaponFire, context => false, new ActionAlwaysSucceed())
                     ))
             );            
         }
@@ -347,7 +347,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                     new Decorator(context => !Me.IsMoving,
                         new Action(context => { BehaviorDone(); })),
 
-                    new CompositeThrottle(Throttle_UserUpdate,
+                    new CompositeThrottle(Throttle.UserUpdate,
                         new ActionFail(context => { TreeRoot.StatusText ="Returning to base"; }))
                 ));
         }

@@ -111,21 +111,21 @@ namespace Honorbuddy.QuestBehaviorCore
             if (double.IsNaN(AzimuthReference))
             {
                 AzimuthReference = AzimuthGet();
-                QuestBehaviorBase.LogDeveloperInfo("Weapon AzimuthReference: {0:F2}", AzimuthReference);
+                QBCLog.DeveloperInfo("Weapon AzimuthReference: {0:F2}", AzimuthReference);
             }
 
             if (double.IsNaN(AzimuthMin))
             {
                 UtilAzimuthRequestAbsolute(-QuestBehaviorBase.TAU / 4);
                 AzimuthMin = UtilAzimuthCurrentAbsolute();
-                QuestBehaviorBase.LogDeveloperInfo("Weapon AzimuthMin: {0:F2}", AzimuthMin);
+                QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2}", AzimuthMin);
             }
 
             if (double.IsNaN(AzimuthMax))
             {
                 UtilAzimuthRequestAbsolute(QuestBehaviorBase.TAU / 4);
                 AzimuthMax = UtilAzimuthCurrentAbsolute();
-                QuestBehaviorBase.LogDeveloperInfo("Weapon AzimuthMax: {0:F2}", AzimuthMax);
+                QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2}", AzimuthMax);
             }
 
             return true;

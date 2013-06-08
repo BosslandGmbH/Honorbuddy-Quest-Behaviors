@@ -292,7 +292,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
                 // resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
                 IsAttributeProblem = true;
@@ -435,7 +435,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     new Decorator(context => !IsViable(ItemToUse),
                         new Action(context =>
                         {
-                            LogWarning(BuildMessageWithContext(Element, 
+                            QBCLog.Warning(QBCLog.BuildMessageWithContext(Element, 
                                 "We no longer have a viable {0} to use--terminating behavior.",
                                 GetItemNameFromId(ItemId)));
                             BehaviorDone();
@@ -513,7 +513,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                 new PrioritySelector(
                                     new Action(context =>
                                     {
-                                        LogInfo("Recalling Pet from '{0}' (health: {1:F1})",
+                                        QBCLog.Info("Recalling Pet from '{0}' (health: {1:F1})",
                                             SelectedTarget.Name, SelectedTarget.HealthPercent);
                                         return RunStatus.Failure;
                                     }),

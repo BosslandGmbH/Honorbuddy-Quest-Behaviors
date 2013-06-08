@@ -132,7 +132,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 // If we failed to see the missile, report error and move on...
                 if (launchedMissile == null)
                 {
-                    QuestBehaviorBase.LogWarning(
+                    QBCLog.Warning(
                         "Muzzle Velocity not calculated--"
                         + "Unable to locate projectile launched by Vehicle Ability button #{0}",
                         AbilityIndex);
@@ -189,7 +189,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (selectedTarget == null)
             {
-                QuestBehaviorBase.LogWarning("No target for WeaponAim!");
+                QBCLog.Warning("No target for WeaponAim!");
                 return false;
             }
 
@@ -217,7 +217,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (selectedLocation == WoWPoint.Empty)
             {
-                QuestBehaviorBase.LogWarning("No target location for WeaponAim!");
+                QBCLog.Warning("No target location for WeaponAim!");
                 return false;
             }
 
@@ -253,7 +253,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                     MuzzleVelocityInFps = MuzzleVelocities_Summation / MuzzleVelocities_Count;
 
-                    QuestBehaviorBase.LogDeveloperInfo(
+                    QBCLog.DeveloperInfo(
                         "Weapon {1} fired:{0}"
                         + "  Angle: {2:F2}{0}"
                         + "  MuzzleVelocity: {3:F2} instantaneous / {4:F2} avg{0}"
@@ -276,7 +276,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (!Me.InVehicle)
             {
-                QuestBehaviorBase.LogWarning("Attempted to aim weapon while not in Vehicle!");
+                QBCLog.Warning("Attempted to aim weapon while not in Vehicle!");
                 return false;
             }
 

@@ -33,7 +33,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-08:11UTC chinajade
         public Composite UtilityBehaviorPS_GetMobsAttention(ProvideWoWUnitDelegate selectedTargetDelegate)
         {
-            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+            Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
             return new PrioritySelector(
                 new Action(context =>
@@ -185,14 +185,14 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        private static Composite TryCast(int spellId, QuestBehaviorBase.ProvideBoolDelegate requirements = null)
+        private static Composite TryCast(int spellId, ProvideBoolDelegate requirements = null)
         {
             requirements = requirements ?? (context => true);
 
             return new Decorator(context => SpellManager.CanCast(spellId) && requirements(context),
                 new Action(context =>
                 {
-                    LogDeveloperInfo("MiniCombatRoutine used {0}", QuestBehaviorBase.GetSpellNameFromId(spellId));
+                    QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", GetSpellNameFromId(spellId));
                     SpellManager.Cast(spellId);
                 }));
         }

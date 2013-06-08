@@ -30,14 +30,14 @@ namespace Honorbuddy.QuestBehaviorCore
         public Composite UtilityBehaviorSeq_InteractWith(ProvideWoWObjectDelegate selectedTargetDelegate,
                                                         ProvideBoolDelegate doMovementDelegate = null)
         {
-            ContractRequires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
+            Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
             doMovementDelegate = doMovementDelegate ?? (context => true);
 
             return new Sequence(
                 new DecoratorContinue(context => !IsViable(_ubseqInteractWith_SelectedTarget = selectedTargetDelegate(context)),
                     new Action(context =>
                     {
-                        LogWarning("Target is not viable!");
+                        QBCLog.Warning("Target is not viable!");
                         return RunStatus.Failure;                        
                     })),
 
@@ -68,13 +68,13 @@ namespace Honorbuddy.QuestBehaviorCore
                     UtilityBehaviorSeq_InteractWith_HandlersHook();
 
                     // Notify user of intent...
-                    LogInfo("Interacting with '{0}'", _ubseqInteractWith_SelectedTarget.Name);
+                    QBCLog.Info("Interacting with '{0}'", _ubseqInteractWith_SelectedTarget.Name);
 
                     // Do it...
                     _ubseqInteractWith_IsInteractInterrupted = false;    
                     _ubseqInteractWith_SelectedTarget.Interact();
                 }),
-                new WaitContinue(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed()),
+                new WaitContinue(Delay.AfterInteraction, context => false, new ActionAlwaysSucceed()),
 
                 // Wait for any casting to complete...
                 // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
@@ -91,7 +91,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 new Action(context => { UtilityBehaviorSeq_InteractWith_HandlersUnhook(); }),
                 new DecoratorContinue(context => _ubseqInteractWith_IsInteractInterrupted,
                     new Sequence(
-                        new Action(context => { LogDeveloperInfo("Interaction with {0} interrupted.", _ubseqInteractWith_SelectedTarget.Name); }),
+                        new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", _ubseqInteractWith_SelectedTarget.Name); }),
                         // Give whatever issue encountered a chance to settle...
                         // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                         new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
@@ -105,7 +105,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (args.Args[0].ToString() == "player")
             {
-                LogDeveloperInfo("Interrupted via {0} Event.", args.EventName);
+                QBCLog.DeveloperInfo("Interrupted via {0} Event.", args.EventName);
                 _ubseqInteractWith_IsInteractInterrupted = true;
             }
         }

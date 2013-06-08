@@ -92,7 +92,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>17Apr2013-03:11UTC chinajade</remarks>
         public Composite UtilityBehaviorPS_ExecuteMountStrategy(Func<object, MountStrategyType> mountStrategyDelegate)
         {
-            ContractRequires(mountStrategyDelegate != null, context => "mountStrategyDelegate != null");
+            Contract.Requires(mountStrategyDelegate != null, context => "mountStrategyDelegate != null");
 
             return new Decorator(context => mountStrategyDelegate(context) != MountStrategyType.None,
                 new PrioritySelector(
@@ -148,7 +148,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public Composite UtilityBehaviorPS_MountAsNeeded(ProvideWoWPointDelegate destinationDelegate,
                                                             CanRunDecoratorDelegate suppressMountUse = null)
         {
-            ContractRequires(destinationDelegate != null, context => "locationRetriever may not be null");
+            Contract.Requires(destinationDelegate != null, context => "locationRetriever may not be null");
             suppressMountUse = suppressMountUse ?? (context => false);
 
             const int AuraId_AquaticForm = 1066;

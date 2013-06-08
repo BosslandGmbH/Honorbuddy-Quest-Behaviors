@@ -472,7 +472,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
                 IsAttributeProblem = true;
@@ -742,7 +742,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     // If we've an alive target to make dead, go make it so...
                     new Decorator(context => IsViable(SelectedAliveTarget) && SelectedAliveTarget.IsAlive,
                         new Sequence(
-                            new Action(context => { LogInfo("Going after 'alive' {0} to make it 'dead'", SelectedAliveTarget.Name); }),
+                            new Action(context => { QBCLog.Info("Going after 'alive' {0} to make it 'dead'", SelectedAliveTarget.Name); }),
                             UtilityBehaviorPS_SpankMob(context => SelectedAliveTarget))),
 
                     // If interact target no longer meets qualifications, try to find another...
@@ -799,7 +799,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 new Action(context =>
                                 {
                                     var blacklistTime = BlacklistInteractTarget(SelectedInteractTarget);
-                                    LogWarning("Taking too long to reach {0}--blacklisting for {1}",
+                                    QBCLog.Warning("Taking too long to reach {0}--blacklisting for {1}",
                                         SelectedInteractTarget.SafeName(),
                                         PrettyTime(blacklistTime));
                                     _timerToReachDestination = null;
@@ -864,7 +864,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     {
                                         var blacklistTime = TimeSpan.FromSeconds(180);
 
-                                        LogWarning("Exceeded our maximum count({0}) at attempted interactions--blacklisting {1} for {2}",
+                                        QBCLog.Warning("Exceeded our maximum count({0}) at attempted interactions--blacklisting {1} for {2}",
                                             AttemptCountMax, SelectedInteractTarget.SafeName(), PrettyTime(blacklistTime));
                                         BlacklistInteractTarget(SelectedInteractTarget);
                                         return RunStatus.Failure;
@@ -884,7 +884,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 // Record usage...
                                 new Action(context =>
                                 {
-                                    LogDeveloperInfo("{0} {1}",
+                                    QBCLog.DeveloperInfo("{0} {1}",
                                         ((ItemToUse != null)
                                             ? string.Format("Used {0}({1}) on", ItemToUse.Name, ItemToUse.Entry)
                                             : "Interacted with"),
@@ -1078,7 +1078,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             }
                                             catch (InvalidOperationException)
                                             {
-                                                LogError(
+                                                QBCLog.Error(
                                                     "{0} is not offering gossip option {1} on page {2}."
                                                     + "  Did competing player alter NPC state?"
                                                     + "  Did you stop/start Honorbuddy?"
@@ -1093,7 +1093,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             }
 
                                             // Log the gossip option we're about to take...
-                                            LogDeveloperInfo("Selecting Gossip Option({0}) on page {1}: \"{2}\"",
+                                            QBCLog.DeveloperInfo("Selecting Gossip Option({0}) on page {1}: \"{2}\"",
                                                 gossipEntry.Index +1, GossipPageIndex +1, gossipEntry.Text);
 
                                             // If Innkeeper 'binding option', arrange to confirm ensuing popup...
@@ -1112,7 +1112,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             // and the NPC doesn't want to gossip any more.
                                             if (GossipPageIndex >= InteractByGossipOptions.Length)
                                             {
-                                                LogDeveloperInfo("Gossip with {0} complete.", GetName(SelectedInteractTarget));
+                                                QBCLog.DeveloperInfo("Gossip with {0} complete.", GetName(SelectedInteractTarget));
 
                                                 // NB: Some merchants require that we gossip with them before purchase.
                                                 // If the caller has also specified a "buy item", then we're not done yet.
@@ -1124,7 +1124,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                 }
                                             }
                                         }),
-                                        new WaitContinue(Delay_AfterInteraction, context => !GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
+                                        new WaitContinue(Delay.AfterInteraction, context => !GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed())
                                     ),
 
                                     // If the NPC pops down the dialog for us, or goes non-viable after gossip...
@@ -1144,10 +1144,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                             // Only a problem if Gossip frame, and not also another frame type...
                             new DecoratorContinue(context => (InteractByGossipOptions.Length <= 0) && GossipFrame.Instance.IsVisible && !IsMultipleFramesVisible(),
-                                new Action(context => { LogWarning("[PROFILE ERROR]: Gossip frame not expected--ignoring."); })),
+                                new Action(context => { QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring."); })),
 
                             // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                            new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
+                            new Wait(Delay.AfterInteraction, context => false, new ActionAlwaysFail())
                         )),
 
                     // Tell user if he is now bound to a new location...
@@ -1155,7 +1155,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new Wait(TimeSpan.FromSeconds(10),
                             context => BindingEventState == BindingEventStateType.BindingEventFired,
                             new Sequence(
-                                new WaitContinue(Delay_AfterInteraction, context => false, new ActionAlwaysSucceed()),
+                                new WaitContinue(Delay.AfterInteraction, context => false, new ActionAlwaysSucceed()),
                                 new Action(context =>
                                 {
                                     Lua.DoString("ConfirmBinder(); StaticPopup_Hide('CONFIRM_BINDER')");
@@ -1167,7 +1167,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 {
                                     var boundLocation = Lua.GetReturnVal<string>("return GetBindLocation()", 0);
 
-                                    LogInfo("You are now bound at {0} Inn in {1}({2})",
+                                    QBCLog.Info("You are now bound at {0} Inn in {1}({2})",
                                         (IsViable(SelectedInteractTarget) ? GetName(SelectedInteractTarget) : "the"),
                                         boundLocation,
                                         Me.HearthstoneAreaId);
@@ -1196,7 +1196,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             return RunStatus.Failure; // fall through
                         }),
                         // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
+                        new Wait(Delay.AfterInteraction, context => false, new ActionAlwaysFail())
                     ));
         }
 
@@ -1219,29 +1219,29 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 {
                                     if (InteractByBuyingItemId > 0)
                                     {
-                                        LogProfileError("{0} does not appear to carry ItemId({1})--abandoning transaction.",
+                                        QBCLog.ProfileError("{0} does not appear to carry ItemId({1})--abandoning transaction.",
                                             GetName(SelectedInteractTarget), InteractByBuyingItemId);
                                     }
                                     else
                                     {
-                                        LogProfileError("{0} does not have an item to sell in slot #{1}--abandoning transaction.",
+                                        QBCLog.ProfileError("{0} does not have an item to sell in slot #{1}--abandoning transaction.",
                                             GetName(SelectedInteractTarget), InteractByBuyingItemInSlotNum);
                                     }
                                 }
                                 else if ((item.BuyPrice * (ulong)BuyItemCount) > Me.Copper)
                                 {
-                                    LogProfileError("Toon does not have enough money to purchase {0} (qty: {1})"
+                                    QBCLog.ProfileError("Toon does not have enough money to purchase {0} (qty: {1})"
                                         + "--(requires: {2}, have: {3})--abandoning transaction.",
                                         item.Name, BuyItemCount, PrettyMoney(item.BuyPrice * (ulong)BuyItemCount), PrettyMoney(Me.Copper));
                                 }
                                 else if ((item.NumAvailable != /*unlimited*/-1) && (item.NumAvailable < BuyItemCount))
                                 {
-                                    LogProfileError("{0} only has {1} units of {2} (we need {3})--abandoning transaction.",
+                                    QBCLog.ProfileError("{0} only has {1} units of {2} (we need {3})--abandoning transaction.",
                                         GetName(SelectedInteractTarget), item.NumAvailable, item.Name, BuyItemCount);
                                 }
                                 else
                                 {
-                                    LogInfo("Buying {0} (qty: {1}) from {2}", item.Name, BuyItemCount, GetName(SelectedInteractTarget));
+                                    QBCLog.Info("Buying {0} (qty: {1}) from {2}", item.Name, BuyItemCount, GetName(SelectedInteractTarget));
                                     MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
                                 }
                                 // NB: We do not blacklist merchants.
@@ -1249,11 +1249,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             }
 
                             else if (!IsMultipleFramesVisible())
-                                { LogWarning("[PROFILE ERROR] Merchant frame not expected--ignoring."); }
+                                { QBCLog.Warning("[PROFILE ERROR] Merchant frame not expected--ignoring."); }
                         }),
 
                         // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
+                        new Wait(Delay.AfterInteraction, context => false, new ActionAlwaysFail())
                     ));
         }
 
@@ -1290,7 +1290,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior && !IsMultipleFramesVisible(),
                             new Action(context =>
                             {
-                                LogDeveloperInfo("Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
+                                QBCLog.DeveloperInfo("Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
                                     GetName(SelectedInteractTarget));
                                 CloseOpenFrames(true);
                                 BehaviorDone();
@@ -1298,7 +1298,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         new DecoratorContinue(context => InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile && !IsMultipleFramesVisible(),
                             new Action(context =>
                             {
-                                LogProfileError("{0} provided an unexpected Quest frame--terminating profile."
+                                QBCLog.ProfileError("{0} provided an unexpected Quest frame--terminating profile."
                                     + "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
                                     + " the behavior how to handle this situation.",
                                     GetName(SelectedInteractTarget));
@@ -1307,7 +1307,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             })),
 
                         // Wait, not WaitContinue, because we want to 'fall through' when delay is complete...
-                        new Wait(Delay_AfterInteraction, context => false, new ActionAlwaysFail())
+                        new Wait(Delay.AfterInteraction, context => false, new ActionAlwaysFail())
                     ));
         }
         #endregion

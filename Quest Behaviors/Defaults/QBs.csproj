@@ -65,6 +65,7 @@
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\Contract.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_FullInfo.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_LocalPlayer.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_TreeSharp.cs" />
