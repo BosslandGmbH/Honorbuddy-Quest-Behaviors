@@ -164,7 +164,7 @@
 // "Camel Tow" (http://wowhead.com/quest=28352)
 // Beat camels into submission (25% health), then use the Sullah's Camel Hareness (http://wowhead.com/item=67241)
 // on them.  The quest is complete after doing this three times.
-//      <CustomBehavior File="CombatUseItemOn" QuestId="28352" ItemId="67241" ItemAppliesAuraId="94956" MobId="51193"
+//      <CustomBehavior File="CombatUseItemOnV2" QuestId="28352" ItemId="67241" ItemAppliesAuraId="94956" MobId="51193"
 //          UseWhenMobHasHealthPercent="25" MaxRangeToUseItem="15" UseItemStrategy="UseItemOncePerTargetDontDefend"
 //          RecallPetAtMobPercentHealth="50" >
 //          <HuntingGrounds WaypointVisitStrategy="Random" >
@@ -179,7 +179,7 @@
 //
 // "Do the Imp-Possible" (http://wowhead.com/quest=28000)
 // Fight Impsy.  When he is 15% health, use the Enchanted Imp Sack (http://wowhead.com/item=62899) to capture him.
-//      <CustomBehavior File="CombatUseItemOn" QuestId="28000" ItemId="62899" MobId="47339"
+//      <CustomBehavior File="CombatUseItemOnV2" QuestId="28000" ItemId="62899" MobId="47339"
 //          ItemAppliesAuraId="88330" UseWhenMobHasHealthPercent="15" MaxRangeToUseItem="15"
 //          UseItemStrategy="UseItemOncePerTargetDontDefend"
 //          X="4287.259" Y="-1112.751" Z="323.6652" />
@@ -187,7 +187,7 @@
 // "Unlimited Potential" (http://wowhead.com/quest=28351)
 // Beat pygmies into submission (25% health), then use Sullah's Pygmy Pen (http://wowhead.com/item=67232)
 // on them to capture.  The quest is complete after doing this five times.
-//      <CustomBehavior File="CombatUseItemOn" QuestId="28351" ItemId="67232" ItemAppliesAuraId="94365" MobId="51217"
+//      <CustomBehavior File="CombatUseItemOnV2" QuestId="28351" ItemId="67232" ItemAppliesAuraId="94365" MobId="51217"
 //          UseWhenMobHasHealthPercent="25" MaxRangeToUseItem="10" UseItemStrategy="UseItemOncePerTargetDontDefend" 
 //          RecallPetAtMobPercentHealth="40" >
 //          <HuntingGrounds WaypointVisitStrategy="Random" >
