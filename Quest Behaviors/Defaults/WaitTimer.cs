@@ -15,6 +15,7 @@
 using System;
 using System.Collections.Generic;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -36,7 +37,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                GoalText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
+                StatusText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Wait time remaining... {TimeRemaining} of {TimeDuration}.";
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -59,7 +60,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
         }
 
         // Attributes provided by caller
-        public string GoalText { get; private set; }
+        public string StatusText { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -110,25 +111,10 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 
         private string UtilSubstituteInMessage(string message)
         {
-            message = message.Replace("{TimeRemaining}", UtilBuildTimeAsString(_timer.TimeLeft));
+            message = message.Replace("{TimeRemaining}", Utility.PrettyTime(_timer.TimeLeft));
             message = message.Replace("{TimeDuration}", _waitTimeAsString);
 
             return (message);
-        }
-
-
-        private static string UtilBuildTimeAsString(TimeSpan timeSpan)
-        {
-            string formatString = "";
-
-            if (timeSpan.Hours > 0)
-            { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
-            else if (timeSpan.Minutes > 0)
-            { formatString = "{1:D2}m:{2:D2}s"; }
-            else
-            { formatString = "{2:D2}s"; }
-
-            return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
         }
 
 
@@ -138,17 +124,16 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
         {
             return _root ?? (_root =
                 new Decorator(ret => !_timer.IsFinished,
-                    new Sequence(
-                        new Action(ret => TreeRoot.GoalText = (!string.IsNullOrEmpty(GoalText)
-                                                               ? UtilSubstituteInMessage(GoalText)
-                                                               : "Waiting for timer expiration")),
-                        new Action(ret => TreeRoot.StatusText = "Wait time remaining... "
-                                         + UtilBuildTimeAsString(_timer.TimeLeft)
-                                         + "... of "
-                                         + _waitTimeAsString),
-                        new Action(delegate { return RunStatus.Success; }))
-                        )
-                       );
+                    new CompositeThrottle(TimeSpan.FromMilliseconds(500),
+                        new Action(context =>
+                        {
+                            TreeRoot.StatusText =
+                                !string.IsNullOrEmpty(StatusText)
+                                ? UtilSubstituteInMessage(StatusText)
+                                : string.Format("Wait time remaining... {0} of {1}.",
+                                    Utility.PrettyTime(_timer.TimeLeft), _waitTimeAsString);
+                        })))
+            );
         }
 
 
@@ -183,9 +168,11 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
                 int waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
 
                 _timer = new Styx.Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, waitDuration));
-                _waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);
+                _waitTimeAsString = Utility.PrettyTime(_timer.WaitTime);
 
                 _timer.Reset();
+
+                TreeRoot.GoalText = "Waiting for " + _waitTimeAsString;
             }
         }
 

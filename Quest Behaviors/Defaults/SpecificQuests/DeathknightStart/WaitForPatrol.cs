@@ -279,7 +279,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             OnStart_QuestBehaviorCore(
                 string.Format("Using safe spot {0} until '{1}' moves {2:F1} yards away.",
                     SafespotLocation,
-                    GetObjectNameFromId(MobIdToAvoid),
+                    Utility.GetObjectNameFromId(MobIdToAvoid),
                     AvoidDistance));
 
             // If the quest is complete, this behavior is already done...
@@ -308,11 +308,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         {
             return new Decorator(context => !IsDone,
                 new PrioritySelector(
-                    new Decorator(context => !IsViable(Mob_ToAvoid),
-                        new ActionFail(context => { Mob_ToAvoid = FindUnitsFromIds(ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault(); })),
-                            
-                    new Decorator(context => !IsViable(Mob_ToMoveNear),
-                        new ActionFail(context => { Mob_ToMoveNear = FindUnitsFromIds(ToEnumerable<int>(MobIdToMoveNear)).FirstOrDefault(); })),
+                    new Decorator(context => !Query.IsViable(Mob_ToAvoid),
+                        new ActionFail(context => { Mob_ToAvoid = Query.FindUnitsFromIds(Utility.ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault(); })),
+
+                    new Decorator(context => !Query.IsViable(Mob_ToMoveNear),
+                        new ActionFail(context => { Mob_ToMoveNear = Query.FindUnitsFromIds(Utility.ToEnumerable<int>(MobIdToMoveNear)).FirstOrDefault(); })),
 
                     // Stateful Operation:
                     // NB: We do not allow combat in all states.  Fighting is mostl limited to our 'safespot' position.
@@ -403,7 +403,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // If a "Move Near" mob was specified, move to it...
                 new Decorator(context => MobIdToMoveNear > 0,
                     new PrioritySelector(
-                        new Decorator(context => IsViable(Mob_ToMoveNear),
+                        new Decorator(context => Query.IsViable(Mob_ToMoveNear),
                             new PrioritySelector(
                                 // Target the MoveToNpc, as feedback to the user...
                                 new Decorator(context => Me.CurrentTarget != Mob_ToMoveNear,
@@ -414,10 +414,10 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                             )),
 
                         // Need to wait for Mob to respawn...
-                        new Decorator(context => !IsViable(Mob_ToMoveNear),
+                        new Decorator(context => !Query.IsViable(Mob_ToMoveNear),
                             new Action(context =>
                             {
-                                TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", GetObjectNameFromId(MobIdToMoveNear));
+                                TreeRoot.StatusText = string.Format("Waiting for {0} to respawn", Utility.GetObjectNameFromId(MobIdToMoveNear));
                             }))
                     )),
 
@@ -451,7 +451,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     new Action(context => { State_MainBehavior = StateType_MainBehavior.DestinationReached; })),
 
                 // If Mob_ToAvoid is too close or we get in combat, abandon current ingress, and retreat back to safespot...
-                new Decorator(context => IsViable(Mob_ToAvoid)
+                new Decorator(context => Query.IsViable(Mob_ToAvoid)
                                         && ((Mob_ToAvoid.Distance < FollowPath.EgressDistance) || Me.Combat),
                     new Action(context =>
                     {
@@ -470,7 +470,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     }),
 
                     new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
-                        new Decorator(context => IsViable(Mob_ToAvoid) && (Mob_ToAvoid.Distance < AvoidDistance),
+                        new Decorator(context => Query.IsViable(Mob_ToAvoid) && (Mob_ToAvoid.Distance < AvoidDistance),
                             new PrioritySelector(
                                 new Decorator(context => Me.IsMoving,
                                     new Action(context => { WoWMovement.MoveStop(); })),
@@ -602,7 +602,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             // * avoidNpc is not in combat, and its the prescribed distance away, and facing away from us.
             // NB: We use the 'combat' check because if the avoidNpc is in combat, he situation of 'safe to move'
             // can rapidly change.  This usually happens when the NPC is busy killing another player.
-            return !IsViable(avoidNpc)
+            return !Query.IsViable(avoidNpc)
                     || (!avoidNpc.Combat
                         && (avoidNpc.Distance > AvoidDistance)
                         && !avoidNpc.IsSafelyFacing(Me, 150));

@@ -76,6 +76,11 @@
 //          As we move from waypoint to waypoint in our travel to the destination,
 //          this value determines when we've reached the current waypoint, and can
 //          proceed to the next.
+//      WaitForVehicle [optional; Default: true]
+//          This value affects what happens if there are no Vehicles in the immediate area.
+//          If true, the behavior will stand and wait for VehicleIdN to respawn.
+//          If false, and the behavior cannot locate VehicleIdN in the immediate area, the behavior
+//          considers itself complete.
 //
 // THINGS TO KNOW:
 // * The vehicle may provide an action bar with spells on it.
@@ -195,6 +200,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 MovementBy = (GetAttributeAsNullable<bool>("UseNavigator", false, null, null) ?? true)
                     ? MovementByType.NavigatorPreferred
                     : MovementByType.ClickToMoveOnly;
+                WaitForVehicle = GetAttributeAsNullable<bool>("WaitForVehicle", false, null, null) ?? true;
 
                 // For backward compatibility, we do not error off on an invalid SpellId, but merely warn the user...
                 if ((1 <= SpellId) && (SpellId <= 12))
@@ -228,6 +234,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         public double Precision { get; private set; }
         public int SpellId { get; private set; }
         public int[] VehicleIds { get; private set; }
+        private bool WaitForVehicle { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
@@ -279,7 +286,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
             OnStart_QuestBehaviorCore(
                 string.Format("Returning {0} to {1}",
-                    string.Join(", ", VehicleIds.Select(o => GetObjectNameFromId(o)).Distinct()),
+                    string.Join(", ", VehicleIds.Select(o => Utility.GetObjectNameFromId(o)).Distinct()),
                     Destination));
 
             // If the quest is complete, this behavior is already done...
@@ -325,7 +332,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                         if (MobIds.Count() > 0)
                         {
                             // If we can see our destination mob, calculate a path to it...
-                            WoWUnit nearestMob = FindUnitsFromIds(MobIds).OrderBy(u => u.Distance).FirstOrDefault();
+                            WoWUnit nearestMob = Query.FindUnitsFromIds(MobIds).OrderBy(u => u.Distance).FirstOrDefault();
                             if (nearestMob != null)
                             {
                                 // Target destination mob as feedback to the user...
@@ -352,38 +359,56 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                 new Action(context => { BehaviorDone(); })),
 
                             // If we're not in a vehicle, go fetch one...
-                            new Decorator(context => !IsInVehicle() && IsViable(VehicleUnoccupied),
+                            new Decorator(context => !IsInVehicle() && Query.IsViable(VehicleUnoccupied),
                                 new Sequence(
-                                    new Action(context =>
-                                    {
-                                        TreeRoot.StatusText = string.Format("Moving to {0} {1}",
-                                                                            VehicleUnoccupied.Name,
-                                                                            Me.Combat ? "(ignoring combat)" : "");
-                                    }),
+                                    new CompositeThrottleContinue(
+                                        Throttle.UserUpdate,
+                                        new Action(context =>
+                                        {
+                                            TreeRoot.StatusText = string.Format("Moving to {0} {1}",
+                                                                                VehicleUnoccupied.Name,
+                                                                                Me.Combat ? "(ignoring combat)" : "");
+                                        })),
                                     new DecoratorContinue(context => VehicleUnoccupied.WithinInteractRange,
                                         new Action(context => { VehicleUnoccupied.Interact(); })),
                                     UtilityBehaviorPS_MoveTo(context => VehicleUnoccupied.Location,
                                                             context => VehicleUnoccupied.Name)
                                 )),
 
-                            // If we successfully mounted the vehicle, record the fact...
-                            new Decorator(context => IsInVehicle() && !DidSuccessfullyMount,
-                                new Action(context => { DidSuccessfullyMount = true; })),
+                            // If we can't find a vehicle, terminate if requested...
+                            new CompositeThrottle(
+                                context => !IsInVehicle() && !Query.IsViable(VehicleUnoccupied),
+                                Throttle.UserUpdate,
+                                new Action(context =>
+                                {
+                                    if (!WaitForVehicle)
+                                        { BehaviorDone(string.Format("No Vehicle, and WaitForVehicle=\"{0}\"", WaitForVehicle)); }
+                                    else
+                                        { TreeRoot.StatusText = "No vehicles in area--waiting for vehicle to become available."; }
+                                })),
+
 
                             // Move vehicle to destination...
-                            UtilityBehaviorPS_MoveTo(context => FinalDestination,
-                                                     context => FinalDestinationName,
-                                                     context => Precision,
-                                                     context => IsInVehicle(),
-                                                     context => ProxyObserver().Location),
-                            new Decorator(context => ProxyObserver().IsMoving,
-                                new Sequence(
-                                    new Action(context => { WoWMovement.MoveStop(); }),
-                                    new WaitContinue(Delay.LagDuration, context => false, new ActionAlwaysSucceed())
-                                )),
+                            new Decorator(context => IsInVehicle(),
+                                new PrioritySelector(
+                                   // If we successfully mounted the vehicle, record the fact...
+                                     new Decorator(context => !DidSuccessfullyMount,
+                                        new Action(context => { DidSuccessfullyMount = true; })),
 
-                            // Arrived at destination, use spell if necessary...
-                            CreateSpellBehavior()
+                                    UtilityBehaviorPS_MoveTo(context => FinalDestination,
+                                                                context => FinalDestinationName,
+                                                                context => Precision,
+                                                                context => IsInVehicle(),
+                                                                context => ProxyObserver().Location),
+                                    new Decorator(context => ProxyObserver().IsMoving,
+                                        new Sequence(
+                                            new Action(context => { WoWMovement.MoveStop(); }),
+                                            new WaitContinue(Delay.LagDuration, context => false, new ActionAlwaysSucceed())
+                                        )),
+
+                                    // Arrived at destination, use spell if necessary...
+                                    CreateSpellBehavior()
+                                ))
                         )),
 
                     // Squelch combat, if requested...
@@ -484,10 +509,10 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         private WoWUnit FindUnoccupiedVehicle()
         {
             return
-                (from wowUnit in FindUnitsFromIds(VehicleIds)
+                (from wowUnit in Query.FindUnitsFromIds(VehicleIds)
                  where
                     !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
-                    && !IsInCompetition(wowUnit, NonCompeteDistance)
+                    && !Query.IsInCompetition(wowUnit, NonCompeteDistance)
                     && wowUnit.IsUntagged()
                  orderby wowUnit.Distance
                  select wowUnit)
@@ -497,7 +522,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
         private bool IsInVehicle()
         {
-            return Me.InVehicle
+            return
+                Me.InVehicle
                 || Me.HasAura(AuraId_ProxyVehicle);
         }
 

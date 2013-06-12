@@ -135,8 +135,8 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                     new Action(context =>
                     {
                         TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
-                            QuestBehaviorBase.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterAbandon.TimeLeft.TotalSeconds)),
-                            QuestBehaviorBase.PrettyTime(_waitTimerAfterAbandon.WaitTime));
+                            Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterAbandon.TimeLeft.TotalSeconds)),
+                            Utility.PrettyTime(_waitTimerAfterAbandon.WaitTime));
                     })),
 
                 new Action(context => { _isBehaviorDone = true; })

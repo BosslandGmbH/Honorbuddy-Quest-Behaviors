@@ -29,7 +29,7 @@ using Styx.WoWInternals;
 namespace Honorbuddy.QuestBehaviorCore
 {
     // TODO: This class still a work in progress...
-    public class Queries_Database
+    public class Query_Database
     {
         // From Highvoltz!
         // NB: The database is password protected, so you can't use the normal sqlite db viewer to look at it.

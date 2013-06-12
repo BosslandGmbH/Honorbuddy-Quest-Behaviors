@@ -1,4 +1,4 @@
-﻿// Behavior originally contributed by Nesox.
+﻿// Behavior originally contributed by Nesox / aiming & other rework by Chinajade
 //
 // DOCUMENTATION:
 //     
@@ -11,6 +11,10 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Bots.Grind;
+
+using CommonBehaviors.Actions;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -43,12 +47,15 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         {
             try
             {
-                AttackSpellId = GetAttributeAsNullable<int>("AttackSpellId", true, ConstrainAs.SpellId, new[] { "AttackSpell" }) ?? 0;
+                ActionBarIndex_Attack = GetAttributeAsNullable<int>("AttackSpellIndex", true, ConstrainAs.SpellId, new[] { "AttackSpell" }) ?? 0;
+                ActionBarIndex_Heal = GetAttributeAsNullable<int>("HealSpellIndex", false, ConstrainAs.SpellId, new[] { "HealSpell" }) ?? 0;
                 HealNpcId = GetAttributeAsNullable<int>("HealNpcId", true, ConstrainAs.MobId, new[] { "HealNpc" }) ?? 0;
-                HealSpellId = GetAttributeAsNullable<int>("HealSpellId", false, ConstrainAs.SpellId, new[] { "HealSpell" }) ?? 0;
                 ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
                 KillNpcId = GetAttributeAsNullable<int>("KillNpcId", true, ConstrainAs.MobId, new[] { "KillNpc" }) ?? 0;
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+
+                DevourHuman = new VehicleAbility(ActionBarIndex_Heal);
+                FrozenDeathbolt = new VehicleWeapon(ActionBarIndex_Attack, null, 130.0);
             }
 
             catch (Exception except)
@@ -66,14 +73,16 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         }
 
         // Attributes provided by caller
-        public int AttackSpellId { get; private set; }
+        public int ActionBarIndex_Attack { get; private set; }
         public int HealNpcId { get; private set; }
-        public int HealSpellId { get; private set; }
+        public int ActionBarIndex_Heal { get; private set; }
         public int ItemId { get; private set; }
         public int KillNpcId { get; private set; }
         public int VehicleId { get; private set; }
 
         // Private variables for internal state
+        private VehicleAbility DevourHuman { get; set; }
+        private VehicleWeapon FrozenDeathbolt { get; set; }
         private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
@@ -82,23 +91,38 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         private readonly Stopwatch _remountTimer = new Stopwatch();
 
         // Private properties
-        public WoWPetSpell AttackSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == AttackSpellId); } }
-        public IEnumerable<WoWUnit> HealNpcs
+        public WoWUnit FindNpcForHeal()
         {
-            get
+            using (StyxWoW.Memory.AcquireFrame())
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .Where(ret => ret.HealthPercent > 1 && ret.Entry == HealNpcId);
+                return 
+                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                    where 
+                        (wowUnit.Entry == HealNpcId)
+                        && (wowUnit.HealthPercent > 1)
+                        && Vehicle.IsSafelyFacing(wowUnit)
+                        && wowUnit.InLineOfSight
+                    orderby wowUnit.DistanceSqr
+                    select wowUnit)
+                    .FirstOrDefault();
             }
         }
-        public WoWPetSpell HealSpell { get { return Me.PetSpells.FirstOrDefault(s => s.Spell != null && s.Spell.Id == HealSpellId); } }
         private CircularQueue<WoWPoint> EndPath { get; set; }       // End Path
-        public IEnumerable<WoWUnit> KillNpcs
+        private WoWUnit FindNpcToKill()
         {
-            get
+            using (StyxWoW.Memory.AcquireFrame())
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                       .Where(ret => ret.HealthPercent > 1 && ret.Entry == KillNpcId);
+                return
+                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                    where
+                        (wowUnit.Entry == KillNpcId)
+                        && (wowUnit.HealthPercent > 1)
+                        && (wowUnit.Distance2DSqr > (40 * 40))
+                        && Vehicle.IsSafelyFacing(wowUnit)
+                        && wowUnit.InLineOfSight
+                    orderby wowUnit.DistanceSqr
+                    select wowUnit)
+                    .FirstOrDefault();
             }
         }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -214,12 +238,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
             }
         }
 
-        /// <summary> The vehicle as a wowunit </summary>
-        public static void CastPetAction(WoWPetSpell spell)
-        {
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-        }
-
         private static void Player_OnPlayerDied()
         {
             LevelBot.ShouldUseSpiritHealer = true;
@@ -242,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                         new Action(ret => ParsePaths())),
 
                     // Go home.
-                    new Decorator(ret => Quest != null && Quest.IsCompleted || _remountTimer.Elapsed.TotalMinutes >= 14,
+                    new Decorator(ret => Quest != null && Quest.IsCompleted || _remountTimer.Elapsed.TotalMinutes >= 20,
                         new PrioritySelector(
                             new Decorator(ret => ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 29107 && Vehicle.Location.Distance(r.Location) <= 10) != null,
                                 new Sequence(
@@ -259,7 +277,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                                             )),
 
                                     new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                // Use the item
+                                        // Use the item
                                         new Sequence(
                                             new Action(ret => ((WoWItem)ret).UseContainerItem()),
                                             new Action(ret => ParsePaths()))
@@ -290,7 +308,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                                     )),
 
                             new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                // Use the item
+                                // Use the item
                                 new Sequence(
                                     new Action(ret => ParsePaths()),
                                     new Action(ret => ((WoWItem)ret).UseContainerItem()))
@@ -306,7 +324,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                                 ))),
 
                     new Decorator(ret => Vehicle != null,
-
                         new PrioritySelector(
                             new Decorator(ret => !_remountTimer.IsRunning,
                                 new Action(ret => _remountTimer.Start())),
@@ -326,40 +343,61 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                             new Decorator(ret => Path.Peek().Distance2DSqr(Vehicle.Location) <= 30 * 30,
                                 new Action(ret => Path.Dequeue())),
 
-                            new Decorator(ret => (Vehicle.HealthPercent <= 70 || Vehicle.ManaPercent <= 35) &&
-                                                 HealNpcs != null && HealSpell != null && !HealSpell.Spell.Cooldown,
-                                 new PrioritySelector(
-                                    ret => HealNpcs.Where(n => Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
-                                    new Decorator(
-                                        ret => ret != null && ((WoWUnit)ret).InLineOfSight,
-                                        new PrioritySelector(
-                                            new Decorator(
-                                                ret => ((WoWUnit)ret).Location.Distance(Vehicle.Location) > 15,
-                                                new Action(ret => WoWMovement.ClickToMove(((WoWUnit)ret).Location.Add(0, 0, 10)))),
-                                            new Action(ret =>
-                                            {
-                                                WoWMovement.MoveStop();
-                                                CastPetAction(HealSpell);
-                                            }))))),
+                            new Decorator(context => ((Vehicle.HealthPercent <= 70) || (Vehicle.ManaPercent <= 35))
+                                                    && DevourHuman.IsAbilityReady(),
+                                new Action(context =>
+                                {
+                                    var selectedTarget = FindNpcForHeal();
+                                    if (selectedTarget == null)
+                                        { return RunStatus.Failure; }
+
+                                    if (selectedTarget.Location.Distance(Vehicle.Location) > 15)
+                                    {
+                                        WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
+                                        WoWMovement.ClickToMove(selectedTarget.Location.Add(0, 0, 10));
+                                        return RunStatus.Success;
+                                    }
+
+                                    DevourHuman.UseAbility();
+                                    WoWMovement.ClickToMove(Path.Peek());
+                                    return RunStatus.Success;
+                                })),
+
+                            new ActionFail(context =>
+                            {
+                                var heightDelta = Me.Location.Z - Path.Peek().Z;
+                                if (heightDelta < -10)
+                                    { WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend); }
+                                else if (heightDelta > 10)
+                                    { WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend); }
+                            }),
 
                             new Sequence(
-                                ret => KillNpcs.Where(n => n.Distance2DSqr > 20 * 20 && Vehicle.IsSafelyFacing(n)).OrderBy(n => n.DistanceSqr).FirstOrDefault(),
-                                new DecoratorContinue(
-                                    ret => ret != null && ((WoWUnit)ret).InLineOfSight && AttackSpell != null && !AttackSpell.Spell.Cooldown && !SpellManager.GlobalCooldown,
-                                    new Sequence(
-                                        new Action(ret =>
-                                            {
-                                                var v = ((WoWUnit)ret).Location - StyxWoW.Me.Location;
-                                                v.Normalize();
-                                                Lua.DoString(string.Format(
-                                                    "local pitch = {0}; local delta = pitch - VehicleAimGetAngle() + 0.1; VehicleAimIncrement(delta);",
-                                                    Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
-                                            }),
-                                        new Action(ret => CastPetAction(AttackSpell)),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()))),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()),
-                                new Action(ret => WoWMovement.ClickToMove(Path.Peek()))
-                                )
+                                new Action(context =>
+                                {
+                                    if (!FrozenDeathbolt.IsWeaponReady())
+                                        { return RunStatus.Failure; }
+
+                                    var selectedTarget = FindNpcToKill();
+                                    if (selectedTarget == null)
+                                        { return RunStatus.Failure; }
+
+                                    var projectileFlightTime = FrozenDeathbolt.CalculateTimeOfProjectileFlight(selectedTarget.Location);
+                                    var anticipatedLocation = selectedTarget.AnticipatedLocation(projectileFlightTime);
+                                    var isAimed = FrozenDeathbolt.WeaponAim(anticipatedLocation);
+
+                                    if (!isAimed)
+                                        { return RunStatus.Failure; }
+
+                                    FrozenDeathbolt.WeaponFire(anticipatedLocation);
+                                    return RunStatus.Success;
+                                }),
+                                // Need to delay a bit for the weapon to actually launch.  Otherwise
+                                // it screws the aim up if we move again before projectile is fired.
+                                // NB: Wait, not WaitContinue, because we want to fall through
+                                new Wait(TimeSpan.FromMilliseconds(400), context => false, new ActionAlwaysFail())
+                            ),
+                            new Action(context => { WoWMovement.ClickToMove(Path.Peek()); })
                         )));
         }
 

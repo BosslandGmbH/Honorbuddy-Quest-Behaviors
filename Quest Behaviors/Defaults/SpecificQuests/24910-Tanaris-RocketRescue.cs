@@ -220,20 +220,20 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                     new Action(context => { BehaviorState = BehaviorStateType.RidingOutToHuntingGrounds; })),
 
                 // Locate the vehicle...
-                new Decorator(context => !IsViable(BalloonVehicle),
+                new Decorator(context => !Query.IsViable(BalloonVehicle),
                     new ActionFail(context =>
                     {
-                        BalloonVehicle = FindUnitsFromIds(ToEnumerable(MobId_SteamwheedleRescueBalloon)).FirstOrDefault();
+                        BalloonVehicle = Query.FindUnitsFromIds(Utility.ToEnumerable(MobId_SteamwheedleRescueBalloon)).FirstOrDefault();
                     })),
 
                 // Move to vehicle and enter...
-                new Decorator(context => IsViable(BalloonVehicle),
+                new Decorator(context => Query.IsViable(BalloonVehicle),
                     new PrioritySelector(
                         new CompositeThrottle(Throttle.UserUpdate,
                             new Action(context =>
                             {
                                 TreeRoot.StatusText =
-                                    string.Format("Moving to {0}", GetObjectNameFromId(MobId_SteamwheedleRescueBalloon));
+                                    string.Format("Moving to {0}", Utility.GetObjectNameFromId(MobId_SteamwheedleRescueBalloon));
                             })),
                         UtilityBehaviorPS_MoveTo(context => BalloonVehicle.Location,
                                                 context => BalloonVehicle.Name),
@@ -241,7 +241,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                     )),
 
                 // Otherwise, move near balloon launch point...
-                new Decorator(context => !IsViable(BalloonVehicle),
+                new Decorator(context => !Query.IsViable(BalloonVehicle),
                     new PrioritySelector(
                         UtilityBehaviorPS_MoveTo(context => BalloonLaunchPoint,
                                                  context => "Balloon Launch Point"),
@@ -249,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                         {
                             TreeRoot.StatusText =
                                 string.Format("Waiting for Steamwheedle Rescue Balloon({0}) to respawn.",
-                                    GetObjectNameFromId(MobId_SteamwheedleRescueBalloon));
+                                    Utility.GetObjectNameFromId(MobId_SteamwheedleRescueBalloon));
                         })
                     ))
             );
@@ -383,11 +383,11 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
         private bool IsViableForTargeting(WoWUnit wowUnit)
         {
             return
-                IsViable(wowUnit)
+                Query.IsViable(wowUnit)
                 && !_targetBlacklist.Contains(wowUnit.Guid)
                 && wowUnit.IsAlive
                 && wowUnit.InLineOfSight
-                && IsStateMatch_AurasMissing(wowUnit, ToEnumerable<int>(AuraId_RocketPack));
+                && Query.IsStateMatch_AurasMissing(wowUnit, Utility.ToEnumerable<int>(AuraId_RocketPack));
         }
         #endregion
     }

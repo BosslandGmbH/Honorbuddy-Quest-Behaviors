@@ -41,7 +41,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     _ubpsGetMobsAttention_Mob = selectedTargetDelegate(context);
                     return RunStatus.Failure; // fall through
                 }),
-                new Decorator(context => IsViableForFighting(_ubpsGetMobsAttention_Mob)
+                new Decorator(context => Query.IsViableForFighting(_ubpsGetMobsAttention_Mob)
                                         && !_ubpsGetMobsAttention_Mob.IsTargetingMeOrPet,
                     new PrioritySelector(
                         new CompositeThrottle(TimeSpan.FromSeconds(3),
@@ -73,7 +73,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         RoutineManager.Current.RestBehavior),
                     new Decorator(context => RoutineManager.Current.NeedRest,
                         new Action(context => { RoutineManager.Current.Rest(); })),
-                    LevelBot.CreateLootBehavior()
+                    UtilityBehaviorPS_Looting()
                 ));
         }
 
@@ -192,7 +192,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return new Decorator(context => SpellManager.CanCast(spellId) && requirements(context),
                 new Action(context =>
                 {
-                    QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", GetSpellNameFromId(spellId));
+                    QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", Utility.GetSpellNameFromId(spellId));
                     SpellManager.Cast(spellId);
                 }));
         }

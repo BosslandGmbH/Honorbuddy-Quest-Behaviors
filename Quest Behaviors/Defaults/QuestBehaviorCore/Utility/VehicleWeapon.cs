@@ -51,7 +51,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private double? FixedMuzzleVelocity { get; set; }
         private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
         private readonly WaitTimer MissileWatchingTimer = new WaitTimer(TimeSpan.FromMilliseconds(1000));
-        private WoWUnit MovementObserver { get { return QuestBehaviorBase.MovementObserver; } }
+        private WoWUnit MovementObserver { get { return Utility.MovementObserver; } }
         private int MuzzleVelocities_Count { get; set; }
         private double MuzzleVelocities_Summation { get; set; }
         private bool NeedsTestFire { get { return double.IsNaN(MuzzleVelocityInFps); } }
@@ -264,7 +264,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         WeaponArticulation.AzimuthGet(),
                         instantaneousMuzzleVelocity, MuzzleVelocityInFps,
                         Me.Location.Distance(targetLocation),
-                        QuestBehaviorBase.PrettyTime(CalculateTimeOfProjectileFlight(targetLocation)));
+                        Utility.PrettyTime(CalculateTimeOfProjectileFlight(targetLocation), true, false));
                 }
             }
 

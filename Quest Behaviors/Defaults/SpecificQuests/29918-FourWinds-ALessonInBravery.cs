@@ -137,10 +137,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         {         
             get
             {
-                if (!QuestBehaviorBase.IsViable(_giantAssBird))
+                if (!Query.IsViable(_giantAssBird))
                 {
                     _giantAssBird =
-                       (from wowUnit in QuestBehaviorBase.FindUnitsFromIds(QuestBehaviorBase.ToEnumerable<int>(56171))
+                       (from wowUnit in Query.FindUnitsFromIds(Utility.ToEnumerable<int>(56171))
                         where
                             wowUnit.IsAlive
                             // Eliminate bird vehicles occupied by other players...
@@ -163,7 +163,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                 return
                     new Decorator(ret => !Me.InVehicle,
                         new PrioritySelector(
-                            new Decorator(r => QuestBehaviorBase.IsViable(GiantAssBird),
+                            new Decorator(r => Query.IsViable(GiantAssBird),
                                 new Action(r =>
                                 {
                                     GiantAssBird.Target();

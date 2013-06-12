@@ -222,7 +222,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             string fileLocation =
                 ((xElement == null) || string.IsNullOrEmpty(xElement.BaseUri))
-                    ? QuestBehaviorBase.GetProfileName()
+                    ? Utility.GetProfileName()
                     : xElement.BaseUri;
 
             var lineLocation =

@@ -62,6 +62,7 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 #endregion
@@ -100,7 +101,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             catch (Exception except)
             {
-                if (IsExceptionReportingNeeded(except))
+                if (Query.IsExceptionReportingNeeded(except))
                 {
                     // Maintenance problems occur for a number of reasons.  The primary two are...
                     // * Changes were made to the behavior, and boundary conditions weren't properly tested.
@@ -239,7 +240,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 return _isBehaviorDone     // normal completion
                         || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
                         || (_isDoneChecksQuestProgress
-                            && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                            && !IsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
 
@@ -298,6 +299,8 @@ namespace Honorbuddy.QuestBehaviorCore
                 _mementoSettings = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
+
+                Query.BlacklistsReset();
 
                 UpdateGoalText(extraGoalTextDescription);
 
@@ -358,6 +361,51 @@ namespace Honorbuddy.QuestBehaviorCore
         //                      RangeMax, rangeEpsilon, RangeMin)); 
         //}
 
+
+        /// <summary>
+        /// Determine whether a behavior should start or continue based on the QuestId, and its required
+        /// presence and completion criteria.
+        /// </summary>
+        /// <param name="questId">provides the reference for which the specified qualifies should be applied</param>
+        /// <param name="questInLogRequirement">the QuestId must meet this specified qualifier for the behavior to proceed.</param>
+        /// <param name="questCompleteRequirement">the QuestId must mee this specified qualifier for the behavior to proceed.</param>
+        /// <returns>true, if the provided QuestId meets the specified qualifiers; otherwise, returns false.</returns>
+        private bool IsProgressRequirementsMet(int questId,
+                                                  QuestInLogRequirement questInLogRequirement,
+                                                  QuestCompleteRequirement questCompleteRequirement)
+        {
+            // Problem with attributes, and we can't progress
+            if (IsAttributeProblem)
+                { return (false); }
+
+            // QuestId zero always meets our requirements, by definition			
+            if (questId == 0)
+                { return (true); }
+
+            PlayerQuest quest = Me.QuestLog.GetQuestById((uint)questId);
+
+            // 'Quest In Log' handling --
+            if ((questInLogRequirement == QuestInLogRequirement.InLog) && (quest == null))
+                { return (false); }
+
+            if ((questInLogRequirement == QuestInLogRequirement.NotInLog) && (quest != null))
+                { return (false); }
+
+            // 'Quest Complete' handling --
+            bool isQuestComplete = 
+                ((quest != null) && (quest.IsCompleted))                                // we're holding quest & its complete.
+                || StyxWoW.Me.QuestLog.GetCompletedQuests().Contains((uint)questId);    // or, quest was completed 'historically'.
+
+            if ((questCompleteRequirement == QuestCompleteRequirement.Complete) && !isQuestComplete)
+                { return (false); }
+
+            if ((questCompleteRequirement == QuestCompleteRequirement.NotComplete) && isQuestComplete)
+                { return (false); }
+
+            return (true);
+        }
+
+
         #region Main Behaviors
         protected virtual Composite CreateBehavior_CombatMain()
         {
@@ -388,6 +436,25 @@ namespace Honorbuddy.QuestBehaviorCore
             return new PrioritySelector(
                 // empty, for now...
                 );
+        }
+        #endregion
+
+
+
+        #region Helpers
+        public void UpdateGoalText(string extraGoalTextDescription)
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+            TreeRoot.GoalText = string.Format(
+                "{1}: \"{2}\"{0}{3}{0}{0}{4}",
+                Environment.NewLine,
+                QBCLog.GetVersionedBehaviorName(this),
+                ((quest != null)
+                    ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
+                    : "In Progress (no associated quest)"),
+                (extraGoalTextDescription ?? string.Empty),
+                Utility.GetProfileReference(Element));
         }
         #endregion
     }

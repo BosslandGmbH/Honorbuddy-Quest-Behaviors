@@ -70,7 +70,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             Contract.Requires(exclusionReasons != null, context => "reasons != null");
 
-            if (QuestBehaviorBase.IsViable(wowObject))
+            if (Query.IsViable(wowObject))
             {
                 auraIdsRequired = auraIdsRequired ?? Enumerable.Empty<int>();
                 auraIdsUnwanted = auraIdsUnwanted ?? Enumerable.Empty<int>();
@@ -80,13 +80,13 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     var wowUnitAuras = wowUnit.GetAllAuras().ToList();
 
-                    if (!QuestBehaviorBase.IsStateMatch_AurasWanted(wowObject, auraIdsRequired))
+                    if (!Query.IsStateMatch_AurasWanted(wowObject, auraIdsRequired))
                     {
                         exclusionReasons.Add(string.Format("MissingRequiredAura({0})",
                             string.Join(",", auraIdsRequired.Select(i => i.ToString()))));
                     }
 
-                    if (!QuestBehaviorBase.IsStateMatch_AurasMissing(wowObject, auraIdsUnwanted))
+                    if (!Query.IsStateMatch_AurasMissing(wowObject, auraIdsUnwanted))
                     {
                         exclusionReasons.Add(string.Format("HasUnwantedAura({0})",
                             string.Join(",", wowUnitAuras.Where(a => auraIdsUnwanted.Contains(a.SpellId)).Select(a => a.SpellId.ToString()))
@@ -105,26 +105,26 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             var exclusionReasons = new List<string>();
 
-            if (!QuestBehaviorBase.IsViable(wowObject))
+            if (!Query.IsViable(wowObject))
             {
                 exclusionReasons.Add("[NotViable]");
                 return exclusionReasons;
             }
 
-            if (QuestBehaviorBase.IsBlacklistedForCombat(wowObject))
+            if (Query.IsBlacklistedForCombat(wowObject))
             {
                 exclusionReasons.Add("BlacklistedForCombat");
             }
 
-            if (!QuestBehaviorBase.IsStateMatch_IgnoreMobsInBlackspots(wowObject, ignoreMobsInBlackspots))
+            if (!Query.IsStateMatch_IgnoreMobsInBlackspots(wowObject, ignoreMobsInBlackspots))
             {
                 // TODO: Would be better to identify the offending blackspots, rather than the object location...
                 exclusionReasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location));
             }
 
-            if (QuestBehaviorBase.IsInCompetition(wowObject, nonCompeteDistance))
+            if (Query.IsInCompetition(wowObject, nonCompeteDistance))
             {
-                int playerCount = QuestBehaviorBase.FindPlayersNearby(wowObject.Location, nonCompeteDistance).Count();
+                int playerCount = Query.FindPlayersNearby(wowObject.Location, nonCompeteDistance).Count();
 
                 if (playerCount > 0)
                 {
@@ -134,7 +134,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 }
 
                 var wowUnit = wowObject.ToUnit();
-                bool isTagged = (wowUnit != null) && !QuestBehaviorBase.IsSharedWorldResource(wowUnit) && !wowUnit.IsUntagged();
+                bool isTagged = (wowUnit != null) && !Query.IsSharedWorldResource(wowUnit) && !wowUnit.IsUntagged();
                 if (isTagged)
                 {
                     exclusionReasons.Add("TaggedByOtherPlayer");
@@ -154,9 +154,9 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             var wowUnit = wowObject.ToUnit();
 
-            if (QuestBehaviorBase.IsViable(wowUnit))
+            if (Query.IsViable(wowUnit))
             {
-                if (!QuestBehaviorBase.IsStateMatch_MobState(wowUnit, mobState, mobLowHealthThreshold))
+                if (!Query.IsStateMatch_MobState(wowUnit, mobState, mobLowHealthThreshold))
                 {
                     exclusionReasons.Add(mobState == MobStateType.BelowHp
                         ? string.Format("!{0}({1}%)", mobState, mobLowHealthThreshold)

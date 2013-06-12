@@ -384,8 +384,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
             OnStart_QuestBehaviorCore(
                 string.Format("Using {0} on {1}",
-                    GetItemNameFromId(ItemId),
-                    string.Join(", ", MobIds.Select(m => GetObjectNameFromId(m)).Distinct())));
+                    Utility.GetItemNameFromId(ItemId),
+                    string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct())));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
@@ -412,7 +412,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 new PrioritySelector(
                     // Since we do the bulk of the work in the CombatMain hook, we have to allow for looting, also...
                     new Decorator(context => !Me.Combat,
-                        LevelBot.CreateLootBehavior()),
+                        UtilityBehaviorPS_Looting()),
 
                     // Done due to count completing?
                     new Decorator(context => (QuestObjectiveIndex <= 0) && (Counter >= NumOfTimesToUseItem),
@@ -422,7 +422,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
                     // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
                     // for the item to show up, if its going to.
-                    new Decorator(context => (ItemId > 0) && !IsViable(ItemToUse),
+                    new Decorator(context => (ItemId > 0) && !Query.IsViable(ItemToUse),
                         new PrioritySelector(
                             UtilityBehaviorPS_WaitForInventoryItem(context => ItemId),
                             new Action(context =>
@@ -432,12 +432,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                         )),
 
                     // If item is no longer viable to use, warn user and we're done...
-                    new Decorator(context => !IsViable(ItemToUse),
+                    new Decorator(context => !Query.IsViable(ItemToUse),
                         new Action(context =>
                         {
                             QBCLog.Warning(QBCLog.BuildMessageWithContext(Element, 
                                 "We no longer have a viable {0} to use--terminating behavior.",
-                                GetItemNameFromId(ItemId)));
+                                Utility.GetItemNameFromId(ItemId)));
                             BehaviorDone();
                         })),
 
@@ -450,8 +450,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                         new Action(context =>
                         {
                             TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
-                                PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterUsingItem.TimeLeft.TotalSeconds)),
-                                PrettyTime(_waitTimerAfterUsingItem.WaitTime));
+                                Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterUsingItem.TimeLeft.TotalSeconds)),
+                                Utility.PrettyTime(_waitTimerAfterUsingItem.WaitTime));
                         })),
                         
                     // If no viable target, find a new mob to harass...
@@ -475,13 +475,13 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     // No mobs in immediate vicinity...
                     // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
                     // this sub-behavior will terminate the overall behavior.
-                    new Decorator(context => !Me.Combat && !IsViable(SelectedTarget),
+                    new Decorator(context => !Me.Combat && !Query.IsViable(SelectedTarget),
                         UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
                             context => HuntingGrounds,
                             context => false,
-                            context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
+                            context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
                             context => TargetExclusionAnalysis.Analyze(Element,
-                                                    () => FindUnitsFromIds(MobIds),
+                                                    () => Query.FindUnitsFromIds(MobIds),
                                                     TargetExclusionChecks)))
                 ));
         }
@@ -528,7 +528,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                     context => string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.Name))),
                             
                             // If time to use the item, do so...
-                            new Decorator(context => IsViable(ItemToUse) && IsUseItemNeeded(SelectedTarget),
+                            new Decorator(context => Query.IsViable(ItemToUse) && IsUseItemNeeded(SelectedTarget),
                                 new PrioritySelector(
                                     // Halt combat until we are able to use the item...
                                     new Decorator(context => !ItemToUse.Usable
@@ -566,11 +566,11 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                                 if ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
                                                     || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend))
                                                 {
-                                                    BlacklistForInteracting(SelectedTarget, TimeSpan.FromSeconds(180));
+                                                    Query.BlacklistForInteracting(SelectedTarget, TimeSpan.FromSeconds(180));
                                                 }
 
                                                 // If we can't defend ourselves from the target, blacklist it for combat and move on...
-                                                if (IsViable(SelectedTarget)
+                                                if (Query.IsViable(SelectedTarget)
                                                     && ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
                                                         || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)))
                                                 {
@@ -611,8 +611,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                         new Action(context =>
                         {
                             TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
-                                PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterUsingItem.TimeLeft.TotalSeconds)),
-                                PrettyTime(_waitTimerAfterUsingItem.WaitTime));
+                                Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterUsingItem.TimeLeft.TotalSeconds)),
+                                Utility.PrettyTime(_waitTimerAfterUsingItem.WaitTime));
                         })
                     ))
             );
@@ -628,7 +628,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 var isFlyingOrSwimming = Me.IsFlying || Me.IsSwimming;
 
                 var targets =
-                   from wowUnit in FindUnitsFromIds(MobIds)
+                   from wowUnit in Query.FindUnitsFromIds(MobIds)
                     where
                         IsViableForItemUse(wowUnit)
                         && (wowUnit.Distance < CollectionDistance)
@@ -672,7 +672,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         private bool IsViableForItemUse(WoWUnit wowUnit)
         {
             return
-                IsViableForInteracting(wowUnit)
+                Query.IsViableForInteracting(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
+                && Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                 && wowUnit.IsAlive
                 && wowUnit.Attackable
                 && (ItemUseAlwaysSucceeds || !wowUnit.HasAura(ItemAppliesAuraId));
@@ -687,7 +688,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             if (wowObject.Distance > CollectionDistance)
                 { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
 
-            if (IsBlacklistedForInteraction(wowObject))
+            if (Query.IsBlacklistedForInteraction(wowObject))
                 { exclusionReasons.Add("BlacklistedForInteract"); }
 
             var wowUnit = wowObject.ToUnit();

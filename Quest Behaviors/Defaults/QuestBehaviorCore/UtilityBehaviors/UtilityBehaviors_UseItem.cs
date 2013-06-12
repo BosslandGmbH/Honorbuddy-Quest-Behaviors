@@ -48,14 +48,14 @@ namespace Honorbuddy.QuestBehaviorCore
             Contract.Requires(wowItemDelegate != null, context => "wowItemDelegate != null");
 
             return new Sequence(
-                new DecoratorContinue(context => !IsViable(_ubseqUseItemOn_SelectedTarget = selectedTargetDelegate(context)),
+                new DecoratorContinue(context => !Query.IsViable(_ubseqUseItemOn_SelectedTarget = selectedTargetDelegate(context)),
                     new Action(context =>
                     {
                         QBCLog.Warning("Target is not viable!");
                         return RunStatus.Failure;                        
                     })),
 
-                new DecoratorContinue(context => !IsViable(_ubseqUseItemOn_ItemToUse = wowItemDelegate(context)),
+                new DecoratorContinue(context => !Query.IsViable(_ubseqUseItemOn_ItemToUse = wowItemDelegate(context)),
                     new Action(context =>
                     {
                         QBCLog.Warning("We do not possess the item to use on {0}!", _ubseqUseItemOn_SelectedTarget.Name);

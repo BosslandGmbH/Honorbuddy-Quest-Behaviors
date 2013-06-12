@@ -29,10 +29,10 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public abstract partial class QuestBehaviorBase
+    public static class Utility
     {
         // 18Apr2013-10:41UTC chinajade
-        private void AntiAfk()
+        private static void AntiAfk()
         {
 	        if (_afkTimer.IsFinished)
 	        {
@@ -40,11 +40,11 @@ namespace Honorbuddy.QuestBehaviorCore
 		        _afkTimer.Reset();
 	        }   
         }
-        private readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
+        private static readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
 
 
         // 25Apr2013-09:15UTC chinajade
-        public TimeSpan CalculateMaxTimeToDestination(WoWPoint destination, bool includeSafetyMargin = true)
+        public static TimeSpan CalculateMaxTimeToDestination(WoWPoint destination, bool includeSafetyMargin = true)
         {
             const double upperLimitOnMaxTime = 10/*mins*/ * 60/*secs*/;
 
@@ -92,7 +92,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             var wowObject =
                 ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                .FirstOrDefault(o => IsViable(o) && (o.Entry == wowObjectId));
+                .FirstOrDefault(o => Query.IsViable(o) && (o.Entry == wowObjectId));
 
             return (wowObject != null)
                 ? wowObject.Name
@@ -218,24 +218,33 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         //  9Mar2013-12:34UTC chinajade
-        public static string PrettyTime(TimeSpan duration)
+        public static string PrettyTime(TimeSpan duration, bool microwaveTime = true, bool truncateToSeconds = true)
         {
             string format = string.Empty;
 
+            if (truncateToSeconds)
+                { duration = TimeSpan.FromSeconds((int)duration.TotalSeconds); }
+
             if ((int)duration.TotalMilliseconds == 0)
                 { return "0s"; }
-            else if (duration.Hours > 0)
-                { format = "{0}h{1:D2}m{2:D2}s"; }
-            else if (duration.Minutes > 0)
-                { format = "{1}m{2:D2}s"; }
-            else if ((duration.Seconds > 0) && (duration.Milliseconds > 0))
-                { format = "{2}.{3:D3}s"; }
-            else if (duration.Seconds > 0)
-                { format = "{2}s"; }
-            else if (duration.Milliseconds > 0)
-                { format = "{3}ms"; }
 
-            return string.Format(format, duration.Hours, duration.Minutes, duration.Seconds, duration.Milliseconds);
+            if (duration.TotalMinutes >= 100)
+                { format = "{0}h{1:D2}m{2:D2}s"; }
+            else if (duration.TotalSeconds >= 100)
+                { format = "{4}m{2:D2}s"; }
+            else
+            {
+                if (!microwaveTime)
+                    { format = "{4}m{2:D2}s"; }
+                else if (duration.Seconds > 0)
+                    { format = "{5}s"; }
+                else
+                    { format = "0.{3:D3}s"; }
+            }
+
+            return string.Format(format,
+                duration.Hours, duration.Minutes, duration.Seconds, duration.Milliseconds,
+                (int)duration.TotalMinutes, (int)duration.TotalSeconds);
         }
 
         
@@ -246,19 +255,6 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        protected void UpdateGoalText(string extraGoalTextDescription)
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-            TreeRoot.GoalText = string.Format(
-                "{1}: \"{2}\"{0}{3}{0}{0}{4}",
-                Environment.NewLine,
-                QBCLog.GetVersionedBehaviorName(this),
-                ((quest != null)
-                    ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
-                    : "In Progress (no associated quest)"),
-                (extraGoalTextDescription ?? string.Empty),
-                GetProfileReference(Element));            
-        }
+        private static LocalPlayer Me { get { return StyxWoW.Me; } }
     }
 }

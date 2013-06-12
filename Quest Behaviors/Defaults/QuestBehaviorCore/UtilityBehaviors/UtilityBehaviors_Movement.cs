@@ -33,17 +33,17 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             Contract.Requires(wowObjectDelegate != null, context => "wowObjectDelegate != null");
 
-            return new Decorator(context => !MovementObserver.IsSafelyFacing(wowObjectDelegate(context)),
+            return new Decorator(context => !Utility.MovementObserver.IsSafelyFacing(wowObjectDelegate(context)),
                 new Action(context => { Me.SetFacing(wowObjectDelegate(context).Location); }));
         }
 
         // 29Apr2013-05:20UTC chinajade
         public Composite UtilityBehaviorPS_MoveStop()
         {
-            return new Decorator(context => MovementObserver.IsMoving,
+            return new Decorator(context => Utility.MovementObserver.IsMoving,
                 new Sequence(
                     new Action(context => { Navigator.PlayerMover.MoveStop(); }),
-                    new Wait(Delay.LagDuration, context => MovementObserver.IsMoving, new ActionAlwaysSucceed())
+                    new Wait(Delay.LagDuration, context => Utility.MovementObserver.IsMoving, new ActionAlwaysSucceed())
                 ));
         }
 
@@ -72,7 +72,7 @@ namespace Honorbuddy.QuestBehaviorCore
             Contract.Requires(destinationDelegate != null, context => "destinationDelegate may not be null");
             Contract.Requires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
             precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-            locationObserver = locationObserver ?? (context => MovementObserver.Location);
+            locationObserver = locationObserver ?? (context => Utility.MovementObserver.Location);
 
             return new Decorator(context => MovementBy != MovementByType.None,
                 new PrioritySelector(

@@ -34,7 +34,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             catch (Exception except)
             {
-                if (QuestBehaviorBase.IsExceptionReportingNeeded(except))
+                if (Query.IsExceptionReportingNeeded(except))
                 {
                     QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE ({2}):\n{3}\n",
                                                xElement.ToString(), except.Message, except.GetType().Name,

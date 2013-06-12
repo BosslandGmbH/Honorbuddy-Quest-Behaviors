@@ -1,8 +1,23 @@
 ﻿TODO
 ====
-* Need to refactor QBs for TargetAnalysis use
-* UtilityBehaviorPS_MoveTo: If Navigator* in use, and flying--land immediately.
-* Queries.cs: IsUntagged() => IsSharedOrUntagged()
+* Need QB to stand at location and defend--location to defend can be very small or large,
+  and we must never leave area.
+	+ <!-- Feralas: This is an abuse of InteractWith - if they fix it, "Might of the Stonemaul" could be broken -->
+	  <CustomBehavior File="InteractWith" QuestId="25329"  MobId="1" X="-3686.354" Y="1090.208" Z="131.9692" />
+
+* QuestBehaviorBase
+	* Need logic to handle QuestFailure as part of IsDone processing options
+	* Need 'blackspot' logic common to all Quest Behaviors
+	* HAWKER priority: Underwater looting
+	* Capture Original Pull distance, and use it to close gap for SpankMob
+	* UtilityBehaviorPS_MoveTo: If Navigator* in use, and flying--land immediately.
+	* Queries.cs: IsUntagged() => IsSharedOrUntagged()
+	* WeaponArticulation folded into VehicleWeapon.
+	* Need WeaponCharacter that captures fixed MuzzleVelocity and post-fire delay
+	* Need to keep firing if bogus initial MuzzleVelocity obtained for weapon (how?)
+	* NeedsTestFire needs to assume a MuzzleVelocity and aim based on that, then allow the weapon to be fired.
+	* Need a vehicle aim & fire utility behavior.
+	* QuestBehaviorBase needs a global Watchdog Timer
 
 * AbandonQuest
 	+ Needs a feature to jettison all quests we've left behind.
@@ -24,6 +39,9 @@
 
 * EscortGroup
 	* Needs to be adapted to new QuestBehaviorCore framework
+	* For whatever reason EscortGroup responds far too slowly to attacking mobs.
+		[4:56:01 AM] Mjj23q: In some situations.
+		[4:56:13 AM] Chinajade: EscortGroup is doing a lot of things, and I probably need to get some FrameLocks into certain areas of it.
 
 * GetOutOfGroundEffectsAndAuras
 	loving the new moveoutofaura CB, but I have one request
@@ -44,6 +62,14 @@
 		rechecked my IW code for 2 click item use. Range was set to 15. Unfortunately it moves to point blank before attempting.
 	+ Some Inns will bind without gossip, and don't offer wares--need to deal with this.
 	+ See if you can get to "wares" screen of Innkeeper without requiring gossip.
+	+ [4:51:34 AM] Mjj23: Try running this profile then:  Halls of Stone
+	Interact with.....
+		[4:47:50 AM] Mjj23: Macro target Aenous
+		[4:47:56 AM] Mjj23: Aeonus
+		[4:48:08 AM] Mjj23: Which ultimately breaks the while.
+		[4:48:42 AM] Mjj23: In later iterations of IW, it seems the bot does a less good job of actually engaging mobs, and is reduced to "following" them.
+		[4:49:03 AM] Mjj23: Which necessitated the new behavior.
+		[4:49:11 AM] Mjj23: If that all makes sense?
 		
 * KillUntilComplete
 	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive
@@ -77,11 +103,6 @@
 	  are no more targets in the immediate area.  The path should take us to more targets so
 	  ObjectManager.GetObjectsOfType() can be re-populated.
 	+ May need to put a "gnomes killed" timer in place to abandon the current vehicle, and go fetch a fresh one
-	
-* 29918-FourWinds-ALessonInBravery.cs
-	+ People report dying while riding the birds--looks like maybe a Singular issue.  May need a mini combat routine since bird may count as a 'vehicle'.
-	    If so, steal it from Monk 1-12 behavior (that does pole dancing stuff): 29663-PandaStarter-TheLessonoftheBalancedRock.cs.
-	+ Example: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-5.html#post1132773
 
 * 52781-Persuasive Strike
 	+ ?

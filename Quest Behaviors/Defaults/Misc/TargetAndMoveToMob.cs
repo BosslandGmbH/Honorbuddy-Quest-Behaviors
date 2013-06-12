@@ -236,7 +236,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
             {
                 return
                     string.Format("Looking to target mobs: {0}",
-                        string.Join(", ", MobIds.Select(m => GetObjectNameFromId(m)).Distinct()));
+                        string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct()));
             }
         }
         private HuntingGroundsType HuntingGrounds { get; set; }
@@ -339,9 +339,9 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                                 UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
                                         context => HuntingGrounds,
                                         context => !WaitForNpcs,
-                                        context => MobIds.Select(m => GetObjectNameFromId(m)).Distinct(),
+                                        context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
                                         context => TargetExclusionAnalysis.Analyze(Element,
-                                                    () => FindObjectsFromIds(MobIds),
+                                                    () => Query.FindObjectsFromIds(MobIds),
                                                     TargetExclusionChecks))
                             ))
                     )),
@@ -371,7 +371,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
         private WoWUnit FindQualifiedMob()
         {
             return
-               (from wowUnit in FindUnitsFromIds(MobIds)
+               (from wowUnit in Query.FindUnitsFromIds(MobIds)
                 where
                     IsMobQualified(wowUnit)
                 orderby wowUnit.Distance
@@ -382,11 +382,11 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 
         private bool IsDistanceCloseNeeded(WoWObject wowObject)
         {
-            double targetDistance = MovementObserver.Location.Distance(wowObject.Location);
+            double targetDistance = Utility.MovementObserver.Location.Distance(wowObject.Location);
 
             var isWithinRange =
                 (targetDistance <= MoveWithinMaxRangeOfMob)
-                && (IgnoreLoSToTarget || IsInLineOfSight(wowObject));
+                && (IgnoreLoSToTarget || Query.IsInLineOfSight(wowObject));
 
             return !isWithinRange;
         }
@@ -395,18 +395,18 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
         private bool IsMobQualified(WoWUnit wowUnit)
         {
             return
-                IsViable(wowUnit)
+                Query.IsViable(wowUnit)
                 // Unique checks...
                     && (wowUnit.HealthPercent >= TargetOnlyIfHealthPercentAbove)
                     && (wowUnit.HealthPercent <= TargetOnlyIfHealthPercentBelow)
                 // 'Core' checks...
-                    && !IsBlacklistedForCombat(wowUnit)
-                    && IsStateMatch_IgnoreMobsInBlackspots(wowUnit, IgnoreMobsInBlackspots)
-                    && !IsInCompetition(wowUnit, NonCompeteDistance)
-                    && IsStateMatch_MeshNavigable(wowUnit, MovementBy)
+                    && !Query.IsBlacklistedForCombat(wowUnit)
+                    && Query.IsStateMatch_IgnoreMobsInBlackspots(wowUnit, IgnoreMobsInBlackspots)
+                    && !Query.IsInCompetition(wowUnit, NonCompeteDistance)
+                    && Query.IsStateMatch_MeshNavigable(wowUnit, MovementBy)
                 // 'Aura' checks...
-                    && IsStateMatch_AurasWanted(wowUnit, TargetOnlyIfMobHasAuraId)
-                    && IsStateMatch_AurasMissing(wowUnit, TargetOnlyIfMobMissingAuraId);
+                    && Query.IsStateMatch_AurasWanted(wowUnit, TargetOnlyIfMobHasAuraId)
+                    && Query.IsStateMatch_AurasMissing(wowUnit, TargetOnlyIfMobMissingAuraId);
         }
 
 

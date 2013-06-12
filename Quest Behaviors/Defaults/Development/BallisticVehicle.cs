@@ -93,9 +93,9 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
                 // resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
-                        + "\nFROM HERE:\n"
-                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                            + "\nFROM HERE:\n"
+                            + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -144,7 +144,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
             {
                 // For DEBUGGING...
                 if (_state_MainBehavior != value)
-                    { LogInfo("State_MainBehavior: {0}", value); }
+                    { QBCLog.Info("State_MainBehavior: {0}", value); }
                 _state_MainBehavior = value;
             }
         }
@@ -198,9 +198,9 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
 
                 if (Me.InVehicle)
                 {
-                    LogInfo("VEHICLE SPELLS--");
+                    QBCLog.Info("VEHICLE SPELLS--");
                     foreach (var wowPetSpell in Me.PetSpells.Where(s => s.Spell != null))
-                        { LogInfo(wowPetSpell.ToString_FullInfo()); }
+                        { QBCLog.Info(wowPetSpell.ToString_FullInfo()); }
                 }
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
@@ -209,7 +209,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                 {
                     foreach (var objective in quest.GetObjectives())
                     {
-                        LogInfo(objective.ToString_FullInfo());
+                        QBCLog.Info(objective.ToString_FullInfo());
                     }
                 }
             }
@@ -235,7 +235,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                         #region State: DEFAULT
                         new Action(context =>   // default case
                         {
-                            LogMaintenanceError("BehaviorState({0}) is unhandled", State_MainBehavior);
+                            QBCLog.MaintenanceError("BehaviorState({0}) is unhandled", State_MainBehavior);
                             TreeRoot.Stop();
                             BehaviorDone();
                         }),
@@ -266,7 +266,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                             new Action(context =>
                                             {
                                                 VehicleWeaponMover = new VehicleWeaponMoverType();
-                                                LogInfo("{0}", VehicleWeaponMover.ToString());
+                                                QBCLog.Info("{0}", VehicleWeaponMover.ToString());
                                             })),
 
                                         new Action(context =>
@@ -307,7 +307,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                     })),
 
                                 // If targets in the area, have at them...
-                                new Decorator(context => IsViable(SelectedTarget),
+                                new Decorator(context => Query.IsViable(SelectedTarget),
                                     new PrioritySelector(
                                         // Make certain were within the prescribed range for engagement...
                                         new Decorator(context => Me.Location.Distance(SelectedTarget.Location) > CombatMaxEngagementDistance,
@@ -377,7 +377,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
 
                 ActionBarIndex = wowPetSpell.ActionBarIndex +1;
                 Spell = wowPetSpell.Spell;
-LogInfo("{0}", Spell.ToString_FullInfo());
+QBCLog.Info("{0}", Spell.ToString_FullInfo());
                 if (Spell != null)
                 {
                     IsMissile = Spell.SpellMissileId != 0;
@@ -405,7 +405,7 @@ string LuaCommand_Spell = string.Format("return GetSpellCooldown({0});", Spell.I
 IEnumerable<string> tmpResultSpell = Lua.GetReturnValues(LuaCommand_Spell);
 string LuaCommand_PetAction = string.Format("return GetPetActionCooldown({0});", ActionBarIndex);
 IEnumerable<string> tmpResultPetAction = Lua.GetReturnValues(LuaCommand_PetAction);
-LogError("\nSPELL CD RESULTS({0}): \"{1}\"\nPETACTION CD RESULTS({2}): \"{3}\"",
+QBCLog.Error("\nSPELL CD RESULTS({0}): \"{1}\"\nPETACTION CD RESULTS({2}): \"{3}\"",
     LuaCommand_Spell,
     string.Join("\", \"", tmpResultSpell),
     LuaCommand_PetAction,
@@ -415,7 +415,7 @@ LogError("\nSPELL CD RESULTS({0}): \"{1}\"\nPETACTION CD RESULTS({2}): \"{3}\"",
                 bool isOnCooldown2 = _wowPetSpell.Cooldown;
                 bool isOnCooldown3 = (Spell == null) ? false : (Spell.CooldownTimeLeft > TimeSpan.Zero);
                 bool isOnCooldown4 = (Spell == null) ? false : Spell.Cooldown;
-LogInfo("COOLDOWN: {0}/{1}/{2}/{3}", isOnCooldown1, isOnCooldown2, isOnCooldown3, isOnCooldown4);
+QBCLog.Info("COOLDOWN: {0}/{1}/{2}/{3}", isOnCooldown1, isOnCooldown2, isOnCooldown3, isOnCooldown4);
 return tmpStopwatch.ElapsedMilliseconds > 2000;
                 return isOnCooldown3;
             }
@@ -447,11 +447,11 @@ return tmpStopwatch.ElapsedMilliseconds > 2000;
 private static Stopwatch tmpStopwatch = new Stopwatch();
             public void UseAbility()
             {
-LogInfo("COOLDOWNS BEFORE CAST");
+QBCLog.Info("COOLDOWNS BEFORE CAST");
 IsAbilityReady();
 tmpStopwatch.Reset();
                 Lua.DoString(LuaCommand_Cast);
-LogInfo("COOLDOWNS AFTER CAST");
+QBCLog.Info("COOLDOWNS AFTER CAST");
 IsAbilityReady();
                 MuzzleVelocity = UpdateMuzzleVelocity();
             }
@@ -485,7 +485,7 @@ IsAbilityReady();
                     // If we failed to see the missile, report error and move on...
                     if (launchedMissile == null)
                     {
-                        LogWarning("Muzzle Velocity not calculated--"
+                        QBCLog.Warning("Muzzle Velocity not calculated--"
                             + "Unable to locate projectile launched by Vehicle Ability button #{0}",
                             ActionBarIndex);
                         return muzzleVelocity;
@@ -586,7 +586,7 @@ IsAbilityReady();
                 select mobId;
 
             return
-               (from target in FindUnitsFromIds(targetMobIds.ToArray())
+               (from target in Query.FindUnitsFromIds(targetMobIds.ToArray())
                 orderby Me.Location.Distance(target.Location)
                 select target)
                 .FirstOrDefault();
@@ -595,14 +595,14 @@ IsAbilityReady();
 
         private WoWUnit FindUnoccupiedVehicle(IEnumerable<int> mobIds_UnoccupiedVehicle)
         {
-            ContractRequires(mobIds_UnoccupiedVehicle != null,
+            Contract.Requires(mobIds_UnoccupiedVehicle != null,
                 context => "mobIds_UnoccupiedVehicle argument may not be null");
 
             return
-                (from vehicle in FindUnitsFromIds(mobIds_UnoccupiedVehicle)
+                (from vehicle in Query.FindUnitsFromIds(mobIds_UnoccupiedVehicle)
                  where
                     !vehicle.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
-                    && !FindPlayersNearby(vehicle.Location, NonCompeteDistance).Any()
+                    && !Query.FindPlayersNearby(vehicle.Location, NonCompeteDistance).Any()
                  orderby vehicle.Distance
                  select vehicle)
                  .FirstOrDefault();
@@ -626,7 +626,7 @@ IsAbilityReady();
                 {
                     var ability = new VehicleAbility(wowPetSpell);
                     abilities.Add(ability);
-LogInfo("ABILITY: {0}", ability.ToString());
+QBCLog.Info("ABILITY: {0}", ability.ToString());
 //LogInfo("SPELL: {0}", wowPetSpell.Spell.ToString_FullInfo());
                 }
             }
@@ -639,7 +639,7 @@ LogInfo("ABILITY: {0}", ability.ToString());
         {
             public VehicleWeaponMoverType()
             {
-                ContractRequires(Me.InVehicle, context => "Me.InVehicle");
+                Contract.Requires(Me.InVehicle, context => "Me.InVehicle");
 
                 AzimuthBaseAbsolute = AzimuthCurrentAbsolute();
                 HeadingBaseAbsolute = HeadingCurrentAbsolute();
@@ -823,7 +823,7 @@ LogInfo("ABILITY: {0}", ability.ToString());
 
                 catch (Exception except)
                 {
-                    LogError("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
+                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
                         xElement.ToString(), except.Message, except.StackTrace);
                     IsAttributeProblem = true;
                 }

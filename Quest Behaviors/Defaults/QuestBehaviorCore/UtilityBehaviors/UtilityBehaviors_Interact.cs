@@ -34,7 +34,7 @@ namespace Honorbuddy.QuestBehaviorCore
             doMovementDelegate = doMovementDelegate ?? (context => true);
 
             return new Sequence(
-                new DecoratorContinue(context => !IsViable(_ubseqInteractWith_SelectedTarget = selectedTargetDelegate(context)),
+                new DecoratorContinue(context => !Query.IsViable(_ubseqInteractWith_SelectedTarget = selectedTargetDelegate(context)),
                     new Action(context =>
                     {
                         QBCLog.Warning("Target is not viable!");

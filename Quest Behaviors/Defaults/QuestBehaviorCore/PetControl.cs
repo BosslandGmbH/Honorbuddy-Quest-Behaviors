@@ -187,7 +187,7 @@ namespace Honorbuddy.QuestBehaviorCore
             // NB: We can't issue "Attack" directive while mounted, so don't try...
             return new Decorator(context => Me.GotAlivePet
                                             && !Me.Mounted
-                                            && IsViableForFighting(wowUnitDelegate(context))
+                                            && Query.IsViableForFighting(wowUnitDelegate(context))
                                             && (Me.Pet.CurrentTarget != wowUnitDelegate(context))
                                             && CanCastPetAction(spellName),
                 new Action(context => CastPetAction(spellName, wowUnitDelegate(context))));
@@ -214,7 +214,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return new Decorator(context => Me.GotAlivePet
                                             && !Me.Mounted
                                             && CanCastPetAction(spellName)
-                                            && (!IsPetActionActive(spellName) || IsViableForFighting(Me.Pet.CurrentTarget)),
+                                            && (!IsPetActionActive(spellName) || Query.IsViableForFighting(Me.Pet.CurrentTarget)),
                 new Action(context => CastPetAction(spellName)));
         }
         

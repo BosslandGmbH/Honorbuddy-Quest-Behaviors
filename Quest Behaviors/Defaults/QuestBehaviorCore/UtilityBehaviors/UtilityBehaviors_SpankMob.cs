@@ -41,86 +41,81 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
+            WoWUnit mob = null;
+            var engagementWatchdogTimer = new WaitTimer(TimeSpan.FromMilliseconds(7000));
+
             var blacklistForPullTime = TimeSpan.FromSeconds(3 * 60);
             var minTimeToEngagement = TimeSpan.FromSeconds(3);
 
             return new PrioritySelector(
-                new Action(context =>
+                new ActionFail(context =>
                 {
                     var selectedTarget = selectedTargetDelegate(context);
-                    var isMobChanged = (_ubpsSpankMob_Mob != selectedTarget);
+                    var isMobChanged = (mob != selectedTarget);
 
-                    _ubpsSpankMob_Mob = selectedTarget;
+                    mob = selectedTarget;
 
-                    bool hasAggro = IsViable(_ubpsSpankMob_Mob) && _ubpsSpankMob_Mob.Aggro;
-                    if (hasAggro)
-                        { _ubpsSpankMob_EngagementTimer = null; }
-                    else if (IsViable(_ubpsSpankMob_Mob) && (isMobChanged || (_ubpsSpankMob_EngagementTimer == null)))
+                    if (Query.IsViableForFighting(mob))
                     {
-                        _ubpsSpankMob_EngagementTimer = new WaitTimer(CalculateMaxTimeToDestination(_ubpsSpankMob_Mob.Location, false)
-                                                                        + minTimeToEngagement);
-                        _ubpsSpankMob_EngagementTimer.Reset();
-                    }
+                        // If we have mob aggro, cancel the engagement timer...
+                        if (mob.Aggro)
+                            { engagementWatchdogTimer = null; }
 
-                    return RunStatus.Failure;   // fall through     
-                }),
+                        // Otherwise, start watchdog timer for engaging mob...
+                        else if (isMobChanged || (engagementWatchdogTimer == null))
+                        {
+                            engagementWatchdogTimer =
+                                new WaitTimer(Utility.CalculateMaxTimeToDestination(mob.Location, false)
+                                              + minTimeToEngagement);
+                            engagementWatchdogTimer.Reset();
+                        }
 
-                new Decorator(context => IsViableForFighting(_ubpsSpankMob_Mob),
-                    new PrioritySelector(
                         // If we are unable to engage an unaggro'd mob in a reasonable amount of time,
                         // cancel attack, and blacklist mob...
-                        new Decorator(context => (_ubpsSpankMob_EngagementTimer != null)
-                                                && _ubpsSpankMob_EngagementTimer.IsFinished,
-                            new Action(context =>
-                            {
-                                if (!_ubpsSpankMob_Mob.Aggro)
-                                {
-                                    QBCLog.Warning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
-                                        _ubpsSpankMob_Mob.Name,
-                                        PrettyTime(_ubpsSpankMob_EngagementTimer.WaitTime),
-                                        PrettyTime(blacklistForPullTime));
-                                    BlacklistForPulling(_ubpsSpankMob_Mob, blacklistForPullTime);
-                                    _ubpsSpankMob_Mob = null;
-                                }
-                                _ubpsSpankMob_EngagementTimer = null;
-                            })), 
-                    
-                        new Decorator(context => Me.CurrentTarget != _ubpsSpankMob_Mob,
-                            new Action(context =>
-                            {
-                                _ubpsSpankMob_Mob.Target();
-                                BotPoi.Current = new BotPoi(_ubpsSpankMob_Mob, PoiType.Kill);
-                                return RunStatus.Failure; // fall through
-                            })),
+                        if ((engagementWatchdogTimer != null) && engagementWatchdogTimer.IsFinished)
+                        {
+                            QBCLog.Warning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
+                                mob.Name,
+                                Utility.PrettyTime(engagementWatchdogTimer.WaitTime),
+                                Utility.PrettyTime(blacklistForPullTime));
+                            Query.BlacklistForPulling(mob, blacklistForPullTime);
+                            BotPoi.Clear();
+                            Me.ClearTarget();
+                            mob = null;
+                            return RunStatus.Failure;
+                        }
 
-                        // NB: Some Combat Routines (CR) will stall when asked to kill things from too far away.
-                        // So, we manually move the toon within reasonable range before asking the CR to kill it.
-                        // Note that some behaviors will set the PullDistance to zero or one while they run, but we don't want to
-                        // actually get that close to engage, so we impose a lower bound of 23 feet that we move before handing
-                        // things over to the combat routine.
-                        // new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
-                        //    UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
-                        //                            context => _ubpsSpankMob_Mob.Name)),
-                        new Decorator(context => Me.Mounted,
-                            new Action(context => { Mount.Dismount(); })),
+                        // Mark target and notify Combat Routine of target, if needed...
+                        if (Me.CurrentTarget != mob)
+                        {
+                            mob.Target();
+                            BotPoi.Current = new BotPoi(mob, PoiType.Kill);
+                        }
 
+                        if (Me.Mounted)
+                            { Mount.Dismount(); }
+                    }
+
+                    return RunStatus.Failure;   // fall through
+                }),
+
+                new Decorator(context => Query.IsViable(mob),
+                    new PrioritySelector(
                         // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
                         // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
                         // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
                         // So, no need to duplicate that work here.
-                            new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
-                                RoutineManager.Current.HealBehavior),
-                            new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
-                                RoutineManager.Current.CombatBuffBehavior),
-                            RoutineManager.Current.CombatBehavior,
+                        new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
+                            RoutineManager.Current.HealBehavior),
+                        new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
+                            RoutineManager.Current.CombatBuffBehavior),
+                        RoutineManager.Current.CombatBehavior,
 
-                            // Keep fighting until mob is dead...
-                            new ActionAlwaysSucceed()
-                        ))
-                );
+                        // Keep fighting until mob is dead...
+                        new ActionAlwaysSucceed()
+                    ))
+            );
         }
-        private WoWUnit _ubpsSpankMob_Mob;
-        private WaitTimer _ubpsSpankMob_EngagementTimer = new WaitTimer(TimeSpan.FromMilliseconds(7000));
 
         
         /// <summary>
@@ -131,13 +126,15 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             excludedUnitsDelegate = excludedUnitsDelegate ?? (context => Enumerable.Empty<WoWUnit>());
 
+            WoWUnit mob = null;
+
             Func<object, bool> isInterestingToUs =
                 (obj) =>
                 {
                     var wowUnit = obj as WoWUnit;
 
                     return
-                        IsViableForPulling(wowUnit)
+                        Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                         && (wowUnit.IsTargetingMeOrPet
                             || wowUnit.IsTargetingAnyMinion
                             || wowUnit.IsTargetingMyPartyMember)
@@ -148,39 +145,41 @@ namespace Honorbuddy.QuestBehaviorCore
                         // exclude any units that are candidates for interacting
                         && !excludedUnitsDelegate(obj).Contains(wowUnit);                                                     
                 };
-                            
-            return new PrioritySelector(
+                    
+            Func<object, WoWUnit> mobTargetingUs =
+            (context) =>
+            {
                 // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
                 // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                new Decorator(context => !IsViableForPulling(_ubpsSpankMobTargetingUs_Mob),
-                    new Action(context =>
+                if (!Query.IsViableForPulling(mob, IgnoreMobsInBlackspots, NonCompeteDistance))
+                {
+                    using (StyxWoW.Memory.AcquireFrame())
                     {
-                        using (StyxWoW.Memory.AcquireFrame())
-                        {
-                            _ubpsSpankMobTargetingUs_Mob =
-                               (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                where isInterestingToUs(wowUnit)
-                                orderby wowUnit.SurfacePathDistance()
-                                select wowUnit)
-                                .FirstOrDefault();
-                        }
+                        mob =
+                            (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                            where isInterestingToUs(wowUnit)
+                            orderby wowUnit.SurfacePathDistance()
+                            select wowUnit)
+                            .FirstOrDefault();
+                    }
 
-                        return RunStatus.Failure;   // fall through
-                    })),
-
-                // Spank any mobs we find being naughty...
-                new CompositeThrottle(context => IsViable(_ubpsSpankMobTargetingUs_Mob),
-                    TimeSpan.FromMilliseconds(3000),
-                    new Action(context =>
+                    if (Query.IsViable(mob))
                     {
+                        mob.Target();
+                        BotPoi.Current = new BotPoi(mob, PoiType.Kill);
+                        Navigator.PlayerMover.MoveStop();
+                        Me.SetFacing(mob.Location);
                         TreeRoot.StatusText = string.Format("Spanking {0} that has targeted us.",
-                            _ubpsSpankMobTargetingUs_Mob.Name);                                    
-                    })),
-                new Decorator(context => IsViable(_ubpsSpankMobTargetingUs_Mob),
-                    UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobTargetingUs_Mob))
-            );
+                            mob.Name);
+                    }
+                }
+
+                return mob;
+            };
+
+            // Spank any mobs we found being naughty...
+            return UtilityBehaviorPS_SpankMob(context => mobTargetingUs(context));
         }
-        private WoWUnit _ubpsSpankMobTargetingUs_Mob;
 
 
         // 24Feb2013-08:11UTC chinajade
@@ -192,13 +191,13 @@ namespace Honorbuddy.QuestBehaviorCore
             extraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
             excludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
 
-            Func<object, bool> isInterestingToUs =
-                (obj) =>
-                {
-                    WoWUnit wowUnit = obj as WoWUnit;
+            WoWUnit mob = null;
 
+            Func<WoWUnit, bool> isInterestingToUs =
+                (wowUnit) =>
+                {
                     return
-                        IsViableForPulling(wowUnit)
+                        Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                         && wowUnit.IsHostile
                         && wowUnit.IsUntagged()
                         // exclude opposing faction: both players and their pets show up as "PlayerControlled"
@@ -207,40 +206,42 @@ namespace Honorbuddy.QuestBehaviorCore
                         && !excludedUnitIdsDelegate().Contains((int)wowUnit.Entry)
                         // Do not pull mobs on the AvoidMobs list
                         && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                        && (wowUnit.Location.SurfacePathDistance(destinationDelegate(obj)) <= (wowUnit.MyAggroRange + extraRangePaddingDelegate(obj)));
+                        && (wowUnit.Location.SurfacePathDistance(destinationDelegate(wowUnit)) <= (wowUnit.MyAggroRange + extraRangePaddingDelegate(wowUnit)));
                 };
         
-            return new Decorator(context => !Me.Combat,
-                new PrioritySelector(
+            Func<object, WoWUnit> mobWithinAggroRange =
+            (context) =>
+            {
+                if (!Query.IsViableForPulling(mob, IgnoreMobsInBlackspots, NonCompeteDistance))
+                {
                     // If a mob is within aggro range of our destination, deal with it immediately...
                     // Otherwise, it will interrupt our attempt to interact or use items.
-                    new Decorator(context => !IsViableForPulling(_ubpsSpankMobWithinAggroRange_Mob),
-                        new Action(context =>
-                        {
-                            _ubpsSpankMobWithinAggroRange_Mob =
-                               (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                where isInterestingToUs(wowUnit)
-                                orderby wowUnit.SurfacePathDistance()
-                                select wowUnit)
-                                .FirstOrDefault();
+                    using (StyxWoW.Memory.AcquireFrame())
+                    {
+                        mob =
+                            (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                             where isInterestingToUs(wowUnit)
+                             orderby wowUnit.SurfacePathDistance()
+                             select wowUnit)
+                            .FirstOrDefault();
+                    }
 
-                            return RunStatus.Failure;   // fall through
-                        })),
+                    if (Query.IsViable(mob))
+                    {
+                        mob.Target();
+                        BotPoi.Current = new BotPoi(mob, PoiType.Kill);
+                        TreeRoot.StatusText = string.Format("Spanking {0}({1}) within aggro range ({2:F1}) of our destination.",
+                            mob.Name,
+                            mob.Entry,
+                            (mob.MyAggroRange + extraRangePaddingDelegate(context)));
+                    }
+                }
 
-                    // Spank any mobs we find being naughty...
-                    new CompositeThrottle(context => IsViable(_ubpsSpankMobWithinAggroRange_Mob),
-                        TimeSpan.FromMilliseconds(3000),
-                        new Action(context =>
-                        {
-                            TreeRoot.StatusText = string.Format("Spanking {0}({1}) within aggro range ({2:F1}) of our destination.",
-                                _ubpsSpankMobWithinAggroRange_Mob.Name,
-                                _ubpsSpankMobWithinAggroRange_Mob.Entry,
-                                (_ubpsSpankMobWithinAggroRange_Mob.MyAggroRange + extraRangePaddingDelegate(context)));                                    
-                        })),
-                    new Decorator(context => IsViable(_ubpsSpankMobWithinAggroRange_Mob),
-                        UtilityBehaviorPS_SpankMob(context => _ubpsSpankMobWithinAggroRange_Mob))
-            ));
+                return mob;
+            };
+
+            // Spank any mobs we found being naughty...
+            return UtilityBehaviorPS_SpankMob(context => mobWithinAggroRange(context));
         }
-        private WoWUnit _ubpsSpankMobWithinAggroRange_Mob;
     }
 }

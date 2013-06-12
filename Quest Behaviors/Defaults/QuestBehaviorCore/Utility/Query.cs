@@ -26,12 +26,13 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public abstract partial class QuestBehaviorBase
+    public static class Query
     {
         // Do NOT make this static!
         // We need a 'fresh list' each time the QB is started; otherwise, very bad things happen.
-        private readonly LocalBlacklist _interactBlacklist = new LocalBlacklist();
-        private readonly LocalBlacklist _pullingBlacklist = new LocalBlacklist();
+        private static LocalBlacklist _interactBlacklist = new LocalBlacklist();
+        private static LocalBlacklist _pullingBlacklist = new LocalBlacklist();
+
 
         // 30May2013-03:56UTC chinajade
         public static void BlacklistForCombat(WoWObject wowObject, TimeSpan duration)
@@ -44,7 +45,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 11Apr2013-03:56UTC chinajade
-        public void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
+        public static void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
         {
             if (wowObject != null)
             { 
@@ -53,12 +54,19 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        public void BlacklistForPulling(WoWObject wowObject, TimeSpan duration)
+        public static void BlacklistForPulling(WoWObject wowObject, TimeSpan duration)
         {
             if (wowObject != null)
             {
                 _pullingBlacklist.Add(wowObject.Guid, duration);
             }
+        }
+
+
+        public static void BlacklistsReset()
+        {
+            _interactBlacklist = new LocalBlacklist();
+            _pullingBlacklist = new LocalBlacklist();
         }
         
         
@@ -128,7 +136,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 11Apr2013-04:41UTC chinajade
-        public bool IsBlacklistedForInteraction(WoWObject wowObject)
+        public static bool IsBlacklistedForInteraction(WoWObject wowObject)
         {
             return (wowObject != null)
                 ? _interactBlacklist.Contains(wowObject.Guid)
@@ -137,7 +145,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 4Jun2013-04:41UTC chinajade
-        public bool IsBlacklistedForPulling(WoWObject wowObject)
+        public static bool IsBlacklistedForPulling(WoWObject wowObject)
         {
             return (wowObject != null)
                 ? _pullingBlacklist.Contains(wowObject.Guid)
@@ -265,7 +273,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return
                 (movementBy != MovementByType.NavigatorOnly)
                 || ((movementBy == MovementByType.NavigatorOnly)
-                    && !Navigator.CanNavigateFully(Me.Location, wowObject.Location));
+                    && !Navigator.CanNavigateFully(StyxWoW.Me.Location, wowObject.Location));
         }
 
 
@@ -322,7 +330,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-        public bool IsViableForInteracting(WoWObject wowObject)
+        public static bool IsViableForInteracting(WoWObject wowObject,
+                                                 bool ignoreMobsInBlackspots,
+                                                 double nonCompeteDistance)
         {
             if (wowObject == null)
                 { return false; }
@@ -330,19 +340,22 @@ namespace Honorbuddy.QuestBehaviorCore
             bool isViableForInteracting =
                 IsViable(wowObject)
                 && !IsBlacklistedForInteraction(wowObject)
-                && (IgnoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
-                && !IsInCompetition(wowObject, NonCompeteDistance);
+                && (ignoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
+                && !IsInCompetition(wowObject, nonCompeteDistance);
 
             return isViableForInteracting;
         }
 
 
         // 24Feb2013-08:11UTC chinajade
-        public bool IsViableForPulling(WoWUnit wowUnit)
+        public static bool IsViableForPulling(WoWUnit wowUnit,
+                                              bool ignoreMobsInBlackspots,
+                                              double nonCompeteDistance)
         {
             return IsViableForFighting(wowUnit)
                     && !IsBlacklistedForPulling(wowUnit)
-                    && !IsInCompetition(wowUnit, NonCompeteDistance);
+                    && (ignoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowUnit.Location))
+                    && !IsInCompetition(wowUnit, nonCompeteDistance);
         }
     }
 }

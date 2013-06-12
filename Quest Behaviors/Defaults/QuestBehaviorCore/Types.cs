@@ -105,6 +105,7 @@ namespace Honorbuddy.QuestBehaviorCore
     public delegate double ProvideDoubleDelegate(object context);
     public delegate string ProvideStringDelegate(object context);
     public delegate HuntingGroundsType ProvideHuntingGroundsDelegate(object context);
+    public delegate MovementByType ProvideMovementByDelgate(object context);
     public delegate WoWItem ProvideWoWItemDelegate(object context);
     public delegate WoWObject ProvideWoWObjectDelegate(object context);
     public delegate WoWPoint ProvideWoWPointDelegate(object context);
