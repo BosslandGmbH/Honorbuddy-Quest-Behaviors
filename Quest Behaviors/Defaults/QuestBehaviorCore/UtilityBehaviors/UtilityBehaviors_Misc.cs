@@ -18,6 +18,7 @@ using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
+using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -54,7 +55,9 @@ namespace Honorbuddy.QuestBehaviorCore
                         {
                             mob =
                                (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                where isViableForLooting(wowUnit)
+                                where
+                                    isViableForLooting(wowUnit)
+                                    && wowUnit.Distance < CharacterSettings.Instance.LootRadius
                                 orderby wowUnit.DistanceSqr
                                 select wowUnit)
                                 .FirstOrDefault();
