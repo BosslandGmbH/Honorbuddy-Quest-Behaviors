@@ -311,7 +311,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                 {
                                     TreeRoot.StatusText = string.Format("Pressing Button {0} at Quest Complete.",
                                                                         ButtonOnQuestComplete.Value);
-                                    Lua.DoString("RunMacroText(\"/click BonusActionButton{0}\")", ButtonOnQuestComplete.Value);
+                                    Lua.DoString("RunMacroText(\"/click OverrideActionBarButton{0}\")", ButtonOnQuestComplete.Value);
                                 })),
 
                             // If behavior done, bail...
@@ -357,7 +357,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                                                     TargetAuraToButtonMap[aura.SpellId],
                                                                     CurrentTarget.Name,
                                                                     aura.Name);
-                                Lua.DoString("RunMacroText(\"/click BonusActionButton{0}\")", TargetAuraToButtonMap[aura.SpellId]);
+                                Lua.DoString("RunMacroText(\"/click OverrideActionBarButton{0}\")", TargetAuraToButtonMap[aura.SpellId]);
                             }),
                             new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
                             new WaitContinue(PostInteractDelay, ret => false, new ActionAlwaysSucceed()),
