@@ -32,8 +32,8 @@
     <RootNamespace>QBs</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Honorbuddy-clean">
-      <HintPath>..\Honorbuddy-clean.exe</HintPath>
+    <Reference Include="Honorbuddy">
+      <HintPath>..\Honorbuddy.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />

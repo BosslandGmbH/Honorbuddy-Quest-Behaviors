@@ -444,7 +444,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
             var viableTargets =
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                 where
-                    unit.IsValid && unit.IsAlive && !Blacklist.Contains(unit)
+                    unit.IsValid && unit.IsAlive && !Blacklist.Contains(unit, BlacklistFlags.Combat)
                     && (unit.Entry == targetId)
                 orderby unit.Distance
                 select unit;

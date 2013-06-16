@@ -86,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
                 return (ObjectManager.GetObjectsOfType<WoWUnit>(true)
                                      .OrderBy(o => o.Distance)
                                      .FirstOrDefault(o => !o.IsDead
-                                                     && !Blacklist.Contains(o.Guid)
+                                                     && !Blacklist.Contains(o.Guid, BlacklistFlags.Combat)
                                                      && (!o.GotTarget || o.IsTargetingMeOrPet)
                                                      && MobIds.Contains((int)o.Entry)));
             }
@@ -138,7 +138,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
                         new Action(c =>
                         {
                             if (!Npc.Attackable)
-                                Blacklist.Add(Npc.Guid, new TimeSpan(0, 5, 0));
+                                Blacklist.Add(Npc.Guid, BlacklistFlags.Combat, new TimeSpan(0, 5, 0));
 
                             if ((Me.Combat && (Me.GotTarget && Me.CurrentTarget != Npc && !MobIds.Contains((int)Me.CurrentTarget.Entry))
                                 || Me.HealthPercent < HealthPercent) || IsDone)
@@ -166,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
                                 {
                                     LootFrame.Instance.LootAll();
                                     if (Me.GotTarget)
-                                        Blacklist.Add(Me.CurrentTarget, new TimeSpan(1, 0, 0));
+                                        Blacklist.Add(Me.CurrentTarget, BlacklistFlags.Combat, new TimeSpan(1, 0, 0));
                                     Me.ClearTarget();
                                 }
                                 return RunStatus.Running;

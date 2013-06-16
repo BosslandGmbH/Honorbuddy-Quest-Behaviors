@@ -5,16 +5,12 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -245,22 +241,22 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
                             })
                         ),
 
-                        new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(2) && !Me.Auras.ContainsKey("Flame Shield"),
+                        new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(2, BlacklistFlags.Combat) && !Me.Auras.ContainsKey("Flame Shield"),
                             new Action(delegate
                             {
                                 Log("Cast Flame Shield");
                                 Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
-                                Blacklist.Add(2, TimeSpan.FromMilliseconds(6000));
+                                Blacklist.Add(2, BlacklistFlags.Combat, TimeSpan.FromMilliseconds(6000));
                                 return RunStatus.Success;
                             })
                         ),
 
-                        new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(1),
+                        new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(1, BlacklistFlags.Combat),
                             new Action(delegate
                             {
                                 Log("Cast Attack");
                                 Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
-                                Blacklist.Add(1, TimeSpan.FromMilliseconds(1500));
+                                Blacklist.Add(1, BlacklistFlags.Combat, TimeSpan.FromMilliseconds(1500));
                                 return RunStatus.Success;
                             })
                         ),

@@ -57,7 +57,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
         {
             get
             {
-                WoWDescriptorQuest questData;
                 var quest = Me.QuestLog.GetQuestById(QuestId);
                 //return false;
                 return quest == null || quest.IsCompleted; //|| quest.GetData(out questData) && questData.ObjectivesDone[1] == 1;

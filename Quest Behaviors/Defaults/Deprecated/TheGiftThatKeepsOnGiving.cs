@@ -179,7 +179,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
             }
             // temp fix to HB killing targets without letting us using item...
             if (ret && obj is WoWUnit)
-                Blacklist.Add(obj, new System.TimeSpan(0, 10, 0));
+                Blacklist.Add(obj, BlacklistFlags.Combat, new System.TimeSpan(0, 10, 0));
             return ret;
         }
 

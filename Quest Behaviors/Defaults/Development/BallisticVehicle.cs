@@ -417,7 +417,7 @@ QBCLog.Error("\nSPELL CD RESULTS({0}): \"{1}\"\nPETACTION CD RESULTS({2}): \"{3}
                 bool isOnCooldown4 = (Spell == null) ? false : Spell.Cooldown;
 QBCLog.Info("COOLDOWN: {0}/{1}/{2}/{3}", isOnCooldown1, isOnCooldown2, isOnCooldown3, isOnCooldown4);
 return tmpStopwatch.ElapsedMilliseconds > 2000;
-                return isOnCooldown3;
+                // return isOnCooldown3;
             }
 
 
