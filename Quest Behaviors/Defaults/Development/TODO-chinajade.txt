@@ -18,6 +18,7 @@
 	* NeedsTestFire needs to assume a MuzzleVelocity and aim based on that, then allow the weapon to be fired.
 	* Need a vehicle aim & fire utility behavior.
 	* QuestBehaviorBase needs a global Watchdog Timer
+	* For behaviors that hook Combat_Main, need to check and make certain bags are not full
 
 * AbandonQuest
 	+ Needs a feature to jettison all quests we've left behind.
