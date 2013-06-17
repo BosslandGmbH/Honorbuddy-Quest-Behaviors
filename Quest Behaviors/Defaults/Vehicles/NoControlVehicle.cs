@@ -225,6 +225,15 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
             }
         }
 
+		
+		public bool IsQuestComplete()
+        {
+			if (QuestId == 0)
+				return false;
+		
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
+        }
 
         #region Overrides of CustomForcedBehavior
 
@@ -232,7 +241,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
         {
             return _root ??
                 (_root = new PrioritySelector(
-                    new Decorator(c => Counter > NumOfTimes,
+                    new Decorator(c => (Counter > NumOfTimes) || IsQuestComplete(),
                         new Action(c =>
                         {
                             TreeRoot.StatusText = "Finished!";
