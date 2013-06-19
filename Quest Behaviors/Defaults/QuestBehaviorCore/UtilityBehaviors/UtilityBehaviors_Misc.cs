@@ -37,17 +37,13 @@ namespace Honorbuddy.QuestBehaviorCore
             WoWUnit mob = null;
 
             Func<WoWUnit, bool> isViableForLooting =
-                (wowUnit) =>
-                {
-                    return
-                        Query.IsViable(wowUnit)
-                        && (wowUnit.Lootable || wowUnit.CanSkin)
-                        && !Blacklist.Contains(wowUnit.Guid, BlacklistFlags.Loot);
-                };
+                wowUnit => Query.IsViable(wowUnit) &&
+                           (wowUnit.Lootable && !Blacklist.Contains(wowUnit, BlacklistFlags.Loot) ||
+                            wowUnit.CanSkin && !Blacklist.Contains(wowUnit.Guid, BlacklistFlags.Node));
 
 
             Func<object, WoWUnit> mobNeedingToLoot =
-                (context) =>
+                context =>
                 {
                     if (!isViableForLooting(mob))
                     {
@@ -67,7 +63,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     return mob;
                 };
 
-            return new Decorator(context => Query.IsViable(mob = mobNeedingToLoot(context)),
+            return new Decorator(context => { return Query.IsViable(mob = mobNeedingToLoot(context)); },
                 new PrioritySelector(
                     new Decorator(context => mob.Distance > mob.InteractRange,
                         UtilityBehaviorPS_MoveTo(
