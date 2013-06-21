@@ -580,6 +580,20 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                                     SelectedTarget = null;
                                                 }
                                             }
+
+                                            if ((ItemAppliesAuraId > 0) && !SelectedTarget.HasAura(ItemAppliesAuraId))
+                                            {
+                                                var targetAuraNames = ((SelectedTarget.Auras.Keys.Count > 0)
+                                                                         ? string.Join(", ", SelectedTarget.Auras.Keys)
+                                                                         : "none");
+
+                                                QBCLog.Warning("{1} did not acquire expected AuraId, \"{2}\"--retrying.{0}"
+                                                    + "    Auras on {1}: {3}",
+                                                    Environment.NewLine,
+                                                    SelectedTarget.SafeName(),
+                                                    Utility.GetSpellNameFromId(ItemAppliesAuraId),
+                                                    targetAuraNames);
+                                            }
                                         })
                                 )))
                         ))
