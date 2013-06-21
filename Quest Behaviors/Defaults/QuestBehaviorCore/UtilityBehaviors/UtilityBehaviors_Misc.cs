@@ -18,6 +18,7 @@ using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
+using Styx.CommonBot.POI;
 using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -34,61 +35,16 @@ namespace Honorbuddy.QuestBehaviorCore
         // TODO: Need to make this event-driven, if possible...
         public Composite UtilityBehaviorPS_Looting()
         {
-            WoWUnit mob = null;
-
-            Func<WoWUnit, bool> isViableForLooting =
-                wowUnit => Query.IsViable(wowUnit) &&
-                           (wowUnit.Lootable && !Blacklist.Contains(wowUnit, BlacklistFlags.Loot) ||
-                            wowUnit.CanSkin && !Blacklist.Contains(wowUnit.Guid, BlacklistFlags.Node));
-
-
-            Func<object, WoWUnit> mobNeedingToLoot =
-                context =>
-                {
-                    if (!isViableForLooting(mob))
-                    {
-                        using (StyxWoW.Memory.AcquireFrame())
-                        {
-                            mob =
-                               (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                where
-                                    isViableForLooting(wowUnit)
-                                    && wowUnit.Distance < CharacterSettings.Instance.LootRadius
-                                orderby wowUnit.DistanceSqr
-                                select wowUnit)
-                                .FirstOrDefault();
-                        }
-                    }
-
-                    return mob;
-                };
-
-            return new Decorator(context => { return Query.IsViable(mob = mobNeedingToLoot(context)); },
+            return 
                 new PrioritySelector(
-                    new Decorator(context => mob.Distance > mob.InteractRange,
+                    ctx => BotPoi.Current.Type == PoiType.Loot ? BotPoi.Current.AsObject : null,
+                    new Decorator(
+                        ret => ret != null && ((WoWObject)ret).Distance > ((WoWObject)ret).InteractRange,
                         UtilityBehaviorPS_MoveTo(
-                            context => mob.Location,
-                            context => mob.Name)),
-                    UtilityBehaviorPS_MoveStop(),
-                    new Decorator(context => (LootFrame.Instance != null) && LootFrame.Instance.IsVisible,
-                        new Sequence(
-                            new Action(context => { LootFrame.Instance.LootAll(); }),
-                            new WaitContinue(Delay.AfterInteraction, context => false, new ActionAlwaysSucceed()),
-                            new Action(context => { LootFrame.Instance.Close(); })
-                        )),
-
-                    new Action(context =>
-                    {
-                        if (mob.Lootable || mob.CanSkin)
-                        { mob.Interact(); }
-                        else
-                        {
-                            if ((LootFrame.Instance != null) && LootFrame.Instance.IsVisible)
-                            { LootFrame.Instance.Close(); }
-                            Blacklist.Add(mob.Guid, BlacklistFlags.Loot, TimeSpan.FromMinutes(3));
-                        }
-                    })
-                ));
+                            context => ((WoWObject)context).Location,
+                            context => ((WoWObject)context).Name)),
+                    UtilityBehaviorPS_MoveStop()
+                );
         }
 
 
