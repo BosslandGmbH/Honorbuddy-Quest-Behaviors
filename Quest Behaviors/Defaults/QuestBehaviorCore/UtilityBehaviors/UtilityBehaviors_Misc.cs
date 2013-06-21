@@ -43,7 +43,9 @@ namespace Honorbuddy.QuestBehaviorCore
                         UtilityBehaviorPS_MoveTo(
                             context => ((WoWObject)context).Location,
                             context => ((WoWObject)context).Name)),
-                    UtilityBehaviorPS_MoveStop()
+                    new Decorator(
+                        ret => ret != null,
+                        UtilityBehaviorPS_MoveStop())
                 );
         }
 
