@@ -151,6 +151,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -223,14 +224,12 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         private enum StateType_MainBehavior
         {
             MovingToSafespot,  // Initial state
-            WaitingForMobToClear,
             PathIngressing,
             PathRetreating,
             DestinationReached,
         };
 
         private SafePathType FollowPath { get; set; }
-        private bool IsMoveBackToSafespotNeeded { get; set; }
         private WoWUnit Mob_ToAvoid { get; set; }
         private WoWUnit Mob_ToMoveNear { get; set; }
         private Queue<WaypointType> Path_Egress { get; set; }
@@ -248,6 +247,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             }
         }
 
+        private Composite _mainBehavior;
         private StateType_MainBehavior _state_MainBehavior;
         #endregion
 
@@ -306,7 +306,42 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         #region Main Behaviors
         protected override Composite CreateBehavior_CombatMain()
         {
-            return new Decorator(context => !IsDone,
+            return new PrioritySelector(
+                new Decorator(context => (State_MainBehavior == StateType_MainBehavior.PathIngressing)
+                                            || (State_MainBehavior == StateType_MainBehavior.PathRetreating),
+                    CreateBehavior())
+                );
+        }
+
+
+        protected override Composite CreateBehavior_CombatOnly()
+        {
+            return new PrioritySelector(
+                // NB: Since we highlight the target we're watching while we're waiting...
+                // If we get into combat, we don't want Honorbuddy running off to chase the currently highlighted
+                // target (its usually an elite).  So, if the selected target not attacking us, we clear the target,
+                // so Honorbuddy can make a proper target selection.
+                new Decorator(context => Me.GotTarget && !Me.CurrentTarget.IsTargetingMeOrPet,
+                    new Action(context =>
+                    {
+                        BotPoi.Clear();
+                        Me.ClearTarget();
+                    }))
+            );
+        }
+
+
+        protected override Composite CreateBehavior_DeathMain()
+        {
+            return new PrioritySelector(
+                // empty, for now
+                );
+        }
+
+
+        protected override Composite CreateMainBehavior()
+        {
+            return _mainBehavior ?? (_mainBehavior =
                 new PrioritySelector(
                     new Decorator(context => !Query.IsViable(Mob_ToAvoid),
                         new ActionFail(context => { Mob_ToAvoid = Query.FindUnitsFromIds(Utility.ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault(); })),
@@ -328,9 +363,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.MovingToSafespot,
                             StateBehaviorPS_MovingToSafeSpot()),
 
-                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.WaitingForMobToClear,
-                            StateBehaviorPS_WaitingForMobToClear()),
-                        
                         new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathIngressing,
                             StateBehaviorPS_PathIngressing()),
 
@@ -339,43 +371,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
                         new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.DestinationReached,
                             StateBehaviorPS_DestinationReached())
-                    )
-                ));
-        }
-
-
-        protected override Composite CreateBehavior_CombatOnly()
-        {
-            return new PrioritySelector(
-                // NB: Since we highlight the target we're watching while we're waiting...
-                // If we get into combat, we don't Honorbuddy running off to chase the currently highlighted
-                // target (its usually an elite).  So, if the selected target not attacking us, we clear the target,
-                // so Honorbuddy can make a proper target selection.
-                new Decorator(context => (Me.CurrentTarget != null) && !Me.CurrentTarget.IsTargetingMeOrPet,
-                    new Action(context => { Me.ClearTarget(); }))
-            );
-        }
-
-
-        protected override Composite CreateBehavior_DeathMain()
-        {
-            return new PrioritySelector(
-                // empty, for now
-                );
-        }
-
-
-        protected override Composite CreateMainBehavior()
-        {
-            return new PrioritySelector(
-                // empty, for now
-                new Decorator(context => IsDone,
-                    new PrioritySelector(
-                        new Action(context => { BehaviorDone(); return RunStatus.Failure; })
-                        ))
-
-            );
-        }
+                    )));
+            }
         #endregion
 
 
@@ -395,10 +392,12 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         private Composite StateBehaviorPS_MovingToSafeSpot()
         {
             return new PrioritySelector(
-                UtilityBehaviorPS_SpankMobTargetingUs(),
+                new UtilityBehaviorPS.SpankMobTargetingUs(
+                    context => IgnoreMobsInBlackspots,
+                    context => NonCompeteDistance),
 
                 new Decorator(context => !Me.Combat,
-                    UtilityBehaviorPS_HealAndRest()),
+                    new UtilityBehaviorPS.HealAndRest()),
                     
                 // If a "Move Near" mob was specified, move to it...
                 new Decorator(context => MobIdToMoveNear > 0,
@@ -406,11 +405,13 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         new Decorator(context => Query.IsViable(Mob_ToMoveNear),
                             new PrioritySelector(
                                 // Target the MoveToNpc, as feedback to the user...
-                                new Decorator(context => Me.CurrentTarget != Mob_ToMoveNear,
-                                    new Action(context => { Mob_ToMoveNear.Target(); })),
+                                new ActionFail(context => { Utility.Target(Mob_ToMoveNear); }),
 
                                 // Move to mob...
-                                UtilityBehaviorPS_MoveTo(context => Mob_ToMoveNear.Location, context => Mob_ToMoveNear.Name)
+                                new UtilityBehaviorPS.MoveTo(
+                                    context => Mob_ToMoveNear.Location,
+                                    context => Mob_ToMoveNear.Name,
+                                    context => MovementBy)
                             )),
 
                         // Need to wait for Mob to respawn...
@@ -423,18 +424,40 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
                 // No "Move Near" mob, so use the provided Safe spot coordinates...
                 new Decorator(context => MobIdToMoveNear <= 0,
-                    UtilityBehaviorPS_MoveTo(context => SafespotLocation, context => "safe spot")),
+                    new UtilityBehaviorPS.MoveTo(
+                        context => SafespotLocation,
+                        context => "safe spot",
+                        context => MovementBy)),
 
                 // Dismount once we've arrived at mob or destination...
                 new Decorator(context => Me.Mounted,
                     new Action(context => { Mount.Dismount(); })),
 
-                // At safe spot, now wait for mob...
-                new Action(context =>
-                {
-                    TreeRoot.StatusText = string.Empty;
-                    State_MainBehavior = StateType_MainBehavior.WaitingForMobToClear;
-                })
+                // Target and Face the AvoidNpc, as feedback to the user...
+                new ActionFail(context => { Utility.Target(Mob_ToAvoid, true); }),
+
+                // If AvoidNpc is not around,
+                // or if AvoidNpc is prescribed distance away, and facing away from us,
+                // we're done...
+                new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
+                    new Action(context =>
+                    {
+                        FollowPath.DismissPetIfNeeded();
+                        Path_Ingress = null;
+                        Path_Egress = null;
+                        State_MainBehavior = StateType_MainBehavior.PathIngressing;
+                    })),
+
+                // Tell user what we're up to...
+                new CompositeThrottle(Throttle.UserUpdate,
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText =
+                            string.Format("Waiting for '{0}' to move {1:F1}/{2:F1} yards away, and pathing away from us.",
+                                Mob_ToAvoid.Name,
+                                Mob_ToAvoid.Distance,
+                                AvoidDistance);
+                    }))
             );         
         }
 
@@ -472,8 +495,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
                         new Decorator(context => Query.IsViable(Mob_ToAvoid) && (Mob_ToAvoid.Distance < AvoidDistance),
                             new PrioritySelector(
-                                new Decorator(context => Me.IsMoving,
-                                    new Action(context => { WoWMovement.MoveStop(); })),
+                                new UtilityBehaviorPS.MoveStop(),
                                 new ActionAlwaysSucceed()
                             ))),
 
@@ -493,7 +515,10 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
                 // Follow the prescribed ingress path, if its still safe to proceed...
                 new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
-                    UtilityBehaviorPS_MoveTo(context => Path_Ingress.Peek().Location, context => "follow ingress path")),
+                    new UtilityBehaviorPS.MoveTo(
+                        context => Path_Ingress.Peek().Location,
+                        context => "follow ingress path",
+                        context => MovementBy)),
 
                 // If mob is heading our direction, hold position...
                 new Decorator(context => !IsSafeToMoveToDestination(Mob_ToAvoid),
@@ -502,7 +527,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         {
                             TreeRoot.StatusText = string.Format("Holding position to evaluate {0}'s actions.", Mob_ToAvoid.Name);
                         }),
-                        UtilityBehaviorPS_MoveStop()
+                        new UtilityBehaviorPS.MoveStop()
                     ))
             );
         }
@@ -535,60 +560,10 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 new Decorator(context => Me.Location.Distance(Path_Egress.Peek().Location) <= Navigator.PathPrecision,
                     new Action(context => { Path_Egress.Dequeue(); })),
 
-                UtilityBehaviorPS_MoveTo(context => Path_Egress.Peek().Location, context => "retreat")
-            );
-        }
-        
-        
-        private Composite StateBehaviorPS_WaitingForMobToClear()
-        {
-            return new PrioritySelector(
-                // Spank any mob that targets us while we're waiting...
-                new Decorator(context => Me.Combat,
-                    new ActionFail(context => { IsMoveBackToSafespotNeeded = true; })),
-
-                UtilityBehaviorPS_SpankMobTargetingUs(),
-
-                new Decorator(context => !Me.Combat,
-                    new PrioritySelector(
-                        // If we get in combat while waiting for Mob to clear, move back to safespot when combat complete...
-                        new Decorator(context => IsMoveBackToSafespotNeeded,
-                            new Action(context =>
-                            {
-                                IsMoveBackToSafespotNeeded = false;
-                                State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
-                            })),
-                        UtilityBehaviorPS_HealAndRest()
-                    )),
-
-                // Target and Face the AvoidNpc, as feedback to the user...
-                new Decorator(context => Me.CurrentTarget != Mob_ToAvoid,
-                    new Action(context => { Mob_ToAvoid.Target(); })),
-                new Decorator(context => !Me.IsSafelyFacing(Mob_ToAvoid),
-                    new Action(context => { Mob_ToAvoid.Face(); })),
-
-                // If AvoidNpc is not around,
-                // or if AvoidNpc is prescribed distance away, and facing away from us,
-                // we're done...
-                new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
-                    new Action(context =>
-                    {
-                        FollowPath.DismissPetIfNeeded();
-                        Path_Ingress = null;
-                        Path_Egress = null;
-                        State_MainBehavior = StateType_MainBehavior.PathIngressing;
-                    })),
-
-                // Tell user what we're up to...
-                new CompositeThrottle(Throttle.UserUpdate,
-                    new Action(context =>
-                    {
-                        TreeRoot.StatusText =
-                            string.Format("Waiting for '{0}' to move {1:F1}/{2:F1} yards away, and pathing away from us.",
-                                Mob_ToAvoid.Name,
-                                Mob_ToAvoid.Distance,
-                                AvoidDistance);
-                    }))
+                new UtilityBehaviorPS.MoveTo(
+                    context => Path_Egress.Peek().Location,
+                    context => "retreat",
+                    context => MovementBy)
             );
         }
         #endregion

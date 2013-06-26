@@ -20,6 +20,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -52,111 +53,110 @@ namespace Honorbuddy.QuestBehaviorCore
             private ProvideWoWUnitDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
-            private WoWUnit CachedMob { get; set; }
-            private WaitTimer _engagementTimer = new WaitTimer(TimeSpan.FromMilliseconds(7000));
+            private WaitTimer TimeToEngageWatchdogTimer { get; set; }
+            private WoWUnit SelectedTarget { get; set; }
 
             // Convenience properties...
-            private static readonly TimeSpan BlacklistForPullTime = TimeSpan.FromSeconds(3 * 60);
-            private static readonly TimeSpan MinTimeToEngagement = TimeSpan.FromSeconds(3);
+            private readonly TimeSpan BlacklistForPullTime = TimeSpan.FromSeconds(3 * 60);
+            private readonly TimeSpan MinTimeToEngagement = TimeSpan.FromSeconds(3);
 
 
             private List<Composite> CreateChildren()
             {
                 return new List<Composite>()
                 {
-                    new PrioritySelector(
-                        new ActionFail(context =>
+                    new ActionFail(context =>
+                    {
+                        var mob = SelectedTargetDelegate(context);
+
+                        if (mob != null)
                         {
-                            var selectedTarget = SelectedTargetDelegate(context);
-                            var isMobChanged = (CachedMob != selectedTarget);
+                            var isMobChanged = (mob != SelectedTarget);
 
-                            CachedMob = selectedTarget;
+                            SelectedTarget = mob;
 
-                            bool hasAggro = Query.IsViable(CachedMob) && CachedMob.Aggro;
-                            if (hasAggro)
-                                { _engagementTimer = null; }
-
-                            else if (Query.IsViable(CachedMob) && (isMobChanged || (_engagementTimer == null)))
+                            // NB: This twisted logic is to handle bugged mobs...
+                            // Once we've decided to go after a mob, we close the distance and start the fight
+                            // within a reasonable amount of time.  If that doesn't happen, then we blacklist then
+                            // we blacklist the mob for combat (and move on).
+                            if (Query.IsViableForFighting(SelectedTarget))
                             {
-                                _engagementTimer =
-                                    new WaitTimer(Utility.CalculateMaxTimeToDestination(CachedMob.Location, false)
-                                                  + MinTimeToEngagement);
-                                _engagementTimer.Reset();
-                            }    
-                        }),
+                                // If we have mob aggro, cancel the engagement timer...
+                                if (SelectedTarget.Aggro)
+                                    { TimeToEngageWatchdogTimer = null; }
 
-                        new Decorator(context => Query.IsViableForFighting(CachedMob),
-                            new PrioritySelector(
+                                // Otherwise, start watchdog timer for engaging mob...
+                                else if (isMobChanged || (TimeToEngageWatchdogTimer == null))
+                                {
+                                    TimeToEngageWatchdogTimer =
+                                        new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location, false)
+                                                      + MinTimeToEngagement);
+                                    TimeToEngageWatchdogTimer.Reset();
+                                }
+
                                 // If we are unable to engage an unaggro'd mob in a reasonable amount of time,
                                 // cancel attack, and blacklist mob...
-                                new Decorator(context => (_engagementTimer != null)
-                                                            && _engagementTimer.IsFinished,
-                                    new Action(context =>
-                                    {
-                                        if (!CachedMob.Aggro)
-                                        {
-                                            QBCLog.Warning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
-                                                CachedMob.Name,
-                                                Utility.PrettyTime(_engagementTimer.WaitTime),
-                                                Utility.PrettyTime(BlacklistForPullTime));
-                                            Query.BlacklistForPulling(CachedMob, BlacklistForPullTime);
-                                            BotPoi.Clear();
-                                            Me.ClearTarget();
-                                            CachedMob = null;
-                                        }
-                                        _engagementTimer = null;
-                                    })), 
-                    
-                                new Decorator(context => Me.CurrentTarget != CachedMob,
-                                    new Action(context =>
-                                    {
-                                        CachedMob.Target();
-                                        BotPoi.Current = new BotPoi(CachedMob, PoiType.Kill);
-                                        return RunStatus.Failure; // fall through
-                                    })),
+                                if ((TimeToEngageWatchdogTimer != null) && TimeToEngageWatchdogTimer.IsFinished)
+                                {
+                                    QBCLog.Warning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
+                                        SelectedTarget.Name,
+                                        Utility.PrettyTime(TimeToEngageWatchdogTimer.WaitTime),
+                                        Utility.PrettyTime(BlacklistForPullTime));
+                                    Query.BlacklistForPulling(SelectedTarget, BlacklistForPullTime);
+                                    BotPoi.Clear();
+                                    Me.ClearTarget();
+                                    SelectedTarget = null;
+                                    return RunStatus.Failure;
+                                }
 
-                                // NB: Some Combat Routines (CR) will stall when asked to kill things from too far away.
-                                // So, we manually move the toon within reasonable range before asking the CR to kill it.
-                                // Note that some behaviors will set the PullDistance to zero or one while they run, but we don't want to
-                                // actually get that close to engage, so we impose a lower bound of 23 feet that we move before handing
-                                // things over to the combat routine.
-                                // new Decorator(context => _ubpsSpankMob_Mob.Distance > Math.Max(23, CharacterSettings.Instance.PullDistance),
-                                //    UtilityBehaviorPS_MoveTo(context => _ubpsSpankMob_Mob.Location,
-                                //                            context => _ubpsSpankMob_Mob.Name)),
-                                new Decorator(context => Me.Mounted,
-                                    new Action(context => { Mount.Dismount(); })),
+                                // Mark target and notify Combat Routine of target, if needed...
+                                Utility.Target(SelectedTarget, false, PoiType.Kill);
 
-                                // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
-                                // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
-                                // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
-                                // So, no need to duplicate that work here.
-                                    new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
-                                        RoutineManager.Current.HealBehavior),
-                                    new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
-                                        RoutineManager.Current.CombatBuffBehavior),
-                                    RoutineManager.Current.CombatBehavior,
+                                // TODO: May need to leave this decision to Combat Routine--needs testing to see if we can.
+                                if (Me.Mounted)
+                                    { Mount.Dismount(); }
+                            }
+                        }
 
-                                    // Keep fighting until mob is dead...
-                                    new ActionAlwaysSucceed()
-                                ))
-                        )
+                        return RunStatus.Failure;   // fall through
+                    }),
+
+                    new Decorator(context => Query.IsViableForFighting(SelectedTarget),
+                        new PrioritySelector(
+                            // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
+                            // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
+                            // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
+                            // So, no need to duplicate that work here.
+                            new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
+                                RoutineManager.Current.HealBehavior),
+                            new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
+                                RoutineManager.Current.CombatBuffBehavior),
+                            RoutineManager.Current.CombatBehavior,
+
+                            // Keep fighting until mob is dead...
+                            new ActionAlwaysSucceed()
+                        ))
                 };
             }
         }
-    }
 
 
-    public partial class UtilityBehaviorPS
-    {
         /// <summary>
         /// Targets and kills any mob targeting Self or Pet.
         /// </summary>
         /// <returns></returns>
         public class SpankMobTargetingUs : PrioritySelector
         {
-            public SpankMobTargetingUs(Func<object, IEnumerable<WoWUnit>> excludedUnitsDelegate = null)
+            public SpankMobTargetingUs(ProvideBoolDelegate ignoreMobsInBlackspotsDelegate,
+                                        ProvideDoubleDelegate nonCompeteDistanceDelegate,
+                                        Func<object, IEnumerable<WoWUnit>> excludedUnitsDelegate = null)
             {
+                Contract.Requires(ignoreMobsInBlackspotsDelegate != null, context => "ignoreMobsInBlackspotsDelegate != null");
+                Contract.Requires(nonCompeteDistanceDelegate != null, context => "nonCompeteDistanceDelegate != null");
+
                 ExcludedUnitsDelegate = excludedUnitsDelegate ?? (context => Enumerable.Empty<WoWUnit>());
+                IgnoreMobsInBlackspotsDelegate = ignoreMobsInBlackspotsDelegate;
+                NonCompeteDistanceDelegate = nonCompeteDistanceDelegate;
 
                 Children = CreateChildren();
             }
@@ -164,58 +164,28 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT contruction-time properties...
             Func<object, IEnumerable<WoWUnit>> ExcludedUnitsDelegate { get; set; }
+            private ProvideBoolDelegate IgnoreMobsInBlackspotsDelegate { get; set; }
+            private ProvideDoubleDelegate NonCompeteDistanceDelegate { get; set; }
 
             // BT visit-time properties...
-            private WoWUnit CachedMob;
+            private WoWUnit SelectedTarget { get; set; }
 
-
+            // Convenience properties...
+            
+            
             private List<Composite> CreateChildren()
-            {            
+            {
                 return new List<Composite>()
                 {
-                    new PrioritySelector(
-                        // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
-                        // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                        new Decorator(context => !Query.IsViableForPulling(CachedMob, true, 0.0),
-                            new PrioritySelector(
-                                new ActionFail(context =>
-                                {
-                                    using (StyxWoW.Memory.AcquireFrame())
-                                    {
-                                        CachedMob =
-                                           (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                            where IsInterestingToUs(wowUnit)
-                                            orderby wowUnit.SurfacePathDistance()
-                                            select wowUnit)
-                                            .FirstOrDefault();
-                                    }
-                                }),
-                                new Decorator(context => Query.IsViable(CachedMob),
-                                    new UtilityBehaviorPS.MoveStop())
-                            )),
-
-                        // Spank any mobs we find being naughty...
-                        new Decorator(context => Query.IsViable(CachedMob),
-                            new PrioritySelector(
-                                new CompositeThrottle(TimeSpan.FromMilliseconds(3000),
-                                    new Action(context =>
-                                    {
-                                        TreeRoot.StatusText = string.Format("Spanking {0} that has targeted us.",
-                                            CachedMob.Name);                                    
-                                    })),
-                                new UtilityBehaviorPS.SpankMob(context => CachedMob)
-                            ))
-                    )
+                    new SpankMob(MobTargetingUs)
                 };
             }
 
 
-            public bool IsInterestingToUs(object context)
+            private bool IsInterestingToUs(WoWUnit wowUnit, bool ignoreMobsInBlackspots, double nonCompeteDistance, IEnumerable<WoWUnit> excludedUnits)
             {
-                var wowUnit = context as WoWUnit;
-
                 return
-                    Query.IsViableForPulling(wowUnit, true, 0.0)
+                    Query.IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
                     && (wowUnit.IsTargetingMeOrPet
                         || wowUnit.IsTargetingAnyMinion
                         || wowUnit.IsTargetingMyPartyMember)
@@ -224,25 +194,63 @@ namespace Honorbuddy.QuestBehaviorCore
                     // Do not pull mobs on the AvoidMobs list
                     && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
                     // exclude any units that are candidates for interacting
-                    && !ExcludedUnitsDelegate(context).Contains(wowUnit);                                                     
+                    && !excludedUnits.Contains(wowUnit);
+            }
+
+
+            private WoWUnit MobTargetingUs(object context)
+            {
+                var ignoreMobsInBlackspots = IgnoreMobsInBlackspotsDelegate(context);
+                var nonCompeteDistance = NonCompeteDistanceDelegate(context);
+
+                // If a mob is targeting us, deal with it immediately, so subsequent activities won't be interrupted...
+                // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
+                if (!Query.IsViableForPulling(SelectedTarget, ignoreMobsInBlackspots, nonCompeteDistance))
+                {
+                    using (StyxWoW.Memory.AcquireFrame())
+                    {
+                        var excludedUnits = ExcludedUnitsDelegate(context);
+
+                        SelectedTarget =
+                            (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                             where IsInterestingToUs(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance, excludedUnits)
+                             orderby wowUnit.SurfacePathDistance()
+                             select wowUnit)
+                            .FirstOrDefault();
+                    }
+
+                    if (Query.IsViable(SelectedTarget))
+                    {
+                        Navigator.PlayerMover.MoveStop();
+                        Utility.Target(SelectedTarget, true, PoiType.Kill);
+                        TreeRoot.StatusText = string.Format("Spanking {0} that has targeted us.",
+                            SelectedTarget.Name);
+                    }
+                }
+
+                return SelectedTarget;
             }
         }
-    }
 
 
-    public partial class UtilityBehaviorPS
-    {
+        // 24Feb2013-08:11UTC chinajade
         public class SpankMobWithinAggroRange : PrioritySelector
         {
             public SpankMobWithinAggroRange(ProvideWoWPointDelegate destinationDelegate,
+                                            ProvideBoolDelegate ignoreMobsInBlackspotsDelegate,
+                                            ProvideDoubleDelegate nonCompeteDistanceDelegate,
                                             ProvideDoubleDelegate extraRangePaddingDelegate = null,
-                                            Func<IEnumerable<int>> excludedUnitIdsDelegate = null)
+                                            Func<object, IEnumerable<int>> excludedUnitIdsDelegate = null)
             {
                 Contract.Requires(destinationDelegate != null, context => "destinationDelegate != null");
+                Contract.Requires(ignoreMobsInBlackspotsDelegate != null, context => "ignoreMobsInBlackspotsDelegate != null");
+                Contract.Requires(nonCompeteDistanceDelegate != null, context => "nonCompeteDistanceDelegate != null");
 
                 DestinationDelegate = destinationDelegate;
-                ExcludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (() => Enumerable.Empty<int>());
                 ExtraRangePaddingDelegate = extraRangePaddingDelegate ?? (context => 0.0);
+                ExcludedUnitIdsDelegate = excludedUnitIdsDelegate ?? (context => Enumerable.Empty<int>());
+                IgnoreMobsInBlackspotsDelegate = ignoreMobsInBlackspotsDelegate;
+                NonCompeteDistanceDelegate = nonCompeteDistanceDelegate;
 
                 Children = CreateChildren();
             }
@@ -250,65 +258,74 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT contruction-time properties...
             private ProvideWoWPointDelegate DestinationDelegate { get; set; }
-            private Func<IEnumerable<int>> ExcludedUnitIdsDelegate { get; set; }
+            private Func<object, IEnumerable<int>> ExcludedUnitIdsDelegate { get; set; }
             private ProvideDoubleDelegate ExtraRangePaddingDelegate { get; set; }
+            private ProvideBoolDelegate IgnoreMobsInBlackspotsDelegate { get; set; }
+            private ProvideDoubleDelegate NonCompeteDistanceDelegate { get; set; }
 
             // BT visit-time properties...
-            private WoWUnit CachedMob { get; set; }
+            private WoWUnit SelectedTarget { get; set; }
+
+            // Convenience properties...
 
 
-            // 24Feb2013-08:11UTC chinajade
             private List<Composite> CreateChildren()
             {
                 return new List<Composite>()
                 {
-                    new Decorator(context => !Me.Combat,
-                        new PrioritySelector(
-                            // If a mob is within aggro range of our destination, deal with it immediately...
-                            // Otherwise, it will interrupt our attempt to interact or use items.
-                            new Decorator(context => !Query.IsViableForPulling(CachedMob, true, 20.0),
-                                new Action(context =>
-                                {
-                                    CachedMob =
-                                       (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                        where IsInterestingToUs(context, wowUnit)
-                                        orderby wowUnit.SurfacePathDistance()
-                                        select wowUnit)
-                                        .FirstOrDefault();
-
-                                    return RunStatus.Failure;   // fall through
-                                })),
-
-                            // Spank any mobs we find being naughty...
-                            new CompositeThrottle(context => Query.IsViable(CachedMob),
-                                TimeSpan.FromMilliseconds(3000),
-                                new Action(context =>
-                                {
-                                    TreeRoot.StatusText = string.Format("Spanking {0}({1}) within aggro range ({2:F1}) of our destination.",
-                                        CachedMob.Name,
-                                        CachedMob.Entry,
-                                        (CachedMob.MyAggroRange + ExtraRangePaddingDelegate(context)));                                    
-                                })),
-                            new Decorator(context => Query.IsViable(CachedMob),
-                                new UtilityBehaviorPS.SpankMob(context => CachedMob))
-                        ))
+                    new SpankMob(MobWithinAggroRange)
                 };
             }
 
 
-            private bool IsInterestingToUs(object context, WoWUnit wowUnit)
+            private bool IsInterestingToUs(WoWUnit wowUnit, bool ignoreMobsInBlackspots, double nonCompeteDistance, IEnumerable<int> excludedUnitIds)
             {
                 return
-                    Query.IsViableForPulling(wowUnit, true, 0.0)
+                    Query.IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
                     && wowUnit.IsHostile
                     && wowUnit.IsUntagged()
                     // exclude opposing faction: both players and their pets show up as "PlayerControlled"
                     && !wowUnit.PlayerControlled
                     // exclude any units that are candidates for interacting
-                    && !ExcludedUnitIdsDelegate().Contains((int)wowUnit.Entry)
+                    && !excludedUnitIds.Contains((int)wowUnit.Entry)
                     // Do not pull mobs on the AvoidMobs list
                     && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                    && (wowUnit.Location.SurfacePathDistance(DestinationDelegate(context)) <= (wowUnit.MyAggroRange + ExtraRangePaddingDelegate(context)));
+                    && (wowUnit.Location.SurfacePathDistance(DestinationDelegate(wowUnit)) <= (wowUnit.MyAggroRange + ExtraRangePaddingDelegate(wowUnit)));
+            }
+
+
+            private WoWUnit MobWithinAggroRange(object context)
+            {
+                var ignoreMobsInBlackspots = IgnoreMobsInBlackspotsDelegate(context);
+                var nonCompeteDistance = NonCompeteDistanceDelegate(context);
+
+                if (!Query.IsViableForPulling(SelectedTarget, ignoreMobsInBlackspots, nonCompeteDistance))
+                {
+                    var excludedUnitIds = ExcludedUnitIdsDelegate(context);
+
+                    // If a mob is within aggro range of our destination, deal with it immediately...
+                    // Otherwise, it will interrupt our attempt to interact or use items.
+                    using (StyxWoW.Memory.AcquireFrame())
+                    {
+                        SelectedTarget =
+                            (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                             where IsInterestingToUs(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance, excludedUnitIds)
+                             orderby wowUnit.SurfacePathDistance()
+                             select wowUnit)
+                            .FirstOrDefault();
+                    }
+
+                    if (Query.IsViable(SelectedTarget))
+                    {
+                        Utility.Target(SelectedTarget, false, PoiType.Kill);
+                        TreeRoot.StatusText = string.Format("Spanking {0}({1}) within aggro range ({2:F1}) of our destination.",
+                            SelectedTarget.Name,
+                            SelectedTarget.Entry,
+                            (SelectedTarget.MyAggroRange + ExtraRangePaddingDelegate(context)));
+                    }
+                }
+
+                return SelectedTarget;
             }
         }
     }

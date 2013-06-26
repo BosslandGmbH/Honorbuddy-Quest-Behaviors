@@ -18,6 +18,7 @@ using System.Xml.Linq;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -183,6 +184,15 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        public static WoWObject LootableObject()
+        {
+            return
+                (BotPoi.Current != null) && (BotPoi.Current.Type == PoiType.Loot)
+                ? BotPoi.Current.AsObject
+                : null;
+        }
+
+
         /// <summary>
         /// <para>The Movement observer is a vehicle, if we are in a vehicle.  Or "Me", if we are not.
         /// The observer should be used to make all movement and distance decisions.</para>
@@ -247,7 +257,32 @@ namespace Honorbuddy.QuestBehaviorCore
                 (int)duration.TotalMinutes, (int)duration.TotalSeconds);
         }
 
-        
+
+        // 30May2013-04:52UTC chinajade
+        public static void Target(WoWObject wowObject, bool doFace = false, PoiType poiType = PoiType.None)
+        {
+            if (wowObject == null)
+                { return; }
+
+            if (doFace && !StyxWoW.Me.IsSafelyFacing(wowObject))
+                { StyxWoW.Me.SetFacing(wowObject.Location); }
+
+            var wowUnit = wowObject.ToUnit();
+            if (!Query.IsViable(wowUnit))
+                { return; }
+
+            if (!StyxWoW.Me.GotTarget || (StyxWoW.Me.CurrentTarget.Guid != wowUnit.Guid))
+            {
+                wowUnit.Target();
+
+                if (poiType != PoiType.None)
+                {
+                    BotPoi.Current = new BotPoi(wowUnit, poiType);
+                }
+            }
+        }
+
+
         // 12Mar2013-08:27UTC chinajade
         public static IEnumerable<T> ToEnumerable<T>(T item)
         {

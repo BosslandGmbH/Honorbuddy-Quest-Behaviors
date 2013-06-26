@@ -410,21 +410,21 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         {
             return new Decorator(context => !IsDone,
                 new PrioritySelector(
-                    // Since we do the bulk of the work in the CombatMain hook, we have to allow for looting, also...
+                // Since we do the bulk of the work in the CombatMain hook, we have to allow for looting, also...
                     new Decorator(context => !Me.Combat,
-                        UtilityBehaviorPS_Looting()),
+                        new UtilityBehaviorPS.Looting(context => MovementBy)),
 
                     // Done due to count completing?
                     new Decorator(context => (QuestObjectiveIndex <= 0) && (Counter >= NumOfTimesToUseItem),
                         new Action(context => { BehaviorDone(); })),
 
                     // If WoWclient has not placed items in our bag, wait for it...
-                    // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
-                    // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
-                    // for the item to show up, if its going to.
+                // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
+                // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
+                // for the item to show up, if its going to.
                     new Decorator(context => (ItemId > 0) && !Query.IsViable(ItemToUse),
                         new PrioritySelector(
-                            UtilityBehaviorPS_WaitForInventoryItem(context => ItemId),
+                            new UtilityBehaviorPS.WaitForInventoryItem(context => ItemId, context => BehaviorDone()),
                             new Action(context =>
                             {
                                 ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == ItemId));
@@ -435,7 +435,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     new Decorator(context => !Query.IsViable(ItemToUse),
                         new Action(context =>
                         {
-                            QBCLog.Warning(QBCLog.BuildMessageWithContext(Element, 
+                            QBCLog.Warning(QBCLog.BuildMessageWithContext(Element,
                                 "We no longer have a viable {0} to use--terminating behavior.",
                                 Utility.GetItemNameFromId(ItemId)));
                             BehaviorDone();
@@ -443,8 +443,11 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                     // Take out any nearby mobs that aggro on us while conducting our business...
                     new Decorator(context => !Me.IsFlying,
-                        UtilityBehaviorPS_SpankMobTargetingUs(context => FindViableTargets().ToList())),
-                
+                        new UtilityBehaviorPS.SpankMobTargetingUs(
+                            context => IgnoreMobsInBlackspots,
+                            context => NonCompeteDistance,
+                            context => FindViableTargets().ToList())),
+
                     // Wait additional time requested by profile writer...
                     new Decorator(context => !_waitTimerAfterUsingItem.IsFinished,
                         new Action(context =>
@@ -453,7 +456,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                 Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterUsingItem.TimeLeft.TotalSeconds)),
                                 Utility.PrettyTime(_waitTimerAfterUsingItem.WaitTime));
                         })),
-                        
+
                     // If no viable target, find a new mob to harass...
                     new Decorator(context => !IsViableForItemUse(SelectedTarget),
                         new Action(context =>
@@ -462,23 +465,23 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                             SelectedTarget = FindViableTargets().FirstOrDefault();
 
                             // Target selected mob as feedback to user...
-                            if ((SelectedTarget != null) && (Me.CurrentTarget != SelectedTarget))
-                                { SelectedTarget.Target(); }
+                            Utility.Target(SelectedTarget);
 
                             return RunStatus.Failure;   // fall through
                         })),
-                    
+
                     // Pick a fight, if needed...
                     new Decorator(context => !Me.Combat && IsViableForItemUse(SelectedTarget),
-                        UtilityBehaviorPS_GetMobsAttention(context => SelectedTarget)),
+                        new UtilityBehaviorPS.GetMobsAttention(context => SelectedTarget)),
 
                     // No mobs in immediate vicinity...
-                    // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
-                    // this sub-behavior will terminate the overall behavior.
+                // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
+                // this sub-behavior will terminate the overall behavior.
                     new Decorator(context => !Me.Combat && !Query.IsViable(SelectedTarget),
-                        UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
+                        new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
                             context => HuntingGrounds,
-                            context => false,
+                            context => MovementBy,
+                            context => { /*NoOp*/ },
                             context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
                             context => TargetExclusionAnalysis.Analyze(Element,
                                                     () => Query.FindUnitsFromIds(MobIds),
@@ -523,9 +526,10 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                             // If we are beyond the max range allowed to use the item, move within range...
                             new Decorator(context => SelectedTarget.Distance > MaxRangeToUseItem,
-                                UtilityBehaviorPS_MoveTo(
+                                new UtilityBehaviorPS.MoveTo(
                                     context => SelectedTarget.Location,
-                                    context => string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.Name))),
+                                    context => string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.Name),
+                                    context => MovementBy)),
                             
                             // If time to use the item, do so...
                             new Decorator(context => Query.IsViable(ItemToUse) && IsUseItemNeeded(SelectedTarget),
@@ -547,7 +551,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                         })),
 
                                     new Sequence(
-                                        UtilityBehaviorSeq_UseItemOn(context => ItemToUse, context => SelectedTarget),
+                                        new UtilityBehaviorSeq.UseItemOn(context => ItemToUse, context => SelectedTarget),
                                         // Allow a brief time for WoWclient to apply aura to mob...
                                         new WaitContinue(TimeSpan.FromMilliseconds(5000),
                                             context => ItemUseAlwaysSucceeds || SelectedTarget.HasAura(ItemAppliesAuraId),
@@ -621,7 +625,10 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     new PrioritySelector(
                         // Take out any nearby mobs that aggro on us while we wait...
                         new Decorator(context => !Me.IsFlying,
-                            UtilityBehaviorPS_SpankMobTargetingUs(context => FindViableTargets())),
+                            new UtilityBehaviorPS.SpankMobTargetingUs(
+                                context => IgnoreMobsInBlackspots,
+                                context => NonCompeteDistance,
+                                context => FindViableTargets())),
                         new Action(context =>
                         {
                             TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",

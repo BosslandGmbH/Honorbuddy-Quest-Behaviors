@@ -12,7 +12,6 @@
 using System;
 using System.Collections.Generic;
 
-using Bots.Grind;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Routines;
@@ -48,36 +47,27 @@ namespace Honorbuddy.QuestBehaviorCore
             private ProvideWoWUnitDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
-            private WoWUnit CachedTarget { get; set; }
+            private WoWUnit SelectedMob { get; set; }
+
+            // Convenience properties...
 
 
             private List<Composite> CreateChildren()
             {
                 return new List<Composite>()
                 {
-                    new ActionFail(context =>
-                    {
-                        CachedTarget = SelectedTargetDelegate(context);
-                    }),
-
-                    new Decorator(context => Query.IsViableForFighting(CachedTarget)
-                                            && !CachedTarget.IsTargetingMeOrPet,
+                    new ActionFail(context => { SelectedMob = SelectedTargetDelegate(context); }),
+                    new Decorator(context => Query.IsViableForFighting(SelectedMob) && !SelectedMob.IsTargetingMeOrPet,
                         new PrioritySelector(
                             new CompositeThrottle(TimeSpan.FromSeconds(3),
-                                new ActionFail(context =>
-                                {
-                                    TreeRoot.StatusText =
-                                        string.Format("Getting attention of {0}", CachedTarget.Name);
-                                })),
-                            new UtilityBehaviorPS.SpankMob(context => CachedTarget)))
+                                new ActionFail(context => { TreeRoot.StatusText = string.Format("Getting attention of {0}", SelectedMob.Name); })),
+                            new UtilityBehaviorPS.SpankMob(SelectedTargetDelegate)))
                 };
             }
         }
-    }
 
 
-    public partial class UtilityBehaviorPS
-    {
+        // TODO: This behavior needs to be retired when we refactor Combat_Main actions.
         public class HealAndRest : PrioritySelector
         {
             public HealAndRest()
@@ -86,15 +76,21 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
 
-            // 11Apr2013-04:52UTC chinajade
+            // BT contruction-time properties...
+
+            // BT visit-time properties...
+
+            // Convenience properties...
+
+
             private List<Composite> CreateChildren()
             {
-                // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
-                // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
-                // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
-                // So, no need to duplicate that work here.
                 return new List<Composite>()
                 {
+                    // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
+                    // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
+                    // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
+                    // So, no need to duplicate that work here.
                     new Decorator(context => !Me.Combat,
                         new PrioritySelector(
                             new Decorator(context => RoutineManager.Current.HealBehavior != null,
@@ -104,56 +100,14 @@ namespace Honorbuddy.QuestBehaviorCore
                             new Decorator(context => RoutineManager.Current.RestBehavior != null,
                                 RoutineManager.Current.RestBehavior),
                             new Decorator(context => RoutineManager.Current.NeedRest,
-                                new Action(context => { RoutineManager.Current.Rest(); })),
-                            LevelBot.CreateLootBehavior()   // TODO: Fix this
+                                new Action(context => { RoutineManager.Current.Rest(); }))
                         ))
                 };
             }
         }
-    }
 
 
-    public partial class UtilityBehaviorPS
-    {
-        public class Target : PrioritySelector
-        {
-            public Target(ProvideWoWObjectDelegate selectedTargetDelegate)
-            {
-                SelectedTargetDelegate = selectedTargetDelegate;
-
-                Children = CreateChildren();
-            }
-
-
-            // BT contruction-time properties...
-            private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
-
-
-            // 30May2013-04:52UTC chinajade
-            private List<Composite> CreateChildren()
-            {
-                return new List<Composite>()
-                {
-                    new Action(context =>
-                    {
-                        var selectedTarget = SelectedTargetDelegate(context).ToUnit();
-
-                        if (Query.IsViable(selectedTarget) && (Me.CurrentTarget != selectedTarget))
-                        {
-                            selectedTarget.Target();
-                            return RunStatus.Success;
-                        }
-
-                        return RunStatus.Failure;
-                    })
-                };
-            }
-        }
-    }
-
-
-    public partial class UtilityBehaviorPS
-    {
+        // 16May2013-04:52UTC chinajade
         public class MiniCombatRoutine : PrioritySelector
         {
             public MiniCombatRoutine()
@@ -162,7 +116,13 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
 
-            // 16May2013-04:52UTC chinajade
+            // BT contruction-time properties...
+
+            // BT visit-time properties...
+
+            // Convenience properties...
+
+
             private List<Composite> CreateChildren()
             {
                 return new List<Composite>()
@@ -254,6 +214,13 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
 
+            private Composite TryAutoAttack()
+            {
+                return new Decorator(context => !Me.IsAutoAttacking,
+                    new Action(context => { Lua.DoString("StartAttack()"); }));
+            }
+
+
             private Composite TryCast(int spellId, ProvideBoolDelegate requirements = null)
             {
                 requirements = requirements ?? (context => true);
@@ -264,13 +231,6 @@ namespace Honorbuddy.QuestBehaviorCore
                         QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", Utility.GetSpellNameFromId(spellId));
                         SpellManager.Cast(spellId);
                     }));
-            }
-
-
-            private Composite TryAutoAttack()
-            {
-                return new Decorator(context => !Me.IsAutoAttacking,
-                    new Action(context => { Lua.DoString("StartAttack()"); }));
             }
         }
     }

@@ -17,6 +17,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -31,16 +32,25 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class UtilityBehaviorPS
     {
-        public class LootingPS : PrioritySelector
+        public class Looting : PrioritySelector
         {
-            private LootingPS()
+            public Looting(ProvideMovementByDelegate movementByDelegate)
             {
+                Contract.Requires(movementByDelegate != null, context => "movementByDelegate != null");
+
+                MovementByDelegate = movementByDelegate;
+
                 Children = CreateChildren();
             }
 
 
             // BT visit-time properties...
-            private WoWUnit CachedLootMob { get; set; }
+            private ProvideMovementByDelegate MovementByDelegate { get; set; }
+
+            // BT contruction-time properties...
+            private WoWObject CachedLootObject { get; set; }
+
+            // Convenience properties...
 
 
             private List<Composite> CreateChildren()
@@ -48,41 +58,16 @@ namespace Honorbuddy.QuestBehaviorCore
                 return new List<Composite>()
                 {
                     new Decorator(context => CharacterSettings.Instance.LootMobs,
-                        new PrioritySelector(
-                            // If current loot mob is no good, find another...
-                            new Decorator(context => !Query.IsViable(CachedLootMob),
-                                new ActionFail(context => { CachedLootMob = NearestLootableMob(); })),
-
-                            // If we found a mob to loot, go for it...
-                            new Decorator(context => Query.IsViable(CachedLootMob),
-                                new PrioritySelector(
-                                    // If too far away, move to mob...
-                                     new Decorator(context =>   CachedLootMob.Distance > CachedLootMob.InteractRange,
-                                         new Action(context => { Navigator.MoveTo(CachedLootMob.Location); }))
-                                        //QuestBehaviorBase.UtilityBehaviorPS_MoveTo(context => SelectedLootMob.Location,
-                                        //                                           context => SelectedLootMob.Name))
-                                ))
+                        new PrioritySelector(context => CachedLootObject = Utility.LootableObject(),
+                            new Decorator(context => (CachedLootObject != null) && (CachedLootObject.Distance > CachedLootObject.InteractRange),
+                                new UtilityBehaviorPS.MoveTo(
+                                    context => CachedLootObject.Location,
+                                    context => CachedLootObject.Name,
+                                    context => MovementByDelegate(context))),
+                            new Decorator(context => CachedLootObject != null,
+                                new UtilityBehaviorPS.MoveStop())
                         ))
                 };
-            }
-
-
-            private WoWUnit NearestLootableMob()
-            {
-                return
-                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                    where
-                        wowUnit.Lootable
-                        || wowUnit.CanSkin
-                    orderby wowUnit.DistanceSqr
-                    select wowUnit)
-                    .FirstOrDefault();
-            }
-
-
-            public static Composite CreateBehavior()
-            {
-                return new LootingPS();
             }
         }
     }

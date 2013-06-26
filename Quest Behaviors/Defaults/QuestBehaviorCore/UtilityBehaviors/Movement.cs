@@ -29,46 +29,6 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public static partial class UtilityBehaviorPS
     {
-        public class FaceMob : PrioritySelector
-        {
-            public FaceMob(ProvideWoWObjectDelegate wowObjectDelegate)
-            {
-                Contract.Requires(wowObjectDelegate != null, context => "wowObjectDelegate != null");
-
-                WowObjectDelegate = wowObjectDelegate;
-                Children = CreateChildren();
-            }
-
-
-            // BT construction-time properties...
-            private ProvideWoWObjectDelegate WowObjectDelegate { get; set; }
-            
-            // 29Apr2013-05:20UTC chinajade
-            private List<Composite> CreateChildren()
-            {
-                return new List<Composite>()
-                {
-                    new Action(context =>
-                    {
-                        WoWObject wowObject = WowObjectDelegate(context);
-
-                        if (!Query.IsViable(wowObject))
-                            { return RunStatus.Failure; }
-
-                        if (MovementObserver.IsSafelyFacing(wowObject))
-                            { return RunStatus.Failure; }
-
-                        Me.SetFacing(wowObject.Location);
-                        return RunStatus.Success;
-                    })
-                };
-            }
-        }
-    }
-
-
-    public static partial class UtilityBehaviorPS
-    {
         public class MoveStop : PrioritySelector
         {
             // 29Apr2013-05:20UTC chinajade
@@ -83,10 +43,10 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new Decorator(context => MovementObserver.IsMoving,
+                    new Decorator(context => Utility.MovementObserver.IsMoving,
                         new Sequence(
                             new Action(context => { Navigator.PlayerMover.MoveStop(); }),
-                            new Wait(Delay.LagDuration, context => MovementObserver.IsMoving, new ActionAlwaysSucceed())
+                            new Wait(Delay.LagDuration, context => Utility.MovementObserver.IsMoving, new ActionAlwaysSucceed())
                         ))
                 };
             }
@@ -100,7 +60,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             // 22Apr2013-12:45UTC chinajade
             public MoveTo(ProvideHuntingGroundsDelegate huntingGroundsProvider,
-                            ProvideMovementByDelgate movementByDelegate,
+                            ProvideMovementByDelegate movementByDelegate,
                             CanRunDecoratorDelegate suppressMountUse = null)
             {
                 Contract.Requires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
@@ -112,7 +72,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
                 PrecisionDelegate = (context => Navigator.PathPrecision);
                 SuppressMountUse = suppressMountUse ?? (context => false);
-                LocationObserver = (context => MovementObserver.Location);
+                LocationObserver = (context => Utility.MovementObserver.Location);
 
                 Children = CreateChildren();
             }
@@ -121,7 +81,7 @@ namespace Honorbuddy.QuestBehaviorCore
             // 24Feb2013-08:11UTC chinajade
             public MoveTo(ProvideWoWPointDelegate destinationDelegate,
                             ProvideStringDelegate destinationNameDelegate,
-                            ProvideMovementByDelgate movementByDelegate,
+                            ProvideMovementByDelegate movementByDelegate,
                             ProvideDoubleDelegate precisionDelegate = null,
                             CanRunDecoratorDelegate suppressMountUse = null,
                             ProvideWoWPointDelegate locationObserver = null)
@@ -135,7 +95,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
                 PrecisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
                 SuppressMountUse = suppressMountUse ?? (context => false);
-                LocationObserver = locationObserver ?? (context => MovementObserver.Location);
+                LocationObserver = locationObserver ?? (context => Utility.MovementObserver.Location);
 
                 Children = CreateChildren();
             }
@@ -145,7 +105,7 @@ namespace Honorbuddy.QuestBehaviorCore
             private ProvideWoWPointDelegate DestinationDelegate { get; set;  }
             private ProvideStringDelegate DestinationNameDelegate { get; set; }
             private ProvideWoWPointDelegate LocationObserver { get; set; }
-            private ProvideMovementByDelgate MovementByDelegate { get; set; }
+            private ProvideMovementByDelegate MovementByDelegate { get; set; }
             private ProvideDoubleDelegate PrecisionDelegate { get; set; }
             private CanRunDecoratorDelegate SuppressMountUse { get; set; }
 
@@ -160,11 +120,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     new Decorator(context => MovementByDelegate(context) != MovementByType.None,
                         new PrioritySelector(
-                            new Action(context =>
+                            new ActionFail(context =>
                             {
                                 CachedDestination = DestinationDelegate(context);
                                 CachedMovementBy = MovementByDelegate(context);
-                                return RunStatus.Failure;   // fall through
                             }),
                             new UtilityBehaviorPS.MountAsNeeded(DestinationDelegate, SuppressMountUse),
 
@@ -188,7 +147,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                 var immediateDestination = CachedDestination.FindFlightorUsableLocation();
 
                                                 if (immediateDestination == default(WoWPoint))
-                                                { moveResult = MoveResult.Failed; }
+                                                    { moveResult = MoveResult.Failed; }
 
                                                 else if (Me.Location.Distance(immediateDestination) > Navigator.PathPrecision)
                                                 {
@@ -242,7 +201,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public class NoMobsAtCurrentWaypoint : PrioritySelector
         {
             public NoMobsAtCurrentWaypoint(ProvideHuntingGroundsDelegate huntingGroundsProvider,
-                                            ProvideMovementByDelgate movementByDelegate,
+                                            ProvideMovementByDelegate movementByDelegate,
                                             Action<object> terminateBehaviorIfNoTargetsProvider = null,
                                             Func<object, IEnumerable<string>> huntedMobNamesProvider = null,
                                             ProvideStringDelegate huntedMobExclusions = null)
@@ -264,7 +223,7 @@ namespace Honorbuddy.QuestBehaviorCore
             private ProvideHuntingGroundsDelegate HuntingGroundsProvider { get; set; }
             private ProvideStringDelegate HuntedMobExclusions { get; set; }
             private Func<object, IEnumerable<string>> HuntedMobNamesProvider { get; set; }
-            private ProvideMovementByDelgate MovementByDelegate { get; set; }
+            private ProvideMovementByDelegate MovementByDelegate { get; set; }
             private Action<object> TerminateBehaviorIfNoTargetsProvider { get; set; }
 
 

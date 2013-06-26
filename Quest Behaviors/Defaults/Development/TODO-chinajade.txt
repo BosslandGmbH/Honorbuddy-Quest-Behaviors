@@ -43,6 +43,9 @@
 	* For whatever reason EscortGroup responds far too slowly to attacking mobs.
 		[4:56:01 AM] Mjj23q: In some situations.
 		[4:56:13 AM] Chinajade: EscortGroup is doing a lot of things, and I probably need to get some FrameLocks into certain areas of it.
+	* Needs to defend objects also
+		+ "A Line in the Dirt" (http://wowhead.com/quest=24546)
+		
 
 * GetOutOfGroundEffectsAndAuras
 	loving the new moveoutofaura CB, but I have one request
@@ -71,6 +74,24 @@
 		[4:48:42 AM] Mjj23: In later iterations of IW, it seems the bot does a less good job of actually engaging mobs, and is reduced to "following" them.
 		[4:49:03 AM] Mjj23: Which necessitated the new behavior.
 		[4:49:11 AM] Mjj23: If that all makes sense?
+	+ A missing <HuntingGrounds> tag will produce the following exception (fix it!)...
+		System.NullReferenceException: Object reference not set to an instance of an object.
+		   at Honorbuddy.QuestBehaviorCore.XmlElements.QuestBehaviorXmlBase..ctor(XElement xElement) in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\QuestBehaviorCore\QuestBehaviorXmlBase.cs:line 26
+		   at Honorbuddy.QuestBehaviorCore.XmlElements.HuntingGroundsType..ctor(XElement xElement) in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\QuestBehaviorCore\XmlElements\HuntingGroundsType.cs:line 33
+		   at Honorbuddy.QuestBehaviorCore.XmlElements.HuntingGroundsType.GetOrCreate(XElement parentElement, String elementName, Nullable`1 defaultHuntingGroundCenter) in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\QuestBehaviorCore\XmlElements\HuntingGroundsType.cs:line 191
+		   at Honorbuddy.Quest_Behaviors.InteractWith.InteractWith.OnStart() in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\InteractWith.cs:line 619
+		   at Bots.Quest.QuestOrder.ForcedCodeBehavior.OnStart()
+		   at Bots.Quest.Actions.ForcedBehaviorExecutor..()
+		   at Styx.TreeSharp.Composite.Tick(Object context)
+		   at Bots.Quest.QuestOrder.ForcedWhile...()
+		   at Styx.TreeSharp.Composite.Tick(Object context)
+		   at Bots.Quest.Actions.ForcedBehaviorExecutor..()
+		   at Styx.TreeSharp.Composite.Tick(Object context)
+		   at Styx.TreeSharp.PrioritySelector..()
+		   at Styx.TreeSharp.Composite.Tick(Object context)
+		   at Styx.TreeSharp.PrioritySelector..()
+		   at Styx.TreeSharp.Composite.Tick(Object context)
+		   at Styx.CommonBot.TreeRoot.()
 		
 * KillUntilComplete
 	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive

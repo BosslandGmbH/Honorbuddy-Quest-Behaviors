@@ -276,11 +276,14 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                     )),
 
                                 // Move to and mount any free vehicle we've found...
-                                UtilityBehaviorSeq_InteractWith(context => UnoccupiedVehicle),
+                                new UtilityBehaviorSeq.InteractWith(context => UnoccupiedVehicle, context => MovementBy),
 
                                 // If no vehicle to be found, move to the Vehicle acquisition area...
                                 new Decorator(context => UnoccupiedVehicle == null,
-                                    UtilityBehaviorPS_MoveTo(context => VehicleAcquisitionArea, context => "Vehicle acquisition area"))
+                                    new UtilityBehaviorPS.MoveTo(
+                                        context => VehicleAcquisitionArea,
+                                        context => "Vehicle acquisition area",
+                                        context => MovementBy))
                             )),
                         #endregion
 
@@ -311,9 +314,10 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                     new PrioritySelector(
                                         // Make certain were within the prescribed range for engagement...
                                         new Decorator(context => Me.Location.Distance(SelectedTarget.Location) > CombatMaxEngagementDistance,
-                                            UtilityBehaviorPS_MoveTo(
+                                            new UtilityBehaviorPS.MoveTo(
                                                 context => SelectedTarget.Location,
-                                                context => string.Format("within range of '{0}'", SelectedTarget.Name))) //, // TODO
+                                                context => string.Format("within range of '{0}'", SelectedTarget.Name),
+                                                context => MovementBy)) //, // TODO
 
                                         //new Action(context => { AimAndFire(SelectedMob, TODO, TODO); }) // TODO
                                     )),
@@ -330,7 +334,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                     })),
 
                                 // Otherwise, move to next hotspot...
-                                UtilityBehaviorPS_MoveTo(context => HuntingGrounds)
+                                new UtilityBehaviorPS.MoveTo(context => HuntingGrounds, context => MovementBy)
                             ))
                         #endregion
                     )

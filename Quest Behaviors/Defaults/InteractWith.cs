@@ -357,6 +357,7 @@ using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -666,8 +667,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                     new Decorator(context => !Me.Combat,
                         new PrioritySelector(
-                            UtilityBehaviorPS_Looting(),
-                            UtilityBehaviorPS_HealAndRest())),
+                            new UtilityBehaviorPS.Looting(context => MovementBy),
+                            new UtilityBehaviorPS.HealAndRest())),
 
                     // If a mob is targeting us, deal with it immediately, so our interact actions won't be interrupted...
                     // NB: We try to not kill mobs that are attacking us, if they are possible interact targets.  However,
@@ -698,11 +699,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     }
                                 })),
 
-                            UtilityBehaviorPS_SpankMobTargetingUs(context => (InteractAttemptCount >= 1)
-                                                                            ? Enumerable.Empty<WoWUnit>()
-                                                                            : FindInteractTargets(MobState) /*excluded units*/
-                                                                              .Where(o => o.ToUnit() != null)
-                                                                              .Select(o => o.ToUnit()))
+                            new UtilityBehaviorPS.SpankMobTargetingUs(
+                                context => IgnoreMobsInBlackspots,
+                                context => NonCompeteDistance,
+                                context => (InteractAttemptCount >= 1)
+                                            ? Enumerable.Empty<WoWUnit>()
+                                            : FindInteractTargets(MobState) /*excluded units*/
+                                                .Where(o => o.ToUnit() != null)
+                                                .Select(o => o.ToUnit()))
                         )),
 
                     // Delay, if necessary...
@@ -734,7 +738,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     // for the item to show up, if its going to.
                     new Decorator(context => (InteractByUsingItemId > 0) && !Query.IsViable(ItemToUse),
                         new PrioritySelector(
-                            UtilityBehaviorPS_WaitForInventoryItem(context => InteractByUsingItemId),
+                            new UtilityBehaviorPS.WaitForInventoryItem(
+                                context => InteractByUsingItemId,
+                                context => BehaviorDone()),
                             new Action(context =>
                             {
                                 ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
@@ -745,7 +751,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     new Decorator(context => Query.IsViable(SelectedAliveTarget) && SelectedAliveTarget.IsAlive,
                         new Sequence(
                             new Action(context => { QBCLog.Info("Going after 'alive' {0} to make it 'dead'", SelectedAliveTarget.Name); }),
-                            UtilityBehaviorPS_SpankMob(context => SelectedAliveTarget))),
+                            new UtilityBehaviorPS.SpankMob(context => SelectedAliveTarget))),
 
                     // If interact target no longer meets qualifications, try to find another...
                     new Decorator(context => !IsInteractNeeded(SelectedInteractTarget, MobState),
@@ -776,9 +782,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
                             // this sub-behavior will terminate the overall behavior.
                             new Decorator(context => !Query.IsViable(SelectedInteractTarget),
-                                UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
+                                new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
                                     context => HuntingGrounds,
-                                    context => !WaitForNpcs,
+                                    context => MovementBy,
+                                    context => { if (!WaitForNpcs) BehaviorDone(); },
                                     context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
                                     context => TargetExclusionAnalysis.Analyze(Element,
                                                     () => FindInterestingTargets(),
@@ -812,9 +819,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                     && !Me.IsFlying
                                                     && ((ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll)
                                                         || (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro)),
-                                UtilityBehaviorPS_SpankMobWithinAggroRange(context => SelectedInteractTarget.Location,
-                                                                           context => SelectedInteractTarget.InteractRange,
-                                                                           () => MobIds /*excluded mobs*/)),
+                                new UtilityBehaviorPS.SpankMobWithinAggroRange(
+                                    context => SelectedInteractTarget.Location,
+                                    context => IgnoreMobsInBlackspots,
+                                    context => NonCompeteDistance,
+                                    context => SelectedInteractTarget.InteractRange,
+                                    context => MobIds /*excluded mobs*/)),
 
                             SubBehaviorPS_HandleLootFrame(),
                             SubBehaviorPS_HandleGossipFrame(),
@@ -839,7 +849,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 {
                                     WoWUnit wowUnit = SelectedInteractTarget.ToUnit();
                                     if ((wowUnit != null) && ((wowUnit.Distance < RangeMax) || Query.IsInLineOfSight(wowUnit)))
-                                        { wowUnit.Target(); }
+                                        { Utility.Target(wowUnit); }
                                     else if (Me.CurrentTarget != null)
                                         { Me.ClearTarget(); }
 
@@ -877,11 +887,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                                 // Interact by item use...
                                 new DecoratorContinue(context => ItemToUse != null,
-                                    UtilityBehaviorSeq_UseItemOn(context => ItemToUse, context => SelectedInteractTarget)),
+                                    new UtilityBehaviorSeq.UseItemOn(context => ItemToUse, context => SelectedInteractTarget)),
 
                                 // Interact by right-click...
                                 new DecoratorContinue(context => ItemToUse == null,
-                                    UtilityBehaviorSeq_InteractWith(context => SelectedInteractTarget, context => false)),
+                                    new UtilityBehaviorSeq.InteractWith(context => SelectedInteractTarget, context => MovementBy)),
 
                                 // Record usage...
                                 new Action(context =>
@@ -957,13 +967,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             return
                 new PrioritySelector(
                     new Decorator(context => IsDistanceGainNeeded(SelectedInteractTarget),
-                        UtilityBehaviorPS_MoveTo(
+                        new UtilityBehaviorPS.MoveTo(
                             context => Utility.GetPointToGainDistance(SelectedInteractTarget, RangeMin),
                             context => string.Format("gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
                                 GetName(SelectedInteractTarget),
                                 SelectedInteractTarget.Entry,
                                 SelectedInteractTarget.Distance,
-                                RangeMin))),
+                                RangeMin),
+                            context => MovementBy)),
 
                     new Decorator(context => IsDistanceCloseNeeded(SelectedInteractTarget),
                         new PrioritySelector(
@@ -986,7 +997,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     BehaviorDone();
                                 })),
 
-                            UtilityBehaviorPS_MoveTo(
+                            new UtilityBehaviorPS.MoveTo(
                                 context => SelectedInteractTarget.Location,
                                 context => string.Format("interact with {0} (id: {1}, dist: {2:F1}{3}, TtB: {4})",
                                                         GetName(SelectedInteractTarget),
@@ -994,7 +1005,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                         SelectedInteractTarget.Distance,
                                                         (Query.IsInLineOfSight(SelectedInteractTarget) ? "" : ", noLoS"),
                                                         // Time-to-Blacklist
-                                                        Utility.PrettyTime(_timerToReachDestination.TimeLeft)))
+                                                        Utility.PrettyTime(_timerToReachDestination.TimeLeft)),
+                                context => MovementBy)
                         )),
 
                     // If we expect to gossip, and mob in combat and offers no gossip, help mob...
@@ -1002,12 +1014,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     new Decorator(context => (InteractByGossipOptions.Length > 0)
                                                 && (SelectedInteractTarget.ToUnit() != null)
                                                 && (SelectedInteractTarget.ToUnit().Combat),
-                        UtilityBehaviorPS_SpankMob(context => SelectedInteractTarget.ToUnit().CurrentTarget)),
+                        new UtilityBehaviorPS.SpankMob(context => SelectedInteractTarget.ToUnit().CurrentTarget)),
 
                     // Prep to interact...
-                    UtilityBehaviorPS_MoveStop(),
-                    UtilityBehaviorPS_ExecuteMountStrategy(context => PreInteractMountStrategy),
-                    UtilityBehaviorPS_FaceMob(context => SelectedInteractTarget)          
+                    new UtilityBehaviorPS.MoveStop(),
+                    new UtilityBehaviorPS.ExecuteMountStrategy(context => PreInteractMountStrategy, context => MaxDismountHeight),
+                    new ActionFail(context => { Utility.Target(SelectedInteractTarget, true); })
             );
         }
 

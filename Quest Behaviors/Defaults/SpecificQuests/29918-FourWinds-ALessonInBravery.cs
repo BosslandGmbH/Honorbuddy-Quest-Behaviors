@@ -166,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                             new Decorator(r => Query.IsViable(GiantAssBird),
                                 new Action(r =>
                                 {
-                                    GiantAssBird.Target();
+                                    Utility.Target(GiantAssBird);
                                     Navigator.MoveTo(GiantAssBird.Location);
                                     Rope.Use();
                                 }))
@@ -193,17 +193,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                             )),
 
                         // Make certain bird stays targeted...
-                        new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != GiantAssBird,
-                            new Action(r=>
-                            {
-                                GiantAssBird.Target();
-                                BotPoi.Current = new BotPoi(GiantAssBird, PoiType.Kill);
-                            })),
+                        new ActionFail(context => { Utility.Target(GiantAssBird, false, PoiType.Kill); }),
 
                         // Spank bird (use backup MiniCombatRoutine if main CR doesn't attack in vehicles...
                         RoutineManager.Current.CombatBuffBehavior,
                         RoutineManager.Current.CombatBehavior,
-                        QuestBehaviorBase.UtilityBehaviorPS_MiniCombatRoutine()
+                        new UtilityBehaviorPS.MiniCombatRoutine()
                     ));
             }
         }

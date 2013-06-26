@@ -335,10 +335,11 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                                     new Action(context => { Me.ClearTarget(); })),
 
                                 // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
-                                // this sub-behavior will terminate the overall behavior.
-                                UtilityBehaviorPS_NoMobsAtCurrentWaypoint(
+                // this sub-behavior will terminate the overall behavior.
+                                new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
                                         context => HuntingGrounds,
-                                        context => !WaitForNpcs,
+                                        context => MovementBy,
+                                        context => { if (!WaitForNpcs) BehaviorDone(); },
                                         context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
                                         context => TargetExclusionAnalysis.Analyze(Element,
                                                     () => Query.FindObjectsFromIds(MobIds),
@@ -351,14 +352,16 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                 // another player moves close to or tags the mob while we're on our way to it.
                 new Decorator(context => IsMobQualified(SelectedTarget),
                     new PrioritySelector(
-                        UtilityBehaviorPS_Target(context => SelectedTarget),
+                        new ActionFail(context => { Utility.Target(SelectedTarget); }),
                         new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
-                            UtilityBehaviorPS_MoveTo(context => SelectedTarget.Location,
-                                                 context => SelectedTarget.Name)),
-                        UtilityBehaviorPS_MoveStop(),
+                            new UtilityBehaviorPS.MoveTo(
+                                context => SelectedTarget.Location,
+                                context => SelectedTarget.Name,
+                                context => MovementBy)),
+                        new UtilityBehaviorPS.MoveStop(),
                         new Action(context =>
                         {
-                            SelectedTarget.Face();
+                            Utility.Target(SelectedTarget, true);
                             BehaviorDone();
                         })
                     ))

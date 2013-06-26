@@ -336,8 +336,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                             if (nearestMob != null)
                             {
                                 // Target destination mob as feedback to the user...
-                                if (!Me.GotTarget || (Me.CurrentTarget != nearestMob))
-                                    { nearestMob.Target(); }
+                                Utility.Target(nearestMob);
 
                                 FinalDestination = nearestMob.Location;
                                 FinalDestinationName = nearestMob.Name;
@@ -371,8 +370,10 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                         })),
                                     new DecoratorContinue(context => VehicleUnoccupied.WithinInteractRange,
                                         new Action(context => { VehicleUnoccupied.Interact(); })),
-                                    UtilityBehaviorPS_MoveTo(context => VehicleUnoccupied.Location,
-                                                            context => VehicleUnoccupied.Name)
+                                    new UtilityBehaviorPS.MoveTo(
+                                        context => VehicleUnoccupied.Location,
+                                        context => VehicleUnoccupied.Name,
+                                        context => MovementBy)
                                 )),
 
                             // If we can't find a vehicle, terminate if requested...
@@ -395,11 +396,13 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                      new Decorator(context => !DidSuccessfullyMount,
                                         new Action(context => { DidSuccessfullyMount = true; })),
 
-                                    UtilityBehaviorPS_MoveTo(context => FinalDestination,
-                                                                context => FinalDestinationName,
-                                                                context => Precision,
-                                                                context => IsInVehicle(),
-                                                                context => ProxyObserver().Location),
+                                    new UtilityBehaviorPS.MoveTo(
+                                        context => FinalDestination,
+                                        context => FinalDestinationName,
+                                        context => MovementBy,
+                                        context => Precision,
+                                        context => IsInVehicle(),
+                                        context => ProxyObserver().Location),
                                     new Decorator(context => ProxyObserver().IsMoving,
                                         new Sequence(
                                             new Action(context => { WoWMovement.MoveStop(); }),

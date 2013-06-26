@@ -242,10 +242,10 @@ namespace Honorbuddy.QuestBehaviorCore
                                 new Action(context =>
                                 {
                                     if (SpellManager.CanCast(SpellId_DruidAquaticForm) && !Me.HasAura(AuraId_AquaticForm))
-                                    { SpellManager.Cast(SpellId_DruidAquaticForm); }
+                                        { SpellManager.Cast(SpellId_DruidAquaticForm); }
 
                                     else if (SpellManager.CanCast(SpellId_WarlockUnendingBreath) && !Me.HasAura(AuraId_WarlockUnendingBreath))
-                                    { SpellManager.Cast(SpellId_WarlockUnendingBreath); }
+                                        { SpellManager.Cast(SpellId_WarlockUnendingBreath); }
 
                                     return RunStatus.Failure;
                                 })

@@ -235,16 +235,20 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                                 TreeRoot.StatusText =
                                     string.Format("Moving to {0}", Utility.GetObjectNameFromId(MobId_SteamwheedleRescueBalloon));
                             })),
-                        UtilityBehaviorPS_MoveTo(context => BalloonVehicle.Location,
-                                                context => BalloonVehicle.Name),
-                        UtilityBehaviorSeq_InteractWith(context => BalloonVehicle)
+                        new UtilityBehaviorPS.MoveTo(
+                            context => BalloonVehicle.Location,
+                            context => BalloonVehicle.Name,
+                            context => MovementBy),
+                        new UtilityBehaviorSeq.InteractWith(context => BalloonVehicle, context => MovementBy)
                     )),
 
                 // Otherwise, move near balloon launch point...
                 new Decorator(context => !Query.IsViable(BalloonVehicle),
                     new PrioritySelector(
-                        UtilityBehaviorPS_MoveTo(context => BalloonLaunchPoint,
-                                                 context => "Balloon Launch Point"),
+                        new UtilityBehaviorPS.MoveTo(
+                            context => BalloonLaunchPoint,
+                            context => "Balloon Launch Point",
+                            context => MovementBy),
                         new Action(context =>
                         {
                             TreeRoot.StatusText =

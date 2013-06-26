@@ -297,7 +297,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
                             new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Flying back to turn in the quest"),
-                                new Action(ret => WoWMovement.ClickToMove(EndPath.Peek())))
+                                new Action(ret => WoWMovement.ClickToMove(EndPath.Peek())),
+                                new DecoratorContinue(ret => Me.MovementInfo.IsAscending,
+                                    new Action(ret => { WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend); })))
                                 )),
 
                     new Decorator(ret => Vehicle == null,

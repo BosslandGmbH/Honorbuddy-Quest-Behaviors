@@ -167,7 +167,9 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
                 new Decorator(ret => !Me.IsMounted() && !Me.IsShapeshifted(),
                     new Action(delegate { BehaviorDone(); })),
 
-                UtilityBehaviorPS_ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)
+                new UtilityBehaviorPS.ExecuteMountStrategy(
+                    context => MountStrategyType.DismountOrCancelShapeshift,
+                    context => MaxDismountHeight)
             );
         }
         #endregion

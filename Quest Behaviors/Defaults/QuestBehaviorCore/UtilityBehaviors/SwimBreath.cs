@@ -31,7 +31,7 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         public class SwimBreath : PrioritySelector
         {
-            public SwimBreath(ProvideMovementByDelgate movementByDelegate)
+            public SwimBreath(ProvideMovementByDelegate movementByDelegate)
             {
                 Contract.Requires(movementByDelegate != null, context => "movementByDelegate may not be null");
 
@@ -42,7 +42,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
             // BT contruction-time properties...
-            private ProvideMovementByDelgate MovementByDelegate { get; set; }
+            private ProvideMovementByDelegate MovementByDelegate { get; set; }
 
             // BT visit-time properties...
             private bool IsSwimBreathNeeded { get; set; }
