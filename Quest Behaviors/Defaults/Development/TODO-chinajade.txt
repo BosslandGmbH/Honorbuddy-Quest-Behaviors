@@ -55,6 +55,7 @@
 	would it be possible to add 4th option to move out of an effect no matter how the effect gets there
 
 * InteractWith testing needed:
+	+ Need CastSpellOn abilities into IW
 	+ InteractByCastingSpellOn & make sure it works for "cast spell on 'self'"
 	+ InteractByCollectingItemId
 	+ BlacklistInteractTarget needs to emit message as to why blacklisted (but, warning or info or debug?--it varies).
