@@ -13,6 +13,7 @@ using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Pathing;
@@ -25,7 +26,7 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 {
-    
+
     [CustomBehaviorFileName(@"SpecificQuests\24707-ungoro-theballadofmaximillian")]
     public class theballadofmaximillian : CustomForcedBehavior
     {
@@ -109,7 +110,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
             }
-            Logging.Write("Disposing");
+            //Logging.Write("Disposing");
 
             //LevelBot.BehaviorFlags |= ~BehaviorFlags.Combat;
 
@@ -158,12 +159,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
             }
         }
 
-
+        public WoWPoint start = new WoWPoint(-7228.146, -599.6198, -271.2461);
 
         //<Vendor Name="Devilsaur Queen" Entry="38708" Type="Repair" X="-7933.465" Y="-689.9974" Z="-258.6719" />
         public WoWUnit Dragon
         {
             get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 38708 && r.IsAlive); }
+        }
+
+        public WoWUnit maxi
+        {
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 38237 && r.IsAlive); }
         }
 
         public WoWItem armor
@@ -183,14 +189,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 
         public Composite GoobyPls
         {
-            
+
             get
             {
                 return new PrioritySelector(
-
-                     new Decorator(r => Dragon == null, shoot(1)),
-                     new Decorator(r => Dragon != null && Me.CurrentTarget != Dragon, new Action(r=>Dragon.Target())),
-                     new Decorator(r => Dragon != null, new Action(r =>
+                    new Decorator(r=> !Me.InVehicle && (maxi == null || maxi.Distance > 5), new Action(r=>Navigator.MoveTo(start))),
+                    new Decorator(r => !Me.InVehicle && maxi != null, new Action(r => {maxi.Interact();
+                    GossipFrame.Instance.SelectGossipOption(0);
+                    })),
+                     new Decorator(r => Me.InVehicle &&  Dragon == null, shoot(1)),
+                     new Decorator(r => Me.InVehicle && Dragon != null && Me.CurrentTarget != Dragon, new Action(r => Dragon.Target())),
+                     new Decorator(r => Me.InVehicle && Dragon != null, new Action(r =>
                          {
                              if (Dragon.Distance <= 12) {Lua.DoString("CastPetAction({0})", 1);}
                              if (rock != null){Lua.DoString("CastPetAction({0})", 2);}
@@ -210,7 +219,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
         protected override Composite CreateBehavior()
         {
 
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,GoobyPls, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GoobyPls, new ActionAlwaysSucceed())));
         }
 
         public override void Dispose()
