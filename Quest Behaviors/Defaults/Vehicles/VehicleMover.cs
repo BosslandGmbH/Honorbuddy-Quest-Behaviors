@@ -332,7 +332,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                         if (MobIds.Count() > 0)
                         {
                             // If we can see our destination mob, calculate a path to it...
-                            WoWUnit nearestMob = Query.FindUnitsFromIds(MobIds).OrderBy(u => u.Distance).FirstOrDefault();
+                            var nearestMob = Query.FindMobsAndFactions(MobIds).OrderBy(u => u.Distance).FirstOrDefault() as WoWUnit;
                             if (nearestMob != null)
                             {
                                 // Target destination mob as feedback to the user...
@@ -512,9 +512,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         private WoWUnit FindUnoccupiedVehicle()
         {
             return
-                (from wowUnit in Query.FindUnitsFromIds(VehicleIds)
+                (from wowObject in Query.FindMobsAndFactions(VehicleIds)
+                 let wowUnit = wowObject as WoWUnit
                  where
-                    !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
+                    Query.IsViable(wowUnit)
+                    && !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
                     && !Query.IsInCompetition(wowUnit, NonCompeteDistance)
                     && wowUnit.IsUntagged()
                  orderby wowUnit.Distance

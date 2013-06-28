@@ -339,10 +339,9 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                                 new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
                                         context => HuntingGrounds,
                                         context => MovementBy,
-                                        context => { if (!WaitForNpcs) BehaviorDone(); },
-                                        context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
+                                        context => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
                                         context => TargetExclusionAnalysis.Analyze(Element,
-                                                    () => Query.FindObjectsFromIds(MobIds),
+                                                    () => Query.FindMobsAndFactions(MobIds),
                                                     TargetExclusionChecks))
                             ))
                     )),
@@ -374,7 +373,8 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
         private WoWUnit FindQualifiedMob()
         {
             return
-               (from wowUnit in Query.FindUnitsFromIds(MobIds)
+               (from wowObject in Query.FindMobsAndFactions(MobIds)
+                let wowUnit = wowObject as WoWUnit
                 where
                     IsMobQualified(wowUnit)
                 orderby wowUnit.Distance
@@ -416,11 +416,11 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
         // 30May2013-08:11UTC chinajade
         private List<string> TargetExclusionChecks(WoWObject wowObject)
         {
-            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, NonCompeteDistance, IgnoreMobsInBlackspots);
+            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, this);
 
             TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, TargetOnlyIfMobHasAuraId, TargetOnlyIfMobMissingAuraId);
 
-            var wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject as WoWUnit;
             if (wowUnit != null)
             {
                 if (wowUnit.HealthPercent < TargetOnlyIfHealthPercentAbove)

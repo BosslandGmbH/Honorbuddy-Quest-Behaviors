@@ -138,6 +138,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_CombatMain;
         private Composite _behaviorTreeHook_CombatOnly;
         private Composite _behaviorTreeHook_DeathMain;
+        private Composite _behaviorTreeHook_QuestbotMain;
         private Composite _behaviorTreeHook_Main;
         private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
@@ -187,6 +188,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 if (_behaviorTreeHook_DeathMain != null)
                 {
                     TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
+                    _behaviorTreeHook_DeathMain = null;
+                }
+
+                if (_behaviorTreeHook_QuestbotMain != null)
+                {
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", _behaviorTreeHook_QuestbotMain);
                     _behaviorTreeHook_DeathMain = null;
                 }
 
@@ -310,6 +317,8 @@ namespace Honorbuddy.QuestBehaviorCore
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
                 _behaviorTreeHook_DeathMain = new ExceptionCatchingWrapper(this, CreateBehavior_DeathMain());
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
+                _behaviorTreeHook_QuestbotMain = new ExceptionCatchingWrapper(this, CreateBehavior_QuestbotMain());
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, _behaviorTreeHook_QuestbotMain);
             }
         }
         #endregion
@@ -380,6 +389,14 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         protected virtual Composite CreateBehavior_DeathMain()
+        {
+            return new PrioritySelector(
+                // empty, for now...
+                );
+        }
+
+
+        protected virtual Composite CreateBehavior_QuestbotMain()
         {
             return new PrioritySelector(
                 // empty, for now...

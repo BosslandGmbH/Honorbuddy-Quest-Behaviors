@@ -223,7 +223,10 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                 new Decorator(context => !Query.IsViable(BalloonVehicle),
                     new ActionFail(context =>
                     {
-                        BalloonVehicle = Query.FindUnitsFromIds(Utility.ToEnumerable(MobId_SteamwheedleRescueBalloon)).FirstOrDefault();
+                        BalloonVehicle =
+                            Query.FindMobsAndFactions(Utility.ToEnumerable(MobId_SteamwheedleRescueBalloon))
+                            .FirstOrDefault()
+                            as WoWUnit;
                     })),
 
                 // Move to vehicle and enter...
@@ -239,7 +242,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                             context => BalloonVehicle.Location,
                             context => BalloonVehicle.Name,
                             context => MovementBy),
-                        new UtilityBehaviorSeq.InteractWith(context => BalloonVehicle, context => MovementBy)
+                        new UtilityBehaviorSeq.Interact(context => BalloonVehicle)
                     )),
 
                 // Otherwise, move near balloon launch point...

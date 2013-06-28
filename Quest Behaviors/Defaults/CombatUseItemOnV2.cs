@@ -482,9 +482,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                             context => HuntingGrounds,
                             context => MovementBy,
                             context => { /*NoOp*/ },
-                            context => MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct(),
                             context => TargetExclusionAnalysis.Analyze(Element,
-                                                    () => Query.FindUnitsFromIds(MobIds),
+                                                    () => Query.FindMobsAndFactions(MobIds),
                                                     TargetExclusionChecks)))
                 ));
         }
@@ -551,7 +550,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                         })),
 
                                     new Sequence(
-                                        new UtilityBehaviorSeq.UseItemOn(context => ItemToUse, context => SelectedTarget),
+                                        new UtilityBehaviorSeq.UseItem(context => ItemId, context => SelectedTarget),
                                         // Allow a brief time for WoWclient to apply aura to mob...
                                         new WaitContinue(TimeSpan.FromMilliseconds(5000),
                                             context => ItemUseAlwaysSucceeds || SelectedTarget.HasAura(ItemAppliesAuraId),
@@ -649,7 +648,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 var isFlyingOrSwimming = Me.IsFlying || Me.IsSwimming;
 
                 var targets =
-                   from wowUnit in Query.FindUnitsFromIds(MobIds)
+                    from wowObject in Query.FindMobsAndFactions(MobIds)
+                    let wowUnit = wowObject as WoWUnit
                     where
                         IsViableForItemUse(wowUnit)
                         && (wowUnit.Distance < CollectionDistance)
@@ -704,7 +704,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         // 4JUn2013-08:11UTC chinajade
         private List<string> TargetExclusionChecks(WoWObject wowObject)
         {
-            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, NonCompeteDistance, IgnoreMobsInBlackspots);
+            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, this);
 
             if (wowObject.Distance > CollectionDistance)
                 { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
@@ -712,7 +712,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             if (Query.IsBlacklistedForInteraction(wowObject))
                 { exclusionReasons.Add("BlacklistedForInteract"); }
 
-            var wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject as WoWUnit;
             if (wowUnit != null)
             {
                 if (!wowUnit.IsAlive)

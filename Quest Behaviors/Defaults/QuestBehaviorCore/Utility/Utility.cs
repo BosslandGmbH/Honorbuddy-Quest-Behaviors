@@ -42,8 +42,8 @@ namespace Honorbuddy.QuestBehaviorCore
 	        }   
         }
         private static readonly WaitTimer _afkTimer = new WaitTimer(TimeSpan.FromMinutes(2));
-
-
+        
+        
         // 25Apr2013-09:15UTC chinajade
         public static TimeSpan CalculateMaxTimeToDestination(WoWPoint destination, bool includeSafetyMargin = true)
         {

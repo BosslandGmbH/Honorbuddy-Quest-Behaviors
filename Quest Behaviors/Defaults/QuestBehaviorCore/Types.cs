@@ -12,7 +12,9 @@
 using System;
 
 using Honorbuddy.QuestBehaviorCore.XmlElements;
+
 using Styx;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -99,6 +101,15 @@ namespace Honorbuddy.QuestBehaviorCore
     }
 
 
+    public enum ProactiveCombatStrategyType
+    {
+        NoClear,
+        ClearMobsTargetingUs,
+        ClearMobsThatWillAggro,
+        ClearAll
+    }
+
+
     // Delegates
     public delegate bool ProvideBoolDelegate(object context);
     public delegate int ProvideIntDelegate(object context);
@@ -109,6 +120,7 @@ namespace Honorbuddy.QuestBehaviorCore
     public delegate WoWItem ProvideWoWItemDelegate(object context);
     public delegate WoWObject ProvideWoWObjectDelegate(object context);
     public delegate WoWPoint ProvideWoWPointDelegate(object context);
+    public delegate WoWSpell ProvideWoWSpellDelegate(object context);
     public delegate WoWUnit ProvideWoWUnitDelegate(object context);
 
 

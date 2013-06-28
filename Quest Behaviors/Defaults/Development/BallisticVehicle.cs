@@ -276,7 +276,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                     )),
 
                                 // Move to and mount any free vehicle we've found...
-                                new UtilityBehaviorSeq.InteractWith(context => UnoccupiedVehicle, context => MovementBy),
+                                new UtilityBehaviorSeq.Interact(context => UnoccupiedVehicle),
 
                                 // If no vehicle to be found, move to the Vehicle acquisition area...
                                 new Decorator(context => UnoccupiedVehicle == null,
@@ -590,9 +590,10 @@ IsAbilityReady();
                 select mobId;
 
             return
-               (from target in Query.FindUnitsFromIds(targetMobIds.ToArray())
-                orderby Me.Location.Distance(target.Location)
-                select target)
+               (from wowObject in Query.FindMobsAndFactions(targetMobIds.ToArray())
+                let wowUnit = wowObject as WoWUnit
+                orderby Me.Location.Distance(wowUnit.Location)
+                select wowUnit)
                 .FirstOrDefault();
         }
 
@@ -603,12 +604,14 @@ IsAbilityReady();
                 context => "mobIds_UnoccupiedVehicle argument may not be null");
 
             return
-                (from vehicle in Query.FindUnitsFromIds(mobIds_UnoccupiedVehicle)
+                (from wowObject in Query.FindMobsAndFactions(mobIds_UnoccupiedVehicle)
+                 let wowUnit = wowObject as WoWUnit
                  where
-                    !vehicle.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
-                    && !Query.FindPlayersNearby(vehicle.Location, NonCompeteDistance).Any()
-                 orderby vehicle.Distance
-                 select vehicle)
+                    Query.IsViable(wowUnit)
+                    && !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
+                    && !Query.FindPlayersNearby(wowUnit.Location, NonCompeteDistance).Any()
+                 orderby wowUnit.Distance
+                 select wowUnit)
                  .FirstOrDefault();
         }
         #endregion

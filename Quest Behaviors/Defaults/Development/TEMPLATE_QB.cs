@@ -173,26 +173,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         #region Main Behaviors
-        protected override Composite CreateBehavior_CombatMain()
+        protected override Composite CreateBehavior_QuestbotMain()
         {
             return new PrioritySelector(
-                // empty, for now
-                );
-        }
-
-
-        protected override Composite CreateBehavior_CombatOnly()
-        {
-            return new PrioritySelector(
-                // empty, for now
-                );
-        }
-
-
-        protected override Composite CreateBehavior_DeathMain()
-        {
-            return new PrioritySelector(
-                // empty, for now
+                // empty, for now...
                 );
         }
 

@@ -100,8 +100,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 30May2013-08:11UTC chinajade
         public static List<string> CheckCore(
             WoWObject wowObject,
-            double nonCompeteDistance,
-            bool ignoreMobsInBlackspots)
+            QuestBehaviorBase coreAttributes)
         {
             var exclusionReasons = new List<string>();
 
@@ -112,25 +111,29 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
             if (Query.IsBlacklistedForCombat(wowObject))
-            {
-                exclusionReasons.Add("BlacklistedForCombat");
-            }
+                { exclusionReasons.Add("BlacklistedForCombat"); }
 
-            if (!Query.IsStateMatch_IgnoreMobsInBlackspots(wowObject, ignoreMobsInBlackspots))
+            if (Query.IsBlacklistedForInteraction(wowObject))
+                { exclusionReasons.Add("BlacklistedForInteract"); }
+
+            if (!Query.IsStateMatch_IgnoreMobsInBlackspots(wowObject, coreAttributes.IgnoreMobsInBlackspots))
             {
                 // TODO: Would be better to identify the offending blackspots, rather than the object location...
                 exclusionReasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location));
             }
 
-            if (Query.IsInCompetition(wowObject, nonCompeteDistance))
+            if (!Query.IsStateMatch_MeshNavigable(wowObject, coreAttributes.MovementBy))
+                { exclusionReasons.Add("NotMeshNavigable"); }
+
+            if (Query.IsInCompetition(wowObject, coreAttributes.NonCompeteDistance))
             {
-                int playerCount = Query.FindPlayersNearby(wowObject.Location, nonCompeteDistance).Count();
+                int playerCount = Query.FindPlayersNearby(wowObject.Location, coreAttributes.NonCompeteDistance).Count();
 
                 if (playerCount > 0)
                 {
                     exclusionReasons.Add(string.Format("InCompetition({0} players within {1:F1})",
                         playerCount,
-                        nonCompeteDistance));
+                        coreAttributes.NonCompeteDistance));
                 }
 
                 var wowUnit = wowObject.ToUnit();

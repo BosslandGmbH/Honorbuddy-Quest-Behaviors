@@ -31,7 +31,6 @@ namespace Honorbuddy.QuestBehaviorCore
         // Do NOT make this static!
         // We need a 'fresh list' each time the QB is started; otherwise, very bad things happen.
         private static LocalBlacklist _interactBlacklist = new LocalBlacklist();
-        private static LocalBlacklist _pullingBlacklist = new LocalBlacklist();
 
 
         // 30May2013-03:56UTC chinajade
@@ -58,7 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (wowObject != null)
             {
-                _pullingBlacklist.Add(wowObject.Guid, duration);
+                Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull, duration);
             }
         }
 
@@ -66,21 +65,27 @@ namespace Honorbuddy.QuestBehaviorCore
         public static void BlacklistsReset()
         {
             _interactBlacklist = new LocalBlacklist();
-            _pullingBlacklist = new LocalBlacklist();
         }
-        
-        
-        // 24Feb2013-08:11UTC chinajade
-        public static IEnumerable<WoWObject> FindObjectsFromIds(IEnumerable<int> objectIds, ProvideBoolDelegate extraQualifiers = null)
+
+
+        public static IEnumerable<WoWObject> FindMobsAndFactions(
+            IEnumerable<int> mobIds,
+            bool includeSelf = false,
+            IEnumerable<int> factionIds = null,
+            ProvideBoolDelegate extraQualifiers = null)
         {
-            Contract.Requires(objectIds != null, context => "objectIds argument may not be null");
-            extraQualifiers = extraQualifiers ?? (wowObjectContext => true);
+            mobIds = mobIds ?? Enumerable.Empty<int>();
+            factionIds = factionIds ?? Enumerable.Empty<int>();
+            extraQualifiers = extraQualifiers ?? (context => true);
 
             return
-                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, false)
+                from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, true)
+                let wowUnit = wowObject as WoWUnit
                 where
-                    IsViable(wowObject)
-                    && objectIds.Contains((int)wowObject.Entry)
+                    Query.IsViable(wowObject)
+                    && (mobIds.Contains((int)wowObject.Entry)
+                        || (includeSelf && wowObject.IsMe)
+                        || ((wowUnit != null) && factionIds.Contains((int)wowUnit.FactionId)))
                     && extraQualifiers(wowObject)
                 select wowObject;
         }
@@ -99,22 +104,6 @@ namespace Honorbuddy.QuestBehaviorCore
                     && (wowPlayer.Location.Distance(location) < radius)
                     && extraQualifiers(wowPlayer)
                 select wowPlayer;
-        }
-
-
-        // 24Feb2013-08:11UTC chinajade
-        public static IEnumerable<WoWUnit> FindUnitsFromIds(IEnumerable<int> unitIds, ProvideBoolDelegate extraQualifiers = null)
-        {
-            Contract.Requires(unitIds != null, context => "unitIds argument may not be null");
-            extraQualifiers = extraQualifiers ?? (wowUnitContext => true);
-
-            return
-                from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                where
-                    IsViable(wowUnit)
-                    && unitIds.Contains((int)wowUnit.Entry)
-                    && extraQualifiers(wowUnit)
-                select wowUnit;
         }
 
 
@@ -148,7 +137,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public static bool IsBlacklistedForPulling(WoWObject wowObject)
         {
             return (wowObject != null)
-                ? _pullingBlacklist.Contains(wowObject.Guid)
+                ? Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull)
                 : false;
         }
         
@@ -172,7 +161,7 @@ namespace Honorbuddy.QuestBehaviorCore
             });
 
             // Is WoWUnit claimed by another player?
-            WoWUnit wowUnit = wowObject.ToUnit();
+            WoWUnit wowUnit = wowObject as WoWUnit;
             bool isTagged = ((wowUnit != null) && !wowUnit.IsUntagged());
 
             return !IsSharedWorldResource(wowObject)
@@ -184,7 +173,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 23Mar2013-05:38UTC chinajade
         public static bool IsInLineOfSight(WoWObject wowObject)
         {
-            WoWUnit wowUnit = wowObject.ToUnit();
+            WoWUnit wowUnit = wowObject as WoWUnit;
 
             return (wowUnit == null)
                 ? wowObject.InLineOfSight
@@ -200,7 +189,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             bool isSharedResource = false;
             var wowGameObject = wowObject.ToGameObject();
-            var wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject as WoWUnit;
 
             isSharedResource |= (wowGameObject != null) && _sharedGameObjectTypes.Contains(wowGameObject.SubType);
             isSharedResource |= (wowUnit != null) && wowUnit.TappedByAllThreatLists;
@@ -272,11 +261,18 @@ namespace Honorbuddy.QuestBehaviorCore
 
             return
                 (movementBy != MovementByType.NavigatorOnly)
-                || ((movementBy == MovementByType.NavigatorOnly)
-                    && !Navigator.CanNavigateFully(StyxWoW.Me.Location, wowObject.Location));
+                || Navigator.CanNavigateFully(StyxWoW.Me.Location, wowObject.Location);
         }
 
 
+        // 27Jun2013-08:11UTC chinajade
+        public static bool IsStateMatch_NotMoving(WoWUnit wowUnit, bool nonMovingTargetWanted)
+        {
+            return
+                !nonMovingTargetWanted || !wowUnit.IsMoving;
+        }
+        
+        
         // 30May2013-08:11UTC chinajade
         public static bool IsStateMatch_IgnoreMobsInBlackspots(WoWObject wowObject, bool ignoreMobsInBlackspots)
         {
@@ -294,7 +290,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 return true;
             }
 
-            WoWUnit wowUnit = wowObject.ToUnit();
+            WoWUnit wowUnit = wowObject as WoWUnit;
             if (wowUnit != null)
             {
                 return

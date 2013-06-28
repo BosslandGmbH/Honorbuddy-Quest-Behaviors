@@ -29,16 +29,13 @@ namespace Honorbuddy.QuestBehaviorCore
     public partial class UtilityBehaviorSeq
     {
         // TODO: Convert this to PrioritySelector--its more common and versatile.
-        public class InteractWith : Sequence
+        public class Interact : Sequence
         {
-            public InteractWith(ProvideWoWObjectDelegate selectedTargetDelegate,
-                                ProvideMovementByDelegate movementByDelegate)
+            public Interact(ProvideWoWObjectDelegate selectedTargetDelegate)
             {
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
-                Contract.Requires(movementByDelegate != null, context => "movementByDelegate != null");
 
                 SelectedTargetDelegate = selectedTargetDelegate;
-                MovementByDelegate = movementByDelegate;
 
                 Children = CreateChildren();
             }
@@ -46,11 +43,10 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT contruction-time properties...
             private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
-            private ProvideMovementByDelegate MovementByDelegate { get; set; }
 
             // BT visit-time properties...
-            private bool IsInteractInterrupted { get; set; }
-            private WoWObject SelectedTarget { get; set; }
+            private bool IsInterrupted { get; set; }
+            private WoWObject CachedTarget { get; set; }
 
             // Convenience properties...
 
@@ -60,33 +56,16 @@ namespace Honorbuddy.QuestBehaviorCore
                 return new List<Composite>()
                 {
                     new Action(context =>
+                    {
+                        CachedTarget = SelectedTargetDelegate(context);
+                        if (!Query.IsViable(CachedTarget))
                         {
-                            SelectedTarget = SelectedTargetDelegate(context);
-                            if (!Query.IsViable(SelectedTarget))
-                            {
-                                QBCLog.Warning("Target is not viable!");
-                                return RunStatus.Failure;                        
-                            }
+                            QBCLog.Warning("Target is not viable!");
+                            return RunStatus.Failure;                        
+                        }
 
-                            return RunStatus.Success;
-                        }),
-
-                    new DecoratorContinue(context => MovementByDelegate(context) != MovementByType.None,
-                        new PrioritySelector(
-                            // Show user which unit we're going after...
-                            new ActionFail(context => { Utility.Target(SelectedTarget); }),
-
-                            // If not within interact range, move closer...
-                            new Decorator(context => !SelectedTarget.WithinInteractRange,
-                                new UtilityBehaviorPS.MoveTo(
-                                    context => SelectedTarget.Location,
-                                    context => string.Format("interact with {0}", SelectedTarget.Name),
-                                    MovementByDelegate)),
-
-                            new UtilityBehaviorPS.MoveStop(),
-                            // Always succeed, so we will fall through...
-                            new Action(context => { Utility.Target(SelectedTarget, true); })
-                        )),
+                        return RunStatus.Success;
+                    }),
 
                     // Interact with the mob...
                     new Action(context =>
@@ -98,11 +77,11 @@ namespace Honorbuddy.QuestBehaviorCore
                         InterruptHandlersHook();
 
                         // Notify user of intent...
-                        QBCLog.Info("Interacting with '{0}'", SelectedTarget.Name);
+                        QBCLog.DeveloperInfo("Interacting with '{0}'", CachedTarget.SafeName());
 
                         // Do it...
-                        IsInteractInterrupted = false;    
-                        SelectedTarget.Interact();
+                        IsInterrupted = false;    
+                        CachedTarget.Interact();
                     }),
                     new WaitContinue(Delay.AfterInteraction, context => false, new ActionAlwaysSucceed()),
 
@@ -119,37 +98,41 @@ namespace Honorbuddy.QuestBehaviorCore
 
                     // Were we interrupted in item use?
                     new Action(context => { InterruptHandlersUnhook(); }),
-                    new DecoratorContinue(context => IsInteractInterrupted,
+                    new DecoratorContinue(context => IsInterrupted,
                         new Sequence(
-                            new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", SelectedTarget.Name); }),
+                            new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", CachedTarget.SafeName()); }),
                             // Give whatever issue encountered a chance to settle...
                             // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                             new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
-                        ))  
+                        )),
+                    new Action(context =>
+                    {
+                        QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", CachedTarget.SafeName());
+                    })
                 };
             }
             
-            private void HandleInterruptedInteract(object sender, LuaEventArgs args)
+            private void HandleInterrupted(object sender, LuaEventArgs args)
             {
                 if (args.Args[0].ToString() == "player")
                 {
                     QBCLog.DeveloperInfo("Interrupted via {0} Event.", args.EventName);
-                    IsInteractInterrupted = true;
+                    IsInterrupted = true;
                 }
             }
 
             private void InterruptHandlersHook()
             {
-                Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterruptedInteract);
-                Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", HandleInterruptedInteract);
-                Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterruptedInteract);
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterrupted);
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
+                Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);
             }
 
             private void InterruptHandlersUnhook()
             {
-                Lua.Events.DetachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterruptedInteract);
-                Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", HandleInterruptedInteract);
-                Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterruptedInteract);    
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterrupted);
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);    
             }
         }
     }

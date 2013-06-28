@@ -344,10 +344,22 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             return _mainBehavior ?? (_mainBehavior =
                 new PrioritySelector(
                     new Decorator(context => !Query.IsViable(Mob_ToAvoid),
-                        new ActionFail(context => { Mob_ToAvoid = Query.FindUnitsFromIds(Utility.ToEnumerable<int>(MobIdToAvoid)).FirstOrDefault(); })),
+                        new ActionFail(context =>
+                        {
+                            Mob_ToAvoid =
+                                Query.FindMobsAndFactions(Utility.ToEnumerable<int>(MobIdToAvoid))
+                                .FirstOrDefault()
+                                as WoWUnit;
+                        })),
 
                     new Decorator(context => !Query.IsViable(Mob_ToMoveNear),
-                        new ActionFail(context => { Mob_ToMoveNear = Query.FindUnitsFromIds(Utility.ToEnumerable<int>(MobIdToMoveNear)).FirstOrDefault(); })),
+                        new ActionFail(context =>
+                        {
+                            Mob_ToMoveNear =
+                                Query.FindMobsAndFactions(Utility.ToEnumerable<int>(MobIdToMoveNear))
+                                .FirstOrDefault()
+                                as WoWUnit;
+                        })),
 
                     // Stateful Operation:
                     // NB: We do not allow combat in all states.  Fighting is mostl limited to our 'safespot' position.

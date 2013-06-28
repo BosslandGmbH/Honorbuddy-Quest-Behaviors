@@ -36,24 +36,41 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        public static double CollectionDistance(this WoWObject wowObject)
+        {
+            var isMeSwimmingOrFlying = StyxWoW.Me.IsSwimming || StyxWoW.Me.IsFlying;
+            WoWPoint myLocation = StyxWoW.Me.Location;
+
+            // NB: we use the 'surface path' to calculate distance to mobs.
+            // This is important in tunnels/caves where mobs may be within X feet of us,
+            // but they are below or above us, and we have to traverse much tunnel to get to them.
+            return isMeSwimmingOrFlying
+                 ? myLocation.Distance(wowObject.Location)
+                 : myLocation.SurfacePathDistance(wowObject.Location);
+        }
+
+
         // Mostly stolen from Singular
         // 12Apr2013-06:29UTC chinajade
-        public static string SafeName(this WoWObject wowObject)
+        public static string SafeName(this WoWObject wowObject, bool debug = false)
         {
             const ulong GuidMask = 0x0ffff;
 
             if (wowObject.IsMe)
-                { return "Me"; }
+                { return "Self"; }
 
             string name;
             if (wowObject is WoWPlayer)
                 { name = ((WoWPlayer)wowObject).Class.ToString(); }
 
             else if ((wowObject is WoWUnit) && wowObject.ToUnit().IsPet)
-                { name =  wowObject.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
+                { name = wowObject.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
 
             else
-                { name = string.Format("{0}.{1:X4}", wowObject.Name, (wowObject.Guid & GuidMask)); }
+                { name = wowObject.Name; }
+
+            if (debug)
+                { name = string.Format("{0}.{1:X4}", name, (wowObject.Guid & GuidMask)); }
 
             return name;
         }

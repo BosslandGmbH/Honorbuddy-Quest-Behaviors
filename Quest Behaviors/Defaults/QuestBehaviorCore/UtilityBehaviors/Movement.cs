@@ -203,7 +203,6 @@ namespace Honorbuddy.QuestBehaviorCore
             public NoMobsAtCurrentWaypoint(ProvideHuntingGroundsDelegate huntingGroundsProvider,
                                             ProvideMovementByDelegate movementByDelegate,
                                             Action<object> terminateBehaviorIfNoTargetsProvider = null,
-                                            Func<object, IEnumerable<string>> huntedMobNamesProvider = null,
                                             ProvideStringDelegate huntedMobExclusions = null)
             {
                 Contract.Requires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
@@ -212,7 +211,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 HuntingGroundsProvider = huntingGroundsProvider;
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
                 TerminateBehaviorIfNoTargetsProvider = terminateBehaviorIfNoTargetsProvider;
-                HuntedMobNamesProvider = huntedMobNamesProvider ?? (context => Enumerable.Empty<string>());
                 HuntedMobExclusions = huntedMobExclusions ?? (context => string.Empty);
 
                 Children = CreateChildren();
@@ -222,7 +220,6 @@ namespace Honorbuddy.QuestBehaviorCore
             // BT contruction-time properties...
             private ProvideHuntingGroundsDelegate HuntingGroundsProvider { get; set; }
             private ProvideStringDelegate HuntedMobExclusions { get; set; }
-            private Func<object, IEnumerable<string>> HuntedMobNamesProvider { get; set; }
             private ProvideMovementByDelegate MovementByDelegate { get; set; }
             private Action<object> TerminateBehaviorIfNoTargetsProvider { get; set; }
 
@@ -235,13 +232,14 @@ namespace Honorbuddy.QuestBehaviorCore
                     // Move to next hunting ground waypoint...
                     new UtilityBehaviorPS.MoveTo(HuntingGroundsProvider, MovementByDelegate),
 
-                    // Terminate of no targets available?
-                    new Decorator(context => TerminateBehaviorIfNoTargetsProvider != null,
-                        new Action(context =>
+                    // Only one hunting ground waypoint to move to?
+                    new CompositeThrottle(TimeSpan.FromSeconds(10),
+                        new ActionFail(context =>
                         {
-                            string message = "No mobs in area--terminating due to WaitForNpcs=\"false\"";
-                            TreeRoot.StatusText = message;
+                            string message = "No viable mobs in area.";
 
+                            TreeRoot.StatusText = message;
+                            
                             // Show excluded units before terminating.  This aids in profile debugging if WaitForNpcs="false"...
                             string excludedUnitReasons = HuntedMobExclusions(context);
                             if (!string.IsNullOrEmpty(excludedUnitReasons))
@@ -249,31 +247,11 @@ namespace Honorbuddy.QuestBehaviorCore
                                 message += excludedUnitReasons;
                                 QBCLog.DeveloperInfo("{0}", message);
                             }
-                            TerminateBehaviorIfNoTargetsProvider(context);
                         })),
 
-                    // Only one hunting ground waypoint to move to?
-                    new CompositeThrottle(context => HuntingGroundsProvider(context).Waypoints.Count() <= 1,
-                        TimeSpan.FromSeconds(30),
-                        new Action(context =>
-                        {
-                            string message = "Waiting for respawn";
-
-                            if (HuntedMobNamesProvider(context).Any())
-                            {
-                                message += " of ";
-                                message += string.Join(", ", HuntedMobNamesProvider(context));
-                            }
-
-                            TreeRoot.StatusText = message;
-
-                            string excludedUnitReasons = HuntedMobExclusions(context);
-                            if (!string.IsNullOrEmpty((excludedUnitReasons)))
-                            {
-                                message += excludedUnitReasons;
-                                QBCLog.DeveloperInfo("{0}", message);
-                            }
-                        }))
+                    // Terminate of no targets available?
+                    new Decorator(context => TerminateBehaviorIfNoTargetsProvider != null,
+                        new ActionFail(context => { TerminateBehaviorIfNoTargetsProvider(context); }))
                 };
             }
         }

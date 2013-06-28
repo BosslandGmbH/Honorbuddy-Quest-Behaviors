@@ -93,21 +93,21 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (_predicateDelegate(context))
             {
-                bool canRun = IsFinished;
+                bool canRun = IsThrottleFinished;
 
-                if (IsFinished)
+                if (IsThrottleFinished)
                     { _throttle.Restart(); }
 
                 return canRun;
             }
 
             if (_throttle.IsRunning)
-                {_throttle.Stop(); }
+                { _throttle.Stop(); }
 
             return false;
         }
 
-        private bool IsFinished
+        private bool IsThrottleFinished
         {
             get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
         }

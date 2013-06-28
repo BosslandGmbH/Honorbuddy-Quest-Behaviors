@@ -140,9 +140,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                 if (!Query.IsViable(_giantAssBird))
                 {
                     _giantAssBird =
-                       (from wowUnit in Query.FindUnitsFromIds(Utility.ToEnumerable<int>(56171))
+                       (from wowObject in Query.FindMobsAndFactions(Utility.ToEnumerable<int>(56171))
+                        let wowUnit = wowObject as WoWUnit
                         where
-                            wowUnit.IsAlive
+                            Query.IsViable(wowUnit)
+                            && wowUnit.IsAlive
                             // Eliminate bird vehicles occupied by other players...
                             && !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
                         orderby wowUnit.Distance
