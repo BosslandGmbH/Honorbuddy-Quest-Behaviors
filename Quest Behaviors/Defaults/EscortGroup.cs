@@ -1384,9 +1384,15 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                             })),
                         new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
                             new PrioritySelector(
-                                new Decorator(targetContext => RoutineManager.Current.CombatBehavior != null,
-                                    RoutineManager.Current.CombatBehavior),
-                                new Action(targetContext => { RoutineManager.Current.Combat(); })
+                                // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
+                                // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
+                                // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
+                                // So, no need to duplicate that work here.
+                                new Decorator(ctx => RoutineManager.Current.HealBehavior != null,
+                                    RoutineManager.Current.HealBehavior),
+                                new Decorator(ctx => RoutineManager.Current.CombatBuffBehavior != null,
+                                    RoutineManager.Current.CombatBuffBehavior),
+                                RoutineManager.Current.CombatBehavior
                             ))
                     )));
         }
