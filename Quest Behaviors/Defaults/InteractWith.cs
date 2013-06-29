@@ -549,6 +549,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 MobIdIncludesSelf && !((InteractByCastingSpellId > 0) || (InteractByUsingItemId > 0)),
                 context => "When \"MobIdIncludesSelf\" is specified, one of the following attributes must also be specified:"
                             + "InteractByCastingSpellId, InteractByUsingItemId");
+
+            UsageCheck_SemanticCoherency(xElement,
+                (MobHpPercentLeft < 100.0) && (MobState != MobStateType.BelowHp),
+                context => "If \"MobHpPercentLeft\" is specified, then \"MobState\" must be \"BelowHp\".");
         }
         #endregion
 
