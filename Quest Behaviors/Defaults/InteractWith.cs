@@ -1517,8 +1517,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, AuraIdsOnMob, AuraIdsMissingFromMob);
             TargetExclusionAnalysis.CheckMobState(exclusionReasons, wowObject, MobState, MobHpPercentLeft);
 
-            if (wowObject.CollectionDistance() > CollectionDistance)
-                { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0})", CollectionDistance)); }
+            var objectCollectionDistance = wowObject.CollectionDistance();
+            if (objectCollectionDistance > CollectionDistance)
+                { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0:F1}, saw {1:F1})", CollectionDistance, objectCollectionDistance)); }
 
             var wowUnit = wowObject as WoWUnit;
             if (wowUnit != null)
