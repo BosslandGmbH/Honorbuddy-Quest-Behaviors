@@ -39,6 +39,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -61,7 +63,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
         public CombatUseItemOn(Dictionary<string, string> args)
             : base(args)
         {
-
             try
             {
                 CastingSpellId = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
@@ -81,12 +82,15 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
                 // semantic coherency checks --
-                if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0))
+                if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0.0))
                 {
                     LogMessage("error", "One or more of the following attributes must be specified:\n"
                                          + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
                     IsAttributeProblem = true;
                 }
+
+                QuestBehaviorBase.DeprecationWarning_Behavior(this, "CombatUseItemOnV2", BuildReplacementArguments());
+
             }
 
             catch (Exception except)
@@ -101,6 +105,37 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                                     + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
+        }
+
+
+
+        private List<Tuple<string, string>> BuildReplacementArguments()
+        {
+            var replacementArgs = new List<Tuple<string, string>>();
+
+            QuestBehaviorBase.BuildReplacementArgs_QuestSpec(replacementArgs, QuestId, QuestRequirementComplete, QuestRequirementInLog);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, ItemId, "ItemId", 0);
+            QuestBehaviorBase.BuildReplacementArgs_Ids(replacementArgs, "MobId", MobIds, true);
+
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, CastingSpellId, "UseWhenMobCastingSpellId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, HasAuraId, "UseWhenMeHasAuraId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobHasAuraId, "UseWhenMobHasAuraId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobHpPercentLeft, "UseWhenMobHasHealthPercent", 0);
+
+            var useItemStrategy =
+                (UseOnce && !BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget
+                : (UseOnce && BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTargetDontDefend
+                : (!UseOnce && !BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemContinuouslyOnTarget
+                : CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend;
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, useItemStrategy, "UseItemStrategy",
+                CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget);
+
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimes", 1);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MaxRange, "Range", 4.0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTimeAfterItemUse", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, Location, "", Me.Location);
+
+            return replacementArgs;
         }
 
 
@@ -271,8 +306,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 
         public override void OnStart()
         {
-            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "CombatUseItemOnV2");
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
