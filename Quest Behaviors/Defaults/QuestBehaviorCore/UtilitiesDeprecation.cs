@@ -16,6 +16,7 @@ using System.Media;
 using System.Threading;
 using System.Xml.Linq;
 
+using Styx;
 using Styx.CommonBot.Profiles;
 #endregion
 
@@ -25,7 +26,7 @@ namespace Honorbuddy.QuestBehaviorCore
     public abstract partial class QuestBehaviorBase
     {
         // 19Apr2013-05:58UTC chinajade
-        public static void DeprecationWarning_Behavior(CustomForcedBehavior cfb, string newBehaviorName, Dictionary<string, string> replacementAttributes)
+        public static void DeprecationWarning_Behavior(CustomForcedBehavior cfb, string newBehaviorName, List<Tuple<string, string>> replacementAttributes)
         {
             if (QuestBehaviorCoreSettings.Instance.LogNotifyOn_OnDeprecatedBehaviorUse)
             {
@@ -34,7 +35,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 QBCLog.BehaviorLoggingContext = cfb;
 
                 string attributes =
-                    string.Join(" ", replacementAttributes.Select(kvp => string.Format("{0}=\"{1}\"", kvp.Key, kvp.Value)));
+                    string.Join(" ", replacementAttributes.Select(t => string.Format("{0}=\"{1}\"", t.Item1, t.Item2)));
 
                 QBCLog.Warning(QBCLog.BuildMessageWithContext(cfb.Element,
                     "{0}/********************{0}DEPRECATED BEHAVIOR ({1}){0}"
@@ -125,6 +126,90 @@ namespace Honorbuddy.QuestBehaviorCore
                 SystemSounds.Asterisk.Play();
                 Thread.Sleep(audioDelayInMilliseconds);
                 SystemSounds.Asterisk.Play();                
+            }
+        }
+
+
+        public static void BuildReplacementArgs_Ids(List<Tuple<string, string>> replacementArgs,
+            string idPrefix,
+            IEnumerable<int> ids,
+            bool handleSelf = false)
+        {
+            Contract.Requires(ids != null, context => "ids != null");
+
+            if (handleSelf && ids.Contains(0))
+                { replacementArgs.Add(Tuple.Create("MobIdIncludesSelf", "true")); }
+
+            int index = 0;
+            foreach (var id in ids)
+            {
+                ++index;
+                if (id > 0)
+                {
+                    replacementArgs.Add(Tuple.Create(
+                        ((index == 1) ? idPrefix : string.Format("{0} MobId{1}", idPrefix, index)),
+                        id.ToString()));
+                }
+            }
+        }
+
+
+        public static void BuildReplacementArgs_MobState(
+            List<Tuple<string, string>> replacementArgs,
+            MobStateType sourceMobState,
+            double sourceMobHpPercentLeft,
+            MobStateType destMobStateDefault)
+        {
+            if (sourceMobHpPercentLeft < 100.0)
+            {
+                replacementArgs.Add(Tuple.Create("MobState", "BelowHp"));
+                replacementArgs.Add(Tuple.Create("MobHpPercentLeft", sourceMobHpPercentLeft.ToString()));
+            }
+
+            else if (sourceMobState != destMobStateDefault)
+            {
+                replacementArgs.Add(Tuple.Create("MobState", sourceMobState.ToString()));
+            }
+        }
+
+
+        public static void BuildReplacementArgs_QuestSpec(
+            List<Tuple<string, string>> replacementArgs,
+            int questId,
+            QuestCompleteRequirement questCompleteRequirement,
+            QuestInLogRequirement questInLogRequirement)
+        {
+            if (questId > 0)
+                { replacementArgs.Add(Tuple.Create("QuestId", questId.ToString())); }
+            if (questInLogRequirement != QuestInLogRequirement.InLog)
+                { replacementArgs.Add(Tuple.Create("QuestInLogRequirement", questInLogRequirement.ToString())); }
+            if (questCompleteRequirement != QuestCompleteRequirement.NotComplete)
+                { replacementArgs.Add(Tuple.Create("QuestCompleteRequirement", questCompleteRequirement.ToString())); }
+        }
+
+
+        public static void BuildReplacementArg<T>(
+            List<Tuple<string, string>> replacementArgs,
+            T sourceAttributeValue,
+            string targetAttributeName,
+            T targetAttributeDefaultValue)
+        {
+            if (!sourceAttributeValue.Equals(targetAttributeDefaultValue))
+                { replacementArgs.Add(Tuple.Create(targetAttributeName, sourceAttributeValue.ToString())); }
+        }
+
+
+        public static void BuildReplacementArg(
+            List<Tuple<string, string>> replacementArgs,
+            WoWPoint sourceAttributeValue,
+            string destAttributeBaseName,
+            WoWPoint destAttributeDefaultValue)
+        {
+            if (sourceAttributeValue != destAttributeDefaultValue)
+            {
+                replacementArgs.Add(Tuple.Create(destAttributeBaseName + "X", sourceAttributeValue.X.ToString()));
+                replacementArgs.Add(Tuple.Create(destAttributeBaseName + "Y", sourceAttributeValue.Y.ToString()));
+                replacementArgs.Add(Tuple.Create(destAttributeBaseName + "Z", sourceAttributeValue.Z.ToString()));
             }
         }
     }

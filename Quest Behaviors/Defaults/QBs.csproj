@@ -32,8 +32,8 @@
     <RootNamespace>QBs</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Honorbuddy">
-      <HintPath>..\Honorbuddy.exe</HintPath>
+    <Reference Include="Honorbuddy-shipped">
+      <HintPath>..\Honorbuddy-shipped.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -64,6 +64,8 @@
     <Compile Include="BarrelHook.cs" />
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
+    <Compile Include="Deprecated\CastSpellOn.cs" />
+    <Compile Include="Deprecated\UseItemOn.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
@@ -152,6 +154,7 @@
     <Compile Include="SpecificQuests\24910-Tanaris-RocketRescue.cs" />
     <Compile Include="TaxiRide.cs" />
     <Compile Include="ToggleCombat.cs" />
+    <Compile Include="UseGameObject.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
     <Compile Include="Vehicles\NoControlVehicle.cs" />
     <Compile Include="NPCAssistance.cs" />
@@ -254,7 +257,7 @@
     <Compile Include="SpecificQuests\MountHyjal\MentalTraining.cs" />
     <Compile Include="SpellLocation.cs" />
     <Compile Include="StandAndKill.cs" />
-    <Compile Include="UseGameObject.cs" />
+    <Compile Include="Deprecated\UseGameObject.cs" />
     <Compile Include="UseItem.cs" />
     <Compile Include="UseItemOn.cs" />
     <Compile Include="UseItemTargetLocation.cs" />

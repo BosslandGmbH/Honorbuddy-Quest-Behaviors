@@ -55,8 +55,6 @@
 	would it be possible to add 4th option to move out of an effect no matter how the effect gets there
 
 * InteractWith testing needed:
-	+ Need CastSpellOn abilities into IW
-	+ InteractByCastingSpellOn & make sure it works for "cast spell on 'self'"
 	+ InteractByCollectingItemId
 	+ BlacklistInteractTarget needs to emit message as to why blacklisted (but, warning or info or debug?--it varies).
 	+ This needs to be converted to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
@@ -108,10 +106,6 @@
 	* Dox: "Mostly useful when in toon is thrown into combat (due to environment), but nothing is attacking us
 	* Beef up to take a HuntingGrounds
 
-* UseItemOn
-	+ Doesn't re-face target on which to use item, if it gets in combat
-	+ See Tumbum's report here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/114206-useitemon-singular-doesnt-face-target.html#post1111161
-
 * UseTransport
 	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
@@ -135,8 +129,6 @@ QUESTBEHAVIORCORE FRAMEWORK
 ===========================
 * UtilityBehaviorPS_DescendForDismount() needs to throttle its output messages.
 
-* UtilityBehaviorPS & UtilityBehaviorSeq needs to be their own classes rather than part of QuestBehaviorCore
-
 * The UserSettings/OnBotStop interferes with QuestBehaviorCore's OnBotStop.  Figure out a way to process
 	events from various hooks installed at different times by different processes in the correct order.
 
@@ -148,13 +140,13 @@ QUESTBEHAVIORCORE FRAMEWORK
 
 * Do we need a Data/SharedResources.xml file to augment IsInCompetition() calculations?
 
-* Need a way to capture 'reasons' of exclusion in FindBestTarget() methods and the predicates they use.
-
 * Need support for 'special instructions'
 	+ UseItemWheMeHasAura
 	+ UseItemWhenMeMissingAura
 	+ UseItemOnMobWhenHasAura
 	+ UseItemOnMobWhenMissingAura
+	+ InteractWithMobWhenMissingAura
+	+ 
 	+ etc.
 
 
@@ -290,20 +282,14 @@ HBCORE BUGS
 	during the run.  The original values should be restored when the run is complete.
 
 
-IN RETIREMENT QUEUE:
-====================
-* (pending) BasicInteractWith => InteractWith
-* (pending) BasicUseObject => InteractWith
-
 TO RETIRE:
 ==========
 * (immediate) 28113-felwood-BreaktheUnbreakable
+
 * (pending) CombatUseItemOn => CombatUseItemOnV2
 * (pending) DefendObject => EscortGroup
 * (pending) Escort => EscortGroup
 * (pending) SetHearthstone => InteractWith
-* (pending) UseGameObject => InteractWith
-* (pending) UseItemOn => InteractWith
 
 * (pending?) MyCTM => RunLikeHell
 * (pending?) StandAndKill => EscortGroup
@@ -311,7 +297,6 @@ TO RETIRE:
 
 POTENTIALLY TO RETIRE:
 ======================
-* CastSpellOn => InteractWith (requires minor mods)
 * KillUntilComplete => SlayTheFools
 * NoCombatMoveTo => RunLikeHell
 * WaterBehavior => CollectThings

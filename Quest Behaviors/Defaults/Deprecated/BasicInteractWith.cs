@@ -38,7 +38,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
 {
     [CustomBehaviorFileName(@"Deprecated\BasicInteractWith")]
-    [CustomBehaviorFileName(@"BasicInteractWith")]  // Deprecated location--do not use
+    [CustomBehaviorFileName(@"BasicInteractWith")]  // Old location--do not use
     public class BasicInteractWith : CustomForcedBehavior
     {
         public BasicInteractWith(Dictionary<string, string> args)
@@ -60,6 +60,8 @@ namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
                 MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
                                 ? mob.Name
                                 : ("Mob(" + MobId + ")");
+
+                QuestBehaviorBase.DeprecationWarning_Behavior(this, "InteractWith", BuildReplacementArguments());
             }
 
             catch (Exception except)
@@ -76,24 +78,21 @@ namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
             }
         }
 
-        private Dictionary<string, string> BuildReplacementArguments()
+        private List<Tuple<string, string>> BuildReplacementArguments()
         {
-            var replacementArguments = new Dictionary<string, string>();
+            var replacementArgs = new List<Tuple<string, string>>();
 
-            if (QuestId > 0)
-                { replacementArguments.Add("QuestId", QuestId.ToString()); }
-            if (QuestRequirementComplete != QuestCompleteRequirement.NotComplete)
-                { replacementArguments.Add("QuestCompleteRequirement", QuestRequirementComplete.ToString());}
-            if (QuestRequirementInLog != QuestInLogRequirement.InLog)
-                { replacementArguments.Add("QuestCompleteRequirement", QuestRequirementInLog.ToString());}
-            if (MobId > 0)
-                { replacementArguments.Add("MobId", MobId.ToString());}
-            if (FactionId > 0)
-                { replacementArguments.Add("FactionId", FactionId.ToString()); }
-            if (IsMoveToMob)
-                { replacementArguments.Add("MovementBy", "ClickToMoveOnly"); }
+            QuestBehaviorBase.BuildReplacementArgs_QuestSpec(replacementArgs, QuestId, QuestRequirementComplete, QuestRequirementInLog);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobId, "MobId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, FactionId, "FactionId", 0);
+
+            var navMode =
+                IsMoveToMob
+                ? MovementByType.ClickToMoveOnly
+                : MovementByType.FlightorPreferred;
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, navMode, "MovementBy", MovementByType.FlightorPreferred);
    
-            return replacementArguments;
+            return replacementArgs;
         }
 
 
@@ -283,8 +282,6 @@ namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                QuestBehaviorBase.DeprecationWarning_Behavior(this, "InteractWith", BuildReplacementArguments());
-
                 TreeRoot.GoalText = "Interacting with " + MobName;
             }
         }
