@@ -33,6 +33,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
         private bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+        
+        
         public override bool IsDone
         {
             get
@@ -76,6 +84,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
 
             _isDisposed = true;
         }
+
+
         // This is really ugly but due to pulse taking too long to tick this is the only path I can take.
         public override void OnTick()
         {
