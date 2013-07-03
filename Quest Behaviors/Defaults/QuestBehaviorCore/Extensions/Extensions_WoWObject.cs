@@ -12,6 +12,7 @@
 using System;
 
 using Styx;
+using Styx.Pathing;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 
@@ -38,11 +39,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public static double CollectionDistance(this WoWObject wowObject)
         {
-            var isMeSwimmingOrFlying = StyxWoW.Me.IsSwimming || StyxWoW.Me.IsFlying;
-            var wowUnit = wowObject as WoWUnit;
-            var isObjectSwimmingOrFlying = (wowUnit != null) && (wowUnit.IsSwimming || wowUnit.IsFlying);
-
             WoWPoint myLocation = StyxWoW.Me.Location;
+            var canNavigateFully = Navigator.CanNavigateFully(myLocation, wowObject.Location);
 
             // NB: we use the 'surface path' to calculate distance to mobs.
             // This is important in tunnels/caves where mobs may be within X feet of us,
@@ -50,9 +48,9 @@ namespace Honorbuddy.QuestBehaviorCore
             // NB: If either the player or the mob is 'off the mesh', then a SurfacePath distance
             // calculation will be absurdly large.  In these situations, we resort to direct line-of-sight
             // distances.
-            return (isMeSwimmingOrFlying || isObjectSwimmingOrFlying)
-                 ? myLocation.Distance(wowObject.Location)
-                 : myLocation.SurfacePathDistance(wowObject.Location);
+            return canNavigateFully
+                    ? myLocation.SurfacePathDistance(wowObject.Location)
+                    : myLocation.Distance(wowObject.Location);
         }
 
 
