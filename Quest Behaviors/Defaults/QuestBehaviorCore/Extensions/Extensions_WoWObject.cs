@@ -39,12 +39,15 @@ namespace Honorbuddy.QuestBehaviorCore
         public static double CollectionDistance(this WoWObject wowObject)
         {
             var isMeSwimmingOrFlying = StyxWoW.Me.IsSwimming || StyxWoW.Me.IsFlying;
+            var wowUnit = wowObject as WoWUnit;
+            var isObjectSwimmingOrFlying = (wowUnit != null) && (wowUnit.IsSwimming || wowUnit.IsFlying);
+
             WoWPoint myLocation = StyxWoW.Me.Location;
 
             // NB: we use the 'surface path' to calculate distance to mobs.
             // This is important in tunnels/caves where mobs may be within X feet of us,
             // but they are below or above us, and we have to traverse much tunnel to get to them.
-            return isMeSwimmingOrFlying
+            return (isMeSwimmingOrFlying || isObjectSwimmingOrFlying)
                  ? myLocation.Distance(wowObject.Location)
                  : myLocation.SurfacePathDistance(wowObject.Location);
         }
