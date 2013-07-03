@@ -16,6 +16,7 @@ using System.Threading;
 
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.WoWInternals;
@@ -88,6 +89,28 @@ namespace Honorbuddy.QuestBehaviorCore
                         || ((wowUnit != null) && factionIds.Contains((int)wowUnit.FactionId)))
                     && extraQualifiers(wowObject)
                 select wowObject;
+        }
+
+
+        public static WoWUnit FindMobTargetingUs(bool ignoreMobsInBlackspots, double nonCompeteDistance)
+        {
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                return
+                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                        where
+                        Query.IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
+                        && (wowUnit.IsTargetingMeOrPet
+                            || wowUnit.IsTargetingAnyMinion
+                            || wowUnit.IsTargetingMyPartyMember)
+                        // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                        && !wowUnit.PlayerControlled
+                        // Do not pull mobs on the AvoidMobs list
+                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
+                        orderby wowUnit.SurfacePathDistance()
+                        select wowUnit)
+                    .FirstOrDefault();
+            }
         }
 
 
@@ -283,21 +306,21 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 28Apr2013-03:38UTC chinajade
-        public static bool IsStateMatch_MobState(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft)
+        public static bool IsStateMatch_MobState(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft = 100.0)
         {
-            if (requestedMobState == MobStateType.DontCare)
-            {
-                return true;
-            }
-
             WoWUnit wowUnit = wowObject as WoWUnit;
+
             if (wowUnit != null)
             {
+                bool isMobAlive = wowUnit.IsAlive;
+
                 return
-                    ((requestedMobState == MobStateType.Alive) && wowUnit.IsAlive)
-                    || ((requestedMobState == MobStateType.AliveNotInCombat) && wowUnit.IsAlive && !wowUnit.Combat)
-                    || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead && wowUnit.IsUntagged())
-                    || ((requestedMobState == MobStateType.BelowHp) && wowUnit.IsAlive && (wowUnit.HealthPercent < mobHpPercentLeft));
+                    (wowUnit.HealthPercent <= mobHpPercentLeft)
+                    && (requestedMobState == MobStateType.DontCare)
+                        || ((requestedMobState == MobStateType.Alive) && isMobAlive)
+                        || ((requestedMobState == MobStateType.AliveNotInCombat) && isMobAlive && !wowUnit.Combat)
+                        || ((requestedMobState == MobStateType.BelowHp) && isMobAlive)
+                        || ((requestedMobState == MobStateType.Dead) && wowUnit.IsDead && wowUnit.IsUntagged());
             }
 
             return false;

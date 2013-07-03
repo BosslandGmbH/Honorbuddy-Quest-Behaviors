@@ -161,9 +161,9 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (!Query.IsStateMatch_MobState(wowUnit, mobState, mobLowHealthThreshold))
                 {
-                    exclusionReasons.Add(mobState == MobStateType.BelowHp
-                        ? string.Format("!{0}({1}%)", mobState, mobLowHealthThreshold)
-                        : string.Format("!{0}", mobState));
+                    exclusionReasons.Add(wowUnit.HealthPercent <= mobLowHealthThreshold
+                        ? string.Format("!{0}", mobState)
+                        : string.Format("!{0}({1}%)", MobStateType.BelowHp, mobLowHealthThreshold));
                 }
             }
         }

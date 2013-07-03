@@ -551,8 +551,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             + "InteractByCastingSpellId, InteractByUsingItemId");
 
             UsageCheck_SemanticCoherency(xElement,
-                (MobHpPercentLeft < 100.0) && (MobState != MobStateType.BelowHp),
-                context => "If \"MobHpPercentLeft\" is specified, then \"MobState\" must be \"BelowHp\".");
+                MobState == MobStateType.BelowHp,
+                context => "Please remove the 'MobState=\"BelowHp\"' attribute."
+                            + "  The \"BelowHp\" value is no longer used, and has been deprecated."
+                            + "  The \"MobHpPercentLeft\" attribute alone is sufficient to capture intent.");
         }
         #endregion
 
