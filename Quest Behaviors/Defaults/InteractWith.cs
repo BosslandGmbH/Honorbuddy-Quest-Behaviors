@@ -359,7 +359,6 @@ using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
-using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -531,6 +530,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 "ObjectType",
                 context => "The ObjectType attribute is no longer used by InteractWith."
                             + "  You may safely remove it from the profile call to the InteractWith behavior.");
+
+            UsageCheck_DeprecatedAttribute(xElement,
+                MobState == MobStateType.BelowHp,
+                "MobState=\"BelowHp\"",
+                context => "Please remove the 'MobState=\"BelowHp\"' attribute."
+                            + "  The \"BelowHp\" value is no longer used, and has been deprecated."
+                            + "  The \"MobHpPercentLeft\" attribute alone is sufficient to capture intent.");
         }
 
 
@@ -549,12 +555,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 MobIdIncludesSelf && !((InteractByCastingSpellId > 0) || (InteractByUsingItemId > 0)),
                 context => "When \"MobIdIncludesSelf\" is specified, one of the following attributes must also be specified:"
                             + "InteractByCastingSpellId, InteractByUsingItemId");
-
-            UsageCheck_SemanticCoherency(xElement,
-                MobState == MobStateType.BelowHp,
-                context => "Please remove the 'MobState=\"BelowHp\"' attribute."
-                            + "  The \"BelowHp\" value is no longer used, and has been deprecated."
-                            + "  The \"MobHpPercentLeft\" attribute alone is sufficient to capture intent.");
         }
         #endregion
 
