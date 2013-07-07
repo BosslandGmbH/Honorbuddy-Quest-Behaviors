@@ -36,10 +36,17 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             try
             {
                 WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null) ?? WaypointVisitStrategyType.Random;
-
                 Waypoints = new List<WaypointType>();
 
-                foreach (XElement childElement in xElement.Elements().Where(elem => (elem.Name == "Hotspot")))
+                var waypointElementsQuery =
+                    from element in xElement.Elements()
+                    where
+                        (element.Name == "Hotspot")
+                        || (element.Name == "Waypoint")
+                        || (element.Name == "WaypointType")
+                    select element;
+
+                foreach (XElement childElement in waypointElementsQuery)
                 {
                     var waypoint = new WaypointType(childElement);
 
@@ -66,15 +73,21 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public WaypointVisitStrategyType WaypointVisitStrategy { get; set; }
         public List<WaypointType> Waypoints { get; set; }
+        #endregion
+
+
+        #region Private and Convenience variables
+        private const int IndexOfInitialPositionWaypoint = -1;
+
+        private int? IndexOfCurrentWaypoint { get; set; }
+
+        // NB: The "initial position waypoint" is special.
+        // It is only used if no other waypoints have been defined.
+        private readonly WaypointType _initialPositionWaypoint = new WaypointType(StyxWoW.Me.Location, "my initial position");
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
-        #endregion
-
-        #region Private and Convenience variables
-        private WaypointType _currentWaypoint;
-        private readonly WaypointType _initialPositionWaypoint = new WaypointType(StyxWoW.Me.Location, "my initial position");
         #endregion
 
 
@@ -90,98 +103,91 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             currentLocation = currentLocation ?? StyxWoW.Me.Location;
 
-            // If no current waypoint, initialize it...
-            if (_currentWaypoint == null)
-                { _currentWaypoint = FindFirstWaypoint(currentLocation.Value); }
+            // If we haven't initialized current waypoint yet, find nearest waypoint...
+            if (!IndexOfCurrentWaypoint.HasValue)
+                { IndexOfCurrentWaypoint = FindIndexOfNearestWaypoint(currentLocation.Value); }
 
-            // If we're within range of the current waypoint, find the next one...
-            if (currentLocation.Value.Distance(_currentWaypoint.Location) <= _currentWaypoint.Radius)
-                { _currentWaypoint = FindNextWaypoint(_currentWaypoint.Location); }
+            var currentWaypoint = FindWaypointAtIndex(IndexOfCurrentWaypoint.Value);
 
-            return _currentWaypoint;
+            // If we haven't arrived at the current waypoint, still use it...
+            if (currentLocation.Value.Distance(currentWaypoint.Location) >= currentWaypoint.Radius)
+                { return currentWaypoint; }
+
+            // Otherwise, find next waypoint index, and return new waypoint...
+            IndexOfCurrentWaypoint = FindIndexOfNextWaypoint(IndexOfCurrentWaypoint.Value);
+            return FindWaypointAtIndex(IndexOfCurrentWaypoint.Value);
+        }
+
+
+        private WaypointType FindWaypointAtIndex(int index)
+        {
+            return (index == IndexOfInitialPositionWaypoint)
+                ? _initialPositionWaypoint
+                : Waypoints[index];
+        }
+
+
+       // 22Mar2013-11:49UTC chinajade
+        private int FindIndexOfNearestWaypoint(WoWPoint currentLocation)
+        {
+            var indexOfNearestWaypoint = IndexOfInitialPositionWaypoint;
+            var distanceSqrMin = double.MaxValue;
+
+            for (var index = 0; index < Waypoints.Count; ++index)
+            {
+                var distanceSqr = currentLocation.DistanceSqr(FindWaypointAtIndex(index).Location);
+
+                if (distanceSqr < distanceSqrMin)
+                {
+                    distanceSqrMin = distanceSqr;
+                    indexOfNearestWaypoint = index;
+                }
+            }
+
+            return indexOfNearestWaypoint;
         }
 
 
         // 22Mar2013-11:49UTC chinajade
-        public WaypointType FindFirstWaypoint(WoWPoint currentLocation)
+        private int FindIndexOfNextWaypoint(int currentWaypointIndex)
         {
-            return (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
-                ? FindNextWaypoint(currentLocation)
-                : FindNearestWaypoint(currentLocation);
-        }
+            // If we haven't reached the nearest waypoint yet, use it...
+            var currentWaypoint = FindWaypointAtIndex(currentWaypointIndex);
+            double distanceToWaypoint = currentWaypoint.Location.CollectionDistance();
 
+            if (distanceToWaypoint > currentWaypoint.Radius)
+                { return currentWaypointIndex; }
 
-        // 22Mar2013-11:49UTC chinajade
-        public WaypointType FindNearestWaypoint(WoWPoint currentLocation)
-        {
             // If no waypoints, our initial position is all we have...
-            if (!Waypoints.Any())
-                { return _initialPositionWaypoint; }
+            if (Waypoints.Count <= 0)
+                { return IndexOfInitialPositionWaypoint; }
 
-            bool isMeFlyingOrSwimming = StyxWoW.Me.IsFlying || StyxWoW.Me.IsSwimming;
-            
-            return
-               (from waypoint in Waypoints
-                orderby
-                   (isMeFlyingOrSwimming
-                        ? waypoint.Location.Distance(currentLocation)
-                        : waypoint.Location.SurfacePathDistance(currentLocation))
-                select waypoint)
-                .FirstOrDefault();
-        }
-
-
-        // 22Mar2013-11:49UTC chinajade
-        public WaypointType FindNextWaypoint(WoWPoint currentLocation)
-        {
-            // If no waypoints, our initial position is all we have...
-            if (!Waypoints.Any())
-                { return _initialPositionWaypoint; }
-
+            // Determine 'next' waypoint based on visit strategy...
+            // NB: If this selects the same waypoint as the current one,
+            // the calling code will just return here again until we get
+            // something suitable.  If there is just one waypoint on the list,
+            // its the best that can be done.  We can't weed out the 'current waypoint'
+            // with a 'where' clause, because that would return nothing if there
+            // was only one point on the list.
             if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
             {
-                // NB: If this selects the same waypoint as the current one,
-                // the calling code will just return here again until we get
-                // something suitable.  If there is just one waypoint on the list,
-                // its the best that can be done.  We can't weed out the 'current waypoint'
-                // with a 'where' clause, because that would return nothing if there
-                // was only one point on the list.
-                return
-                   (from waypoint in Waypoints
-                    orderby QuestBehaviorBase._random.Next()
-                    select waypoint)
-                    .FirstOrDefault();
+                return QuestBehaviorBase._random.Next(0, Waypoints.Count);
             }
 
-            // If we haven't reached the nearest waypoint yet, use it...
-            var nearestWaypoint = FindNearestWaypoint(currentLocation);
-
-            double distanceToWaypoint =
-                (StyxWoW.Me.IsFlying || StyxWoW.Me.IsSwimming)
-                    ? nearestWaypoint.Location.Distance(currentLocation)
-                    : nearestWaypoint.Location.SurfacePathDistance(currentLocation);
-
-            if (distanceToWaypoint > nearestWaypoint.Radius)
-                { return nearestWaypoint; }
-
-            var queue = new Queue<WaypointType>(Waypoints);
-            WaypointType tmpWaypoint;
-
-            // Rotate the queue so the nearest waypoint is on the front...
-            while (nearestWaypoint != queue.Peek())
+            if (WaypointVisitStrategy == WaypointVisitStrategyType.InOrder)
             {
-                tmpWaypoint = queue.Dequeue();
-                queue.Enqueue(tmpWaypoint);
+                ++currentWaypointIndex;
+
+                if (currentWaypointIndex >= Waypoints.Count)
+                    { currentWaypointIndex = 0; }
+
+                return currentWaypointIndex;
             }
 
-            // Rotate one more time to get the 'next' waypoint...
-            // NB: We can't simply Dequeue to access the 'next' waypoint,
-            // because we must take into consideration that the queue may only
-            // contain one point.
-            tmpWaypoint = queue.Dequeue();
-            queue.Enqueue(tmpWaypoint);
+            Contract.Provides(false,
+                context => string.Format("Unhandled WaypointVisitStrategy({0})", WaypointVisitStrategy));
 
-            return (queue.Peek());
+            return IndexOfInitialPositionWaypoint;
         }
 
 

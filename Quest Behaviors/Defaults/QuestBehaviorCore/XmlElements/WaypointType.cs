@@ -13,12 +13,13 @@ using System.Text;
 using System.Xml.Linq;
 
 using Styx;
+using Styx.Pathing;
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class WaypointType : QuestBehaviorXmlBase
-    {        
+    {
         public WaypointType(XElement xElement)
             : base(xElement)
         {
@@ -46,6 +47,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
         }
 
+
         public WaypointType(WoWPoint location, string name = "", double radius = 10.0)
         {
             Location = location;
@@ -53,9 +55,32 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             Radius = radius;
         }
 
+
         public WoWPoint Location { get; set; }
         public string Name { get; set; }
-        public double Radius { get; set; }
+        public double Radius
+        {
+            get
+            {
+                // NB: Since an improperly chosen radius can cause Honorbuddy to stall, we must check for it.
+                // HBcore may choose to 'scale' the radius based on our mount speed.  So the static check we
+                // did at initialization is insufficient.  Because of this, we must guard against an inadequate
+                // radius every time it is used.
+                _radius = AdjustedRadius(_radius);
+                return _radius;
+            }
+
+            set
+            {
+                _radius = value;    // Must assure baseline is established, before adjustment.
+                                    // Otherwise, the error information will be incorrect.
+                _radius = AdjustedRadius(value);
+            }
+        }
+
+        private double _radius;
+
+        const double NavigatorPathPrecisionBuffer = 1.5;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -76,18 +101,44 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
             tmp.AppendFormat("<WaypointType");
-            tmp.AppendFormat("{0}Location=\"{1}\"", fieldSeparator, Location);
             tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
-            tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, Radius);
+            tmp.AppendFormat("{0}X=\"{1}\"", fieldSeparator, Location.X);
+            tmp.AppendFormat("{0}Y=\"{1}\"", fieldSeparator, Location.Y);
+            tmp.AppendFormat("{0}Z=\"{1}\"", fieldSeparator, Location.Z);
+            // NB: We must use _radius instead of Radius.  The Radius error checks calls this method.
+            tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, _radius);
             tmp.AppendFormat("{0}/>", fieldSeparator);
 
             return tmp.ToString();
         }
 
 
+        private double AdjustedRadius(double proposedRadius)
+        {
+            var adjustedRadius = proposedRadius;
+
+            if (proposedRadius <= Navigator.PathPrecision)
+            {
+                adjustedRadius = Navigator.PathPrecision + NavigatorPathPrecisionBuffer;
+
+                QBCLog.Warning("Probematical Waypoint Radius: {1}{0}"
+                    + "   The Waypoint Radius ({2}) is less than or equal to the Navigator Path Precision ({3})."
+                    + "  This will cause Honorbuddy to get hung."
+                    + " We are internally adjusting the Waypoint Radius to {4} to prevent problems.",
+                    Environment.NewLine,
+                    ToString_FullInfo(true),
+                    proposedRadius,
+                    Navigator.PathPrecision,
+                    adjustedRadius);
+            }
+
+            return adjustedRadius;
+        }
+
+
         private string GetDefaultName(WoWPoint wowPoint)
         {
-            return string.Format("Waypoint({0})", wowPoint.ToString());   
+            return string.Format("Waypoint({0})", wowPoint.ToString());
         }
     }
 }
