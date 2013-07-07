@@ -71,6 +71,22 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        public static double CollectionDistance(this WoWPoint wowPoint)
+        {
+            WoWPoint myLocation = StyxWoW.Me.Location;
+            var canNavigateFully = Navigator.CanNavigateFully(myLocation, wowPoint);
+
+            // NB: we use the 'surface path' to calculate distance to mobs.
+            // This is important in tunnels/caves where mobs may be within X feet of us,
+            // but they are below or above us, and we have to traverse much tunnel to get to them.
+            // NB: If either the player or the mob is 'off the mesh', then a SurfacePath distance
+            // calculation will be absurdly large.  In these situations, we resort to direct line-of-sight
+            // distances.
+            return canNavigateFully
+                    ? myLocation.SurfacePathDistance(wowPoint)
+                    : myLocation.Distance(wowPoint);
+        }
+
 
         /// <summary>
         /// <para>Finds another point near the destination.  Useful when toon is 'waiting' for something
