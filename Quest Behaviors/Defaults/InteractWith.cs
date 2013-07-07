@@ -402,7 +402,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
                 // Primary attributes...
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
+                MobIds = GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null);
+
+                if (MobIds != null && MobIds.Count() == 0)
+                    MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
                 MobIdIncludesSelf = GetAttributeAsNullable<bool>("MobIdIncludesSelf", false, null, null) ?? false;
                 FactionIds = GetNumberedAttributesAsArray<int>("FactionId", 0, ConstrainAs.MobId, null );
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
