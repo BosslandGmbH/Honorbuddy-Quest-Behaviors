@@ -20,6 +20,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class WaypointType : QuestBehaviorXmlBase
     {
+        public const double DefaultRadius = 10.0;
+
         public WaypointType(XElement xElement)
             : base(xElement)
         {
@@ -27,7 +29,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             {
                 Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-                Radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
+                Radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? DefaultRadius;
 
                 if (string.IsNullOrEmpty(Name))
                     { Name = GetDefaultName(Location); }
@@ -48,7 +50,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        public WaypointType(WoWPoint location, string name = "", double radius = 10.0)
+        public WaypointType(WoWPoint location, string name = "", double radius = DefaultRadius)
         {
             Location = location;
             Name = name ?? GetDefaultName(location);

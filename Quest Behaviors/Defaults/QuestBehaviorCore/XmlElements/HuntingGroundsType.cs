@@ -92,7 +92,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // 22Mar2013-11:49UTC chinajade
-        public void AppendWaypoint(WoWPoint wowPoint, string name = "", double radius = 7.0)
+        public void AppendWaypoint(WoWPoint wowPoint, string name = "", double radius = WaypointType.DefaultRadius)
         {
             Waypoints.Add(new WaypointType(wowPoint, name, radius));
         }
@@ -203,7 +203,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             {
                 // If user didn't provide a HuntingGrounds, and he provided a default center point, add it...
                 if (!huntingGrounds.Waypoints.Any() && defaultHuntingGroundCenter.HasValue)
-                    { huntingGrounds.AppendWaypoint(defaultHuntingGroundCenter.Value, "hunting ground center", Navigator.PathPrecision); }
+                    { huntingGrounds.AppendWaypoint(defaultHuntingGroundCenter.Value, "hunting ground center"); }
 
                 if (!huntingGrounds.Waypoints.Any())
                 {
