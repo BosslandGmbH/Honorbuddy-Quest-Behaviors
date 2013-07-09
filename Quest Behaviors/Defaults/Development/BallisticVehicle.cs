@@ -313,7 +313,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                                 new Decorator(context => Query.IsViable(SelectedTarget),
                                     new PrioritySelector(
                                         // Make certain were within the prescribed range for engagement...
-                                        new Decorator(context => Me.Location.Distance(SelectedTarget.Location) > CombatMaxEngagementDistance,
+                                        new Decorator(context => Me.Location.Distance(SelectedTarget.Location) > CharacterSettings.Instance.PullDistance,
                                             new UtilityBehaviorPS.MoveTo(
                                                 context => SelectedTarget.Location,
                                                 context => string.Format("within range of '{0}'", SelectedTarget.Name),
