@@ -368,14 +368,6 @@ namespace Honorbuddy.QuestBehaviorCore
             // Deprecated attributes...
             EvaluateUsage_DeprecatedAttributes(Element);
 
-            // CombatMaxEngagementDistance was a mis-step.
-            UsageCheck_DeprecatedAttribute(Element,
-                Args.Keys.Contains("CombatMaxEngagementDistance"),
-                "CombatMaxEngagementDistance",
-                context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-                                          + "  Please update profile to use MovementBy, instead.",
-                                          Args["Nav"], MovementBy));
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
