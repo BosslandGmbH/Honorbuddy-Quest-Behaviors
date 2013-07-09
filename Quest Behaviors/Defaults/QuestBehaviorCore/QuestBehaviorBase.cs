@@ -44,6 +44,12 @@
 //          be going for the same target, and we don't want to draw attention.
 //          Shared resources, such as Vendors, Innkeepers, Trainers, etc. are never considered
 //          to be "in competition".
+//      TerminateWhen [optional; Default: "false"]
+//          Defines a string that will be evaluated as an alternative termination condition
+//          for the behavior.  The string represents a boolean expression.  When the expression
+//          evaluates to 'true', the behavior will be terminated.
+//          NB: the behavior may also terminate due to other reasons.  For instance, a required
+//          item is not in inventory, the quest is already complete, etc.
 //
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
@@ -82,6 +88,10 @@
 // THINGS TO KNOW:
 //
 // EXAMPLES:
+// Usage of an arbitrary terminating condition:
+//      <CustomBehavior File="InteractWith" MobId="12345" TerminateWhen="GetItemCount(39328) &gt; 12" >
+//
+// Usage of AvoidMobs and Blackspots:
 //      <CustomBehavior File="InteractWith" MobId="12345" >
 //          <AvoidMobs>
 //              <Mob Name="Stable Master Kitrik" Entry="28683" />
@@ -111,6 +121,7 @@ using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -148,6 +159,9 @@ namespace Honorbuddy.QuestBehaviorCore
                 MaxDismountHeight = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
                 MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.FlightorPreferred;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
+
+                var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
+                TerminateWhen = ConditionHelper.ParseConditionString(terminateWhenExpression);
             }
 
             catch (Exception except)
@@ -173,11 +187,12 @@ namespace Honorbuddy.QuestBehaviorCore
         public bool IgnoreMobsInBlackspots { get; private set; }
         public double MaxDismountHeight { get; private set; }
         public MovementByType MovementBy { get; set; }
+        public double NonCompeteDistance { get; private set; }
         public int QuestId { get; private set; }
         public int QuestObjectiveIndex { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public double NonCompeteDistance { get; private set; }
+        public Func<bool> TerminateWhen { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -261,9 +276,19 @@ namespace Honorbuddy.QuestBehaviorCore
                     _behaviorTreeHook_DeathMain = null;
                 }
 
-                // Remove temporary 'avoid mobs' and blackspots...
-                AvoidanceManager.RemoveAll(_temporaryAvoidMobs.GetAvoidMobIds());
-                BlackspotManager.RemoveBlackspots(_temporaryBlackspots.GetBlackspots());
+                // Remove temporary 'avoid mobs'...
+                if (_temporaryAvoidMobs != null)
+                {
+                    AvoidanceManager.RemoveAll(_temporaryAvoidMobs.GetAvoidMobIds());
+                    _temporaryAvoidMobs = null;
+                }
+
+                // Remove temporary blackspots...
+                if (_temporaryBlackspots != null)
+                {
+                    BlackspotManager.RemoveBlackspots(_temporaryBlackspots.GetBlackspots());
+                    _temporaryBlackspots = null;
+                }
 
                 // Restore configuration...
                 if (_mementoSettings != null)
@@ -313,6 +338,7 @@ namespace Honorbuddy.QuestBehaviorCore
             get
             { 
                 return _isBehaviorDone     // normal completion
+                        || TerminateWhen()
                         || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
                         || (_isDoneChecksQuestProgress
                             && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
