@@ -86,7 +86,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public void DismissPetIfNeeded()
         {
             if (DismissPet && StyxWoW.Me.GotAlivePet)
-                { QuestBehaviorBase.DismissPet(); }
+                { PetControl.PetDismiss(); }
         }
         
         /// <summary>

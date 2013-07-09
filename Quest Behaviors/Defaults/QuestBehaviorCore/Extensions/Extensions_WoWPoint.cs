@@ -71,10 +71,10 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        public static double CollectionDistance(this WoWPoint wowPoint)
+        public static double CollectionDistance(this WoWPoint wowPointDest, WoWPoint? wowPointSrc = null)
         {
-            WoWPoint myLocation = StyxWoW.Me.Location;
-            var canNavigateFully = Navigator.CanNavigateFully(myLocation, wowPoint);
+            var wowPointRef = wowPointSrc ?? StyxWoW.Me.Location;
+            var canNavigateFully = Navigator.CanNavigateFully(wowPointRef, wowPointDest);
 
             // NB: we use the 'surface path' to calculate distance to mobs.
             // This is important in tunnels/caves where mobs may be within X feet of us,
@@ -83,8 +83,8 @@ namespace Honorbuddy.QuestBehaviorCore
             // calculation will be absurdly large.  In these situations, we resort to direct line-of-sight
             // distances.
             return canNavigateFully
-                    ? myLocation.SurfacePathDistance(wowPoint)
-                    : myLocation.Distance(wowPoint);
+                    ? wowPointRef.SurfacePathDistance(wowPointDest)
+                    : wowPointRef.Distance(wowPointDest);
         }
 
 

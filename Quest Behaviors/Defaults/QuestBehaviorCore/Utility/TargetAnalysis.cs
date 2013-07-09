@@ -97,6 +97,18 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        //  3Jul2013-08:11UTC chinajade
+        public static void CheckCollectionDistance(
+            List<string> exclusionReasons,
+            WoWObject wowObject,
+            double collectionDistance)
+        {
+            var objectCollectionDistance = wowObject.CollectionDistance();
+            if (objectCollectionDistance > collectionDistance)
+                { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0:F1}, saw {1:F1})", collectionDistance, objectCollectionDistance)); }
+        }
+
+
         // 30May2013-08:11UTC chinajade
         public static List<string> CheckCore(
             WoWObject wowObject,

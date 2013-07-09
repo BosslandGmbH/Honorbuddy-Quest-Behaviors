@@ -16,6 +16,7 @@ using System.Threading;
 
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -39,7 +40,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (wowObject != null)
             {
-                Blacklist.Add(wowObject.Guid, BlacklistFlags.Combat, duration);
+                Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull | BlacklistFlags.Combat, duration);
             }
         }
 
@@ -92,13 +93,13 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        public static WoWUnit FindMobTargetingUs(bool ignoreMobsInBlackspots, double nonCompeteDistance)
+        public static List<WoWUnit> FindMobsTargetingUs(bool ignoreMobsInBlackspots, double nonCompeteDistance)
         {
             using (StyxWoW.Memory.AcquireFrame())
             {
                 return
-                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                        where
+                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                    where
                         Query.IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
                         && (wowUnit.IsTargetingMeOrPet
                             || wowUnit.IsTargetingAnyMinion
@@ -107,9 +108,40 @@ namespace Honorbuddy.QuestBehaviorCore
                         && !wowUnit.PlayerControlled
                         // Do not pull mobs on the AvoidMobs list
                         && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                        orderby wowUnit.SurfacePathDistance()
+                        orderby wowUnit.CollectionDistance()
                         select wowUnit)
-                    .FirstOrDefault();
+                    .ToList();
+            }
+        }
+
+
+        public static List<WoWUnit> FindMobsWithinAggroRange(
+            WoWPoint destination,
+            bool ignoreMobsInBlackspots,
+            double nonCompeteDistance,
+            IEnumerable<int> excludedUnitIds = null,
+            double extraRangePadding = 0.0)
+        {
+            excludedUnitIds = excludedUnitIds ?? Enumerable.Empty<int>();
+
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                return
+                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                     let collectionDistance = destination.CollectionDistance(wowUnit.Location)
+                     where
+                        IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
+                        && wowUnit.IsHostile
+                        // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                        && !wowUnit.PlayerControlled
+                        // exclude any units that are candidates for interacting
+                        && !excludedUnitIds.Contains((int)wowUnit.Entry)
+                        // Do not pull mobs on the AvoidMobs list
+                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
+                        && (collectionDistance <= (wowUnit.MyAggroRange + extraRangePadding))
+                     orderby wowUnit.DistanceSqr
+                     select wowUnit)
+                    .ToList();
             }
         }
 
@@ -129,6 +161,18 @@ namespace Honorbuddy.QuestBehaviorCore
                 select wowPlayer;
         }
 
+
+        public static bool IsAnyNpcFrameVisible()
+        {
+            return
+                AuctionFrame.Instance.IsVisible
+                || GossipFrame.Instance.IsVisible
+                || MailFrame.Instance.IsVisible
+                || MerchantFrame.Instance.IsVisible
+                || QuestFrame.Instance.IsVisible
+                || TaxiFrame.Instance.IsVisible
+                || TrainerFrame.Instance.IsVisible;
+        }
 
         // returns true, if any member of GROUP (or their pets) is in combat
         // 24Feb2013-08:11UTC chinajade
@@ -204,6 +248,17 @@ namespace Honorbuddy.QuestBehaviorCore
                 // mobs are up a stairway and we're looking at them through a guardrail and
                 // other boundary conditions.
                 : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
+        }
+
+
+        public static bool IsPoiMatch(WoWObject wowObject, PoiType poiType)
+        {
+            if (!IsViable(wowObject))
+                { return false; }
+
+            return (BotPoi.Current != null)
+                    && (BotPoi.Current.Guid == wowObject.Guid)
+                    && (BotPoi.Current.Type == poiType);
         }
 
 

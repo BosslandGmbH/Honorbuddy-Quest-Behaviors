@@ -18,6 +18,7 @@ using System.Xml.Linq;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -74,6 +75,25 @@ namespace Honorbuddy.QuestBehaviorCore
             timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime);
 
             return (TimeSpan.FromSeconds(timeToDestination));            
+        }
+
+
+        public static void CloseAllNpcFrames()
+        {
+            if (AuctionFrame.Instance.IsVisible)
+                { AuctionFrame.Instance.Close(); }
+            if (GossipFrame.Instance.IsVisible)
+                { GossipFrame.Instance.Close(); }
+            if (MailFrame.Instance.IsVisible)
+                { MailFrame.Instance.Close(); }
+            if (MerchantFrame.Instance.IsVisible)
+                { MerchantFrame.Instance.Close(); }
+            if (QuestFrame.Instance.IsVisible)
+                { QuestFrame.Instance.Close(); }
+            if (TaxiFrame.Instance.IsVisible)
+                { TaxiFrame.Instance.Close(); }
+            if (TrainerFrame.Instance.IsVisible)
+                { TrainerFrame.Instance.Close(); }
         }
 
 
@@ -261,25 +281,21 @@ namespace Honorbuddy.QuestBehaviorCore
         // 30May2013-04:52UTC chinajade
         public static void Target(WoWObject wowObject, bool doFace = false, PoiType poiType = PoiType.None)
         {
-            if (wowObject == null)
+            if (!Query.IsViable(wowObject))
                 { return; }
 
-            if (doFace && !StyxWoW.Me.IsSafelyFacing(wowObject))
+            if (doFace && !StyxWoW.Me.IsSafelyFacing(wowObject.Location))
                 { StyxWoW.Me.SetFacing(wowObject.Location); }
 
-            var wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject as WoWUnit;
             if (!Query.IsViable(wowUnit))
                 { return; }
 
-            if (!StyxWoW.Me.GotTarget || (StyxWoW.Me.CurrentTarget.Guid != wowUnit.Guid))
-            {
-                wowUnit.Target();
+            if (StyxWoW.Me.CurrentTargetGuid != wowUnit.Guid)
+                { wowUnit.Target(); }
 
-                if (poiType != PoiType.None)
-                {
-                    BotPoi.Current = new BotPoi(wowUnit, poiType);
-                }
-            }
+            if ((poiType != PoiType.None) && !Query.IsPoiMatch(wowObject, poiType))
+                { BotPoi.Current = new BotPoi(wowUnit, poiType); }
         }
 
 

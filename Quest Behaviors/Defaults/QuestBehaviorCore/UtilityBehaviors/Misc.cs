@@ -15,6 +15,7 @@ using System.Linq;
 
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
 
@@ -109,6 +110,35 @@ namespace Honorbuddy.QuestBehaviorCore
 
                         return RunStatus.Success;
                     })
+                };
+            }
+        }
+
+        
+        
+        public class WarnIfBagsFull : PrioritySelector
+        {
+            public WarnIfBagsFull()
+            {
+                Children = CreateChildren();
+            }
+
+
+            // BT contruction-time properties...
+
+            // BT visit-time properties...
+
+
+            private List<Composite> CreateChildren()
+            {
+                return new List<Composite>()
+                {
+                    new CompositeThrottle(context => CharacterSettings.Instance.LootMobs && (Me.FreeBagSlots <= 0),
+                        TimeSpan.FromSeconds(10),
+                        new ActionFail(context =>
+                        {
+                            QBCLog.Error("Honorbuddy may not be looting because your bags are full.");
+                        }))
                 };
             }
         }

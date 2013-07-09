@@ -38,8 +38,8 @@ namespace Honorbuddy.QuestBehaviorCore
             _sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
         }
 
-        private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
-        private WaitTimer _sweepTimer = null;
+        private readonly Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+        private readonly WaitTimer _sweepTimer = null;
 
 
         public void Add(ulong guid, TimeSpan timeSpan)
@@ -68,9 +68,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public bool Contains(WoWObject wowObject)
         {
-            return (wowObject == null)
-                ? false
-                : Contains(wowObject.Guid);
+            return (wowObject != null) && Contains(wowObject.Guid);
         }
 
 
