@@ -168,7 +168,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             {
                 // If user didn't provide a HuntingGrounds, and he provided a default center point, add it...
                 if (!safePath.Waypoints.Any() && safespotLocation.HasValue)
-                    { safePath.AppendWaypoint(safespotLocation.Value, "safe spot", Navigator.PathPrecision); }
+                    { safePath.AppendWaypoint(safespotLocation.Value, "safe spot"); }
 
                 if (!safePath.Waypoints.Any())
                 {
