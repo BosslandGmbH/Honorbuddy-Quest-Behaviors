@@ -896,7 +896,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                                 // Interact by item use...
                                 new DecoratorContinue(context => InteractByUsingItemId > 0,
-                                    new UtilityBehaviorSeq.UseItem(context => InteractByUsingItemId, context => SelectedTarget)),
+                                    new UtilityBehaviorSeq.UseItem(
+                                        context => InteractByUsingItemId,
+                                        context => SelectedTarget,
+                                        context =>
+                                        {
+                                            BehaviorDone(string.Format("Terminating behavior due to missing {0}",
+                                                Utility.GetItemNameFromId(InteractByUsingItemId)));
+                                        })),
 
                                 // Interact by right-click...
                                 new DecoratorContinue(context => !((InteractByUsingItemId > 0) || (InteractByCastingSpellId > 0)),

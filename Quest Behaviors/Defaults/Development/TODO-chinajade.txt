@@ -4,10 +4,12 @@
   and we must never leave area.
 	+ <!-- Feralas: This is an abuse of InteractWith - if they fix it, "Might of the Stonemaul" could be broken -->
 	  <CustomBehavior File="InteractWith" QuestId="25329"  MobId="1" X="-3686.354" Y="1090.208" Z="131.9692" />
+* Move CollectionDistance() from WoWObject extension to WoWPoint extension.
+
 
 * QuestBehaviorBase
-	* Need logic to handle QuestFailure as part of IsDone processing options
-	* Need 'blackspot' logic common to all Quest Behaviors
+	* Need TerminateWhen general purpose termination method
+	* Need 'blackspot' and 'avoidmob' logic common to all Quest Behaviors
 	* HAWKER priority: Underwater looting
 	* Capture Original Pull distance, and use it to close gap for SpankMob
 	* UtilityBehaviorPS_MoveTo: If Navigator* in use, and flying--land immediately.
@@ -91,6 +93,31 @@
 		   at Styx.TreeSharp.PrioritySelector..()
 		   at Styx.TreeSharp.Composite.Tick(Object context)
 		   at Styx.CommonBot.TreeRoot.()
+	+ Cava: find one problem, (i think)
+		the interact force bot to move away from mob
+		and at that time bot starting loading mesh
+		the loading will take some minutes, and interact keep forcing bot to move away
+		like this:
+		[18:49:27.138 D] Goal: InteractWith-v578: "In Progress (no associated quest)"
+		Interacting by using Bloodmaul Brutebane Brew on Bladespire Shaman, Bladespire Brute, MobId(21296)
+
+		[Ref: "[N-Quest]Blade's Edge Mountains(67-68)[Cava]" @line 1816]
+		[18:49:33.849 D] Activity: Moving to interact with Bladespire Brute (id: 19995, dist: 48.1, noLoS, TtB: 45s)
+		[18:49:35.462 D] Activity: Moving to gain distance from Bladespire Brute (id:19995, dist:20.3/25.0)
+		[18:49:35.463 D] Activity: Loading Tile/s
+		start here: [18:49:35.463 D] Loading Expansion01_32_32
+		finish here
+		[18:49:53.607 D] Loading Expansion01_30_41
+		[18:49:53.776 D] Flight time: 00:12:58
+		[18:49:53.776 D] Run Time: 00:35:46
+		[18:49:53.776 D] Difference: 1368
+		[18:49:53.777 D] Changed POI to:Type: Fly, R: Use, Hellfire Peninsula, The Dark Portal
+		> It does try to move away from a mob if its too close.
+			This is controlled by MinRange attribute.
+			Moving away may force the loading of tiles, but it sounds like I've calculated a 'distant' point too far away.  It shouldn't require a fly/walk decision.
+			I'll try to look at the code and see if anything is untoward.
+			Since the feature is not used very often, hard to find a decent testbed.
+			TY for the report!
 		
 * KillUntilComplete
 	+ Gets hung up if in combat, and nobody attacking--need to go on the offensive

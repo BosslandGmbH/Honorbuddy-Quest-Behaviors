@@ -46,10 +46,13 @@ using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
 
+
 using Honorbuddy.QuestBehaviorCore;
+
+using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
 using Styx.TreeSharp;
+using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
@@ -161,22 +164,74 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
                 // Setup settings to prevent interference with your behavior --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
                 // by Honorbuddy, or the bot is stopped.
-                CharacterSettings.Instance.HarvestHerbs = false;
-                CharacterSettings.Instance.HarvestMinerals = false;
-                CharacterSettings.Instance.LootChests = false;
-                CharacterSettings.Instance.NinjaSkin = false;
-                CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.PullDistance = 0;    // don't pull anything unless we absolutely must
+                //CharacterSettings.Instance.HarvestHerbs = false;
+                //CharacterSettings.Instance.HarvestMinerals = false;
+                //CharacterSettings.Instance.LootChests = false;
+                //CharacterSettings.Instance.NinjaSkin = false;
+                //CharacterSettings.Instance.SkinMobs = false;
+
+
+                // Setup the BehaviorFlags as needed --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
+                //LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;  // Turns off the Combat Routine, if needed
             }
         }
         #endregion
 
 
+        #region TargetFilters
+        // HBcore runs the TargetFilter_IncludeTargets after the TargetFilter_RemoveTargets.
+        //protected override void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
+        //{
+        //    // empty--left for child to override
+        //}
+
+
+        // HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.
+        //protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        //{
+        //    // empty--left for child to override
+        //}
+
+
+        // When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.
+        //protected override void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
+        //{
+        //    // empty--left for child to override
+        //}
+        #endregion
+
+
         #region Main Behaviors
+        protected override Composite CreateBehavior_CombatMain()
+        {
+            return new PrioritySelector(
+                // empty--left for child to override
+                );
+        }
+
+
+        protected override Composite CreateBehavior_CombatOnly()
+        {
+            return new PrioritySelector(
+                // empty--left for child to override
+                );
+        }
+
+
+        protected override Composite CreateBehavior_DeathMain()
+        {
+            return new PrioritySelector(
+                // empty--left for child to override
+                );
+        }
+
+
         protected override Composite CreateBehavior_QuestbotMain()
         {
             return new PrioritySelector(
-                // empty, for now...
+                // empty--left for child to override
                 );
         }
 

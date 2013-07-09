@@ -32,8 +32,8 @@
     <RootNamespace>QBs</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Honorbuddy-shipped">
-      <HintPath>..\Honorbuddy-shipped.exe</HintPath>
+    <Reference Include="Honorbuddy-cleaned">
+      <HintPath>..\Honorbuddy-cleaned.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -68,6 +68,7 @@
     <Compile Include="Deprecated\UseItemOn.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\Combat.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\Common.cs" />
@@ -96,6 +97,8 @@
     <Compile Include="QuestBehaviorCore\Utility\VehicleAbility.cs" />
     <Compile Include="QuestBehaviorCore\Utility\VehicleWeapon.cs" />
     <Compile Include="QuestBehaviorCore\Utility\TargetAnalysis.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\BlackspotsType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\BlackspotType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SwimBreathType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SpellType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SafePathType.cs" />

@@ -57,6 +57,10 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
+using Bots.Grind;
+
+using Honorbuddy.QuestBehaviorCore.XmlElements;
+
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -118,6 +122,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // Variables for Attributes provided by caller
+        public BlackspotType Blackspots { get; private set; }
         public double CombatMaxEngagementDistance { get; private set; }
         public bool IgnoreMobsInBlackspots { get; private set; }
         public double MaxDismountHeight { get; private set; }
@@ -135,6 +140,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Private and Convenience variables
+        protected BehaviorFlags _behaviorFlagsOriginal;
         private Composite _behaviorTreeHook_CombatMain;
         private Composite _behaviorTreeHook_CombatOnly;
         private Composite _behaviorTreeHook_DeathMain;
@@ -159,6 +165,8 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             if (!_isDisposed)
             {
+                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+
                 // NOTE: we should call any Dispose() method for any managed or unmanaged
                 // resource, if that resource provides a Dispose() method.
 
@@ -169,6 +177,14 @@ namespace Honorbuddy.QuestBehaviorCore
                 }
 
                 // Clean up unmanaged resources (if any) here...
+
+                if (Targeting.Instance != null)
+                {
+                    Targeting.Instance.IncludeTargetsFilter -= TargetFilter_IncludeTargets;
+                    Targeting.Instance.RemoveTargetsFilter -= TargetFilter_RemoveTargets;
+                    Targeting.Instance.WeighTargetsFilter -= TargetFilter_WeighTargets;
+                }
+
 
                 // NB: we don't unhook _behaviorTreeHook_Main
                 // This was installed when HB created the behavior, and its up to HB to unhook it
@@ -197,14 +213,14 @@ namespace Honorbuddy.QuestBehaviorCore
                     _behaviorTreeHook_DeathMain = null;
                 }
 
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
-
                 // Restore configuration...
                 if (_mementoSettings != null)
                 {
                     _mementoSettings.Dispose();
                     _mementoSettings = null;
                 }
+
+                LevelBot.BehaviorFlags = _behaviorFlagsOriginal;
 
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
@@ -305,7 +321,17 @@ namespace Honorbuddy.QuestBehaviorCore
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _mementoSettings = new ConfigMemento();
 
+                // Preserved (and restore on dispose) the BehaviorFlags , in case the child needs to change them...
+                _behaviorFlagsOriginal = LevelBot.BehaviorFlags;
+
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
+
+                if (Targeting.Instance != null)
+                {
+                    Targeting.Instance.IncludeTargetsFilter += TargetFilter_IncludeTargets;
+                    Targeting.Instance.RemoveTargetsFilter += TargetFilter_RemoveTargets;
+                    Targeting.Instance.WeighTargetsFilter += TargetFilter_WeighTargets;
+                }
 
                 Query.BlacklistsReset();
 
@@ -369,6 +395,123 @@ namespace Honorbuddy.QuestBehaviorCore
         //        context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
         //                      RangeMax, rangeEpsilon, RangeMin)); 
         //}
+
+
+
+        #region TargetFilters
+        /// <summary>
+        /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
+        /// </summary>
+        /// <param name="units"></param>
+        protected virtual void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
+        {
+            // We expect the child to override this behavior
+
+            for (int i = incomingWowObjects.Count - 1; i >= 0; --i)
+            {
+                var wowObject = incomingWowObjects[i];
+
+                try
+                {
+                    // Skip invalid objects...
+                    if (!Query.IsViable(wowObject))
+                        { continue; }
+
+                    // Custom logic here...
+
+                    outgoingWowObjects.Add(wowObject);
+                }
+                catch (System.AccessViolationException)
+                {
+                    // empty
+                }
+                catch (Styx.InvalidObjectPointerException)
+                {
+                    // empty
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
+        /// </summary>
+        /// <param name="wowObjects"></param>
+        protected virtual void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        {
+            // We expect the child to override this behavior
+
+            for (int i = wowObjects.Count - 1; i >= 0; --i)
+            {
+                try
+                {
+                    var wowObject = wowObjects[i];
+
+                    // Remove invalid units...
+                    if (!Query.IsViable(wowObject))
+                    {
+                        wowObjects.RemoveAt(i);
+                        continue;
+                    }
+
+                    // Custom logic here...
+                }
+                catch (Styx.InvalidObjectPointerException)
+                {
+                    wowObjects.RemoveAt(i);
+                    continue;
+                }
+                catch (System.AccessViolationException)
+                {
+                    wowObjects.RemoveAt(i);
+                    continue;
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// <para>When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.</para>
+        /// </summary>
+        /// <param name="units"></param>
+        protected virtual void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
+        {
+            // empty--left for child to override
+
+            const float InvalidTargetScore = -1000000f;
+
+            for (int i = targetPriorities.Count - 1; i >= 0; --i)
+            {
+                var priority = targetPriorities[i];
+
+                try
+                {
+                    // Remove invalid units...
+                    var wowUnit = priority.Object as WoWUnit;
+                    if (!Query.IsViable(wowUnit))
+                    {
+                        priority.Score = InvalidTargetScore;
+                        targetPriorities.RemoveAt(i);
+                        continue;
+                    }
+
+                    // Custom weighting logic here...
+                }
+                catch (Styx.InvalidObjectPointerException)
+                {
+                    priority.Score = InvalidTargetScore;
+                    targetPriorities.RemoveAt(i);
+                    continue;
+                }
+                catch (System.AccessViolationException)
+                {
+                    priority.Score = InvalidTargetScore;
+                    targetPriorities.RemoveAt(i);
+                    continue;
+                }
+            }
+        }
+        #endregion
 
 
         #region Main Behaviors
