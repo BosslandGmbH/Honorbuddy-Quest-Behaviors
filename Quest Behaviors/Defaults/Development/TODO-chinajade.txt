@@ -4,16 +4,13 @@
   and we must never leave area.
 	+ <!-- Feralas: This is an abuse of InteractWith - if they fix it, "Might of the Stonemaul" could be broken -->
 	  <CustomBehavior File="InteractWith" QuestId="25329"  MobId="1" X="-3686.354" Y="1090.208" Z="131.9692" />
-* Move CollectionDistance() from WoWObject extension to WoWPoint extension.
 
 
 * QuestBehaviorBase
-	* Need TerminateWhen general purpose termination method
-	* Need 'blackspot' and 'avoidmob' logic common to all Quest Behaviors
 	* HAWKER priority: Underwater looting
-	* Capture Original Pull distance, and use it to close gap for SpankMob
+	* Use Target Filters so 'pull distance tampering' is not needed inside QBs.
+	* Rewrite SpankMob to just set the POI, and not actually call the Combat Routine hooks.
 	* UtilityBehaviorPS_MoveTo: If Navigator* in use, and flying--land immediately.
-	* Queries.cs: IsUntagged() => IsSharedOrUntagged()
 	* WeaponArticulation folded into VehicleWeapon.
 	* Need WeaponCharacter that captures fixed MuzzleVelocity and post-fire delay
 	* Need to keep firing if bogus initial MuzzleVelocity obtained for weapon (how?)
@@ -57,7 +54,6 @@
 	would it be possible to add 4th option to move out of an effect no matter how the effect gets there
 
 * InteractWith testing needed:
-	+ InteractByCollectingItemId
 	+ BlacklistInteractTarget needs to emit message as to why blacklisted (but, warning or info or debug?--it varies).
 	+ This needs to be converted to new InteractWith: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-8.html#post1092277
 	+ Giwin claims InteractWith doesn't work underwater
@@ -75,24 +71,6 @@
 		[4:48:42 AM] Mjj23: In later iterations of IW, it seems the bot does a less good job of actually engaging mobs, and is reduced to "following" them.
 		[4:49:03 AM] Mjj23: Which necessitated the new behavior.
 		[4:49:11 AM] Mjj23: If that all makes sense?
-	+ A missing <HuntingGrounds> tag will produce the following exception (fix it!)...
-		System.NullReferenceException: Object reference not set to an instance of an object.
-		   at Honorbuddy.QuestBehaviorCore.XmlElements.QuestBehaviorXmlBase..ctor(XElement xElement) in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\QuestBehaviorCore\QuestBehaviorXmlBase.cs:line 26
-		   at Honorbuddy.QuestBehaviorCore.XmlElements.HuntingGroundsType..ctor(XElement xElement) in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\QuestBehaviorCore\XmlElements\HuntingGroundsType.cs:line 33
-		   at Honorbuddy.QuestBehaviorCore.XmlElements.HuntingGroundsType.GetOrCreate(XElement parentElement, String elementName, Nullable`1 defaultHuntingGroundCenter) in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\QuestBehaviorCore\XmlElements\HuntingGroundsType.cs:line 191
-		   at Honorbuddy.Quest_Behaviors.InteractWith.InteractWith.OnStart() in c:\Users\Dennis\Desktop\New folder\hbx\Quest Behaviors\InteractWith.cs:line 619
-		   at Bots.Quest.QuestOrder.ForcedCodeBehavior.OnStart()
-		   at Bots.Quest.Actions.ForcedBehaviorExecutor..()
-		   at Styx.TreeSharp.Composite.Tick(Object context)
-		   at Bots.Quest.QuestOrder.ForcedWhile...()
-		   at Styx.TreeSharp.Composite.Tick(Object context)
-		   at Bots.Quest.Actions.ForcedBehaviorExecutor..()
-		   at Styx.TreeSharp.Composite.Tick(Object context)
-		   at Styx.TreeSharp.PrioritySelector..()
-		   at Styx.TreeSharp.Composite.Tick(Object context)
-		   at Styx.TreeSharp.PrioritySelector..()
-		   at Styx.TreeSharp.Composite.Tick(Object context)
-		   at Styx.CommonBot.TreeRoot.()
 	+ Cava: find one problem, (i think)
 		the interact force bot to move away from mob
 		and at that time bot starting loading mesh
@@ -158,6 +136,7 @@ QUESTBEHAVIORCORE FRAMEWORK
 
 * The UserSettings/OnBotStop interferes with QuestBehaviorCore's OnBotStop.  Figure out a way to process
 	events from various hooks installed at different times by different processes in the correct order.
+	This describes the problem: http://pastie.org/private/tpbd1y9fnvhiujk4jd9qg
 
 * When moving to hunting ground center, and no other waypoints, we need to randomize location
 
