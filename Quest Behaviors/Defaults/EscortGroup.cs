@@ -524,6 +524,8 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
         public override void Dispose()
         {
+            Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
+
             Dispose(true);
             GC.SuppressFinalize(this);
         }
@@ -594,6 +596,23 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
                 _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
+
+                Targeting.Instance.IncludeTargetsFilter += Instance_IncludeTargetsFilter;
+            }
+        }
+
+        void Instance_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
+        {
+            var mobs =
+                ObjectManager.GetObjectsOfType<WoWUnit>()
+                             .Where(
+                                 u =>
+                                 u.IsAlive && u.Combat && u.CurrentTarget != null &&
+                                 EscortNpcIds.Contains((int)u.CurrentTarget.Entry));
+
+            foreach (var m in mobs)
+            {
+                outgoingUnits.Add(m);
             }
         }
         #endregion
@@ -637,7 +656,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                     // We must assure the intended target gets attacked, even if HB thinks differently.
                     new Decorator(context => IsViableForFighting(SelectedTarget),
                         new PrioritySelector(
-                            new Decorator(context => BotPoi.Current.Guid != SelectedTarget.Guid,
+                            new Decorator(context => BotPoi.Current.Type != PoiType.Kill,
                                 new Action(context =>
                                 {
                                     BotPoi.Current = new BotPoi(SelectedTarget, PoiType.Kill);
