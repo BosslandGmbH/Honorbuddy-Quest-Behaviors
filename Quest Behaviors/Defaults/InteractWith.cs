@@ -450,7 +450,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                 // Deprecated attributes...
                 InteractByBuyingItemInSlotNum = GetAttributeAsNullable<int>("InteractByBuyingItemInSlotNum", false, new ConstrainTo.Domain<int>(-1, 100), new [] { "BuySlot" }) ?? -1;
-                GetAttributeAsNullable<MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
+                GetAttributeAsNullable<Deprecated_MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
                 var navigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" });
                 if (navigationMode != null)
                 {

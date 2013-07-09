@@ -47,29 +47,47 @@
 //
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
+//      AvoidMobs [optional; Default: none]
+//          Specifies a set of 'avoid mobs' that will be temporarily installed while the behavior
+//          is running.  When the behavior completes, or the Honorbuddy is stopped, these temporary
+//          'avoid mobs' will be removed.
+//          This element expects a list of <Mob> sub-elements.
+//
+//          Mob
+//              Specifies a single blackspot with the following attributes:
+//                  Name [optional; ""]
+//                      The name of mob to be avoided.
+//                  Entry [required]
+//                      The ID of the mob to be avoided.
+//
 //      Blackspots [optional; Default: none]
 //          Specifies a set of blackspots that will be temporarily installed while the behavior
 //          is running.  When the behavior completes, or the Honorbuddy is stopped, these temporary
 //          blackspots will be removed.
 //          This element expects a list of <Blackspot> sub-elements.
 //
-//      Blackspot
-//          Specifies a single blackspot with the following attributes:
-//              Name [optional; Default: X/Y/Z location of the blackspot]
-//                  The name of the waypoint is presented to the user as it is visited.
-//                  This can be useful for debugging purposes, and for making minor adjustments
-//                  (you know which waypoint to be fiddling with).
-//              X/Y/Z [REQUIRED; Default: none]
-//                  The world coordinates of the blackspot.
-//              Radius [optional; Default: 10.0]
-//                  The radius of the blackspot.
-//              Height [optional; Default 1.0]
-//                  The height of the blackspot.
+//          Blackspot
+//              Specifies a single blackspot with the following attributes:
+//                  Name [optional; Default: X/Y/Z location of the blackspot]
+//                      The name of the waypoint is presented to the user as it is visited.
+//                      This can be useful for debugging purposes, and for making minor adjustments
+//                      (you know which waypoint to be fiddling with).
+//                  X/Y/Z [REQUIRED; Default: none]
+//                      The world coordinates of the blackspot.
+//                  Radius [optional; Default: 10.0]
+//                      The radius of the blackspot.
+//                  Height [optional; Default 1.0]
+//                      The height of the blackspot.
 //
 // THINGS TO KNOW:
 //
-// EXAMPLE:
-//      <CustomBehavior File="TEMPLATE" >
+// EXAMPLES:
+//      <CustomBehavior File="InteractWith" MobId="12345" >
+//          <AvoidMobs>
+//              <Mob Name="Stable Master Kitrik" Entry="28683" />
+//              <Mob Name="Initiate's Training Dummy" Entry="32541" />
+//              <Mob Name="Scarlet Lord Jesseriah McCree" Entry="28964" />
+//          </AvoidMobs>
 //          <Blackspots>
 //              <Blackspot X="2053.501" Y="-5783.61" Z="101.3919" Radius="15.69214" />
 //              <Blackspot X="1639.395" Y="-5847.581" Z="116.1873" Radius="18.69113" />
@@ -178,7 +196,8 @@ namespace Honorbuddy.QuestBehaviorCore
         private bool _isBehaviorDone;
         private bool _isDoneChecksQuestProgress;
         protected bool _isDisposed { get; private set; }
-        private BlackspotsType _localBlackspots { get; set; }
+        private AvoidMobsType _temporaryAvoidMobs { get; set; }
+        private BlackspotsType _temporaryBlackspots { get; set; }
         #endregion
 
 
@@ -242,8 +261,9 @@ namespace Honorbuddy.QuestBehaviorCore
                     _behaviorTreeHook_DeathMain = null;
                 }
 
-                // Remove 'local' blackspots...
-                BlackspotManager.RemoveBlackspots(_localBlackspots.GetBlackspots());
+                // Remove temporary 'avoid mobs' and blackspots...
+                AvoidanceManager.RemoveAll(_temporaryAvoidMobs.GetAvoidMobIds());
+                BlackspotManager.RemoveBlackspots(_temporaryBlackspots.GetBlackspots());
 
                 // Restore configuration...
                 if (_mementoSettings != null)
@@ -367,12 +387,19 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 Query.BlacklistsReset();
 
-                // Add any local blackspots desired...
+                // Add temporary avoid mobs, if any were specified...
+                // NB: Ideally, we'd save and restore the original 'avoid mob' list.  However,
+                // AvoidanceManager does not currently give us a way to "see" hat is currently
+                // on the list.
+                _temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
+                AvoidanceManager.AddAll(_temporaryAvoidMobs.GetAvoidMobIds());
+
+                // Add temporary blackspots, if any were specified...
                 // NB: Ideally, we'd save and restore the original blackspot list.  However,
                 // BlackspotManager does not currently give us a way to "see" what is currently
                 // on the list.
-                _localBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
-                BlackspotManager.AddBlackspots(_localBlackspots.GetBlackspots());
+                _temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
+                BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
 
                 UpdateGoalText(extraGoalTextDescription);
 

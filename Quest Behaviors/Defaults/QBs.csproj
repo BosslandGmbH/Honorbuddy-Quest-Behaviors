@@ -99,6 +99,8 @@
     <Compile Include="QuestBehaviorCore\Utility\TargetAnalysis.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\BlackspotsType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\BlackspotType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\AvoidMobsType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\MobType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SwimBreathType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SpellType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\SafePathType.cs" />

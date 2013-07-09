@@ -62,6 +62,13 @@ namespace Honorbuddy.QuestBehaviorCore
     //----------
     // Types
     //
+    public enum Deprecated_MobType
+    {
+        Npc,
+        GameObject,
+    }
+
+
     public enum MobStateType
     {
         // NPC states
@@ -71,13 +78,6 @@ namespace Honorbuddy.QuestBehaviorCore
         Dead,
 
         DontCare,
-    }
-
-
-    public enum MobType
-    {
-        Npc,
-        GameObject,
     }
 
 
