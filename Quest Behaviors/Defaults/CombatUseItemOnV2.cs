@@ -727,7 +727,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 where
                     IsViableForItemUse(wowUnit)
                     && (wowUnit.Distance < CollectionDistance)
-                orderby wowUnit.CollectionDistance()
+                orderby wowUnit.Location.CollectionDistance()
                 select wowUnit; 
             
             using (StyxWoW.Memory.AcquireFrame())

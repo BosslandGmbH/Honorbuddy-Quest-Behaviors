@@ -1379,7 +1379,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
             var entities =
                 from wowObject in Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds)
-                let objectCollectionDistance = wowObject.CollectionDistance()
+                let objectCollectionDistance = wowObject.Location.CollectionDistance()
                 where
                     Query.IsViable(wowObject)
                     && (objectCollectionDistance <= CollectionDistance)
@@ -1529,7 +1529,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, AuraIdsOnMob, AuraIdsMissingFromMob);
             TargetExclusionAnalysis.CheckMobState(exclusionReasons, wowObject, MobState, MobHpPercentLeft);
 
-            var objectCollectionDistance = wowObject.CollectionDistance();
+            var objectCollectionDistance = wowObject.Location.CollectionDistance();
             if (objectCollectionDistance > CollectionDistance)
                 { exclusionReasons.Add(string.Format("ExceedsCollectionDistance({0:F1}, saw {1:F1})", CollectionDistance, objectCollectionDistance)); }
 

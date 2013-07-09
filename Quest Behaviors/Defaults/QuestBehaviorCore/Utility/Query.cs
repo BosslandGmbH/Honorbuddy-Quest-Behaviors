@@ -108,7 +108,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         && !wowUnit.PlayerControlled
                         // Do not pull mobs on the AvoidMobs list
                         && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                        orderby wowUnit.CollectionDistance()
+                        orderby wowUnit.Location.CollectionDistance()
                         select wowUnit)
                     .ToList();
             }

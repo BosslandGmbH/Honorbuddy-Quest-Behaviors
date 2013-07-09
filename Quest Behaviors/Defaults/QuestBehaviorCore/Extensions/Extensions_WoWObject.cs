@@ -37,13 +37,6 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        // TODO: Remove this, and leave only the WoWPoint extension...
-        public static double CollectionDistance(this WoWObject wowObject)
-        {
-            return wowObject.Location.CollectionDistance();
-        }
-
-
         // Mostly stolen from Singular
         // 12Apr2013-06:29UTC chinajade
         public static string SafeName(this WoWObject wowObject, bool debug = false)
