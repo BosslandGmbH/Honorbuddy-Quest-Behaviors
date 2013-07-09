@@ -30,16 +30,26 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             try
             {
-                Blackspots = new List<Blackspot>();
+                Blackspots = new List<BlackspotType>();
 
-                foreach (XElement childElement in xElement.Elements().Where(elem => (elem.Name == "Blackspot")))
+                if (xElement != null)
                 {
-                    var blackspot = new BlackspotType(childElement);
+                    var blackspotElementsQuery =
+                        from element in xElement.Elements()
+                        where
+                            (element.Name == "Blackspot")
+                            || (element.Name == "BlackspotType")
+                        select element;
 
-                    //if (!blackspot.IsAttributeProblem)
-                    //    { Blackspots.Add(blackspot); }
+                    foreach (XElement childElement in blackspotElementsQuery)
+                    {
+                        var blackspot = new BlackspotType(childElement);
 
-                    IsAttributeProblem |= blackspot.IsAttributeProblem;
+                        if (!blackspot.IsAttributeProblem)
+                            { Blackspots.Add(blackspot); }
+
+                        IsAttributeProblem |= blackspot.IsAttributeProblem;
+                    }
                 }
 
                 HandleAttributeProblem();
@@ -57,32 +67,25 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
         }
 
-        public List<Blackspot> Blackspots { get; set; }
+        
+        public List<BlackspotType> Blackspots { get; set; }
+        #endregion
+
+
+        #region Private and Convenience variables
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: Copy of HuntingGroundsType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
         public override string SubversionRevision { get { return "$Rev: 555 $"; } }
         #endregion
 
-        #region Private and Convenience variables
-        // empty
-        #endregion
 
-
-        public void BlackspotsInstall()
+        public List<Blackspot> GetBlackspots()
         {
-            foreach (var blackspot in Blackspots)
-            {
-
-            }
-        }
-
-        
-        public void BlackspotsRemove()
-        {
-            foreach (var blackspot in Blackspots)
-            {
-            }
+            return
+               (from blackspot in Blackspots
+                select blackspot.AsBlackspot())
+                .ToList();
         }
 
 
@@ -113,10 +116,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var indent = string.Empty.PadLeft(indentLevel);
             var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
-            //tmp.AppendFormat("<{0}>", elementTag);
-            //foreach (var blackspot in Blackspots)
-            //    { tmp.AppendFormat("{0}  {1}", fieldSeparator, blackspot.ToString_FullInfo()); }
-            //tmp.AppendFormat("{0}</{1}>", fieldSeparator, elementTag);
+            tmp.AppendFormat("<{0}>{1}", elementTag, Environment.NewLine);
+            foreach (var blackspot in Blackspots)
+                { tmp.AppendFormat("{0}  {1}{2}", fieldSeparator, blackspot.ToString_FullInfo(true), Environment.NewLine); }
+            tmp.AppendFormat("{0}</{1}>", fieldSeparator, elementTag);
 
             return tmp.ToString();
         }

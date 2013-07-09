@@ -212,13 +212,13 @@
 //              multiple bos are running the same quest.
 //          Each Waypoint is provided by a <Hotspot ... /> element with the following
 //          attributes:
-//              Name [optional; Default: ""]
+//              Name [optional; Default: X/Y/Z location of the waypoint]
 //                  The name of the waypoint is presented to the user as it is visited.
 //                  This can be useful for debugging purposes, and for making minor adjustments
 //                  (you know which waypoint to be fiddling with).
 //              X/Y/Z [REQUIRED; Default: none]
 //                  The world coordinates of the waypoint.
-//              Radius [optional; Default: 7.0]
+//              Radius [optional; Default: 10.0]
 //                  Once the toon gets within Radius of the waypoint, the next waypoint
 //                  will be sought.
 //

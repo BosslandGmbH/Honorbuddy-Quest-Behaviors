@@ -45,10 +45,38 @@
 //          Shared resources, such as Vendors, Innkeepers, Trainers, etc. are never considered
 //          to be "in competition".
 //
+// BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
+// See the "Examples" section for typical usage.
+//      Blackspots [optional; Default: none]
+//          Specifies a set of blackspots that will be temporarily installed while the behavior
+//          is running.  When the behavior completes, or the Honorbuddy is stopped, these temporary
+//          blackspots will be removed.
+//          This element expects a list of <Blackspot> sub-elements.
+//
+//      Blackspot
+//          Specifies a single blackspot with the following attributes:
+//              Name [optional; Default: X/Y/Z location of the blackspot]
+//                  The name of the waypoint is presented to the user as it is visited.
+//                  This can be useful for debugging purposes, and for making minor adjustments
+//                  (you know which waypoint to be fiddling with).
+//              X/Y/Z [REQUIRED; Default: none]
+//                  The world coordinates of the blackspot.
+//              Radius [optional; Default: 10.0]
+//                  The radius of the blackspot.
+//              Height [optional; Default 1.0]
+//                  The height of the blackspot.
+//
 // THINGS TO KNOW:
 //
 // EXAMPLE:
-//     <CustomBehavior File="TEMPLATE" />
+//      <CustomBehavior File="TEMPLATE" >
+//          <Blackspots>
+//              <Blackspot X="2053.501" Y="-5783.61" Z="101.3919" Radius="15.69214" />
+//              <Blackspot X="1639.395" Y="-5847.581" Z="116.1873" Radius="18.69113" />
+//              <Blackspot X="1758.225" Y="-5873.512" Z="116.1236" Radius="30.69964" />
+//              <Blackspot X="1777.866" Y="-5923.742" Z="116.1065" Radius="5.556122" />
+//          </Blackspots>
+//      </CustomBehavior>
 #endregion
 
 #region Usings
@@ -65,6 +93,7 @@ using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -122,7 +151,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // Variables for Attributes provided by caller
-        public BlackspotType Blackspots { get; private set; }
         public double CombatMaxEngagementDistance { get; private set; }
         public bool IgnoreMobsInBlackspots { get; private set; }
         public double MaxDismountHeight { get; private set; }
@@ -150,6 +178,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private bool _isBehaviorDone;
         private bool _isDoneChecksQuestProgress;
         protected bool _isDisposed { get; private set; }
+        private BlackspotsType _localBlackspots { get; set; }
         #endregion
 
 
@@ -212,6 +241,9 @@ namespace Honorbuddy.QuestBehaviorCore
                     TreeHooks.Instance.RemoveHook("Questbot_Main", _behaviorTreeHook_QuestbotMain);
                     _behaviorTreeHook_DeathMain = null;
                 }
+
+                // Remove 'local' blackspots...
+                BlackspotManager.RemoveBlackspots(_localBlackspots.GetBlackspots());
 
                 // Restore configuration...
                 if (_mementoSettings != null)
@@ -334,6 +366,13 @@ namespace Honorbuddy.QuestBehaviorCore
                 }
 
                 Query.BlacklistsReset();
+
+                // Add any local blackspots desired...
+                // NB: Ideally, we'd save and restore the original blackspot list.  However,
+                // BlackspotManager does not currently give us a way to "see" what is currently
+                // on the list.
+                _localBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
+                BlackspotManager.AddBlackspots(_localBlackspots.GetBlackspots());
 
                 UpdateGoalText(extraGoalTextDescription);
 
@@ -554,7 +593,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 );
         }
         #endregion
-
 
 
         #region Helpers

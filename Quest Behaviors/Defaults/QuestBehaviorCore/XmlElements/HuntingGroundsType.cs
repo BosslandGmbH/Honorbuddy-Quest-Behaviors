@@ -38,22 +38,25 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null) ?? WaypointVisitStrategyType.Random;
                 Waypoints = new List<WaypointType>();
 
-                var waypointElementsQuery =
-                    from element in xElement.Elements()
-                    where
-                        (element.Name == "Hotspot")
-                        || (element.Name == "Waypoint")
-                        || (element.Name == "WaypointType")
-                    select element;
-
-                foreach (XElement childElement in waypointElementsQuery)
+                if (xElement != null)
                 {
-                    var waypoint = new WaypointType(childElement);
+                    var waypointElementsQuery =
+                        from element in xElement.Elements()
+                        where
+                            (element.Name == "Hotspot")
+                            || (element.Name == "Waypoint")
+                            || (element.Name == "WaypointType")
+                        select element;
 
-                    if (!waypoint.IsAttributeProblem)
+                    foreach (XElement childElement in waypointElementsQuery)
+                    {
+                        var waypoint = new WaypointType(childElement);
+
+                        if (!waypoint.IsAttributeProblem)
                         { Waypoints.Add(waypoint); }
 
-                    IsAttributeProblem |= waypoint.IsAttributeProblem;
+                        IsAttributeProblem |= waypoint.IsAttributeProblem;
+                    }
                 }
 
                 HandleAttributeProblem();

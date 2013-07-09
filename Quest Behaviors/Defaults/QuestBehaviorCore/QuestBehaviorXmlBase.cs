@@ -23,9 +23,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         protected QuestBehaviorXmlBase(XElement xElement)
         {
             Element = xElement;
-            Attributes = xElement
-                .Attributes()
-                .ToDictionary(attribute => attribute.Name.ToString(), attribute => attribute.Value);
+            Attributes =
+                (xElement == null)
+                ? new Dictionary<string, string>()
+                : xElement
+                    .Attributes()
+                    .ToDictionary(attribute => attribute.Name.ToString(), attribute => attribute.Value);
         }
 
 

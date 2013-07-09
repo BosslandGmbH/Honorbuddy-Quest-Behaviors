@@ -19,7 +19,8 @@ using Styx.CommonBot.Profiles;
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class BlackspotType : QuestBehaviorXmlBase
-    {        
+    {
+        #region Constructor and Argument Processing
         public BlackspotType(XElement xElement)
             : base(xElement)
         {
@@ -60,10 +61,21 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public WoWPoint Location { get; set; }
         public string Name { get; set; }
         public double Radius { get; set; }
+        #endregion
+
+
+        #region Private and Convenience variables
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: Copy of WaypointType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
         public override string SubversionRevision { get { return "$Rev: 555 $"; } }
+        #endregion
+
+
+        public Blackspot AsBlackspot()
+        {
+            return new Blackspot(Location, (float)Radius, (float)Height);
+        }
 
 
         public override string ToString()
@@ -80,19 +92,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
             tmp.AppendFormat("<BlackspotType");
-            tmp.AppendFormat("{0}Location=\"{1}\"", fieldSeparator, Location);
             tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
+            tmp.AppendFormat("{0}X=\"{1}\"", fieldSeparator, Location.X);
+            tmp.AppendFormat("{0}Y=\"{1}\"", fieldSeparator, Location.Y);
+            tmp.AppendFormat("{0}Z=\"{1}\"", fieldSeparator, Location.Z);
             tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, Radius);
             tmp.AppendFormat("{0}Height=\"{1}\"", fieldSeparator, Height);
             tmp.AppendFormat("{0}/>", fieldSeparator);
 
             return tmp.ToString();
-        }
-
-
-        private Blackspot AsBlackspot()
-        {
-            return new Blackspot(Location, (float)Radius, (float)Height);
         }
 
 
