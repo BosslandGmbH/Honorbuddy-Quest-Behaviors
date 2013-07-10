@@ -221,6 +221,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
             {
                 ObjectManager.Update();
 
+				if(IsQuestComplete())
+				{
+					_isBehaviorDone = true;
+					break;
+				}
                 if (!Me.OnTaxi)
                 {
 					Logging.Write("Not on taxi");
@@ -243,10 +248,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                     Bomb.Use();
                     SpellManager.ClickRemoteLocation(GatewayShaadraz.Location);
                 }
-				else if(IsObjectiveComplete(2, (uint)QuestId) && IsObjectiveComplete(1, (uint)QuestId))
-				{
-					_isBehaviorDone = true;
-				}
+				
             }
 
         }

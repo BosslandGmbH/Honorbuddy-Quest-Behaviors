@@ -30,26 +30,36 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
         static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26649));if c==1 then return 1 else return 0 end", 0) == 1; } }
         public double angle = 0;
         public double CurentAngle = 0;
-        public List<WoWUnit> mob1List
+        public WoWUnit gooby
         {
             get
             {
                 return ObjectManager.GetObjectsOfType<WoWUnit>()
                                     .Where(u => (u.Entry == 43596 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
+                                    .OrderBy(u => u.Distance2D).FirstOrDefault();
             }
         }
-        bool InVehicle
+
+
+        private uint QuestId = 26649;
+
+        public bool IsQuestComplete()
         {
-            get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; }
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            return quest == null || quest.IsCompleted;
         }
-        public WoWUnit BloodsailOarsman
+        private bool IsObjectiveComplete(int objectiveId, uint questId)
         {
-            get
+            if (StyxWoW.Me.QuestLog.GetQuestById(questId) == null)
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 43605 && !u.IsDead).First();
+                return false;
             }
+            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
+            return
+                Lua.GetReturnVal<bool>(
+                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
         }
+
         WoWPoint wp = new WoWPoint(-14878.15, 296.5315, 0.93627);
         private Composite _root;
         protected override Composite CreateBehavior()
@@ -58,7 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
                 new PrioritySelector(
 
 
-                    new Decorator(ret => me.QuestLog.GetQuestById(26649) != null && me.QuestLog.GetQuestById(26649).IsCompleted,
+                    new Decorator(ret => IsQuestComplete(),
                         new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Finished!"),
                             new Action(ret => Lua.DoString("CastPetAction({0})", 5)),
@@ -69,34 +79,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
                                 return RunStatus.Success;
                             }))
                             )),
-                    new Decorator(ret => !InVehicle,
-                        new Action(ret =>
-                        {
-                            while (StyxWoW.Me.Location.Distance(wp) > 5)
-                            {
-                                Navigator.MoveTo(wp);
-                                Thread.Sleep(100);
-                            }
-                            if (BloodsailOarsman.BaseAddress != (IntPtr) 0)
-                            {
-                                BloodsailOarsman.Interact();
-                                Thread.Sleep(1000);
-                                Lua.DoString("SelectGossipOption(1)");
-                                Thread.Sleep(5000);
-                            }
-                        }
-                    )),
-                    new Decorator(ret => !Obj1Done && mob1List.Count > 0,
-                    new Action(ret =>
-                    {
-                        if (mob1List.Count == 0)
-                            return;
-                        mob1List[0].Target();
 
-                        while (me.CurrentTarget != null && mob1List.Count > 0 && me.CurrentTarget.Guid == mob1List[0].Guid && me.CurrentTarget.IsAlive)
+                    new Decorator(ret => gooby != null,
+                    new Action(ret =>
                         {
+
+                            var status = StyxWoW.Me.CurrentTarget;
+                            if (status == null || status.Entry != 43596 || status.Distance2D > 100)
+                                gooby.Target();
+
+                            //WoWMovement.ClickToMove(gooby.Location);
                             WoWMovement.ConstantFace(me.CurrentTarget.Guid);
-                            angle = -((me.Z - me.CurrentTarget.Z) / (me.CurrentTarget.Location.Distance(me.Location))) + ((me.CurrentTarget.Location.Distance2D(me.Location) - 20) / me.CurrentTarget.Location.Distance(me.Location) / 10);
+                            angle = -((me.Z - me.CurrentTarget.Z)/(me.CurrentTarget.Location.Distance(me.Location))) +
+                                    ((me.CurrentTarget.Location.Distance2D(me.Location) - 20)/
+                                     me.CurrentTarget.Location.Distance(me.Location)/10);
                             CurentAngle = Lua.GetReturnVal<double>("return VehicleAimGetAngle()", 0);
                             if (CurentAngle < angle)
                             {
@@ -107,7 +103,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
                                 Lua.DoString(string.Format("VehicleAimDecrement(\"{0}\")", (CurentAngle - angle)));
                             }
                             Lua.DoString("CastPetAction(1) CastPetAction(2) CastPetAction(3)");
-                        }
+
                     }
                     ))
                 )

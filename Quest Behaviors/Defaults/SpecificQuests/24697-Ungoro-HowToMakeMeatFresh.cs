@@ -110,7 +110,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.howtomakemeatfresh
             }
             Logging.Write("Disposing");
 
-            LevelBot.BehaviorFlags |= ~BehaviorFlags.Combat;
+            LevelBot.BehaviorFlags |= BehaviorFlags.Combat;
 
             _isDisposed = true;
         }
