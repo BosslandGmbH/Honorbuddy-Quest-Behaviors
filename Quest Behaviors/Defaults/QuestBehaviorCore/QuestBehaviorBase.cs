@@ -194,7 +194,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Private and Convenience variables
-        protected BehaviorFlags _behaviorFlagsOriginal;
+        protected BehaviorFlags? _behaviorFlagsOriginal;
         private Composite _behaviorTreeHook_CombatMain;
         private Composite _behaviorTreeHook_CombatOnly;
         private Composite _behaviorTreeHook_DeathMain;
@@ -290,7 +290,11 @@ namespace Honorbuddy.QuestBehaviorCore
                     _mementoSettings = null;
                 }
 
-                LevelBot.BehaviorFlags = _behaviorFlagsOriginal;
+                if (_behaviorFlagsOriginal.HasValue)
+                {
+                    LevelBot.BehaviorFlags = _behaviorFlagsOriginal.Value;
+                    _behaviorFlagsOriginal = null;
+                }
 
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
