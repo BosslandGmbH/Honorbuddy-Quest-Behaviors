@@ -64,6 +64,7 @@
     <Compile Include="BarrelHook.cs" />
     <Compile Include="BasicInteractWith.cs" />
     <Compile Include="BasicUseObject.cs" />
+    <Compile Include="BlackrockMaskHook.cs" />
     <Compile Include="Deprecated\CastSpellOn.cs" />
     <Compile Include="Deprecated\UseItemOn.cs" />
     <Compile Include="Development\TankVehicle.cs" />
