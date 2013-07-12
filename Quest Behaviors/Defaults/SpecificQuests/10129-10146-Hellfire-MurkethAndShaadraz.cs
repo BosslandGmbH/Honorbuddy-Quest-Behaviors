@@ -1,4 +1,4 @@
-// Behavior originally contributed by mastahg.
+// Behavior originally contributed by mastahg / rework by chinajadeb
 //
 // DOCUMENTATION:
 //     
@@ -151,45 +151,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                     new Decorator(context => Bomb.Cooldown > 0,
                         new ActionAlwaysSucceed()),
 
-                    // First Target...
-                    new Decorator(context =>
-                    {
-                        if (Me.IsQuestObjectiveComplete(QuestId, 1))
-                            { return false; }
-
-                        SelectedTarget = ObjectManager.ObjectList.FirstOrDefault(o => o.Entry == MobId_GatewayMurketh);
-                        if (!Query.IsViable(SelectedTarget))
-                            { return false; }
-
-                        return Me.Location.Distance(SelectedTarget.Location) <= BombRange;
-                    },
-                        new Action(context =>
-                        {
-                            QBCLog.DeveloperInfo("Bombing {0}", SelectedTarget.SafeName());
-                            Bomb.Use();
-                            // NB: The "FanOutRandom()" simulates imperfect human aim.
-                            SpellManager.ClickRemoteLocation(SelectedTarget.Location.FanOutRandom(7.5));
-                        })),
-
-                    // Second target...
-                    new Decorator(context =>
-                    {
-                        if (Me.IsQuestObjectiveComplete(QuestId, 2))
-                            { return false; }
-
-                        SelectedTarget = ObjectManager.ObjectList.FirstOrDefault(o => o.Entry == MobId_GatewayShaadraz);
-                        if (!Query.IsViable(SelectedTarget))
-                            { return false; }
-
-                        return Me.Location.Distance(SelectedTarget.Location) <= BombRange;
-                    },
-                        new Action(context =>
-                        {
-                            QBCLog.DeveloperInfo("Bombing {0}", SelectedTarget.SafeName());
-                            Bomb.Use();
-                            // NB: The "FanOutRandom()" simulates imperfect human aim.
-                            SpellManager.ClickRemoteLocation(SelectedTarget.Location.FanOutRandom(7.5));
-                        }))
+                    // Bomb Targets...
+                    SubBehavior_BombTarget(context => 1, context => MobId_GatewayMurketh),
+                    SubBehavior_BombTarget(context => 2, context => MobId_GatewayShaadraz)
                 ));
         }
 
@@ -252,5 +216,35 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
             );
         }
         #endregion
+
+
+        private Composite SubBehavior_BombTarget(ProvideIntDelegate questObjectiveIndexDelegate,
+                                                 ProvideIntDelegate mobIdDelegate)
+        {
+            Contract.Requires(questObjectiveIndexDelegate != null, context => "questObjectiveIndexDelegate != null");
+            Contract.Requires(mobIdDelegate != null, context => "mobIdDelegate != null");
+
+            return new Decorator(context =>
+            {
+                var questObjectiveIndex = questObjectiveIndexDelegate(context);
+                var mobId = mobIdDelegate(context);
+
+                if (Me.IsQuestObjectiveComplete(QuestId, questObjectiveIndex))
+                    { return false; }
+
+                SelectedTarget = ObjectManager.ObjectList.FirstOrDefault(o => o.Entry == mobId);
+                if (!Query.IsViable(SelectedTarget))
+                    { return false; }
+
+                return Me.Location.Distance(SelectedTarget.Location) <= BombRange;
+            },
+                    new Action(context =>
+                    {
+                        QBCLog.DeveloperInfo("Bombing {0}", SelectedTarget.SafeName());
+                        Bomb.Use();
+                        // NB: The "FanOutRandom()" simulates imperfect human aim.
+                        SpellManager.ClickRemoteLocation(SelectedTarget.Location.FanOutRandom(7.5));
+                    }));
+        }
     }
 }
