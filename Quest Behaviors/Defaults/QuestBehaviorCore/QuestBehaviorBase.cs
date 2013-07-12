@@ -290,7 +290,10 @@ namespace Honorbuddy.QuestBehaviorCore
                     _mementoSettings = null;
                 }
 
-                if (_behaviorFlagsOriginal.HasValue)
+                // Restore behavior flags...
+                // If the flags haven't changed, don't bother restoring.  This will prevent HBcore from generating
+                // 'noise' messages to the log.
+                if ((_behaviorFlagsOriginal.HasValue) && (_behaviorFlagsOriginal.Value != LevelBot.BehaviorFlags))
                 {
                     LevelBot.BehaviorFlags = _behaviorFlagsOriginal.Value;
                     _behaviorFlagsOriginal = null;
