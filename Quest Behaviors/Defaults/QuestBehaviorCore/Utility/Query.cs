@@ -185,27 +185,21 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Apr2013-04:41UTC chinajade
         public static bool IsBlacklistedForCombat(WoWObject wowObject)
         {
-            return (wowObject != null)
-                ? Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat)
-                : false;
+            return (wowObject != null) && Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat);
         }
 
 
         // 11Apr2013-04:41UTC chinajade
         public static bool IsBlacklistedForInteraction(WoWObject wowObject)
         {
-            return (wowObject != null)
-                ? _interactBlacklist.Contains(wowObject.Guid)
-                : false;
+            return (wowObject != null) && _interactBlacklist.Contains(wowObject.Guid);
         }
 
 
         // 4Jun2013-04:41UTC chinajade
         public static bool IsBlacklistedForPulling(WoWObject wowObject)
         {
-            return (wowObject != null)
-                ? Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull)
-                : false;
+            return (wowObject != null) && Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull);
         }
         
         
@@ -248,6 +242,19 @@ namespace Honorbuddy.QuestBehaviorCore
                 // mobs are up a stairway and we're looking at them through a guardrail and
                 // other boundary conditions.
                 : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
+        }
+
+
+
+        public static bool IsMobTargetingUs(WoWUnit wowUnit)
+        {
+            return
+                Query.IsViable(wowUnit)
+                && (wowUnit.IsTargetingMeOrPet
+                    || wowUnit.IsTargetingAnyMinion
+                    || wowUnit.IsTargetingMyPartyMember)
+                // exclude opposing faction: both players and their pets show up as "PlayerControlled"
+                && !wowUnit.PlayerControlled;
         }
 
 

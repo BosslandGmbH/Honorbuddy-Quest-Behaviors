@@ -85,25 +85,29 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Action(context =>
                     {
                         CachedTarget = SelectedTargetDelegate(context);
+                        if (!Query.IsViable(CachedTarget))
+                        {
+                            QBCLog.Warning("Target is not viable!");
+                            return RunStatus.Failure;
+                        }
 
-                        var itemId = WowItemIdDelegate(context);
-                        CachedItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
+                        if (!Query.IsViable(CachedItemToUse))
+                        {
+                            var itemId = WowItemIdDelegate(context);
+                            CachedItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
+                            if (!Query.IsViable(CachedItemToUse))
+                                { QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId)); }
+                            return RunStatus.Failure;
+                        }
+
+                        return RunStatus.Success;
                     }),
-                    new DecoratorContinue(context => !Query.IsViable(CachedTarget),
-                        new ActionFail(context => { QBCLog.Warning("Target is not viable!"); })),
-
-                    // If WoWclient has not placed items in our bag, wait for it...
-                    // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
-                    // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
-                    // for the item to show up, if its going to.
-                    new DecoratorContinue(context => !Query.IsViable(CachedItemToUse),
-                        new UtilityBehaviorPS.WaitForInventoryItem(WowItemIdDelegate, ActionOnMissingItemDelegate)),
 
                     // Wait for Item cooldown...
                     new DecoratorContinue(context => !CachedItemToUse.Usable,
                         new ActionFail(context =>
                         {
-                            TreeRoot.StatusText = string.Format("{0} is not usable, yet. (Cooldown remaining: {1})",
+                            TreeRoot.StatusText = string.Format("{0} is not usable, yet. (cooldown remaining: {1})",
                                 CachedItemToUse.Name,
                                 Utility.PrettyTime(TimeSpan.FromSeconds((int)CachedItemToUse.CooldownTimeLeft.TotalSeconds)));
                         })),

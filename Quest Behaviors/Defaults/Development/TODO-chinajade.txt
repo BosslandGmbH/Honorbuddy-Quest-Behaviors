@@ -18,6 +18,12 @@
 	* Need a vehicle aim & fire utility behavior.
 	* QuestBehaviorBase needs a global Watchdog Timer
 	* For behaviors that hook Combat_Main, need to check and make certain bags are not full
+	* SurfacePathDistance needs to be WoWPoint object--remove the copy in WoWObject extensions.
+	* Need to valid WoWObject in WoWObject extensions.
+	* Convert Misc.WaitForInventoryItem into a Decorator.
+	* SpankMob needs to take a MovementByDelegae argument.
+	* Finish TODO's in CastSpell
+	* Ask Raphus to make 'Total' and 'Time Remaining' blacklist time available.
 
 * AbandonQuest
 	+ Needs a feature to jettison all quests we've left behind.
@@ -36,6 +42,23 @@
 * CollectThings
 	* Needs to be adapted to new QuestBehaviorCore framework
 	* Needs to tell why its 'waiting for mobs to respawn' 
+
+* CombatUseItemOnV2
+	* A Monk's "Chi Burst" ability will prevent proper item use at times.
+	  If "AssumeItemUseAlwaysSucceeds" is in play, we don't know the item use failed.
+	  Singular seems to be able to detect a failed item use, but QBcore's LUA hooks don't.
+	  Find out if we can leverage Singular's technique/knowledge.
+		[14:47:40.361 D] Goal: CombatUseItemOnV2-v603: ""Still With The Zapped Giants" (QuestId: 25465)"
+		Using Zorbin's Ultra-Shrinker on MobId(5359)
+		[Ref: "Hawker's 'Do a Random Quest' Profile" @line 17]
+		*** [14:34:38.334 N] [Singular] Casting Chi Burst on Shore Strider.7AD9 @ 100.0% at 4.5 yds
+		[14:34:38.335 D] [CGSpellBook::CastSpell] Override ID: 123986, KnownIndex: 24
+		[14:34:38.990 D] [Lua.Events] Attached to event UNIT_SPELLCAST_CHANNEL_UPDATE with handler HandleInterrupted
+		[14:34:39.023 D] [Lua.Events] Attached to event UNIT_SPELLCAST_FAILED with handler HandleInterrupted
+		[14:34:39.056 D] [Lua.Events] Attached to event UNIT_SPELLCAST_INTERRUPTED with handler HandleInterrupted
+		[14:34:39.056 D] [CombatUseItemOnV2-v603(debug)] Attempting use of 'Zorbin's Ultra-Shrinker' on 'Shore Strider' (health: 96.1)
+		*** [14:34:39.420 V] [Singular] [CombatLog] SPELL_CAST_FAILED Transmogrify!#23359 failure: 'Another action is in progress'
+		*** [14:34:40.014 D] [CombatUseItemOnV2-v603(debug)] Use of 'Zorbin's Ultra-Shrinker' on 'Shore Strider' succeeded.
 
 * EscortGroup
 	* Needs to be adapted to new QuestBehaviorCore framework
@@ -115,6 +138,29 @@
 	+ Bugs reported by Bengan12 that started with the 5.2 WoWclient drop
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/111954-usetransport-cs.html
 	+ More info here: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/50549-kicks-mega-profile-packs-1-90-a-9.html#post1092429
+
+* VehicleBehavior
+	+ Particular quest in BC requires a 'gossip' ability.
+		Hawker says there is a problem with VehicleBehavior.  Not familiar with it, but said you knew something that needed to be done regarding it.
+		[7:36:15 AM] Raphus: a quest in Burning Crusade
+		[7:36:21 AM] Raphus: you appear to be OnTaxi
+		[7:36:26 AM] Raphus: when you get in gryphon
+		[7:36:41 AM] Raphus: in the profiles InteractWith is used to take the gossip option
+		[7:36:48 AM] Raphus: and VehicleBehavior doesn't even start
+		[7:36:53 AM] Raphus: since you get in OnTaxi state
+		[7:37:09 AM] Raphus: OnTaxi thing can't be fixed in the core
+		[7:37:13 AM] Raphus: since its a unitflag
+		[7:37:18 AM] Raphus: we can't workaround that
+		[7:37:55 AM] Raphus: what you need to do is use VehicleBehavior to take the gossip option and hook "Taxi_Check" for the main behavior logic
+		[7:37:58 AM] Chinajade: i"m kinda following.
+		1) IW is used to gossip and this immediately throws you on a Taxi
+		2) VehicleBehavior doesnt' start because you're on a Taxi, but it needs to run to complete the quest.
+		[7:38:12 AM] Raphus: to workaround this issue
+		[7:39:03 AM] Chinajade: Sadly, I haven't got a reusable 'gossip' behavior yet.
+		That was on the agenda for the IW rework.
+		[7:39:30 AM] Raphus: we don't need to fix it for today's release
+		[7:39:37 AM] Raphus: but we will need it for next
+		[7:40:03 AM] Hawker: agree
 
 * 27779-Uldum-Gnomebliteration.cs:
     + http://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-support/110663-kickz-questing-profile-uldum.html#post1078626

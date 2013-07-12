@@ -28,13 +28,14 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class UtilityBehaviorSeq
     {
-        // TODO: Convert this to PrioritySelector--its more common and versatile.
         public class Interact : Sequence
         {
-            public Interact(ProvideWoWObjectDelegate selectedTargetDelegate)
+            public Interact(ProvideWoWObjectDelegate selectedTargetDelegate,
+                            Action<object, WoWObject> actionOnSuccessfulItemUseDelegate = null)
             {
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
+                ActionOnSuccessfulInteractDelegate = actionOnSuccessfulItemUseDelegate ?? ((context, wowObject) => { /*NoOp*/ });
                 SelectedTargetDelegate = selectedTargetDelegate;
 
                 Children = CreateChildren();
@@ -42,6 +43,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
             // BT contruction-time properties...
+            private Action<object, WoWObject> ActionOnSuccessfulInteractDelegate { get; set; }
             private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
@@ -108,10 +110,12 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Action(context =>
                     {
                         QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", CachedTarget.SafeName());
+                        ActionOnSuccessfulInteractDelegate(context, CachedTarget);
                     })
                 };
             }
             
+
             private void HandleInterrupted(object sender, LuaEventArgs args)
             {
                 if (args.Args[0].ToString() == "player")
@@ -121,12 +125,14 @@ namespace Honorbuddy.QuestBehaviorCore
                 }
             }
 
+
             private void InterruptHandlersHook()
             {
                 Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterrupted);
                 Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
                 Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);
             }
+
 
             private void InterruptHandlersUnhook()
             {

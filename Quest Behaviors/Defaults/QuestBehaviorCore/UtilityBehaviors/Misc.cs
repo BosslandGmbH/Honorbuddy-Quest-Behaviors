@@ -58,7 +58,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT visit-time properties...
             private WoWItem CachedWoWItem { get; set; }
-            private WaitTimer WaitForItemTimer { get; set; }
+            private WaitTimer WatchdogTimer_WaitForItemArrival { get; set; }
 
 
             private List<Composite> CreateChildren()
@@ -80,65 +80,36 @@ namespace Honorbuddy.QuestBehaviorCore
                         if (Query.IsViable(CachedWoWItem))
                         {
                             // Squelch the timer, so it will be available if the item disappears from our bags...
-                            WaitForItemTimer = null;
+                            WatchdogTimer_WaitForItemArrival = null;
                             return RunStatus.Failure;
                         }
 
                         // If timer is not spinning, create & start it...
-                        if (WaitForItemTimer == null)
+                        if (WatchdogTimer_WaitForItemArrival == null)
                         {
-                            WaitForItemTimer = new WaitTimer(TimeSpan.FromMilliseconds(MaxWaitTimeInMillisecondsDelegate(context)));
-                            WaitForItemTimer.Reset();                                    
+                            WatchdogTimer_WaitForItemArrival = new WaitTimer(TimeSpan.FromMilliseconds(MaxWaitTimeInMillisecondsDelegate(context)));
+                            WatchdogTimer_WaitForItemArrival.Reset();                                    
                         }
 
                         // If timer completes, time to call it quits...
-                        if (WaitForItemTimer.IsFinished)
+                        if (WatchdogTimer_WaitForItemArrival.IsFinished)
                         {
                             QBCLog.ProfileError(
                                 "{0} has not arrived in our bag within {1}.",
                                 Utility.GetItemNameFromId(ItemIdDelegate(context)),
-                                Utility.PrettyTime(WaitForItemTimer.WaitTime));
+                                Utility.PrettyTime(WatchdogTimer_WaitForItemArrival.WaitTime));
                             ActionOnExpiredTimerDelegate(context);                                     
                         }
 
                         else
                         {
                             TreeRoot.StatusText = string.Format("Waiting {0} for {1} to arrive in our bags.",
-                                Utility.PrettyTime(WaitForItemTimer.WaitTime),
+                                Utility.PrettyTime(WatchdogTimer_WaitForItemArrival.WaitTime),
                                 Utility.GetItemNameFromId(ItemIdDelegate(context)));
                         }
 
                         return RunStatus.Success;
                     })
-                };
-            }
-        }
-
-        
-        
-        public class WarnIfBagsFull : PrioritySelector
-        {
-            public WarnIfBagsFull()
-            {
-                Children = CreateChildren();
-            }
-
-
-            // BT contruction-time properties...
-
-            // BT visit-time properties...
-
-
-            private List<Composite> CreateChildren()
-            {
-                return new List<Composite>()
-                {
-                    new CompositeThrottle(context => CharacterSettings.Instance.LootMobs && (Me.FreeBagSlots <= 0),
-                        TimeSpan.FromSeconds(10),
-                        new ActionFail(context =>
-                        {
-                            QBCLog.Error("Honorbuddy may not be looting because your bags are full.");
-                        }))
                 };
             }
         }

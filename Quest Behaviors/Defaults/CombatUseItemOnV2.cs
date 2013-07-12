@@ -8,6 +8,9 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+// TODO:
+// * Not using flying mount in Grizzly Hills testbed.
+
 #region Summary and Documentation
 //
 // QUICK DOX:
@@ -206,21 +209,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
 
-using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
-using JetBrains.Annotations;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -358,11 +356,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         #region Private and Convenience variables
         private int Counter { get; set; }
         private HuntingGroundsType HuntingGrounds { get; set; }
-        private WoWItem ItemToUse { get; set; }
         private WoWUnit SelectedTarget { get; set; }
 
         private readonly WaitTimer _waitTimerAfterUsingItem = new WaitTimer(TimeSpan.Zero);
-        private readonly WaitTimer _waitTimerForItemToAppear = new WaitTimer(TimeSpan.Zero);
         #endregion
 
 
@@ -392,12 +388,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             if (!IsDone)
             {
                 _waitTimerAfterUsingItem.WaitTime = TimeSpan.FromMilliseconds(WaitTimeAfterItemUse);
-
-                // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
-                // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
-                // for the item to show up, if its going to.
-                _waitTimerForItemToAppear.WaitTime = TimeSpan.FromSeconds(5);
-                _waitTimerForItemToAppear.Reset();
             }
         }
         #endregion
@@ -409,26 +399,31 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         {
             try
             {
-                // Include all mobs targeting us...
-                // Also, dismount so we won't ride past them.
-                var mobsTargetingUs = Query.FindMobsTargetingUs(IgnoreMobsInBlackspots, NonCompeteDistance);
+                // TODO: Eliminate this when Honorbuddy fixes its "DefaultRemoveTargetsFilter" filter.
+                // NB: The HBcore 'remove target filter' eliminates targets outside a given range of its choosing,
+                // and we have no control over this.  These eliminated mobs are still 'interesting' and important to us.
+                // So, we need to put these eliminated targets back into play with a subsequent (and undesirable)
+                // 'ObjectManager' query.
+                var unifiedList = new HashSet<WoWObject>(incomingWowObjects);
+                unifiedList.UnionWith(Query.FindMobsAndFactions(MobIds));
 
-                foreach (var unit in mobsTargetingUs)
+                foreach (var wowObject in unifiedList)
                 {
-                    if (unit.IsHostile)
-                    { outgoingWowObjects.Add(unit); }
-                }
+                    var wowUnit = wowObject as WoWUnit;
 
-                // If there are no other mobs attacking, and we've a valid target choice, include it...
-                if ((mobsTargetingUs.Count <= 0))
-                {
-                    SelectedTarget = FindViableTargets().FirstOrDefault();
+                    // Interested in targets that are targeting us...
+                    if (Query.IsMobTargetingUs(wowUnit))
+                        { outgoingWowObjects.Add(wowObject); }
 
-                    if (IsViableForItemUse(SelectedTarget) && SelectedTarget.IsHostile &&
-                        SelectedTarget.DistanceSqr < Targeting.PullDistanceSqr)
-                    {
-                        outgoingWowObjects.Add(SelectedTarget);
-                    }
+                    // Interested in mobs with which we've engaged...
+                    if (wowUnit.Aggro || (wowUnit.Fleeing && wowUnit.TaggedByMe))
+                        { outgoingWowObjects.Add(wowObject); }
+
+                    // Interested in mobs on which we can use the item...
+                    if (IsViableForItemUse(wowUnit))
+                        { outgoingWowObjects.Add(wowObject); }
+                    
+                    // Everything else is uninteresting...
                 }
             }
             catch (System.AccessViolationException)
@@ -445,7 +440,41 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         // HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.
         protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
         {
-            wowObjects.Clear();
+            for (int i = wowObjects.Count - 1; i >= 0; --i)
+            {
+                try
+                {
+                    var wowUnit = wowObjects[i] as WoWUnit;
+
+                    if (Query.IsViable(wowUnit))
+                    {
+                        // Do not remove mobs that are targeting us...
+                        if (Query.IsMobTargetingUs(wowUnit))
+                            { continue; }
+
+                        // Do not remove mobs with which we've engaged...
+                        if (wowUnit.Aggro || (wowUnit.Fleeing && wowUnit.TaggedByMe))
+                            { continue; }
+
+                        // Do not remove targets that are viable for item use...
+                        if (IsViableForItemUse(wowUnit))
+                            { continue; }
+                    }
+
+                    // Everything else is 'uninteresting'...
+                    wowObjects.RemoveAt(i);
+                }
+                catch (Styx.InvalidObjectPointerException)
+                {
+                    wowObjects.RemoveAt(i);
+                    continue;
+                }
+                catch (System.AccessViolationException)
+                {
+                    wowObjects.RemoveAt(i);
+                    continue;
+                }
+            }
         }
 
 
@@ -453,7 +482,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         protected override void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
         {
             const float InvalidTargetScore = -1000000f;
-            var targetsAttackingUs = new List<Targeting.TargetPriority>();
 
             for (int i = targetPriorities.Count - 1; i >= 0; --i)
             {
@@ -461,28 +489,10 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                 try
                 {
-                    // Remove invalid units...
-                    var wowUnit = priority.Object as WoWUnit;
-                    if (!Query.IsViable(wowUnit))
-                    {
-                        priority.Score = InvalidTargetScore;
-                        targetPriorities.RemoveAt(i);
-                        continue;
-                    }
-
                     // Prefer units targeting us...
-                    if (wowUnit.IsTargetingMeOrPet)
-                    {
-                        priority.Score += 1000000;
-                        targetsAttackingUs.Add(priority);
-                    }
-
-                    // Prefer closer units...
-                    priority.Score -= wowUnit.Distance;
-
-                    // Prefer units with lower health...
-                    // Each 10% health difference is another yard we're willing to move to kill it.
-                    priority.Score -= wowUnit.HealthPercent / 10.0;
+                    var wowUnit = priority.Object as WoWUnit;
+                    if (Query.IsMobTargetingUs(wowUnit))
+                        { priority.Score += 100000; }
                 }
                 catch (Styx.InvalidObjectPointerException)
                 {
@@ -497,43 +507,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     continue;
                 }
             }
-
-
-            Targeting.TargetPriority priorityTarget = null;
-
-            // If we've targets attacking us, they are our first priority...
-            if (targetsAttackingUs.Count > 0)
-            {
-                // Only seek a new target if we're not already addressing one attacking us...
-                if (targetsAttackingUs.All(p => p.Object.Guid != Me.CurrentTargetGuid))
-                {
-                    priorityTarget =
-                        (from priority in targetsAttackingUs
-                         orderby priority.Score
-                         select priority)
-                        .FirstOrDefault();
-                }
-            }
-
-            // If we've no priority target selected, then pick one...
-            else if (BotPoi.Current.Type == PoiType.None)
-            {
-                priorityTarget =
-                    (from priority in targetPriorities
-                     orderby priority.Score
-                     select priority)
-                    .FirstOrDefault();
-            }
-
-            // If we've a priority target defined, set it as the POI...
-            if ((priorityTarget != null)
-                && !Query.IsPoiMatch(priorityTarget.Object, PoiType.Kill))
-            {
-                if (Me.Mounted)
-                { Mount.Dismount(string.Format("Spanking {0}.", priorityTarget.Object.SafeName())); }
-
-                Utility.Target(priorityTarget.Object, true, PoiType.Kill);
-            }
         }
         #endregion
 
@@ -542,17 +515,19 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         protected override Composite CreateBehavior_CombatMain()
         {
             return new PrioritySelector(
-                // If a mob targets us on our way to the SelectetTarget, deal with it immediately
-                // so subsequent activities won't be interrupted...
-                // NB: This can happen if we 'drag mobs' behind us on the way to our destination.
-                // new UtilityBehaviorPS.SpankMobTargetingUs(context => IgnoreMobsInBlackspots, context => NonCompeteDistance)
+                // empty for now--still here for easy debugging, when needed
             );
         }
 
 
         protected override Composite CreateBehavior_CombatOnly()
         {
-            return new PrioritySelector(isViableContext => IsViableForItemUse(Me.CurrentTarget),
+            return new PrioritySelector(isViableContext => { return IsViableForItemUse(Me.CurrentTarget); },
+
+                // If we acquired mob aggro while on the way to our selected target,
+                // deal with the aggro'd mob immediately...
+                new UtilityBehaviorPS.PreferAggrodMob(),
+
                 // Combat with viable mob...
                 new Decorator(isViableContext => (bool)isViableContext,
                     SubBehavior_CombatWithViableMob()),
@@ -566,7 +541,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         protected override Composite CreateMainBehavior()
         {
-            return new PrioritySelector(
+            return new PrioritySelector(context =>
+                {
+                    SelectedTarget = Targeting.Instance.FirstUnit;
+                    return context;
+                },
+
                 new UtilityBehaviorPS.WarnIfBagsFull(),
 
                 // Wait additional time requested by profile writer...
@@ -586,20 +566,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 new Decorator(context => (QuestObjectiveIndex <= 0) && (Counter >= NumOfTimes),
                     new Action(context => { BehaviorDone(); })),
 
-                //// If no viable target, find a new mob to harass...
-                //new Decorator(context => !IsViableForItemUse(Targeting.Instance.FirstUnit),
-                //    new ActionFail(context =>
-                //    {
-                //        SelectedTarget = FindViableTargets().FirstOrDefault();
-                //        // fall through
-                //    })),
-
-                // Viable target...
-                new Decorator(context => IsViableForItemUse(Targeting.Instance.FirstUnit),
-                    new UtilityBehaviorPS.SpankMob(context => Targeting.Instance.FirstUnit)),
+                // Go after viable target...
+                new Decorator(context => Query.IsViable(SelectedTarget),
+                    new UtilityBehaviorPS.SpankMob(context => SelectedTarget, context => MovementBy)),
 
                 // No mobs in immediate vicinity...
-                new Decorator(context => !Query.IsViable(Targeting.Instance.FirstUnit),
+                new Decorator(context => !Query.IsViable(SelectedTarget),
                     new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
                         context => HuntingGrounds,
                         context => MovementBy,
@@ -645,19 +617,20 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // If time to use the item, do so...
                 new Decorator(context => IsUseItemNeeded(SelectedTarget),
                     new PrioritySelector(
-                // Halt combat until we are able to use the item...
+                        // Halt combat until we are able to use the item...
                         new Decorator(context => ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
                                                   || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)),
                             new ActionFail(context =>
                             {
                                 // We use LUA to stop casting, since SpellManager.StopCasting() doesn't seem to work...
                                 if (Me.IsCasting)
-                                { Lua.DoString("SpellStopCasting()"); }
+                                    { Lua.DoString("SpellStopCasting()"); }
 
                                 if (Me.IsMoving)
-                                { WoWMovement.MoveStop(); }
+                                    { WoWMovement.MoveStop(); }
 
-                                TreeRoot.StatusText = string.Format("Combat halted--waiting for item to become usable.");
+                                TreeRoot.StatusText = string.Format("Combat halted--waiting for {0} to become usable.",
+                                    Utility.GetItemNameFromId(ItemId));
                             })),
 
                         new Sequence(
@@ -669,7 +642,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                     BehaviorDone(string.Format("Terminating behavior due to missing {0}",
                                         Utility.GetItemNameFromId(ItemId)));
                                 }),
-                // Allow a brief time for WoWclient to apply aura to mob...
+                            // Allow a brief time for WoWclient to apply aura to mob...
                             new WaitContinue(TimeSpan.FromMilliseconds(5000),
                                 context => ItemUseAlwaysSucceeds || SelectedTarget.HasAura(ItemAppliesAuraId),
                                 new ActionAlwaysSucceed()),
@@ -716,7 +689,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                         auraNamesOnMob);
                                 }
                             }),
-                // Prevent combat, if we're not supposed to defend...
+
+                        // Prevent combat, if we're not supposed to defend...
                         new Decorator(context => ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
                                                   || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)),
                             new ActionAlwaysSucceed())
@@ -727,28 +701,10 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 
         #region Helpers
-        private IEnumerable<WoWUnit> FindViableTargets()
-        {
-            var targetsQuery =
-                from wowObject in Query.FindMobsAndFactions(MobIds)
-                let wowUnit = wowObject as WoWUnit
-                where
-                    IsViableForItemUse(wowUnit)
-                    && (wowUnit.Distance < CollectionDistance)
-                orderby wowUnit.Location.CollectionDistance()
-                select wowUnit;
-
-            using (StyxWoW.Memory.AcquireFrame())
-            {
-                return targetsQuery.ToList();
-            }
-        }
-
-
         private double HealthPercentToStopCombat(WoWUnit target)
         {
-            if (target == null)
-            { return 0.0; }
+            if (!Query.IsViable(target))
+                { return 0.0; }
 
             var harmfulAuraCount = target.Debuffs.Values.Sum(a => Math.Max(1, a.StackCount));
 
@@ -774,9 +730,11 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         private bool IsViableForItemUse(WoWUnit wowUnit)
         {
             return
-                Query.IsViableForInteracting(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
-                && Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
+                Query.IsViable(wowUnit)
                 && MobIds.Contains((int)wowUnit.Entry)
+                && wowUnit.Location.CollectionDistance() <= CollectionDistance
+                && Query.IsViableForInteracting(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
+                && Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                 && wowUnit.IsAlive
                 && wowUnit.Attackable
                 && (ItemUseAlwaysSucceeds || !wowUnit.HasAura(ItemAppliesAuraId));

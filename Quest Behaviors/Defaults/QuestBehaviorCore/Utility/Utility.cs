@@ -294,8 +294,14 @@ namespace Honorbuddy.QuestBehaviorCore
             if (StyxWoW.Me.CurrentTargetGuid != wowUnit.Guid)
                 { wowUnit.Target(); }
 
-            if ((poiType != PoiType.None) && !Query.IsPoiMatch(wowObject, poiType))
-                { BotPoi.Current = new BotPoi(wowUnit, poiType); }
+            // Do not try setting the POI unless we are withing PullDistance of the target...
+            // Honorbuddy has a nasty habit of clearing a Kill POI for targets that are outside
+            // of a certain (internal) range.
+            if (wowObject.Distance <= CharacterSettings.Instance.PullDistance)
+            {
+                if ((poiType != PoiType.None) && !Query.IsPoiMatch(wowObject, poiType))
+                    { BotPoi.Current = new BotPoi(wowUnit, poiType); }
+            }
         }
 
 

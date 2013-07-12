@@ -45,11 +45,13 @@ namespace Honorbuddy.QuestBehaviorCore
         public class CastSpell : Sequence
         {
             public CastSpell(ProvideIntDelegate spellIdDelegate,
-                             ProvideWoWObjectDelegate selectedTargetDelegate)
+                             ProvideWoWObjectDelegate selectedTargetDelegate,
+                             Action<object, WoWObject> actionOnSuccessfulSpellCastDelegate = null)
             {
                 Contract.Requires(spellIdDelegate != null, context => "spellDelegate != null");
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
+                ActionOnSuccessfulSpellCastDelegate = actionOnSuccessfulSpellCastDelegate ?? ((context, wowObject) => { /*NoOp*/ });
                 SpellIdDelegate = spellIdDelegate;
                 SelectedTargetDelegate = selectedTargetDelegate;
 
@@ -58,6 +60,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
             // BT contruction-time properties...
+            private Action<object, WoWObject> ActionOnSuccessfulSpellCastDelegate { get; set; }
             private ProvideIntDelegate SpellIdDelegate { get; set; }
             private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
 
@@ -71,11 +74,17 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
+                    // TODO: Break this up...
+                    // TODO: Install 'unknown spell' failure hook...
+
                     // Cache & qualify...
                     new Action(context =>
                     {
                         // If SelectedTargetDelegate is null, then its implicitly 'self', or a general effect...
                         var selectedTarget = SelectedTargetDelegate(context) ?? Me;
+
+                        // Valid target?
+                        CachedTarget = selectedTarget as WoWUnit;
                         if (selectedTarget != null)
                         {
                             CachedTarget = selectedTarget as WoWUnit;
@@ -86,6 +95,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             }
                         }
 
+                        // Spell known?
                         var spellId = SpellIdDelegate(context);
                         SpellFindResults findSpellResults;
                         var isSpellFound = SpellManager.FindSpell(spellId, out findSpellResults);
@@ -95,10 +105,13 @@ namespace Honorbuddy.QuestBehaviorCore
                             return RunStatus.Failure;
                         }
 
+                        // Spell not usable?
                         CachedSpell = findSpellResults.Override ?? findSpellResults.Original;
                         if (!SpellManager.CanCast(CachedSpell))
                         {
-                            QBCLog.Warning("{0} is not usable (yet).", CachedSpell.Name);
+                            QBCLog.Warning("{0} is not usable, yet.  (cooldown: {1})",
+                                CachedSpell.Name,
+                                Utility.PrettyTime(TimeSpan.FromSeconds((int)CachedSpell.CooldownTimeLeft.TotalSeconds)));
                             return RunStatus.Failure;
                         }
 
@@ -162,9 +175,11 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Action(context =>
                     {
                         QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", CachedSpell.Name, CachedTarget.SafeName());
+                        ActionOnSuccessfulSpellCastDelegate(context, CachedTarget);
                     })
                 };
             }
+
 
             private void HandleInterrupted(object sender, LuaEventArgs args)
             {

@@ -71,4 +71,36 @@ namespace Honorbuddy.QuestBehaviorCore
             }
         }
     }
+
+
+    public partial class UtilityBehaviorPS
+    {
+        public class WarnIfBagsFull : PrioritySelector
+        {
+            public WarnIfBagsFull()
+            {
+                Children = CreateChildren();
+            }
+
+
+            // BT contruction-time properties...
+
+            // BT visit-time properties...
+
+
+            private List<Composite> CreateChildren()
+            {
+                return new List<Composite>()
+                {
+                    new CompositeThrottle(context => CharacterSettings.Instance.LootMobs && (Me.FreeBagSlots <= 0),
+                        TimeSpan.FromSeconds(10),
+                        new ActionFail(context =>
+                        {
+                            QBCLog.Error("Honorbuddy may not be looting because your bags are full.");
+                        }))
+                };
+            }
+        }
+    }
+
 }

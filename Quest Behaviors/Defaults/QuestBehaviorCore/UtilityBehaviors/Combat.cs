@@ -11,9 +11,11 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Routines;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -65,8 +67,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 };
             }
         }
+    }
 
 
+    public partial class UtilityBehaviorPS
+    {
         // TODO: This behavior needs to be retired when we refactor Combat_Main actions.
         public class HealAndRest : PrioritySelector
         {
@@ -105,8 +110,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 };
             }
         }
+    }
 
 
+    public partial class UtilityBehaviorPS
+    {
         // 16May2013-04:52UTC chinajade
         public class MiniCombatRoutine : PrioritySelector
         {
@@ -231,6 +239,50 @@ namespace Honorbuddy.QuestBehaviorCore
                         QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", Utility.GetSpellNameFromId(spellId));
                         SpellManager.Cast(spellId);
                     }));
+            }
+        }
+    }
+
+
+    public partial class UtilityBehaviorPS
+    {
+        public class PreferAggrodMob : PrioritySelector
+        {
+            public PreferAggrodMob()
+            {
+                Children = CreateChildren();
+            }
+
+
+            // BT contruction-time properties...
+
+            // BT visit-time properties...
+
+            // Convenience properties...
+
+
+            private List<Composite> CreateChildren()
+            {
+                return new List<Composite>()
+                {
+                    new Decorator(context => Me.Combat,
+                        new Action(context =>
+                        {
+                            var currentTarget = Me.CurrentTarget;
+
+                            // If our current target is aggro'd on us, we're done...
+                            if (Query.IsViable(currentTarget) && currentTarget.Aggro)
+                                { return RunStatus.Failure; }
+
+                            // Otherwise, we want to go find a target that is aggro'd on us, if one available...
+                            var aggrodMob = Targeting.Instance.TargetList.FirstOrDefault(m => m.Aggro);
+                            if (!Query.IsViable(aggrodMob))
+                                { return RunStatus.Failure; }
+
+                            Utility.Target(aggrodMob, false, PoiType.Kill);
+                            return RunStatus.Success;
+                        }))
+                };
             }
         }
     }

@@ -72,6 +72,7 @@
     <Compile Include="Misc\LoadProfileOn.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\Combat.cs" />
@@ -167,6 +168,8 @@
     <Compile Include="SpecificQuests\24910-Tanaris-RocketRescue.cs" />
     <Compile Include="SpecificQuests\29890-JadeForest-FindingYourCenter.cs" />
     <Compile Include="SpecificQuests\30475-FourWinds-AGiftForFung.cs" />
+    <Compile Include="SpecificQuests\Kalimdor\Darkshore\13512-StrategicStrikes.cs" />
+    <Compile Include="SpecificQuests\Kalimdor\Teldrassil\14005-TheVengeanceOfElune.cs" />
     <Compile Include="TaxiRide.cs" />
     <Compile Include="ToggleCombat.cs" />
     <Compile Include="UseGameObject.cs" />

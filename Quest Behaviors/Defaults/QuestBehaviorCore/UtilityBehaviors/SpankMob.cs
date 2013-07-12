@@ -20,6 +20,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -39,10 +40,12 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>24Feb2013-08:11UTC chinajade</remarks>
         public class SpankMob : PrioritySelector
         {
-            public SpankMob(ProvideWoWUnitDelegate selectedTargetDelegate)
+            public SpankMob(ProvideWoWUnitDelegate selectedTargetDelegate,
+                            ProvideMovementByDelegate movementByDelegate = null)
             {
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
+                MovementByDelegate = movementByDelegate ?? (context => MovementByType.NavigatorPreferred);
                 SelectedTargetDelegate = selectedTargetDelegate;
 
                 Children = CreateChildren();
@@ -50,10 +53,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
             // BT contruction-time properties...
+            private ProvideMovementByDelegate MovementByDelegate { get; set; }
             private ProvideWoWUnitDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
-            private WaitTimer TimeToEngageWatchdogTimer { get; set; }
+            private WaitTimer WatchdogTimer_TimeToEngage { get; set; }
             private WoWUnit SelectedTarget { get; set; }
 
             // Convenience properties...
@@ -65,64 +69,81 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new ActionFail(context =>
+                    new Decorator(context =>
                     {
                         var mob = SelectedTargetDelegate(context);
+                        var isMobChanged = (mob != SelectedTarget);
 
-                        if (mob != null)
+                        SelectedTarget = mob;
+
+                        if (!Query.IsViableForFighting(SelectedTarget))
                         {
-                            var isMobChanged = (mob != SelectedTarget);
-
-                            SelectedTarget = mob;
-
-                            // NB: This twisted logic is to handle bugged mobs...
-                            // Once we've decided to go after a mob, we close the distance and start the fight
-                            // within a reasonable amount of time.  If that doesn't happen, then we blacklist then
-                            // we blacklist the mob for combat (and move on).
-                            if (Query.IsViableForFighting(SelectedTarget))
+                            // If mob was valid, let user know of problem...
+                            if (Query.IsViable(SelectedTarget))
                             {
-                                // If we have mob aggro, cancel the engagement timer...
-                                if (SelectedTarget.Aggro)
-                                    { TimeToEngageWatchdogTimer = null; }
-
-                                // Otherwise, start watchdog timer for engaging mob...
-                                else if (isMobChanged || (TimeToEngageWatchdogTimer == null))
-                                {
-                                    TimeToEngageWatchdogTimer =
-                                        new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location, false)
-                                                      + MinTimeToEngagement);
-                                    TimeToEngageWatchdogTimer.Reset();
-                                }
-
-                                // If we are unable to engage an unaggro'd mob in a reasonable amount of time,
-                                // cancel attack, and blacklist mob...
-                                if ((TimeToEngageWatchdogTimer != null) && TimeToEngageWatchdogTimer.IsFinished)
-                                {
-                                    QBCLog.Warning("Unable to  engage {0} in {1}--pull-blacklisted for {2}",
-                                        SelectedTarget.Name,
-                                        Utility.PrettyTime(TimeToEngageWatchdogTimer.WaitTime),
-                                        Utility.PrettyTime(BlacklistForPullTime));
-                                    Query.BlacklistForPulling(SelectedTarget, BlacklistForPullTime);
-                                    BotPoi.Clear();
-                                    Me.ClearTarget();
-                                    SelectedTarget = null;
-                                    return RunStatus.Failure;
-                                }
-
-                                // Mark target and notify Combat Routine of target, if needed...
-                                Utility.Target(SelectedTarget, false, PoiType.Kill);
-
-                                // TODO: May need to leave this decision to Combat Routine--needs testing to see if we can.
-                                if (Me.Mounted)
-                                    { Mount.Dismount(); }
+                                QBCLog.DeveloperInfo("Mob {0} is not viable for fighting--ignoring SpankMob directive.",
+                                    SelectedTarget.SafeName());
                             }
+                            return false;
                         }
 
-                        return RunStatus.Failure;   // fall through
-                    }),
+                        // If we have mob aggro, cancel the watchdog timer and allow combat to proceed...
+                        if (SelectedTarget.Aggro)
+                        {
+                            WatchdogTimer_TimeToEngage = null;
+                            return true;
+                        }
+                        
+                        // NB: This twisted logic with watchdog timers is to handle bugged mobs...
+                        // Once we've decided to go after a mob, we must close the distance and start the fight
+                        // within a reasonable amount of time.  If that doesn't happen, then we blacklist
+                        // the mob for combat (and move on).
 
-                    new Decorator(context => Query.IsViableForFighting(SelectedTarget),
+                        // If mob changed, any running Watchdog timer is no longer valid...
+                        if (isMobChanged)
+                            { WatchdogTimer_TimeToEngage = null; }
+
+                        // Start watchdog timer for engaging mob...
+                        if (WatchdogTimer_TimeToEngage == null)
+                        {
+                            WatchdogTimer_TimeToEngage =
+                                new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location, false)
+                                                + MinTimeToEngagement);
+                            WatchdogTimer_TimeToEngage.Reset();
+                        }
+
+                        // If we are unable to engage an unaggro'd mob in a reasonable amount of time,
+                        // cancel attack, and blacklist mob...
+                        if (WatchdogTimer_TimeToEngage.IsFinished)
+                        {
+                            QBCLog.Warning("Unable to engage {0} in {1}--pull-blacklisted for {2}",
+                                SelectedTarget.Name,
+                                Utility.PrettyTime(WatchdogTimer_TimeToEngage.WaitTime),
+                                Utility.PrettyTime(BlacklistForPullTime));
+                            Query.BlacklistForPulling(SelectedTarget, BlacklistForPullTime);
+                            SelectedTarget = null;
+                            BotPoi.Clear();
+                            Me.ClearTarget();
+                            return false;
+                        }
+
+                        return true;
+                    },
                         new PrioritySelector(
+                            // Mark target and notify Combat Routine of target, if needed...
+                            new ActionFail(context => { Utility.Target(SelectedTarget, false, PoiType.Kill); }),
+
+                            // Move within 'pull distance' of the target...
+                            // NB: Combat Routines and/or HBcore will 'stall' if the selected target is beyond a certain
+                            // range.  Thus, we must make certain that the target is within 'pull distance' before we attempt
+                            // to engage the mob.
+                            new Decorator(context => SelectedTarget.Distance > CharacterSettings.Instance.PullDistance,
+                                new UtilityBehaviorPS.MoveTo(
+                                    context => SelectedTarget.Location,
+                                    context => SelectedTarget.SafeName(),
+                                    MovementByDelegate)),
+
+                            // TODO: This needs to go, eventually.  Let the Kill POI do its job.
                             // The NeedHeal and NeedCombatBuffs are part of legacy custom class support
                             // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
                             // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
@@ -145,6 +166,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// Targets and kills any mob targeting Self or Pet.
         /// </summary>
         /// <returns></returns>
+        // TODO: Retire this behavior, once we get target filters installed in all the behaviors that use this class.
         public class SpankMobTargetingUs : PrioritySelector
         {
             public SpankMobTargetingUs(ProvideBoolDelegate ignoreMobsInBlackspotsDelegate,
@@ -234,6 +256,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
+        // TODO: Retire this behavior, once we get target filters installed in all the behaviors that use this class.
         public class SpankMobWithinAggroRange : PrioritySelector
         {
             public SpankMobWithinAggroRange(ProvideWoWPointDelegate destinationDelegate,

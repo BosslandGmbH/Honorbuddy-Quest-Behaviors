@@ -23,7 +23,7 @@ namespace Honorbuddy.QuestBehaviorCore
     {
         public static WoWPoint AnticipatedLocation(this WoWObject wowObject, TimeSpan atTime)
         {
-            var wowUnit = wowObject.ToUnit();
+            var wowUnit = wowObject as WoWUnit;
 
             if (wowUnit == null)
                 { return wowObject.Location; }
@@ -41,6 +41,9 @@ namespace Honorbuddy.QuestBehaviorCore
         // 12Apr2013-06:29UTC chinajade
         public static string SafeName(this WoWObject wowObject, bool debug = false)
         {
+            if (!Query.IsViable(wowObject))
+                { return "InvalidWoWObject"; }
+
             const ulong GuidMask = 0x0ffff;
 
             if (wowObject.IsMe)
