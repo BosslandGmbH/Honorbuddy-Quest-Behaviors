@@ -73,10 +73,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
         // Attributes provided by caller
         private double BombRange = 90.0;    // Range is actually 100.0, but we allow for factor of safety
         private const int ItemId_Bomb = 28038;
-        private const int MobId_FlightMaster = 19409;
+        private int MobId_FlightMaster { get; set; }    // changes based on faction--set in OnStart()
         private const int MobId_GatewayMurketh = 19291;
         private const int MobId_GatewayShaadraz = 19292;
-        private readonly WoWPoint WaitLocation = new WoWPoint(-670.4271, 1851.844, 66.9099).FanOutRandom(4.0);
+        private WoWPoint WaitLocation { get; set; }     // changes based on faction--set in OnStart()
         #endregion
 
 
@@ -130,6 +130,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                MobId_FlightMaster = Me.IsAlliance
+                    ? 19409     // Wing Commander Dabir'ee
+                    : 19401;    // Wing Commander Brack
+                WaitLocation =
+                    Me.IsAlliance
+                    ? new WoWPoint(-670.4271, 1851.844, 66.9099).FanOutRandom(4.0)      // Wing Commander Dabir'ee
+                    : new WoWPoint(-24.09538, 2125.857, 112.7034).FanOutRandom(4.0);    // Wing Commander Brack
+
                 _behaviorTreeHook_TaxiCheck = new ExceptionCatchingWrapper(this, CreateBehavior_TaxiCheck());
                 TreeHooks.Instance.InsertHook("Taxi_Check", 0, _behaviorTreeHook_TaxiCheck);
             }

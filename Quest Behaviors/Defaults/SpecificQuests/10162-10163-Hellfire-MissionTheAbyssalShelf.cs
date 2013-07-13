@@ -74,9 +74,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
         private const int ItemId_Bomb = 28132;
         private const int MobId_FelCannon = 19399;
         private const int MobId_GanArgPeon = 19398;
-        private const int MobId_FlightMaster = 20235;
+        private int MobId_FlightMaster { get; set; }        // changes based on faction--set in OnStart()
         private const int MobId_MoargOverseer = 19397;
-        private readonly WoWPoint WaitLocation = new WoWPoint(294.6884, 1498.062, -14.59722).FanOutRandom(4.0);
+        private WoWPoint WaitLocation { get; set; }         // changes based on faction--set in OnStart()
         #endregion
 
 
@@ -130,6 +130,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                MobId_FlightMaster =
+                    Me.IsAlliance
+                    ? 20235     // Gryphoneer Windbellow
+                    : 19401;    // Wing Commander Brack
+                WaitLocation =
+                    Me.IsAlliance
+                    ? new WoWPoint(294.6884, 1498.062, -14.59722).FanOutRandom(4.0)     // Gryphoneer Windbellow
+                    : new WoWPoint(-24.09538, 2125.857, 112.7034).FanOutRandom(4.0);    // Wing Commander Brack
+
                 _behaviorTreeHook_TaxiCheck = new ExceptionCatchingWrapper(this, CreateBehavior_TaxiCheck());
                 TreeHooks.Instance.InsertHook("Taxi_Check", 0, _behaviorTreeHook_TaxiCheck);
             }
