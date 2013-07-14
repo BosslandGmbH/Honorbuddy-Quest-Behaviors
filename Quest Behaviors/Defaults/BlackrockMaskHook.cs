@@ -65,9 +65,9 @@ namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
         public int[] Auras = new int[] { 89259, 89260, 89254, 89253, 89256, 89255, 89258, 89257 };
 
 
-        public bool Disguised
+        public static bool Disguised
         {
-            get { return Me.HasAura(89261); }
+            get { return StyxWoW.Me.HasAura(89261); }
         }
 
                 public static Composite _myHook;
@@ -77,11 +77,12 @@ namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
             {
                 if (_myHook == null)
                 {
-                    _myHook = new Decorator(r => Disguise != null && Me.IsAlive && !Me.Combat && Me.ZoneId == 46 && !Disguised, new Action(r =>
+                    _myHook = new Decorator(r => Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 && !Disguised, new Action(r =>
                     {
                         Navigator.PlayerMover.MoveStop();
                         Disguise.Use();
-                    }));                    return _myHook;
+                    }));                    
+					return _myHook;
                 }
                 else
                 {
