@@ -70,18 +70,32 @@ namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
             get { return Me.HasAura(89261); }
         }
 
-        private Composite myHook;
+                public static Composite _myHook;
+        public static Composite myHook
+        {
+            get
+            {
+                if ( == null)
+                {
+                    _myHook = new Decorator(r => Disguise != null && Me.IsAlive && !Me.Combat && Me.ZoneId == 46 && !Disguised, new Action(r =>
+                    {
+                        Navigator.PlayerMover.MoveStop();
+                        Disguise.Use();
+                    }));                    return _myHook;
+                }
+                else
+                {
+                    return _myHook;
+                }
+            }
+        }
         public override void OnStart()
         {
             OnStart_HandleAttributeProblem();
             
             if (myHook == null)
             {
-                myHook = new Decorator(r => Disguise != null && Me.IsAlive && !Me.Combat && Me.ZoneId == 46 && !Disguised, new Action(r =>
-                    {
-                        Navigator.PlayerMover.MoveStop();
-                        Disguise.Use();
-                    }));
+
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, myHook);
             }
             else
