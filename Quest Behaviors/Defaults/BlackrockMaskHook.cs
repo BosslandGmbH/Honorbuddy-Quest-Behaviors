@@ -75,7 +75,7 @@ namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
         {
             get
             {
-                if ( == null)
+                if (_myHook == null)
                 {
                     _myHook = new Decorator(r => Disguise != null && Me.IsAlive && !Me.Combat && Me.ZoneId == 46 && !Disguised, new Action(r =>
                     {
