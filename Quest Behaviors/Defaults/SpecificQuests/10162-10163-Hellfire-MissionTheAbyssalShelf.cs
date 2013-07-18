@@ -71,6 +71,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
 
         // Attributes provided by caller
         private double BombRange = 73.0;    // Range is actually 80.0, but we allow for factor of safety
+        private int GossipOption { get; set; }
         private const int ItemId_Bomb = 28132;
         private const int MobId_FelCannon = 19399;
         private const int MobId_GanArgPeon = 19398;
@@ -130,8 +131,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                MobId_FlightMaster =
-                    Me.IsAlliance
+                GossipOption = Me.IsAlliance
+                    ? 1         // Gryphoneer Windbellow
+                    : 0;        // Wing Commander Brack
+                MobId_FlightMaster = Me.IsAlliance
                     ? 20235     // Gryphoneer Windbellow
                     : 19401;    // Wing Commander Brack
                 WaitLocation =
@@ -221,7 +224,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                                     new Action(context => { Mount.Dismount(); })),
                                 new Decorator(context => !GossipFrame.Instance.IsVisible,
                                     new Action(context => { FlightMaster.Interact(); })),
-                                new Action(context => { GossipFrame.Instance.SelectGossipOption(1); })
+                                new Action(context => { GossipFrame.Instance.SelectGossipOption(GossipOption); })
                             ))
                     ))
             );
