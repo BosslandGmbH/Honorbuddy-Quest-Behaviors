@@ -84,6 +84,8 @@ namespace Honorbuddy.QuestBehaviorCore
                                 QBCLog.DeveloperInfo("Mob {0} is not viable for fighting--ignoring SpankMob directive.",
                                     SelectedTarget.SafeName());
                             }
+
+                            WatchdogTimer_TimeToEngage = null;
                             return false;
                         }
 

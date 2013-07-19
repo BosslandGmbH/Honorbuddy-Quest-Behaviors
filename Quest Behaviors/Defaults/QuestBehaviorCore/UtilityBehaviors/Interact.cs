@@ -114,31 +114,39 @@ namespace Honorbuddy.QuestBehaviorCore
                     })
                 };
             }
-            
+
 
             private void HandleInterrupted(object sender, LuaEventArgs args)
             {
-                if (args.Args[0].ToString() == "player")
+                var unitId = args.Args[0].ToString();
+
+                if (unitId == "player")
                 {
-                    QBCLog.DeveloperInfo("Interrupted via {0} Event.", args.EventName);
+                    // If it was a channeled spell, and still casting
+
+                    var spellName = args.Args[1].ToString();
+                    //var rank = args.Args[2].ToString();
+                    //var lineId = args.Args[3].ToString();
+                    var spellId = args.Args[4].ToString();
+
+                    QBCLog.DeveloperInfo("\"{0}\"({1}) interrupted via {2} Event.",
+                        spellName, spellId, args.EventName);
                     IsInterrupted = true;
                 }
             }
 
 
-            private void InterruptHandlersHook()
+            private void InterruptDetection_Hook()
             {
-                Lua.Events.AttachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterrupted);
                 Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
                 Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);
             }
 
 
-            private void InterruptHandlersUnhook()
+            private void InterruptDectection_Unhook()
             {
-                Lua.Events.DetachEvent("UNIT_SPELLCAST_CHANNEL_UPDATE", HandleInterrupted);
                 Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
-                Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);    
+                Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);
             }
         }
     }

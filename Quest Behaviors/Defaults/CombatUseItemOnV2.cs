@@ -219,6 +219,7 @@ using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -567,8 +568,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     new Action(context => { BehaviorDone(); })),
 
                 // Go after viable target...
-                new Decorator(context => Query.IsViable(SelectedTarget),
-                    new UtilityBehaviorPS.SpankMob(context => SelectedTarget, context => MovementBy)),
+                new Decorator(context => Query.IsViable(SelectedTarget)
+                                            && (SelectedTarget.Distance > CharacterSettings.Instance.PullDistance),
+                    new UtilityBehaviorPS.MoveTo(
+                        context => SelectedTarget.Location,
+                        context => SelectedTarget.Name,
+                        context => MovementBy)),
 
                 // No mobs in immediate vicinity...
                 new Decorator(context => !Query.IsViable(SelectedTarget),
@@ -626,6 +631,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                 if (Me.IsCasting)
                                     { Lua.DoString("SpellStopCasting()"); }
 
+                                if (Me.IsAutoAttacking)
+                                    { Lua.DoString("StopAttack()"); }
+
                                 if (Me.IsMoving)
                                     { WoWMovement.MoveStop(); }
 
@@ -654,7 +662,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                 {
                                     // Count our success if no associated quest...
                                     if (QuestId == 0)
-                                    { ++Counter; }
+                                        { ++Counter; }
 
                                     // If we can only use the item once per target, blacklist this target from subsequent selection...
                                     if ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
