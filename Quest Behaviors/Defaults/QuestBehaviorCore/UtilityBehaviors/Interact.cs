@@ -76,7 +76,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
                         // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
                         // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
-                        InterruptHandlersHook();
+                        InterruptDetection_Hook();
 
                         // Notify user of intent...
                         QBCLog.DeveloperInfo("Interacting with '{0}'", CachedTarget.SafeName());
@@ -99,7 +99,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         new ActionAlwaysSucceed()),
 
                     // Were we interrupted in item use?
-                    new Action(context => { InterruptHandlersUnhook(); }),
+                    new Action(context => { InterruptDectection_Unhook(); }),
                     new DecoratorContinue(context => IsInterrupted,
                         new Sequence(
                             new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", CachedTarget.SafeName()); }),
