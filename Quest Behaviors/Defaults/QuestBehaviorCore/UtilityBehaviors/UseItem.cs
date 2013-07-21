@@ -105,7 +105,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                     // Wait for Item to be usable...
                     // NB: WoWItem.Usable does not account for cooldowns.
-                    new DecoratorContinue(context => !CachedItemToUse.Usable || (CachedItemToUse.Cooldown > 0) || SpellManager.GlobalCooldown,
+                    new DecoratorContinue(context => !CachedItemToUse.Usable || (CachedItemToUse.Cooldown > 0),
                         new ActionFail(context =>
                         {
                             TreeRoot.StatusText = string.Format("{0} is not usable, yet. (cooldown remaining: {1})",
@@ -116,7 +116,12 @@ namespace Honorbuddy.QuestBehaviorCore
                     // Need to be facing target...
                     // NB: Not all items require this, but many do.
                     new DecoratorContinue(context => !Me.IsSafelyFacing(CachedTarget),
-                        new ActionFail(context => { Me.SetFacing(CachedTarget.Guid); })),
+                        new ActionFail(context => Me.SetFacing(CachedTarget.Guid))),
+
+                    // Waits for global cooldown to end to successfully use the item
+                    new WaitContinue(TimeSpan.FromMilliseconds(500), 
+                        ret => !SpellManager.GlobalCooldown, 
+                        new ActionAlwaysSucceed()),
 
                     // Use the item...
                     new Action(context =>
