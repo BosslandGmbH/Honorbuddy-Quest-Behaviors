@@ -139,7 +139,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             // NB: Combat Routines and/or HBcore will 'stall' if the selected target is beyond a certain
                             // range.  Thus, we must make certain that the target is within 'pull distance' before we attempt
                             // to engage the mob.
-                            new Decorator(context => SelectedTarget.Distance > CharacterSettings.Instance.PullDistance,
+                            new Decorator(context => SelectedTarget.Distance > Math.Max(CharacterSettings.Instance.PullDistance, SelectedTarget.MyAggroRange),
                                 new UtilityBehaviorPS.MoveTo(
                                     context => SelectedTarget.Location,
                                     context => SelectedTarget.SafeName(),

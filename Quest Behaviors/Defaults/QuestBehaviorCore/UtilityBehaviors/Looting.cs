@@ -12,7 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Bots.Grind;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common.Helpers;
@@ -66,7 +66,8 @@ namespace Honorbuddy.QuestBehaviorCore
                                     context => MovementByDelegate(context))),
                             new Decorator(context => CachedLootObject != null,
                                 new UtilityBehaviorPS.MoveStop())
-                        ))
+                        )),
+                    LevelBot.CreateLootBehavior()
                 };
             }
         }
