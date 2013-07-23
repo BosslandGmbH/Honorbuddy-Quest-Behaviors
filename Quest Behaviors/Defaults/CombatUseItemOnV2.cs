@@ -395,120 +395,32 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 
         #region TargetFilters
-        // HBcore runs the TargetFilter_IncludeTargets after the TargetFilter_RemoveTargets.
-        protected override void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
+
+        protected override bool IncludeUntInTargeting(WoWUnit unit)
         {
-            try
-            {
-                // TODO: Eliminate this when Honorbuddy fixes its "DefaultRemoveTargetsFilter" filter.
-                // NB: The HBcore 'remove target filter' eliminates targets outside a given range of its choosing,
-                // and we have no control over this.  These eliminated mobs are still 'interesting' and important to us.
-                // So, we need to put these eliminated targets back into play with a subsequent (and undesirable)
-                // 'ObjectManager' query.
-                var unifiedList = new HashSet<WoWObject>(incomingWowObjects);
-                unifiedList.UnionWith(Query.FindMobsAndFactions(MobIds));
+            // Interested in targets that are targeting us...
+            if (Query.IsMobTargetingUs(unit))
+                return true;
 
-                foreach (var wowObject in unifiedList)
-                {
-                    var wowUnit = wowObject as WoWUnit;
+            // Interested in mobs with which we've engaged...
+            if (unit.Aggro || (unit.Fleeing && unit.TaggedByMe))
+                return true;
 
-                    // Interested in targets that are targeting us...
-                    if (Query.IsMobTargetingUs(wowUnit))
-                        { outgoingWowObjects.Add(wowObject); }
+            // Interested in mobs on which we can use the item...
+            if (IsViableForItemUse(unit))
+                return true;
 
-                    // Interested in mobs with which we've engaged...
-                    if (wowUnit.Aggro || (wowUnit.Fleeing && wowUnit.TaggedByMe))
-                        { outgoingWowObjects.Add(wowObject); }
-
-                    // Interested in mobs on which we can use the item...
-                    if (IsViableForItemUse(wowUnit))
-                        { outgoingWowObjects.Add(wowObject); }
-                    
-                    // Everything else is uninteresting...
-                }
-            }
-            catch (System.AccessViolationException)
-            {
-                // empty
-            }
-            catch (Styx.InvalidObjectPointerException)
-            {
-                // empty
-            }
+            return false;
         }
 
-
-        // HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.
-        protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        protected override float WeightUnitForTargeting(WoWUnit unit)
         {
-            for (int i = wowObjects.Count - 1; i >= 0; --i)
-            {
-                try
-                {
-                    var wowUnit = wowObjects[i] as WoWUnit;
+            if (Query.IsMobTargetingUs(unit))
+                return 100000f;
 
-                    if (Query.IsViable(wowUnit))
-                    {
-                        // Do not remove mobs that are targeting us...
-                        if (Query.IsMobTargetingUs(wowUnit))
-                            { continue; }
-
-                        // Do not remove mobs with which we've engaged...
-                        if (wowUnit.Aggro || (wowUnit.Fleeing && wowUnit.TaggedByMe))
-                            { continue; }
-
-                        // Do not remove targets that are viable for item use...
-                        if (IsViableForItemUse(wowUnit))
-                            { continue; }
-                    }
-
-                    // Everything else is 'uninteresting'...
-                    wowObjects.RemoveAt(i);
-                }
-                catch (Styx.InvalidObjectPointerException)
-                {
-                    wowObjects.RemoveAt(i);
-                    continue;
-                }
-                catch (System.AccessViolationException)
-                {
-                    wowObjects.RemoveAt(i);
-                    continue;
-                }
-            }
+            return base.WeightUnitForTargeting(unit);
         }
 
-
-        // When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.
-        protected override void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
-        {
-            const float InvalidTargetScore = -1000000f;
-
-            for (int i = targetPriorities.Count - 1; i >= 0; --i)
-            {
-                var priority = targetPriorities[i];
-
-                try
-                {
-                    // Prefer units targeting us...
-                    var wowUnit = priority.Object as WoWUnit;
-                    if (Query.IsMobTargetingUs(wowUnit))
-                        { priority.Score += 100000; }
-                }
-                catch (Styx.InvalidObjectPointerException)
-                {
-                    priority.Score = InvalidTargetScore;
-                    targetPriorities.RemoveAt(i);
-                    continue;
-                }
-                catch (System.AccessViolationException)
-                {
-                    priority.Score = InvalidTargetScore;
-                    targetPriorities.RemoveAt(i);
-                    continue;
-                }
-            }
-        }
         #endregion
 
 

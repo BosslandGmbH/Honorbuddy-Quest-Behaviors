@@ -489,36 +489,62 @@ namespace Honorbuddy.QuestBehaviorCore
         //}
 
         #region TargetFilters
+
+        /// <summary> Includes object in targeting list when returns true. This should be overridden in QBs to determine if the object should be in target list or not. 
+        ///           Keep in mind that critters, guards, players and tagged mobs are now passed in include filters rather then to be removed in default remove filter. 
+        ///           Have extra checks for those if you don't want them in target list.</summary>
+        ///
+        /// <remarks> raphus, 24/07/2013. </remarks>
+        ///
+        /// <param name="unit"> The WoWUnit. </param>
+        ///
+        /// <returns> true if it succeeds, false if it fails. </returns>
+        protected virtual bool IncludeUntInTargeting(WoWUnit unit)
+        {
+            return false;
+        }
+
+        /// <summary> Removes the object from targeting list when returns true. This should be overridden in QBs to determine if the object should be removed from target list or not.
+        ///           This should be used only for WoWObjects that we don't really want to be included. For example, default include filter includes all units  that are attacking us. 
+        ///           If we have a case where we don't want to attack to an attacker, it should be removed here. </summary>
+        ///
+        /// <remarks> raphus, 24/07/2013. </remarks>
+        ///
+        /// <param name="unit"> The WoWUnit. </param>
+        ///
+        /// <returns> true if it succeeds, false if it fails. </returns>
+        protected virtual bool RemoveUnitFromTargeting(WoWUnit unit)
+        {
+            return false;
+        }
+
+        /// <summary> Weight unit for targeting. </summary>
+        ///
+        /// <remarks> raphus, 24/07/2013. </remarks>
+        ///
+        /// <param name="unit"> The unit. </param>
+        ///
+        /// <returns> . </returns>
+        protected virtual float WeightUnitForTargeting(WoWUnit unit)
+        {
+            return 0f;
+        }
+
         /// <summary>
         /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
         /// </summary>
         /// <param name="units"></param>
-        protected virtual void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
+        private void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
         {
-            // We expect the child to override this behavior
-
-            for (int i = incomingWowObjects.Count - 1; i >= 0; --i)
+            foreach (var wowObject in incomingWowObjects)
             {
-                var wowObject = incomingWowObjects[i];
+                var unit = wowObject.ToUnit();
 
-                try
-                {
-                    // Skip invalid objects...
-                    if (!Query.IsViable(wowObject))
-                        { continue; }
+                if (unit == null)
+                    continue;
 
-                    // Custom logic here...
-
-                    outgoingWowObjects.Add(wowObject);
-                }
-                catch (System.AccessViolationException)
-                {
-                    // empty
-                }
-                catch (Styx.InvalidObjectPointerException)
-                {
-                    // empty
-                }
+                if (IncludeUntInTargeting(unit))
+                    outgoingWowObjects.Add(unit);
             }
         }
 
@@ -527,36 +553,15 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
         /// </summary>
         /// <param name="wowObjects"></param>
-        protected virtual void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        private void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
         {
-            // We expect the child to override this behavior
-
-            for (int i = wowObjects.Count - 1; i >= 0; --i)
-            {
-                try
+            wowObjects.RemoveAll(obj =>
                 {
-                    var wowObject = wowObjects[i];
+                    var unit = obj.ToUnit();
 
-                    // Remove invalid units...
-                    if (!Query.IsViable(wowObject))
-                    {
-                        wowObjects.RemoveAt(i);
-                        continue;
-                    }
-
-                    // Custom logic here...
-                }
-                catch (Styx.InvalidObjectPointerException)
-                {
-                    wowObjects.RemoveAt(i);
-                    continue;
-                }
-                catch (System.AccessViolationException)
-                {
-                    wowObjects.RemoveAt(i);
-                    continue;
-                }
-            }
+                    // We are not interested with objects.
+                    return unit != null && RemoveUnitFromTargeting(unit);
+                });
         }
 
 
@@ -564,41 +569,16 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <para>When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.</para>
         /// </summary>
         /// <param name="units"></param>
-        protected virtual void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
+        private void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
         {
-            // empty--left for child to override
-
-            const float InvalidTargetScore = -1000000f;
-
-            for (int i = targetPriorities.Count - 1; i >= 0; --i)
+            foreach (var targetPriority in targetPriorities)
             {
-                var priority = targetPriorities[i];
+                var unit = targetPriority.Object.ToUnit();
 
-                try
-                {
-                    // Remove invalid units...
-                    var wowUnit = priority.Object as WoWUnit;
-                    if (!Query.IsViable(wowUnit))
-                    {
-                        priority.Score = InvalidTargetScore;
-                        targetPriorities.RemoveAt(i);
-                        continue;
-                    }
+                if (unit == null)
+                    continue;
 
-                    // Custom weighting logic here...
-                }
-                catch (Styx.InvalidObjectPointerException)
-                {
-                    priority.Score = InvalidTargetScore;
-                    targetPriorities.RemoveAt(i);
-                    continue;
-                }
-                catch (System.AccessViolationException)
-                {
-                    priority.Score = InvalidTargetScore;
-                    targetPriorities.RemoveAt(i);
-                    continue;
-                }
+                targetPriority.Score += WeightUnitForTargeting(unit);
             }
         }
         #endregion
