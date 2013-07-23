@@ -133,7 +133,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         InterruptDetection_Hook();
 
                         // Notify user of intent...
-                        var message = string.Format("Attempting use of '{0}' on '{1}'", CachedItemToUse.Name, CachedTarget.SafeName());
+                        var message = string.Format("Attempting use of '{0}' on '{1}'", CachedItemToUse.Name, CachedTarget.SafeName);
 
                         var selectedTargetAsWoWUnit = CachedTarget as WoWUnit;
                         if (selectedTargetAsWoWUnit != null)
@@ -183,7 +183,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         )),
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", CachedItemToUse.Name, CachedTarget.SafeName());
+                        QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", CachedItemToUse.Name, CachedTarget.SafeName);
                         ActionOnSuccessfulItemUseDelegate(context, CachedTarget);
                     })
                 };

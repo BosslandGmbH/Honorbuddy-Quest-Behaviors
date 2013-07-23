@@ -79,7 +79,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         InterruptDetection_Hook();
 
                         // Notify user of intent...
-                        QBCLog.DeveloperInfo("Interacting with '{0}'", CachedTarget.SafeName());
+                        QBCLog.DeveloperInfo("Interacting with '{0}'", CachedTarget.SafeName);
 
                         // Do it...
                         IsInterrupted = false;    
@@ -102,14 +102,14 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Action(context => { InterruptDectection_Unhook(); }),
                     new DecoratorContinue(context => IsInterrupted,
                         new Sequence(
-                            new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", CachedTarget.SafeName()); }),
+                            new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", CachedTarget.SafeName); }),
                             // Give whatever issue encountered a chance to settle...
                             // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                             new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
                         )),
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", CachedTarget.SafeName());
+                        QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", CachedTarget.SafeName);
                         ActionOnSuccessfulInteractDelegate(context, CachedTarget);
                     })
                 };

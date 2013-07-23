@@ -90,7 +90,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             CachedTarget = selectedTarget as WoWUnit;
                             if (CachedTarget == null)
                             {
-                                QBCLog.Warning("Target {0} is not a WoWUnit--cannot cast spell on it", selectedTarget.SafeName());
+                                QBCLog.Warning("Target {0} is not a WoWUnit--cannot cast spell on it", selectedTarget.SafeName);
                                 return RunStatus.Failure;
                             }
                         }
@@ -128,7 +128,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         InterruptDetection_Hook();
 
                         // Notify user of intent...
-                        var message = string.Format("Attempting cast of '{0}' on '{1}'", CachedSpell.Name, CachedTarget.SafeName());
+                        var message = string.Format("Attempting cast of '{0}' on '{1}'", CachedSpell.Name, CachedTarget.SafeName);
 
                         message +=
                             (CachedTarget.IsDead)
@@ -174,7 +174,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         )),
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", CachedSpell.Name, CachedTarget.SafeName());
+                        QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", CachedSpell.Name, CachedTarget.SafeName);
                         ActionOnSuccessfulSpellCastDelegate(context, CachedTarget);
                     })
                 };

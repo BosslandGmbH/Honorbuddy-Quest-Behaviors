@@ -37,35 +37,6 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        // Mostly stolen from Singular
-        // 12Apr2013-06:29UTC chinajade
-        public static string SafeName(this WoWObject wowObject, bool debug = false)
-        {
-            if (!Query.IsViable(wowObject))
-                { return "InvalidWoWObject"; }
-
-            const ulong GuidMask = 0x0ffff;
-
-            if (wowObject.IsMe)
-                { return "Self"; }
-
-            string name;
-            if (wowObject is WoWPlayer)
-                { name = ((WoWPlayer)wowObject).Class.ToString(); }
-
-            else if ((wowObject is WoWUnit) && wowObject.ToUnit().IsPet)
-                { name = wowObject.ToUnit().OwnedByRoot.SafeName()  + ":Pet"; }
-
-            else
-                { name = wowObject.Name; }
-
-            if (debug)
-                { name = string.Format("{0}.{1:X4}", name, (wowObject.Guid & GuidMask)); }
-
-            return name;
-        }
-
-
         public static double SurfacePathDistance(this WoWObject objectTo)
         {
             return StyxWoW.Me.SurfacePathDistance(objectTo);

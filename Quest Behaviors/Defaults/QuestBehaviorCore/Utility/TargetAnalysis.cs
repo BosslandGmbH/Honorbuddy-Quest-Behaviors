@@ -43,7 +43,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 if (reasons.Count > 0)
                 {
                     excludedUnitReasons.AppendFormat("    {0} [{1}]{2}",
-                        wowObject.SafeName(),
+                        wowObject.SafeName,
                         string.Join(", ", reasons),
                         Environment.NewLine);
                 }

@@ -29,7 +29,7 @@ namespace Honorbuddy.QuestBehaviorCore
             buffer.AppendFormat("Target List ({1} entries):{0}", newLine, Targeting.Instance.TargetList.Count);
             foreach (var target in Targeting.Instance.TargetList)
             {
-                buffer.AppendFormat("    {1}.{2:X4}{0}", newLine, target.SafeName(), (target.Guid & guidMask));
+                buffer.AppendFormat("    {1}.{2:X4}{0}", newLine, target.SafeName, (target.Guid & guidMask));
             }
 
             return buffer.ToString();

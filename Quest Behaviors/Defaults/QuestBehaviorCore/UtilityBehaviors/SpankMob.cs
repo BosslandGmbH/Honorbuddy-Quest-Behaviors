@@ -82,7 +82,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             if (Query.IsViable(SelectedTarget))
                             {
                                 QBCLog.DeveloperInfo("Mob {0} is not viable for fighting--ignoring SpankMob directive.",
-                                    SelectedTarget.SafeName());
+                                    SelectedTarget.SafeName);
                             }
 
                             WatchdogTimer_TimeToEngage = null;
@@ -142,7 +142,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             new Decorator(context => SelectedTarget.Distance > Math.Max(CharacterSettings.Instance.PullDistance, SelectedTarget.MyAggroRange),
                                 new UtilityBehaviorPS.MoveTo(
                                     context => SelectedTarget.Location,
-                                    context => SelectedTarget.SafeName(),
+                                    context => SelectedTarget.SafeName,
                                     MovementByDelegate)),
 
                             // TODO: This needs to go, eventually.  Let the Kill POI do its job.

@@ -211,7 +211,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                                 new Decorator(context => !FlightMaster.WithinInteractRange,
                                     new UtilityBehaviorPS.MoveTo(
                                         context => FlightMaster.Location,
-                                        context => FlightMaster.SafeName(),
+                                        context => FlightMaster.SafeName,
                                         context => MovementBy)),
                                 new UtilityBehaviorPS.MoveStop(),
                                 new Decorator(context => Me.Mounted,
@@ -248,7 +248,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
             },
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Bombing {0}", SelectedTarget.SafeName());
+                        QBCLog.DeveloperInfo("Bombing {0}", SelectedTarget.SafeName);
                         Bomb.Use();
                         // NB: The "FanOutRandom()" simulates imperfect human aim.
                         SpellManager.ClickRemoteLocation(SelectedTarget.Location.FanOutRandom(7.5));

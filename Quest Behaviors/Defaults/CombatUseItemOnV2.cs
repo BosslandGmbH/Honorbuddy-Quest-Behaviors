@@ -607,7 +607,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     new ActionFail(context =>
                     {
                         QBCLog.Info("Recalling Pet from '{0}' (health: {1:F1})",
-                            SelectedTarget.SafeName(), SelectedTarget.HealthPercent);
+                            SelectedTarget.SafeName, SelectedTarget.HealthPercent);
                         PetControl.SetStance_Passive();
                         PetControl.Follow();
                     })),
@@ -616,7 +616,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 new Decorator(context => SelectedTarget.Distance > MaxRangeToUseItem,
                     new UtilityBehaviorPS.MoveTo(
                         context => SelectedTarget.Location,
-                        context => string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.SafeName()),
+                        context => string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.SafeName),
                         context => MovementBy)),
 
                 // If time to use the item, do so...
@@ -692,7 +692,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                     QBCLog.Warning("{1} did not acquire expected AuraId, \"{2}\"--retrying.{0}"
                                         + "    Auras on {1}: {3}",
                                         Environment.NewLine,
-                                        SelectedTarget.SafeName(),
+                                        SelectedTarget.SafeName,
                                         Utility.GetSpellNameFromId(ItemAppliesAuraId),
                                         auraNamesOnMob);
                                 }

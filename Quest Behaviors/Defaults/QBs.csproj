@@ -372,6 +372,6 @@
     <VisualStudio AllowExistingFolder="true" />
   </ProjectExtensions>
   <PropertyGroup>
-    <PostBuildEvent>xcopy /Q /Y /I /E "D:\Games\BosslandGmbH\QuestBehaviorDevelopment\branch\QBChinajade\Quest Behaviors\Defaults" "D:\Games\BosslandGmbH\Honorbuddy\Quest Behaviors"</PostBuildEvent>
+    <PostBuildEvent>xcopy /Q /Y /I /E "$(ProjectDir)*" "D:\Games\BosslandGmbH\Honorbuddy\Quest Behaviors"</PostBuildEvent>
   </PropertyGroup>
 </Project>

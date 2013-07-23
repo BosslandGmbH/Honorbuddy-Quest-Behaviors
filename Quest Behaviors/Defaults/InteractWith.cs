@@ -814,7 +814,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 {
                                     var blacklistTime = BlacklistInteractTarget(SelectedTarget);
                                     QBCLog.Warning("Taking too long to reach {0}--blacklisting for {1}",
-                                        SelectedTarget.SafeName(),
+                                        SelectedTarget.SafeName,
                                         Utility.PrettyTime(blacklistTime));
                                     _timerToReachDestination = null;
                                 })),
@@ -882,7 +882,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         var blacklistTime = TimeSpan.FromSeconds(180);
 
                                         QBCLog.Warning("Exceeded our maximum count({0}) at attempted interactions--blacklisting {1} for {2}",
-                                            AttemptCountMax, SelectedTarget.SafeName(), Utility.PrettyTime(blacklistTime));
+                                            AttemptCountMax, SelectedTarget.SafeName, Utility.PrettyTime(blacklistTime));
                                         BlacklistInteractTarget(SelectedTarget);
                                         return RunStatus.Failure;
                                     }
