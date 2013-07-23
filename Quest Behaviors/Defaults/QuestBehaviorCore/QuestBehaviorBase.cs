@@ -488,8 +488,6 @@ namespace Honorbuddy.QuestBehaviorCore
         //                      RangeMax, rangeEpsilon, RangeMin)); 
         //}
 
-
-
         #region TargetFilters
         /// <summary>
         /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
