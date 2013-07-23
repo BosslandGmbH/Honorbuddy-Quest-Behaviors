@@ -5,19 +5,13 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -80,7 +74,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
-        private static int _lineCount;
         private Composite _root;
 
         // Private properties

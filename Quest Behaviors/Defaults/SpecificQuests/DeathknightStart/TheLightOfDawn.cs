@@ -108,7 +108,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
         private bool _isBehaviorDone = false;
         private bool _isDisposed;
         public static Random _random = new Random((int)DateTime.Now.Ticks);
-        private Composite _root;
         private StateType_Behavior _state_Behavior;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion

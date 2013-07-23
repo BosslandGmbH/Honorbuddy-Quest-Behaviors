@@ -7,16 +7,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -66,7 +62,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -115,7 +110,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
         }
 
 
-
         public Composite DoneYet
         {
             get
@@ -129,30 +123,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
                         return RunStatus.Success;
                     }));
             }
-        }
-
-
-        public void CastSpell(string action)
-        {
-
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            Logging.Write("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
-        }
-
-
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
         }
 
 
@@ -181,11 +151,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonoftheBalancedRock
         }
 
 
-        private int stage = 0;
         WoWPoint spot = new WoWPoint(966.1218,3284.928,126.7932);
-        
-
-        private bool spoke = false;
 
 
         private Composite GetonPole

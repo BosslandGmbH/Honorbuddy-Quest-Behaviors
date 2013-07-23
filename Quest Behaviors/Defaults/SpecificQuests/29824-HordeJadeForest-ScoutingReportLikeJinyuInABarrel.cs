@@ -13,9 +13,7 @@ using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -48,8 +46,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -68,11 +64,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -80,13 +74,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         private Composite _root;
 
 
-
         // Private properties
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
         }
-
 
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
@@ -114,11 +106,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         }
 
 
-
-
-
-
-
         #region Overrides of CustomForcedBehavior
 
         public bool IsQuestComplete()
@@ -126,7 +113,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
-
 
 
         public Composite DoneYet
@@ -159,19 +145,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
 
         }
 
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-
 
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
@@ -188,7 +161,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         }
 
 
-
         uint[] jinyu = new uint[] { 55793, 56701, 55791, 55711, 55709, 55710 };
         public List<WoWUnit> Enemy
         {
@@ -197,8 +169,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 return
                     ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => jinyu.Contains(r.Entry)).ToList();
             }
-
         }
+
 
         public WoWUnit Barrel
         {
@@ -209,10 +181,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             }
 
         }
-
-
-        private int stage = 0;
-        WoWPoint spot = new WoWPoint(370.5139, -2026.915, 57.19295);
 
 
         private bool spoke = false;
@@ -233,8 +201,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                         }))
 
                         ));
-
-
             }
         }
 
@@ -285,9 +251,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                     break;
 
                 }
-
-
-
             }
 
             //base.OnTick();
@@ -312,8 +275,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                                                                           //Thread.Sleep(100);
                                                                       }
                                                            ))
-
-
                     );
             }
 
@@ -324,7 +285,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne, PhaseTwo, new ActionAlwaysSucceed())));
         }
-
 
 
         public override void Dispose()
@@ -378,18 +338,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

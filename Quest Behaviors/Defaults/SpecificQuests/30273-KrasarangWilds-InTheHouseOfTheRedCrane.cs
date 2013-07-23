@@ -15,13 +15,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-using Bots.Grind;
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -72,14 +70,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
         private Composite _root;
 
         // Private properties
-        private int Counter { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        private bool _usedTurret;
 
         public static int[] MobIds = new[] { 59687 };
         public static int RedCraneID = 59653;
-        public static int ShaID = 59651;
 
         public static WoWPoint ShaLocation = new WoWPoint(-1813.47f, 1052.34f, -31.73f);
 
@@ -146,9 +140,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
             _isDisposed = true;
         }
 
-        
-
-
+       
         #region Overrides of CustomForcedBehavior
 
         public bool IsQuestComplete()
@@ -170,16 +162,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
                         return RunStatus.Success;
                     }));
 
-            }
-        }
-
-        public WoWUnit Surge
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Distance < 3 && r.DynamicFlags == 140).OrderBy(r => r.Distance).
-                        FirstOrDefault();
             }
         }
 
@@ -223,37 +205,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
         }
 
 
-
-        /*
-         * 
-         * 
-         *                                  new Decorator(
-                                        ret => Sha != null,
-                                            new PrioritySelector(
-                                                 new Decorator(ret => !StyxWoW.Me.Combat,
-                                                    new Sequence(
-                                                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                                                         RoutineManager.Current.CombatBehavior),
-                                                                new Action(ret => Sha.Target()),
-                                                                new Action(ret => RoutineManager.Current.Pull()))),
-
-                                                new Decorator(ret => Echo != null, // Kill the Echos so we dont Die
-                                                    new Sequence(
-                                                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                                                         RoutineManager.Current.CombatBehavior),
-                                                                new Action(ret => Echo.Target()),
-                                                                new Action(ret => RoutineManager.Current.Pull()))), 
-
-                                                new Decorator(ret => Echo == null, // Kill the boss if no other echos
-                                                    new Sequence(
-                                                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                                                         RoutineManager.Current.CombatBehavior),
-                                                                new Action(ret => Sha.Target()),
-                                                                new Action(ret => RoutineManager.Current.Pull())))
-         * 
-         * 
-         * */
-
         public WoWUnit Priority
         {
             get { 
@@ -273,43 +224,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
             }
         }
 
-        private static WoWPoint CalculatePointBehindTarget()
-        {
-            return
-                StyxWoW.Me.CurrentTarget.Location.RayCast(
-                    StyxWoW.Me.CurrentTarget.Rotation + WoWMathHelper.DegreesToRadians(150), 10f);
-        }
 
-        /*
-         * 
-         *                     new Decorator(r => Surge != null || BehindTarget != blank, new Action(r =>
-                        
-                        
-                        {
-
-
-                            if (BehindTarget == blank)
-                            {
-                                reachedLocation = false;
-                                BehindTarget = CalculatePointBehindTarget();
-                                Navigator.MoveTo(BehindTarget);
-                            }
-                            if (!reachedLocation && BehindTarget != blank)
-                            {
-                                Navigator.MoveTo(BehindTarget);
-
-                                if (BehindTarget.Distance(Me.Location) < 1)
-                                {
-                                    reachedLocation = true;
-                                    BehindTarget = blank;
-                                }
-                            }
-
-                            return RunStatus.Success;
-                        })),*/
-        private bool reachedLocation = false;
-        private WoWPoint BehindTarget = new WoWPoint(0,0,0);
-        private WoWPoint blank = new WoWPoint(0, 0, 0);
         public Composite CombatStuff
         {
             get
@@ -329,7 +244,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
                     );
             }
         }
-
 
 
         protected override Composite CreateBehavior()

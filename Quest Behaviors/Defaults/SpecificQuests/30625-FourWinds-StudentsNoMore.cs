@@ -65,10 +65,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
-        private bool _onBird;
-
-        public static WoWPoint RopeGameObjectLocation = new WoWPoint(238.4929, -393.3196, 247.5843);
-
         public static List<uint> StudentIDs = new List<uint> { 59839, 59840, 59843, 59841, 59842 };
 
         public static List<WoWPoint> StudentPoints = new List<WoWPoint> { new WoWPoint(-252.1181f, 2333.618f, 136.896f), new WoWPoint(-428.7136f, 2309.584f, 133.6259f) };
@@ -148,8 +144,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
 
             _isDisposed = true;
         }
-
-        
 
 
         #region Overrides of CustomForcedBehavior

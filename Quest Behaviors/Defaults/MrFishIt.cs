@@ -19,10 +19,8 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
@@ -296,7 +294,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             Logging.WriteDiagnostic(Colors.Firebrick, "looting..");
 
             object[] arg = args.Args;
-            if (arg[0] == "0")
+            if ((string)arg[0] == "0")
             {
                 Logging.WriteDiagnostic(Colors.Firebrick, "no autoloot");
                 Lua.DoString("for i=1, GetNumLootItems() do LootSlot(i) ConfirmBindOnUse() end CloseLoot()");

@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
@@ -15,7 +14,6 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -88,7 +86,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         }
 
 
-
         public void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
@@ -114,11 +111,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         }
 
 
-
-
-
-
-
         #region Overrides of CustomForcedBehavior
 
         public bool IsQuestComplete()
@@ -126,7 +118,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
-
 
 
         public Composite DoneYet
@@ -146,27 +137,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         }
 
 
-
         public void CastSpell(string action)
         {
-
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
 
             Logging.Write("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
-        }
-
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
         }
 
 
@@ -188,7 +166,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         }
 
 
-        private int stage = 0;
         WoWPoint spot = new WoWPoint(370.5139, -2026.915, 57.19295);
 
 
@@ -207,8 +184,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                         }))
                         
                         ));
-
-
             }
         }
 
@@ -232,14 +207,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                                                                                      {
                                                                                          CastSpell("Fling Filth");
                                                                                      }
-
-
-                                                                                 }))
-
-                    
+                                                                                 }))                    
                     );
             }
-
         }
 
 
@@ -269,8 +239,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
 
         public override void OnStart()
         {
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -299,18 +267,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

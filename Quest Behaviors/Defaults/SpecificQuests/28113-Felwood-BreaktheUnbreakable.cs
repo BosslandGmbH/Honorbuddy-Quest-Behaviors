@@ -28,11 +28,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
         }
 
         public int QuestId { get; set; }
-        private bool IsAttached;
-        private bool IsBehaviorDone;
-        private WoWPoint wp = new WoWPoint(-8361.689, 1726.248, 39.94792);
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         private Composite _root;
         // Private variables for internal state
@@ -63,9 +58,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
                 new Decorator(r => Firewall != null && Firewall.Distance < 10, new Action(r => { Navigator.PlayerMover.MoveStop();ClawThing.Use(); })),
                 new Decorator(r => !touched && touchdown.Distance(StyxWoW.Me.Location) < 5, new Action(r => touched = true)),
                 new Decorator(r => !touched, new Action(r => WoWMovement.ClickToMove(touchdown)))
-
-
-
                 )));
 
         }
@@ -73,35 +65,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
         private WoWGameObject Firewall
         {
             get { return ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r => r.Entry == 206625 && r.FlagsUint == 32); }
-        }
-
-        private bool QuestComplete
-        {
-            get
-            {
-
-                var Completed = StyxWoW.Me.QuestLog.GetQuestById(28113);
-
-                if (Completed == null)
-                {
-                    return false;
-                }
-                return Completed.IsCompleted;
-            }
-        }
-
-
-        //<Vendor Name="dasa" Entry="0" Type="Repair" X="" />
-
-        private bool HookDone
-        {
-            get
-            {
-
-                var Completed = StyxWoW.Me.QuestLog.GetCompletedQuests().FirstOrDefault(r => r == 28113);
-
-                return Completed != 0;
-            }
         }
 
 
@@ -171,10 +134,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
-
-
-
                 //CharacterSettings.Instance.UseMount = false;
 
                 if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
@@ -195,12 +154,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
     }
 }

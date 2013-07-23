@@ -7,16 +7,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -48,8 +45,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -68,11 +63,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -80,13 +73,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
         private Composite _root;
 
 
-
         // Private properties
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
         }
-
 
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
@@ -106,20 +97,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
-
-
-
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
             }
 
             _isDisposed = true;
         }
-
-
-
-
-
 
 
         #region Overrides of CustomForcedBehavior
@@ -129,7 +112,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
-
 
 
         public Composite DoneYet
@@ -147,34 +129,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
 
             }
         }
-
-
-
-        public void CastSpell(string action)
-        {
-
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            Logging.Write("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
-        }
-
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-
 
         //<Vendor Name="Alliance Priest" Entry="60877" Type="Repair" X="208.6163" Y="3913.861" Z="61.57914" />
         //<Vendor Name="Horde Druid" Entry="60770" Type="Repair" X="318.3125" Y="3896.318" Z="78.3259" />
@@ -212,16 +166,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
             }
 
         }
-
-
-       
-
-
-        
-
-        private bool spoke = false;
-
-
 
     
         private Composite GetonPole
@@ -275,14 +219,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
         }
 
 
-
-
-
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetonPole,new ActionAlwaysSucceed())));
         }
-
 
 
         public override void Dispose()
@@ -336,18 +276,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

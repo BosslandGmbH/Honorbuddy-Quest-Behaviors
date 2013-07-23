@@ -7,16 +7,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -48,8 +43,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -68,17 +61,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
 
 
         // Private properties
@@ -114,11 +104,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
         }
 
 
-
-
-
-
-
         #region Overrides of CustomForcedBehavior
 
         public bool IsQuestComplete()
@@ -126,7 +111,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
-
 
 
         public Composite DoneYet
@@ -146,33 +130,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
         }
 
 
-
-        public void CastSpell(string action)
-        {
-
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            Logging.Write("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
-        }
-
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-
-
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
 
@@ -184,12 +141,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
                 return
                     ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r=>r.Entry == 209608);
             }
-
         }
 
-
-
-        
+      
         public IEnumerable<WoWUnit> Poles
         {
             get
@@ -201,15 +155,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
         }
 
 
-       
-
-        private int stage = 0;
         WoWPoint spot = new WoWPoint(966.1218,3284.928,126.7932);
-        
-
-        private bool spoke = false;
-
-
 
     
         private Composite GetonPole
@@ -218,9 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
             {
                 return new PrioritySelector(
                     new Decorator(r=> Bell.Distance > 10 && !Me.InVehicle && Me.Location.Distance(spot) > 10, new Action(r=>Navigator.MoveTo(spot))),
-                    new Decorator(r=> Bell.Distance > 10 && !Me.InVehicle, new Action(r => Poles.OrderBy(z => z.Distance).FirstOrDefault().Interact(true)))
-                    
-                    
+                    new Decorator(r=> Bell.Distance > 10 && !Me.InVehicle, new Action(r => Poles.OrderBy(z => z.Distance).FirstOrDefault().Interact(true)))        
                     );
             }
         }
@@ -312,18 +256,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheLessonofDryFur
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

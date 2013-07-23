@@ -139,7 +139,6 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
-        private Composite _root;
 
         // Private properties
         private int Counter { get; set; }

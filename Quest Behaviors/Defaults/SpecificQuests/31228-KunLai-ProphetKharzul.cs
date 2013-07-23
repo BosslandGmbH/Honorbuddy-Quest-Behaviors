@@ -43,8 +43,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
         private Composite _behaviorTreeHook_Combat;
         private bool _isDisposed;
 
-        private IPlayerMover _orginalPlayerMover;
-        private IStuckHandler _orginalStuckHandler;
         private WoWPoint _prophetLocation = new WoWPoint(5246.656, 54.33482, 31.962);
         public ProphetKharzulBehavior(Dictionary<string, string> args) : base(args) { }
 

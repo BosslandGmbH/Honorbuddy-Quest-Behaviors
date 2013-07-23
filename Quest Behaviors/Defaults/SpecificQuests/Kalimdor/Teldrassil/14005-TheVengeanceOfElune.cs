@@ -62,10 +62,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
         private Composite _root;
 
         // Private properties
-        private int Counter { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        private bool _usedTurret;
 
         public static int MobId = 34521;
 
@@ -117,11 +114,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
         }
 
 
-
-
         #region Overrides of CustomForcedBehavior
-
-
 
         protected override Composite CreateBehavior()
         {

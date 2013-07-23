@@ -67,13 +67,12 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         uint[] Mounts = new uint[]{34125};
-        private uint[] Enemy;// = new uint[] { 33384, 33306,33285,33382,33383};
-        private uint[] EnemyDebuff;// = new uint[] { 64816, 64811, 64812, 64813, 64815 };
 
         WoWItem HordeLance()
         {
             return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46070);
         }
+
         WoWItem ArgentLance()
         {
             return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46106);
@@ -85,7 +84,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -129,10 +127,6 @@ namespace Styx.Bot.Quest_Behaviors
 
             _isDisposed = true;
         }
-
-
-  
-
 
 
         #region Overrides of CustomForcedBehavior
@@ -213,9 +207,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 return new PrioritySelector(
                     new Decorator(r => Me.Location.Distance(Location) > 15, new Action(r => Navigator.MoveTo(Location))),
-                     new Decorator(r => Me.Location.Distance(Location) < 15, new Action(r => Mount.Interact()))   
-                        
-                        
+                     new Decorator(r => Me.Location.Distance(Location) < 15, new Action(r => Mount.Interact()))                    
                         );
             }
         }

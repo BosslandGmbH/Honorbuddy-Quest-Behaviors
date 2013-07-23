@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
@@ -15,7 +14,6 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -48,8 +46,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -68,11 +64,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -80,13 +74,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         private Composite _root;
 
 
-
         // Private properties
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
         }
-
 
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
@@ -114,11 +106,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         }
 
 
-
-
-
-
-
         #region Overrides of CustomForcedBehavior
 
         public bool IsQuestComplete()
@@ -126,7 +113,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
-
 
 
         public Composite DoneYet
@@ -146,7 +132,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         }
 
 
-
         public void CastSpell(string action)
         {
 
@@ -159,19 +144,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
 
         }
 
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-
 
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
@@ -179,13 +151,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         //209691 - sniper rifle
 
 
-
         public WoWUnit Clutchpop
         {
             get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 56525); }
         }
 
-        uint[] jinyu = new uint[] { 55793, 56701, 55791, 55711, 55709, 55710 };
+
         public WoWUnit Enemy
         {
             get
@@ -193,17 +164,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                 return
                     ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Entry == 56603).OrderBy(r=>r.Distance).FirstOrDefault();
             }
-
         }
 
 
-
-
-        private int stage = 0;
         WoWPoint spot = new WoWPoint(1368.113,-571.8212,339.3784);
 
-
-        private bool spoke = false;
 
         //<Vendor Name="Rivett Clutchpop" Entry="56525" Type="Repair" X="1368.113" Y="-571.8212" Z="339.3784" />
         public Composite PhaseOne
@@ -217,8 +182,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                         new Decorator(r => GossipFrame.Instance.IsVisible, new Action(r =>GossipFrame.Instance.SelectGossipOption(0)))
 
                         ));
-
-
             }
         }
 
@@ -227,10 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         public Composite PhaseTwo
         {
             get
-            {
-                
-
-                    
+            {               
                     return new Decorator(r => Enemy != null, new Action(r =>
                                                                       {
 
@@ -250,7 +210,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne,PhaseTwo, new ActionAlwaysSucceed())));
         }
-
 
 
         public override void Dispose()
@@ -304,18 +263,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
-
-        #endregion
+       #endregion
     }
 }
