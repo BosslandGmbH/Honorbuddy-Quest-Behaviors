@@ -499,7 +499,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="unit"> The WoWUnit. </param>
         ///
         /// <returns> true if it succeeds, false if it fails. </returns>
-        protected virtual bool IncludeUntInTargeting(WoWUnit unit)
+        protected virtual bool IncludeUnitInTargeting(WoWUnit unit)
         {
             return false;
         }
@@ -543,7 +543,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 if (unit == null)
                     continue;
 
-                if (IncludeUntInTargeting(unit))
+                if (IncludeUnitInTargeting(unit))
                     outgoingWowObjects.Add(unit);
             }
         }

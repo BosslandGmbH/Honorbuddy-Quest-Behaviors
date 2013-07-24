@@ -396,7 +396,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         #region TargetFilters
 
-        protected override bool IncludeUntInTargeting(WoWUnit unit)
+        protected override bool IncludeUnitInTargeting(WoWUnit unit)
         {
             // Interested in targets that are targeting us...
             if (Query.IsMobTargetingUs(unit))
