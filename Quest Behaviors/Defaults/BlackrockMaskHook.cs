@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-
 using Styx;
 using Styx.Common;
 using Styx.CommonBot.Profiles;
@@ -19,29 +18,19 @@ namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
         public BlackrockMaskHook(Dictionary<string, string> args)
             : base(args)
         {
-
-                QuestId = 0;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
- 
         }
-        public int QuestId { get; set; }
-        
+
         public override bool IsDone
         {
             get
             {
-                return inserted;
+                return _inserted;
             }
         }
 
-        private bool inserted = false;
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+        private bool _inserted;
 
-
-
-        public static WoWItem Disguise
+        private static WoWItem Disguise
         {
             get
             {
@@ -49,49 +38,51 @@ namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
             }
         }
 
-        public int[] Auras = new int[] { 89259, 89260, 89254, 89253, 89256, 89255, 89258, 89257 };
-
-
-        public static bool Disguised
+        private static bool Disguised
         {
             get { return StyxWoW.Me.HasAura(89261); }
         }
 
-        public static Composite _myHook;
-        public static Composite myHook
+        private static Composite _myHook;
+
+        private static Composite MyHook
         {
             get
             {
-                if (_myHook == null)
-                {
-                    _myHook = new Decorator(r => Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 && !Disguised, new Action(r =>
-                    {
-                        Navigator.PlayerMover.MoveStop();
-                        Disguise.Use();
-                    }));                    
-					return _myHook;
-                }
-                else
-                {
-                    return _myHook;
-                }
+                return _myHook ??
+                       (_myHook =
+                        new Decorator(
+                            r =>
+                            Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 &&
+                            !Disguised, new Action(r =>
+                            {
+                                Navigator.PlayerMover.MoveStop();
+                                Disguise.Use();
+                            })));
+            }
+            set
+            {
+                _myHook = value;
             }
         }
+
         public override void OnStart()
         {
             OnStart_HandleAttributeProblem();
-            
-            if (myHook == null)
-            {
 
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, myHook);
+            if (_myHook == null)
+            {
+                Logging.Write("Inserting blackrock hook - gfrsa");
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, MyHook);
             }
             else
             {
-                TreeHooks.Instance.RemoveHook("Questbot_Main", myHook);
+                Logging.Write("removing blackrock hook - gfrsa");
+                TreeHooks.Instance.RemoveHook("Questbot_Main", MyHook);
+                MyHook = null;
             }
+            _inserted = true;
 
-            inserted = true;
         }
     }
 }
