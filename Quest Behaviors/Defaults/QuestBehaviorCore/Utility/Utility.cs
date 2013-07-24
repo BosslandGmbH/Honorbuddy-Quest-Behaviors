@@ -48,7 +48,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 25Apr2013-09:15UTC chinajade
         public static TimeSpan CalculateMaxTimeToDestination(WoWPoint destination, bool includeSafetyMargin = true)
         {
-            const double upperLimitOnMaxTime = 10/*mins*/ * 60/*secs*/;
+            const double upperLimitOnMaxTime = 3/*mins*/ * 60/*secs*/;
 
             double distanceToCover = 
                 (Me.IsSwimming || Me.IsFlying)

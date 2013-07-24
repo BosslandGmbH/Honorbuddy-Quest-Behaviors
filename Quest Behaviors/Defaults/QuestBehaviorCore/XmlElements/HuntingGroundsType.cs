@@ -8,6 +8,35 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+
+#region Summary and Documentation
+//      HuntingGrounds [optional; Default: none]
+//          The HuntingGrounds contains a set of Waypoints we will visit to seek mobs
+//          that fulfill the quest goal.  The <HuntingGrounds> element accepts the following
+//          attributes:
+//              WaypointVisitStrategy= [optional; Default: Random]
+//              [Allowed values: InOrder, PickOneAtRandom, Random]
+//              Determines the strategy that should be employed to visit each waypoint.
+//              Any mobs encountered while traveling between waypoints will be considered
+//              viable.  The Random strategy is highly recommended unless there is a compelling
+//              reason to otherwise.  The Random strategy 'spread the toons out', if
+//              multiple bos are running the same quest.
+//              The PickOneAtRandom strategy will only visit one waypoint on the list
+//              and camp the mobs from the single selected waypoint.  This is another good tactic
+//              for spreading toons out in heavily populated areas.
+//          Each Waypoint is provided by a <Hotspot ... /> element with the following
+//          attributes:
+//              Name [optional; Default: X/Y/Z location of the waypoint]
+//                  The name of the waypoint is presented to the user as it is visited.
+//                  This can be useful for debugging purposes, and for making minor adjustments
+//                  (you know which waypoint to be fiddling with).
+//              X/Y/Z [REQUIRED; Default: none]
+//                  The world coordinates of the waypoint.
+//              Radius [optional; Default: 10.0]
+//                  Once the toon gets within Radius of the waypoint, the next waypoint
+//                  will be sought.
+#endregion
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,7 +44,6 @@ using System.Text;
 using System.Xml.Linq;
 
 using Styx;
-using Styx.Pathing;
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
@@ -26,6 +54,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public enum WaypointVisitStrategyType
         {
             InOrder,
+            PickOneAtRandom,
             Random,
         }
         
@@ -35,9 +64,21 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             try
             {
+                // Acquire the visit strategy...
                 WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null) ?? WaypointVisitStrategyType.Random;
-                Waypoints = new List<WaypointType>();
+                if (WaypointVisitStrategy == WaypointVisitStrategyType.InOrder)
+                    { _visitStrategy = new VisitStrategy_InOrder(this); }
+                else if (WaypointVisitStrategy == WaypointVisitStrategyType.PickOneAtRandom)
+                    { _visitStrategy = new VisitStrategy_PickOneAtRandom(this); }
+                else if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
+                    { _visitStrategy = new VisitStrategy_Random(this); }
+                else
+                {
+                    QBCLog.MaintenanceError("Unhandled WaypointVisitStrategy({0})", WaypointVisitStrategy);
+                }
 
+                // Acquire the waypoints...
+                Waypoints = new List<WaypointType>();
                 if (xElement != null)
                 {
                     var waypointElementsQuery =
@@ -80,13 +121,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         #region Private and Convenience variables
-        private const int IndexOfInitialPositionWaypoint = -1;
-
-        private int? IndexOfCurrentWaypoint { get; set; }
 
         // NB: The "initial position waypoint" is special.
         // It is only used if no other waypoints have been defined.
         private readonly WaypointType _initialPositionWaypoint = new WaypointType(StyxWoW.Me.Location, "my initial position");
+        private int _indexOfCurrentWaypoint = IVisitStrategy.InvalidWaypointIndex;
+        private readonly IVisitStrategy _visitStrategy;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -106,39 +146,38 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             currentLocation = currentLocation ?? StyxWoW.Me.Location;
 
-            // If we haven't initialized current waypoint yet, find nearest waypoint...
-            if (!IndexOfCurrentWaypoint.HasValue)
-                { IndexOfCurrentWaypoint = FindIndexOfNearestWaypoint(currentLocation.Value); }
-
-            var currentWaypoint = FindWaypointAtIndex(IndexOfCurrentWaypoint.Value);
+            // If we haven't initialized current waypoint yet, find first waypoint...
+            if (_indexOfCurrentWaypoint == IVisitStrategy.InvalidWaypointIndex)
+                { _indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(); }
 
             // If we haven't arrived at the current waypoint, still use it...
+            var currentWaypoint = FindWaypointAtIndex(_indexOfCurrentWaypoint);
             if (currentLocation.Value.Distance(currentWaypoint.Location) >= currentWaypoint.Radius)
                 { return currentWaypoint; }
 
             // Otherwise, find next waypoint index, and return new waypoint...
-            IndexOfCurrentWaypoint = FindIndexOfNextWaypoint(IndexOfCurrentWaypoint.Value);
-            return FindWaypointAtIndex(IndexOfCurrentWaypoint.Value);
+            _indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(_indexOfCurrentWaypoint);
+            return FindWaypointAtIndex(_indexOfCurrentWaypoint);
         }
 
 
         private WaypointType FindWaypointAtIndex(int index)
         {
-            return (index == IndexOfInitialPositionWaypoint)
+            return (index == IVisitStrategy.InvalidWaypointIndex)
                 ? _initialPositionWaypoint
                 : Waypoints[index];
         }
 
 
        // 22Mar2013-11:49UTC chinajade
-        private int FindIndexOfNearestWaypoint(WoWPoint currentLocation)
+        private int FindIndexOfNearestWaypoint(WoWPoint location)
         {
-            var indexOfNearestWaypoint = IndexOfInitialPositionWaypoint;
+            var indexOfNearestWaypoint = IVisitStrategy.InvalidWaypointIndex;
             var distanceSqrMin = double.MaxValue;
 
             for (var index = 0; index < Waypoints.Count; ++index)
             {
-                var distanceSqr = currentLocation.DistanceSqr(FindWaypointAtIndex(index).Location);
+                var distanceSqr = location.DistanceSqr(FindWaypointAtIndex(index).Location);
 
                 if (distanceSqr < distanceSqrMin)
                 {
@@ -148,49 +187,6 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
 
             return indexOfNearestWaypoint;
-        }
-
-
-        // 22Mar2013-11:49UTC chinajade
-        private int FindIndexOfNextWaypoint(int currentWaypointIndex)
-        {
-            // If we haven't reached the nearest waypoint yet, use it...
-            var currentWaypoint = FindWaypointAtIndex(currentWaypointIndex);
-            double distanceToWaypoint = currentWaypoint.Location.CollectionDistance();
-
-            if (distanceToWaypoint > currentWaypoint.Radius)
-                { return currentWaypointIndex; }
-
-            // If no waypoints, our initial position is all we have...
-            if (Waypoints.Count <= 0)
-                { return IndexOfInitialPositionWaypoint; }
-
-            // Determine 'next' waypoint based on visit strategy...
-            // NB: If this selects the same waypoint as the current one,
-            // the calling code will just return here again until we get
-            // something suitable.  If there is just one waypoint on the list,
-            // its the best that can be done.  We can't weed out the 'current waypoint'
-            // with a 'where' clause, because that would return nothing if there
-            // was only one point on the list.
-            if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
-            {
-                return QuestBehaviorBase._random.Next(0, Waypoints.Count);
-            }
-
-            if (WaypointVisitStrategy == WaypointVisitStrategyType.InOrder)
-            {
-                ++currentWaypointIndex;
-
-                if (currentWaypointIndex >= Waypoints.Count)
-                    { currentWaypointIndex = 0; }
-
-                return currentWaypointIndex;
-            }
-
-            Contract.Provides(false,
-                context => string.Format("Unhandled WaypointVisitStrategy({0})", WaypointVisitStrategy));
-
-            return IndexOfInitialPositionWaypoint;
         }
 
 
@@ -280,5 +276,117 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             return tmp.ToString();
         }
+
+
+        #region Visit Strategies
+        private abstract class IVisitStrategy
+        {
+            public const int InvalidWaypointIndex = -1;
+
+            public abstract int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex);
+
+
+            protected IVisitStrategy(HuntingGroundsType huntingGrounds)
+            {
+                HuntingGrounds = huntingGrounds;
+            }
+
+            protected HuntingGroundsType HuntingGrounds { get; private set; }
+        }
+
+
+        private class VisitStrategy_InOrder : IVisitStrategy
+        {
+            public VisitStrategy_InOrder(HuntingGroundsType huntingGrounds)
+                : base(huntingGrounds)
+            {
+                // empty
+            }
+
+
+            public override int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex)
+            {
+                // Current waypoint index is invalid?
+                if (currentWaypointIndex == InvalidWaypointIndex)
+                {
+                    // If no waypoints defined, then nothing to choose from...
+                    if (HuntingGrounds.Waypoints.Count <= 0)
+                        { return InvalidWaypointIndex; }
+
+                    // Pick initial waypoint--the nearest one from the list of available waypoints...
+                    return HuntingGrounds.FindIndexOfNearestWaypoint(StyxWoW.Me.Location);
+                }
+
+                // Waypoint is simply next one in the list, and wrap around if we've reached the end...
+                ++currentWaypointIndex;
+                if (currentWaypointIndex >= HuntingGrounds.Waypoints.Count)
+                    { currentWaypointIndex = 0; }
+
+                return currentWaypointIndex;
+            }
+        }
+
+
+        private class VisitStrategy_PickOneAtRandom : IVisitStrategy
+        {
+            public VisitStrategy_PickOneAtRandom(HuntingGroundsType huntingGrounds)
+                : base(huntingGrounds)
+            {
+                // empty
+            }
+
+            public override int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex)
+            {
+                // Current waypoint index is invalid?
+                if (currentWaypointIndex == InvalidWaypointIndex)
+                {
+                    // If no waypoints defined, then nothing to choose from...
+                    if (HuntingGrounds.Waypoints.Count <= 0)
+                        { return InvalidWaypointIndex; }
+
+                    // Pick initial waypoint--a random waypoint from those available on the list...
+                    return QuestBehaviorBase._random.Next(0, HuntingGrounds.Waypoints.Count);
+                }
+
+                // Once waypoint is selected, we continue to use it...
+                return currentWaypointIndex;
+            }
+        }
+
+
+        private class VisitStrategy_Random : IVisitStrategy
+        {
+            public VisitStrategy_Random(HuntingGroundsType huntingGrounds)
+                : base(huntingGrounds)
+            {
+                // empty
+            }
+
+
+            public override int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex)
+            {
+                // Current waypoint index is invalid?
+                if (currentWaypointIndex == InvalidWaypointIndex)
+                {
+                    // If no waypoints defined, then nothing to choose from...
+                    if (HuntingGrounds.Waypoints.Count <= 0)
+                        { return InvalidWaypointIndex; }
+
+                    // Pick initial waypoint--fall through to pick initial waypoint...
+                }
+
+                // Determine 'next' waypoint based on visit strategy...
+                // NB: If this selects the same waypoint as the current one,
+                // the calling code will just return here again until we get
+                // something suitable.  If there is just one waypoint on the list,
+                // its the best that can be done.  We can't weed out the 'current waypoint'
+                // with a 'where' clause, because that would return nothing if there
+                // was only one point on the list.
+                return QuestBehaviorBase._random.Next(0, HuntingGrounds.Waypoints.Count);
+            }
+        }
+
+
+        #endregion
     }
 }

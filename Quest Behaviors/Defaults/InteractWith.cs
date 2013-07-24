@@ -204,12 +204,15 @@
 //          that fulfill the quest goal.  The <HuntingGrounds> element accepts the following
 //          attributes:
 //              WaypointVisitStrategy= [optional; Default: Random]
-//              [Allowed values: InOrder, Random]
+//              [Allowed values: InOrder, PickOneAtRandom, Random]
 //              Determines the strategy that should be employed to visit each waypoint.
 //              Any mobs encountered while traveling between waypoints will be considered
 //              viable.  The Random strategy is highly recommended unless there is a compelling
 //              reason to otherwise.  The Random strategy 'spread the toons out', if
 //              multiple bos are running the same quest.
+//              The PickOneAtRandom strategy will only visit one waypoint on the list
+//              and camp the mobs from the single selected waypoint.  This is another good tactic
+//              for spreading toons out in heavily populated areas.
 //          Each Waypoint is provided by a <Hotspot ... /> element with the following
 //          attributes:
 //              Name [optional; Default: X/Y/Z location of the waypoint]
