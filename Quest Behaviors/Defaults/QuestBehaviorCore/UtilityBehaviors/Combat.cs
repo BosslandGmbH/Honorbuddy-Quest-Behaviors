@@ -9,6 +9,9 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
+using Bots.Grind;
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,16 +99,17 @@ namespace Honorbuddy.QuestBehaviorCore
                     // and pair with the Heal and CombatBuff virtual methods.  If a legacy custom class is loaded,
                     // HonorBuddy automatically wraps calls to Heal and CustomBuffs it in a Decorator checking those for you.
                     // So, no need to duplicate that work here.
-                    new Decorator(context => !Me.Combat,
+                    // Don't call CR when Combat is disabled in LevelBot. /raphus
+                    new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat) && !Me.Combat,
                         new PrioritySelector(
                             new Decorator(context => RoutineManager.Current.HealBehavior != null,
                                 RoutineManager.Current.HealBehavior),
                             new Decorator(context => RoutineManager.Current.NeedHeal,
-                                new Action(context => { RoutineManager.Current.Heal(); })),
+                                new Action(context => RoutineManager.Current.Heal())),
                             new Decorator(context => RoutineManager.Current.RestBehavior != null,
                                 RoutineManager.Current.RestBehavior),
                             new Decorator(context => RoutineManager.Current.NeedRest,
-                                new Action(context => { RoutineManager.Current.Rest(); }))
+                                new Action(context => RoutineManager.Current.Rest()))
                         ))
                 };
             }
