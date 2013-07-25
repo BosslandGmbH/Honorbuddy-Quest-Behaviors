@@ -57,7 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new Decorator(context => CharacterSettings.Instance.LootMobs,
+                    new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Loot) && CharacterSettings.Instance.LootMobs,
                         new PrioritySelector(context => CachedLootObject = Utility.LootableObject(),
                             new Decorator(context => (CachedLootObject != null) && (CachedLootObject.Distance > CachedLootObject.InteractRange),
                                 new UtilityBehaviorPS.MoveTo(

@@ -13,6 +13,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Bots.Grind;
+
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common.Helpers;
@@ -71,6 +73,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     new Decorator(context =>
                     {
+                        if (!LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat))
+                        {
+                            QBCLog.DeveloperInfo("LevelBot has Combat behavior turned off--ignoring SpankMob directive.");
+                            return false;
+                        }
+
                         var mob = SelectedTargetDelegate(context);
                         var isMobChanged = (mob != SelectedTarget);
 

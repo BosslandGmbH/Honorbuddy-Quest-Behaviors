@@ -151,9 +151,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
             return new Decorator(context => !IsDone && Me.OnTaxi,
                 new PrioritySelector(
                     // Disable combat while on the Taxi...
-                    // NB: We don't use "&=" with BehaviorFlags, so the change will be properly recorded in the HB log.
-                    new Decorator(context => ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0),
-                        new Action(context => { LevelBot.BehaviorFlags = LevelBot.BehaviorFlags & ~BehaviorFlags.Combat; })),
+                    new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat),
+                        new Action(context => { LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat; })),
 
                     // Just wait, if bomb is on cooldown...
                     new Decorator(context => Bomb.Cooldown > 0,
@@ -172,9 +171,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                 // PvP server considerations...
                 // Combat is disabled while on the Taxi.  If on the ground, we want it enabled
                 // in case we get attacked on a PvP server.
-                // NB: We don't use "|=" with BehaviorFlags, so the change will be properly recorded in the HB log.
-                new Decorator(context => ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0),
-                    new Action(context => { LevelBot.BehaviorFlags = LevelBot.BehaviorFlags | BehaviorFlags.Combat; })),
+                new Decorator(context => !LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat),
+                    new Action(context => { LevelBot.BehaviorFlags |= BehaviorFlags.Combat; })),
 
                 // Move to flight master, and interact to take taxi ride...
                 new Decorator(context => !Me.OnTaxi,
