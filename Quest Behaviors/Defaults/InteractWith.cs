@@ -357,6 +357,7 @@ using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
+
 using JetBrains.Annotations;
 using Styx;
 using Styx.Common.Helpers;
@@ -940,7 +941,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 new Decorator(context => (Me.CurrentTarget != null) && !Me.CurrentTarget.Attackable,
                     new Action(context =>
                     {
-                        Query.BlacklistForCombat(Me.CurrentTarget, TimeSpan.FromSeconds(120));
+                        Me.CurrentTarget.BlacklistForCombat(TimeSpan.FromSeconds(120));
                         Me.ClearTarget();
                     })),
 
@@ -1351,7 +1352,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             bool isShortBlacklist = (wowUnit != null) && ((wowUnit == Me) || Query.IsSharedWorldResource(wowUnit));
             TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : 180);
 
-            Query.BlacklistForInteracting(selectedTarget, blacklistDuration);
+            selectedTarget.BlacklistForInteracting(blacklistDuration);
             return blacklistDuration;
         }
 

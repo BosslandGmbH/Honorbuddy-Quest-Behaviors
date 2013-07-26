@@ -130,7 +130,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                 SelectedTarget.Name,
                                 Utility.PrettyTime(WatchdogTimer_TimeToEngage.WaitTime),
                                 Utility.PrettyTime(BlacklistForPullTime));
-                            Query.BlacklistForPulling(SelectedTarget, BlacklistForPullTime);
+                            SelectedTarget.BlacklistForPulling(BlacklistForPullTime);
                             SelectedTarget = null;
                             BotPoi.Clear();
                             Me.ClearTarget();

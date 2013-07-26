@@ -583,7 +583,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                     if ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
                                         || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend))
                                     {
-                                        Query.BlacklistForInteracting(SelectedTarget, TimeSpan.FromSeconds(180));
+                                        SelectedTarget.BlacklistForInteracting(TimeSpan.FromSeconds(180));
                                     }
 
                                     // If we can't defend ourselves from the target, blacklist it for combat and move on...
@@ -591,7 +591,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                         && ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
                                             || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)))
                                     {
-                                        Blacklist.Add(SelectedTarget, BlacklistFlags.Combat, TimeSpan.FromSeconds(180));
+                                        SelectedTarget.BlacklistForCombat(TimeSpan.FromSeconds(180));
                                         BotPoi.Clear();
                                         Me.ClearTarget();
                                         SelectedTarget = null;

@@ -16,6 +16,7 @@ using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 
+using Styx.CommonBot;
 using Styx.WoWInternals.WoWObjects;
 
 #endregion
@@ -115,6 +116,7 @@ namespace Honorbuddy.QuestBehaviorCore
             QuestBehaviorBase coreAttributes)
         {
             var exclusionReasons = new List<string>();
+            const BlacklistFlags interestingBlacklistFlags = BlacklistFlags.Combat | BlacklistFlags.Interact | BlacklistFlags.Pull;
 
             if (!Query.IsViable(wowObject))
             {
@@ -122,16 +124,39 @@ namespace Honorbuddy.QuestBehaviorCore
                 return exclusionReasons;
             }
 
-            if (Query.IsBlacklistedForCombat(wowObject))
-                { exclusionReasons.Add("BlacklistedForCombat"); }
+            var blacklistEntry = Blacklist.GetEntry(wowObject.Guid);
+            if ((blacklistEntry != null) && ((blacklistEntry.Flags & interestingBlacklistFlags) != 0))
+            {
+                var blacklistInfo = new List<string>();
 
-            if (Query.IsBlacklistedForInteraction(wowObject))
-                { exclusionReasons.Add("BlacklistedForInteract"); }
+                var blacklistTimeRemaining = blacklistEntry.Started + blacklistEntry.Length - DateTime.Now;
+                blacklistInfo.Add(string.Format("Time({0}/{1})",
+                    Utility.PrettyTime(blacklistTimeRemaining),
+                    Utility.PrettyTime(blacklistEntry.Length)));
+
+                if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Combat))
+                    { blacklistInfo.Add("ForCombat"); }
+                if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Interact))
+                    { blacklistInfo.Add("ForInteract"); }
+                if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Loot))
+                    { blacklistInfo.Add("ForLoot"); }
+                if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Node))
+                    { blacklistInfo.Add("ForNode"); }
+                if (blacklistEntry.Flags.HasFlag(BlacklistFlags.Pull))
+                    { blacklistInfo.Add("ForPull"); }
+ 
+                exclusionReasons.Add(string.Format("Blacklisted({0})", string.Join(",", blacklistInfo)));
+            }
 
             if (!Query.IsStateMatch_IgnoreMobsInBlackspots(wowObject, coreAttributes.IgnoreMobsInBlackspots))
             {
-                // TODO: Would be better to identify the offending blackspots, rather than the object location...
-                exclusionReasons.Add(string.Format("InBlackspot(object @{0})", wowObject.Location));
+                var coveringBlackspots =
+                    from blackspot in Query.FindCoveringBlackspots(wowObject.Location)
+                    select string.Format("Blackspot({0}, r:{1})", blackspot.Location, blackspot.Radius);
+
+                exclusionReasons.Add(string.Format("InBlackspot(object @{0}; {1})",
+                    wowObject.Location,
+                    string.Join(", ", coveringBlackspots)));
             }
 
             if (!Query.IsStateMatch_MeshNavigable(wowObject, coreAttributes.MovementBy))

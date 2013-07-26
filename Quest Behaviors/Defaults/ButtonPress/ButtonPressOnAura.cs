@@ -56,6 +56,9 @@ using System.Diagnostics;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+
+using Honorbuddy.QuestBehaviorCore;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -173,14 +176,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
             return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
                     .Where(target => (target.IsValid
                                       && MobIds.Contains((int)target.Entry)
-                                      && (TargetAurasShowing(target, TargetAuraToButtonMap).Count() > 0)
+                                      && TargetAurasShowing(target, TargetAuraToButtonMap).Any()
                                       && (target.Distance < HuntingGroundRadius)
                                       && !target.IsLocallyBlacklisted()
                                       && !BlacklistIfPlayerNearby(target)
-                                      && (IgnoreMobsInBlackspots
-                                          ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
-                                                                         target.Location)
-                                          : true)))
+                                      && Query.IsStateMatch_IgnoreMobsInBlackspots(target, IgnoreMobsInBlackspots)))
                     .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
         }
 

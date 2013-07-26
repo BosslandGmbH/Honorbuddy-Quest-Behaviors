@@ -411,7 +411,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     Targeting.Instance.WeighTargetsFilter += TargetFilter_WeighTargets;
                 }
 
-                Query.BlacklistsReset();
+                Utility.BlacklistsReset();
 
                 // Add temporary avoid mobs, if any were specified...
                 // NB: Ideally, we'd save and restore the original 'avoid mob' list.  However,

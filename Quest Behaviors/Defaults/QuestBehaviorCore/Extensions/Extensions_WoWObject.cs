@@ -12,6 +12,7 @@
 using System;
 
 using Styx;
+using Styx.CommonBot;
 using Styx.Pathing;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -34,6 +35,47 @@ namespace Honorbuddy.QuestBehaviorCore
                     (float)(wowUnit.MovementInfo.CurrentSpeed * atTime.TotalSeconds));
 
             return (anticipatedLocation);
+        }
+
+
+        // 30May2013-03:56UTC chinajade
+        public static void BlacklistForCombat(this WoWObject wowObject, TimeSpan duration)
+        {
+            Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull | BlacklistFlags.Combat, duration);
+        }
+
+
+        // 11Apr2013-03:56UTC chinajade
+        public static void BlacklistForInteracting(this WoWObject wowObject, TimeSpan duration)
+        {
+            Blacklist.Add(wowObject.Guid, BlacklistFlags.Interact, duration);
+        }
+
+
+        public static void BlacklistForPulling(this WoWObject wowObject, TimeSpan duration)
+        {
+            Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull, duration);
+        }
+
+
+        // 11Apr2013-04:41UTC chinajade
+        public static bool IsBlacklistedForCombat(this WoWObject wowObject)
+        {
+            return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat);
+        }
+
+
+        // 11Apr2013-04:41UTC chinajade
+        public static bool IsBlacklistedForInteraction(this WoWObject wowObject)
+        {
+            return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Interact);
+        }
+
+
+        // 4Jun2013-04:41UTC chinajade
+        public static bool IsBlacklistedForPulling(this WoWObject wowObject)
+        {
+            return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull);
         }
 
 

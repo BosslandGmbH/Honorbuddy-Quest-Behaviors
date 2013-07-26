@@ -406,7 +406,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                     && (wowUnit.HealthPercent >= TargetOnlyIfHealthPercentAbove)
                     && (wowUnit.HealthPercent <= TargetOnlyIfHealthPercentBelow)
                 // 'Core' checks...
-                    && !Query.IsBlacklistedForCombat(wowUnit)
+                    && !wowUnit.IsBlacklistedForCombat()
                     && Query.IsStateMatch_IgnoreMobsInBlackspots(wowUnit, IgnoreMobsInBlackspots)
                     && !Query.IsInCompetition(wowUnit, NonCompeteDistance)
                     && Query.IsStateMatch_MeshNavigable(wowUnit, MovementBy)

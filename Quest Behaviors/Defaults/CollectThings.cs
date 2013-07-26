@@ -74,6 +74,9 @@ using System.Xml;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+
+using Honorbuddy.QuestBehaviorCore;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
@@ -220,7 +223,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         private readonly TimeSpan Delay_MobConsumedExpiry = TimeSpan.FromMinutes(7);
         private readonly TimeSpan Delay_BlacklistPlayerTooClose = TimeSpan.FromSeconds(90);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(500);
         private string ItemName { get; set; }
         private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
@@ -320,16 +322,13 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             bool isViable;
 
             if (target == null)
-            { return (false); }
+                { return (false); }
 
             isViable = (target.IsValid
                         && (MobIds.Contains((int)target.Entry) || ObjectIds.Contains((int)target.Entry))
                         && !target.IsLocallyBlacklisted()
                         && !BlacklistIfPlayerNearby(target)
-                        && (IgnoreMobsInBlackspots
-                            ? Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots,
-                                                            target.Location)
-                            : true));
+                        && Query.IsStateMatch_IgnoreMobsInBlackspots(target, IgnoreMobsInBlackspots));
 
             if (isViable && (target is WoWUnit))
             {

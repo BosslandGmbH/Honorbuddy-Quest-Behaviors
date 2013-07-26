@@ -30,46 +30,17 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public static class Query
     {
-        // Do NOT make this static!
-        // We need a 'fresh list' each time the QB is started; otherwise, very bad things happen.
-        private static LocalBlacklist _interactBlacklist = new LocalBlacklist();
-
-
-        // 30May2013-03:56UTC chinajade
-        public static void BlacklistForCombat(WoWObject wowObject, TimeSpan duration)
+        public static IEnumerable<Blackspot> FindCoveringBlackspots(WoWPoint location)
         {
-            if (wowObject != null)
-            {
-                Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull | BlacklistFlags.Combat, duration);
-            }
+            return
+               (from blackspot in ProfileManager.CurrentProfile.Blackspots
+                where
+                    (blackspot.Location.Distance2D(location) <= blackspot.Radius)
+                    && (Math.Abs(blackspot.Location.Z - location.Z) <= blackspot.Height)
+                select blackspot);
         }
-
-
-        // 11Apr2013-03:56UTC chinajade
-        public static void BlacklistForInteracting(WoWObject wowObject, TimeSpan duration)
-        {
-            if (wowObject != null)
-            { 
-                _interactBlacklist.Add(wowObject.Guid, duration); 
-            }
-        }
-
-
-        public static void BlacklistForPulling(WoWObject wowObject, TimeSpan duration)
-        {
-            if (wowObject != null)
-            {
-                Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull, duration);
-            }
-        }
-
-
-        public static void BlacklistsReset()
-        {
-            _interactBlacklist = new LocalBlacklist();
-        }
-
-
+    
+    
         public static IEnumerable<WoWObject> FindMobsAndFactions(
             IEnumerable<int> mobIds,
             bool includeSelf = false,
@@ -182,27 +153,6 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        // 11Apr2013-04:41UTC chinajade
-        public static bool IsBlacklistedForCombat(WoWObject wowObject)
-        {
-            return (wowObject != null) && Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat);
-        }
-
-
-        // 11Apr2013-04:41UTC chinajade
-        public static bool IsBlacklistedForInteraction(WoWObject wowObject)
-        {
-            return (wowObject != null) && _interactBlacklist.Contains(wowObject.Guid);
-        }
-
-
-        // 4Jun2013-04:41UTC chinajade
-        public static bool IsBlacklistedForPulling(WoWObject wowObject)
-        {
-            return (wowObject != null) && Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull);
-        }
-        
-        
         public static bool IsExceptionReportingNeeded(Exception except)
         {
             var typeOfException = except.GetType();
@@ -340,6 +290,15 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 30May2013-08:11UTC chinajade
+        public static bool IsStateMatch_IgnoreMobsInBlackspots(WoWObject wowObject, bool ignoreMobsInBlackspots)
+        {
+            return
+                !ignoreMobsInBlackspots
+                || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location);
+        }
+
+
+        // 30May2013-08:11UTC chinajade
         public static bool IsStateMatch_MeshNavigable(WoWObject wowObject, MovementByType movementBy)
         {
             Contract.Requires(wowObject != null, context => "wowObject != null");
@@ -350,27 +309,10 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        // 27Jun2013-08:11UTC chinajade
-        public static bool IsStateMatch_NotMoving(WoWUnit wowUnit, bool nonMovingTargetWanted)
-        {
-            return
-                !nonMovingTargetWanted || !wowUnit.IsMoving;
-        }
-        
-        
-        // 30May2013-08:11UTC chinajade
-        public static bool IsStateMatch_IgnoreMobsInBlackspots(WoWObject wowObject, bool ignoreMobsInBlackspots)
-        {
-            return
-                ignoreMobsInBlackspots
-                || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location);
-        }
-
-
         // 28Apr2013-03:38UTC chinajade
         public static bool IsStateMatch_MobState(WoWObject wowObject, MobStateType requestedMobState, double mobHpPercentLeft = 100.0)
         {
-            WoWUnit wowUnit = wowObject as WoWUnit;
+            var wowUnit = wowObject as WoWUnit;
 
             if (wowUnit != null)
             {
@@ -386,6 +328,14 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
             return false;
+        }
+
+
+        // 27Jun2013-08:11UTC chinajade
+        public static bool IsStateMatch_NotMoving(WoWUnit wowUnit, bool nonMovingTargetWanted)
+        {
+            return
+                !nonMovingTargetWanted || !wowUnit.IsMoving;
         }
         
         
@@ -406,7 +356,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 && wowUnit.IsAlive
                 && !wowUnit.IsFriendly
                 && wowUnit.Attackable
-                && !IsBlacklistedForCombat(wowUnit);
+                && !wowUnit.IsBlacklistedForCombat();
         }
 
 
@@ -420,8 +370,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
             bool isViableForInteracting =
                 IsViable(wowObject)
-                && !IsBlacklistedForInteraction(wowObject)
-                && (ignoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location))
+                && !wowObject.IsBlacklistedForInteraction()
+                && IsStateMatch_IgnoreMobsInBlackspots(wowObject, ignoreMobsInBlackspots)
                 && !IsInCompetition(wowObject, nonCompeteDistance);
 
             return isViableForInteracting;
@@ -434,8 +384,8 @@ namespace Honorbuddy.QuestBehaviorCore
                                               double nonCompeteDistance)
         {
             return IsViableForFighting(wowUnit)
-                    && !IsBlacklistedForPulling(wowUnit)
-                    && (ignoreMobsInBlackspots || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowUnit.Location))
+                    && !wowUnit.IsBlacklistedForPulling()
+                    && IsStateMatch_IgnoreMobsInBlackspots(wowUnit, ignoreMobsInBlackspots)
                     && !IsInCompetition(wowUnit, nonCompeteDistance);
         }
     }
