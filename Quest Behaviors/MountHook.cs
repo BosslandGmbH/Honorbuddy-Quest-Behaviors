@@ -2,9 +2,11 @@ using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Database;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Pathing;
@@ -12,6 +14,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Honorbuddy.Quest_Behaviors.ForceSetVendor;
+using Honorbuddy.Quest_Behaviors.InteractWith;
 using Action = Styx.TreeSharp.Action;
 
 
@@ -75,32 +78,77 @@ namespace Honorbuddy.Quest_Behaviors.MountHook
         #endregion
 
         #region Vendors
-        //Hellfire
+        //Horde
+        private static int HordeOwFlightVendor = 44918;
+        private static int HordeHfFlightVendor = 35099;
+        private static int HordeFlightMount = 25474;
+
+        private static int BloodElfVendor;
+        private static int OrcVendor;
+        private static int TaurenVendor;
+        private static int TrollVendor;
+        private static int GoblinVendor;
+        private static int UndeadVendor;
+        private static int HPandaVendor;
+
+        //Alliance
+        private static int AllianceOwFlightVendor = 43768;
+        private static int AllianceHfFlightVendor = 35099;
+        private static int AllianceFlightMount = 25471;
+
+        private static int HumanVendor = 384;
+        private static int DwarfVendor = 1261;
+        private static int NightElfVendor;
+        private static int GnomeVendor = 7955;
+        private static int GoatVendor;
+        private static int WorgenVendor;
+        private static int APandaVendor = 65068; //http://www.wowhead.com/npc=65068
+
+        private static int HumanVendorMount = 2411;
+        private static int DwarfVendorMount = 5873;
+        private static int NightElfVendorMount;
+        private static int GnomeVendorMount = 8595;
+        private static int GoatVendorMount;
+        private static int WorgenVendorMount;
+        private static int APandaVendorMount = 87795; //http://www.wowhead.com/npc=65068
 
 
-        //Stormwind
-
-        //Orgimar
-
-
-        //Horde mounts
-
-        //Alliance mounts
 
         #endregion
 
+        private static bool CanLearn
+        {
+            get
+            {
+                
+                var gby = Me.BagItems.FirstOrDefault(r => r.Entry == 25474);
 
+                if (gby != null)
+                {
+                    //Ignore the spell 'learning'
+                    var mountId = gby.ItemInfo.SpellId.FirstOrDefault(r => r != 55884);
+                    
+                    if (Mount.Mounts.Any(r => r.CreatureSpellId == mountId))
+                        return false;
+                    return true;
+                }
+
+                return false;
+            }
+        }
         private static int FlightLevel
         {
             get
             {
+                
+
                 if (SpellManager.HasSpell(ColdWeatherFlying))
                     return 3;
 
                 if (SpellManager.HasSpell(ExpertRiding))
                     return 2;
 
-                if (SpellManager.HasSpell(ApprenticeRiding))
+                if (SpellManager.HasSpell(ApprenticeRiding) || SpellManager.HasSpell(JourneyManRiding))
                     return 1;
 
                 return 0;
@@ -143,10 +191,70 @@ namespace Honorbuddy.Quest_Behaviors.MountHook
                 return 0;
             }
         }
+        private static int MountId
+        {
+            get
+            {
+                if (OldWorld)
+                {
+                    return Me.IsAlliance ? AllianceLowbie : HordieLowbie;
+                }
+                if (Hellfire)
+                {
+                    return Me.IsAlliance ? AllianceFlight : HordeFlight;
+                }
+
+
+                return 0;
+            }
+        }
+
+        private static int VendorId
+        {
+            get
+            {
+                if (OldWorld)
+                {
+                    if (Me.Level >= 60)
+                    {
+                        if (Me.IsAlliance)
+                        {
+                            return AllianceOwFlightVendor;
+                        }
+                        return HordeOwFlightVendor;
+                    }
+                    else
+                    {
+                        if (Me.IsAlliance)
+                        {
+                            return AllianceOwFlightVendor;
+                        }
+                        return HordeOwFlightVendor;
+                    }
+                }
+                if (Hellfire)
+                {
+                    return Me.IsAlliance ? AllianceFlight : HordeFlight;
+                }
+
+
+                return 0;
+            }
+        }
+
+        //Races that give us problems:
+        //Horde
+        //Blood elf -> Silvermoon
+        //Undead -> Undercity
+        //Alliance
+        //Goats -> Goat land
+        //Night elf ->Darnassus
+        //Worgen -> ???
+
 
         private static void SetupTrainer()
         {
-            Logging.Write(System.Windows.Media.Colors.Aquamarine,"Creating ForceTrainRiding object");
+            Logging.Write(System.Windows.Media.Colors.Aquamarine, "Creating ForceTrainRiding object");
             var args =  new Dictionary<string,string> {{"MobId", TrainerId.ToString()}};
 
             gooby = new ForceTrainRiding(args);
@@ -154,9 +262,19 @@ namespace Honorbuddy.Quest_Behaviors.MountHook
             TreeHooks.Instance.ReplaceHook("GoobyHook", gooby.Branch);
         }
 
-        private static void CleanUpTrainer()
+        private static void SetupPurchaseMount()
         {
-            Logging.Write(System.Windows.Media.Colors.Aquamarine, "Cleaningup ForceTrainRiding object");
+            Logging.Write(System.Windows.Media.Colors.Aquamarine, "Creating InteractWith object");
+            var args = new Dictionary<string, string> { { "MobId", TrainerId.ToString() } };
+
+            gooby = new InteractWith.InteractWith(args);
+            gooby.OnStart();
+            TreeHooks.Instance.ReplaceHook("GoobyHook", gooby.Branch);
+        }
+
+        private static void CleanUpCustomForcedBehavior()
+        {
+            Logging.Write(System.Windows.Media.Colors.Aquamarine, "Cleaningup CustomForcedBehavior object");
             TreeHooks.Instance.RemoveHook("GoobyHook", gooby.Branch);
             gooby.Dispose();
             gooby = null;
@@ -164,19 +282,37 @@ namespace Honorbuddy.Quest_Behaviors.MountHook
 
 
         //Composites
-        private static ForceTrainRiding gooby = null;
-        private static Composite TrainRiding
+        private static CustomForcedBehavior gooby = null;
+        private static Composite runOtherComposite
         {
             get
             {
                 return new Decorator(r=> gooby != null, 
                 new PrioritySelector(
-                    new Decorator(r => gooby.IsDone, new Action(r => CleanUpTrainer())),
+                    new Decorator(r => gooby.IsDone, new Action(r => CleanUpCustomForcedBehavior())),
                     new Decorator(r => !gooby.IsDone, new HookExecutor("GoobyHook"))
             ));
             }
         }
 
+
+        private static Composite BuyMount
+        {
+            get
+            {
+
+                
+                return new PrioritySelector(
+                    new Decorator(r=> FlightLevel == 1 && !Mount.GroundMounts.Any(), new Action()),
+                    new Decorator(r=> FlightLevel == 1 && !Mount.GroundMounts.Any(), new Action())
+                    
+                    );
+
+            }
+        }
+
+        private static uint VendorTarget;
+        private static NpcResult RidingTrainer { get { return (NpcQueries.GetNpcById(VendorTarget)); } }
         private static Composite HellfireComposite
         {
             get
@@ -202,7 +338,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHook
             {
                 if (_myHook == null)
                 {
-                    _myHook = new Decorator(r => !Me.Combat, new PrioritySelector(TrainRiding, OldWordComposite, HellfireComposite));
+                    _myHook = new Decorator(r => !Me.Combat, new PrioritySelector(runOtherComposite, OldWordComposite, HellfireComposite));
                     return _myHook;
                 }
                 else
