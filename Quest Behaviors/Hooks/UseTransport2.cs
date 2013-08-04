@@ -8,8 +8,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
+using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -23,10 +24,10 @@ using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
 
 
-namespace Honorbuddy.Quest_Behaviors.UseTransport
+namespace Honorbuddy.Quest_Behaviors.Hooks
 {
-    [CustomBehaviorFileName(@"UseTransport")]
-    public class UseTransport : CustomForcedBehavior
+    [CustomBehaviorFileName(@"Hooks\UseTransport2")]
+    public class UseTransport2 : CustomForcedBehavior
     {
         /// <summary>
         /// Allows you to use Transports.
@@ -39,7 +40,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         /// StandOn: The point you wish the stand while you are in the transport
         /// </summary>
         ///
-        public UseTransport(Dictionary<string, string> args)
+        public UseTransport2(Dictionary<string, string> args)
             : base(args)
         {
             try
@@ -49,7 +50,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 // ...and also used for IsDone processing.
 
                 StartLocation = GetAttributeAsNullable<WoWPoint>("TransportStart", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                EndLocation = GetAttributeAsNullable<WoWPoint>("TransportEnd", false, ConstrainAs.WoWPointNonEmpty,null) ?? Me.Location;
+                EndLocation = GetAttributeAsNullable<WoWPoint>("TransportEnd", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 GetOffLocation = GetAttributeAsNullable<WoWPoint>("GetOff", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 StandLocation = GetAttributeAsNullable<WoWPoint>("StandOn", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 WaitAtLocation = GetAttributeAsNullable<WoWPoint>("WaitAt", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
@@ -91,6 +92,8 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
+        private bool _usedTransport;
+        private bool _wasOnWaitLocation;
 
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -100,7 +103,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
 
 
-        ~UseTransport()
+        ~UseTransport2()
         {
             Dispose(false);
         }
@@ -149,7 +152,9 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 var transport = ObjectManager.GetObjectsOfType<WoWGameObject>(true, false).FirstOrDefault(o => o.Entry == TransportId);
 
                 if (transport == null)
+                {
                     return WoWPoint.Empty;
+                }
 
                 //Tripper.Tools.Math.Matrix m = transport.GetWorldMatrix();
 
@@ -162,50 +167,66 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 
         #region Overrides of CustomForcedBehavior
 
+        private uint startingMap;
+
+        private bool ReachedWaiting;
+        private Composite GetToWaitSpot
+        {
+            get
+            {
+                return new Decorator(r => !ReachedWaiting,new PrioritySelector(
+
+                    new Decorator(r => WaitAtLocation.Distance(Me.Location) < 2, new Action(r=>ReachedWaiting = true)),
+                    new Decorator(r => WaitAtLocation.Distance(Me.Location) > 2, new Action(r=>Navigator.MoveTo(WaitAtLocation)))
+
+                    ));
+            }
+        }
+
+        private bool jumped = false;
+        private Composite GetOnTransport
+        {
+            get
+            {
+                return new Decorator(r => startingMap == Me.MapId && ReachedWaiting && TransportLocation.Distance(StartLocation) < 1, new PrioritySelector(
+                    new Decorator(r => !jumped && StandLocation.Distance2D(Me.Location) < 1.5 && !Me.IsMoving && Me.Mounted,new Action(r=>Flightor.MountHelper.Dismount())),
+
+                    new Decorator(r => !jumped && StandLocation.Distance2D(Me.Location) < 1.5 && !Me.IsMoving && !Me.Mounted, new Action(r =>
+                                        {
+                                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(50));
+                                            jumped = true;
+                                        })),
+                    new Decorator(r => StandLocation.Distance2D(Me.Location) > 2, new Action(r => Navigator.MoveTo(StandLocation)))
+
+                    ));
+            }
+        }
+
+        private bool slept;
+        private Composite GetOffTransport
+        {
+            get
+            {
+                return new Decorator(r => startingMap != Me.MapId && TransportLocation.Distance(EndLocation) < 1,
+                   
+                    new PrioritySelector(
+                        new Decorator(r => !slept, new Action(r =>
+                        {
+                            Thread.Sleep(1500);
+                            slept = true;
+                        })),
+                        new Decorator(r => GetOffLocation.Distance(Me.Location) < 1, new Action(r =>landed = true
+                        )),
+                    new Decorator(r => GetOffLocation.Distance(Me.Location) > 2, new Action(r => WoWMovement.ClickToMove(GetOffLocation)))
+                    
+
+                    ));
+            }
+        }
+
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(
-                        ret => GetOffLocation != WoWPoint.Empty && Me.Location.DistanceSqr(GetOffLocation) < 2*2,
-                        new Sequence(
-                            new Action(ret => LogMessage("Info", "Successfully used the transport.")),
-                            new Action(ret => _isBehaviorDone = true))),
-                    new Decorator(
-                        ret => Me.IsOnTransport,
-                        new PrioritySelector(
-                             new Decorator(
-                                ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(EndLocation) < 1.5*1.5,
-                                new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving out of transport")),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)))),
-                            new Decorator(
-                                ret => StandLocation != WoWPoint.Empty && Me.Location.Distance2DSqr(StandLocation) > 2 * 2,
-                                new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving to stand location")),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
-                            new Action(ret => LogMessage("Info", "Waiting for the end location"))
-                        )),
-                    new Decorator(
-                        ret => !Me.IsMoving,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(StartLocation) < 1.5*1.5 && WaitAtLocation.DistanceSqr(Me.Location) < 2 * 2,
-                                new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving inside transport")),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
-                            new Decorator(
-                                ret => WaitAtLocation.DistanceSqr(Me.Location) > 2 * 2,
-                                new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving to wait location")),
-                                    new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
-                            new Sequence(
-                                new DecoratorContinue(
-                                    ret => Me.Mounted,
-                                    new Action(ret => Mount.Dismount())),
-                                new Action(ret => LogMessage("Info", "Waiting for transport")))
-                            ))
-                    ));
+            return _root ?? (_root = new PrioritySelector(DoneYet,GetToWaitSpot, GetOffTransport, GetOnTransport));
         }
 
 
@@ -221,6 +242,21 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
             get { return (_isBehaviorDone); }
         }
 
+        public bool landed;
+        public Composite DoneYet
+        {
+            get
+            {
+                return
+                    new Decorator(ret => landed, new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+
+            }
+        }
 
         public override void OnStart()
         {
@@ -255,6 +291,8 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;
+
+                startingMap = Me.MapId;
 
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
