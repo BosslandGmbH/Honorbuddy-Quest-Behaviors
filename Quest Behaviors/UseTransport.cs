@@ -179,11 +179,6 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                                 new Sequence(
                                     new Action(ret => LogMessage("Info", "Moving out of transport")),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)))),
-                            new Decorator(
-                                ret => StandLocation != WoWPoint.Empty && Me.Location.Distance2DSqr(StandLocation) > 2 * 2,
-                                new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving to stand location")),
-                                    new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
                             new Action(ret => LogMessage("Info", "Waiting for the end location"))
                         )),
                     new Decorator(
