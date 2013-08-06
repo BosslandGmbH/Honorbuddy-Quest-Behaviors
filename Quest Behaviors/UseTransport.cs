@@ -162,6 +162,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 
         #region Overrides of CustomForcedBehavior
 
+        private bool _usedTransport;
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
@@ -169,17 +170,22 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                     new Decorator(
                         ret => GetOffLocation != WoWPoint.Empty && Me.Location.DistanceSqr(GetOffLocation) < 2*2,
                         new Sequence(
+                            new Action(ret => _usedTransport = false),
                             new Action(ret => LogMessage("Info", "Successfully used the transport.")),
                             new Action(ret => _isBehaviorDone = true))),
                     new Decorator(
-                        ret => Me.IsOnTransport,
+                        ret => Me.IsOnTransport || _usedTransport,
                         new PrioritySelector(
                              new Decorator(
                                 ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(EndLocation) < 1.5*1.5,
                                 new Sequence(
                                     new Action(ret => LogMessage("Info", "Moving out of transport")),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)))),
-                            new Action(ret => LogMessage("Info", "Waiting for the end location"))
+                            new Action(ret =>
+                                {
+                                    _usedTransport = true;
+                                    LogMessage("Info", "Waiting for the end location");
+                                })
                         )),
                     new Decorator(
                         ret => !Me.IsMoving,
