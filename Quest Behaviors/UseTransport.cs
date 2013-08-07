@@ -256,7 +256,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;
-
+                CharacterSettings.Instance.UseFlightPaths = false;
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
