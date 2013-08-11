@@ -40,6 +40,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? string.Empty;
                 Distance = GetAttributeAsNullable<double>("Distance", false, new ConstrainTo.Domain<double>(0.25, double.MaxValue), null) ?? 10.0;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
@@ -66,6 +67,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         public WoWPoint Destination { get; private set; }
         public string DestinationName { get; private set; }
         public double Distance { get; private set; }
+        public bool Land { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -127,7 +129,12 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
         protected override Composite CreateBehavior()
         {
-            return (_root ?? (_root = new Action(ret => Flightor.MoveTo(Destination))));
+            return (_root ?? (_root = 
+                new PrioritySelector(
+                    new Decorator(
+                        ret => Land && Destination.DistanceSqr(StyxWoW.Me.Location) < Distance * Distance,
+                        new Action(ret => Mount.Dismount())),
+                    new Action(ret => Flightor.MoveTo(Destination, true)))));
         }
 
 
@@ -142,7 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         {
             get
             {
-                return ((Destination.Distance(StyxWoW.Me.Location) <= Distance)     // normal completion
+                return ((Destination.Distance(StyxWoW.Me.Location) <= Distance) && (!Land || !StyxWoW.Me.Mounted)     // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
