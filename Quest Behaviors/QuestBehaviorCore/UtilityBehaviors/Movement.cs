@@ -152,7 +152,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                                 else if (Me.Location.Distance(immediateDestination) > Navigator.PathPrecision)
                                                 {
                                                     // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
-                                                    Flightor.MoveTo(immediateDestination, 15.0f);
+                                                    Flightor.MoveTo(immediateDestination, 15.0f, true);
                                                     moveResult = MoveResult.Moved;
                                                 }
 

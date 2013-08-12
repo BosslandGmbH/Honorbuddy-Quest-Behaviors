@@ -760,7 +760,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                             new ActionSetActivity(ret => "[MrFishIt] Moving to Ground"),
                                             new Action(ret => Logging.WriteDiagnostic("[MrFishIt] - Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) + " (Mounted)")),
                                             //new Action(ret => Logging.Write(System.Drawing.Color.DarkCyan, "{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location))),
-                                            new Action(ret => Flightor.MoveTo(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))
+                                            new Action(ret => Flightor.MoveTo(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), true))
                                         )
                                 ))
                             ))

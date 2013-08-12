@@ -448,8 +448,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                             LogMessage("info", "Finished");
                         })),
 
-                    new Decorator(context => Me.Mounted,
-                        new Action(context => { Mount.Dismount(); })),
+                    new Mount.ActionLandAndDismount(),
 
                     // If Young Crocolisks are attacking, jump up and down...
                     // NB: If we started jumping during combat, we might need to turn it off

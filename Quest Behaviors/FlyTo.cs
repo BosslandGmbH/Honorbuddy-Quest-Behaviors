@@ -133,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 new PrioritySelector(
                     new Decorator(
                         ret => Land && Destination.DistanceSqr(StyxWoW.Me.Location) < Distance * Distance,
-                        new Action(ret => Mount.Dismount())),
+                        new Mount.ActionLandAndDismount()),
                     new Action(ret => Flightor.MoveTo(Destination, true)))));
         }
 

@@ -496,11 +496,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                             // At anchor point, time to start hunting again...
                             new Decorator(context => Me.Mounted,
-                                new Action(context =>
-                                {
-                                    CharacterSettings.Instance.UseMount = false;
-                                    Mount.Dismount();
-                                })),
+                                new Sequence(
+                                    new Mount.ActionLandAndDismount(),
+                                    new Action(context =>
+                                    {
+                                        CharacterSettings.Instance.UseMount = false;
+                                    }))),
 
                             new Action(context => { State_Behavior = StateType_Behavior.Hunting; })
                         )),
@@ -1029,8 +1030,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                         Me.Location.Distance((WoWPoint)roughAimPositionContext));
                                     Navigator.MoveTo((WoWPoint)roughAimPositionContext);
                                 })),
-                            new Decorator(context => Me.Mounted,
-                                new Action(context => { Mount.Dismount(); })),
+                            new Mount.ActionLandAndDismount(),
                             new Decorator(context => Me.IsMoving,
                                 new Action(context => { WoWMovement.MoveStop(); })),
                             new Decorator(context => !Me.IsFacing(SelectedKegBomb),
@@ -1059,8 +1059,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                                 new Decorator(context => Me.Location.Distance(SelectedKegBombAimPosition) > Navigator.PathPrecision,
                                     new Action(context => { Navigator.MoveTo(SelectedKegBombAimPosition); })),
-                                new Decorator(context => Me.Mounted,
-                                    new Action(context => { Mount.Dismount(); })),
+                                new Mount.ActionLandAndDismount(),
                                 new Decorator(context => Me.IsMoving,
                                     new Action(context => { WoWMovement.MoveStop(); })),
                                 new Decorator(context => !Me.IsFacing(SelectedKegBomb),

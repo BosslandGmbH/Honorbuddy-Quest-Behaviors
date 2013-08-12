@@ -201,9 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                                     new Action(ret => LogMessage("Info", "Moving to wait location")),
                                     new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
                             new Sequence(
-                                new DecoratorContinue(
-                                    ret => Me.Mounted,
-                                    new Action(ret => Mount.Dismount())),
+                                new Mount.ActionLandAndDismount(),
                                 new Action(ret => LogMessage("Info", "Waiting for transport")))
                             ))
                     ));

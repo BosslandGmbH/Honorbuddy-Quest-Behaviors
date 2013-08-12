@@ -202,7 +202,7 @@ namespace Styx.Bot.Quest_Behaviors {
                                                 new Action(context => Navigator.MoveTo(MyHotSpot))
                                             ),
                                             new DecoratorContinue(context => !Navigator.CanNavigateFully(Me.Location, MyHotSpot),
-                                                new Action(context => Flightor.MoveTo(MyHotSpot))
+                                                new Action(context => Flightor.MoveTo(MyHotSpot, true))
                                             )
                                         )
                                     ),

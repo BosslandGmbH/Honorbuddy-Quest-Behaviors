@@ -113,13 +113,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
                                                TreeRoot.StatusText = "Moving To Mustang";
                                            })),
                         new DecoratorContinue(ctx => ctx != null && ((WoWUnit)ctx).DistanceSqr <= 5 * 5,
-                            new Action(ctx =>
+                            new Sequence(
+                                new Mount.ActionLandAndDismount(),
+                                new Action(ctx =>
                                            {
                                                Logging.Write("Interacting with Mustang");
-                                               if (Me.Mounted)
-                                                   Mount.Dismount();
                                                ((WoWUnit)ctx).Interact();
-                                           })))),
+                                           }))))),
                 // Find the nearest spider and if none exist then move to thier spawn location
                     new Decorator(ret => _currentTarget == null || !_currentTarget.IsValid || !_currentTarget.IsAlive,
                             new Action(ctx =>

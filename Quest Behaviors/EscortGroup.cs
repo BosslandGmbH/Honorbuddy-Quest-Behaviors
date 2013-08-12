@@ -1326,9 +1326,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).Name,
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).InteractRange),
 
-                        // TODO: In the future, we may need to 'land, if flying'...
-                        new Decorator(gossipUnitContext => Me.Mounted,
-                            new Action(gossipUnitContext => { Mount.Dismount(); })),
+                        new Mount.ActionLandAndDismount(),
 
                         // Interact with unit to open the Gossip dialog...
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
@@ -1392,15 +1390,15 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                 new Decorator(targetContext => IsViableForFighting((WoWUnit)targetContext),
                     new PrioritySelector(               
                         new Decorator(targetContext => ((WoWUnit)targetContext).Distance > CharacterSettings.Instance.PullDistance,
-                            new Action(targetContext => { Navigator.MoveTo(((WoWUnit)targetContext).Location); })),
+                            new Action(targetContext => Navigator.MoveTo(((WoWUnit)targetContext).Location))),
                         new Decorator(targetContext => Me.CurrentTarget != (WoWUnit)targetContext,
-                            new Action(targetContext =>
-                            {
-                                BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill);
-                                ((WoWUnit)targetContext).Target();
-                                if (Me.Mounted)
-                                    { Mount.Dismount(); }
-                            })),
+                            new Sequence(
+                                new Action(targetContext =>
+                                {
+                                    BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill);
+                                    ((WoWUnit)targetContext).Target();
+                                }),
+                                new Mount.ActionLandAndDismount())),
                         new Decorator(targetContext => !((WoWUnit)targetContext).IsTargetingMeOrPet,
                             new PrioritySelector(
                                 // The NeedHeal and NeedCombatBuffs are part of legacy custom class support

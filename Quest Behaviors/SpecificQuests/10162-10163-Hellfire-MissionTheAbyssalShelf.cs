@@ -218,8 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                                         context => FlightMaster.SafeName,
                                         context => MovementBy)),
                                 new UtilityBehaviorPS.MoveStop(),
-                                new Decorator(context => Me.Mounted,
-                                    new Action(context => { Mount.Dismount(); })),
+                                new Mount.ActionLandAndDismount(),
                                 new Decorator(context => !GossipFrame.Instance.IsVisible,
                                     new Action(context => { FlightMaster.Interact(); })),
                                 new Action(context => { GossipFrame.Instance.SelectGossipOption(GossipOption); })

@@ -419,8 +419,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                         new Decorator(context => _combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) <= KobaiSafePullAreaRadius,
                             new PrioritySelector(
                                 new Action(context => { LogMessage("info", "Engaging Kobai"); return RunStatus.Failure; }),
-                                new Decorator(context => Me.Mounted,
-                                    new Action(context => { Mount.Dismount(); })),
+                                new Mount.ActionLandAndDismount(),
                                 new Decorator(context => (Me.CurrentTarget != _combatContext.Kobai),
                                     new Action(context =>
                                     {
@@ -477,8 +476,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                     )),
 
                 // We're at start position, dismount...
-                new Decorator(context => Me.Mounted,
-                    new Action(context => { Mount.Dismount(); }))
+                new Mount.ActionLandAndDismount()
             );
         }
         #endregion // Behavior helpers

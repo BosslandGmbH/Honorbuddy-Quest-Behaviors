@@ -338,16 +338,17 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                 {
                                     TreeRoot.StatusText = "Moving To Start Location - Yards Away: " + StartObjectivePoint.Distance(Me.Location);
 
-                                    bool testfly = StyxWoW.Me.MovementInfo.CanFly;
+                                    var testfly = StyxWoW.Me.MovementInfo.CanFly;
 
-                                    Logging.Write("" + testfly);
+                                    //Logging.Write("" + testfly);
 
 
                                     Flightor.MoveTo(StartObjectivePoint);
 
                                     // WoWMovement.ClickToMove(StartObjectivePoint);
 
-                                    _vehicle.Target();
+                                    if (StyxWoW.Me.CurrentTarget != _vehicle)
+                                        _vehicle.Target();
                                 }
                                 return RunStatus.Running;
                             })),

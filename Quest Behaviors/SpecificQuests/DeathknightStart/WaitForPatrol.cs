@@ -442,8 +442,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                         context => MovementBy)),
 
                 // Dismount once we've arrived at mob or destination...
-                new Decorator(context => Me.Mounted,
-                    new Action(context => { Mount.Dismount(); })),
+                new Mount.ActionLandAndDismount(),
 
                 // Target and Face the AvoidNpc, as feedback to the user...
                 new ActionFail(context => { Utility.Target(Mob_ToAvoid, true); }),
