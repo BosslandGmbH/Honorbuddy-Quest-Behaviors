@@ -242,7 +242,6 @@
     <Compile Include="SpecificQuests\Kalimdor\Teldrassil\14005-TheVengeanceOfElune.cs" />
     <Compile Include="TaxiRide.cs" />
     <Compile Include="TheEndlessFlowHook.cs" />
-    <Compile Include="ToggleCombat.cs" />
     <Compile Include="UseGameObject.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
     <Compile Include="Vehicles\NoControlVehicle.cs" />
