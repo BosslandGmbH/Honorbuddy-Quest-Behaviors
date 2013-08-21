@@ -35,10 +35,13 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
     {
         #region Constructor and Argument Processing
         public RocketRescue_24910(Dictionary<string, string> args)
-            : base(new Dictionary<string, string>() { { "QuestId", "24910" } }, false)
+            : base(args)
         {
             try
-            {   
+            {
+                QuestId = 24910;
+                TerminationChecksQuestProgress = false;
+
                 AuraId_EmergencyRocketPack = 75730;         // http://wowhead.com/spell=75730 (applies to us)
                 AuraId_Parachute = 54649;                   // http://wowhead.com/spell=54649 (applies to us)
                 AuraId_RocketPack = 72359;                  // http://wowhead.com/spell=72359 (applies to mob)

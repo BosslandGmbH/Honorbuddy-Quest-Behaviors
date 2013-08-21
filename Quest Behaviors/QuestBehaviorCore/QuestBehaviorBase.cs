@@ -45,6 +45,17 @@
 //          evaluates to 'true', the behavior will be terminated.
 //          NB: the behavior may also terminate due to other reasons.  For instance, a required
 //          item is not in inventory, the quest is already complete, etc.
+//      TerminationChecksQuestProgress [optional; Default: true]
+//          This option is only considered when the QuestId attribute is also provided.
+//          If true (the default), then this behavior considers itself 'done' when the
+//          quest completes.
+//          If false, the behavior will continue to run after the Quest completes.  This
+//          implies that you will need to supply a TerminateWhen attribute, or some other
+//          technique (e.g., WaitForNpcs="False") that allows the behavior to terminate.
+//          Even if this attribute is false, the behavior will not run if the quest
+//          is already complete.  I.e., the TerminationChecksQuestProgress attribute
+//          is only consulted if it is determined that the behavior needs to run in the
+//          first place.
 //
 // BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
 // See the "Examples" section for typical usage.
@@ -130,12 +141,10 @@ namespace Honorbuddy.QuestBehaviorCore
     public abstract partial class QuestBehaviorBase : CustomForcedBehavior
     {
         #region Consructor and Argument Processing
-        protected QuestBehaviorBase(Dictionary<string, string> args,
-                                    bool isDoneChecksQuestProgress = true)
+        protected QuestBehaviorBase(Dictionary<string, string> args)
             : base(args)
         {
             QBCLog.BehaviorLoggingContext = this;
-            _isDoneChecksQuestProgress = isDoneChecksQuestProgress;
 
             try
             {
@@ -156,6 +165,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
                 TerminateWhen = ConditionHelper.ParseConditionString(terminateWhenExpression);
+                TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
             }
 
             catch (Exception except)
@@ -176,16 +186,20 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        // Variables for Attributes provided by caller
-        public bool IgnoreMobsInBlackspots { get; private set; }
-        public double MaxDismountHeight { get; private set; }
-        public MovementByType MovementBy { get; set; }
-        public double NonCompeteDistance { get; private set; }
-        public int QuestId { get; private set; }
-        public int QuestObjectiveIndex { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public Func<bool> TerminateWhen { get; private set; }
+        // Variables for Attributes provided by caller...
+        // NB: The 'setters' are 'protected' (instead of 'private') in case the concrete QB needs
+        // to reparse some information.  It is _very_ bad form to use the setters outside of
+        // the base-class' or concrete-class' constructor.
+        public bool IgnoreMobsInBlackspots { get; protected set; }
+        public double MaxDismountHeight { get; protected set; }
+        public MovementByType MovementBy { get; protected set; }
+        public double NonCompeteDistance { get; protected set; }
+        public int QuestId { get; protected set; }
+        public int QuestObjectiveIndex { get; protected set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
+        public Func<bool> TerminateWhen { get; protected set; }
+        public bool TerminationChecksQuestProgress { get; protected set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: QuestBehaviorBase.cs 719 2013-07-26 11:08:04Z dogan $"; } }
@@ -340,7 +354,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 return _isBehaviorDone     // normal completion
                         || TerminateWhen()
                         || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                        || (_isDoneChecksQuestProgress
+                        || (TerminationChecksQuestProgress
                             && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
@@ -382,7 +396,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            // NB: Since the IsDone property may skip checking the 'progress conditions', we need to explicltly
+            // check them here to see if we even need to start the behavior.
+            if (!(IsDone || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)))
             {
                 // Monitored Behaviors...
                 if (QuestBehaviorCoreSettings.Instance.MonitoredBehaviors.Contains(GetType().Name))
