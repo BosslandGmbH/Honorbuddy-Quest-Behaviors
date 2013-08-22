@@ -652,7 +652,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 Environment.NewLine,
                 QBCLog.GetVersionedBehaviorName(this),
                 ((quest != null)
-                    ? string.Format("\"{0}\" (QuestId: {1})", quest.Name, QuestId)
+                    ? string.Format("\"{0}\" (http://wowhead.com/quest={1})", quest.Name, QuestId)
                     : "In Progress (no associated quest)"),
                 (extraGoalTextDescription ?? string.Empty),
                 Utility.GetProfileReference(Element));
