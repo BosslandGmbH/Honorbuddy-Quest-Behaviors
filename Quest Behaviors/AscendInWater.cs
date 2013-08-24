@@ -95,6 +95,8 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
+                WoWMovement.MoveStop();
+
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
             }
