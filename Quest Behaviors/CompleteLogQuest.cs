@@ -128,7 +128,10 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 
 			                      // Complete the quest, and accept the next quest if there is one. This is needed to make this compatible with the CompleteQuestLog quest behavior
 			                      // which automatically accepted new quests.
-			                      new Sequence(
+								  new Sequence(
+									  new DecoratorContinue(QuestContinueButtonShown,
+										new Action(ctx => PressContinueButton(ctx))),
+
 				                      new DecoratorContinue(QuestHasRewards,
 										  new ActionSelectReward()),
 				                      // Just wait for a bit before we turn in, so it's easier to see what's going on
@@ -151,6 +154,18 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 
 			var choices = quest.GetRewardChoices();
 			return choices.Any(choice => choice.ItemId != 0);
+		}
+
+		private static readonly Frame _questContinueButtonFrame = new Frame("QuestFrameCompleteButton");
+		private bool QuestContinueButtonShown(object context)
+		{
+			return _questContinueButtonFrame.IsVisible;
+		}
+
+		private RunStatus PressContinueButton(object context)
+		{
+			QuestFrame.Instance.ClickContinue();
+			return RunStatus.Success;
 		}
 
         public override void Dispose()
