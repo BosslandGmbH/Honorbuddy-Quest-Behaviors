@@ -12,10 +12,12 @@
 //
 using System;
 using System.Collections.Generic;
-
+using System.Linq;
+using Bots.Quest.Actions;
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -61,15 +63,12 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
         public static int QuestId { get; private set; }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
         private bool _isDisposed;
-        private bool _newQuest;
         private Composite _root;
 
+	    private bool _forcedDone;
+
         // Private properties
-        private TimeSpan Delay_WaitForNewQuestOfferred = TimeSpan.FromMilliseconds(5000);
-        private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private int QuestIndexId { get { return (Lua.GetReturnVal<int>("return  GetQuestLogIndexByID(" + QuestId + ")", 0)); } }
         private string QuestName { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -97,7 +96,6 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
                 }
 
                 // Clean up unmanaged resources (if any) here...
-                Lua.Events.DetachEvent("QUEST_DETAIL", HandleQuestDetail);
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -108,45 +106,52 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
             _isDisposed = true;
         }
 
-
-        public void HandleQuestDetail(object obj, LuaEventArgs args)
-        {
-            _newQuest = true;
-        }
-
-
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
-        {
-            return (_root ?? (_root =
-                new PrioritySelector(
+	    protected override Composite CreateBehavior()
+	    {
+		    return (_root ?? (_root =
+		                      new PrioritySelector(
+			                      // If we don't have the quest in our logs, we have already turned it in
+			                      new Decorator(ctx => !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId),
+			                                    new ActionAlwaysSucceed()),
 
-                    new Decorator(ret => _isBehaviorDone,
-                        new ActionAlwaysSucceed()),
+			                      // Make sure we've the quest frame opened with the correct quest
+			                      new Decorator(
+				                      ctx => !QuestFrame.Instance.IsVisible || QuestFrame.Instance.CurrentShownQuestId != QuestId,
+				                      new Sequence(
+					                      new Action(ctx => Lua.DoString("ShowQuestComplete(GetQuestLogIndexByID({0}))", QuestId)),
+					                      new Wait(3,
+					                               ctx =>
+					                               QuestFrame.Instance.IsVisible && QuestFrame.Instance.CurrentShownQuestId == QuestId,
+					                               new ActionAlwaysSucceed()))),
 
-                    new Sequence(
-                            new Action(delegate
-                            {
-                                TreeRoot.StatusText = "Completing Log Quest: " + QuestName;
-                                Lua.DoString("ShowQuestComplete({0})", QuestIndexId);
-                            }),
-                            new WaitContinue(Delay_WowClientLagTime + TimeSpan.FromSeconds(3), ret => false, new ActionAlwaysSucceed()),
-                            new Action(delegate { Lua.DoString("CompleteQuest()"); }),
-                            new WaitContinue(Delay_WowClientLagTime + TimeSpan.FromSeconds(3), ret => false, new ActionAlwaysSucceed()),
-                            new Action(delegate { Lua.DoString("GetQuestReward({0})", 1); }),
-                            new WaitContinue(Delay_WowClientLagTime + TimeSpan.FromSeconds(5), ret => _newQuest,
-                                                new Action(ret => Lua.DoString("AcceptQuest()"))),
-                            new Action(delegate
-                            {
-                                Lua.DoString("CloseQuest()");
-                                TreeRoot.StatusText = "Finished!";
-                                _isBehaviorDone = true;
-                            })
-                        ))
-                    ));
-        }
+			                      // Complete the quest, and accept the next quest if there is one. This is needed to make this compatible with the CompleteQuestLog quest behavior
+			                      // which automatically accepted new quests.
+			                      new Sequence(
+				                      new DecoratorContinue(QuestHasRewards,
+										  new ActionSelectReward()),
+				                      // Just wait for a bit before we turn in, so it's easier to see what's going on
+				                      new Sleep(1000),
+				                      new Action(ctx => QuestFrame.Instance.CompleteQuest()),
+				                      new SleepForLagDuration(),
+				                      new Action(ctx => QuestFrame.Instance.AcceptQuest()),
+				                      new Sleep(500),
+				                      new Action(ctx => Lua.DoString("CloseQuest()"))
+				                      ))));
+	    }
 
+	    private bool QuestHasRewards(object context)
+		{
+			uint id = QuestFrame.Instance.CurrentShownQuestId;
+			Quest quest = Quest.FromId(id);
+
+			if (quest == null)
+				return false;
+
+			var choices = quest.GetRewardChoices();
+			return choices.Any(choice => choice.ItemId != 0);
+		}
 
         public override void Dispose()
         {
@@ -154,14 +159,15 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
             GC.SuppressFinalize(this);
         }
 
+		public override bool IsDone
+		{
+			get
+			{
+				var isDone = _forcedDone || !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId);
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone);
-            }
-        }
+				return isDone;
+			}
+		}
 
 
         public override void OnStart()
@@ -184,17 +190,15 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
                     if (!quest.IsCompleted)
                     {
                         LogMessage("fatal", "Quest({0}, \"{1}\") is not complete.", QuestId, QuestName);
-                        _isBehaviorDone = true;
+                        _forcedDone = true;
                     }
                 }
 
                 else
                 {
                     LogMessage("warning", "Quest({0}) is not in our log--skipping turn in.", QuestId);
-                    _isBehaviorDone = true;
+                    _forcedDone = true;
                 }
-
-                Lua.Events.AttachEvent("QUEST_DETAIL", HandleQuestDetail);
             }
         }
 
