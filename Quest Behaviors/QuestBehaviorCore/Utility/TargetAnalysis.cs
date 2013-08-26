@@ -168,9 +168,10 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 if (playerCount > 0)
                 {
-                    exclusionReasons.Add(string.Format("InCompetition({0} players within {1:F1})",
+                    exclusionReasons.Add(string.Format("InCompetition({0} players within {1:F1}, expires in {2})",
                         playerCount,
-                        coreAttributes.NonCompeteDistance));
+                        coreAttributes.NonCompeteDistance,
+                        Utility.PrettyTime(Query.InCompetitionTimeRemaining(wowObject))));
                 }
 
                 var wowUnit = wowObject.ToUnit();

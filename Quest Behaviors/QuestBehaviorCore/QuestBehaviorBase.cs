@@ -427,6 +427,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     Targeting.Instance.WeighTargetsFilter += TargetFilter_WeighTargets;
                 }
 
+                Query.InCompetitionReset();
                 Utility.BlacklistsReset();
 
                 // Add temporary avoid mobs, if any were specified...

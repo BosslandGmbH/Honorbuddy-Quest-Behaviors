@@ -15,6 +15,7 @@ using System.Linq;
 using System.Threading;
 
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
@@ -160,10 +161,47 @@ namespace Honorbuddy.QuestBehaviorCore
             return !(typeOfException == typeof(ThreadAbortException));
         }
 
-        
+
+        // 25Aug2013 chinajade
+        public static void InCompetitionReset()
+        {
+            _inCompetitionTimers.Clear();
+        }
+
+
+        // 25Aug2013 chinajade
+        public static TimeSpan InCompetitionTimeRemaining(WoWObject wowObject)
+        {
+            DateTime waitStart;
+            if (_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
+            {
+                var now = DateTime.Now;
+
+                if (now <= (waitStart + _inCompetitionMaxWaitTime))
+                    { return waitStart + _inCompetitionMaxWaitTime - now; }
+            }
+
+            return TimeSpan.Zero;
+        }
+
+
         // 11Apr2013-04:41UTC chinajade
         public static bool IsInCompetition(WoWObject wowObject, double nonCompeteDistance)
         {
+            if (!IsViable(wowObject))
+                { return false; }
+
+            // Shared world resources are never in competition...
+            if (IsSharedWorldResource(wowObject))
+                { return false; }
+
+            // If unit is tagged, it is in competition...
+            var wowUnit = wowObject as WoWUnit;
+            var isTagged = ((wowUnit != null) && !wowUnit.IsUntagged());
+            if (isTagged)
+                { return true; }
+
+
             ProvideBoolDelegate excludeGroupMembers = (potentialGroupMember =>
             {
                 var asWoWPlayer = potentialGroupMember as WoWPlayer;
@@ -171,14 +209,62 @@ namespace Honorbuddy.QuestBehaviorCore
                 return (asWoWPlayer != null) && !asWoWPlayer.IsInMyParty;
             });
 
-            // Is WoWUnit claimed by another player?
-            WoWUnit wowUnit = wowObject as WoWUnit;
-            bool isTagged = ((wowUnit != null) && !wowUnit.IsUntagged());
+            var isPlayersNearby = FindPlayersNearby(wowObject.Location, nonCompeteDistance, excludeGroupMembers).Any();
+            var isCompetitionTimerRunning = _inCompetitionTimers.ContainsKey(wowObject.Guid);
 
-            return !IsSharedWorldResource(wowObject)
-                    && (FindPlayersNearby(wowObject.Location, nonCompeteDistance, excludeGroupMembers).Any()
-                        || isTagged);
+            // If players are clear, and competition timer is running...
+            // We no longer need the competition timer.
+            if (!isPlayersNearby && isCompetitionTimerRunning)
+                { _inCompetitionTimers.Remove(wowObject.Guid); }
+
+            // If players are nearby, and we haven't established competition timer...
+            // We need to record time at which we start the wait.
+            if (isPlayersNearby && !isCompetitionTimerRunning)
+            {
+                // Add new entry...
+                _inCompetitionTimers.Add(wowObject.Guid, DateTime.Now);
+
+                // Time to sweep away old 'in competition' entries?
+                if ((_inCompetitionSweepTimer == null) || _inCompetitionSweepTimer.IsFinished)
+                {
+                    // Remove expired 'in competition' entries...
+                    var now = DateTime.Now;
+                    var keysToRemove =
+                       (from kvp in _inCompetitionTimers
+                        where now > (kvp.Value + _inCompetitionSweepTime)
+                        select kvp.Key)
+                        .ToArray();
+
+                    foreach (var key in keysToRemove)
+                        { _inCompetitionTimers.Remove(key); }
+
+                    // Reset sweep timer (creating it, if necessary)...
+                    if (_inCompetitionSweepTimer == null)
+                        { _inCompetitionSweepTimer = new WaitTimer(_inCompetitionSweepTime); }
+
+                    _inCompetitionSweepTimer.Reset();
+                }
+            }
+
+
+            // If we've been waiting on object too long, it is no longer 'in competition'...
+            // NB: Since group membership affects 'nearby players', we must make this test
+            // after the competition timers have been updated due to nearby players.
+            DateTime waitStart;
+            if (_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
+            {
+                if (DateTime.Now > (waitStart + _inCompetitionMaxWaitTime))
+                    { return false; }
+
+                // Fall through, if we haven't been waiting too long...
+            }
+
+            return (isPlayersNearby);
         }
+        private static readonly Dictionary<ulong, DateTime> _inCompetitionTimers = new Dictionary<ulong, DateTime>();
+        private static readonly TimeSpan _inCompetitionMaxWaitTime = TimeSpan.FromSeconds(90);
+        private static readonly TimeSpan _inCompetitionSweepTime = TimeSpan.FromSeconds(10/*mins*/ * 60 /*secs*/);
+        private static WaitTimer _inCompetitionSweepTimer = null;
 
         
         // 23Mar2013-05:38UTC chinajade

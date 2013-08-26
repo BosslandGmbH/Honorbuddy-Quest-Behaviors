@@ -76,10 +76,22 @@ namespace Honorbuddy.QuestBehaviorCore
                                     
             return string.Format("{0}{1}", string.Format(format, args), context);           
         }
-        
+
+
+        /// <summary>
+        /// <para>For DEBUG USE ONLY--don't use in production code!</para>
+        /// </summary>
+        /// <param name="format"></param>
+        /// <param name="args"></param>
+        public static void Debug(string format, params object[] args)
+        {
+            Logging.Write(Colors.Fuchsia, BuildLogMessage("debug", format, args));
+        }
+
         
         /// <summary>
-        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
+        /// <para>For chasing longer-term (i.e., sporadic) issues.  These messages are only emitted to the log--not the scrolly window,
+        /// and are acceptable to leave in production code.</para>
         /// </summary>
         /// <param name="format"></param>
         /// <param name="args"></param>
