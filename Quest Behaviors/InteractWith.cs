@@ -363,6 +363,7 @@ using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -711,7 +712,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             new UtilityBehaviorPS.SpankMobTargetingUs(
                                 context => IgnoreMobsInBlackspots,
                                 context => NonCompeteDistance,
-                                context => (InteractAttemptCount >= 1)
+                                context => ((InteractAttemptCount > 0) && (Query.FindMobsAttackingMe().Count() > 1))
                                             ? Enumerable.Empty<WoWUnit>()
                                             : FindViableTargets(MobState) /*excluded units*/
                                                 .Where(o => o.ToUnit() != null)
@@ -763,7 +764,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             new UtilityBehaviorPS.SpankMob(context => SelectedAliveTarget))),
 
                     // If interact target no longer meets qualifications, try to find another...
-                    new Decorator(context => !IsInteractNeeded(SelectedTarget, MobState),
+                    new Decorator(context => !IsInteractNeeded(SelectedTarget, MobState) && Query.IsPoiIdle(BotPoi.Current),
                         new PrioritySelector(
                             new Action(context =>
                             {
@@ -1028,7 +1029,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                     // Prep to interact...
                     new UtilityBehaviorPS.MoveStop(),
-                    new UtilityBehaviorPS.ExecuteMountStrategy(context => PreInteractMountStrategy, context => MaxDismountHeight),
+                    new UtilityBehaviorPS.ExecuteMountStrategy(context => PreInteractMountStrategy),
                     new ActionFail(context => { Utility.Target(SelectedTarget, true); })
             );
         }
@@ -1360,18 +1361,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private void CloseOpenFrames(bool forceClose = false)
         {
             if (forceClose || IsClearTargetNeeded(SelectedTarget))
-            {
-                if (GossipFrame.Instance.IsVisible)
-                    { GossipFrame.Instance.Close(); }
-                if (MerchantFrame.Instance.IsVisible)
-                    { MerchantFrame.Instance.Close(); }
-                if (QuestFrame.Instance.IsVisible)
-                    { QuestFrame.Instance.Close(); }
-                if (TaxiFrame.Instance.IsVisible)
-                    { TaxiFrame.Instance.Close(); }
-                if (TrainerFrame.Instance.IsVisible)
-                    { TrainerFrame.Instance.Close(); }
-            }
+                { Utility.CloseAllNpcFrames(); }
         }
 
 
@@ -1381,23 +1371,26 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         {
             const double minionWeighting = 1000;
 
-            var entities =
-                from wowObject in Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds)
-                let objectCollectionDistance = wowObject.Location.CollectionDistance()
-                where
-                    Query.IsViable(wowObject)
-                    && (objectCollectionDistance <= CollectionDistance)
-                    && IsInteractNeeded(wowObject, mobState)
-                    && Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
-                orderby
-                    objectCollectionDistance
-                    // Fix for undead-quest (and maybe some more), where the targets can be minions...
-                    + (Me.Minions.Contains(wowObject) ? minionWeighting : 1)
-                    // Make sure 'self' is always last on the list, otherwise we'll ignore all other Mobs...
-                    + (wowObject.IsMe ? 1000 : 0)
-                select wowObject;
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                var entities =
+                    from wowObject in Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds)
+                    let objectCollectionDistance = wowObject.Location.CollectionDistance()
+                    where
+                        Query.IsViable(wowObject)
+                        && (objectCollectionDistance <= CollectionDistance)
+                        && IsInteractNeeded(wowObject, mobState)
+                        && Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
+                    orderby
+                        objectCollectionDistance
+                        // Fix for undead-quest (and maybe some more), where the targets can be minions...
+                        + (Me.Minions.Contains(wowObject) ? minionWeighting : 1)
+                        // Make sure 'self' is always last on the list, otherwise we'll ignore all other Mobs...
+                        + (wowObject.IsMe ? 1000 : 0)
+                    select wowObject;
 
-            return entities;
+                return entities.ToList();
+            }
         }
 
 

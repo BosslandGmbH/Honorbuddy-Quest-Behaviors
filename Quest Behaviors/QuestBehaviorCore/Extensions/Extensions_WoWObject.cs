@@ -79,6 +79,13 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 2Sep2013 chinajade
+        public static int SafeGuid(this WoWObject wowObject)
+        {
+            return (int)(wowObject.Guid & 0x0ffffff);
+        }
+
+
         public static double SurfacePathDistance(this WoWObject objectTo)
         {
             return StyxWoW.Me.SurfacePathDistance(objectTo);

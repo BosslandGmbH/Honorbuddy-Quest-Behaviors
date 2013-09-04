@@ -15,11 +15,12 @@ using System.Linq;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
@@ -60,11 +61,10 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             // 22Apr2013-12:45UTC chinajade
             public MoveTo(ProvideHuntingGroundsDelegate huntingGroundsProvider,
-                            ProvideMovementByDelegate movementByDelegate,
+                            ProvideMovementByDelegate movementByDelegate = null,
                             CanRunDecoratorDelegate suppressMountUse = null)
             {
                 Contract.Requires(huntingGroundsProvider != null, context => "huntingGroundsProvider may not be null");
-                Contract.Requires(movementByDelegate != null, context => "movementByDelegate may not be null");
 
                 DestinationDelegate = (context => huntingGroundsProvider(context).CurrentWaypoint().Location);
                 DestinationNameDelegate = (context => string.Format("hunting ground waypoint '{0}'",
@@ -81,14 +81,13 @@ namespace Honorbuddy.QuestBehaviorCore
             // 24Feb2013-08:11UTC chinajade
             public MoveTo(ProvideWoWPointDelegate destinationDelegate,
                             ProvideStringDelegate destinationNameDelegate,
-                            ProvideMovementByDelegate movementByDelegate,
+                            ProvideMovementByDelegate movementByDelegate = null,
                             ProvideDoubleDelegate precisionDelegate = null,
                             CanRunDecoratorDelegate suppressMountUse = null,
                             ProvideWoWPointDelegate locationObserver = null)
             {
                 Contract.Requires(destinationDelegate != null, context => "destinationDelegate may not be null");
                 Contract.Requires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
-                Contract.Requires(movementByDelegate != null, context => "movementByDelegate may not be null");
 
                 DestinationDelegate = destinationDelegate;
                 DestinationNameDelegate = destinationNameDelegate;
@@ -111,7 +110,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT visit-time properties...
             private WoWPoint CachedDestination { get; set; }
+            private string CachedDestinationName { get; set; }
             private MovementByType CachedMovementBy { get; set; }
+            private WaitTimer _messageThrottle = null;
 
 
             private List<Composite> CreateChildren()
@@ -123,75 +124,158 @@ namespace Honorbuddy.QuestBehaviorCore
                             new ActionFail(context =>
                             {
                                 CachedDestination = DestinationDelegate(context);
+                                CachedDestinationName = DestinationNameDelegate(context) ?? CachedDestination.ToString();
                                 CachedMovementBy = MovementByDelegate(context);
+
+                                if ((_messageThrottle == null) || _messageThrottle.IsFinished)
+                                {
+                                    if (_messageThrottle == null)
+                                        { _messageThrottle = new WaitTimer(TimeSpan.FromMilliseconds(1000)); }
+
+                                    TreeRoot.StatusText = "Moving to " + CachedDestinationName;
+                                    _messageThrottle.Reset();
+                                }                            
                             }),
-                            new UtilityBehaviorPS.MountAsNeeded(DestinationDelegate, SuppressMountUse),
 
-                            new Decorator(context => (LocationObserver(context).Distance(CachedDestination) > PrecisionDelegate(context)),
-                                new Sequence(
-                                    new CompositeThrottleContinue(TimeSpan.FromMilliseconds(1000),
-                                        new Action(context =>
-                                        {
-                                            TreeRoot.StatusText =
-                                                "Moving to " + (DestinationNameDelegate(context) ?? CachedDestination.ToString());
-                                        })),
+                            new Decorator(context => (CachedDestination.CollectionDistance(LocationObserver(context)) > PrecisionDelegate(context)),
+                                new PrioritySelector(
+                                    new Switch<MovementByType>(context => CachedMovementBy,
+                                        // default
+                                        new Action(context => QBCLog.MaintenanceError("Unhandled MovementByType of {0}", CachedMovementBy)),
 
-                                    new CompositeThrottleContinue(Throttle.WoWClientMovement,
-                                        new Action(context =>
-                                        {
-                                            var moveResult = MoveResult.Failed;
+                                        new SwitchArgument<MovementByType>(MovementByType.FlightorPreferred,
+                                            new PrioritySelector(
+                                                TryFlightor(),
+                                                TryNavigator(),
+                                                TryClickToMove(context => NavType.Fly)
+                                            )),
 
-                                            // Use Flightor, if allowed...
-                                            if ((CachedMovementBy == MovementByType.FlightorPreferred) && Me.IsOutdoors && Me.MovementInfo.CanFly)
-                                            {
-                                                var immediateDestination = CachedDestination.FindFlightorUsableLocation();
+                                        new SwitchArgument<MovementByType>(MovementByType.NavigatorPreferred,
+                                            new PrioritySelector(
+                                                TryNavigator(),
+                                                TryClickToMove(context => NavType.Run)
+                                            )),
 
-                                                if (immediateDestination == default(WoWPoint))
-                                                    { moveResult = MoveResult.Failed; }
+                                        new SwitchArgument<MovementByType>(MovementByType.NavigatorOnly,
+                                            new PrioritySelector(
+                                                TryNavigator()
+                                            )),
 
-                                                else if (Me.Location.Distance(immediateDestination) > Navigator.PathPrecision)
-                                                {
-                                                    // <sigh> Its simply a crime that Flightor doesn't implement the INavigationProvider interface...
-                                                    Flightor.MoveTo(immediateDestination, 15.0f, true);
-                                                    moveResult = MoveResult.Moved;
-                                                }
+                                        new SwitchArgument<MovementByType>(MovementByType.ClickToMoveOnly,
+                                            new PrioritySelector(
+                                                // NB: CtM can be used for either flying or ground, so we must assume 'fly'...
+                                                TryClickToMove(context => NavType.Fly)
+                                            )),
 
-                                                else if (Me.IsFlying)
-                                                {
-                                                    WoWMovement.Move(WoWMovement.MovementDirection.Descend, TimeSpan.FromMilliseconds(400));
-                                                    moveResult = MoveResult.Moved;
-                                                }
-                                            }
+                                        new SwitchArgument<MovementByType>(MovementByType.None,
+                                            new PrioritySelector(
+                                                // empty
+                                            ))
+                                    ),
 
-                                            // Use Navigator to get there, if allowed...
-                                            if ((CachedMovementBy == MovementByType.NavigatorPreferred)
-                                                || (CachedMovementBy == MovementByType.NavigatorOnly)
-                                                || (moveResult == MoveResult.Failed))
-                                            {
-                                                moveResult = Navigator.MoveTo(CachedDestination);
-                                            }
-
-                                            // If Navigator couldn't move us, resort to click-to-move if allowed...
-                                            if (!((moveResult == MoveResult.Moved)
-                                                    || (moveResult == MoveResult.ReachedDestination)
-                                                    || (moveResult == MoveResult.PathGenerated)))
-                                            {
-                                                if (CachedMovementBy == MovementByType.NavigatorOnly)
-                                                {
-                                                    QBCLog.Warning("Failed to mesh move--is area unmeshed? Or, are we flying or swimming?");
-                                                    return RunStatus.Failure;
-                                                }
-
-                                                WoWMovement.ClickToMove(CachedDestination);
-                                            }
-
-                                            return RunStatus.Success;
-                                        }))
+                                    new Decorator(context => CachedMovementBy != MovementByType.None,
+                                        new Action(context => QBCLog.Warning("Unable to reach destination({0})", CachedDestination)))
                                 ))
-                            ))
+                        ))
                     };
             }
 
+
+            private Composite SetMountState(CanRunDecoratorDelegate extraWantToMountQualifier = null,
+                                            ProvideNavTypeDelegate navTypeDelegate = null)
+            {
+                extraWantToMountQualifier = extraWantToMountQualifier ?? (context => false);
+                navTypeDelegate = navTypeDelegate ?? (context => NavType.Fly);
+
+                return new PrioritySelector(
+                    // Are we mounted, and not supposed to be?
+                    new Decorator(context => SuppressMountUse(context) && Me.IsMounted(),
+                        new UtilityBehaviorPS.DescendForDismount(context => "Request for 'no mount use'.")),
+
+                    // Are we unmounted, and mount use is permitted?
+                    // NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
+                    // (based on NavType).
+                    new Decorator(context => !SuppressMountUse(context)
+                                            && (extraWantToMountQualifier(context)
+                                                || (CachedDestination.CollectionDistance(LocationObserver(context)) > CharacterSettings.Instance.MountDistance)),
+                        new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.Mount, navTypeDelegate))
+                );
+            }
+
+
+            private Composite TryClickToMove(ProvideNavTypeDelegate navTypeDelegate)
+            {
+                navTypeDelegate = navTypeDelegate ?? (context => NavType.Fly);
+
+                return new PrioritySelector(
+                    // NB: Do not 'dismount' for CtM.  We may be using it for aerial navigation, also.
+
+                    // If Navigator can generate a parital path for us, take advantage of it...
+                    SetMountState(null, navTypeDelegate),
+                    new Action(context =>
+                    {
+                        var precision = PrecisionDelegate(context);
+                        var tempDestination =
+                            Navigator.GeneratePath(LocationObserver(context), CachedDestination)
+                            .Where(p => LocationObserver(context).Distance(p) > precision)
+                            .DefaultIfEmpty(CachedDestination)
+                            .FirstOrDefault();
+
+                        WoWMovement.ClickToMove(tempDestination);
+                    })
+                );
+            }
+
+
+            private Composite TryFlightor()
+            {
+                var jumpAscendTime = TimeSpan.FromMilliseconds(250);
+
+                return new PrioritySelector(
+                    // NB: On unevent terrain, we want to force Flightor to mount if it cannot get to the destination...
+                    SetMountState(context => !Navigator.CanNavigateFully(LocationObserver(context), CachedDestination), context => NavType.Fly),
+
+                    // Sometimes when flightor is on the ground, it needs to be pushed into the air to get started...
+                    new Decorator(context => !Me.IsFlying
+                                            && Me.MovementInfo.CanFly
+                                            && Flightor.MountHelper.Mounted,
+                        new Sequence(
+                            new Action(context => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend)),
+                            new WaitContinue(jumpAscendTime, context => Me.IsFlying, new ActionAlwaysSucceed()),
+                            new ActionFail(context => WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend))
+                            // fall through
+                        )),
+
+                    new Action(context => { Flightor.MoveTo(CachedDestination, 15.0f, true); })
+                );
+            }
+
+
+            private Composite TryNavigator()
+            {
+                return new PrioritySelector(
+                    // If we are flying, land and set up for ground travel...
+                    new Decorator(context => Me.IsFlying,
+                        new UtilityBehaviorPS.DescendForDismount(context => "Preparing for ground travel")),
+
+                    // If we can navigate to destination, use navigator...
+                    new Decorator(context => Navigator.CanNavigateFully(LocationObserver(context), CachedDestination),
+                        new PrioritySelector(
+                            SetMountState(null, context => NavType.Run),
+                            new Action(context =>
+                            {
+                                var moveResult = Navigator.MoveTo(CachedDestination);
+                                return Navigator.GetRunStatusFromMoveResult(moveResult);
+                            })
+                        )),
+
+                    new ActionFail(context =>
+                    {
+                       QBCLog.DeveloperInfo("Navigator unable to move to destination({0}, {1}) on ground--try MovementBy=\"FlightorPreferred\".",
+                           CachedDestinationName, CachedDestination.ToString());
+                    })
+                );
+            }
         }
     }
 

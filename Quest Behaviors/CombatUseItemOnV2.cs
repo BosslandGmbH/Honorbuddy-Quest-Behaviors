@@ -258,12 +258,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                 string itemUseAlwaysSucceeds = GetAttributeAs<string>("ItemAppliesAuraId", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
                 if (itemUseAlwaysSucceeds == "AssumeItemUseAlwaysSucceeds")
-                {
-                    ItemUseAlwaysSucceeds = true;
-                    ItemAppliesAuraId = 0;
-                }
+                    { ItemAppliesAuraId = 0; }
                 else
-                { ItemAppliesAuraId = GetAttributeAsNullable<int>("ItemAppliesAuraId", false, ConstrainAs.AuraId, null) ?? 0; }
+                    { ItemAppliesAuraId = GetAttributeAsNullable<int>("ItemAppliesAuraId", false, ConstrainAs.AuraId, null) ?? 0; }
 
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
                 UseWhenMeHasAuraId = GetAttributeAsNullable<int>("UseWhenMeHasAuraId", false, ConstrainAs.AuraId, null) ?? 0;
@@ -307,7 +304,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         private WoWPoint? HuntingGroundCenter { get; set; }
         private int ItemId { get; set; }
         private int ItemAppliesAuraId { get; set; }
-        private bool ItemUseAlwaysSucceeds { get; set; }
         private double MaxRangeToUseItem { get; set; }
         private int[] MobIds { get; set; }
         private int NumOfTimes { get; set; }
@@ -359,6 +355,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
         #region Private and Convenience variables
         private int Counter { get; set; }
+        private bool ItemUseAlwaysSucceeds { get { return ItemAppliesAuraId == 0; } }
         private HuntingGroundsType HuntingGrounds { get; set; }
         private WoWUnit SelectedTarget { get; set; }
 
@@ -483,12 +480,19 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                     new Action(context => { BehaviorDone(); })),
 
                 // Go after viable target...
-                new Decorator(context => Query.IsViable(SelectedTarget)
-                                            && (SelectedTarget.Distance > CharacterSettings.Instance.PullDistance),
-                    new UtilityBehaviorPS.MoveTo(
-                        context => SelectedTarget.Location,
-                        context => SelectedTarget.Name,
-                        context => MovementBy)),
+                new Decorator(context => Query.IsViable(SelectedTarget),
+                    new PrioritySelector(
+                        new Decorator(context => SelectedTarget.Distance >= CharacterSettings.Instance.PullDistance,
+                            new UtilityBehaviorPS.MoveTo(
+                                context => SelectedTarget.Location,
+                                context => SelectedTarget.Name,
+                                context => MovementBy)),
+                        // Set Kill POI, if Honorbuddy doesn't think there is anything to do...
+                        // NB: We don't want to do this blindly (i.e., we check for PoiType.None), to allow HB
+                        // the decision to loot/sell/repair/etc as needed.
+                        new Decorator(context => (BotPoi.Current == null) || (BotPoi.Current.Type == PoiType.None),
+                            new ActionFail(context => Utility.Target(SelectedTarget, false, PoiType.Kill)))
+                    )),
 
                 // No mobs in immediate vicinity...
                 new Decorator(context => !Query.IsViable(SelectedTarget),
@@ -537,6 +541,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // If time to use the item, do so...
                 new Decorator(context => IsUseItemNeeded(SelectedTarget),
                     new PrioritySelector(
+                        new UtilityBehaviorPS.MoveStop(),
+
                         // Halt combat until we are able to use the item...
                         new Decorator(context => ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
                                                   || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)),
@@ -548,9 +554,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                                 if (Me.IsAutoAttacking)
                                     { Lua.DoString("StopAttack()"); }
-
-                                if (Me.IsMoving)
-                                    { WoWMovement.MoveStop(); }
 
                                 TreeRoot.StatusText = string.Format("Combat halted--waiting for {0} to become usable.",
                                     Utility.GetItemNameFromId(ItemId));

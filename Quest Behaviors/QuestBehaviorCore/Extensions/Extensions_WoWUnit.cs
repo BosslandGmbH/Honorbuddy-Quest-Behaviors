@@ -40,6 +40,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 33943,      // Druid: Flight Form
                 40120,      // Druid: Swift Flight Form
                   783,      // Druid: Travel Form
+                93326,      // Herbalist: Sandstone Drake
                  2645,      // Shaman: Ghost Wolf
                 87840,      // Worgen: Running Wild
             };
@@ -57,7 +58,8 @@ namespace Honorbuddy.QuestBehaviorCore
                   768,      // Druid: Cat Form
                 33943,      // Druid: Flight Form
                 40120,      // Druid: Swift Flight Form
-                  783,      // Druid: Travel Form
+                  783,      // Druid: Travel Form       
+                93326,      // Herbalist: Sandstone Drake
                  2645,      // Shaman: Ghost Wolf
                 87840,      // Worgen: Running Wild
             };

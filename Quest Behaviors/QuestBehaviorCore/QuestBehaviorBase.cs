@@ -159,7 +159,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 // Tunables...
                 IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
-                MaxDismountHeight = GetAttributeAsNullable<double>("MaxDismountHeight", false, new ConstrainTo.Domain<double>(1.0, 75.0), null) ?? 8.0;
                 MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.FlightorPreferred;
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
 
@@ -191,7 +190,6 @@ namespace Honorbuddy.QuestBehaviorCore
         // to reparse some information.  It is _very_ bad form to use the setters outside of
         // the base-class' or concrete-class' constructor.
         public bool IgnoreMobsInBlackspots { get; protected set; }
-        public double MaxDismountHeight { get; protected set; }
         public MovementByType MovementBy { get; protected set; }
         public double NonCompeteDistance { get; protected set; }
         public int QuestId { get; protected set; }
@@ -216,7 +214,6 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_Main;
         private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
-        private bool _isDoneChecksQuestProgress;
         protected bool _isDisposed { get; private set; }
         private AvoidMobsType _temporaryAvoidMobs { get; set; }
         private BlackspotsType _temporaryBlackspots { get; set; }
@@ -403,7 +400,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 // Monitored Behaviors...
                 if (QuestBehaviorCoreSettings.Instance.MonitoredBehaviors.Contains(GetType().Name))
                 {
-                    QBCLog.Warning("MONITORED BEHAVIOR: {0}", GetType().Name);
+                    QBCLog.Debug("MONITORED BEHAVIOR: {0}", GetType().Name);
                     AudibleNotifyOn(true);
                 }
 
@@ -544,7 +541,8 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <returns> . </returns>
         protected virtual float WeightUnitForTargeting(WoWUnit unit)
         {
-            return 0f;
+            // Prefer units closest to us...
+            return (float)(-unit.Location.CollectionDistance());
         }
 
         /// <summary>

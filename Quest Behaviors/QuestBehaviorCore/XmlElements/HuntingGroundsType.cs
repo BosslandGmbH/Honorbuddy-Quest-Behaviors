@@ -50,7 +50,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class HuntingGroundsType : QuestBehaviorXmlBase
     {        
-        #region Consructor and Argument Processing
+        #region Constructor and Argument Processing
         public enum WaypointVisitStrategyType
         {
             InOrder,
@@ -376,13 +376,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 }
 
                 // Determine 'next' waypoint based on visit strategy...
-                // NB: If this selects the same waypoint as the current one,
-                // the calling code will just return here again until we get
-                // something suitable.  If there is just one waypoint on the list,
-                // its the best that can be done.  We can't weed out the 'current waypoint'
-                // with a 'where' clause, because that would return nothing if there
-                // was only one point on the list.
-                return QuestBehaviorBase._random.Next(0, HuntingGrounds.Waypoints.Count);
+                // NB: If we have more than one point to select from, make certain we don't re-select
+                // the current point.
+                int newWaypointIndex;
+                do
+                {
+                    newWaypointIndex = QuestBehaviorBase._random.Next(0, HuntingGrounds.Waypoints.Count);
+                } while ((HuntingGrounds.Waypoints.Count > 1) && (currentWaypointIndex == newWaypointIndex));
+
+                return newWaypointIndex;
             }
         }
 

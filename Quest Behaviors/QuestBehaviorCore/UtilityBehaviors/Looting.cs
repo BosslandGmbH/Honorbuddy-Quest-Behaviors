@@ -44,10 +44,10 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
 
-            // BT visit-time properties...
+            // BT contruction-time properties...
             private ProvideMovementByDelegate MovementByDelegate { get; set; }
 
-            // BT contruction-time properties...
+            // BT visit-time properties...
             private WoWObject CachedLootObject { get; set; }
 
             // Convenience properties...
@@ -63,7 +63,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                 new UtilityBehaviorPS.MoveTo(
                                     context => CachedLootObject.Location,
                                     context => CachedLootObject.Name,
-                                    context => MovementByDelegate(context))),
+                                    MovementByDelegate)),
                             new Decorator(context => CachedLootObject != null,
                                 new UtilityBehaviorPS.MoveStop())
                         )),

@@ -40,11 +40,10 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <remarks>17Apr2013-01:44UTC chinajade</remarks>
         public class DescendForDismount : PrioritySelector
         {
-            public DescendForDismount(ProvideDoubleDelegate maxDismountHeightDelegate)
+            public DescendForDismount(ProvideStringDelegate reasonDelegate = null)
             {
-                Contract.Requires(maxDismountHeightDelegate != null, context => "maxDismountHeightDelegate != null");
-
-                MaxDismountHeightDelegate = maxDismountHeightDelegate ?? (context => 8.0);
+                MaxDismountHeightDelegate = (context => 8.0);
+                ReasonDelegate = reasonDelegate ?? (context => string.Empty);
 
                 Children = CreateChildren();
             }
@@ -52,6 +51,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT contruction-time properties...
             private ProvideDoubleDelegate MaxDismountHeightDelegate { get; set; }
+            private ProvideStringDelegate ReasonDelegate { get; set; }
 
 
             private List<Composite> CreateChildren()
@@ -64,24 +64,28 @@ namespace Honorbuddy.QuestBehaviorCore
                             new Decorator(context => !Me.MovementInfo.IsDescending,
                                 new Action(context =>
                                 {
-                                    TreeRoot.StatusText = "Descending before dismount";
+                                    var reason = ReasonDelegate(context);
+
+                                    TreeRoot.StatusText = "Descending before dismount"
+                                        + (!string.IsNullOrEmpty(reason) ? (": " + reason) : string.Empty);
                                     WoWMovement.Move(WoWMovement.MovementDirection.Descend);
                                 })),
-                            new Action(context =>
-                            {
-                                const double probeHeight = 400.0;
-                                var height = Me.GetTraceLinePos().HeightOverGroundOrWater(probeHeight);
+                            new CompositeThrottle(TimeSpan.FromMilliseconds(1000),
+                                new Action(context =>
+                                {
+                                    const double probeHeight = 400.0;
+                                    var height = Me.GetTraceLinePos().HeightOverGroundOrWater(probeHeight);
 
-                                TreeRoot.StatusText = string.Format("Descending from {0}",
-                                    ((height > probeHeight) ? "unknown height" : string.Format("{0:F1}", height)));
-                            })
+                                    QBCLog.DeveloperInfo("Descending from {0}",
+                                        ((height > probeHeight) ? "unknown height" : string.Format("{0:F1}", height)));
+                                }))
                         )),
 
                     // Stop descending...
                     new Decorator(context => Me.MovementInfo.IsDescending,
                         new Action(context =>
                         {
-                            TreeRoot.StatusText = "Descent Stopped";
+                            QBCLog.DeveloperInfo("Descent Stopped");
                             WoWMovement.MoveStop(WoWMovement.MovementDirection.Descend);
                         }))
                 };
@@ -115,21 +119,20 @@ namespace Honorbuddy.QuestBehaviorCore
         public class ExecuteMountStrategy : PrioritySelector
         {
             public ExecuteMountStrategy(Func<object, MountStrategyType> mountStrategyDelegate,
-                                        ProvideDoubleDelegate maxDismountHeightDelegate)
+                                        ProvideNavTypeDelegate navTypeDelegate = null)
             {
                 Contract.Requires(mountStrategyDelegate != null, context => "mountStrategyDelegate != null");
-                Contract.Requires(maxDismountHeightDelegate != null, context => "maxDismountHeightDelegate != null");
 
                 MountStrategyDelegate = mountStrategyDelegate;
-                MaxDismountHeightDelegate = maxDismountHeightDelegate ?? (context => 8.0);
+                NavTypeDelegate = navTypeDelegate ?? (context => NavType.Fly);
 
                 Children = CreateChildren();
             }
 
 
             // BT contruction-time properties...
-            private ProvideDoubleDelegate MaxDismountHeightDelegate { get; set; }
             private Func<object, MountStrategyType> MountStrategyDelegate { get; set; }
+            private ProvideNavTypeDelegate NavTypeDelegate { get; set; }
 
             // BT visit-time properties...
             private MountStrategyType CachedMountStrategy { get; set; }
@@ -146,11 +149,16 @@ namespace Honorbuddy.QuestBehaviorCore
 
                     new Decorator(context => CachedMountStrategy != MountStrategyType.None,
                         new PrioritySelector(
-                            new Decorator(context => Me.IsShapeshifted()
-                                                    && ((CachedMountStrategy == MountStrategyType.CancelShapeshift)
-                                                        || (CachedMountStrategy == MountStrategyType.DismountOrCancelShapeshift)),
+                            // Cancel Shapeshift needed?
+                            new Decorator(context => ((CachedMountStrategy == MountStrategyType.CancelShapeshift)
+                                                        || (CachedMountStrategy == MountStrategyType.DismountOrCancelShapeshift))
+                                                      && Me.IsShapeshifted(),
                                 new PrioritySelector(
-                                    new UtilityBehaviorPS.DescendForDismount(MaxDismountHeightDelegate),
+                                    // Need to land, if flying...
+                                    new UtilityBehaviorPS.DescendForDismount(),
+
+                                    // NB: Some quest behaviors use this to cancel _any_ shapeshifted form, even when not flying.
+                                    // So please keep that in mind while maintaining code.
                                     new Action(context =>
                                     {
                                         TreeRoot.StatusText = "Canceling shapeshift form.";
@@ -158,11 +166,12 @@ namespace Honorbuddy.QuestBehaviorCore
                                     })
                                 )),
 
-                            new Decorator(context => Me.IsMounted()
-                                                    && ((CachedMountStrategy == MountStrategyType.Dismount)
-                                                        || (CachedMountStrategy == MountStrategyType.DismountOrCancelShapeshift)),
+                            // Dismount needed?
+                            new Decorator(context => ((CachedMountStrategy == MountStrategyType.Dismount)
+                                                        || (CachedMountStrategy == MountStrategyType.DismountOrCancelShapeshift))
+                                                      && Me.IsMounted(),
                                 new PrioritySelector(
-                                    new UtilityBehaviorPS.DescendForDismount(MaxDismountHeightDelegate),
+                                    new UtilityBehaviorPS.DescendForDismount(),
                                     new Decorator(context => Me.IsShapeshifted(),
                                         new Action(context =>
                                         {
@@ -181,16 +190,26 @@ namespace Honorbuddy.QuestBehaviorCore
                                         }))
                                     )),
 
-                            new Decorator(context => !Me.IsMounted()
-                                                    && (CachedMountStrategy == MountStrategyType.Mount)
-                                                    && Mount.CanMount(),
-                                new Action(context =>
-                                {
-                                    TreeRoot.StatusText = "Mounting";
-                                    // We make up a destination for MountUp() that is far enough away, it will always choose to mount...
-                                    Mount.MountUp(() => Me.Location.Add(1000.0, 1000.0, 1000.0));
-                                }))
-                    ))
+                            // Mount needed?
+                            new Decorator(context => CachedMountStrategy == MountStrategyType.Mount,
+                                new PrioritySelector(
+                                    // If flying mount is wanted, and we're not on flying mount...
+                                    new Decorator(context => NavTypeDelegate(context) == NavType.Fly
+                                                            && !Flightor.MountHelper.Mounted
+                                                            && Flightor.MountHelper.CanMount,
+                                        new Action(context => Flightor.MountHelper.MountUp())),
+
+                                    // Try ground mount...
+                                    // NB: Force mounting by specifying a large distance to destination...
+                                    new Decorator(context => !Me.Mounted && Mount.CanMount(),
+                                        new Action(context =>
+                                        {
+                                            return Mount.MountUp(() => true, () => Me.Location.Add(1000.0, 1000.0, 1000.0))
+                                                ? RunStatus.Success
+                                                : RunStatus.Failure;
+                                        }))
+                                ))
+                        ))
                 };
             }
         }

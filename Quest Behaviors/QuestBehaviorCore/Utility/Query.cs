@@ -65,6 +65,19 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        public static IEnumerable<WoWUnit> FindMobsAttackingMe()
+        {
+            return
+                from o in ObjectManager.ObjectList
+                let unit = o as WoWUnit
+                where
+                    IsViable(unit)
+                    && unit.Combat
+                    && unit.CurrentTargetGuid == StyxWoW.Me.Guid
+                select unit;
+        }
+
+
         public static List<WoWUnit> FindMobsTargetingUs(bool ignoreMobsInBlackspots, double nonCompeteDistance)
         {
             using (StyxWoW.Memory.AcquireFrame())
@@ -294,14 +307,32 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        public static bool IsPoiMatch(WoWObject wowObject, PoiType poiType)
+        //  2Sep2013 chinajade
+        public static bool IsPoiIdle(BotPoi poi)
+        {
+            if (poi == null)
+                { return false; }
+
+            return _idlePoiTypes.Contains(poi.Type);
+        }
+        private static readonly PoiType[] _idlePoiTypes =
+        {
+            PoiType.None,
+            PoiType.Quest,
+            PoiType.QuestPickUp,
+            PoiType.QuestTurnIn
+        };
+
+
+        public static bool IsPoiMatch(WoWObject wowObject, PoiType poiType, NavType? navType = null)
         {
             if (!IsViable(wowObject))
                 { return false; }
 
             return (BotPoi.Current != null)
                     && (BotPoi.Current.Guid == wowObject.Guid)
-                    && (BotPoi.Current.Type == poiType);
+                    && (BotPoi.Current.Type == poiType)
+                    && ((navType == null) || (BotPoi.Current.NavType == navType));
         }
 
 

@@ -93,11 +93,14 @@ namespace Honorbuddy.QuestBehaviorCore
 
                         if (!Query.IsViable(CachedItemToUse))
                         {
+                            // Cached item was invalid, so look for item in our bags, and cache it...
                             var itemId = WowItemIdDelegate(context);
                             CachedItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
                             if (!Query.IsViable(CachedItemToUse))
-                                { QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId)); }
-                            return RunStatus.Failure;
+                            {
+                                QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
+                                return RunStatus.Failure;
+                            }
                         }
 
                         return RunStatus.Success;

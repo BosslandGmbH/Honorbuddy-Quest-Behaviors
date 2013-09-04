@@ -241,7 +241,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     using (StyxWoW.Memory.AcquireFrame())
                     {
-                        var excludedUnits = ExcludedUnitsDelegate(context);
+                        var excludedUnits = ExcludedUnitsDelegate(context).ToList();
 
                         SelectedTarget =
                             (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
