@@ -133,6 +133,9 @@
 //      IgnoreLoSToTarget [optional; Default: false]
 //          If true, the behavior will not consider Line of Sight when trying to interact
 //          with the selected target.
+//      InteractBlacklistTimeInSeconds [optional: Default: 180]
+//          Specifies the number of seconds for which a target with which we've interacted
+//          is to remain blacklisted.
 //      KeepTargetSelected [optional; Default: false]
 //          If true, the behavior will not clear the toon's target after the interaction
 //          is complete.  Instead, the target will remain on the last interacted
@@ -442,6 +445,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
                 IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
+                InteractBlacklistTimeInSeconds = GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null) ?? 180;
                 KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 PreInteractMountStrategy = GetAttributeAsNullable<MountStrategyType>("PreInteractMountStrategy", false, null, null)
@@ -493,6 +497,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private WoWPoint HuntingGroundCenter { get; set; }
         private bool IgnoreCombat { get; set; }
         private bool IgnoreLoSToTarget { get; set; }
+        private int InteractBlacklistTimeInSeconds { get; set; }
         private int InteractByBuyingItemId { get; set; }
         private int InteractByBuyingItemInSlotNum { get; set; }
         private int InteractByCastingSpellId { get; set; }
@@ -884,11 +889,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 {
                                     if (++InteractAttemptCount > AttemptCountMax)
                                     {
-                                        var blacklistTime = TimeSpan.FromSeconds(180);
+                                        var blacklistTime = BlacklistInteractTarget(SelectedTarget);
 
                                         QBCLog.Warning("Exceeded our maximum count({0}) at attempted interactions--blacklisting {1} for {2}",
-                                            AttemptCountMax, SelectedTarget.SafeName, Utility.PrettyTime(blacklistTime));
-                                        BlacklistInteractTarget(SelectedTarget);
+                                            AttemptCountMax, SelectedTarget.SafeName, Utility.PrettyTime(blacklistTime));              
                                         return RunStatus.Failure;
                                     }
 
@@ -1351,7 +1355,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
             WoWUnit wowUnit = selectedTarget as WoWUnit;
             bool isShortBlacklist = (wowUnit != null) && ((wowUnit == Me) || Query.IsSharedWorldResource(wowUnit));
-            TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : 180);
+            TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : InteractBlacklistTimeInSeconds);
 
             selectedTarget.BlacklistForInteracting(blacklistDuration);
             return blacklistDuration;
@@ -1446,7 +1450,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private bool IsDistanceCloseNeeded(WoWObject wowObject)
         {
-            double targetDistance = Utility.MovementObserver.Location.Distance(wowObject.Location);
+            double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
             bool canInteract =
                 (ItemToUse != null)
@@ -1459,7 +1463,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private bool IsDistanceGainNeeded(WoWObject wowObject)
         {
-            double targetDistance = Utility.MovementObserver.Location.Distance(wowObject.Location);
+            double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
             return targetDistance < RangeMin;
         }

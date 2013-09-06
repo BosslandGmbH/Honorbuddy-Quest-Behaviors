@@ -44,10 +44,10 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new Decorator(context => Utility.MovementObserver.IsMoving,
+                    new Decorator(context => WoWMovement.ActiveMover.IsMoving,
                         new Sequence(
                             new Action(context => { Navigator.PlayerMover.MoveStop(); }),
-                            new Wait(Delay.LagDuration, context => Utility.MovementObserver.IsMoving, new ActionAlwaysSucceed())
+                            new Wait(Delay.LagDuration, context => WoWMovement.ActiveMover.IsMoving, new ActionAlwaysSucceed())
                         ))
                 };
             }
@@ -72,7 +72,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
                 PrecisionDelegate = (context => Navigator.PathPrecision);
                 SuppressMountUse = suppressMountUse ?? (context => false);
-                LocationObserver = (context => Utility.MovementObserver.Location);
 
                 Children = CreateChildren();
             }
@@ -83,8 +82,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             ProvideStringDelegate destinationNameDelegate,
                             ProvideMovementByDelegate movementByDelegate = null,
                             ProvideDoubleDelegate precisionDelegate = null,
-                            CanRunDecoratorDelegate suppressMountUse = null,
-                            ProvideWoWPointDelegate locationObserver = null)
+                            CanRunDecoratorDelegate suppressMountUse = null)
             {
                 Contract.Requires(destinationDelegate != null, context => "destinationDelegate may not be null");
                 Contract.Requires(destinationNameDelegate != null, context => "destinationNameDelegate may not be null");
@@ -94,7 +92,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
                 PrecisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
                 SuppressMountUse = suppressMountUse ?? (context => false);
-                LocationObserver = locationObserver ?? (context => Utility.MovementObserver.Location);
 
                 Children = CreateChildren();
             }
@@ -103,7 +100,6 @@ namespace Honorbuddy.QuestBehaviorCore
             // BT contruction-time properties...
             private ProvideWoWPointDelegate DestinationDelegate { get; set;  }
             private ProvideStringDelegate DestinationNameDelegate { get; set; }
-            private ProvideWoWPointDelegate LocationObserver { get; set; }
             private ProvideMovementByDelegate MovementByDelegate { get; set; }
             private ProvideDoubleDelegate PrecisionDelegate { get; set; }
             private CanRunDecoratorDelegate SuppressMountUse { get; set; }
@@ -137,7 +133,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                 }                            
                             }),
 
-                            new Decorator(context => (CachedDestination.CollectionDistance(LocationObserver(context)) > PrecisionDelegate(context)),
+                            new Decorator(context => (CachedDestination.CollectionDistance(WoWMovement.ActiveMover.Location) > PrecisionDelegate(context)),
                                 new PrioritySelector(
                                     new Switch<MovementByType>(context => CachedMovementBy,
                                         // default
@@ -163,8 +159,10 @@ namespace Honorbuddy.QuestBehaviorCore
 
                                         new SwitchArgument<MovementByType>(MovementByType.ClickToMoveOnly,
                                             new PrioritySelector(
-                                                // NB: CtM can be used for either flying or ground, so we must assume 'fly'...
-                                                TryClickToMove(context => NavType.Fly)
+                                                TryClickToMove(context =>
+                                                    WoWMovement.ActiveMover.MovementInfo.CanFly
+                                                    ? NavType.Fly
+                                                    : NavType.Run)
                                             )),
 
                                         new SwitchArgument<MovementByType>(MovementByType.None,
@@ -190,14 +188,14 @@ namespace Honorbuddy.QuestBehaviorCore
                 return new PrioritySelector(
                     // Are we mounted, and not supposed to be?
                     new Decorator(context => SuppressMountUse(context) && Me.IsMounted(),
-                        new UtilityBehaviorPS.DescendForDismount(context => "Request for 'no mount use'.")),
+                        new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.Dismount)),
 
                     // Are we unmounted, and mount use is permitted?
                     // NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
                     // (based on NavType).
                     new Decorator(context => !SuppressMountUse(context)
                                             && (extraWantToMountQualifier(context)
-                                                || (CachedDestination.CollectionDistance(LocationObserver(context)) > CharacterSettings.Instance.MountDistance)),
+                                                || (CachedDestination.CollectionDistance(WoWMovement.ActiveMover.Location) > CharacterSettings.Instance.MountDistance)),
                         new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.Mount, navTypeDelegate))
                 );
             }
@@ -216,8 +214,8 @@ namespace Honorbuddy.QuestBehaviorCore
                     {
                         var precision = PrecisionDelegate(context);
                         var tempDestination =
-                            Navigator.GeneratePath(LocationObserver(context), CachedDestination)
-                            .Where(p => LocationObserver(context).Distance(p) > precision)
+                            Navigator.GeneratePath(WoWMovement.ActiveMover.Location, CachedDestination)
+                            .Where(p => WoWMovement.ActiveMover.Location.Distance(p) > precision)
                             .DefaultIfEmpty(CachedDestination)
                             .FirstOrDefault();
 
@@ -229,23 +227,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
             private Composite TryFlightor()
             {
-                var jumpAscendTime = TimeSpan.FromMilliseconds(250);
-
                 return new PrioritySelector(
-                    // NB: On unevent terrain, we want to force Flightor to mount if it cannot get to the destination...
-                    SetMountState(context => !Navigator.CanNavigateFully(LocationObserver(context), CachedDestination), context => NavType.Fly),
-
-                    // Sometimes when flightor is on the ground, it needs to be pushed into the air to get started...
-                    new Decorator(context => !Me.IsFlying
-                                            && Me.MovementInfo.CanFly
-                                            && Flightor.MountHelper.Mounted,
-                        new Sequence(
-                            new Action(context => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend)),
-                            new WaitContinue(jumpAscendTime, context => Me.IsFlying, new ActionAlwaysSucceed()),
-                            new ActionFail(context => WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend))
-                            // fall through
-                        )),
-
+                    // NB: On uneven terrain, we want to force Flightor to mount if it cannot get to the destination...
+                    SetMountState(context => !Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, CachedDestination), context => NavType.Fly),
                     new Action(context => { Flightor.MoveTo(CachedDestination, 15.0f, true); })
                 );
             }
@@ -255,11 +239,11 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new PrioritySelector(
                     // If we are flying, land and set up for ground travel...
-                    new Decorator(context => Me.IsFlying,
+                    new Decorator(context => WoWMovement.ActiveMover.IsFlying,
                         new UtilityBehaviorPS.DescendForDismount(context => "Preparing for ground travel")),
 
                     // If we can navigate to destination, use navigator...
-                    new Decorator(context => Navigator.CanNavigateFully(LocationObserver(context), CachedDestination),
+                    new Decorator(context => Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, CachedDestination),
                         new PrioritySelector(
                             SetMountState(null, context => NavType.Run),
                             new Action(context =>

@@ -90,6 +90,9 @@
 //      IgnoreMobsInBlackspots [optional; Default: true]
 //          When true, any mobs within (or too near) a blackspot will be ignored
 //          in the list of viable targets that are considered for item use.
+//      InteractBlacklistTimeInSeconds [optional: Default: 180]
+//          Specifies the number of seconds for which a target with which we've interacted
+//          is to remain blacklisted.
 //      MaxRangeToUseItem [optional; Default: 25.0]
 //          Defines the maximum range at which the item can be used on a mob.
 //          If the toon is out of range (i.e., due to a ranged pull), the toon
@@ -215,6 +218,8 @@ using System.Linq;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using CommonBehaviors.Decorators;
+
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
@@ -277,6 +282,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                 // Tunables...
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
+                InteractBlacklistTimeInSeconds = GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null) ?? 180; 
                 MaxRangeToUseItem = GetAttributeAsNullable<double>("MaxRangeToUseItem", false, ConstrainAs.Range, null) ?? 25.0;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimesToUseItem", false, ConstrainAs.RepeatCount, null) ?? 1;
                 RecallPetAtMobPercentHealth = GetAttributeAsNullable<double>("RecallPetAtMobPercentHealth", false, ConstrainAs.Percent, null) ?? UseWhenMobHasHealthPercent;
@@ -302,6 +308,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         // Variables for Attributes provided by caller
         private double CollectionDistance { get; set; }
         private WoWPoint? HuntingGroundCenter { get; set; }
+        private int InteractBlacklistTimeInSeconds { get; set; }
         private int ItemId { get; set; }
         private int ItemAppliesAuraId { get; set; }
         private double MaxRangeToUseItem { get; set; }
@@ -490,7 +497,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                         // Set Kill POI, if Honorbuddy doesn't think there is anything to do...
                         // NB: We don't want to do this blindly (i.e., we check for PoiType.None), to allow HB
                         // the decision to loot/sell/repair/etc as needed.
-                        new Decorator(context => (BotPoi.Current == null) || (BotPoi.Current.Type == PoiType.None),
+                        new DecoratorIsPoiType(PoiType.None,
                             new ActionFail(context => Utility.Target(SelectedTarget, false, PoiType.Kill)))
                     )),
 
@@ -586,7 +593,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                     if ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
                                         || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend))
                                     {
-                                        SelectedTarget.BlacklistForInteracting(TimeSpan.FromSeconds(180));
+                                        SelectedTarget.BlacklistForInteracting(TimeSpan.FromSeconds(InteractBlacklistTimeInSeconds));
                                     }
 
                                     // If we can't defend ourselves from the target, blacklist it for combat and move on...
@@ -594,7 +601,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                                         && ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
                                             || (UseItemStrategy == UseItemStrategyType.UseItemOncePerTargetDontDefend)))
                                     {
-                                        SelectedTarget.BlacklistForCombat(TimeSpan.FromSeconds(180));
+                                        SelectedTarget.BlacklistForCombat(TimeSpan.FromSeconds(InteractBlacklistTimeInSeconds));
                                         BotPoi.Clear();
                                         Me.ClearTarget();
                                         SelectedTarget = null;

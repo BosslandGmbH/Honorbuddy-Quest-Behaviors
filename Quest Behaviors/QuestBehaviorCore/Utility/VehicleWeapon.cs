@@ -51,7 +51,6 @@ namespace Honorbuddy.QuestBehaviorCore
         private double? FixedMuzzleVelocity { get; set; }
         private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
         private readonly WaitTimer MissileWatchingTimer = new WaitTimer(TimeSpan.FromMilliseconds(1000));
-        private WoWUnit MovementObserver { get { return Utility.MovementObserver; } }
         private int MuzzleVelocities_Count { get; set; }
         private double MuzzleVelocities_Summation { get; set; }
         private bool NeedsTestFire { get { return double.IsNaN(MuzzleVelocityInFps); } }
@@ -69,8 +68,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
             const double g = 32.174; // in feet per second^2
             double v0Sqr = MuzzleVelocityInFps * MuzzleVelocityInFps;
-            double horizontalDistance = MovementObserver.Location.Distance2D(targetLocation);
-            double heightDiff = targetLocation.Z - MovementObserver.Location.Z;
+            double horizontalDistance = WoWMovement.ActiveMover.Location.Distance2D(targetLocation);
+            double heightDiff = targetLocation.Z - WoWMovement.ActiveMover.Location.Z;
 
             double tmp1 = g * (horizontalDistance * horizontalDistance);
             double tmp2 = 2 * heightDiff * v0Sqr;

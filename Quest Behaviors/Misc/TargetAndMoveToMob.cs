@@ -149,6 +149,7 @@ using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
@@ -388,7 +389,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 
         private bool IsDistanceCloseNeeded(WoWObject wowObject)
         {
-            double targetDistance = Utility.MovementObserver.Location.Distance(wowObject.Location);
+            double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
             var isWithinRange =
                 (targetDistance <= MoveWithinMaxRangeOfMob)

@@ -197,9 +197,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 Hop = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
                 Precision = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
-                MovementBy = (GetAttributeAsNullable<bool>("UseNavigator", false, null, null) ?? true)
-                    ? MovementByType.NavigatorPreferred
-                    : MovementByType.ClickToMoveOnly;
+
+                var useNavigator = GetAttributeAsNullable<bool>("UseNavigator", false, null, null);
+                if (useNavigator.HasValue)
+                    { MovementBy = useNavigator.Value ? MovementByType.NavigatorPreferred : MovementByType.ClickToMoveOnly; }
+
                 WaitForVehicle = GetAttributeAsNullable<bool>("WaitForVehicle", false, null, null) ?? true;
 
                 // For backward compatibility, we do not error off on an invalid SpellId, but merely warn the user...
@@ -354,7 +356,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                             // and within a few yards of our destination when we were dismounted, we must
                             // assume we were auto-dismounted, and the behavior is complete...
                             new Decorator(context => DidSuccessfullyMount && !IsInVehicle()
-                                                        && (Me.Location.Distance(FinalDestination) < 15.0),
+                                                        && (WoWMovement.ActiveMover.Location.Distance(FinalDestination) < 15.0),
                                 new Action(context => { BehaviorDone(); })),
 
                             // If we're not in a vehicle, go fetch one...
@@ -401,15 +403,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                         context => FinalDestinationName,
                                         context => MovementBy,
                                         context => Precision,
-                                        context => IsInVehicle(),
-                                        context => ProxyObserver().Location),
-                                    new Decorator(context => ProxyObserver().IsMoving,
-                                        new Sequence(
-                                            new Action(context => { WoWMovement.MoveStop(); }),
-                                            new WaitContinue(Delay.LagDuration, context => false, new ActionAlwaysSucceed())
-                                        )),
+                                        context => IsInVehicle()),
+                                    new Decorator(context => WoWMovement.ActiveMover.IsMoving,
+                                        new Action(context => { WoWMovement.MoveStop(); })),
 
                                     // Arrived at destination, use spell if necessary...
+                                    // NB: We want to make certain movement is settled before we attempt
+                                    // to cast spell, so we won't be interrupted.
+                                    new SleepForLagDuration(),
                                     CreateSpellBehavior()
                                 ))
                         )),
@@ -467,11 +468,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             return new Decorator(context => IsInVehicle() && (SpellId > 0),
                 new PrioritySelector(
                     // Stop moving so we can cast...
-                    new Decorator(context => ProxyObserver().IsMoving,
-                        new Sequence(
-                            new Action(context => { WoWMovement.MoveStop(); }),
-                            new WaitContinue(Delay.LagDuration, context => false, new ActionAlwaysSucceed())
-                        )),
+                    new Decorator(context => WoWMovement.ActiveMover.IsMoving,
+                        new Action(context => { WoWMovement.MoveStop(); })),
                         
                     // If we cannot retrieve the spell info, its a bad SpellId...
                     new Decorator(context => string.IsNullOrEmpty(Lua.GetReturnVal<string>(luaRetrieveSpellInfoCommand, 0)),
@@ -530,18 +528,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             return
                 Me.InVehicle
                 || Me.HasAura(AuraId_ProxyVehicle);
-        }
-
-        
-        private WoWUnit ProxyObserver()
-        {
-            if (Me.HasAura(AuraId_ProxyVehicle))
-            {
-                if (VehicleUnoccupied != null)
-                    { return VehicleUnoccupied; }
-            }
-
-            return Me;
         }
         #endregion
     }

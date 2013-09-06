@@ -61,7 +61,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     // Descend, if needed...
                     new Decorator(context => !IsReadyToDismount(context),
                         new PrioritySelector(
-                            new Decorator(context => !Me.MovementInfo.IsDescending,
+                            new Decorator(context => !WoWMovement.ActiveMover.MovementInfo.IsDescending,
                                 new Action(context =>
                                 {
                                     var reason = ReasonDelegate(context);
@@ -74,7 +74,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                 new Action(context =>
                                 {
                                     const double probeHeight = 400.0;
-                                    var height = Me.GetTraceLinePos().HeightOverGroundOrWater(probeHeight);
+                                    var height = WoWMovement.ActiveMover.GetTraceLinePos().HeightOverGroundOrWater(probeHeight);
 
                                     QBCLog.DeveloperInfo("Descending from {0}",
                                         ((height > probeHeight) ? "unknown height" : string.Format("{0:F1}", height)));
@@ -82,7 +82,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         )),
 
                     // Stop descending...
-                    new Decorator(context => Me.MovementInfo.IsDescending,
+                    new Decorator(context => WoWMovement.ActiveMover.MovementInfo.IsDescending,
                         new Action(context =>
                         {
                             QBCLog.DeveloperInfo("Descent Stopped");
@@ -93,8 +93,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
             private bool IsReadyToDismount(object context)
             {
-                return !Me.IsFlying
-                        || (Me.GetTraceLinePos().HeightOverGroundOrWater() < MaxDismountHeightDelegate(context));
+                return !WoWMovement.ActiveMover.IsFlying
+                        || (WoWMovement.ActiveMover.GetTraceLinePos().HeightOverGroundOrWater() < MaxDismountHeightDelegate(context));
             }
         }
     }
@@ -193,97 +193,30 @@ namespace Honorbuddy.QuestBehaviorCore
                             // Mount needed?
                             new Decorator(context => CachedMountStrategy == MountStrategyType.Mount,
                                 new PrioritySelector(
-                                    // If flying mount is wanted, and we're not on flying mount...
-                                    new Decorator(context => NavTypeDelegate(context) == NavType.Fly
-                                                            && !Flightor.MountHelper.Mounted
-                                                            && Flightor.MountHelper.CanMount,
-                                        new Action(context => Flightor.MountHelper.MountUp())),
+                                    // Flying and Ground mounts...
+                                    new Decorator(context => !WoWMovement.ActiveMover.IsSwimming,
+                                        new PrioritySelector(
+                                            // If flying mount is wanted, and we're not on flying mount...
+                                            new Decorator(context => NavTypeDelegate(context) == NavType.Fly
+                                                                    && !Flightor.MountHelper.Mounted
+                                                                    && Flightor.MountHelper.CanMount,
+                                                new Action(context => Flightor.MountHelper.MountUp())),
 
-                                    // Try ground mount...
-                                    // NB: Force mounting by specifying a large distance to destination...
-                                    new Decorator(context => !Me.Mounted && Mount.CanMount(),
-                                        new Action(context =>
-                                        {
-                                            return Mount.MountUp(() => true, () => Me.Location.Add(1000.0, 1000.0, 1000.0))
-                                                ? RunStatus.Success
-                                                : RunStatus.Failure;
-                                        }))
-                                ))
-                        ))
-                };
-            }
-        }
-    }
+                                            // Try ground mount...
+                                            // NB: Force mounting by specifying a large distance to destination...
+                                            new Decorator(context => !Me.Mounted && Mount.CanMount(),
+                                                new Action(context =>
+                                                {
+                                                    return Mount.MountUp(() => true, () => WoWMovement.ActiveMover.Location.Add(1000.0, 1000.0, 1000.0))
+                                                        ? RunStatus.Success
+                                                        : RunStatus.Failure;
+                                                }))
+                                        )),
 
-
-    public partial class UtilityBehaviorPS
-    {
-        public class MountAsNeeded : PrioritySelector
-        {
-            public MountAsNeeded(ProvideWoWPointDelegate destinationDelegate,
-                                CanRunDecoratorDelegate suppressMountUse = null)
-            {
-                Contract.Requires(destinationDelegate != null, context => "locationRetriever may not be null");
-
-                DestinationDelegate = destinationDelegate;
-                SuppressMountUse = suppressMountUse ?? (context => false);
-
-                Children = CreateChildren();
-            }
-
-            // BT contruction-time properties...
-            private ProvideWoWPointDelegate DestinationDelegate { get; set; }
-            private CanRunDecoratorDelegate SuppressMountUse { get; set; }
-
-            // BT visit-time properties...
-            private WoWPoint CachedDestination { get; set; }
-
-            // Convenience properties...
-            private const int AuraId_AquaticForm = 1066;
-            private const int AuraId_WarlockUnendingBreath = 5697;
-            private const int SpellId_DruidAquaticForm = 1066;
-            private const int SpellId_WarlockUnendingBreath = 5697;
-
-
-            // 22Apr2013-09:02UTC chinajade
-            private List<Composite> CreateChildren()
-            {
-                return new List<Composite>()
-                {
-                    new ActionFail(context =>
-                    {
-                        CachedDestination = DestinationDelegate(context);
-                    }),
-
-                    new CompositeThrottle(TimeSpan.FromMilliseconds(3000),
-                        new PrioritySelector(
-                            new Decorator(context => Me.IsSwimming,
-                                new Action(context =>
-                                {
-                                    if (SpellManager.CanCast(SpellId_DruidAquaticForm) && !Me.HasAura(AuraId_AquaticForm))
-                                        { SpellManager.Cast(SpellId_DruidAquaticForm); }
-
-                                    else if (SpellManager.CanCast(SpellId_WarlockUnendingBreath) && !Me.HasAura(AuraId_WarlockUnendingBreath))
-                                        { SpellManager.Cast(SpellId_WarlockUnendingBreath); }
-
-                                    return RunStatus.Failure;
-                                })
-                            ),
-
-                            new Decorator(context => !Me.IsSwimming,
-                                new Decorator(context => !SuppressMountUse(context)
-                                                        && !Me.InVehicle
-                                                        && !Me.Mounted
-                                                        && Mount.CanMount()
-                                                        && (Mount.ShouldMount(CachedDestination)
-                                                            || (Me.Location.SurfacePathDistance(CachedDestination) > CharacterSettings.Instance.MountDistance)
-                                                            // This allows Me.MovementInfo.CanFly to have a chance at evaluating 'true' in rough terrain
-                                                            || !Navigator.CanNavigateFully(Me.Location, CachedDestination)),
-                                    new Action(context =>
-                                    {
-                                        Mount.MountUp(() => CachedDestination);
-                                        return RunStatus.Failure;
-                                    })
+                                    // Swimming mounts...
+                                    new Decorator(context => WoWMovement.ActiveMover.IsSwimming,
+                                        // TODO: Future enhancement--deal with swimming mounts
+                                        new ActionFail())
                                 ))
                         ))
                 };

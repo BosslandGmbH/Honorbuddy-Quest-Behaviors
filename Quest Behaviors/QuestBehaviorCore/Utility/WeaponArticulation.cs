@@ -74,7 +74,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return
                 Me.InVehicle
-                ? Utility.MovementObserver.Rotation
+                ? WoWMovement.ActiveMover.Rotation
                 : double.NaN;
         }
 
