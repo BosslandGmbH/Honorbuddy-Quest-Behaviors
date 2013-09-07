@@ -121,6 +121,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
                     // empty, for now
                 }
 
+                Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
+                TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior());
+
                 // Clean up unmanaged resources (if any) here...
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
@@ -131,11 +134,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
 
             _isDisposed = true;
         }
-
-
-
-
-
 
         #region Overrides of CustomForcedBehavior
 
@@ -284,7 +282,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
         {
             get
             {
-                return new Decorator(ret => (Me.CurrentTarget != null && Me.CurrentTarget.Distance < 1) || Me.Class == WoWClass.Hunter, Bots.Grind.LevelBot.CreateCombatBehavior());
+                return new Decorator(ret => (Me.CurrentTarget != null && Me.CurrentTarget.IsWithinMeleeRange) || Me.Class == WoWClass.Hunter, Bots.Grind.LevelBot.CreateCombatBehavior());
             }
         }
 
@@ -303,21 +301,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
         {
             get
             {
-                return new Decorator(ret => Me.CurrentTarget == null && Zah != null, new Action(delegate
+                return new Decorator(ret => Me.CurrentTarget == null || Me.CurrentTarget != Zah, new Action(delegate
                 {
                     Zah.Target();
                     Zah.Face();
                     if (Me.GotAlivePet)
                         SetPetMode("Assist");
 
-                }))
-
-
-                ;
+                }));
             }
         }
-
-
 
         public Composite Pullhim
         {
@@ -367,37 +360,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
             if (!IsDone)
             {
 
-
-
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
-
-
+                TreeHooks.Instance.AddHook("Questbot_Main", CreateBehavior());
+                Targeting.Instance.IncludeTargetsFilter += Instance_IncludeTargetsFilter;
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
 
-
-
-
-
-
+        void Instance_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
+        {
+            foreach (var unit in incomingUnits)
+            {
+                if (unit.Entry == 49148 || unit.Entry == 49156)
+                    outgoingUnits.Add(unit);
+            }
+        }
 
         #endregion
     }
