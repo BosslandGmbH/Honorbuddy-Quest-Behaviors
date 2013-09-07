@@ -10,7 +10,9 @@ using System.Linq;
 using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -150,17 +152,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
             }
         }
 
-
-
-
-
-
-
         public List<WoWUnit> Enemies
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 46384 && u.IsAlive && u.HealthPercent >= 100 && u.Location.Distance(BadBomb) > 60).OrderBy(u => u.Distance).ToList();
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                                 .Where(
+                                     u =>
+                                     u.Entry == 46384 && u.IsAlive && u.HealthPercent >= 100 && !Blacklist.Contains(u, BlacklistFlags.Interact) &&
+                                     u.Location.DistanceSqr(BadBomb) > 60*60)
+                                 .OrderBy(u => u.DistanceSqr)
+                                 .ToList();
             }
         }
 
@@ -175,13 +178,30 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
         }
 
 
-
+        private readonly WaitTimer _exitTimer = new WaitTimer(TimeSpan.FromSeconds(10));
         public Composite RunEmOver
         {
             get
             {
-                return new Decorator(ret => Me.IsOnTransport,
-                    new Action(r => Navigator.MoveTo(Enemies[0].Location)));
+                return 
+                    new PrioritySelector(ctx => Enemies,
+                        new Decorator(
+                            ret => WoWMovement.ActiveMover.MovementInfo.IsFalling,
+                            new ActionAlwaysSucceed()),
+                        new Decorator(
+                            ret => _exitTimer.IsFinished && ((List<WoWUnit>)ret).Count == 0,
+                            new Action(ret => Lua.DoString("VehicleExit()"))),
+                        new ActionFail(ret =>
+                            {
+                                var closeBys = ((List<WoWUnit>) ret).Where(u => u.DistanceSqr < 10f*10f);
+
+                                foreach (var unit in closeBys)
+                                {
+                                    Blacklist.Add(unit, BlacklistFlags.Interact, TimeSpan.FromMinutes(10));
+                                }
+                            }),
+                        new Decorator(ret => Me.IsOnTransport,
+                            new Action(r => Navigator.MoveTo(((List<WoWUnit>)r)[0].Location))));
             }
         }
 
@@ -201,7 +221,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
         {
             get
             {
-                return new Decorator(ret => !Me.IsOnTransport && (Orb == null || Orb.Distance > 5),
+                return new Decorator(ret => !Me.IsOnTransport && (Orb == null || Orb.DistanceSqr > 5 * 5),
                     new Action(r => Flightor.MoveTo(OrbLoc)));
             }
         }
@@ -213,7 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
                 return new Decorator(ret => !Me.IsOnTransport && Orb.Distance <= 5,
                     new Action(delegate
                                    {
-                                       
+                                       _exitTimer.Reset();
                                        Orb.Interact();
                                        Lua.DoString("SelectGossipOption(1)");
 
