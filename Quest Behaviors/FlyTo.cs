@@ -41,6 +41,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 Distance = GetAttributeAsNullable<double>("Distance", false, new ConstrainTo.Domain<double>(0.25, double.MaxValue), null) ?? 10.0;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
+                IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
@@ -68,6 +69,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         public string DestinationName { get; private set; }
         public double Distance { get; private set; }
         public bool Land { get; private set; }
+        public bool IgnoreIndoors { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -134,7 +136,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                     new Decorator(
                         ret => Land && Destination.DistanceSqr(StyxWoW.Me.Location) < Distance * Distance,
                         new Mount.ActionLandAndDismount()),
-                    new Action(ret => Flightor.MoveTo(Destination, true)))));
+                    new Action(ret => Flightor.MoveTo(Destination, !IgnoreIndoors)))));
         }
 
 
