@@ -291,7 +291,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
         {
             get
             {
-                return new Decorator(ret => Guards.Count > 0, new PrioritySelector(CheckSpot, PullOne, KillIt));
+                return new Decorator(ret => Guards.Count > 0, new PrioritySelector(CheckSpot, PullOne, KillIt, new ActionAlwaysSucceed()));
             }
         }
 
@@ -359,8 +359,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
-                TreeHooks.Instance.AddHook("Questbot_Main", CreateBehavior());
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior());
                 Targeting.Instance.IncludeTargetsFilter += Instance_IncludeTargetsFilter;
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
@@ -372,9 +371,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
 
         void Instance_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
         {
+            var targetGuid = StyxWoW.Me.CurrentTargetGuid;
             foreach (var unit in incomingUnits)
             {
-                if (unit.Entry == 49148 || unit.Entry == 49156)
+                if (unit.Guid == targetGuid)
                     outgoingUnits.Add(unit);
             }
         }
