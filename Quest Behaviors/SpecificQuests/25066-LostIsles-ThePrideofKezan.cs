@@ -118,18 +118,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePrideofKezan
 							new DecoratorContinue(ret => flylist.Count == 0,
 								new Sequence(
 									new Action(ret => Navigator.MoveTo(flyloc)),
-									new Action(ret => Thread.Sleep(1000)))),
+									new Sleep(1000))),
 							new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(me.Location) > 5,
 								new Sequence(
 									new Action(ret => Navigator.MoveTo(flylist[0].Location)),
-									new Action(ret => Thread.Sleep(1000)))),
+									new Sleep(1000))),
 							new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(me.Location) <= 5,
 								new Sequence(
 									new Action(ret => WoWMovement.MoveStop()),
 									new Action(ret => flylist[0].Interact()),
-									new Action(ret => Thread.Sleep(1000)),
+									new Sleep(1000),
 									new Action(ret => Lua.DoString("SelectGossipOption(1)")),
-									new Action(ret => Thread.Sleep(1000))))
+									new Sleep(1000)))
 					));
 			}
 		}

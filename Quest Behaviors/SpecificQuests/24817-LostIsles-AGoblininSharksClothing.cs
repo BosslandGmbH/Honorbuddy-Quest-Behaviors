@@ -79,7 +79,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
                                 new Sequence(
                                     new Action(ret => Navigator.MoveTo(q24817controller[0].Location)),
                                     new Action(ret => q24817controller[0].Interact()),
-                                    new Action(ret => Thread.Sleep(5000))
+                                    new Sleep(5000)
                                     )),
                     new Decorator(
                         ret => q24817_hammer[0].IsAlive,

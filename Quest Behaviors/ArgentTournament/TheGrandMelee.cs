@@ -249,20 +249,20 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return new PrioritySelector(
-                    new Decorator(r => !Me.Combat && WhichNPC == null, new Action(r => Navigator.MoveTo(Location))),
-                    new Decorator(r=>!Me.Combat && Me.Location.Distance(WhichNPC.Location)> 5, new Action(r=>Navigator.MoveTo(WhichNPC.Location))),
-                    new Decorator(r=>!Me.Combat && Me.Location.Distance(WhichNPC.Location)<= 5, new Action(r=>
-                                                                                                               {
-                                                                                                                   WhichNPC.Interact();
-                                                                                                                   WhichNPC.Target();
-                                                                                                                   Thread.Sleep(1000);
-                          Lua.DoString("SelectGossipOption(1)");
-                                                                                                               }
-                        ))
-                    
-                    
-                    
-                    );
+                    new Decorator(r => !Me.Combat && WhichNPC == null, 
+                        new Action(r => Navigator.MoveTo(Location))),
+                    new Decorator(r=>!Me.Combat && Me.Location.Distance(WhichNPC.Location)> 5, 
+                        new Action(r=>Navigator.MoveTo(WhichNPC.Location))),
+                    new Decorator(r=>!Me.Combat && Me.Location.Distance(WhichNPC.Location)<= 5, 
+                        new Sequence(
+                            new Action(r=>
+                            {
+                                WhichNPC.Target();
+                                WhichNPC.Interact();
+                            }),
+                            new Sleep(1000),
+                            new Action(ret => Lua.DoString("SelectGossipOption(1)"))
+                        )));
             }
         }
 

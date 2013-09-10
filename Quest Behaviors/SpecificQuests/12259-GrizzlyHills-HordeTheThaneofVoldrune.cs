@@ -172,7 +172,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
 							new Action(ret => StyxWoW.SleepForLagDuration()),
 							new Action(ret => objmob[0].Face()),
-							new Action(ret => Thread.Sleep(500))
+							new Sleep(500)
 						)
 					)
                 )

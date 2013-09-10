@@ -51,7 +51,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WarchiefsRevenge
                         new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Finished!"),
 							new Action(ret => Lua.DoString("VehicleExit()")),
-							new Action(ret => Thread.Sleep(15000)),
+							new Sleep(15000),
                             new WaitContinue(120,
                             new Action(delegate
                             {
@@ -65,7 +65,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WarchiefsRevenge
                             new Action(ret => TreeRoot.StatusText = "Bombing - " + mobList[0].Name),
 							new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
 							new Action(ret => SpellManager.ClickRemoteLocation(mobList[0].Location)),
-                            new Action(ret => Thread.Sleep(2000))
+                            new Sleep(2000)
                         )
 					)
                 )

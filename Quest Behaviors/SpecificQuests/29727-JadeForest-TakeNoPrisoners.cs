@@ -188,14 +188,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
                                                 new Action(ret => TreeRoot.StatusText = "Moving to Start Amber(Human) Story"),
                                                 new Action(ret => Navigator.MoveTo(new WoWPoint(-157.5062f, -2659.278f, 1.069468f))),
                                                 new Action(ret => WoWMovement.MoveStop()),
-                                                new Action(ret => Thread.Sleep(1000))
+                                                new Sleep(1000)
                                              )),
 
                                         new Decorator(ret => Amber != null && !Amber.WithinInteractRange,
                                                 new Sequence(
                                                     new Action(ret => Navigator.MoveTo(Amber.Location)),
                                                     new Action(ret => WoWMovement.MoveStop()),
-                                                    new Action(ret => Thread.Sleep(1000))
+                                                    new Sleep(1000)
                                                     )
                                              ),
 
@@ -203,7 +203,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
                                             new Sequence(
                                                 new Action(ret => WoWMovement.MoveStop()),
                                                 new Action(ret => Amber.Interact()),
-                                                new Action(ret => Thread.Sleep(400)),
+                                                new Sleep(400),
                                                 new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)"))
                                              )))),
 
@@ -214,27 +214,29 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
                                                  new Decorator(ret => HozenEnemy != null,
                                                     new Sequence(
                                                         new Action(ret => HozenEnemy.Target()), 
-														new Action(ret => Thread.Sleep(400)),
+														new Sleep(400),
                                                         new Action(ret => HozenEnemy.Interact()))),
 
                                                 new Decorator(ret => OrcEnemy != null, // Orc Has to be Seperate or we will Die
                                                     new Sequence(
                                                         new Action(ret => OrcEnemy.Target()),
-                                                        new Action(ret => Thread.Sleep(400)),
+                                                        new Sleep(400),
                                                         new Action(ret => OrcEnemy.Interact()))),
 
                                                 new Decorator(ret => UsingTurretLocation.Distance(StyxWoW.Me.Location) > 30 && !_usedTurret,
                                                     new PrioritySelector(
                                                         new Decorator(ret => TurretLocation.Distance(Me.Location) > 3,
                                                             new Action(ret => Navigator.MoveTo(TurretLocation))),
-                                                                          new Decorator(r => Turret.WithinInteractRange, new Action(r =>
-                        {
-                            Thread.Sleep(450);
-                            Navigator.PlayerMover.MoveStop();
-                            Turret.Interact();
+                                                        new Decorator(r => Turret.WithinInteractRange, 
+                                                            new Sequence(
+                                                                new Sleep(450),
+                                                                new Action(r =>
+                                                                {
+                                                                    Navigator.PlayerMover.MoveStop();
+                                                                    Turret.Interact();
 
-                            _usedTurret = true;
-                        }))))
+                                                                    _usedTurret = true;
+                                                                })))))
 
 
                                             ))

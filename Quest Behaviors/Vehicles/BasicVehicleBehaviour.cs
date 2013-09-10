@@ -194,19 +194,20 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
                                 ),
 
                             new Decorator(ret => IsMounted != true,
-                                new Action(ctx =>
-                                {
+                                new Sequence(
+                                    new Action(ctx =>
+                                    {
 
-                                    MountedPoint = Me.Location;
-                                    _vehicleList[0].Interact();
-                                    StyxWoW.SleepForLagDuration();
-                                    IsMounted = true;
+                                        MountedPoint = Me.Location;
+                                        _vehicleList[0].Interact();
+                                        StyxWoW.SleepForLagDuration();
+                                        IsMounted = true;
 
-                                    ObjectManager.Update();
-                                    _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList();
-                                    Thread.Sleep(3000);
-                                })
+                                        ObjectManager.Update();
+                                        _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                          .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList();
+                                    }),
+                                    new Sleep(3000))
                                 ),
 
                             new Decorator(ret => IsMounted = true,

@@ -86,33 +86,29 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                                 _isDone = true;
                                 return RunStatus.Success;
                             })))),
+
 					new Decorator(ret => !InVehicle,
-						new Action(ret =>
-						{
-							if (flylist.Count == 0)
-							{
-								Navigator.MoveTo(flyloc);
-								Thread.Sleep(1000);
-							}
-							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) > 5)
-							{
-								Navigator.MoveTo(flylist[0].Location);
-								Thread.Sleep(1000);
-							}
-							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) <= 5)
-							{
-								WoWMovement.MoveStop();
-								flylist[0].Interact();
-								Thread.Sleep(1000);
-								Lua.DoString("SelectGossipOption(1)");
-                                Thread.Sleep(1000);
-							}
-						})),
+                        new Sequence(
+                            new DecoratorContinue(ret => flylist.Count == 0,
+                                new Sequence(
+                                    new Action(ret => Navigator.MoveTo(flyloc)),
+                                    new Sleep(1000))),
+                            new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(me.Location) > 5,
+                                new Sequence(
+                                    new Action(ret => Navigator.MoveTo(flylist[0].Location)),
+                                    new Sleep(1000))),
+                            new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(me.Location) <= 5,
+                                new Sequence(
+                                    new Action(ret => WoWMovement.MoveStop()),
+                                    new Action(ret => flylist[0].Interact()),
+                                    new Sleep(1000),
+                                    new Action(ret => Lua.DoString("SelectGossipOption(1)")),
+                                    new Sleep(1000)))
+
+                            )),
 					new Decorator(ret => InVehicle,
 						new Action(ret =>
 						{
-							if (!InVehicle)
-								return RunStatus.Success;
 							if (me.QuestLog.GetQuestById(12255).IsCompleted)
 							{
 								if (me.Location.Distance(endloc) > 15)

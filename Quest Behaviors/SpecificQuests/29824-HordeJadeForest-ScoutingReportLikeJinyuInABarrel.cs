@@ -191,14 +191,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 return
                     new Decorator(r => !spoke, new PrioritySelector(
                         new Decorator(r => !rifle.WithinInteractRange, new Action(r => WoWMovement.ClickToMove(rifle.Location))),
-                        new Decorator(r => rifle.WithinInteractRange, new Action(r =>
-                        {
-                            Thread.Sleep(450);
-                            Navigator.PlayerMover.MoveStop();
-                            rifle.Interact();
+                        new Decorator(r => rifle.WithinInteractRange, 
+                            new Sequence(
+                                new Sleep(450),
+                                new Action(r =>
+                                {
+                                    Navigator.PlayerMover.MoveStop();
+                                    rifle.Interact();
 
-                            spoke = true;
-                        }))
+                                    spoke = true;
+                                })))
 
                         ));
             }

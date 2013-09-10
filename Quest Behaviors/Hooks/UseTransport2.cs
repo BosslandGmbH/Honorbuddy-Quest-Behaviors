@@ -210,11 +210,10 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 return new Decorator(r => startingMap != Me.MapId && TransportLocation.Distance(EndLocation) < 1,
                    
                     new PrioritySelector(
-                        new Decorator(r => !slept, new Action(r =>
-                        {
-                            Thread.Sleep(1500);
-                            slept = true;
-                        })),
+                        new Decorator(r => !slept, 
+                            new Sequence(
+                                new Sleep(1500),
+                                new Action(r => slept = true))),
                         new Decorator(r => GetOffLocation.Distance(Me.Location) < 1, new Action(r =>landed = true
                         )),
                     new Decorator(r => GetOffLocation.Distance(Me.Location) > 2, new Action(r => WoWMovement.ClickToMove(GetOffLocation)))

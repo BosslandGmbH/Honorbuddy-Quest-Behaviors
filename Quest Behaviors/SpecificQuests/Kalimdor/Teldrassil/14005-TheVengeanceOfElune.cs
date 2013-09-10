@@ -163,7 +163,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
                                            new Action(ret => WoWMovement.MoveStop())),
                                        new Sequence(
                                             new Action(ret => Lua.DoString("RunMacroText('/click OverrideActionBarButton2')")),
-                                            new Action(ret => Thread.Sleep(2000)),
+                                            new Sleep(2000),
                                             new Action(ret => Lua.DoString("RunMacroText('/click OverrideActionBarButton3')"))))),
 
                             new ActionAlwaysSucceed()

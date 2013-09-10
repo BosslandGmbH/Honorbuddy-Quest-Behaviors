@@ -271,7 +271,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                 new Action(ret => Navigator.MoveTo(Location)),
-                                new Action(ret => Thread.Sleep(300))
+                                new Sleep(300)
                             )
                         ),
 
@@ -302,7 +302,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
                                     new Action(ret => Navigator.MoveTo(DefendObject.Location)),
-                                    new Action(ret => Thread.Sleep(100))
+                                    new Sleep(100)
                                 )
                         ),
 
@@ -353,7 +353,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                 new Action(ret => Navigator.MoveTo(Location)),
-                                new Action(ret => Thread.Sleep(300))
+                                new Sleep(300)
                             )
                         ),
 
@@ -369,14 +369,14 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         new Sequence(
                                 new Action(ret => TreeRoot.StatusText = "Moving To Object : " + DefendObject.Location.Distance(Me.Location)),
                                 new Action(ret => Navigator.MoveTo(DefendObject.Location)),
-                                new Action(ret => Thread.Sleep(300))
+                                new Sleep(300)
                             )
                         ),
 
                         new Decorator(ret => TimeOut.ElapsedMilliseconds >= 300000 && DefendObject.WithinInteractRange,
                                new Sequence(
                                    new Action(ret => DefendObject.Interact()),
-                                   new Action(ret => Thread.Sleep(500)),
+                                   new Sleep(500),
                                    new Action(ret => Lua.DoString("SelectGossipOption(1)")),
                                    new Action(ret => TimeOut.Reset())
                                    )
@@ -409,7 +409,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
                                     new Action(ret => Navigator.MoveTo(DefendObject.Location)),
-                                    new Action(ret => Thread.Sleep(100))
+                                    new Sleep(100)
                                 )
                         ),
 

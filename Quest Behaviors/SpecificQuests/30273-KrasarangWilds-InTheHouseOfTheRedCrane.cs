@@ -198,7 +198,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
                                       new Sequence(
                                           new Action(ret => WoWMovement.MoveStop()),
                                           new Action(ret => Crane.Interact()),
-                                          new Action(ret => Thread.Sleep(400)),
+                                          new Sleep(400),
                                           new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)"))
                                           ))));
             }

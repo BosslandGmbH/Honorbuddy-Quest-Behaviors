@@ -222,7 +222,7 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Targeting Npc: " + CurrentNPC.Name + " Distance: " + CurrentNPC.Location.Distance(Me.Location)),
                                         new Action(ret => CurrentNPC.Target()),
-                                        new Action(ret => Thread.Sleep(WaitTime)),
+                                        new Sleep(WaitTime),
                                         new Action(ret => _isBehaviorDone = true)
                                        )),
 

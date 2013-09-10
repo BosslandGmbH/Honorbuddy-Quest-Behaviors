@@ -232,7 +232,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                                     new Action(ret => Lua.DoString("CastPetAction({0})", AttackButton)),
                                     new Action(ret => StyxWoW.SleepForLagDuration()),
                                     new Action(ret => Counter++),
-                                    new Action(ret => Thread.Sleep(WaitTime)))
+                                    new Sleep(WaitTime))
                             ))),
 
                     new Decorator(
@@ -250,7 +250,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                                 new Action(ret => Lua.DoString("CastPetAction({0})", AttackButton)),
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => Counter++),
-                                new Action(ret => Thread.Sleep(WaitTime)))
+                                new Sleep(WaitTime))
                             )),
 
                     new Decorator(
@@ -285,7 +285,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                                         new Action(ret => Counter++),
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
-                                        new Action(ret => Thread.Sleep(WaitTime))))),
+                                        new Sleep(WaitTime)))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
                             ))
                     ));

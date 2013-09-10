@@ -238,11 +238,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
                     // Wait for item to come off of cooldown...
                     new Decorator(context => Item.CooldownTimeLeft > TimeSpan.Zero,
-                        new Action(context =>
-                        {
-                            LogMessage("info", "Waiting for {0} to leave cooldown (time remaining: {1})",
-                                Item.Name, Item.CooldownTimeLeft);
-                        })),
+                        new Action(context => LogMessage("info", "Waiting for {0} to leave cooldown (time remaining: {1})",
+                                                         Item.Name, Item.CooldownTimeLeft))),
 
                     new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
                         new Action(ret => _isBehaviorDone = true)),
@@ -264,7 +261,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => Counter++),
                                 new Action(ret => SpellManager.ClickRemoteLocation(ClickToLocation)),
-                                new Action(ret => Thread.Sleep(WaitTime)))
+                                new Sleep(WaitTime))
                             )),
 
                     new Decorator(
@@ -299,7 +296,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
-                                        new Action(ret => Thread.Sleep(WaitTime))))),
+                                        new Sleep(WaitTime)))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
                             )),
 
@@ -330,7 +327,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
-                                        new Action(ret => Thread.Sleep(WaitTime))))),
+                                        new Sleep(WaitTime)))),
                             new Decorator(
                                 ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
                                 new Sequence(

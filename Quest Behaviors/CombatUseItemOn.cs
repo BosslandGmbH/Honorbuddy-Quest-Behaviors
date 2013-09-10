@@ -247,7 +247,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                                                 new Action(ret => TreeRoot.StatusText = "Using item"),
                                                 new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
                                                 new Action(ret => Item.UseContainerItem()),
-                                                new Action(ret => Thread.Sleep(WaitTime)),
+                                                new Sleep(WaitTime),
                                                 new DecoratorContinue(
                                                     ret => QuestId == 0,
                                                     new Action(ret => Counter++)),

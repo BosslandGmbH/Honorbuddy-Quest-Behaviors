@@ -157,7 +157,7 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                         new Action(ret => Navigator.MoveTo(Location)),
-                                        new Action(ret => Thread.Sleep(300))
+                                        new Sleep(300)
                                     )
                                 ),
 
@@ -174,7 +174,7 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
                                         new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Vehicle - " + VehicleList[0].Name + " X: " + VehicleList[0].X + " Y: " + VehicleList[0].Y + " Z: " + VehicleList[0].Z + " Yards Away: " + VehicleList[0].Location.Distance(Me.Location)),
                                         new Action(ret => Navigator.MoveTo(VehicleList[0].Location)),
-                                        new Action(ret => Thread.Sleep(300))
+                                        new Sleep(300)
                                             ))
                                     ))
                     ));

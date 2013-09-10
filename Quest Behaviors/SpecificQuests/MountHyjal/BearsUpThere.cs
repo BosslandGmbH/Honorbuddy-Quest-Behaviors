@@ -162,9 +162,16 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         private void WaitForCurrentSpell()
         {
             while (SpellManager.GlobalCooldown)
+            {
+                Pulsator.Pulse(BotManager.Current.PulseFlags);
                 Thread.Sleep(100);
+            }
+
             while (StyxWoW.Me.IsCasting)
+            {
+                Pulsator.Pulse(BotManager.Current.PulseFlags);
                 Thread.Sleep(100);
+            }
         }
 
         private bool CanCastNow(int spellId)

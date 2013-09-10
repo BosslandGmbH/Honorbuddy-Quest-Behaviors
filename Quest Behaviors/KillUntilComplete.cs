@@ -198,7 +198,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                         new Action(ret => Navigator.MoveTo(Location)),
-                                        new Action(ret => Thread.Sleep(300))
+                                        new Sleep(300)
                                     )
                                 ),
 
@@ -208,7 +208,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                             new Action(ret => Navigator.MoveTo(MobList[0].Location)),
-                                            new Action(ret => Thread.Sleep(300))
+                                            new Sleep(300)
                                             )
                                     ),
                                     new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) <= Range && MobList[0].InLineOfSight,
@@ -217,9 +217,9 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                                         new Action(ret => WoWMovement.MoveStop()),
                                         new Action(ret => MobList[0].Target()),
                                         new Action(ret => MobList[0].Face()),
-                                        new Action(ret => Thread.Sleep(200)),
+                                        new Sleep(200),
                                         new Action(ret => SpellManager.Cast(RangeSpell)),
-                                        new Action(ret => Thread.Sleep(300))
+                                        new Sleep(300)
                                             ))
                                     ))
                     ));

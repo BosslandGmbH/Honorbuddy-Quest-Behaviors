@@ -113,7 +113,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 									new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
 									new Action(ret => StyxWoW.SleepForLagDuration()),
 									new Action(ret => mob1List[0].Face()),
-									new Action(ret => Thread.Sleep(2000))
+									new Sleep(2000)
 								)
 							),
 							new DecoratorContinue(ret => !Me.IsMoving && !Obj2Done && Obj1Done && mob2List[0].Location.Distance(Me.Location) > 30,
@@ -133,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 									new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
 									new Action(ret => StyxWoW.SleepForLagDuration()),
 									new Action(ret => mob2List[0].Face()),
-									new Action(ret => Thread.Sleep(2000))
+									new Sleep(2000)
 								)
 							)
 						)

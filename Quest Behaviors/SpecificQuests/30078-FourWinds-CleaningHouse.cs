@@ -243,7 +243,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
                                                 new Action(ret => WoWMovement.MoveStop()),
                                                 new Action(ret => Flightor.MountHelper.Dismount()),
                                                 new Action(ret => ChenOutside.Interact()),
-                                                new Action(ret => Thread.Sleep(400)),
+                                                new Sleep(400),
                                                 new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)")),
                                                 new Action(ret => _started = true)
                                              )))),

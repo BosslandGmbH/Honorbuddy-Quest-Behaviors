@@ -168,15 +168,14 @@ namespace Styx.Bot.Quest_Behaviors
                         new Decorator(ret => Me.Location.Distance(turin.Location) > turin.InteractRange,
                                       new Action(r => Navigator.MoveTo(turin.Location))),
                         new Decorator(ret => !GossipFrame.Instance.IsVisible && QuestManager.QuestFrame.IsVisible,
-                                      new Action(r =>
-                                                     {
-                                                         Thread.Sleep(300);
-                                                         QuestManager.QuestFrame.SelectQuestReward(LootId);
-                                                         QuestManager.QuestFrame.SelectQuestReward(LootId);
-                                                         Thread.Sleep(300);
-                                                         QuestManager.QuestFrame.CompleteQuest();
-                                                         Thread.Sleep(300);
-                                                     })),
+                            new Sequence(
+                                new Sleep(300),
+                                new Action(ret => QuestManager.QuestFrame.SelectQuestReward(LootId)),
+                                new Action(ret => QuestManager.QuestFrame.SelectQuestReward(LootId)),
+                                new Sleep(300),
+                                new Action(ret => QuestManager.QuestFrame.CompleteQuest()),
+                                new Sleep(300)
+                                )),
                         new Decorator(ret => GossipFrame.Instance.IsVisible && !QuestFrame.Instance.IsVisible,
                                       new Action(r => stol())),
                         new Decorator(ret => turin.WithinInteractRange, new Action(r => turin.Interact())));

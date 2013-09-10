@@ -161,7 +161,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Destination.X + " Y: " + Destination.Y),
                                         new Action(ret => WoWMovement.ClickToMove(Destination)),
-                                        new Action(ret => Thread.Sleep(50))
+                                        new Sleep(100)
                                     )
                                 )
                     ));

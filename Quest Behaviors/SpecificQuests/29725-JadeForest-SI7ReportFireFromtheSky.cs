@@ -189,7 +189,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                                                 new Action(ret => WoWMovement.MoveStop()),
                                                 new Action(ret => Flightor.MountHelper.Dismount()),
                                                 new Action(ret => Sully.Interact()),
-                                                new Action(ret => Thread.Sleep(400)),
+                                                new Sleep(400),
                                                 new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)"))
                                              )))),
 
@@ -200,7 +200,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                                                 new Decorator(ret => Enemy != null && AimingTimer.IsFinished,
                                                     new Sequence(
                                                         new Action(ret => Enemy.Target()),
-                                                        new Action(ret => Thread.Sleep(400)),
+                                                        new Sleep(400),
                                                         new Action(ret => Lua.DoString("CastPetAction({0})", 1)),
                                                         new Action(ret => AimingTimer.Reset()))),
 

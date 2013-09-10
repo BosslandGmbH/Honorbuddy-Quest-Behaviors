@@ -211,7 +211,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
                                 new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                         new Action(ret => Flightor.MoveTo(Location)),
-                                        new Action(ret => Thread.Sleep(300))
+                                        new Sleep(300)
                                     )
                                 ),
                            new Decorator(ret => MobList.Count == 0 && Me.Location.Distance(Location) <= 5,
@@ -223,7 +223,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
                            new Decorator(ret => TimeOut.ElapsedMilliseconds >= 300000,
                                new Sequence(
                                    new Action(ret => MobList[0].Interact()),
-                                   new Action(ret => Thread.Sleep(500)),
+                                   new Sleep(500),
                                    new Action(ret => Lua.DoString("SelectGossipOption(1)"))
                                    )
                               ),
