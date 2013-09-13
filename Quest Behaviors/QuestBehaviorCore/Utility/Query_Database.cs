@@ -23,6 +23,8 @@ using Styx.CommonBot.Database;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.WoWInternals;
+using Styx.WoWInternals.DBC;
+
 #endregion
 
 
@@ -58,7 +60,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     Mailbox result = GetMailbox(reader);
                     var factionId = (uint)reader.GetInt32(reader.GetOrdinal("faction"));
-                    var factionTemplate = WoWFactionTemplate.FromId(factionId);
+                    var factionTemplate = FactionTemplate.FromId(factionId);
                     if ((factionTemplate == null || StyxWoW.Me.FactionTemplate.GetReactionTowards(factionTemplate) >= WoWUnitReaction.Neutral) && Navigator.CanNavigateFully(loc, result.Location))
                     {
                         results.Add(result);
@@ -83,7 +85,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     Vendor result = GetVendor(reader, vendorType);
                     var factionId = (uint)reader.GetInt32(reader.GetOrdinal("faction"));
-                    if (StyxWoW.Me.FactionTemplate.GetReactionTowards(WoWFactionTemplate.FromId(factionId)) >= WoWUnitReaction.Neutral && !VendorBlacklist.Contains(result.Entry) &&
+                    if (StyxWoW.Me.FactionTemplate.GetReactionTowards(FactionTemplate.FromId(factionId)) >= WoWUnitReaction.Neutral && !VendorBlacklist.Contains(result.Entry) &&
                         Navigator.CanNavigateFully(loc, result.Location))
                     {
                         results.Add(result);

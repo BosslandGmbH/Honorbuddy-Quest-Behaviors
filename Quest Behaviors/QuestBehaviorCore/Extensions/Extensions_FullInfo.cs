@@ -15,6 +15,8 @@ using System.Text;
 
 using Styx;
 using Styx.WoWInternals;
+using Styx.WoWInternals.DBC;
+
 #endregion
 
 
