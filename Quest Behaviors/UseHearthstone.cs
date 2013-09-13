@@ -121,10 +121,10 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 //thanks to dungonebuddy
         private uint CheckId(uint uint_13)
         {
-            AreaTable table = new AreaTable(uint_13);
+            AreaTable table = AreaTable.FromId(uint_13);
             while (table.ParentAreaId != 0)
             {
-                table = new AreaTable(table.ParentAreaId);
+                table = AreaTable.FromId(table.ParentAreaId);
             }
             return table.AreaId;
         }

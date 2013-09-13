@@ -243,6 +243,7 @@
     <Compile Include="TaxiRide.cs" />
     <Compile Include="TheEndlessFlowHook.cs" />
     <Compile Include="UseGameObject.cs" />
+    <Compile Include="UseHearthstone.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
     <Compile Include="Vehicles\NoControlVehicle.cs" />
     <Compile Include="NPCAssistance.cs" />
