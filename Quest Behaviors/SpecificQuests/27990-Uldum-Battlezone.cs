@@ -1,4 +1,5 @@
-// Behavior originally contributed by mastahg.
+// Behavior originally contributed by mastahg
+// 24/9/2013 - Practically rewritten, the old behaviour didn't do anything. - Aevitas
 //
 // DOCUMENTATION:
 //     
@@ -7,16 +8,20 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
+using Levelbot.Actions.General;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
+using Vector3 = Tripper.Tools.Math.Vector3;
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
@@ -37,9 +42,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 27990; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 27990;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
             }
@@ -120,41 +123,38 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
 
         public bool IsQuestComplete()
         {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
 
 
-        public Composite DoneYet
+        public Composite CreateQuestDoneBehaviour()
         {
-            get
-            {
-                return new Decorator(ret => IsObjectiveComplete(1,(uint)QuestId), new Action(delegate
-                                                                                            {
-                                                                                                TreeRoot.StatusText =
-                                                                                                    "Finished!";
-                                                                                                _isBehaviorDone = true;
-                                                                                                return RunStatus.Success;
-                                                                                            }));
-            }
+            return new Decorator(ret => IsObjectiveComplete(1, (uint)QuestId), new Action(delegate
+                                                                                        {
+                                                                                            TreeRoot.StatusText =
+                                                                                                "Finished!";
+                                                                                            _isBehaviorDone = true;
+                                                                                            return RunStatus.Success;
+                                                                                        }));
         }
 
- 
+
 
         private bool IsObjectiveComplete(int objectiveId, uint questId)
         {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
+            if (Me.QuestLog.GetQuestById(questId) == null)
             {
                 return false;
             }
             int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
             return
                 Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] {"return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")"}), 2);
+                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
         }
 
 
-        
+
         public WoWUnit Watcher
         {
             get
@@ -165,97 +165,73 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
             }
         }
 
-        public Composite TargetNew
+        public Composite CreateTargetWatcher()
         {
-            get
+            return new Action(ret =>
             {
-                return new Action(delegate
-                                      {
-                                         if (Watcher != null)
-                                             Watcher.Target();
-                                      });
-            }
+                if (Watcher != null)
+                    Watcher.Target();
+
+                return RunStatus.Failure;
+            });
         }
 
-        public Composite pewpew
+        private readonly VehicleWeapon _cannon = new VehicleWeapon(1, new WeaponArticulation(-0.456, 0.780) , 65.0);
+
+        public Composite CreateVehicleBehaviour()
         {
-            get
+            return new Action(ret =>
             {
-                return new Action(delegate
-                                      {
-                                          WoWMovement.ClickToMove(Me.CurrentTarget.Location);
-                                          var x =
-                                              ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(z => z.CharmedByUnit == Me);
+                var target = Me.CurrentTarget;
+                var vehicle = ObjectManager.GetObjectsOfType<WoWUnit>()
+                                    .FirstOrDefault(v => v.CreatedByUnitGuid == Me.Guid);
 
-                                          Tripper.Tools.Math.Vector3 v = Me.CurrentTarget.Location - x.Location;
-                                          v.Normalize();
-                                          Lua.DoString(
-                                              string.Format(
-                                                  "VehicleAimIncrement({0} - VehicleAimGetAngle()); CastPetAction({1});",
-                                                  Math.Asin(v.Z).ToString(), 1));
+                if (vehicle != null)
+                {
+                    var flightTime = _cannon.CalculateTimeOfProjectileFlight(target.Location);
+                    var probableTargetLocation = target.AnticipatedLocation(flightTime);
 
-                                      });
-            }
+                    var isAimed = _cannon.WeaponAim(probableTargetLocation);
+
+                    if (isAimed)
+                        _cannon.WeaponFire(probableTargetLocation);
+                }
+            });
         }
 
-
-
-
-
-        public Composite LockOn
+        private WoWPoint _endspot = new WoWPoint(1076.7, 455.7638, -44.20478);
+        private WoWPoint _spot = new WoWPoint(1109.848, 462.9017, -45.03053);
+       
+        public Composite CreateLockTargetBehaviour()
         {
-            get { return new Decorator(r => Me.CurrentTarget == null || Me.CurrentTarget.Distance > 100, TargetNew); }
+            // We only want to grab a new target when we either don't have one, or it's further away than 100 yards - we're not likely to hit those anyway.
+            return new Decorator(r => Me.CurrentTarget == null || Me.CurrentTarget.Distance > 100 || Me.CurrentTarget != Watcher, CreateTargetWatcher());
         }
 
+        public Composite CreateFreeBehaviour()
+        {
+            return new Action(hue =>
+            {
+                // Because this bloody thing always seems to think we get stuck inside the tank. We're not. We're free men. Hasta la victoria siempre. Kthx.
+                Navigator.NavigationProvider.StuckHandler.Reset();
 
-        private WoWPoint endspot = new WoWPoint(1076.7, 455.7638, -44.20478);
-        private WoWPoint spot = new WoWPoint(1109.848, 462.9017, -45.03053);
+                //if (Me.Mounted)
+                //    Mount.Dismount("Entering vehicle");
 
-
-
+                // Fall through pls, thxhtkxkhtbai.
+                return RunStatus.Failure;
+            });
+        }
 
         protected override Composite CreateBehavior()
         {
-            //return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(new Action(ret => Loopstuff()))));
+            return new PrioritySelector(
+                CreateFreeBehaviour(),
+                CreateQuestDoneBehaviour(), 
+                CreateLockTargetBehaviour(), 
+                CreateVehicleBehaviour()
+                );
         }
-
-
-
-        public void Loopstuff()
-        {
-            while (true)
-            {
-                ObjectManager.Update();
-                if (IsObjectiveComplete(1,(uint)QuestId))
-                {
-                    _isBehaviorDone = true;
-                    break;
-                }
-
-                if (Me.CurrentTarget != null && Me.CurrentTarget.Distance < 100)
-                {
-                    WoWMovement.ClickToMove(Me.CurrentTarget.Location);
-                    var x =
-                        ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(z => z.CharmedByUnit == Me);
-
-                    Tripper.Tools.Math.Vector3 v = Me.CurrentTarget.Location - x.Location;
-                    v.Normalize();
-                    Lua.DoString(
-                        string.Format(
-                            "VehicleAimIncrement(({0} - VehicleAimGetAngle())+.3); CastPetAction({1});",
-                            Math.Asin(v.Z).ToString(), 1));
-                }
-                else
-                {
-                    if (Watcher != null)
-                        Watcher.Target();
-                }
-
-
-            }
-        }
-
 
         public override void Dispose()
         {
@@ -276,12 +252,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
 
         public override void OnStart()
         {
-
-
-
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -297,17 +267,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
                     var currentRoot = TreeRoot.Current.Root;
                     if (currentRoot is GroupComposite)
                     {
-                        var root = (GroupComposite) currentRoot;
+                        var root = (GroupComposite)currentRoot;
                         root.InsertChild(0, CreateBehavior());
                     }
                 }
 
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
-
-
-
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
