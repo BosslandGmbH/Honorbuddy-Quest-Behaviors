@@ -187,17 +187,23 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 return new PrioritySelector(
                     // Are we mounted, and not supposed to be?
-                    new Decorator(context => SuppressMountUse(context) && Me.IsMounted(),
+                    new Decorator(context => !ShouldBeMounted(context) && Me.IsMounted(),
                         new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.Dismount)),
 
                     // Are we unmounted, and mount use is permitted?
                     // NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
                     // (based on NavType).
-                    new Decorator(context => !SuppressMountUse(context)
+                    new Decorator(context => ShouldBeMounted(context)
                                             && (extraWantToMountQualifier(context)
                                                 || (CachedDestination.CollectionDistance(WoWMovement.ActiveMover.Location) > CharacterSettings.Instance.MountDistance)),
                         new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.Mount, navTypeDelegate))
                 );
+            }
+
+
+            private bool ShouldBeMounted(object context)
+            {
+                return CharacterSettings.Instance.UseMount && !SuppressMountUse(context);
             }
 
 
@@ -227,11 +233,16 @@ namespace Honorbuddy.QuestBehaviorCore
 
             private Composite TryFlightor()
             {
-                return new PrioritySelector(
-                    // NB: On uneven terrain, we want to force Flightor to mount if it cannot get to the destination...
-                    SetMountState(context => !Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, CachedDestination), context => NavType.Fly),
-                    new Action(context => { Flightor.MoveTo(CachedDestination, 15.0f, true); })
-                );
+                // If a toon can't fly, skip this...
+                // NB: Although Flightor will fall back to Navigator, there are side-effects.
+                // Flightor will mount even if UseMount is disabled.  So, if the toon can't fly,
+                // we don't want to even try Flightor; otherwise, unexpected side-effects can ensue.
+                return new Decorator(context => WoWMovement.ActiveMover.MovementInfo.CanFly || WoWMovement.ActiveMover.IsSwimming,
+                    new PrioritySelector(
+                        // NB: On uneven terrain, we want to force Flightor to mount if it cannot get to the destination...
+                        SetMountState(context => !Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, CachedDestination), context => NavType.Fly),
+                        new Action(context => { Flightor.MoveTo(CachedDestination, 15.0f, true); })
+                    ));
             }
 
 
