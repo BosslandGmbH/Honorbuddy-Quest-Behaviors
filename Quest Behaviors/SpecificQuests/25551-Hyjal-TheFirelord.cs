@@ -149,14 +149,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
 
 
         #region Overrides of CustomForcedBehavior
-
-
-
         public bool IsQuestComplete()
         {
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
+
 
         public Composite DoneYet
         {
@@ -174,6 +172,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
             }
         }
 
+
         public Composite DoDps
         {
             get
@@ -183,22 +182,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
             }
         }
 
+
         public Composite Story
         {
             get
             {
-                return new Decorator(r => Malfurion == null && Cenarius != null, new PrioritySelector(
-
-                                                                 new Action(r=>
-                                                                                {
-                                                                                    WoWMovement.MoveStop();
-                                                                                    Cenarius.Interact();
-                                                                                    Thread.Sleep(400);
-                                                                                    Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
-                                                                                }
-
-
-                                                                     )));
+                return new Decorator(r => (Malfurion == null) && (Cenarius != null),
+                    new PrioritySelector(
+                        new Action(r=>
+                        {
+                            WoWMovement.MoveStop();
+                            Cenarius.Interact();
+                            Thread.Sleep(400);
+                            Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
+                        })
+                    ));
             }
         }
 
@@ -207,14 +205,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
         {
             get
             {
-                return new Decorator(r=> Add != null, new PrioritySelector(
-                    
-                    
-                    new Decorator(r=> !Me.GotTarget || Me.CurrentTarget != Add, new Action(r=>Add.Target())),
-                    DoDps
-
-                    
-                    
+                return new Decorator(r=> Add != null,
+                    new PrioritySelector(
+                        new Decorator(r=> !Me.GotTarget || (Me.CurrentTarget != Add),
+                            new Action(r=>Add.Target())),
+                        DoDps
                     ));
             }
         }
@@ -224,14 +219,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
         {
             get
             {
-                return new Decorator(r => Ragnaros != null, new PrioritySelector(
-
-
-                    new Decorator(r => !Me.GotTarget || Me.CurrentTarget != Ragnaros, new Action(r => Ragnaros.Target())),
-                    DoDps
-
-
-
+                return new Decorator(r => (Ragnaros != null) && (Add == null),
+                    new PrioritySelector( // Sanity check for Add so it doesn't go for raggy.
+                        new Decorator(r => !Me.GotTarget || (Me.CurrentTarget != Ragnaros),
+                            new Action(r => Ragnaros.Target())),
+                        DoDps
                     ));
             }
         }
@@ -239,7 +231,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone,new PrioritySelector(DoneYet,Story, KillAdds, KillBoss)));
+            return _root ?? (_root = 
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+                        DoneYet,
+                        Story,
+                        KillAdds,
+                        KillBoss
+                    )));
         }
 
 
@@ -272,8 +271,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
             if (!IsDone)
             {
 
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null &&
-    TreeRoot.Current.Root.LastStatus != RunStatus.Running)
+                if ((TreeRoot.Current != null)
+                    && (TreeRoot.Current.Root != null)
+                    && (TreeRoot.Current.Root.LastStatus != RunStatus.Running))
                 {
                     var currentRoot = TreeRoot.Current.Root;
                     if (currentRoot is GroupComposite)
