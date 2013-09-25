@@ -15,7 +15,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.MemoryManagement;
+using GreyMagic;
 using Styx.Pathing;
 using Styx.Plugins;
 using Styx.TreeSharp;
