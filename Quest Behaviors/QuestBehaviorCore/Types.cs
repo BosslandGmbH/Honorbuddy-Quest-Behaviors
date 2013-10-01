@@ -21,13 +21,6 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public abstract partial class QuestBehaviorBase
-    {
-        public static LocalPlayer Me { get { return StyxWoW.Me; } }
-        public static readonly Random _random = new Random((int)DateTime.Now.Ticks);
-    }
-
-
     public static class Delay
     {
 

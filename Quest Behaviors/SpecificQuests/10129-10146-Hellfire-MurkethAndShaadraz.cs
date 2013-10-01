@@ -105,7 +105,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
 
         protected override void Dispose(bool isExplicitlyInitiatedDispose)
         {
-            if (!_isDisposed)
+            if (!IsDisposed)
             {
                 if (_behaviorTreeHook_TaxiCheck != null)
                 {

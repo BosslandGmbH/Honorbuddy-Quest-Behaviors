@@ -455,6 +455,13 @@ namespace Honorbuddy.QuestBehaviorCore
                 !nonMovingTargetWanted || !wowUnit.IsMoving;
         }
         
+
+        // 30Sep2013 chinajade
+        public static bool IsVehicleActionBarShowing()
+        {
+            return Lua.GetReturnVal<bool>("return HasVehicleActionBar()", 0);
+        }
+
         
         // 24Feb2013-08:11UTC chinajade
         public static bool IsViable(WoWObject wowObject)

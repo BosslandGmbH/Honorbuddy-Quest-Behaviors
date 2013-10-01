@@ -116,6 +116,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -199,6 +200,8 @@ namespace Honorbuddy.QuestBehaviorCore
         public Func<bool> TerminateWhen { get; protected set; }
         public bool TerminationChecksQuestProgress { get; protected set; }
 
+        public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
+
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: QuestBehaviorBase.cs 719 2013-07-26 11:08:04Z dogan $"; } }
         public override string SubversionRevision { get { return "$Rev: 719 $"; } }
@@ -206,7 +209,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Private and Convenience variables
-        protected BehaviorFlags? _behaviorFlagsOriginal;
         private Composite _behaviorTreeHook_CombatMain;
         private Composite _behaviorTreeHook_CombatOnly;
         private Composite _behaviorTreeHook_DeathMain;
@@ -214,9 +216,15 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_Main;
         private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
-        protected bool _isDisposed { get; private set; }
-        private AvoidMobsType _temporaryAvoidMobs { get; set; }
-        private BlackspotsType _temporaryBlackspots { get; set; }
+        private AvoidMobsType _temporaryAvoidMobs;
+        private BlackspotsType _temporaryBlackspots;
+
+        protected bool IsDisposed { get; private set; }
+        protected BehaviorFlags? LevelBotOriginalValue_BehaviorFlags;
+        protected bool? LevelBotOriginalValue_ShouldUseSpiritHealer;
+        public static LocalPlayer Me { get { return StyxWoW.Me; } }
+        public static readonly Random _random = new Random((int)DateTime.Now.Ticks);
+        
         #endregion
 
 
@@ -230,7 +238,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-08:10UTC chinajade
         protected virtual void Dispose(bool isExplicitlyInitiatedDispose)
         {
-            if (!_isDisposed)
+            if (!IsDisposed)
             {
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
 
@@ -301,23 +309,36 @@ namespace Honorbuddy.QuestBehaviorCore
                     _mementoSettings = null;
                 }
 
-                // Restore behavior flags...
+                // Restore Levelbot settings...
                 // If the flags haven't changed, don't bother restoring.  This will prevent HBcore from generating
                 // 'noise' messages to the log.
-                if ((_behaviorFlagsOriginal.HasValue) && (_behaviorFlagsOriginal.Value != LevelBot.BehaviorFlags))
+                if (LevelBotOriginalValue_BehaviorFlags.HasValue && (LevelBotOriginalValue_BehaviorFlags.Value != LevelBot.BehaviorFlags))
                 {
-                    LevelBot.BehaviorFlags = _behaviorFlagsOriginal.Value;
-                    _behaviorFlagsOriginal = null;
+                    LevelBot.BehaviorFlags = LevelBotOriginalValue_BehaviorFlags.Value;
+                    LevelBotOriginalValue_BehaviorFlags = null;
+                }
+
+                if (LevelBotOriginalValue_ShouldUseSpiritHealer.HasValue && (LevelBotOriginalValue_ShouldUseSpiritHealer.Value != LevelBot.ShouldUseSpiritHealer))
+                {
+                    LevelBot.ShouldUseSpiritHealer = LevelBotOriginalValue_ShouldUseSpiritHealer.Value;
+                    LevelBotOriginalValue_ShouldUseSpiritHealer = null;
                 }
 
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
+                // Report the behavior run time...
+                if (_behaviorRunTimer.IsRunning)
+                {
+                    _behaviorRunTimer.Stop();
+                    QBCLog.DeveloperInfo("Behavior completed in {0}", Utility.PrettyTime(_behaviorRunTimer.Elapsed));
+                }
+
                 QBCLog.BehaviorLoggingContext = null;
                 base.Dispose();
             }
 
-            _isDisposed = true;
+            IsDisposed = true;
         }
 
 
@@ -397,6 +418,9 @@ namespace Honorbuddy.QuestBehaviorCore
             // check them here to see if we even need to start the behavior.
             if (!(IsDone || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)))
             {
+                // Start the timer to measure the behavior run time...
+                _behaviorRunTimer.Restart();
+
                 // Monitored Behaviors...
                 if (QuestBehaviorCoreSettings.Instance.MonitoredBehaviors.Contains(GetType().Name))
                 {
@@ -412,8 +436,9 @@ namespace Honorbuddy.QuestBehaviorCore
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _mementoSettings = new ConfigMemento();
 
-                // Preserved (and restore on dispose) the BehaviorFlags , in case the child needs to change them...
-                _behaviorFlagsOriginal = LevelBot.BehaviorFlags;
+                // Preserved (and restore on dispose) LevelBot settings, in case the child needs to change them...
+                LevelBotOriginalValue_BehaviorFlags = LevelBot.BehaviorFlags;
+                LevelBotOriginalValue_ShouldUseSpiritHealer = LevelBot.ShouldUseSpiritHealer;
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -545,11 +570,12 @@ namespace Honorbuddy.QuestBehaviorCore
             return (float)(-unit.Location.CollectionDistance());
         }
 
+
         /// <summary>
         /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
         /// </summary>
         /// <param name="units"></param>
-        private void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
+        protected virtual void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
         {
             foreach (var wowObject in incomingWowObjects)
             {
@@ -568,7 +594,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <para>HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.</para>
         /// </summary>
         /// <param name="wowObjects"></param>
-        private void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        protected virtual void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
         {
             wowObjects.RemoveAll(obj =>
                 {
@@ -584,7 +610,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <para>When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.</para>
         /// </summary>
         /// <param name="units"></param>
-        private void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
+        protected virtual void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
         {
             foreach (var targetPriority in targetPriorities)
             {

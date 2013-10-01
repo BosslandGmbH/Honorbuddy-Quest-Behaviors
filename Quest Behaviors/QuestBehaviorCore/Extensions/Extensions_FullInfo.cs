@@ -9,13 +9,14 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
 
 using Styx;
 using Styx.WoWInternals;
 using Styx.WoWInternals.DBC;
+
+using Tripper.Tools.Math;
 
 #endregion
 
@@ -24,6 +25,34 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public static class Extensions_FullInfo
     {
+        // 25Sep2013-07:55UTC chinajade
+        public static string ToString_FullInfo(this Matrix matrix, bool useCompactForm = false, int indentLevel = 0)
+        {
+            var indent = string.Empty.PadLeft(indentLevel);
+            var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
+            var tmp = new StringBuilder();
+
+            tmp.AppendFormat("<Matrix");
+            if (useCompactForm)
+            {
+                tmp.AppendFormat("{0}M11={1}, M12={2} , M13={3}, M14={4}", fieldSeparator, matrix.M11, matrix.M12, matrix.M13, matrix.M14);
+                tmp.AppendFormat("{0}M21={1}, M22={2} , M23={3}, M24={4}", fieldSeparator, matrix.M21, matrix.M22, matrix.M23, matrix.M24);
+                tmp.AppendFormat("{0}M31={1}, M32={2} , M33={3}, M34={4}", fieldSeparator, matrix.M31, matrix.M32, matrix.M33, matrix.M34);
+                tmp.AppendFormat("{0}M41={1}, M42={2} , M43={3}, M44={4}", fieldSeparator, matrix.M41, matrix.M42, matrix.M43, matrix.M44);
+            }
+            else
+            {
+                tmp.AppendFormat("{0}M11={1,13:F5}, M12={2,13:F5}, M13={3,13:F5}, M14={4,13:F5}", fieldSeparator, matrix.M11, matrix.M12, matrix.M13, matrix.M14);
+                tmp.AppendFormat("{0}M21={1,13:F5}, M22={2,13:F5}, M23={3,13:F5}, M24={4,13:F5}", fieldSeparator, matrix.M21, matrix.M22, matrix.M23, matrix.M24);
+                tmp.AppendFormat("{0}M31={1,13:F5}, M32={2,13:F5}, M33={3,13:F5}, M34={4,13:F5}", fieldSeparator, matrix.M31, matrix.M32, matrix.M33, matrix.M34);
+                tmp.AppendFormat("{0}M41={1,13:F5}, M42={2,13:F5}, M43={3,13:F5}, M44={4,13:F5}", fieldSeparator, matrix.M41, matrix.M42, matrix.M43, matrix.M44);
+            }
+            tmp.AppendFormat("{0}/>", fieldSeparator);
+
+            return tmp.ToString();
+        }
+
+
         // 9Mar2013-07:55UTC chinajade
         public static string ToString_FullInfo(this PlayerQuest playerQuest, bool useCompactForm = false, int indentLevel = 0)
         {

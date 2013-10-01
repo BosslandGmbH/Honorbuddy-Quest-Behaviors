@@ -42,12 +42,23 @@ namespace Honorbuddy.QuestBehaviorCore
                 ? FixedMuzzleVelocity.Value
                 : double.NaN;   // "we don't know, yet"
 
+            MeasuredMuzzleVelocity_Average = double.NaN;
+            MeasuredMuzzleVelocity_Min = double.NaN;
+            MeasuredMuzzleVelocity_Max = double.NaN;
+
+            LogAbilityUse = false;
+            LogWeaponFiringDetails = true;
         }
 
+        public bool LogWeaponFiringDetails { get; set; }
         public double MuzzleVelocityInFps { get; private set; }
+        public double MeasuredMuzzleVelocity_Average { get; private set; }
+        public double MeasuredMuzzleVelocity_Max { get; private set; }
+        public double MeasuredMuzzleVelocity_Min { get; private set; }
 
 
         #region Private and Convenience variables
+        private WoWPoint? AimedLocation { get; set; }
         private double? FixedMuzzleVelocity { get; set; }
         private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
         private readonly WaitTimer MissileWatchingTimer = new WaitTimer(TimeSpan.FromMilliseconds(1000));
@@ -101,9 +112,6 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         private double CalculateMuzzleVelocity()
         {
-            if (FixedMuzzleVelocity.HasValue)
-                { return FixedMuzzleVelocity.Value; }
-
             double launchAngle = WeaponArticulation.AzimuthGet();
             double muzzleVelocity = 0.0;
             var spell = FindVehicleAbilitySpell();
@@ -186,28 +194,54 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         public bool WeaponAim(WoWObject selectedTarget)
         {
-            if (selectedTarget == null)
+            // If target is moving, lead it...
+            var wowUnit = selectedTarget as WoWUnit;
+            if (Query.IsViable(wowUnit) && wowUnit.IsMoving)
+            {
+                var projectileFlightTime = CalculateTimeOfProjectileFlight(selectedTarget.Location);
+                var anticipatedLocation = selectedTarget.AnticipatedLocation(projectileFlightTime);
+
+                WoWMovement.StopFace(); 
+                return WeaponAim(anticipatedLocation);
+            } 
+            
+            if (!Query.IsViable(selectedTarget))
             {
                 QBCLog.Warning("No target for WeaponAim!");
+                WoWMovement.StopFace();
                 return false;
-            }
+            }           
 
-            if (!UtilAimPreReqsPassed(selectedTarget.Location))
+            if (!UtilAimPreReqsPassed())
                 { return false; }
 
             // Show user what we're targeting...
-            var wowUnit = selectedTarget as WoWUnit;
-            if ((wowUnit != null) && (Me.CurrentTarget != wowUnit))
-                { wowUnit.Target(); }
-
-            WoWMovement.ConstantFace(selectedTarget.Guid);
+            Utility.Target(selectedTarget);
 
             // Calculate the azimuth...
+            // TODO: Take vehicle rotations (pitch, roll) into account
             var azimuth = CalculateBallisticLaunchAngle(selectedTarget.Location);
-            if (!azimuth.HasValue)
+
+            //// Debugging--looking for pitch/roll contributions...
+            //// NB: It currently looks like the GetWorldMatrix() does not populate enough info to make
+            //// this calculation.
+            //if (azimuth.HasValue)
+            //{
+            //    var pitch = StyxWoW.Memory.Read<float>(WoWMovement.ActiveMover.BaseAddress + 0x820 + 0x24);
+            //    QBCLog.Debug("{0} {1:F3}/ {2:F3} pitch: {3:F3}", WoWMovement.ActiveMover.Name, azimuth, azimuth - pitch, pitch);
+
+            //    QBCDebug.ShowVehicleArticulationChain(WoWMovement.ActiveMover);
+            //}
+
+            if (!azimuth.HasValue || !WeaponArticulation.AzimuthSet(azimuth.Value))
                 { return false; }
 
-            return WeaponArticulation.AzimuthSet(azimuth.Value);
+            // For heading, we just face the location...
+            if (!WeaponArticulation.HeadingSet(selectedTarget))
+                { return false; }
+
+            AimedLocation = selectedTarget.Location;
+            return true;
         }
 
 
@@ -217,28 +251,37 @@ namespace Honorbuddy.QuestBehaviorCore
             if (selectedLocation == WoWPoint.Empty)
             {
                 QBCLog.Warning("No target location for WeaponAim!");
+                WoWMovement.StopFace();
                 return false;
             }
 
-            if (!UtilAimPreReqsPassed(selectedLocation))
+            if (!UtilAimPreReqsPassed())
+                { return false; }
+
+            // Calculate the azimuth...
+            // TODO: Take vehicle rotations (pitch, roll) into account
+            var azimuth = CalculateBallisticLaunchAngle(selectedLocation);
+            if (!azimuth.HasValue || !WeaponArticulation.AzimuthSet(azimuth.Value))
                 { return false; }
 
             // For heading, we just face the location...
-            var heading = WoWMathHelper.CalculateNeededFacing(Me.Location, selectedLocation);
-            WeaponArticulation.HeadingSet(heading);
-
-            // Calculate the azimuth...
-            var azimuth = CalculateBallisticLaunchAngle(selectedLocation);
-            if (!azimuth.HasValue)
+            if (!WeaponArticulation.HeadingSet(selectedLocation))
                 { return false; }
 
-            return WeaponArticulation.AzimuthSet(azimuth.Value);
+            AimedLocation = selectedLocation;
+            return true;
         }
 
 
         // 11Mar2013-04:41UTC chinajade
-        public bool WeaponFire(WoWPoint targetLocation)
+        public bool WeaponFire()
         {
+            if (!AimedLocation.HasValue)
+            {
+                QBCLog.MaintenanceError("Weapon {0} has not been aimed!", Name);
+                return false;
+            }
+
             var isWeaponUsed = UseAbility();
 
             if (isWeaponUsed)
@@ -249,21 +292,41 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     MuzzleVelocities_Summation += instantaneousMuzzleVelocity;
                     ++MuzzleVelocities_Count;
+                    MeasuredMuzzleVelocity_Average = MuzzleVelocities_Summation / MuzzleVelocities_Count;
 
-                    MuzzleVelocityInFps = MuzzleVelocities_Summation / MuzzleVelocities_Count;
+                    MuzzleVelocityInFps = FixedMuzzleVelocity.HasValue
+                        ? FixedMuzzleVelocity.Value
+                        : MeasuredMuzzleVelocity_Average;
 
-                    QBCLog.DeveloperInfo(
-                        "Weapon {1} fired:{0}"
-                        + "  Angle: {2:F2}{0}"
-                        + "  MuzzleVelocity: {3:F2} instantaneous / {4:F2} avg{0}"
-                        + "  Target Distance: {5:F2}{0}"
-                        + "  Projectile Flight Time: {6}",
-                        Environment.NewLine,
-                        Name,
-                        WeaponArticulation.AzimuthGet(),
-                        instantaneousMuzzleVelocity, MuzzleVelocityInFps,
-                        Me.Location.Distance(targetLocation),
-                        Utility.PrettyTime(CalculateTimeOfProjectileFlight(targetLocation), true, false));
+                    if (double.IsNaN(MeasuredMuzzleVelocity_Min) || (instantaneousMuzzleVelocity < MeasuredMuzzleVelocity_Min))
+                        { MeasuredMuzzleVelocity_Min = instantaneousMuzzleVelocity; }
+
+                    if (double.IsNaN(MeasuredMuzzleVelocity_Max) || (instantaneousMuzzleVelocity > MeasuredMuzzleVelocity_Max))
+                        { MeasuredMuzzleVelocity_Max = instantaneousMuzzleVelocity; }
+
+                    if (LogWeaponFiringDetails)
+                    {
+                        QBCLog.DeveloperInfo(
+                            "Weapon {1} fired:{0}"
+                            + "  Angle: {2:F3}{0}"
+                            + "  MuzzleVelocity: {3:F2} {4}{0}"
+                            + "  MeasureMuzzleVelocities: {5:F2} instantaneous / {6:F2} avg / {7:F2} min / {8:F2} max{0}"
+                            + "  Target Distance: {9:F2}{0}"
+                            + "  Projectile Flight Time: {10}",
+                            Environment.NewLine,
+                            Name,
+                            WeaponArticulation.AzimuthGet(),
+                            MuzzleVelocityInFps,
+                            (FixedMuzzleVelocity.HasValue ? "fixed" : "used"),
+                            instantaneousMuzzleVelocity,
+                            MeasuredMuzzleVelocity_Average,
+                            MeasuredMuzzleVelocity_Min,
+                            MeasuredMuzzleVelocity_Max,
+                            Me.Location.Distance(AimedLocation.Value),
+                            Utility.PrettyTime(CalculateTimeOfProjectileFlight(AimedLocation.Value), true, false));
+                    }
+
+                    AimedLocation = null;   // weapon fired--force re-aim for next shot
                 }
             }
 
@@ -271,9 +334,9 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-        private bool UtilAimPreReqsPassed(WoWPoint targetLocation)
+        private bool UtilAimPreReqsPassed()
         {
-            if (!Me.InVehicle)
+            if (!Query.IsVehicleActionBarShowing())
             {
                 QBCLog.Warning("Attempted to aim weapon while not in Vehicle!");
                 return false;
@@ -282,7 +345,10 @@ namespace Honorbuddy.QuestBehaviorCore
             // Test fire weapon, if needed.  This gets us the muzzle velocity...
             if (NeedsTestFire && IsWeaponReady())
             {
-                WeaponFire(targetLocation);
+                // Lie about weapon being aimed...
+                // NB:  S'ok, for test fire, we're after the measured muzzle velocity.
+                AimedLocation = WoWPoint.Zero;
+                WeaponFire();
                 return false;
             }
 

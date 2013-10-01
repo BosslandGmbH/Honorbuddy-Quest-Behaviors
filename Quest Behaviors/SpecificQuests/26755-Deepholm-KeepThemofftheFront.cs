@@ -25,7 +25,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
     public class KeepThemofftheFront : CustomForcedBehavior
     {
         private WeaponArticulation weaponArticulation;
-        private VehicleWeapon rock;
+        private VehicleWeapon Rock;
 
 
 
@@ -44,7 +44,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
 
 
              weaponArticulation = new WeaponArticulation();
-             rock = new VehicleWeapon(1, weaponArticulation);
+             Rock = new VehicleWeapon(1, weaponArticulation);
 
 
         }
@@ -149,25 +149,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
 
         private void shoot(WoWUnit who)
         {
-
-            var WeaponChoice = rock;
-
-
-
-            var projectileFlightTime = WeaponChoice.CalculateTimeOfProjectileFlight(who.Location);
-                var anticipatedLocation = who.AnticipatedLocation(projectileFlightTime);
-                var isAimed = WeaponChoice.WeaponAim(anticipatedLocation);
-
-                if (isAimed)
-                {
-                    WeaponChoice.WeaponFire(anticipatedLocation);
-
-
-                }
-            
+            var isAimed = Rock.WeaponAim(who);
+            if (isAimed)
+            {
+                Rock.WeaponFire();
+            }        
         }
-
-
 
 
         public Composite KillSoldier
@@ -175,13 +162,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.KeepThemofftheFront
             get
             {
                 return
-
-
                     new Decorator(r => timmah != null,new Action(r => shoot(timmah)));
-
-
             }
-
         }
 
 

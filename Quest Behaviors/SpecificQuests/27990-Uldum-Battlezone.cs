@@ -1,50 +1,83 @@
-// Behavior originally contributed by mastahg
-// 24/9/2013 - Practically rewritten, the old behaviour didn't do anything. - Aevitas
-//
-// DOCUMENTATION:
-//     
+﻿// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+// Behavior originally contributed by mastahg
+// 24/9/2013 - Practically rewritten, the old behaviour didn't do anything. - Aevitas
+// 24-Sep-2013 - Added logic to get in tank. - Chinajade
+//              The profile can't use UtilityBehaviorPS.Interact() for this, because the tank
+//              goes invalidimmediately after interacting with it, which causes Interact()
+//              to throw exceptions because it is unable to finish the job on an InValid object.
+
+// Documentation:
+// * Moves to Siege Tank, dismounts, and enters tank
+// * Fires at targets as it moves around range
+// * Behavior is stop/start friendly
+// * Accommodates getting thrown out of a vehicle for any reason
+//
+// Notes:
+// * The only time this behavior misses is when weapons platform pitches or rolls.
+//   We've looked at techniques to calculate the angle contributions induced by
+//   vehicle pitch and roll, but we've yet to find any place with usable information.
+//   The most obvious place to look is WoWUnit.GetWorldMatrix(); however, the matrix
+//   returned is devoid of meaningful 'Z contributions' for each of the primary axis.
+//   <sigh> The search will have to continue some other day.  For now, the misses
+//   aren't significant enough to waste significant effort trying to find the buried
+//   information--if its available at all.
+//
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
+
+using Bots.Grind;
+
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
-using Levelbot.Actions.General;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
+
 using Action = Styx.TreeSharp.Action;
-using Vector3 = Tripper.Tools.Math.Vector3;
+#endregion
 
 
-namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
+namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 {
     [CustomBehaviorFileName(@"SpecificQuests\27990-Uldum-Battlezone")]
-    public class Battlezone : CustomForcedBehavior
+    public class Battlezone_27990 : QuestBehaviorBase
     {
-        ~Battlezone()
-        {
-            Dispose(false);
-        }
-
-        public Battlezone(Dictionary<string, string> args)
+        #region Constructor and Argument Processing
+        public Battlezone_27990(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 QuestId = 27990;
-                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
+                TerminationChecksQuestProgress = false;
+
+                MobId_Objective1_DecrepitWatcher = 47385;   // http://wowhead.com/npc=47385
+                MobId_SchnottzSiegeTank = 47732;            // http://wowhead.com/npc=47732
+                MobId_SchnottzSiegeTankInstanced = 47743;   // http://wowhead.com/npc=47743
+                Location_VehicleStagingArea = new WoWPoint(-10697.07, 1106.809, 23.11283);
+                Location_ReturnToSchnottz = new WoWPoint(-10674.97, 933.8754, 26.32263);
+
+                // Weapon allows TAU (i.e., 2*PI) horizontal rotation
+                WeaponAzimuthMax = 0.785;               // Use: /script print(VehicleAimGetAngle())
+                WeaponAzimuthMin = -0.524;              // Use: /script print(VehicleAimGetAngle())
+                WeaponMuzzleVelocity = 65.0;            // (slot 1) http://wowhead.com/npc=75560
             }
 
             catch (Exception except)
@@ -54,231 +87,406 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Battlezone
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
+                                    + "\nFROM HERE:\n"
+                                    + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
-
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        private WoWPoint Location_VehicleStagingArea { get; set; }
+        private WoWPoint Location_ReturnToSchnottz { get; set; }
+        private int MobId_Objective1_DecrepitWatcher { get; set; }
+        private int MobId_SchnottzSiegeTank { get; set; }
+        private int MobId_SchnottzSiegeTankInstanced { get; set; }
+        private double WeaponAzimuthMax { get; set; }
+        private double WeaponAzimuthMin { get; set; }
+        private double WeaponMuzzleVelocity { get; set; }
 
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-
-
-        // Private properties
-        private LocalPlayer Me
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            get { return (StyxWoW.Me); }
+            // empty, for now
         }
 
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+            // empty, for now
+        }
+        #endregion
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
 
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
+        #region Private and Convenience variables
+        private enum BehaviorStateType
+        {
+            MountingVehicle,        // initial state
+            RidingOutToHuntingGrounds,
+            CompletingObjectives,
+            ReturningToBase,
         }
 
-
-        public Composite DoDps
+        private BehaviorStateType BehaviorState
         {
-            get
+            get { return _behaviorState; }
+            set
             {
-                return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                      RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
+                // For DEBUGGING...
+                if (_behaviorState != value)
+                    { QBCLog.DeveloperInfo("BehaviorStateType: {0}", value); }
+
+                _behaviorState = value;
             }
         }
+        private WoWUnit SelectedTarget { get; set; }
+        private WoWUnit Vehicle { get; set; }
+        private VehicleWeapon WeaponFireCannon { get; set; }
+
+        private BehaviorStateType _behaviorState;
+        private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id: 24910-Tanaris-RocketRescue.cs 574 2013-06-28 08:54:59Z chinajade $"); } }
+        public override string SubversionRevision { get { return ("$Rev: 574 $"); } }
+        #endregion
+
+
+        #region Destructor, Dispose, and cleanup
+        ~Battlezone_27990()
+        {
+            Dispose(false);
+        }
+        #endregion
+
 
         #region Overrides of CustomForcedBehavior
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-
-        public Composite CreateQuestDoneBehaviour()
-        {
-            return new Decorator(ret => IsObjectiveComplete(1, (uint)QuestId), new Action(delegate
-                                                                                        {
-                                                                                            TreeRoot.StatusText =
-                                                                                                "Finished!";
-                                                                                            _isBehaviorDone = true;
-                                                                                            return RunStatus.Success;
-                                                                                        }));
-        }
-
-
-
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-        public WoWUnit Watcher
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 47385 && u.IsAlive).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
-
-        public Composite CreateTargetWatcher()
-        {
-            return new Action(ret =>
-            {
-                if (Watcher != null)
-                    Watcher.Target();
-
-                return RunStatus.Failure;
-            });
-        }
-
-        private readonly VehicleWeapon _cannon = new VehicleWeapon(1, new WeaponArticulation(-0.456, 0.780) , 65.0);
-
-        public Composite CreateVehicleBehaviour()
-        {
-            return new Action(ret =>
-            {
-                var target = Me.CurrentTarget;
-                var vehicle = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .FirstOrDefault(v => v.CreatedByUnitGuid == Me.Guid);
-
-                if (vehicle != null)
-                {
-                    var flightTime = _cannon.CalculateTimeOfProjectileFlight(target.Location);
-                    var probableTargetLocation = target.AnticipatedLocation(flightTime);
-
-                    var isAimed = _cannon.WeaponAim(probableTargetLocation);
-
-                    if (isAimed)
-                        _cannon.WeaponFire(probableTargetLocation);
-                }
-            });
-        }
-
-        private WoWPoint _endspot = new WoWPoint(1076.7, 455.7638, -44.20478);
-        private WoWPoint _spot = new WoWPoint(1109.848, 462.9017, -45.03053);
-       
-        public Composite CreateLockTargetBehaviour()
-        {
-            // We only want to grab a new target when we either don't have one, or it's further away than 100 yards - we're not likely to hit those anyway.
-            return new Decorator(r => Me.CurrentTarget == null || Me.CurrentTarget.Distance > 100 || Me.CurrentTarget != Watcher, CreateTargetWatcher());
-        }
-
-        public Composite CreateFreeBehaviour()
-        {
-            return new Action(hue =>
-            {
-                // Because this bloody thing always seems to think we get stuck inside the tank. We're not. We're free men. Hasta la victoria siempre. Kthx.
-                Navigator.NavigationProvider.StuckHandler.Reset();
-
-                //if (Me.Mounted)
-                //    Mount.Dismount("Entering vehicle");
-
-                // Fall through pls, thxhtkxkhtbai.
-                return RunStatus.Failure;
-            });
-        }
-
-        protected override Composite CreateBehavior()
-        {
-            return new PrioritySelector(
-                CreateFreeBehaviour(),
-                CreateQuestDoneBehaviour(), 
-                CreateLockTargetBehaviour(), 
-                CreateVehicleBehaviour()
-                );
-        }
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
         public override void OnStart()
         {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null &&
-                    TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
+                // Turn off LevelBot behaviors that will interfere...
+                // NB: These will be restored by our parent class when we're done.
+                // NB: We need to disable the Roam behavior to prevent the StuckHandler from kicking in.
+                LevelBot.BehaviorFlags &=
+                    ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Roam | BehaviorFlags.Vendor);
+
+                BehaviorState = BehaviorStateType.MountingVehicle;
+            }
+        }
+        #endregion
+
+
+        #region Main Behaviors
+        protected override Composite CreateBehavior_CombatMain()
+        {
+            return new PrioritySelector(
+                // empty, for now...
+                );
+        }
+
+
+        protected override Composite CreateBehavior_CombatOnly()
+        {
+            return new PrioritySelector(
+                // Disable combat routine while we are in the vehicle...
+                new Decorator(context => Me.InVehicle,
+                    new ActionAlwaysSucceed())
+                );
+        }
+
+
+        protected override Composite CreateBehavior_DeathMain()
+        {
+            return new PrioritySelector(
+                // empty, for now...
+                );
+        }
+
+
+        protected override Composite CreateMainBehavior()
+        {
+            return new PrioritySelector(
+                new Switch<BehaviorStateType>(context => BehaviorState,
+                    new Action(context =>   // default case
                     {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+                        var message = string.Format("BehaviorStateType({0}) is unhandled", BehaviorState);
+                        QBCLog.MaintenanceError(message);
+                        TreeRoot.Stop();
+                        BehaviorDone(message);
+                    }),
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.MountingVehicle,
+                        StateBehaviorPS_MountingVehicle()),
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.RidingOutToHuntingGrounds,
+                        StateBehaviorPS_RidingOutToHuntingGrounds()),
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.CompletingObjectives,
+                        StateBehaviorPS_CompletingObjectives()),
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.ReturningToBase,
+                        StateBehaviorPS_ReturningToBase())
+                ));
+        }
+        #endregion
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
+        #region Behavior States
+        private Composite StateBehaviorPS_MountingVehicle()
+        {
+            return new PrioritySelector(
+                new Decorator(context => Me.IsQuestComplete(QuestId),
+                    new Action(context => { BehaviorDone(); })),
+
+                // If we're in the vehicle, wait for the ride out to hunting grounds to complete...
+                new Decorator(context => IsInTank(),
+                    new PrioritySelector(
+                        SubBehaviorPS_InitializeVehicleAbilities(),
+                        new Action(context => { BehaviorState = BehaviorStateType.RidingOutToHuntingGrounds; })
+                    )),
+
+                // If vehicle is in "enter vehicle" animation, wait for the animation to complete...
+                new Decorator(context => FindVehicle_OwnedByMe(MobId_SchnottzSiegeTankInstanced) != null,
+                    new PrioritySelector(
+                        new CompositeThrottle(Throttle.UserUpdate,
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText =
+                                    string.Format("Waiting for {0} to become ready.",
+                                        Utility.GetObjectNameFromId(MobId_SchnottzSiegeTankInstanced));
+                            })),
+                        new ActionAlwaysSucceed()
+                    )),
+                    
+                // Locate a vehicle to mount...
+                new Decorator(context => !Query.IsViable(Vehicle),
+                    new PrioritySelector(
+                        new Action(context =>
+                        {
+                            Vehicle =
+                                Query.FindMobsAndFactions(Utility.ToEnumerable(MobId_SchnottzSiegeTank))
+                                .FirstOrDefault()
+                                as WoWUnit;
+
+                            if (Query.IsViable(Vehicle))
+                            {
+                                Utility.Target(Vehicle);
+                                return RunStatus.Success;
+                            }
+
+                            return RunStatus.Failure;   // fall through
+                        }),
+
+                        // No vehicle found, move to staging area...
+                        new UtilityBehaviorPS.MoveTo(
+                            context => Location_VehicleStagingArea,
+                            context => "Vehicle Staging Area",
+                            context => MovementBy),
+
+                        // Wait for vehicle to respawn...
+                        new CompositeThrottle(Throttle.UserUpdate,
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText =
+                                    string.Format("Waiting for {0} to respawn.", Utility.GetObjectNameFromId(MobId_SchnottzSiegeTank));
+                            }))
+                    )),
+
+                // Move to vehicle and enter...
+                new CompositeThrottle(Throttle.UserUpdate,
+                    new Action(context => { TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.Name); })),
+                new Decorator(context => !Vehicle.WithinInteractRange,
+                    new UtilityBehaviorPS.MoveTo(
+                        context => Vehicle.Location,
+                        context => Vehicle.Name,
+                        context => MovementBy)),
+                new Decorator(context => Me.IsMoving,
+                    new Action(context => { Navigator.PlayerMover.MoveStop(); })),
+                new Decorator(context => Me.Mounted,
+                    new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)),
+                new ActionFail(context =>
+                {
+                    // If we got booted out of a vehicle for some reason, reset the weapons...
+                    WeaponFireCannon = null;
+
+                    Utility.Target(Vehicle);
+                    Vehicle.Interact();
+                }),
+                new Wait(TimeSpan.FromMilliseconds(10000), context => IsInTank(), new ActionAlwaysSucceed()),
+                new ActionAlwaysSucceed()
+            );
+        }
+
+
+        private Composite StateBehaviorPS_RidingOutToHuntingGrounds()
+        {
+            return new PrioritySelector(
+                // If for some reason no longer in the vehicle, go fetch another...
+                new Decorator(context => !IsInTank(),
+                    new Action(context =>
+                    {
+                        QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
+                        BehaviorState = BehaviorStateType.MountingVehicle;
+                    })),
+
+                new Decorator(context => WeaponFireCannon.IsWeaponUsable(),
+                    new Action(context => { BehaviorState = BehaviorStateType.CompletingObjectives; })),
+
+                new CompositeThrottle(Throttle.UserUpdate,
+                    new Action(context => { TreeRoot.StatusText = "Riding out to hunting grounds"; }))
+            );            
+        }
+
+
+        private Composite StateBehaviorPS_CompletingObjectives()
+        {
+            return new PrioritySelector(
+                // If for some reason no longer in the vehicle, go fetch another...
+                new Decorator(context => !IsInTank(),
+                    new Action(context =>
+                    {
+                        QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
+                        BehaviorState = BehaviorStateType.MountingVehicle;
+                    })),
+
+                // If quest is complete, then head back...
+                new Decorator(context => Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new Action(context => { BehaviorState = BehaviorStateType.ReturningToBase; })),
+
+                new CompositeThrottle(Throttle.UserUpdate,
+                    new Action(context => { TreeRoot.StatusText = "Completing Quest Objectives"; })),
+
+                // Select new best target, if our current one is no longer useful...
+                new Decorator(context => !IsViableForTargeting(SelectedTarget),
+                    new ActionFail(context =>
+                    {
+                        SelectedTarget = FindBestTarget(MobId_Objective1_DecrepitWatcher);
+                        // fall through
+                    })),
+
+                // Aim & Fire at the selected target...
+                new Decorator(context => IsViableForTargeting(SelectedTarget),
+                    new Sequence(
+                        new Action(context =>
+                        {
+                            // If weapon aim cannot address selected target, blacklist target for a few seconds...
+                            if (!WeaponFireCannon.WeaponAim(SelectedTarget))
+                            {
+                                _targetBlacklist.Add(SelectedTarget, TimeSpan.FromSeconds(5));
+                                return RunStatus.Failure;
+                            }
+
+                            // If weapon could not be fired, wait for it to become ready...
+                            if (!WeaponFireCannon.WeaponFire())
+                                { return RunStatus.Failure; }
+
+                            return RunStatus.Success;
+                        }),
+                        new WaitContinue(Delay.AfterWeaponFire, context => false, new ActionAlwaysSucceed())
+                    ))
+            );            
+        }
+
+
+        private Composite StateBehaviorPS_ReturningToBase()
+        {
+            // If we are not returning home...
+            return new PrioritySelector(
+                new Decorator(context => IsInTank(),
+                    new CompositeThrottle(Throttle.UserUpdate,
+                        new ActionFail(context => { TreeRoot.StatusText ="Returning to base"; })
+                    )),
+
+                new Decorator(context => WoWMovement.ActiveMover.Location.Distance(Location_ReturnToSchnottz) > Navigator.PathPrecision,
+                    new UtilityBehaviorPS.MoveTo(
+                        context => Location_ReturnToSchnottz,
+                        context => "Commander Schnottz",
+                        context => MovementBy)),
+
+                new Decorator(context => Me.IsQuestComplete(QuestId),
+                    new Action(context => BehaviorDone("quest complete")))
+                );
+        }
+
+
+        private Composite SubBehaviorPS_InitializeVehicleAbilities()
+        {
+            return
+                new Decorator(context => (WeaponFireCannon == null),
+                    // Give the WoWclient a few seconds to produce the vehicle action bar...
+                    // NB: If we try to use the weapon too quickly after entering vehicle,
+                    // then it will cause the WoWclient to d/c.
+                    new WaitContinue(TimeSpan.FromSeconds(10),
+                        context => Query.IsVehicleActionBarShowing(),
+                        new Action(context =>
+                        {
+                            var weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
+
+                            // (slot 1): http://wowhead.com/spell=
+                            WeaponFireCannon =
+                                new VehicleWeapon(1, weaponArticulation, WeaponMuzzleVelocity)
+                                {
+                                    LogAbilityUse = true,
+                                    LogWeaponFiringDetails = false
+                                };
+                        })
+                    ));
+        }
+        #endregion
+
+
+        #region Helpers
+        private WoWUnit FindBestTarget(int targetId)
+        {
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                return
+                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                    where
+                        (wowUnit.Entry == targetId)
+                        && IsViableForTargeting(wowUnit)
+                    orderby
+                        wowUnit.DistanceSqr
+                    select wowUnit)
+                    .FirstOrDefault();
             }
         }
 
+
+        private WoWUnit FindVehicle_OwnedByMe(int targetId)
+        {
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                var meGuid = Me.Guid;
+
+                return
+                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                    where
+                        (wowUnit.Entry == targetId)
+                        && (wowUnit.CreatedByUnitGuid == meGuid)
+                    orderby
+                        wowUnit.DistanceSqr
+                    select wowUnit)
+                    .FirstOrDefault();
+            }
+        }
+
+
+        private bool IsInTank()
+        {
+            return Me.InVehicle;
+        }
+
+
+        private bool IsViableForTargeting(WoWUnit wowUnit)
+        {
+            return
+                Query.IsViable(wowUnit)
+                && !_targetBlacklist.Contains(wowUnit.Guid)
+                && wowUnit.IsAlive;
+        }
         #endregion
     }
 }

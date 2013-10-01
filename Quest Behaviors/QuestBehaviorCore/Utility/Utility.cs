@@ -106,10 +106,10 @@ namespace Honorbuddy.QuestBehaviorCore
         // 20Apr2013-12:50UTC chinajade
         public static string GetItemNameFromId(int wowItemId)
         {
-            var wowItem = Me.CarriedItems.FirstOrDefault(i => (i.Entry == wowItemId));
+            var itemInfo = ItemInfo.FromId((uint)wowItemId);
 
-            return (wowItem != null)
-                ? wowItem.Name
+            return (itemInfo != null)
+                ? itemInfo.Name
                 : string.Format("ItemId({0})", wowItemId);
         }
 
@@ -200,12 +200,10 @@ namespace Honorbuddy.QuestBehaviorCore
         // 15May2013-11:42UTC chinajade
         public static string GetSpellNameFromId(int spellId)
         {
-            SpellFindResults spellInfo; 
-            bool isSpellFound = SpellManager.FindSpell(spellId, out spellInfo);
+            var wowSpell = WoWSpell.FromId(spellId);
 
-            return
-                isSpellFound
-                ? spellInfo.Original.Name
+            return (wowSpell != null)
+                ? wowSpell.Name
                 : string.Format("SpellId({0})", spellId);
         }
 

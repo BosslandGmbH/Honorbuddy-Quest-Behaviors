@@ -138,32 +138,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Olblasty
 
         private void shoot(WoWUnit who)
         {
-
-
-
-
-
             var weaponArticulation = new Honorbuddy.QuestBehaviorCore.WeaponArticulation();
-            var rock = new Honorbuddy.QuestBehaviorCore.VehicleWeapon(3, weaponArticulation, 25);
-            var WeaponChoice = rock;
-            var projectileFlightTime = WeaponChoice.CalculateTimeOfProjectileFlight(who.Location);
-            var anticipatedLocation = Honorbuddy.QuestBehaviorCore.Extensions_WoWObject.AnticipatedLocation(who, projectileFlightTime);
-            //Me.CurrentTarget.AnticipatedLocation(projectileFlightTime);
-            var isAimed = WeaponChoice.WeaponAim(anticipatedLocation);
-            //if (isAimed)
-            //{
+            var Rock = new Honorbuddy.QuestBehaviorCore.VehicleWeapon(3, weaponArticulation, 25);
+
+            var isAimed = Rock.WeaponAim(who);
+            if (isAimed)
+            {
                 Lua.DoString("CastPetAction({0})", 1);
                 Lua.DoString("CastPetAction({0})", 2);
-                WeaponChoice.WeaponFire(anticipatedLocation);
-            //}
-
-
-           
-
-
+                Rock.WeaponFire();
+            }
         }
-
-
 
 
         public Composite KillSoldier
@@ -171,13 +156,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Olblasty
             get
             {
                 return
-
-
-                    new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId) && timmah != null, new Action(r => shoot(timmah)));
-
-
+                    new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId) && timmah != null,
+                        new Action(r => shoot(timmah)));
             }
-
         }
 
 
@@ -185,7 +166,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Olblasty
         {
             get
             {
-                return new Decorator(r => Me.GotTarget && !Me.CurrentTarget.IsHostile, new Action(r => Me.ClearTarget()));
+                return
+                    new Decorator(r => Me.GotTarget && !Me.CurrentTarget.IsHostile,
+                        new Action(r => Me.ClearTarget()));
             }
         }
 

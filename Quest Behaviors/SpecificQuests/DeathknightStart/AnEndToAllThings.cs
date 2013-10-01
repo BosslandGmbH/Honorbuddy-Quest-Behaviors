@@ -1,12 +1,15 @@
-﻿// Behavior originally contributed by Nesox / aiming & other rework by Chinajade
+﻿// Behavior originally contributed by Nesox / complete rework by Chinajade
 //
-// DOCUMENTATION:
-//     
+// Documentation:
+// * Summons the dragon, and mounts it
+// * Fires at targets as it moves around range
+// * Behavior is stop/start friendly
 //
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -15,8 +18,10 @@ using Bots.Grind;
 using CommonBehaviors.Actions;
 
 using Honorbuddy.QuestBehaviorCore;
+
 using Styx;
 using Styx.Common;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -26,6 +31,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
@@ -40,22 +46,32 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
     /// NpcIds: a comma separated list with id's of npc's to kill for this quest. example. NpcIds="143,2,643,1337" 
     /// </summary>
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\AnEndToAllThings")]
-    public class AnEndToAllThings : CustomForcedBehavior
+    public class AnEndToAllThings : QuestBehaviorBase
     {
+        #region Constructor and Argument Processing
         public AnEndToAllThings(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                ActionBarIndex_Attack = GetAttributeAsNullable<int>("AttackSpellIndex", true, ConstrainAs.SpellId, new[] { "AttackSpell" }) ?? 0;
-                ActionBarIndex_Heal = GetAttributeAsNullable<int>("HealSpellIndex", false, ConstrainAs.SpellId, new[] { "HealSpell" }) ?? 0;
-                HealNpcId = GetAttributeAsNullable<int>("HealNpcId", true, ConstrainAs.MobId, new[] { "HealNpc" }) ?? 0;
-                ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
-                KillNpcId = GetAttributeAsNullable<int>("KillNpcId", true, ConstrainAs.MobId, new[] { "KillNpc" }) ?? 0;
+                QuestId = 12779;
+                TerminationChecksQuestProgress = false;
+
+                ActionBarIndex_Attack = GetAttributeAsNullable<int>("AttackSpellIndex", true, ConstrainAs.SpellId, null) ?? 0;
+                ActionBarIndex_Heal = GetAttributeAsNullable<int>("HealSpellIndex", false, ConstrainAs.SpellId, null) ?? 0;
+                HealNpcId = GetAttributeAsNullable<int>("HealNpcId", true, ConstrainAs.MobId, null) ?? 0;
+                ItemIdToSummonVehicle = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                KillNpcId = GetAttributeAsNullable<int>("KillNpcId", true, ConstrainAs.MobId, null) ?? 0;
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-                DevourHuman = new VehicleAbility(ActionBarIndex_Heal);
-                FrozenDeathbolt = new VehicleWeapon(ActionBarIndex_Attack, null, 130.0);
+                AuraId_RideVehicleHardcoded = 46598;    // http://wowhead.com/spell=46598
+                FlightorMinHeight = 25.0;
+                MobId_FrostbroodVanquisher = 28670;     // http://wowhead.com/npc=28670
+                MobId_ScarletBallista = 29104;          // http://wowhead.com/npc=29104
+                MobId_TirisfalCrusader = 29103;         // http://wowhead.com/npc=29102
+                WeaponAzimuthMin = -1.27;      // Use: /script print(VehicleAimGetAngle())
+                WeaponAzimuthMax = -0.30;      // Use: /script print(VehicleAimGetAngle())
+                WeaponMuzzleVelocity = 140;
             }
 
             catch (Exception except)
@@ -72,141 +88,598 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
             }
         }
 
-        // Attributes provided by caller
-        public int ActionBarIndex_Attack { get; private set; }
-        public int HealNpcId { get; private set; }
-        public int ActionBarIndex_Heal { get; private set; }
-        public int ItemId { get; private set; }
-        public int KillNpcId { get; private set; }
-        public int VehicleId { get; private set; }
 
-        // Private variables for internal state
-        private VehicleAbility DevourHuman { get; set; }
-        private VehicleWeapon FrozenDeathbolt { get; set; }
-        private ConfigMemento _configMemento;
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private bool _isInitialized;
-        private PlayerQuest _quest;
-        private readonly Stopwatch _remountTimer = new Stopwatch();
-
-        // Private properties
-        public WoWUnit FindNpcForHeal()
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            using (StyxWoW.Memory.AcquireFrame())
+            // empty
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            // empty
+        }
+
+
+        // Attributes provided by caller
+        private int ActionBarIndex_Attack { get; set; }
+        private int HealNpcId { get; set; }
+        private int ActionBarIndex_Heal { get; set; }
+        private int ItemIdToSummonVehicle { get; set; }
+        private int KillNpcId { get; set; }
+        private int VehicleId { get; set; }
+        #endregion
+
+
+        #region Private data
+        private enum BehaviorStateType
+        {
+            MountingVehicle,        // initial state
+            RidingOutToHuntingGrounds,
+            CompletingObjectives,
+            ReturningToBase,
+        }
+
+        private BehaviorStateType BehaviorState
+        {
+            get { return _behaviorState; }
+            set
             {
-                return 
-                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>()
-                    where 
-                        (wowUnit.Entry == HealNpcId)
-                        && (wowUnit.HealthPercent > 1)
-                        && Vehicle.IsSafelyFacing(wowUnit)
-                        && wowUnit.InLineOfSight
-                    orderby wowUnit.DistanceSqr
-                    select wowUnit)
-                    .FirstOrDefault();
+                // For DEBUGGING...
+                if (_behaviorState != value)
+                    { QBCLog.DeveloperInfo("BehaviorStateType: {0}", value); }
+
+                _behaviorState = value;
             }
         }
-        private CircularQueue<WoWPoint> EndPath { get; set; }       // End Path
-        private WoWUnit FindNpcToKill()
+
+        private WoWUnit DragonVehicle
+        {
+            get
+            {
+                if (!Query.IsViable(_dragonVehicle))
+                {
+                    _dragonVehicle = (Me.TransportGuid != 0)
+                        ? ObjectManager.GetObjectByGuid<WoWUnit>(Me.TransportGuid)
+                        : null;
+                }
+
+                return _dragonVehicle;
+            }
+        }
+
+        private const double FlyingPathPrecision = 15.0;
+        private const double MissileImpactClearanceDistance = 25.0;
+        private const double TargetDistance2DMax = 80.0;
+        private const double TargetDistance2DMin = 60.0;
+        private const double TargetHeightMinimum = 50.0;
+        private double TargetHeightVariance { get { return _random.Next(15); } }
+
+        private int AuraId_RideVehicleHardcoded { get; set; }
+        private WoWPoint? StationPoint { get; set; }
+        private double FlightorMinHeight { get; set; }
+        private WoWItem ItemToSummonVehicle { get; set; }
+        private int MobId_FrostbroodVanquisher { get; set; }
+        private int MobId_ScarletBallista { get; set; }
+        private int MobId_TirisfalCrusader { get; set; }
+        private CircularQueue<WoWPoint> PathEnd { get; set; }
+        private CircularQueue<WoWPoint> PathPatrol { get; set; }
+        private WoWPoint PathStart { get; set; }
+        private WoWUnit SelectedTarget { get; set; }
+        private WoWUnit SelectedTargetToDevour { get; set; }
+        private VehicleAbility Weapon_DevourHuman { get; set; }
+        private VehicleWeapon Weapon_FrozenDeathbolt { get; set; }
+        private double WeaponAzimuthMax { get; set; }
+        private double WeaponAzimuthMin { get; set; }
+        private double WeaponMuzzleVelocity { get; set; }
+        private WoWUnit _dragonVehicle;
+
+        private BehaviorStateType _behaviorState;
+        private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
+
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id: AnEndToAllThings.cs 569 2013-06-26 02:37:28Z chinajade $"); } }
+        public override string SubversionRevision { get { return ("$Revision: 569 $"); } }
+        #endregion
+
+
+        #region Destructor, Dispose, and cleanup
+        ~AnEndToAllThings()
+        {
+            Dispose(false);
+        }
+        #endregion
+
+
+        #region Target filtering
+        protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        {
+            wowObjects.Clear();
+        }
+        #endregion
+
+
+        #region Overrides of CustomForcedBehavior
+        public override void OnStart()
+        {
+            ParsePaths();
+
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            OnStart_QuestBehaviorCore(string.Empty);
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                LevelBot.ShouldUseSpiritHealer = true;
+
+                // Turn off LevelBot behaviors that will interfere...
+                // NB: These will be restored by our parent class when we're done.
+                // NB: We need to disable the Roam behavior to prevent the StuckHandler from kicking in.
+                LevelBot.BehaviorFlags &=
+                    ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Roam | BehaviorFlags.Vendor);
+
+                BehaviorState = BehaviorStateType.MountingVehicle;
+            }
+        }
+        #endregion
+
+
+        #region Main Behaviors
+        protected override Composite CreateMainBehavior()
+        {
+            return new PrioritySelector(
+                new Switch<BehaviorStateType>(context => BehaviorState,
+                    new Action(context =>   // default case
+                    {
+                        var message = string.Format("BehaviorStateType({0}) is unhandled", BehaviorState);
+                        QBCLog.MaintenanceError(message);
+                        TreeRoot.Stop();
+                        BehaviorDone(message);
+                    }),
+
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.MountingVehicle,
+                        StateBehaviorPS_MountingVehicle()),
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.RidingOutToHuntingGrounds,
+                        StateBehaviorPS_RidingOutToHuntingGrounds()),
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.CompletingObjectives,
+                        StateBehaviorPS_CompletingObjectives()),
+                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.ReturningToBase,
+                        StateBehaviorPS_ReturningToBase())
+                ));
+        }
+
+
+        private Composite StateBehaviorPS_MountingVehicle()
+        {
+            return new PrioritySelector(
+                new Decorator(context => Me.IsQuestComplete(QuestId),
+                    new Action(context => { BehaviorDone(string.Format("quest complete")); })),
+
+                // If we're mounted on something other than the dragon, then dismount...
+                new Decorator(context => Me.Mounted && !Query.IsViable(DragonVehicle),
+                    new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)),
+
+                // If we're on the dragon, get moving...
+                new Decorator(context => Query.IsViable(DragonVehicle),
+                    new PrioritySelector(
+                        SubBehaviorPS_InitializeVehicleAbilities(),
+                        new Action(context => { BehaviorState = BehaviorStateType.RidingOutToHuntingGrounds; })
+                    )),
+
+                // If we don't posssess item to summon the dragon, that's fatal...
+                new Decorator(context =>
+                    {
+                        ItemToSummonVehicle = Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemIdToSummonVehicle);
+                        return !Query.IsViable(ItemToSummonVehicle);
+                    },
+                    new Action(context => { QBCLog.Fatal("Unable to locate ItemId({0}) in inventory.", ItemIdToSummonVehicle); })), 
+                            
+                // Wait for item to come off cooldown...
+                new Decorator(context => ItemToSummonVehicle.Cooldown > 0,
+                    new Action(context =>
+                    {
+                        TreeRoot.StatusText =
+                            string.Format("Waiting for {0} cooldown ({1} remaining)",
+                                ItemToSummonVehicle.Name,
+                                Utility.PrettyTime(ItemToSummonVehicle.CooldownTimeLeft));
+                        return RunStatus.Success;
+                    })),
+
+                // Use the item
+                new Decorator(context => !Me.IsCasting,
+                    new ActionFail(context =>
+                    {
+                        // If we got booted out of a vehicle for some reason, reset the weapons...
+                        Weapon_DevourHuman = null;
+                        Weapon_FrozenDeathbolt = null; 
+                        
+                        ItemToSummonVehicle.UseContainerItem();
+                    }))
+            );
+        }
+
+
+        private Composite StateBehaviorPS_RidingOutToHuntingGrounds()
+        {
+            return new PrioritySelector(
+                // If for some reason no longer in the vehicle, go fetch another...
+                new Decorator(context => !Query.IsViable(DragonVehicle),
+                    new Action(context =>
+                    {
+                        QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
+                        BehaviorState = BehaviorStateType.MountingVehicle;
+                    })),
+
+                new Decorator(context => Weapon_FrozenDeathbolt.IsWeaponUsable(),
+                    new Action(context => { BehaviorState = BehaviorStateType.CompletingObjectives; })),
+
+                new CompositeThrottle(Throttle.UserUpdate,
+                    new Action(context => { TreeRoot.StatusText = "Riding out to hunting grounds"; }))
+            );
+        }
+
+
+        private Composite StateBehaviorPS_CompletingObjectives()
+        {
+            return new PrioritySelector(
+                // If for some reason no longer in the vehicle, go fetch another...
+                new Decorator(context => !Query.IsViable(DragonVehicle),
+                    new Action(context =>
+                    {
+                        QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
+                        BehaviorState = BehaviorStateType.MountingVehicle;
+                    })),
+
+                // If quest is complete, then head back...
+                new Decorator(context => Me.IsQuestComplete(QuestId),
+                    new Action(context => { BehaviorState = BehaviorStateType.ReturningToBase; })),
+
+                new CompositeThrottle(Throttle.UserUpdate,
+                    new Action(context => { TreeRoot.StatusText = "Completing Quest Objectives"; })),
+
+                SubBehaviorPS_UpdatePathWaypoint(),
+                SubBehaviorPS_Heal(),
+
+                // We go after the Ballistas first...
+                // NB: Soldiers will be collateral damage of pursing Ballistas.
+                // If the soldiers don't complete after doing Ballistas, we'll clean up
+                // the Soldiers next.
+                new Decorator(context => !IsViableTarget(SelectedTarget),
+                    new PrioritySelector(
+                        // Try to find target...
+                        new ActionFail(context =>
+                        {
+                            SelectedTarget = FindMobToKill(!Me.IsQuestObjectiveComplete(QuestId, 2)
+                                                            ? MobId_ScarletBallista
+                                                            : MobId_TirisfalCrusader);
+                        }),
+                        // If no target found, move toward next waypoint...
+                        new Decorator(context => !IsViableTarget(SelectedTarget),
+                            new Action(context => { Flightor.MoveTo(PathPatrol.Peek(), (float)FlightorMinHeight); }))
+                    )),
+
+                new Action(context =>
+                {
+                    // NB: We would've preferred to strafe in this algorithm; however,
+                    // strafing triggers Flightor's unstuck handler too much.  Probably because
+                    // this is a vehicle/transport, instead of a 'flying mount'.
+
+                    // Show the target we're pursuing...
+                    Utility.Target(SelectedTarget);
+
+                    var myLocation = WoWMovement.ActiveMover.Location;
+                    var selectedTargetLocation = SelectedTarget.Location;
+                    var distance2DSqrToTarget = myLocation.Distance2DSqr(selectedTargetLocation);
+
+                    // Deal with needed evasion...
+                    if (StationPoint.HasValue)
+                    {
+                        if (myLocation.Distance(StationPoint.Value) > FlyingPathPrecision)
+                        {
+                            Flightor.MoveTo(StationPoint.Value);
+                            return RunStatus.Success;
+                        }
+
+                        StationPoint = null;
+                    }
+
+                    // See if we need a new 'on station' location...
+                    if (!StationPoint.HasValue)
+                    {
+                        // If our weapon is not ready or we can't see target, move around station until it is...
+                        if (!Weapon_FrozenDeathbolt.IsWeaponReady()
+                            || (IsViableTarget(SelectedTarget) && !SelectedTarget.InLineOfSight)
+                            || IsIncomingMissile())
+                        {
+                            StationPoint = FindNewStationPoint(SelectedTarget);
+                            return RunStatus.Success;
+                        }
+                    }
+                    
+                    // If we are too far from selected target, close the distance...
+                    if (distance2DSqrToTarget > (TargetDistance2DMax * TargetDistance2DMax))
+                    {
+                        Flightor.MoveTo(FindDistanceClosePoint(SelectedTarget, PathPatrol.Peek().Z));
+                        return RunStatus.Success;
+                    }
+
+                    // If we are too close to selected target, put some distance between us...
+                    if (distance2DSqrToTarget < (TargetDistance2DMin * TargetDistance2DMin))
+                    {
+                        Flightor.MoveTo(FindDistanceGainPoint(SelectedTarget, TargetDistance2DMin));
+                        return RunStatus.Success;
+                    }
+
+                    // If weapon is not ready, just keep on station/evading...
+                    if (!Weapon_FrozenDeathbolt.IsWeaponReady())
+                        { return RunStatus.Success; }
+
+                    // If the weapon cannot address the target, blacklist target and find another...
+                    if (!Weapon_FrozenDeathbolt.WeaponAim(SelectedTarget))
+                        { _targetBlacklist.Add(SelectedTarget, TimeSpan.FromSeconds(5)); }
+
+                    // If weapon cannot fire for some reason, try again...
+                    if (!Weapon_FrozenDeathbolt.WeaponFire())
+                        { return RunStatus.Success; }
+
+                    return RunStatus.Failure;   // fall through
+                }),
+                // NB: Need to delay a bit for the weapon to actually launch.  Otherwise
+                // it screws the aim up if we move again before projectile is fired.
+                new Wait(Delay.LagDuration, context => Weapon_FrozenDeathbolt.IsWeaponReady(), new ActionAlwaysSucceed())
+            );
+        }
+
+        
+        private Composite StateBehaviorPS_ReturningToBase()
+        {
+            return new PrioritySelector(
+                // Start over...
+                new Decorator(context => !Me.InVehicle,
+                    new Action(context => { BehaviorState = BehaviorStateType.MountingVehicle; })),
+
+                // Exit vehicle...
+                new Decorator(context => WoWMovement.ActiveMover.Location.Distance(PathEnd.Peek()) <= Navigator.PathPrecision,
+                    new Action(context => { Lua.DoString("VehicleExit()"); })),
+
+                // Move back to 'safe mounting' area...
+                new Action(context =>
+                {
+                    TreeRoot.StatusText = "Moving back to safe area";
+                    Flightor.MoveTo(PathEnd.Peek(), (float)FlightorMinHeight);
+                })
+            );
+        }
+
+
+        private Composite SubBehaviorPS_Heal()
+        {
+            return
+                new Decorator(context =>
+                    {
+                        var vehicle = DragonVehicle;
+
+                        return
+                            Weapon_DevourHuman.IsAbilityReady()
+                            && ((vehicle.HealthPercent <= 70) || (vehicle.ManaPercent <= 35));
+                    },
+
+                    new Action(context =>
+                    {
+                        if (!IsViableTarget(SelectedTargetToDevour))
+                        {
+                            SelectedTargetToDevour = FindSoldierForHeal();
+
+                            // We want exit point to be different than point we entered to get the devour target...
+                            // This should minimize the damage we take by not returning through areas
+                            // that are currently under fire.
+                            StationPoint = FindNewStationPoint(SelectedTargetToDevour, TAU / 2);
+                            return RunStatus.Success;
+                        }
+
+                        var selectedTargetLocation = SelectedTargetToDevour.Location;
+
+                        Utility.Target(SelectedTargetToDevour);
+                        if (selectedTargetLocation.Distance(DragonVehicle.Location) > (Weapon_DevourHuman.MaxRange / 2))
+                        {
+                            Flightor.MoveTo(selectedTargetLocation);
+                            return RunStatus.Success;
+                        }
+
+                        WoWMovement.MoveStop();
+                        Weapon_DevourHuman.UseAbility();
+                        _targetBlacklist.Add(SelectedTargetToDevour, TimeSpan.FromSeconds(60));
+                        
+                        WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(1500));
+                        return RunStatus.Failure;   // fall through
+                    }));
+        }
+
+
+        private Composite SubBehaviorPS_InitializeVehicleAbilities()
+        {
+            return
+                new Decorator(context => (Weapon_DevourHuman == null)
+                                            || (Weapon_FrozenDeathbolt == null),
+                    // Give the WoWclient a few seconds to produce the vehicle action bar...
+                    // NB: If we try to use the weapon too quickly after entering vehicle,
+                    // then it will cause the WoWclient to d/c.
+                    new WaitContinue(TimeSpan.FromSeconds(10),
+                        context => Query.IsVehicleActionBarShowing(),
+                        new Action(context =>
+                        {
+                            var weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
+
+                            // (slot 1): http://www.wowhead.com/spell=53114
+                            Weapon_FrozenDeathbolt =
+                                new VehicleWeapon(ActionBarIndex_Attack, weaponArticulation, WeaponMuzzleVelocity)
+                                {
+                                    LogAbilityUse = true,
+                                    LogWeaponFiringDetails = false
+                                };
+
+                            // (slot 3): http://www.wowhead.com/spell=53110
+                            Weapon_DevourHuman =
+                                new VehicleAbility(ActionBarIndex_Heal)
+                                {
+                                    LogAbilityUse = true
+                                };
+
+                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(1500));
+                        })
+                    ));
+        }
+               
+        
+        private Composite SubBehaviorPS_UpdatePathWaypoint()
+        {
+            return
+                new Decorator(ret => PathPatrol.Peek().Distance2DSqr(DragonVehicle.Location) <= (30 * 30),
+                    new ActionFail(ret => PathPatrol.Dequeue()));
+        }
+        #endregion
+
+
+        #region Helpers
+        private WoWPoint FindDistanceClosePoint(WoWUnit wowUnit, double altitudeNeeded)
+        {
+            var wowUnitLocation = wowUnit.Location;
+
+            return new WoWPoint(wowUnitLocation.X, wowUnit.Location.Y, altitudeNeeded);
+        }
+
+
+        private WoWPoint FindDistanceGainPoint(WoWUnit wowUnit, double minDistanceNeeded)
+        {
+            var minDistanceNeededSqr = (minDistanceNeeded * minDistanceNeeded);
+            var wowUnitLocation = wowUnit.Location;
+
+            return
+                (from wowPoint in PathPatrol
+                 let distanceSqr = wowUnitLocation.Distance(wowPoint)
+                 where distanceSqr > minDistanceNeededSqr
+                 orderby distanceSqr
+                 select wowPoint)
+                 .FirstOrDefault();
+        }
+
+
+        private WoWUnit FindMobToKill(int mobId)
         {
             using (StyxWoW.Memory.AcquireFrame())
             {
                 return
                     (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                     where
+                        Query.IsViable(wowUnit)
+                        && (wowUnit.Entry == mobId)
+                        && IsViableTarget(wowUnit)
+                     select wowUnit)
+                    .FirstOrDefault();
+            }
+        }
+
+
+        private WoWPoint FindNewStationPoint(WoWUnit desiredTarget, double offsetRadians = 0.0)
+        {
+            if (!Query.IsViable(desiredTarget))
+                { desiredTarget = FindMobToKill(MobId_ScarletBallista); }
+
+            var myLocation = WoWMovement.ActiveMover.Location;
+            var preferredDistance = _random.Next((int)TargetDistance2DMin +1, (int)TargetDistance2DMax);
+            var targetLocation = desiredTarget.Location;
+
+            // To evade, we just rotate in a (counter-clockwise) circle around our selected target...
+            var escapeHeading = WoWMathHelper.CalculateNeededFacing(targetLocation, myLocation);
+            escapeHeading = WoWMathHelper.NormalizeRadian((float)(escapeHeading + offsetRadians + (TAU / 14)));
+
+            var escapePoint = targetLocation.RayCast(escapeHeading, (float)preferredDistance);
+            return new WoWPoint(escapePoint.X, escapePoint.Y, targetLocation.Z).Add(0.0, 0.0, TargetHeightMinimum + TargetHeightVariance);
+        }
+
+
+        private WoWUnit FindSoldierForHeal()
+        {
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                var selectedTargetLocation = Query.IsViable(SelectedTarget)
+                    ? SelectedTarget.Location
+                    : WoWMovement.ActiveMover.Location;
+                const double mobsSurroundingTargetDistanceSqr = (20.0 * 20.0);
+
+                return
+                   (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>()
                     where
-                        (wowUnit.Entry == KillNpcId)
-                        && (wowUnit.HealthPercent > 1)
-                        && (wowUnit.Distance2DSqr > (40 * 40))
-                        && Vehicle.IsSafelyFacing(wowUnit)
+                        Query.IsViable(wowUnit)
+                        && (wowUnit.Entry == HealNpcId)
+                        && wowUnit.HealthPercent > 95
+                        && IsViableTarget(wowUnit)
+                        && (wowUnit.Location.DistanceSqr(selectedTargetLocation) > mobsSurroundingTargetDistanceSqr)
+                        // Don't try to fetch a soldier from inside a building...
                         && wowUnit.InLineOfSight
                     orderby wowUnit.DistanceSqr
                     select wowUnit)
                     .FirstOrDefault();
             }
         }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
-        private CircularQueue<WoWPoint> Path { get; set; }
-        private WoWPoint StartPoint { get; set; }    // Start path
-        public WoWUnit Vehicle
+
+
+        private bool IsIncomingMissile()
         {
-            get
+            const double impactDistanceSqrConsideration = (MissileImpactClearanceDistance * MissileImpactClearanceDistance);
+            const double missileDistanceSqrConsideration = (70.0 * 70.0);
+            var myLocation = WoWMovement.ActiveMover.Location;
+
+            using (StyxWoW.Memory.AcquireFrame())
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .FirstOrDefault(ret => ret.Entry == VehicleId && ret.CreatedByUnitGuid == Me.Guid);
+                var isIncomingMissile =
+                    WoWMissile.InFlightMissiles
+                    .Any(m =>
+                        (m.Position.DistanceSqr(myLocation) < missileDistanceSqrConsideration)
+                        && (m.ImpactPosition.DistanceSqr(myLocation) < impactDistanceSqrConsideration));
+
+                return isIncomingMissile;
             }
         }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: AnEndToAllThings.cs 569 2013-06-26 02:37:28Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 569 $"); } }
-
-
-        ~AnEndToAllThings()
+        private bool IsViableTarget(WoWUnit wowUnit)
         {
-            Dispose(false);
-        }
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                if (_configMemento != null)
-                { _configMemento.Dispose(); }
-
-                _configMemento = null;
-
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
-                BotEvents.Player.OnPlayerDied -= Player_OnPlayerDied;
-                Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
+            // A note about not using wowUnit.IsAlive...
+            // There are 'dead' mobs scattered about the battlefield that will
+            // have their IsAlive flag set.  This will confuse target selection.
+            // So we look for a target with minimal health, instead.
+            return
+                Query.IsViable(wowUnit)
+                && !_targetBlacklist.Contains(wowUnit.Guid)
+                && wowUnit.IsUntagged()
+                && !wowUnit.HasAura(AuraId_RideVehicleHardcoded)
+                && wowUnit.HealthPercent > 1;
         }
 
 
-        public void BotEvents_OnBotStop(EventArgs args)
-        {
-            Dispose();
-        }
-
-
-        public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
+        private IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
         {
             var temp = new List<WoWPoint>();
 
-            foreach (XElement element in elements)
+            foreach (var element in elements)
             {
-                XAttribute xAttribute, yAttribute, zAttribute;
-                xAttribute = element.Attribute("X");
-                yAttribute = element.Attribute("Y");
-                zAttribute = element.Attribute("Z");
+                var xAttribute = element.Attribute("X");
+                var yAttribute = element.Attribute("Y");
+                var zAttribute = element.Attribute("Z");
 
                 float x, y, z;
                 float.TryParse(xAttribute.Value, out x);
                 float.TryParse(yAttribute.Value, out y);
                 float.TryParse(zAttribute.Value, out z);
-                temp.Add(new WoWPoint(x, y, z));
+                temp.Add(new WoWPoint(x, y, z).Add(0.0, 0.0, _random.Next(10)));
             }
 
             return temp;
         }
+
 
         private void ParsePaths()
         {
@@ -214,248 +687,19 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
             var startPoint = WoWPoint.Empty;
             var path = new CircularQueue<WoWPoint>();
 
-            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
-                startPoint = point;
+            foreach (var point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
+                { startPoint = point; }
 
-            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "End")))
-                endPath.Enqueue(point);
+            foreach (var point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "End")))
+                { endPath.Enqueue(point); }
 
-            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Hop")))
-                path.Enqueue(point);
+            foreach (var point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Hop")))
+                { path.Enqueue(point); }
 
-            StartPoint = startPoint;
-            EndPath = endPath;
-            Path = path;
-            _isInitialized = true;
+            PathStart = startPoint;
+            PathEnd = endPath;
+            PathPatrol = path;
         }
-
-        /// <summary> Returns a quest object, 'An end to all things...' </summary>
-        private PlayerQuest Quest
-        {
-            get
-            {
-                return _quest ?? (_quest = Me.QuestLog.GetQuestById(12779));
-            }
-        }
-
-        private static void Player_OnPlayerDied()
-        {
-            LevelBot.ShouldUseSpiritHealer = true;
-        }
-
-        private static void Instance_RemoveTargetsFilter(List<WoWObject> units)
-        {
-            units.Clear();
-        }
-
-
-        #region Overrides of CustomForcedBehavior
-
-        protected override Composite CreateBehavior()
-        {
-            return
-                new PrioritySelector(
-
-                    new Decorator(ret => !_isInitialized,
-                        new Action(ret => ParsePaths())),
-
-                    // Go home.
-                    new Decorator(ret => Quest != null && Quest.IsCompleted || _remountTimer.Elapsed.TotalMinutes >= 20,
-                        new PrioritySelector(
-                            new Decorator(ret => ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 29107 && Vehicle.Location.Distance(r.Location) <= 10) != null,
-                                new Sequence(
-                                    new Action(ret => Lua.DoString("VehicleExit()")),
-                                    new Action(ret => _isBehaviorDone = Quest.IsCompleted),
-                                    new Action(ret => _remountTimer.Reset())
-                                    )),
-
-                            new Decorator(ret => Vehicle == null,
-                                new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
-                                    new DecoratorContinue(ret => ret == null,
-                                        new Sequence(
-                                            new Action(ret => LogMessage("fatal", "Unable to find ItemId({0}) in inventory.", ItemId))
-                                            )),
-
-                                    new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                                        // Use the item
-                                        new Sequence(
-                                            new Action(ret => ((WoWItem)ret).UseContainerItem()),
-                                            new Action(ret => ParsePaths()))
-                                        ),
-
-                                    // Wait until we are in the vehicle
-                                    new WaitContinue(5, ret => Vehicle != null,
-                                        new Sequence(
-                                            new Action(ret => _remountTimer.Reset()),
-                                            new Action(ret => _remountTimer.Start()),
-                                            new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(500)))
-                                            )
-                                        ))),
-
-                            new Decorator(ret => EndPath.Peek().Distance(Vehicle.Location) <= 6,
-                                new Action(ret => EndPath.Dequeue())),
-
-                            new Sequence(
-                                new Action(ret => TreeRoot.StatusText = "Flying back to turn in the quest"),
-                                new Action(ret => WoWMovement.ClickToMove(EndPath.Peek())),
-                                new DecoratorContinue(ret => Me.MovementInfo.IsAscending,
-                                    new Action(ret => { WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend); })))
-                                )),
-
-                    new Decorator(ret => Vehicle == null,
-                        new Sequence(ret => Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId),
-                            new DecoratorContinue(ret => ret == null,
-                                new Sequence(
-                                    new Action(ret => LogMessage("fatal", "Unable to locate ItemId({0}) in inventory.", ItemId))
-                                    )),
-
-                            new WaitContinue(60, ret => ((WoWItem)ret).Cooldown == 0,
-                                // Use the item
-                                new Sequence(
-                                    new Action(ret => ParsePaths()),
-                                    new Action(ret => ((WoWItem)ret).UseContainerItem()))
-                                ),
-
-                            // Wait until we are in the vehicle
-                            new WaitContinue(5, ret => Vehicle != null,
-                                new Sequence(
-                                    new Action(ret => _remountTimer.Reset()),
-                                    new Action(ret => _remountTimer.Start()),
-                                    new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(500)))
-                                    )
-                                ))),
-
-                    new Decorator(ret => Vehicle != null,
-                        new PrioritySelector(
-                            new Decorator(ret => !_remountTimer.IsRunning,
-                                new Action(ret => _remountTimer.Start())),
-
-                            new Decorator(
-                                ret => StartPoint != WoWPoint.Empty,
-                                new PrioritySelector(
-                                    new Decorator(
-                                        ret => Vehicle.Location.Distance2D(StartPoint) < 15,
-                                        new Sequence(
-                                            new Action(ret => TreeRoot.StatusText = "Pathing through"),
-                                            new Action(ret => StartPoint = WoWPoint.Empty))),
-                                    new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving towards start point"),
-                                        new Action(ret => Navigator.PlayerMover.MoveTowards(StartPoint))))),
-
-                            new Decorator(ret => Path.Peek().Distance2DSqr(Vehicle.Location) <= 30 * 30,
-                                new Action(ret => Path.Dequeue())),
-
-                            new Decorator(context => ((Vehicle.HealthPercent <= 70) || (Vehicle.ManaPercent <= 35))
-                                                    && DevourHuman.IsAbilityReady(),
-                                new Action(context =>
-                                {
-                                    var selectedTarget = FindNpcForHeal();
-                                    if (selectedTarget == null)
-                                        { return RunStatus.Failure; }
-
-                                    if (selectedTarget.Location.Distance(Vehicle.Location) > 15)
-                                    {
-                                        WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
-                                        WoWMovement.ClickToMove(selectedTarget.Location.Add(0, 0, 10));
-                                        return RunStatus.Success;
-                                    }
-
-                                    DevourHuman.UseAbility();
-                                    WoWMovement.ClickToMove(Path.Peek());
-                                    return RunStatus.Success;
-                                })),
-
-                            new ActionFail(context =>
-                            {
-                                var heightDelta = Me.Location.Z - Path.Peek().Z;
-                                if (heightDelta < -10)
-                                    { WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend); }
-                                else if (heightDelta > 10)
-                                    { WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend); }
-                            }),
-
-                            new Sequence(
-                                new Action(context =>
-                                {
-                                    if (!FrozenDeathbolt.IsWeaponReady())
-                                        { return RunStatus.Failure; }
-
-                                    var selectedTarget = FindNpcToKill();
-                                    if (selectedTarget == null)
-                                        { return RunStatus.Failure; }
-
-                                    var projectileFlightTime = FrozenDeathbolt.CalculateTimeOfProjectileFlight(selectedTarget.Location);
-                                    var anticipatedLocation = selectedTarget.AnticipatedLocation(projectileFlightTime);
-                                    var isAimed = FrozenDeathbolt.WeaponAim(anticipatedLocation);
-
-                                    if (!isAimed)
-                                        { return RunStatus.Failure; }
-
-                                    FrozenDeathbolt.WeaponFire(anticipatedLocation);
-                                    return RunStatus.Success;
-                                }),
-                                // Need to delay a bit for the weapon to actually launch.  Otherwise
-                                // it screws the aim up if we move again before projectile is fired.
-                                // NB: Wait, not WaitContinue, because we want to fall through
-                                new Wait(TimeSpan.FromMilliseconds(400), context => false, new ActionAlwaysFail())
-                            ),
-                            new Action(context => { WoWMovement.ClickToMove(Path.Peek()); })
-                        )));
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get { return (_isBehaviorDone); }
-        }
-
-
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
-
-                BotEvents.Player.OnPlayerDied += Player_OnPlayerDied;
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
-                Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
-
-                // Disable any settings that may cause distractions --
-                // When we do this quest, we don't want to be distracted by other things.
-                // NOTE: these settings are restored to their normal values when the behavior completes
-                // or the bot is stopped.
-                CharacterSettings.Instance.HarvestHerbs = false;
-                CharacterSettings.Instance.HarvestMinerals = false;
-                CharacterSettings.Instance.LootChests = false;
-                CharacterSettings.Instance.LootMobs = false;
-                CharacterSettings.Instance.NinjaSkin = false;
-                CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.RessAtSpiritHealers = true;
-
-                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
-            }
-        }
-
         #endregion
     }
 }

@@ -29,20 +29,23 @@ namespace Honorbuddy.QuestBehaviorCore
 
             AbilityIndex = abilityIndex;
             _luaCommand_UseAbility = string.Format("CastPetAction({0})", abilityIndex);
-            _luaQuery_ActionInfo = string.Format("return GetPetActionInfo({0})", abilityIndex);
             _luaQuery_IsUsable = string.Format("return GetPetActionSlotUsable({0})", abilityIndex);
             _vehicleAbilityNameDefault = string.Format("VehicleAbility({0})", abilityIndex);
 
             QBCLog.DeveloperInfo("NEW VehicleAbility{0}: {1}", AbilityIndex, Name);
+            LogAbilityUse = true;
+
+            AbilityUseCount = 0;
         }
 
         public int AbilityIndex { get; private set; }
+        public int AbilityUseCount { get; private set; }
+        public bool LogAbilityUse { get; set; }
 
 
         #region Private and Convenience variables
         private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
 
-        private readonly string _luaQuery_ActionInfo;
         private readonly string _luaQuery_IsUsable;
         private readonly string _luaCommand_UseAbility;
         private WoWPetSpell _vehicleAbility;
@@ -60,7 +63,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         protected WoWPetSpell FindVehicleAbility()
         {
-            if (!Me.InVehicle)
+            if (!Query.IsVehicleActionBarShowing())
             {
                 // assignment intentional, we want it to become null again when we exit vehicle...
                 return _vehicleAbility = null;
@@ -102,8 +105,21 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         public bool IsAbilityUsable()
         {
-            return Me.InVehicle
+            return Query.IsVehicleActionBarShowing()
                 && Lua.GetReturnVal<bool>(_luaQuery_IsUsable, 0);
+        }
+
+
+        public double MaxRange
+        {
+            get
+            {
+                var vehicleAbility = FindVehicleAbility();
+
+                return (vehicleAbility != null)
+                    ? vehicleAbility.Spell.MaxRange
+                    : double.NaN;
+            }
         }
 
 
@@ -112,33 +128,27 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             get
             {
-                if (!Me.InVehicle)
+                var vehicleAbility = FindVehicleAbility();
+
+                if (vehicleAbility == null)
                 {
                     // We want dynamic name to return to null when we exit vehicle...
                     _vehicleAbilityName = null;
                     return _vehicleAbilityNameDefault;
                 }
 
-                // If we've previously acquired the name, return what we know...
-                if (!string.IsNullOrEmpty(_vehicleAbilityName))
-                { return _vehicleAbilityName; }
+                // If we don't yet know the name, acquire it...
+                if (string.IsNullOrEmpty(_vehicleAbilityName))
+                    { _vehicleAbilityName = string.Format("{0}({1})", vehicleAbility.ToString(), vehicleAbility.Spell.Id); }
 
-                // We must resort to LUA, since the SpellManager doesn't keep up with 'pet spells'...
-                // NB: The 'missile effect' (from the Spell, if any) usually does not correlate
-                //  to the ability name.  So, look it up properly.
-                _vehicleAbilityName = Lua.GetReturnVal<string>(_luaQuery_ActionInfo, 0);
-
-                return
-                    !string.IsNullOrEmpty(_vehicleAbilityName)
-                        ? _vehicleAbilityName
-                        : _vehicleAbilityNameDefault;
+                return _vehicleAbilityName;
             }
         }
 
 
         public bool UseAbility()
         {
-            if (!Me.InVehicle)
+            if (!Query.IsVehicleActionBarShowing())
             {
                 QBCLog.Warning("Attempted to use {0} while not in Vehicle!", Name);
                 return false;
@@ -147,6 +157,11 @@ namespace Honorbuddy.QuestBehaviorCore
             if (IsAbilityReady())
             {
                 Lua.DoString(_luaCommand_UseAbility);
+                ++AbilityUseCount;
+
+                if (LogAbilityUse)
+                    { QBCLog.DeveloperInfo("{0} ability used (count: {1})", Name, AbilityUseCount);  }
+
                 return true;
             }
 

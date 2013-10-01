@@ -11,8 +11,8 @@
 
 #region Usings
 using System.Globalization;
-using System.Threading;
 
+using Styx;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
@@ -27,6 +27,11 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             AzimuthMin = azimuthMin ?? double.NaN;
             AzimuthMax = azimuthMax ?? double.NaN;
+
+            if (!double.IsNaN(AzimuthMin))
+                { QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2} (given)", AzimuthMin); }
+            if (!double.IsNaN(AzimuthMax))
+                { QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2} (given)", AzimuthMax); }
 
             AzimuthReference = double.NaN;
             ReferenceHeading = double.NaN;
@@ -81,14 +86,26 @@ namespace Honorbuddy.QuestBehaviorCore
 
         // 11Mar2013-04:41UTC chinajade
         // NB: method instead of a property, because significant time may be involved in execution
-        public bool HeadingSet(double heading)
+        public bool HeadingSet(WoWPoint location)
         {
             if (Me.InVehicle)
             {
-                Me.SetFacing((float)heading); 
+                Me.SetFacing(location);
                 return true;
             }
 
+            return false;
+        }
+
+        public bool HeadingSet(WoWObject wowObject)
+        {
+            if (Me.InVehicle && Query.IsViable(wowObject))
+            {
+                WoWMovement.ConstantFace(wowObject.Guid);
+                return true;
+            }
+
+            WoWMovement.StopFace();
             return false;
         }
 
@@ -105,27 +122,30 @@ namespace Honorbuddy.QuestBehaviorCore
 
         private bool UtilAzimuthArticulationAcquire()
         {
-            if (!Me.InVehicle)
+            if (!Query.IsVehicleActionBarShowing())
                 { return false; }
 
             if (double.IsNaN(AzimuthReference))
             {
                 AzimuthReference = AzimuthGet();
-                QBCLog.DeveloperInfo("Weapon AzimuthReference: {0:F2}", AzimuthReference);
+                QBCLog.DeveloperInfo("Weapon AzimuthReference: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
+                    AzimuthReference);
             }
 
             if (double.IsNaN(AzimuthMin))
             {
                 UtilAzimuthRequestAbsolute(-QuestBehaviorBase.TAU / 4);
                 AzimuthMin = UtilAzimuthCurrentAbsolute();
-                QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2}", AzimuthMin);
+                QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
+                    AzimuthMin);
             }
 
             if (double.IsNaN(AzimuthMax))
             {
                 UtilAzimuthRequestAbsolute(QuestBehaviorBase.TAU / 4);
                 AzimuthMax = UtilAzimuthCurrentAbsolute();
-                QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2}", AzimuthMax);
+                QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
+                    AzimuthMax);
             }
 
             return true;
