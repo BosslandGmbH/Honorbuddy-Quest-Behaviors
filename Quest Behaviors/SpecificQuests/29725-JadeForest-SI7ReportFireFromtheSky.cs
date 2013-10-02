@@ -79,8 +79,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
 
         public static WoWPoint Shrine1Location = new WoWPoint(789.3542f, -1988.882f, 54.2512f);
         public static WoWPoint Shrine2Location = new WoWPoint(963.9094, -1960.19, 67.762);
-        public static WoWPoint Shrine3Location = new WoWPoint(776.9325, -1788.328, 56.5228);
+        public static WoWPoint Shrine3Location = new WoWPoint(781.8646, -1783.883, 56.52271);
         public static WoWPoint CampLocation = new WoWPoint(714.5405, -2103.443, 65.78586);
+
+        private static readonly CircularQueue<WoWPoint> Shrine3Path = new CircularQueue<WoWPoint>()
+                                                                      {
+                                                                          new WoWPoint(965.209, -1959.576, 67.7631),
+                                                                          new WoWPoint(965.209, -1959.576, 67.7631),
+                                                                          new WoWPoint(930.5771, -1976.763, 61.01332),
+                                                                          new WoWPoint(885.8878, -1947.074, 60.64142),
+                                                                          new WoWPoint(890.3065, -1931.436, 59.4219),
+                                                                          new WoWPoint(882.1564, -1837.54, 63.41736),
+                                                                          new WoWPoint(837.4109, -1793.334, 60.2616),
+                                                                          Shrine3Location
+                                                                      };
 
         public static WaitTimer AimingTimer = new WaitTimer(TimeSpan.FromSeconds(2));
         public static WaitTimer WaitAtThridTimer = new WaitTimer(TimeSpan.FromSeconds(20));
@@ -132,7 +144,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -151,9 +163,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
 
         #region Overrides of CustomForcedBehavior
 
-       
 
-        protected override Composite CreateBehavior()
+
+        protected Composite CreateBehavior_MainCombat()
         {
             return _root ?? (_root =
                 new PrioritySelector(
@@ -216,12 +228,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                                                         new Decorator(ret => Shrine2Location.Distance(Me.Location) > 3,
                                                             new Action(ret => Navigator.MoveTo(Shrine2Location))),
                                                         new Decorator(ret => Shrine2Location.Distance(Me.Location) <= 3,
-                                                            new Action(ret => _secondExplored = true)))),
+                                                            new Sequence(
+                                                                new Action(ctx => Shrine3Path.CycleTo(Shrine3Path.First)),
+                                                                new Action(ret => _secondExplored = true))))),
 
                                                 new Decorator(ret => !_thridExplored,
                                                     new PrioritySelector(
                                                         new Decorator(ret => Shrine3Location.Distance(Me.Location) > 3,
-                                                            new Action(ret => Navigator.MoveTo(Shrine3Location))),
+                                                            new PrioritySelector(
+                                                                new Decorator(ctx => Shrine3Path.Peek().Distance(Me.Location) <=3,
+                                                                    new Action(ctx => Shrine3Path.Dequeue())),
+                                                                new Action(ctx => Navigator.MoveTo(Shrine3Path.Peek())))),                                                            
                                                         new Decorator(ret => Shrine3Location.Distance(Me.Location) <= 3,
                                                             new Sequence(
                                                                new Action(ret => _thridExplored = true),
@@ -276,16 +293,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

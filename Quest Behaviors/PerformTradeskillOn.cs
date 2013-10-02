@@ -14,7 +14,6 @@ using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using GreyMagic;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;

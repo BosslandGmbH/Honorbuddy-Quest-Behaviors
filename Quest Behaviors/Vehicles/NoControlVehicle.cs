@@ -225,12 +225,12 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
             }
         }
 
-		
-		public bool IsQuestComplete()
+
+        public bool IsQuestComplete()
         {
-			if (QuestId == 0)
-				return false;
-		
+            if (QuestId == 0)
+                return false;
+
             var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
@@ -254,7 +254,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                         })
                     ),
 
-                    new Decorator(c => NpcVehicleList.Count > 0 && !InVehicle,
+                    new Decorator(c => NpcVehicleList.Any() && !InVehicle,
                         new Action(c =>
                         {
                             if (!NpcVehicleList[0].WithinInteractRange)
@@ -270,18 +270,23 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 
                         })
                     ),
-                    new Decorator(c => InVehicle && SpellType == 1,
+                    new Decorator(c => SpellType == 1,
                         new Action(c =>
                         {
-                            if (NpcList.Count == 0 || NpcList[0].Location.Distance(VehicleList[0].Location) > 15)
+                            if (!InVehicle)
+                                return RunStatus.Failure;
+                            var target = NpcList.FirstOrDefault();
+                            var vehicle = VehicleList.FirstOrDefault();
+                            if (target == null || vehicle != null && target.Location.Distance(vehicle.Location) > 15)
                             {
                                 TreeRoot.StatusText = "Waiting for Mob to Come Into Range or Appear.";
                                 return RunStatus.Running;
                             }
-                            else if (NpcList.Count >= 1 && NpcList[0].Location.Distance(VehicleList[0].Location) <= 15)
+                            if (vehicle != null && target.Location.Distance(vehicle.Location) <= 15)
                             {
-                                TreeRoot.StatusText = "Attacking: " + NpcList[0].Name + ", AttackButton: " + AttackButton;
-                                NpcList[0].Target();
+                                TreeRoot.StatusText = "Attacking: " + target.Name + ", AttackButton: " + AttackButton;
+                                if (Me.CurrentTargetGuid != target.Guid)
+                                    target.Target();
                                 Lua.DoString("CastPetAction({0})", AttackButton);
                                 Thread.Sleep(WaitTime);
                                 Counter++;
@@ -290,27 +295,30 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                             return RunStatus.Running;
                         })),
 
-                    new Decorator(c => InVehicle && SpellType == 2,
+                    new Decorator(c => SpellType == 2,
                         new Action(c =>
                         {
-                            if (NpcList.Count >= 1)
+                            if (!InVehicle)
+                                return RunStatus.Failure;
+
+                            if (Counter > NumOfTimes && QuestId == 0 || IsQuestComplete())
+                            {
+                                Lua.DoString("VehicleExit()");
+                                _isBehaviorDone = true;
+                                return RunStatus.Success;
+                            }
+                            var target = NpcList.FirstOrDefault();
+                            if (target != null)
                             {
                                 Thread.Sleep(OftenToUse);
 
-                                TreeRoot.StatusText = "Attacking: " + NpcList[0].Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
+                                TreeRoot.StatusText = "Attacking: " + target.Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
 
-                                if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
-                                {
-                                    Lua.DoString("VehicleExit()");
-                                    _isBehaviorDone = true;
-                                    return RunStatus.Success;
-                                }
-                                NpcList[0].Target();
+                                target.Target();
                                 Lua.DoString("CastPetAction({0})", AttackButton);
-                                SpellManager.ClickRemoteLocation(NpcList[0].Location);
+                                SpellManager.ClickRemoteLocation(target.Location);
                                 Thread.Sleep(WaitTime);
                                 Counter++;
-                                return RunStatus.Running;
                             }
                             return RunStatus.Running;
                         })),
@@ -340,64 +348,70 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                                             return RunStatus.Success;
                                         }))))),
 
-                    new Decorator(c => InVehicle && SpellType == 4,
+                    new Decorator(c => SpellType == 4,
                         new Action(c =>
                         {
-                            if (NpcList.Count >= 1)
+                            if (!InVehicle)
+                                return RunStatus.Failure;
+
+                            if (Counter > NumOfTimes && QuestId == 0 || IsQuestComplete())
                             {
-                                
-                                    if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
-                                    {
-                                        Lua.DoString("VehicleExit()");
-                                        _isBehaviorDone = true;
-                                        return RunStatus.Success;
-                                    }
-                                    NpcList[0].Target();
-                                    WoWMovement.ClickToMove(NpcList[0].Location);
-                                    Lua.DoString("CastPetAction({0})", AttackButton);
-                                    SpellManager.ClickRemoteLocation(NpcList[0].Location);
-                                    Counter++;
-                                    return RunStatus.Running;
-                                
+                                Lua.DoString("VehicleExit()");
+                                _isBehaviorDone = true;
+                                return RunStatus.Success;
+                            }
+
+                            var target = NpcList.FirstOrDefault();
+
+                            if (target != null)
+                            {
+                                if (Me.CurrentTargetGuid != target.Guid)
+                                    target.Target();
+                                WoWMovement.ClickToMove(target.Location);
+                                Lua.DoString("CastPetAction({0})", AttackButton);
+                                SpellManager.ClickRemoteLocation(target.Location);
+                                Counter++;
                             }
                             return RunStatus.Running;
                         })),
 
-                   new Decorator(c => InVehicle && SpellType == 5,
+                   new Decorator(c => SpellType == 5,
                         new Action(c =>
                         {
-                            if (NpcList.Count >= 1 || NpcListSecondary.Count >= 1)
+                            if (!InVehicle)
+                                return RunStatus.Failure;
+
+                            if (Counter > NumOfTimes && QuestId == 0 || IsQuestComplete())
                             {
-                                
-                                    if ((Counter > NumOfTimes && QuestId == 0) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted && QuestId > 0))
-                                    {
-                                        Lua.DoString("VehicleExit()");
-                                        _isBehaviorDone = true;
-                                        return RunStatus.Success;
-                                    }
-
-                                    if (NpcList.Count > 0)
-                                    {
-                                        NpcList[0].Target();
-                                        WoWMovement.ConstantFace(Me.CurrentTargetGuid);
-                                        Lua.DoString("CastPetAction({0})", AttackButton);
-                                    }
-
-                                    if (NpcListSecondary.Count > 0)
-                                    {
-                                        NpcListSecondary[0].Target();
-                                        WoWMovement.ConstantFace(Me.CurrentTargetGuid);
-                                        Lua.DoString("CastPetAction({0})", AttackButton);
-                                    }
-
-                                    Lua.DoString("CastPetAction({0})", AttackButton2);
-
-                                    if(QuestId == 0)
-                                        Counter++;
-
-                                    return RunStatus.Running;
-                                
+                                Lua.DoString("VehicleExit()");
+                                _isBehaviorDone = true;
+                                return RunStatus.Success;
                             }
+                            var target = NpcList.FirstOrDefault();
+
+                            if (target != null)
+                            {
+                                if (Me.CurrentTargetGuid != target.Guid)
+                                    target.Target();
+                                WoWMovement.ConstantFace(Me.CurrentTargetGuid);
+                                Lua.DoString("CastPetAction({0})", AttackButton);
+                                if (QuestId == 0)
+                                    Counter++;
+                            }
+
+                            var target2 = NpcListSecondary.FirstOrDefault();
+                            if (target2 != null)
+                            {
+                                if (Me.CurrentTargetGuid != target2.Guid)
+                                    target2.Target();
+                                WoWMovement.ConstantFace(Me.CurrentTargetGuid);
+                                Lua.DoString("CastPetAction({0})", AttackButton);
+                                if (QuestId == 0)
+                                    Counter++;
+                            }
+
+                            Lua.DoString("CastPetAction({0})", AttackButton2);
+
                             return RunStatus.Running;
                         }))
                 ));
