@@ -46,12 +46,12 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             public CastSpell(ProvideIntDelegate spellIdDelegate,
                              ProvideWoWObjectDelegate selectedTargetDelegate,
-                             Action<object, WoWObject> actionOnSuccessfulSpellCastDelegate = null)
+                             Action<object> actionOnSuccessfulSpellCastDelegate = null)
             {
                 Contract.Requires(spellIdDelegate != null, context => "spellDelegate != null");
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
-                ActionOnSuccessfulSpellCastDelegate = actionOnSuccessfulSpellCastDelegate ?? ((context, wowObject) => { /*NoOp*/ });
+                ActionOnSuccessfulSpellCastDelegate = actionOnSuccessfulSpellCastDelegate ?? (context => { /*NoOp*/ });
                 SpellIdDelegate = spellIdDelegate;
                 SelectedTargetDelegate = selectedTargetDelegate;
 
@@ -60,13 +60,13 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
             // BT contruction-time properties...
-            private Action<object, WoWObject> ActionOnSuccessfulSpellCastDelegate { get; set; }
+            private Action<object> ActionOnSuccessfulSpellCastDelegate { get; set; }
             private ProvideIntDelegate SpellIdDelegate { get; set; }
             private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
-            private WoWSpell CachedSpell { get; set; }
-            private WoWUnit CachedTarget { get; set; }
+            private string CachedName_Spell { get; set; }
+            private string CachedName_Target { get; set; }
             private bool IsInterrupted { get; set; }
 
 
@@ -74,108 +74,121 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    // TODO: Break this up...
-                    // TODO: Install 'unknown spell' failure hook...
-
                     // Cache & qualify...
                     new Action(context =>
                     {
-                        // If SelectedTargetDelegate is null, then its implicitly 'self', or a general effect...
-                        var selectedTarget = SelectedTargetDelegate(context) ?? Me;
-
-                        // Valid target?
-                        CachedTarget = selectedTarget as WoWUnit;
-                        if (selectedTarget != null)
+                        // Viable target?
+                        // If target is null, then assume 'self'.
+                        // NB: Since target may go invalid immediately upon casting the spell,
+                        // we cache its name for use in subsequent log entries.
+                        var selectedObject = SelectedTargetDelegate(context) ?? Me;
+                        if (!Query.IsViable(selectedObject))
                         {
-                            CachedTarget = selectedTarget as WoWUnit;
-                            if (CachedTarget == null)
-                            {
-                                QBCLog.Warning("Target {0} is not a WoWUnit--cannot cast spell on it", selectedTarget.SafeName);
-                                return RunStatus.Failure;
-                            }
+                            QBCLog.Warning("Target is not viable!");
+                            return RunStatus.Failure;       
+                        }
+                        CachedName_Target = selectedObject.SafeName;
+
+                        // Target must be a WoWUnit for us to be able to cast a spell on it...
+                        var selectedTarget = selectedObject as WoWUnit;
+                        if (!Query.IsViable(selectedTarget))
+                        {
+                            QBCLog.Warning("Target {0} is not a WoWUnit--cannot cast spell on it.", CachedName_Target);
+                            return RunStatus.Failure;
                         }
 
                         // Spell known?
                         var spellId = SpellIdDelegate(context);
-                        SpellFindResults findSpellResults;
-                        var isSpellFound = SpellManager.FindSpell(spellId, out findSpellResults);
-                        if (!isSpellFound)
+                        WoWSpell selectedSpell = WoWSpell.FromId(spellId);
+                        if (selectedSpell == null)
                         {
-                            QBCLog.Warning("Spell {0} is not known.", Utility.GetSpellNameFromId(spellId));
+                            QBCLog.Warning("{0} is not known.", Utility.GetSpellNameFromId(spellId));
+                            return RunStatus.Failure;
+                        }
+                        CachedName_Spell = selectedSpell.Name;
+
+                        // Need to be facing target...
+                        // NB: Not all spells require this, but many do.
+                        Utility.Target(selectedTarget, true);
+
+                        // Wait for spell to become ready...
+                        if (!SpellManager.CanCast(selectedSpell))
+                        {
+                            QBCLog.Warning("{0} is not usable, yet.  (cooldown remaining: {1})",
+                                CachedName_Spell,
+                                Utility.PrettyTime(selectedSpell.CooldownTimeLeft));
                             return RunStatus.Failure;
                         }
 
-                        // Spell not usable?
-                        CachedSpell = findSpellResults.Override ?? findSpellResults.Original;
-                        if (!SpellManager.CanCast(CachedSpell))
-                        {
-                            QBCLog.Warning("{0} is not usable, yet.  (cooldown: {1})",
-                                CachedSpell.Name,
-                                Utility.PrettyTime(TimeSpan.FromSeconds((int)CachedSpell.CooldownTimeLeft.TotalSeconds)));
-                            return RunStatus.Failure;
-                        }
+                        // Notify user of intent...
+                        var message = string.Format("Attempting cast of '{0}' on '{1}'", CachedName_Spell, CachedName_Target);
+                        message +=
+                            selectedTarget.IsDead
+                            ? " (dead)"
+                            : string.Format(" (health: {0:F1})", selectedTarget.HealthPercent);
+                        QBCLog.DeveloperInfo(message);
 
-                        return RunStatus.Success;
-                    }),
-
-                    // Use the item...
-                    new Action(context =>
-                    {
-                        // Set up 'interrupted use' detection...
+                        // Set up 'interrupted use' detection, and cast spell...
                         // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
                         // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
                         // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
                         InterruptDetection_Hook();
-
-                        // Notify user of intent...
-                        var message = string.Format("Attempting cast of '{0}' on '{1}'", CachedSpell.Name, CachedTarget.SafeName);
-
-                        message +=
-                            (CachedTarget.IsDead)
-                            ? " (dead)"
-                            : string.Format(" (health: {0:F1})", CachedTarget.HealthPercent);
-
-                        QBCLog.DeveloperInfo(message);
-
-                        // Do it...
                         IsInterrupted = false;
-                        SpellManager.Cast(CachedSpell, CachedTarget);
+                        SpellManager.Cast(selectedSpell, selectedTarget);
+                        
+                        // NB: The target or the spell may not be valid after this point...
+                        // Some targets will go 'invalid' immediately afer interacting with them.
+                        // Most of the time this happens, the target is immediately and invisibly replaced with
+                        // an identical looking target with a different script.
+                        // We must assume our target and spell is no longer available for use after this point.
+                        return RunStatus.Success;   // fall through
                     }),
                     new WaitContinue(Delay.AfterItemUse, context => false, new ActionAlwaysSucceed()),
 
                     // If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
                     new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
                         new Sequence(
-                            new Action(context => { SpellManager.ClickRemoteLocation(CachedTarget.Location); }),
-                            new WaitContinue(Delay.AfterItemUse,
+                            new Action(context =>
+                            {
+                                // If target is still viable, click it as destination of spell...
+                                var selectedTarget = SelectedTargetDelegate(context);
+                                if (Query.IsViable(selectedTarget))
+                                    { SpellManager.ClickRemoteLocation(selectedTarget.Location); }
+                                else
+                                    { Lua.DoString("SpellStopTargeting()"); }
+                            }),
+                            new WaitContinue(Delay.LagDuration,
                                 context => StyxWoW.Me.CurrentPendingCursorSpell == null,
                                 new ActionAlwaysSucceed()),
                             // If we've leftover spell cursor dangling, clear it...
                             // NB: This can happen for "use item on location" type activites where you get interrupted
                             // (e.g., a walk-in mob).
-                            new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
-                                new Action(context => { Lua.DoString("SpellStopTargeting()"); }))
+                            new Action(context =>
+                            {
+                                if (StyxWoW.Me.CurrentPendingCursorSpell != null)
+                                    { Lua.DoString("SpellStopTargeting()"); }
+                            })
                         )),
-
+                        
                     // Wait for any casting to complete...
                     // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
                     new WaitContinue(TimeSpan.FromSeconds(15),
                         context => !(Me.IsCasting || Me.IsChanneling),
                         new ActionAlwaysSucceed()),
 
-                    // Were we interrupted in item use?
+                    // Were we interrupted in spell casting?
                     new Action(context => { InterruptDectection_Unhook(); }),
                     new DecoratorContinue(context => IsInterrupted,
                         new Sequence(
-                            new Action(context => { QBCLog.Warning("Cast of {0} interrupted.", CachedSpell.Name); }),
+                            new Action(context => { QBCLog.Warning("Cast of {0} interrupted.", CachedName_Spell); }),
                             // Give whatever issue encountered a chance to settle...
                             // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                             new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
                         )),
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", CachedSpell.Name, CachedTarget.SafeName);
-                        ActionOnSuccessfulSpellCastDelegate(context, CachedTarget);
+                        QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", CachedName_Spell, CachedName_Target);
+                        ActionOnSuccessfulSpellCastDelegate(context);
                     })
                 };
             }

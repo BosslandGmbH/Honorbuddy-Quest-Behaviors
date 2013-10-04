@@ -179,10 +179,12 @@
 //                  from being interrupted when we attempt to interact with our selected target.
 //              ClearAll
 //                  Combines ClearMobsThatWillAggro and ClearMobsTargetingUs.
-//      Range [optional; Default: 4.0]
+//      Range [optional; Default: interaction range defined by the object with which we're trying to interact]
 //          Defines the maximum range at which the interaction with MobIdN should take place.
 //          If the toon is out of range, the toon will be moved within this distance
 //          of the mob.
+//          It is highly recommended you let this attribute default, unless there is
+//          a compelling reason not to.
 //      WaitForNpcs [optional; Default: true]
 //          This value affects what happens if there are no MobIds in the immediate area.
 //          If true, the behavior will move to the next hunting ground waypoint, or if there
@@ -452,8 +454,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     ?? MountStrategyType.None;
                 ProactiveCombatStrategy = GetAttributeAsNullable<ProactiveCombatStrategyType>("ProactiveCombatStrategy", false, null, null)
                     ?? ProactiveCombatStrategyType.ClearAll;
-                RangeMax = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4.0;
-                RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 0.0;
+                RangeMax = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null);
+                RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null);
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;            
 
@@ -488,43 +490,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             }
         }
 
-        // Attributes provided by caller
-        private int[] AuraIdsOnMob { get; set; }
-        private int[] AuraIdsMissingFromMob { get; set; }
-        private int BuyItemCount { get; set; }
-        private double CollectionDistance { get; set; }
-        private int[] FactionIds { get; set; }
-        private WoWPoint HuntingGroundCenter { get; set; }
-        private bool IgnoreCombat { get; set; }
-        private bool IgnoreLoSToTarget { get; set; }
-        private int InteractBlacklistTimeInSeconds { get; set; }
-        private int InteractByBuyingItemId { get; set; }
-        private int InteractByBuyingItemInSlotNum { get; set; }
-        private int InteractByCastingSpellId { get; set; }
-        private int[] InteractByGossipOptions { get; set; }
-        private int InteractByUsingItemId { get; set; }
-        private bool InteractByLooting { get; set; }
-        private bool KeepTargetSelected { get; set; }
-        private double MobHpPercentLeft { get; set; }
-        private int[] MobIds { get; set; }
-        private bool MobIdIncludesSelf { get; set; }
-        private MobStateType MobState { get; set; }
-        private bool NotMoving { get; set; }
-        private int NumOfTimes { get; set; }
-        private QuestFrameDisposition InteractByQuestFrameAction { get; set; }
-        private MountStrategyType PreInteractMountStrategy { get; set; }
-        private ProactiveCombatStrategyType ProactiveCombatStrategy { get; set; }
-        private double RangeMax { get; set; }
-        private double RangeMin { get; set; }
-        private bool WaitForNpcs { get; set; }
-        private int WaitTime { get; set; }
-
-
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
             UsageCheck_DeprecatedAttribute(xElement,
                 (InteractByBuyingItemInSlotNum != -1),
-                "InteractByBuyingItemInSlotNum/BuySlot", 
+                "InteractByBuyingItemInSlotNum/BuySlot",
                 context => "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
                             + "Please replace them with InteractByBuyingItemId attribute."
                             + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
@@ -560,15 +530,47 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 context => "You must specify one or more: MobIdIncludesSelf, MobIdN, FactionIdN");
 
             UsageCheck_SemanticCoherency(xElement,
-                Args.Keys.Contains("MinRange") && ((RangeMax - RangeMin) < RangeMinMaxEpsilon),
+                RangeMax.HasValue && RangeMin.HasValue && ((RangeMax.Value - RangeMin.Value) < RangeMinMaxEpsilon),
                 context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-                                        RangeMax, RangeMinMaxEpsilon, RangeMin));
+                                        RangeMax.Value, RangeMinMaxEpsilon, RangeMin.Value));
 
             UsageCheck_SemanticCoherency(xElement,
                 MobIdIncludesSelf && !((InteractByCastingSpellId > 0) || (InteractByUsingItemId > 0)),
                 context => "When \"MobIdIncludesSelf\" is specified, one of the following attributes must also be specified:"
                             + "InteractByCastingSpellId, InteractByUsingItemId");
         }
+
+        
+        // Attributes provided by caller
+        private int[] AuraIdsOnMob { get; set; }
+        private int[] AuraIdsMissingFromMob { get; set; }
+        private int BuyItemCount { get; set; }
+        private double CollectionDistance { get; set; }
+        private int[] FactionIds { get; set; }
+        private WoWPoint HuntingGroundCenter { get; set; }
+        private bool IgnoreCombat { get; set; }
+        private bool IgnoreLoSToTarget { get; set; }
+        private int InteractBlacklistTimeInSeconds { get; set; }
+        private int InteractByBuyingItemId { get; set; }
+        private int InteractByBuyingItemInSlotNum { get; set; }
+        private int InteractByCastingSpellId { get; set; }
+        private int[] InteractByGossipOptions { get; set; }
+        private int InteractByUsingItemId { get; set; }
+        private bool InteractByLooting { get; set; }
+        private bool KeepTargetSelected { get; set; }
+        private double MobHpPercentLeft { get; set; }
+        private int[] MobIds { get; set; }
+        private bool MobIdIncludesSelf { get; set; }
+        private MobStateType MobState { get; set; }
+        private bool NotMoving { get; set; }
+        private int NumOfTimes { get; set; }
+        private QuestFrameDisposition InteractByQuestFrameAction { get; set; }
+        private MountStrategyType PreInteractMountStrategy { get; set; }
+        private ProactiveCombatStrategyType ProactiveCombatStrategy { get; set; }
+        private double? RangeMax { get; set; }
+        private double? RangeMin { get; set; }
+        private bool WaitForNpcs { get; set; }
+        private int WaitTime { get; set; }
         #endregion
 
 
@@ -586,13 +588,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private int GossipPageIndex { get; set; }
         private HuntingGroundsType HuntingGrounds { get; set; }
         private int InteractAttemptCount { get; set; }
+        private bool InteractByRightClick { get { return (InteractByUsingItemId == 0) && (InteractByCastingSpellId == 0); } }
         private WoWItem ItemToUse { get; set; }
         private const double RangeMinMaxEpsilon = 3.0;
         private WoWUnit SelectedAliveTarget { get; set; }
         private WoWObject SelectedTarget { get; set; }
 
         private WaitTimer _waitTimerAfterInteracting = null;
-        private WaitTimer _timerToReachDestination = null;
+        private WaitTimer _watchdogTimerToReachDestination = null;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id: InteractWith.cs 719 2013-07-26 11:08:04Z dogan $"); } }
@@ -671,15 +674,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         {
             return new Decorator(context => !IsDone,
                 new PrioritySelector(
-                    // Force recalculation of time to reach destination after combat completes...
-                    new Decorator(context => Me.Combat,
-                        new Action(context =>
-                        {
-                            _timerToReachDestination = null;
-                            CloseOpenFrames(true);
-                            return RunStatus.Failure;   // fall through
-                        })),
-
                     new Decorator(context => !Me.Combat,
                         new PrioritySelector(
                             new UtilityBehaviorPS.Looting(context => MovementBy),
@@ -777,10 +771,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 Me.ClearTarget();
                                 SelectedTarget = FindViableTargets(MobState).FirstOrDefault();
 
-                                _timerToReachDestination = null;
-                                InteractAttemptCount = 0;
                                 if (SelectedTarget != null)
-                                    { UpdateGoalText(GetGoalText()); }
+                                {
+                                    UpdateGoalText(GetGoalText());
+                                    InteractAttemptCount = 0;
+                                    _watchdogTimerToReachDestination = null;
+                                    return RunStatus.Failure;
+                                }
 
                                 // If we're looking for 'dead' targets, and there are none...
                                 // But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
@@ -810,25 +807,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     #region Deal with mob we've selected for interaction...
                     new Decorator(context => Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance),
                         new PrioritySelector(
-                            // Place upper bound on time allowed to reach destination...
-                            new Decorator(context => _timerToReachDestination == null,
-                                new Action(context =>
-                                {
-                                    _timerToReachDestination = new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location));
-                                    _timerToReachDestination.Reset();
-                                    return RunStatus.Failure; // fall through
-                                })),
-
-                            new Decorator(context => _timerToReachDestination.IsFinished,
-                                new Action(context =>
-                                {
-                                    var blacklistTime = BlacklistInteractTarget(SelectedTarget);
-                                    QBCLog.Warning("Taking too long to reach {0}--blacklisting for {1}",
-                                        SelectedTarget.SafeName,
-                                        Utility.PrettyTime(blacklistTime));
-                                    _timerToReachDestination = null;
-                                })),
-
                             // Take out any nearby mobs that will aggro, if we get close to destination...
                             new Decorator(context => !IgnoreCombat
                                                     && !Me.IsFlying
@@ -841,10 +819,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                     context => SelectedTarget.InteractRange,
                                     context => MobIds /*excluded mobs*/)),
 
-                            SubBehaviorPS_HandleLootFrame(),
-                            SubBehaviorPS_HandleGossipFrame(),
-                            SubBehaviorPS_HandleMerchantFrame(),
-                            SubBehaviorPS_HandleQuestFrame(),
+                            SubBehaviorPS_HandleFrame_Loot(),
+                            SubBehaviorPS_HandleFrame_Gossip(),
+                            SubBehaviorPS_HandleFrame_Merchant(),
+                            SubBehaviorPS_HandleFrame_Quest(),
                             SubBehaviorPS_HandleFramesComplete(),
 
                             // If anything in the frame handling made the target no longer viable for interacting,
@@ -862,8 +840,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                             new Decorator(context => Me.CurrentTarget != SelectedTarget,
                                 new Action(context =>
                                 {
-                                    WoWUnit wowUnit = SelectedTarget as WoWUnit;
-                                    if ((wowUnit != null) && ((wowUnit.Distance < RangeMax) || Query.IsInLineOfSight(wowUnit)))
+                                    var wowUnit = SelectedTarget as WoWUnit;
+                                    if ((wowUnit != null) && (IsWithinInteractDistance(wowUnit) || Query.IsInLineOfSight(wowUnit)))
                                         { Utility.Target(wowUnit); }
                                     else if (Me.CurrentTarget != null)
                                         { Me.ClearTarget(); }
@@ -915,13 +893,16 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                         })),
 
                                 // Interact by right-click...
-                                new DecoratorContinue(context => !((InteractByUsingItemId > 0) || (InteractByCastingSpellId > 0)),
+                                new DecoratorContinue(context => InteractByRightClick,
                                     new UtilityBehaviorSeq.Interact(context => SelectedTarget)),
                             
                                 // Peg tally, if follow-up actions not expected...
                                 new DecoratorContinue(context => !IsFrameExpectedFromInteraction(),
                                     new Action(context =>
                                     {
+                                        // NB: Some targets go invalid immediately after interacting with them.
+                                        // So we must make certain that we don't intend to use such invalid targets
+                                        // here.
                                         BlacklistInteractTarget(SelectedTarget);
                                         _waitTimerAfterInteracting.Reset();
                                         ++Counter;
@@ -942,17 +923,23 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         protected override Composite CreateBehavior_CombatOnly()
         {
             return new PrioritySelector(
-                // If current target is not attackable, blacklist it...
-                new Decorator(context => (Me.CurrentTarget != null) && !Me.CurrentTarget.Attackable,
-                    new Action(context =>
+                new Action(context =>
+                {
+                    // Force recalculation of time to reach destination after combat completes...
+                    _watchdogTimerToReachDestination = null;
+
+                    // If current target is not attackable, blacklist it...
+                    if ((Me.CurrentTarget != null) && !Me.CurrentTarget.Attackable)
                     {
                         Me.CurrentTarget.BlacklistForCombat(TimeSpan.FromSeconds(120));
                         Me.ClearTarget();
-                    })),
+                    }
 
-                // If we're ignoring combat, deprive Combat Routine of chance to run...
-                new Decorator(context => IgnoreCombat,
-                    new ActionAlwaysSucceed())
+                    // If we're ignoring combat, deprive Combat Routine of chance to run...
+                    return IgnoreCombat
+                        ? RunStatus.Success
+                        : RunStatus.Failure;
+                })
             );
         }
 
@@ -980,62 +967,102 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private Composite SubBehaviorPS_DoMoveToTarget()
         {
             return
-                new PrioritySelector(
-                    new Decorator(context => IsDistanceGainNeeded(SelectedTarget),
-                        new UtilityBehaviorPS.MoveTo(
-                            context => Utility.GetPointToGainDistance(SelectedTarget, RangeMin),
-                            context => string.Format("gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
-                                GetName(SelectedTarget),
-                                SelectedTarget.Entry,
-                                SelectedTarget.Distance,
-                                RangeMin),
-                            context => MovementBy)),
+                new Decorator(context =>
+                {
+                    var isViableTarget = Query.IsViable(SelectedTarget);
 
-                    new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
-                        new PrioritySelector(
-                            new Decorator(context => MovementBy == MovementByType.NavigatorOnly
-                                                        && !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedTarget.Location)
-                                                        && (!Me.IsFlying || !Me.IsOnTransport),
-                                new Action(context =>
-                                {
-                                    TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
-                                    TreeRoot.StatusText = string.Format("Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
-                                                                        GetName(SelectedTarget), SelectedTarget.Distance, blacklistDuration);
-                                })),
+                    if (!isViableTarget)
+                        { _watchdogTimerToReachDestination = null; }
 
-                            new Decorator(context => MovementBy == MovementByType.None,
-                                new Action(ret =>
-                                {
-                                    TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
-                                    TreeRoot.StatusText = string.Format("{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
-                                                                        GetName(SelectedTarget), SelectedTarget.Distance, blacklistDuration);
-                                    BehaviorDone();
-                                })),
+                    // Watchdog only runs when not in combat...
+                    else if (!Me.Combat)
+                    {
+                        // If watchdog timer isn't running, start it...
+                        // NB: This places upper bound on time allowed to reach destination.  If a mob is bugged
+                        // or unreachable for some other reason, this timer will blacklist the mob when it expires.
+                        // Also, this timer will be terminated when we get in combat, so we may need to re-establish
+                        // it when combat completes.
+                        if (_watchdogTimerToReachDestination == null)
+                        {
+                            _watchdogTimerToReachDestination = new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location));
+                            _watchdogTimerToReachDestination.Reset();
+                        }
 
+                        if (_watchdogTimerToReachDestination.IsFinished)
+                        {
+                            var blacklistTime = BlacklistInteractTarget(SelectedTarget);
+                            QBCLog.Warning("Taking too long to reach {0}--blacklisting for {1}",
+                                SelectedTarget.SafeName,
+                                Utility.PrettyTime(blacklistTime));
+                            _watchdogTimerToReachDestination = null;
+                            isViableTarget = false;
+                        }
+                    }
+
+                    return isViableTarget;
+                },
+                    new PrioritySelector(
+                        new Decorator(context => IsDistanceGainNeeded(SelectedTarget) && RangeMin.HasValue,
                             new UtilityBehaviorPS.MoveTo(
-                                context => SelectedTarget.Location,
-                                context => string.Format("interact with {0} (id: {1}, dist: {2:F1}{3}, TtB: {4})",
-                                                        GetName(SelectedTarget),
-                                                        SelectedTarget.Entry,
-                                                        SelectedTarget.Distance,
-                                                        (Query.IsInLineOfSight(SelectedTarget) ? "" : ", noLoS"),
-                                                        // Time-to-Blacklist
-                                                        Utility.PrettyTime(_timerToReachDestination.TimeLeft)),
-                                context => MovementBy)
-                        )),
+                                context => Utility.GetPointToGainDistance(SelectedTarget, RangeMin.Value),
+                                context => string.Format("gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
+                                    GetName(SelectedTarget),
+                                    SelectedTarget.Entry,
+                                    SelectedTarget.Distance,
+                                    RangeMin.Value),
+                                context => MovementBy)),
 
-                    // If we expect to gossip, and mob in combat and offers no gossip, help mob...
-                    // NB: Mobs frequently will not offer their gossip options while they are in combat.
-                    new Decorator(context => (InteractByGossipOptions.Length > 0)
-                                                && (SelectedTarget.ToUnit() != null)
-                                                && (SelectedTarget.ToUnit().Combat),
-                        new UtilityBehaviorPS.SpankMob(context => SelectedTarget.ToUnit().CurrentTarget)),
+                        new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
+                            new PrioritySelector(
+                                new Decorator(context => MovementBy == MovementByType.NavigatorOnly
+                                                            && !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedTarget.Location)
+                                                            && (!Me.IsFlying || !Me.IsOnTransport),
+                                    new Action(context =>
+                                    {
+                                        TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
+                                        TreeRoot.StatusText = string.Format("Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
+                                                                            GetName(SelectedTarget), SelectedTarget.Distance, blacklistDuration);
+                                    })),
 
-                    // Prep to interact...
-                    new UtilityBehaviorPS.MoveStop(),
-                    new UtilityBehaviorPS.ExecuteMountStrategy(context => PreInteractMountStrategy),
-                    new ActionFail(context => { Utility.Target(SelectedTarget, true); })
-            );
+                                new Decorator(context => MovementBy == MovementByType.None,
+                                    new Action(ret =>
+                                    {
+                                        TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
+                                        TreeRoot.StatusText = string.Format("{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
+                                                                            GetName(SelectedTarget), SelectedTarget.Distance, blacklistDuration);
+                                    })),
+
+                                new UtilityBehaviorPS.MoveTo(
+                                    context => SelectedTarget.Location,
+                                    context => string.Format("interact with {0} (id: {1}, dist: {2:F1}{3}, TtB: {4})",
+                                                            GetName(SelectedTarget),
+                                                            SelectedTarget.Entry,
+                                                            SelectedTarget.Distance,
+                                                            (Query.IsInLineOfSight(SelectedTarget) ? "" : ", noLoS"),
+                                                            // Time-to-Blacklist
+                                                            ((_watchdogTimerToReachDestination != null)
+                                                             ? Utility.PrettyTime(_watchdogTimerToReachDestination.TimeLeft)
+                                                             : "\u8734")),
+                                    context => MovementBy)
+                            )),
+
+                        // If we expect to gossip, and mob in combat and offers no gossip, help mob...
+                        // NB: Mobs frequently will not offer their gossip options while they are in combat.
+                        new Decorator(context => (InteractByGossipOptions.Length > 0)
+                                                    && (SelectedTarget.ToUnit() != null)
+                                                    && (SelectedTarget.ToUnit().Combat),
+                            new UtilityBehaviorPS.SpankMob(context => SelectedTarget.ToUnit().CurrentTarget)),
+
+                        // Prep to interact...
+                        new UtilityBehaviorPS.MoveStop(),
+                        new UtilityBehaviorPS.ExecuteMountStrategy(context => PreInteractMountStrategy),
+                        new ActionFail(context =>
+                        {
+                            _watchdogTimerToReachDestination = null;
+                            // Face target...
+                            Utility.Target(SelectedTarget, true);
+                        })
+                ));
         }
 
 
@@ -1073,7 +1100,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
 
 
-        private Composite SubBehaviorPS_HandleGossipFrame()
+        private Composite SubBehaviorPS_HandleFrame_Gossip()
         {
             return
                 new PrioritySelector(
@@ -1210,7 +1237,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
 
 
-        private Composite SubBehaviorPS_HandleLootFrame()
+        private Composite SubBehaviorPS_HandleFrame_Loot()
         {
             return
                 // Nothing really special for us to do here.  HBcore will take care of 'normal' looting.
@@ -1231,7 +1258,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
 
 
-        private Composite SubBehaviorPS_HandleMerchantFrame()
+        private Composite SubBehaviorPS_HandleFrame_Merchant()
         {
             return
                 new Decorator(context => MerchantFrame.Instance.IsVisible,
@@ -1288,7 +1315,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         }
 
 
-        private Composite SubBehaviorPS_HandleQuestFrame()
+        private Composite SubBehaviorPS_HandleFrame_Quest()
         {
             return
                 // Side-effect of interacting with some NPCs for quests...
@@ -1346,14 +1373,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         #region Helpers
         private TimeSpan BlacklistInteractTarget(WoWObject selectedTarget)
         {
-            // NB: The selectedTarget can sometimes go "non viable".
+            // NB: The selectedTarget can sometimes go "non viable" immediately upon interaction.
             // An example: We gossip with an NPC that results in a forced taxi ride.  Honorbuddy suspends
             // this behavior while the taxi ride is in progress, and when we land, the selectedTarget
             // is no longer viable to blacklist.
             if (!Query.IsViable(selectedTarget))
                 { return TimeSpan.Zero; }
 
-            WoWUnit wowUnit = selectedTarget as WoWUnit;
+            var wowUnit = selectedTarget as WoWUnit;
             bool isShortBlacklist = (wowUnit != null) && ((wowUnit == Me) || Query.IsSharedWorldResource(wowUnit));
             TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : InteractBlacklistTimeInSeconds);
 
@@ -1436,26 +1463,25 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private bool IsClearTargetNeeded(WoWObject wowObject)
         {
-            if (wowObject == null)
+            if (!Query.IsViable(wowObject))
                 { return false; }
 
-            WoWUnit wowUnit = wowObject as WoWUnit;
+            var wowUnit = wowObject as WoWUnit;
 
             return
                 (wowUnit != null)
-                && (Me.CurrentTarget == wowUnit)
+                && (Me.CurrentTargetGuid == wowUnit.Guid)
                 && !KeepTargetSelected;
         }
 
 
         private bool IsDistanceCloseNeeded(WoWObject wowObject)
         {
-            double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
+            bool canInteract = IsWithinInteractDistance(wowObject);
 
-            bool canInteract =
-                (ItemToUse != null)
-                ? (targetDistance <= RangeMax) && (IgnoreLoSToTarget || Query.IsInLineOfSight(wowObject))    // Items need LoS to use
-                : (targetDistance <= RangeMax);     // Interactions just require being within range
+            // Item usage must be additionally qualified by LoS constraints...
+            if (ItemToUse != null)
+                { canInteract &= (IgnoreLoSToTarget || Query.IsInLineOfSight(wowObject)); }
 
             return !canInteract;
         }
@@ -1463,9 +1489,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
         private bool IsDistanceGainNeeded(WoWObject wowObject)
         {
+            if (!RangeMin.HasValue)
+                { return false; }
+
             double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
-            return targetDistance < RangeMin;
+            return targetDistance < RangeMin.Value;
         }
 
 
@@ -1519,6 +1548,18 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 + (TrainerFrame.Instance.IsVisible ? 1 : 0);
 
             return score > 1;
+        }
+
+
+        private bool IsWithinInteractDistance(WoWObject wowObject)
+        {
+            return
+                Query.IsViable(wowObject)
+                && (RangeMax.HasValue
+                    // If user specified MaxRange, honor its value...
+                    ? (WoWMovement.ActiveMover.Location.Distance(wowObject.Location) <= RangeMax.Value)
+                    // Otherwise, prefer target's definition of its interact distance...
+                    : wowObject.WithinInteractRange);
         }
 
 

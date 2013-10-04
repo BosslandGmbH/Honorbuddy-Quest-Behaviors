@@ -50,14 +50,14 @@ namespace Honorbuddy.QuestBehaviorCore
             public UseItem(ProvideIntDelegate wowItemIdDelegate,
                             ProvideWoWObjectDelegate selectedTargetDelegate,
                             Action<object> actionOnMissingItemDelegate,
-                            Action<object, WoWObject> actionOnSuccessfulItemUseDelegate = null)
+                            Action<object> actionOnSuccessfulItemUseDelegate = null)
             {
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
                 Contract.Requires(wowItemIdDelegate != null, context => "wowItemDelegate != null");
                 Contract.Requires(actionOnMissingItemDelegate != null, context => "actionOnMissingItemDelegate != null");
 
                 ActionOnMissingItemDelegate = actionOnMissingItemDelegate;
-                ActionOnSuccessfulItemUseDelegate = actionOnSuccessfulItemUseDelegate ?? ((context, wowObject) => { /*NoOp*/ });
+                ActionOnSuccessfulItemUseDelegate = actionOnSuccessfulItemUseDelegate ?? (context => { /*NoOp*/ });
                 WowItemIdDelegate = wowItemIdDelegate;
                 SelectedTargetDelegate = selectedTargetDelegate;
 
@@ -67,13 +67,13 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // BT contruction-time properties...
             private Action<object> ActionOnMissingItemDelegate { get; set; }
-            private Action<object, WoWObject> ActionOnSuccessfulItemUseDelegate { get; set; }
+            private Action<object> ActionOnSuccessfulItemUseDelegate { get; set; }
             private ProvideIntDelegate WowItemIdDelegate { get; set; }
             private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
-            private WoWItem CachedItemToUse { get; set; }
-            private WoWObject CachedTarget { get; set; }
+            private string CachedName_ItemToUse { get; set; }
+            private string CachedName_SelectedTarget { get; set; }
             private bool IsInterrupted { get; set; }
 
 
@@ -81,64 +81,54 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
+                    // Waits for global cooldown to end to successfully use the item
+                    new Wait(TimeSpan.FromMilliseconds(500), 
+                        ret => !SpellManager.GlobalCooldown, 
+                        new ActionAlwaysSucceed()),
+
                     // Cache & qualify...
                     new Action(context =>
                     {
-                        CachedTarget = SelectedTargetDelegate(context);
-                        if (!Query.IsViable(CachedTarget))
+                        // Viable target?
+                        // NB: Since target may go invalid immediately upon using the item,
+                        // we cache its name for use in subsequent log entries.
+                        var selectedTarget = SelectedTargetDelegate(context);
+                        if (!Query.IsViable(selectedTarget))
                         {
                             QBCLog.Warning("Target is not viable!");
                             return RunStatus.Failure;
                         }
+                        CachedName_SelectedTarget = selectedTarget.SafeName;
 
-                        if (!Query.IsViable(CachedItemToUse))
+                        // Is item in our bags?
+                        var itemId = WowItemIdDelegate(context);
+                        var itemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
+                        if (!Query.IsViable(itemToUse))
                         {
-                            // Cached item was invalid, so look for item in our bags, and cache it...
-                            var itemId = WowItemIdDelegate(context);
-                            CachedItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
-                            if (!Query.IsViable(CachedItemToUse))
-                            {
-                                QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
-                                return RunStatus.Failure;
-                            }
+                            QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
+                            return RunStatus.Failure;
+                        }
+                        CachedName_ItemToUse = itemToUse.SafeName;
+
+                        // Need to be facing target...
+                        // NB: Not all items require this, but many do.
+                        Utility.Target(selectedTarget, true);
+
+                        // Wait for Item to be usable...
+                        // NB: WoWItem.Usable does not account for cooldowns.
+                        if (!itemToUse.Usable || (itemToUse.Cooldown > 0))
+                        {
+                            TreeRoot.StatusText =
+                                string.Format("{0} is not usable, yet. (cooldown remaining: {1})",
+                                    CachedName_ItemToUse,
+                                    Utility.PrettyTime(itemToUse.CooldownTimeLeft));
+                            return RunStatus.Failure;
                         }
 
-                        return RunStatus.Success;
-                    }),
-
-                    // Wait for Item to be usable...
-                    // NB: WoWItem.Usable does not account for cooldowns.
-                    new DecoratorContinue(context => !CachedItemToUse.Usable || (CachedItemToUse.Cooldown > 0),
-                        new ActionFail(context =>
-                        {
-                            TreeRoot.StatusText = string.Format("{0} is not usable, yet. (cooldown remaining: {1})",
-                                CachedItemToUse.Name,
-                                Utility.PrettyTime(TimeSpan.FromSeconds((int)CachedItemToUse.CooldownTimeLeft.TotalSeconds)));
-                        })),
-
-                    // Need to be facing target...
-                    // NB: Not all items require this, but many do.
-                    new DecoratorContinue(context => !Me.IsSafelyFacing(CachedTarget),
-                        new ActionFail(context => Me.SetFacing(CachedTarget.Guid))),
-
-                    // Waits for global cooldown to end to successfully use the item
-                    new WaitContinue(TimeSpan.FromMilliseconds(500), 
-                        ret => !SpellManager.GlobalCooldown, 
-                        new ActionAlwaysSucceed()),
-
-                    // Use the item...
-                    new Action(context =>
-                    {
-                        // Set up 'interrupted use' detection...
-                        // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
-                        // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
-                        // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
-                        InterruptDetection_Hook();
-
                         // Notify user of intent...
-                        var message = string.Format("Attempting use of '{0}' on '{1}'", CachedItemToUse.Name, CachedTarget.SafeName);
+                        var message = string.Format("Attempting use of '{0}' on '{1}'", CachedName_ItemToUse, CachedName_SelectedTarget);
 
-                        var selectedTargetAsWoWUnit = CachedTarget as WoWUnit;
+                        var selectedTargetAsWoWUnit = selectedTarget as WoWUnit;
                         if (selectedTargetAsWoWUnit != null)
                         {
                             if (selectedTargetAsWoWUnit.IsDead)
@@ -146,27 +136,49 @@ namespace Honorbuddy.QuestBehaviorCore
                             else
                                 { message += string.Format(" (health: {0:F1})", selectedTargetAsWoWUnit.HealthPercent); }
                         }
-
                         QBCLog.DeveloperInfo(message);
 
-                        // Do it...
+                        // Set up 'interrupted use' detection, and use item...
+                        // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
+                        // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
+                        // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
+                        InterruptDetection_Hook();
                         IsInterrupted = false;
-                        CachedItemToUse.Use(CachedTarget.Guid);
+                        itemToUse.Use(selectedTarget.Guid);
+
+                        // NB: The target or the item may not be valid after this point...
+                        // Some targets will go 'invalid' immediately afer interacting with them.
+                        // Most of the time this happens, the target is immediately and invisibly replaced with
+                        // an identical looking target with a different script.
+                        // Some items are consumed when used.
+                        // We must assume our target and item is no longer available for use after this point.
+                        return RunStatus.Success;   // fall through
                     }),
                     new WaitContinue(Delay.AfterItemUse, context => false, new ActionAlwaysSucceed()),
-
+                     
                     // If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
                     new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
                         new Sequence(
-                            new Action(context => { SpellManager.ClickRemoteLocation(CachedTarget.Location); }),
-                            new WaitContinue(Delay.AfterItemUse,
+                            new Action(context =>
+                            {
+                                // If target is still viable, click it as destination of spell...
+                                var selectedTarget = SelectedTargetDelegate(context);
+                                if (Query.IsViable(selectedTarget))
+                                    { SpellManager.ClickRemoteLocation(selectedTarget.Location); }
+                                else
+                                    { Lua.DoString("SpellStopTargeting()"); }
+                            }),
+                            new WaitContinue(Delay.LagDuration,
                                 context => StyxWoW.Me.CurrentPendingCursorSpell == null,
                                 new ActionAlwaysSucceed()),
                             // If we've leftover spell cursor dangling, clear it...
                             // NB: This can happen for "use item on location" type activites where you get interrupted
                             // (e.g., a walk-in mob).
-                            new DecoratorContinue(context => StyxWoW.Me.CurrentPendingCursorSpell != null,
-                                new Action(context => { Lua.DoString("SpellStopTargeting()"); }))
+                            new Action(context =>
+                            {
+                                if (StyxWoW.Me.CurrentPendingCursorSpell != null)
+                                    { Lua.DoString("SpellStopTargeting()"); }
+                            })
                         )),
 
                     // Wait for any casting to complete...
@@ -179,15 +191,15 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Action(context => { InterruptDectection_Unhook(); }),
                     new DecoratorContinue(context => IsInterrupted,
                         new Sequence(
-                            new Action(context => { QBCLog.Warning("Use of {0} interrupted.", CachedItemToUse.Name); }),
+                            new Action(context => { QBCLog.Warning("Use of {0} interrupted.", CachedName_ItemToUse); }),
                             // Give whatever issue encountered a chance to settle...
                             // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                             new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
                         )),
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", CachedItemToUse.Name, CachedTarget.SafeName);
-                        ActionOnSuccessfulItemUseDelegate(context, CachedTarget);
+                        QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", CachedName_ItemToUse, CachedName_SelectedTarget);
+                        ActionOnSuccessfulItemUseDelegate(context);
                     })
                 };
             }

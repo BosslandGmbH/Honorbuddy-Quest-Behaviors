@@ -420,12 +420,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
             return false;
         }
 
-        protected override float WeightUnitForTargeting(WoWUnit unit)
+        protected override float WeightUnitForTargeting(WoWUnit wowUnit)
         {
-            if (Query.IsMobTargetingUs(unit))
+            if (Query.IsMobTargetingUs(wowUnit))
                 return 100000f;
 
-            return base.WeightUnitForTargeting(unit);
+            return base.WeightUnitForTargeting(wowUnit);
         }
 
         #endregion

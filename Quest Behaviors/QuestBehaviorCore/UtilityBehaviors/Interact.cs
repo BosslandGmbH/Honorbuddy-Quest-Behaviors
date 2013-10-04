@@ -31,11 +31,11 @@ namespace Honorbuddy.QuestBehaviorCore
         public class Interact : Sequence
         {
             public Interact(ProvideWoWObjectDelegate selectedTargetDelegate,
-                            Action<object, WoWObject> actionOnSuccessfulItemUseDelegate = null)
+                            Action<object> actionOnSuccessfulItemUseDelegate = null)
             {
                 Contract.Requires(selectedTargetDelegate != null, context => "selectedTargetDelegate != null");
 
-                ActionOnSuccessfulInteractDelegate = actionOnSuccessfulItemUseDelegate ?? ((context, wowObject) => { /*NoOp*/ });
+                ActionOnSuccessfulInteractDelegate = actionOnSuccessfulItemUseDelegate ?? (context => { /*NoOp*/ });
                 SelectedTargetDelegate = selectedTargetDelegate;
 
                 Children = CreateChildren();
@@ -43,12 +43,12 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
             // BT contruction-time properties...
-            private Action<object, WoWObject> ActionOnSuccessfulInteractDelegate { get; set; }
+            private Action<object> ActionOnSuccessfulInteractDelegate { get; set; }
             private ProvideWoWObjectDelegate SelectedTargetDelegate { get; set; }
 
             // BT visit-time properties...
             private bool IsInterrupted { get; set; }
-            private WoWObject CachedTarget { get; set; }
+            private string CachedName_SelectedTarget { get; set; }
 
             // Convenience properties...
 
@@ -57,33 +57,41 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
+                    // Interact with the mob...
                     new Action(context =>
                     {
-                        CachedTarget = SelectedTargetDelegate(context);
-                        if (!Query.IsViable(CachedTarget))
+                        // Viable target?
+                        // NB: Since target may go invalid immediately upon interacting with it,
+                        // we cache its name for use in subsequent log entries.
+                        var selectedTarget = SelectedTargetDelegate(context);
+                        if (!Query.IsViable(selectedTarget))
                         {
                             QBCLog.Warning("Target is not viable!");
                             return RunStatus.Failure;                        
                         }
+                        CachedName_SelectedTarget = selectedTarget.SafeName;
 
-                        return RunStatus.Success;
-                    }),
+                        // Need to be facing target...
+                        // NB: Not all items require this, but many do.
+                        Utility.Target(selectedTarget, true);
+                        
+                        // Notify user of intent...
+                        QBCLog.DeveloperInfo("Interacting with '{0}'", CachedName_SelectedTarget);
 
-                    // Interact with the mob...
-                    new Action(context =>
-                    {
-                        // Set up 'interrupted use' detection...
+                        // Set up 'interrupted use' detection, and interact...
                         // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
                         // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
                         // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
                         InterruptDetection_Hook();
+                        IsInterrupted = false;
+                        selectedTarget.Interact();
 
-                        // Notify user of intent...
-                        QBCLog.DeveloperInfo("Interacting with '{0}'", CachedTarget.SafeName);
-
-                        // Do it...
-                        IsInterrupted = false;    
-                        CachedTarget.Interact();
+                        // NB: The target may not be valid after this point...
+                        // Some targets will go 'invalid' immediately afer interacting with them.
+                        // Most of the time this happens, the target is immediately and invisibly replaced with
+                        // an identical looking target with a different script.
+                        // We must assume our target is no longer available for use after this point.
+                        return RunStatus.Success;   // fall through
                     }),
                     new WaitContinue(Delay.AfterInteraction, context => false, new ActionAlwaysSucceed()),
 
@@ -102,15 +110,15 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Action(context => { InterruptDectection_Unhook(); }),
                     new DecoratorContinue(context => IsInterrupted,
                         new Sequence(
-                            new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", CachedTarget.SafeName); }),
+                            new Action(context => { QBCLog.DeveloperInfo("Interaction with {0} interrupted.", CachedName_SelectedTarget); }),
                             // Give whatever issue encountered a chance to settle...
                             // NB: Wait, not WaitContinue--we want the Sequence to fail when delay completes.
                             new Wait(TimeSpan.FromMilliseconds(1500), context => false, new ActionAlwaysFail())
                         )),
                     new Action(context =>
                     {
-                        QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", CachedTarget.SafeName);
-                        ActionOnSuccessfulInteractDelegate(context, CachedTarget);
+                        QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", CachedName_SelectedTarget);
+                        ActionOnSuccessfulInteractDelegate(context);
                     })
                 };
             }

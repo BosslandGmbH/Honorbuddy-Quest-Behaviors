@@ -538,7 +538,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="unit"> The WoWUnit. </param>
         ///
         /// <returns> true if it succeeds, false if it fails. </returns>
-        protected virtual bool IncludeUnitInTargeting(WoWUnit unit)
+        protected virtual bool IncludeUnitInTargeting(WoWUnit wowUnit)
         {
             return false;
         }
@@ -552,7 +552,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="unit"> The WoWUnit. </param>
         ///
         /// <returns> true if it succeeds, false if it fails. </returns>
-        protected virtual bool RemoveUnitFromTargeting(WoWUnit unit)
+        protected virtual bool RemoveUnitFromTargeting(WoWUnit wowUnit)
         {
             return false;
         }
@@ -561,13 +561,13 @@ namespace Honorbuddy.QuestBehaviorCore
         ///
         /// <remarks> raphus, 24/07/2013. </remarks>
         ///
-        /// <param name="unit"> The unit. </param>
+        /// <param name="wowUnit"> The unit. </param>
         ///
         /// <returns> . </returns>
-        protected virtual float WeightUnitForTargeting(WoWUnit unit)
+        protected virtual float WeightUnitForTargeting(WoWUnit wowUnit)
         {
             // Prefer units closest to us...
-            return (float)(-unit.Location.CollectionDistance());
+            return (float)(-wowUnit.Location.CollectionDistance());
         }
 
 
@@ -579,13 +579,13 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             foreach (var wowObject in incomingWowObjects)
             {
-                var unit = wowObject.ToUnit();
+                var wowUnit = wowObject.ToUnit();
 
-                if (unit == null)
+                if (!Query.IsViable(wowUnit))
                     continue;
 
-                if (IncludeUnitInTargeting(unit))
-                    outgoingWowObjects.Add(unit);
+                if (IncludeUnitInTargeting(wowUnit))
+                    outgoingWowObjects.Add(wowUnit);
             }
         }
 
@@ -598,10 +598,10 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             wowObjects.RemoveAll(obj =>
                 {
-                    var unit = obj.ToUnit();
+                    var wowUnit = obj.ToUnit();
 
                     // We are not interested with objects.
-                    return unit != null && RemoveUnitFromTargeting(unit);
+                    return !Query.IsViable(wowUnit) || RemoveUnitFromTargeting(wowUnit);
                 });
         }
 
@@ -614,12 +614,12 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             foreach (var targetPriority in targetPriorities)
             {
-                var unit = targetPriority.Object.ToUnit();
+                var wowUnit = targetPriority.Object.ToUnit();
 
-                if (unit == null)
+                if (!Query.IsViable(wowUnit))
                     continue;
 
-                targetPriority.Score += WeightUnitForTargeting(unit);
+                targetPriority.Score += WeightUnitForTargeting(wowUnit);
             }
         }
         #endregion

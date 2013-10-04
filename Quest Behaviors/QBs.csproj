@@ -233,6 +233,7 @@
     <Compile Include="SpecificQuests\24697-Ungoro-HowToMakeMeatFresh.cs" />
     <Compile Include="SpecificQuests\24707-ungoro-theballadofmaximillian.cs" />
     <Compile Include="SpecificQuests\24958-LostIsles-Volcanoth.cs" />
+    <Compile Include="SpecificQuests\26647-STV-Olblasty.cs" />
     <Compile Include="SpecificQuests\26755-Deepholm-KeepThemofftheFront.cs" />
     <Compile Include="SpecificQuests\28113-Felwood-BreaktheUnbreakable.cs" />
     <Compile Include="SpecificQuests\24910-Tanaris-RocketRescue.cs" />
