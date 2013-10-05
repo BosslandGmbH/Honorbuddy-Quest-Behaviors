@@ -53,7 +53,6 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                         new ConfigurationChangeRequest(configurationSettings)
                             .Add("GroundMountFarmingMode", false)
                             .Add("KillBetweenHotspots", true)
-                            .Add("PullDistance", 50)
                             .Add("UseMount", false)
                         );
 
@@ -61,7 +60,6 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                         new ConfigurationChangeRequest(configurationSettings)
                             .Add("HarvestHerbs", false)
                             .Add("HarvestMinerals", false)
-                            .Add("LootChests", false)
                             .Add("LootMobs", false)
                             .Add("NinjaSkin", false)
                             .Add("SkinMobs", false)
@@ -71,7 +69,6 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                         new ConfigurationChangeRequest(configurationSettings)
                             .Add("HarvestHerbs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Herbalism).MaxValue > 0))
                             .Add("HarvestMinerals", (StyxWoW.Me.GetSkill(Styx.SkillLine.Mining).MaxValue > 0))
-                            .Add("LootChests", true)
                             .Add("LootMobs", true)
                             .Add("LootRadius", 45)
                             .Add("NinjaSkin", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
@@ -84,32 +81,25 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                             .Add("HarvestHerbs", false)
                             .Add("HarvestMinerals", false)
                             .Add("KillBetweenHotspots", false)
-                            .Add("LootChests", false)
                             .Add("LootMobs", false)
                             .Add("NinjaSkin", false)
-                            .Add("PullDistance", 0)
                             .Add("SkinMobs", false)
                         );
 
             presets.Add("NoTrain",
                         new ConfigurationChangeRequest(configurationSettings)
-                            .Add("FindVendorsAutomatically", false)
+                //.Add("FindVendorsAutomatically", false)
                         );
 
             presets.Add("NormalQuesting",
                         new ConfigurationChangeRequest(configurationSettings)
-                            .Add("FindMountAutomatically", true)
-                            .Add("FindVendorsAutomatically", true)
                             .Add("GroundMountFarmingMode", false)
                             .Add("HarvestHerbs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Herbalism).MaxValue > 0))
                             .Add("HarvestMinerals", (StyxWoW.Me.GetSkill(Styx.SkillLine.Mining).MaxValue > 0))
                             .Add("KillBetweenHotspots", false)
-                            .Add("LootChests", true)
                             .Add("LootMobs", true)
                             .Add("LootRadius", 45)
-                            .Add("MountDistance", 75)
                             .Add("NinjaSkin", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                            .Add("PullDistance", 30)
                             .Add("RessAtSpiritHealers", false)
                             .Add("SkinMobs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
                             .Add("UseMount", true)
@@ -354,6 +344,11 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                                                                                   "SelectedBotIndex",
                                                                                   "Username",
 																				  "RecentProfiles",
+                                                                                  "MountDistance",
+                                                                                  "PullDistance",
+                                                                                  "UseFlightPaths",
+                                                                                  "LootChests",
+                                                                                  "FindVendorsAutomatically"
                                                                               };
             Dictionary<string, ConfigDescriptor> configurationSetting = new Dictionary<string, ConfigDescriptor>();
 
@@ -406,9 +401,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 { "DrinkAmount",            new ConstrainInteger(0, 100) },
                 { "FoodAmount",             new ConstrainInteger(0, 100) },
                 { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
-                { "LootRadius",             new ConstrainInteger(1, 100) },
-                { "MountDistance",          new ConstrainInteger(1, 200) },
-                { "PullDistance",           new ConstrainInteger(0, 75) },
+                { "LootRadius",             new ConstrainInteger(1, 100) }
             };
 
             foreach (KeyValuePair<string, Constraint> kvp in constraints)
