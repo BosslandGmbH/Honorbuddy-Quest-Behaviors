@@ -765,7 +765,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private bool IsAttackingMeOrPet(WoWUnit wowUnit)
         {
             return (wowUnit.Combat
-                    && ((wowUnit.CurrentTarget == Me) || ((Me.Pet != null) && (wowUnit.CurrentTarget == Me.Pet))));
+                    && ( (wowUnit.ThreatInfo.RawPercent > 0) || wowUnit.TaggedByMe || (wowUnit.CurrentTarget == Me) || ((Me.Pet != null) && (wowUnit.CurrentTarget == Me.Pet))));
         }
 
 

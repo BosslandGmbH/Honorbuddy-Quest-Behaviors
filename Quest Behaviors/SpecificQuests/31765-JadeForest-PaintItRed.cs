@@ -71,16 +71,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
             if (!IsDone)
             {
 
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-                CharacterSettings.Instance.UseMount = false;
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
                 PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
                 TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
@@ -99,7 +90,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
 
         public WoWUnit Cannon
         {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.IsAlive && r.Entry == 66203); }
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.IsAlive && r.Entry == 66203).OrderBy(u => u.Distance).FirstOrDefault(); }
         }
 
         public bool IsQuestComplete()
@@ -145,11 +136,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
             v.Normalize();
             Lua.DoString(string.Format("local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta);", Math.Asin(v.Z)));
 
-
             //If the target is moving, the projectile is not instant
             if (who.IsMoving)
             {
-                WoWMovement.ClickToMove(Me.CurrentTarget.Location.RayCast(who.Rotation, 10f));
+                WoWMovement.ClickToMove(who.Location.RayCast(who.Rotation, 10f));
             }
             else
             {
@@ -160,7 +150,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
         }
 
 
-       
+
 
         public Composite KillSoldier
         {
@@ -169,7 +159,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
                 return
 
 
-                    new Decorator(r => !IsObjectiveComplete(1, (uint) QuestId) && Solider != null,
+                    new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId) && Solider != null,
                                   new Action(r => shoot(Solider)));
 
 
@@ -184,7 +174,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
                 return
 
 
-                    new Decorator(r => !IsObjectiveComplete(2, (uint) QuestId) && Cannon != null,
+                    new Decorator(r => !IsObjectiveComplete(2, (uint)QuestId) && Cannon != null,
                                   new Action(r => shoot(Cannon)));
 
 
@@ -196,14 +186,56 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PaintItRed
         {
             get
             {
-                return new Decorator(r=> Me.GotTarget && !Me.CurrentTarget.IsHostile, new Action(r=>Me.ClearTarget()));
+                return new Decorator(r => Me.GotTarget && !Me.CurrentTarget.IsHostile, new Action(r => Me.ClearTarget()));
             }
         }
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_MainCombat()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,EnsureTarget, KillSoldier, KillCannon)));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, EnsureTarget, KillSoldier, KillCannon)));
         }
+
+        #region Cleanup
+
+        private bool _isDisposed;
+
+        ~PaintItRed()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
+
     }
 }
 

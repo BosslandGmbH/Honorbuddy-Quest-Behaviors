@@ -208,10 +208,14 @@ namespace Honorbuddy.QuestBehaviorCore
             if (IsSharedWorldResource(wowObject))
                 { return false; }
 
-            // If unit is tagged, it is in competition...
+            // If unit is tagged by someone else and in combat, it is in competition...
+            // N.B. There are some cases where NPCs are shown as tagged by - 
+            // someone else yet nobody is actively engaged with said unit. 
+            // If unit is not in combat with anyone and it is tagged and nobody else is around it can not be in competition. 
+            // On the other hand if we choose to ignore the tagged unit and it's the only NPC that exists in the world then bot will be stuck
             var wowUnit = wowObject as WoWUnit;
-            var isTagged = ((wowUnit != null) && !wowUnit.IsUntagged());
-            if (isTagged)
+            var isTaggedByOther = ((wowUnit != null) && !wowUnit.IsUntagged() && wowUnit.Combat);
+            if (isTaggedByOther)
                 { return true; }
 
 
