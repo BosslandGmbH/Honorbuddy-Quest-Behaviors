@@ -128,9 +128,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 				TreeRoot.StatusText = "Pulling Monstrous Plainshawk";
 				Hawk[0].Target();
 					Hawk[0].Face();
-							Thread.Sleep(1000);
+							StyxWoW.Sleep(1000);
 							SpellManager.Cast(SpellId);
-							Thread.Sleep(1000);
+							StyxWoW.Sleep(1000);
 			}
 							TreeRoot.StatusText = "Finished Pulling!";
 							_isBehaviorDone = true;

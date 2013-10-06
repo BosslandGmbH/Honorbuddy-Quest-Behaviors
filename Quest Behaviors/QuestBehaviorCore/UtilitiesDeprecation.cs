@@ -120,11 +120,11 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 const int audioDelayInMilliseconds = 150;
                 SystemSounds.Asterisk.Play();
-                Thread.Sleep(audioDelayInMilliseconds);
+                StyxWoW.Sleep(audioDelayInMilliseconds);
                 SystemSounds.Asterisk.Play();
-                Thread.Sleep(audioDelayInMilliseconds);
+                StyxWoW.Sleep(audioDelayInMilliseconds);
                 SystemSounds.Asterisk.Play();
-                Thread.Sleep(audioDelayInMilliseconds);
+                StyxWoW.Sleep(audioDelayInMilliseconds);
                 SystemSounds.Asterisk.Play();                
             }
         }

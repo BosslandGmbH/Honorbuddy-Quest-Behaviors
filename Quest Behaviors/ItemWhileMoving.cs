@@ -169,12 +169,12 @@ namespace Honorbuddy.Quest_Behaviors.ItemWhileMoving
                                     {
                                         while (!Me.IsDead && p.Distance(Me.Location) > 2)
                                         {
-                                            Thread.Sleep(100);
+                                            StyxWoW.Sleep(100);
                                             WoWMovement.ClickToMove(p);
                                             wowItem.Interact();
-                                            Thread.Sleep(200);
+                                            StyxWoW.Sleep(200);
                                             SpellManager.ClickRemoteLocation(Me.Location);
-                                            Thread.Sleep(500);
+                                            StyxWoW.Sleep(500);
                                         }
                                     }
 

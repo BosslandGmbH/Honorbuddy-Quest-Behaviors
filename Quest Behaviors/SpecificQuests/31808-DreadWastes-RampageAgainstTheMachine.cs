@@ -190,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RampageAgainstTheMachine
                             //WoWMovement.ClickToMove(tar.Location);
                             tar.Target();
                             //WoWMovement.MoveStop();
-                            //Thread.Sleep(400);
+                            //StyxWoW.Sleep(400);
                             tar.Face();
                             Lua.DoString("CastPetAction(1)");
                             Lua.DoString("CastPetAction(3)");

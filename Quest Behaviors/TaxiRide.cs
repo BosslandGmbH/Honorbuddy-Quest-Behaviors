@@ -267,7 +267,7 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
                         TreeRoot.StatusText = "Targeting Npc: " + CurrentNPC.Name + " Distance: " + CurrentNPC.Location.Distance(Me.Location) + " to listing known TaxiNodes";
                         CurrentNPC.Target();
                         CurrentNPC.Interact();
-                        Thread.Sleep(WaitTime);
+                        StyxWoW.Sleep(WaitTime);
                         Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); print(i,a);end;"));
                         _isBehaviorDone = true;
                 })),
@@ -278,7 +278,7 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
                         TreeRoot.StatusText = "Targeting Npc: " + CurrentNPC.Name + " Distance: " + CurrentNPC.Location.Distance(Me.Location);
                         CurrentNPC.Target();
                         CurrentNPC.Interact();
-                        Thread.Sleep(WaitTime);
+                        StyxWoW.Sleep(WaitTime);
                         Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/click TaxiButton" + TaxiNumber));
                         _isBehaviorDone = true;
                 })),
@@ -292,12 +292,12 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
                                 while (!TaxiMap.IsVisible)
 								{
 								    CurrentNPC.Interact();
-									Thread.Sleep(3000);
+									StyxWoW.Sleep(3000);
 								}
 								if (!Me.OnTaxi)
 								{
                                     Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); if strmatch(a,'" + DestName + "')then b=i; TakeTaxiNode(b); end end"));
-                                    Thread.Sleep(2000);
+                                    StyxWoW.Sleep(2000);
 								}
                         }),
                         new Action(ret => _isBehaviorDone = true)

@@ -192,7 +192,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 
                                         Lua.DoString("VehicleAimRequestNormAngle({0})",
                                             MinAngle + (rand.NextDouble() * (MaxAngle - MinAngle)));
-									    Thread.Sleep(250);
+									    StyxWoW.Sleep(250);
                                         foreach (int b in Buttons)
                                         {
                                             //Lua.DoString("local _,s,_ = GetActionInfo({0}) local c = GetSpellCooldown(s) if c == 0 then CastSpellByID(s) end ", b);
@@ -202,7 +202,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
                                         }
                                         //}
                                     
-                                    Thread.Sleep(1000);
+                                    StyxWoW.Sleep(1000);
                                 }
 
                                 _thottleTimer.Reset();

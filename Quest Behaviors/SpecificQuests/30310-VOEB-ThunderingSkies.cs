@@ -132,10 +132,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThunderingSkies
 				Navigator.MoveTo(Serpent[0].Location);
 				Serpent[0].Target();
 		    			Serpent[0].Face();
-                    			Thread.Sleep(3000);
+                    			StyxWoW.Sleep(3000);
                     			WoWMovement.MoveStop();
                     			SpellManager.Cast(SpellId);
-                    			Thread.Sleep(1500);
+                    			StyxWoW.Sleep(1500);
 
 			}
                         			TreeRoot.StatusText = "Finished Pulling!";

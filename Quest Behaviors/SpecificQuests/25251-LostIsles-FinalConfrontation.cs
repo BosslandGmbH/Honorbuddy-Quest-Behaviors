@@ -75,18 +75,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 							if (flylist.Count == 0)
 							{
 								Navigator.MoveTo(flyloc);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) > 5)
 							{
 								Navigator.MoveTo(flylist[0].Location);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) <= 5)
 							{
 								WoWMovement.MoveStop();
 								flylist[0].Interact();
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 						})),
 					new Decorator(ret => InVehicle,
@@ -99,7 +99,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								while (me.Location.Distance(flyloc) > 10)
 								{
 									Navigator.MoveTo(flyloc);
-									Thread.Sleep(1000);
+									StyxWoW.Sleep(1000);
 								}
 								Lua.DoString("VehicleExit()");
 								return RunStatus.Success;
@@ -111,11 +111,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								if (!locreached)
 								{
 									Navigator.MoveTo(temploc);
-									Thread.Sleep(1000);
+									StyxWoW.Sleep(1000);
 								}
 								else
 								Navigator.MoveTo(startloc);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (objmob.Count > 0 && (objmob[0].Location.Distance(me.Location) > 40 || !objmob[0].InLineOfSight))
 							{
@@ -126,14 +126,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								if (!locreached)
 								{
 									Navigator.MoveTo(temploc);
-									Thread.Sleep(1000);
+									StyxWoW.Sleep(1000);
 								}
 								if (locreached)
 								{
 									Navigator.MoveTo(objmob[0].Location);
-									Thread.Sleep(1000);
+									StyxWoW.Sleep(1000);
 								}
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (objmob.Count > 0 && objmob[0].Location.Distance(me.Location) <= 40 && objmob[0].InLineOfSight)
 							{

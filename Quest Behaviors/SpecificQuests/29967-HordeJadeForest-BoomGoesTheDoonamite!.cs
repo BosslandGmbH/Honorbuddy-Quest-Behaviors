@@ -198,7 +198,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                                                                           SpellManager.ClickRemoteLocation(
                                                                               Enemy.Location.RayCast(Enemy.MovementInfo.Heading,10));
                                                                           //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
-                                                                          //Thread.Sleep(100);
+                                                                          //StyxWoW.Sleep(100);
                                                                       }
                                                            ));
             }

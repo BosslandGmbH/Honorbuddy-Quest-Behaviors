@@ -131,7 +131,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 
                                         foreach (WoWPoint p in path)
                                         {
-                                            Thread.Sleep(500);
+                                            StyxWoW.Sleep(500);
                                             WoWMovement.ClickToMove(p);
                                         }
                                         return RunStatus.Failure;
@@ -144,7 +144,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 
                                         foreach (WoWPoint p in path)
                                         {
-                                            Thread.Sleep(500);
+                                            StyxWoW.Sleep(500);
                                             WoWMovement.ClickToMove(p);
                                         }
                                         return RunStatus.Failure;
@@ -164,7 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
                                 {
                                     BotPoi.Current = new BotPoi(ShaiHuNPC, PoiType.Kill);
                                 }
-                                Thread.Sleep(500);
+                                StyxWoW.Sleep(500);
                                 Navigator.MoveTo(ShaiHuNPC.Location);
                                 return RunStatus.Failure;
                             })));

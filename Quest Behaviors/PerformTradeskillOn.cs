@@ -111,7 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
         private void PerformTradeSkill()
         {
             Lua.DoString("DoTradeSkill(" + GetTradeSkillIndex() + ", " + (NumOfTimes == 0 ? 1 : NumOfTimes) + ")");
-            Thread.Sleep(500);
+            StyxWoW.Sleep(500);
 
             if (CastOnItemId.HasValue)
             {
@@ -122,17 +122,17 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
                     return;
                 }
                 item.Use();
-                Thread.Sleep(500);
+                StyxWoW.Sleep(500);
             }
 
             if (Lua.GetReturnVal<bool>("return StaticPopup1:IsVisible()", 0))
                 Lua.DoString("StaticPopup1Button1:Click()");
 
-            Thread.Sleep(500);
+            StyxWoW.Sleep(500);
 
             while (StyxWoW.Me.IsCasting)
             {
-                Thread.Sleep(100);
+                StyxWoW.Sleep(100);
             }
 
             _isBehaviorDone = true;

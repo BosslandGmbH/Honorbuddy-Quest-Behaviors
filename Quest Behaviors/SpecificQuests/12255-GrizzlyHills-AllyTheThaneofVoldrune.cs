@@ -114,7 +114,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 								if (me.Location.Distance(endloc) > 15)
 								{
 									WoWMovement.ClickToMove(endloc);
-									Thread.Sleep(5000);
+									StyxWoW.Sleep(5000);
 								}
 								Lua.DoString("VehicleExit()");
 								return RunStatus.Success;
@@ -122,13 +122,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							if (objmob.Count == 0)
 							{
 								WoWMovement.ClickToMove(startloc);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (objmob.Count > 0)
 							{
 								objmob[0].Target();
 								WoWMovement.ClickToMove(objmob[0].Location);
-								Thread.Sleep(100);
+								StyxWoW.Sleep(100);
 								Lua.DoString("UseAction(122, 'target', 'LeftButton')");
 								Lua.DoString("UseAction(121, 'target', 'LeftButton')");
 							}
@@ -140,7 +140,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "PWNing " +objmob[0].Name),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton2:Click()")),
-							//new Action(ret => Thread.Sleep(1500)),
+							//new Action(ret => StyxWoW.Sleep(1500)),
 							//new Action(ret => Lua.DoString("VehicleMenuBarActionButton3:Click()")),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton1:Click()")),
 							new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
@@ -148,7 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
 							new Action(ret => StyxWoW.SleepForLagDuration()),
 							new Action(ret => objmob[0].Face()),
-							new Action(ret => Thread.Sleep(500))
+							new Action(ret => StyxWoW.Sleep(500))
 						)
 					)
                 )

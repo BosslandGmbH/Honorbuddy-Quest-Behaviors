@@ -160,7 +160,7 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
                     TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
 
                     Lua.DoString(string.Format("RunMacroText(\"{0}\")", Macro), 0);
-                    Thread.Sleep(WaitTime);
+                    StyxWoW.Sleep(WaitTime);
                 }
 
                 _isBehaviorDone = true;

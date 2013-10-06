@@ -169,7 +169,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
                                     {
                                         while (!Me.IsDead && p1.Distance(Me.Location) > 3)
                                         {
-                                            Thread.Sleep(100);
+                                            StyxWoW.Sleep(100);
                                             WoWMovement.ClickToMove(p1);
                                         }
                                     }
@@ -220,7 +220,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
                                     {
                                         while (!_vehicleList[0].IsDead && p.Distance(_vehicleList[0].Location) > 3)
                                         {
-                                            Thread.Sleep(100);
+                                            StyxWoW.Sleep(100);
                                             WoWMovement.ClickToMove(p);
                                         }
 

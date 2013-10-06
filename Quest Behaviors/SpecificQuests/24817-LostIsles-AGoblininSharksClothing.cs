@@ -92,7 +92,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
 							            if (q24817_hammer.Count > 0 && q24817_hammer[0].Location.Distance(StyxWoW.Me.Location) > 45)
 							            {
 								            Navigator.MoveTo(q24817_hammer[0].Location);
-								            Thread.Sleep(100);
+								            StyxWoW.Sleep(100);
 							            }
 							            if (q24817_hammer.Count > 0 && (q24817_hammer[0].Location.Distance(StyxWoW.Me.Location) <= 45))
 							            {
@@ -101,7 +101,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
                                                 q24817_hammer[0].Face();
                                                 q24817_hammer[0].Target();
                                                 WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
-                                                Thread.Sleep(200);
+                                                StyxWoW.Sleep(200);
                                                 WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards);
                                                 Lua.DoString("CastPetAction(3)");
                                                 Lua.DoString("CastPetAction(2)");

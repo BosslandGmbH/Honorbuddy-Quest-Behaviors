@@ -79,13 +79,13 @@ namespace Honorbuddy.Quest_Behaviors.Escort6641
 												npcList2[0].Face();
 												npcList2[0].Target();
                                                 SpellManager.Cast("Arcane Shot");
-                                                Thread.Sleep(2000);
+                                                StyxWoW.Sleep(2000);
                                                 return RunStatus.Success;
                                             }
                                             else
                                             {
                                                 Navigator.MoveTo(npcList2[0].Location);
-                                                Thread.Sleep(300);
+                                                StyxWoW.Sleep(300);
                                                 return RunStatus.Running;
                                             }
 
@@ -94,15 +94,15 @@ namespace Honorbuddy.Quest_Behaviors.Escort6641
 										if (objList[0].Location.Distance(me.Location) < 3)
                                             {
 												WoWMovement.MoveStop();
-												Thread.Sleep(6000);
+												StyxWoW.Sleep(6000);
                                                 objList[0].Interact();
-                                                Thread.Sleep(2000);
+                                                StyxWoW.Sleep(2000);
                                                 return RunStatus.Success;
                                             }
                                             else
                                             {
                                                 Navigator.MoveTo(objList[0].Location);
-                                                Thread.Sleep(300);
+                                                StyxWoW.Sleep(300);
                                                 return RunStatus.Running;
                                             }
 									}
@@ -117,7 +117,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort6641
                                 })
                                 ),
 
-                            new Action(ret => Thread.Sleep(100))
+                            new Action(ret => StyxWoW.Sleep(100))
                         )
                     ));
         }

@@ -126,13 +126,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 				{
 
 				PomharvestFirework.UseContainerItem();
-                                Thread.Sleep(200);
+                                StyxWoW.Sleep(200);
 
 				}
 
 				TreeRoot.StatusText = "Moving to Pomfruit";
 				Flightor.MoveTo(Pomfruit[0].Location);
-                                Thread.Sleep(200);
+                                StyxWoW.Sleep(200);
 				Pomfruit[0].Interact();
 
 			if (IsObjectiveComplete(1, (uint)QuestId))

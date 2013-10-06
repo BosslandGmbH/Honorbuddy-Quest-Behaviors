@@ -158,9 +158,9 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
                         {
                             _isBehaviorDone = true;
                             LogMessage("info", "Went thru portal.");
-                            Thread.Sleep(500);
+                            StyxWoW.Sleep(500);
                             WoWMovement.MoveStop();
-                            Thread.Sleep(500);
+                            StyxWoW.Sleep(500);
                             return RunStatus.Success;
                         })),
 

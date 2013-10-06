@@ -124,7 +124,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicUseObject
             _objectList[0].Interact();
             StyxWoW.SleepForLagDuration();
             Counter++;
-            Thread.Sleep(6000);
+            StyxWoW.Sleep(6000);
         }
 
 
@@ -174,7 +174,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicUseObject
                                     if (_objectList.Count >= 1)
                                     {
 
-                                        Thread.Sleep(1000);
+                                        StyxWoW.Sleep(1000);
                                         UseGameObjectFunc();
                                     }
 
@@ -192,7 +192,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicUseObject
                                 })
                                 ),
 
-                            new Action(ret => Thread.Sleep(1000))
+                            new Action(ret => StyxWoW.Sleep(1000))
                         )
                     ));
         }

@@ -130,13 +130,13 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
             {
                 Mount.FlyingMounts.First().CreatureSpell.Cast();
              while (StyxWoW.Me.IsCasting)
-                { Thread.Sleep(200); }
+                { StyxWoW.Sleep(200); }
             }
 
             // Hop off the ground. Kthx
-			Thread.Sleep(2500);
+			StyxWoW.Sleep(2500);
             Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
-            Thread.Sleep(250);
+            StyxWoW.Sleep(250);
             Navigator.PlayerMover.MoveStop();
         }
 

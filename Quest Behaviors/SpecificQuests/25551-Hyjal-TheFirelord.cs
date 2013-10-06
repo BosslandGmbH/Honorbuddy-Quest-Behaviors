@@ -193,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
                         {
                             WoWMovement.MoveStop();
                             Cenarius.Interact();
-                            Thread.Sleep(400);
+                            StyxWoW.Sleep(400);
                             Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
                         })
                     ));

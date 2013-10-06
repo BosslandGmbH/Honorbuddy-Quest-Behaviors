@@ -97,27 +97,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
         {
             if (arg.Args[0].ToString().Contains("Infinifold Lockpick"))
             {
-                Thread.Sleep(1000);
+                StyxWoW.Sleep(1000);
                 Lua.DoString("CastPetAction(4)");
             }
             if (arg.Args[0].ToString().Contains("Amazing G-Ray"))
             {
-                Thread.Sleep(1000);
+                StyxWoW.Sleep(1000);
                 Lua.DoString("CastPetAction(1)");
             }
             if (arg.Args[0].ToString().Contains("Kaja'mite Drill"))
             {
-                Thread.Sleep(1000);
+                StyxWoW.Sleep(1000);
                 Lua.DoString("CastPetAction(5)");
             }
             if (arg.Args[0].ToString().Contains("Ear-O-Scope"))
             {
-                Thread.Sleep(1000);
+                StyxWoW.Sleep(1000);
                 Lua.DoString("CastPetAction(3)");
             }
             if (arg.Args[0].ToString().Contains("Blastcrackers"))
             {
-                Thread.Sleep(1000);
+                StyxWoW.Sleep(1000);
                 Lua.DoString("CastPetAction(2)");
             }
         }

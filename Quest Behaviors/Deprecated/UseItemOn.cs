@@ -129,7 +129,7 @@
 //
 // TODO:
 // * This behavior needs a serious overhaul.
-//      + It contains Thread.Sleep() and many more sins.
+//      + It contains StyxWoW.Sleep() and many more sins.
 //      + It runs 'open loop', if you get interrupted while using the item, it counts it towards its completion goal
 //      + It needs to be recast in terms of TreeHooks, since it expects to act during combat.
 //          The old technique this behavior uses is glitchy.
@@ -556,7 +556,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                                             StyxWoW.Me.ClearTarget();
                                     }
 
-                                    Thread.Sleep(WaitTime);
+                                    StyxWoW.Sleep(WaitTime);
                                 })
                             ))
                         )),

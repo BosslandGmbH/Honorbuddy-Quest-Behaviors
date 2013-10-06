@@ -231,14 +231,14 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                             MobList[0].Target();
                             MobList[0].Face();
                         }
-                        Thread.Sleep(300);
+                        StyxWoW.Sleep(300);
                         SpellManager.Cast(SpellId);
 
                         if (Me.QuestLog.GetQuestById((uint)QuestId) == null || QuestId == 0)
                         {
                             Counter++;
                         }
-                        Thread.Sleep(300);
+                        StyxWoW.Sleep(300);
                         return RunStatus.Success;
                     }
                     else
@@ -265,7 +265,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                             new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
                                     new Action(ret => Navigator.MoveTo(Location)),
-                                    new Action(ret => Thread.Sleep(300))
+                                    new Action(ret => StyxWoW.Sleep(300))
                                 )
                             ),
 
@@ -273,7 +273,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: Myself"),
                                         new Action(ret => WoWMovement.MoveStop()),
-                                        new Action(ret => Thread.Sleep(300)),
+                                        new Action(ret => StyxWoW.Sleep(300)),
                                         CreateSpellBehavior
                                         )
                                 ),
@@ -298,16 +298,16 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
                                         new Action(ret => MobList[0].Face()),
-                                        new Action(ret => Thread.Sleep(100)),
+                                        new Action(ret => StyxWoW.Sleep(100)),
                                         new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
-                                        new Action(ret => Thread.Sleep(2000)),
+                                        new Action(ret => StyxWoW.Sleep(2000)),
                                         new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards))
                                         )),
                                 new DecoratorContinue(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) >= CurrentBehaviorSpell.MinRange && MobList[0].Location.Distance(Me.Location) <= maxSpellRange && MobList[0].InLineOfSpellSight,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                         new Action(ret => WoWMovement.MoveStop()),
-                                        new Action(ret => Thread.Sleep(300)),
+                                        new Action(ret => StyxWoW.Sleep(300)),
                                         CreateSpellBehavior
                                         )
                                 )
@@ -318,7 +318,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                                 new Action(ret => TreeRoot.StatusText = "Targetting On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
                                 new Action(ret => WoWMovement.MoveStop()),
                                 new Action(ret => MobList[0].Target()),
-                                new Action(ret => Thread.Sleep(300)),
+                                new Action(ret => StyxWoW.Sleep(300)),
                                 CreateSpellBehavior
                                 )
                         )

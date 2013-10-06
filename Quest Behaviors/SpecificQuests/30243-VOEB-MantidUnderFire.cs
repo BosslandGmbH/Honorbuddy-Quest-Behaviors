@@ -122,7 +122,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
                                                                                                         ClickRemoteLocation
                                                                                                         (Mantid[10].
                                                                                                              Location);
-												    Thread.Sleep(8500);
+												    StyxWoW.Sleep(8500);
                                                                                                 }));
             }
         }

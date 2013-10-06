@@ -164,13 +164,13 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             while (SpellManager.GlobalCooldown)
             {
                 Pulsator.Pulse(BotManager.Current.PulseFlags);
-                Thread.Sleep(100);
+                StyxWoW.Sleep(100);
             }
 
             while (StyxWoW.Me.IsCasting)
             {
                 Pulsator.Pulse(BotManager.Current.PulseFlags);
-                Thread.Sleep(100);
+                StyxWoW.Sleep(100);
             }
         }
 
@@ -185,7 +185,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
             int stopWaiting = System.Environment.TickCount + 5000;
             while ( !SpellManager.CanCast( spellId) && stopWaiting > Environment.TickCount )
-                Thread.Sleep(100);
+                StyxWoW.Sleep(100);
 
             return SpellManager.CanCast( spellId );
 #else
@@ -201,7 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             // Lua.DoString("CastSpellByID({0})", CLIMB_UP);
             Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
             WaitForCurrentSpell();
-            Thread.Sleep(2000);
+            StyxWoW.Sleep(2000);
 
             if (Me.Location.Distance(lastPos) != 0)
             {
@@ -234,7 +234,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             WaitForCurrentSpell();
 
             // wait longer if at top due to UI skin change
-            Thread.Sleep(spellId == CLIMB_DOWN_AT_TOP ? 3000 : 2000);
+            StyxWoW.Sleep(spellId == CLIMB_DOWN_AT_TOP ? 3000 : 2000);
 
             if (Me.Location.Distance(lastPos) != 0)
             {
@@ -320,7 +320,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                StyxWoW.SleepForLagDuration();
 #elif WOWMOVEMENT_TURNS_STOPFAILING
             WoWMovement.Move(whichWay);
-            Thread.Sleep(10);
+            StyxWoW.Sleep(10);
             WoWMovement.MoveStop(whichWay);
             // loop until we actually move
             while ( 0.001 > (currRotation - Me.Transport.RotationDegrees ))
@@ -328,7 +328,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 #else
             // doing LUA calls these because WoWMovement API doesn't stop turning quickly enough
             Lua.DoString(dirCmd + "Start()");
-            Thread.Sleep(10);
+            StyxWoW.Sleep(10);
             Lua.DoString(dirCmd + "Stop()");
 #endif
             return RunStatus.Success;
@@ -341,7 +341,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             // Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
             Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")");
             WaitForCurrentSpell();
-            Thread.Sleep(4000);
+            StyxWoW.Sleep(4000);
             return RunStatus.Success;
         }
 

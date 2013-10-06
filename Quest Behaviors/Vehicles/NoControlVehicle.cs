@@ -288,7 +288,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                                 if (Me.CurrentTargetGuid != target.Guid)
                                     target.Target();
                                 Lua.DoString("CastPetAction({0})", AttackButton);
-                                Thread.Sleep(WaitTime);
+                                StyxWoW.Sleep(WaitTime);
                                 Counter++;
                                 return RunStatus.Success;
                             }
@@ -310,14 +310,14 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                             var target = NpcList.FirstOrDefault();
                             if (target != null)
                             {
-                                Thread.Sleep(OftenToUse);
+                                StyxWoW.Sleep(OftenToUse);
 
                                 TreeRoot.StatusText = "Attacking: " + target.Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
 
                                 target.Target();
                                 Lua.DoString("CastPetAction({0})", AttackButton);
                                 SpellManager.ClickRemoteLocation(target.Location);
-                                Thread.Sleep(WaitTime);
+                                StyxWoW.Sleep(WaitTime);
                                 Counter++;
                             }
                             return RunStatus.Running;
@@ -343,7 +343,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                                                 "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta); CastPetAction({1});",
                                                 Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture), AttackButton));
 
-                                            Thread.Sleep(WaitTime);
+                                            StyxWoW.Sleep(WaitTime);
                                             Counter++;
                                             return RunStatus.Success;
                                         }))))),

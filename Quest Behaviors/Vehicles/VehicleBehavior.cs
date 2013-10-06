@@ -285,7 +285,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                 {
                                     TreeRoot.StatusText = "Firing Vehicle - " + _vehicle.Name + " Using Spell Index: " + AttackButton + " Height: " + FireHeight;
                                     WoWMovement.ClickToMove(TargetPoint);
-                                    Thread.Sleep(500);
+                                    StyxWoW.Sleep(500);
                                     WoWMovement.MoveStop();
 
                                     Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
@@ -328,7 +328,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                     Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
                                     Lua.DoString("CastPetAction({0})", AttackButton);
                                     Counter++;
-                                    Thread.Sleep(1000);
+                                    StyxWoW.Sleep(1000);
 
 
 
@@ -385,13 +385,13 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                     return RunStatus.Running;
                                 }
                                 WoWMovement.MoveStop();
-                                Thread.Sleep(400);
+                                StyxWoW.Sleep(400);
 
                                 if (NpcAttackList[0] != null)
                                     WoWMovement.ClickToMove(NpcAttackList[0].Location);
 
                                 WoWMovement.MoveStop();
-                                Thread.Sleep(400);
+                                StyxWoW.Sleep(400);
                                 Lua.DoString("CastPetAction({0})", AttackButton);
                                 WoWMovement.MoveStop();
 

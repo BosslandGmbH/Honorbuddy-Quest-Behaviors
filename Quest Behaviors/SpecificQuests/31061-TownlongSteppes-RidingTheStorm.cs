@@ -151,7 +151,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RidingTheStorm
 				{
 
 				BronzeClaw.UseContainerItem();
-                                Thread.Sleep(1000);
+                                StyxWoW.Sleep(1000);
 
 				}
 
@@ -166,13 +166,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RidingTheStorm
 
 			TreeRoot.StatusText = "Killing CloudRunner";
                     	SpellManager.Cast(SpellId);
-                        Thread.Sleep(1000);
+                        StyxWoW.Sleep(1000);
 
 			if (CloudrunnerInRange[0].IsFriendly)
 				{
 
 				TreeRoot.StatusText = "CloudRunner is friendly, switching to new one";
-				Thread.Sleep(2000);
+				StyxWoW.Sleep(2000);
                         	return RunStatus.Success;
 
 				}

@@ -166,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
                                                                  ((WoWGameObject)ret).Name, _counter + 1, NumOfTimes)),
                             new Action(ret => ((WoWGameObject)ret).Interact()),
                             new Action(ret => StyxWoW.SleepForLagDuration()),
-                            new Action(ret => Thread.Sleep(WaitTime)),
+                            new Action(ret => StyxWoW.Sleep(WaitTime)),
                             new Action(delegate { _counter++; })
                         )),
 

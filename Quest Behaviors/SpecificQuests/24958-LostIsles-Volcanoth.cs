@@ -162,7 +162,7 @@ namespace BarryDurex
 		public static void AvoidEnemyCast(WoWUnit Unit, float EnemyAttackRadius, float SaveDistance)
 		{
 			if (!StyxWoW.Me.IsFacing(Unit))
-			{ Unit.Face(); Thread.Sleep(300); }
+			{ Unit.Face(); StyxWoW.Sleep(300); }
 
 			float BehemothRotation = getPositive(Unit.RotationDegrees);
 			float invertEnemyRotation = getInvert(BehemothRotation);

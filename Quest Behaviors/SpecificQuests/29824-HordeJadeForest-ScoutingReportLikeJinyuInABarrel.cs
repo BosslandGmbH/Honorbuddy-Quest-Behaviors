@@ -222,9 +222,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                     }
                     else
                     {
-                        Thread.Sleep((int)((StyxWoW.WoWClient.Latency * 2) + 150));
+                        StyxWoW.Sleep((int)((StyxWoW.WoWClient.Latency * 2) + 150));
                         Navigator.PlayerMover.MoveStop();
-                        Thread.Sleep((int)((StyxWoW.WoWClient.Latency * 2) + 150));
+                        StyxWoW.Sleep((int)((StyxWoW.WoWClient.Latency * 2) + 150));
 
 
                         for (int i = 0; i < 10; i++)
@@ -274,7 +274,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                                                                           }
                                                                           Logging.Write("dsad" + new Random().Next());
                                                                           //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
-                                                                          //Thread.Sleep(100);
+                                                                          //StyxWoW.Sleep(100);
                                                                       }
                                                            ))
                     );

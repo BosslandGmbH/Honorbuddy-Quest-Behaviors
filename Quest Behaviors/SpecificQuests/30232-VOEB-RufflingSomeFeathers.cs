@@ -132,10 +132,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
 				WoWMovement.ClickToMove(Pomfruit[0].Location);
 				Pomfruit[0].Target();
 		    			Pomfruit[0].Face();
-                    			Thread.Sleep(3000);
+                    			StyxWoW.Sleep(3000);
                     			WoWMovement.MoveStop();
                     			SpellManager.Cast(SpellId);
-                    			Thread.Sleep(3000);
+                    			StyxWoW.Sleep(3000);
 
 			}
                         			TreeRoot.StatusText = "Finished Pulling!";

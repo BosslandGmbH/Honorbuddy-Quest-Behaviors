@@ -149,7 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
                                 {
                                     while (!Me.IsDead && p.Distance(Me.Location) > 2)
                                     {
-                                        Thread.Sleep(100);
+                                        StyxWoW.Sleep(100);
                                         WoWMovement.ClickToMove(p);
                                     }
 

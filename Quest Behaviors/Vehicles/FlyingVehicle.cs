@@ -418,7 +418,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                                     }
                                     return RunStatus.Success;
                             }
-                            System.Threading.Thread.Sleep(100);
+                            StyxWoW.Sleep(100);
                         }
                     })
                 ));

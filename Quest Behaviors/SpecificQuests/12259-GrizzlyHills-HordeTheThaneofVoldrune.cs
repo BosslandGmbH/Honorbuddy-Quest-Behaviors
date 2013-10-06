@@ -91,20 +91,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							if (flylist.Count == 0)
 							{
 								Navigator.MoveTo(flyloc);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) > 5)
 							{
 								Navigator.MoveTo(flylist[0].Location);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) <= 5)
 							{
 								WoWMovement.MoveStop();
 								flylist[0].Interact();
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 								Lua.DoString("SelectGossipOption(1)");
-                                Thread.Sleep(1000);
+                                StyxWoW.Sleep(1000);
 							}
 						})),
 					new Decorator(ret => InVehicle,
@@ -117,7 +117,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 								if (me.Location.Distance(endloc) > 15)
 								{
 									WoWMovement.ClickToMove(endloc);
-									Thread.Sleep(5000);
+									StyxWoW.Sleep(5000);
 								}
 								Lua.DoString("VehicleExit()");
 								return RunStatus.Success;
@@ -125,7 +125,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							if (objmob.Count == 0)
 							{
 								WoWMovement.ClickToMove(startloc);
-								Thread.Sleep(1000);
+								StyxWoW.Sleep(1000);
 							}
 							if (objmob.Count > 0)
 							{
@@ -149,7 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
                                     "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta);",
                                     Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture)));
 
-								//Thread.Sleep(100);
+								//StyxWoW.Sleep(100);
 								//Lua.DoString("UseAction(122, 'target', 'LeftButton')");
 								//Lua.DoString("UseAction(121, 'target', 'LeftButton')");
                                 Lua.DoString("CastPetAction(1)");
@@ -164,7 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "PWNing " +objmob[0].Name),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton2:Click()")),
-							//new Action(ret => Thread.Sleep(1500)),
+							//new Action(ret => StyxWoW.Sleep(1500)),
 							//new Action(ret => Lua.DoString("VehicleMenuBarActionButton3:Click()")),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton1:Click()")),
 							new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),

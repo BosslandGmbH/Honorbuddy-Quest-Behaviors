@@ -53,7 +53,6 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                         new ConfigurationChangeRequest(configurationSettings)
                             .Add("GroundMountFarmingMode", false)
                             .Add("KillBetweenHotspots", true)
-                            .Add("UseMount", false)
                         );
 
             presets.Add("HarvestsOff",
@@ -102,7 +101,6 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                             .Add("NinjaSkin", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
                             .Add("RessAtSpiritHealers", false)
                             .Add("SkinMobs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                            .Add("UseMount", true)
                             .Add("UseRandomMount", true)
                         );
 
@@ -347,6 +345,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                                                                                   "MountDistance",
                                                                                   "PullDistance",
                                                                                   "UseFlightPaths",
+                                                                                  "UseMount",
                                                                                   "LootChests",
                                                                                   "FindVendorsAutomatically"
                                                                               };
