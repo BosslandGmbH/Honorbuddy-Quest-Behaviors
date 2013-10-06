@@ -163,11 +163,11 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
         {
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore();
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
                 // Turn off LevelBot behaviors that will interfere...
                 // NB: These will be restored by our parent class when we're done.

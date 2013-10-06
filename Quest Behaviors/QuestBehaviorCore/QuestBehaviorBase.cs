@@ -380,7 +380,12 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public override void OnStart()
         {
-            OnStart_QuestBehaviorCore();
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+
+            if (isBehaviorShouldRun)
+            {
+                // empty for now...
+            }
         }
         #endregion
 
@@ -394,8 +399,9 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <para>It also captures the user's configuration, and installs Behavior Tree hooks.  The items will
         /// be restored when the behavior terminates, or Honorbuddy is stopped.</para>
         /// </summary>
+        /// <return>true, if the behavior should run; false, if it should not.</return>
         /// <param name="extraGoalTextDescription"></param>
-        protected void OnStart_QuestBehaviorCore(string extraGoalTextDescription = null)
+        protected bool OnStart_QuestBehaviorCore(string extraGoalTextDescription = null)
         {
             // Semantic coherency / covariant dependency checks...
             UsageCheck_SemanticCoherency(Element,
@@ -476,7 +482,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
                 _behaviorTreeHook_QuestbotMain = new ExceptionCatchingWrapper(this, CreateBehavior_QuestbotMain());
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, _behaviorTreeHook_QuestbotMain);
+
+                return true;    // behavior should run
             }
+
+            return false;   // behavior should NOT run
         }
         #endregion
 

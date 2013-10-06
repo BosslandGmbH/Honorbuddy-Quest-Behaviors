@@ -279,11 +279,11 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
             
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore(GoalText);
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore(GoalText);
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
                 // Setup settings to prevent interference with your behavior --
                 // These settings will be automatically restored by QuestBehaviorBase when Dispose is called

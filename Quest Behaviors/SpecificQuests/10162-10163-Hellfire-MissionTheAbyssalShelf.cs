@@ -125,11 +125,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
         {
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore(string.Empty);
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore(string.Empty);
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
                 GossipOption = Me.IsAlliance
                     ? 1         // Gryphoneer Windbellow

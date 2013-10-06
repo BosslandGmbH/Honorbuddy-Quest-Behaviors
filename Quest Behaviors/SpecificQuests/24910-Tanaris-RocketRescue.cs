@@ -51,15 +51,15 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 {
     [CustomBehaviorFileName(@"SpecificQuests\24910-Tanaris-RocketRescue")]
-    public class RocketRescue_24910 : QuestBehaviorBase
+    public class RocketRescue_24910_25050 : QuestBehaviorBase
     {
         #region Constructor and Argument Processing
-        public RocketRescue_24910(Dictionary<string, string> args)
+        public RocketRescue_24910_25050(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
-                QuestId = 24910;
+                QuestId = Me.IsAlliance ? 25050 : 24910;
                 TerminationChecksQuestProgress = false;
 
                 AuraId_EmergencyRocketPack = 75730;         // http://wowhead.com/spell=75730 (applies to us)
@@ -154,7 +154,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 
 
         #region Destructor, Dispose, and cleanup
-        ~RocketRescue_24910()
+        ~RocketRescue_24910_25050()
         {
             Dispose(false);
         }
@@ -166,11 +166,11 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
         {
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore();
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {               
                 // Turn off LevelBot behaviors that will interfere...
                 // NB: These will be restored by our parent class when we're done.

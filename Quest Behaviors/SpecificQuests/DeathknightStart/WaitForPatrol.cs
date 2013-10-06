@@ -276,15 +276,16 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore(
-                string.Format("Using safe spot {0} until '{1}' moves {2:F1} yards away.",
-                    SafespotLocation,
-                    Utility.GetObjectNameFromId(MobIdToAvoid),
-                    AvoidDistance));
+            var isBehaviorShouldRun =
+                OnStart_QuestBehaviorCore(
+                    string.Format("Using safe spot {0} until '{1}' moves {2:F1} yards away.",
+                        SafespotLocation,
+                        Utility.GetObjectNameFromId(MobIdToAvoid),
+                        AvoidDistance));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.

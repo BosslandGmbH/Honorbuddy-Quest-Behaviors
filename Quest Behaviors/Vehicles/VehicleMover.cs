@@ -286,14 +286,15 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         {       
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore(
-                string.Format("Returning {0} to {1}",
-                    string.Join(", ", VehicleIds.Select(o => Utility.GetObjectNameFromId(o)).Distinct()),
-                    Destination));
+            var isBehaviorShouldRun =
+                OnStart_QuestBehaviorCore(
+                    string.Format("Returning {0} to {1}",
+                        string.Join(", ", VehicleIds.Select(o => Utility.GetObjectNameFromId(o)).Distinct()),
+                        Destination));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.

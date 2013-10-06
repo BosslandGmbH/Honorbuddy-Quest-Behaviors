@@ -386,14 +386,15 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            OnStart_QuestBehaviorCore(
-                string.Format("Using {0} on {1}",
-                    Utility.GetItemNameFromId(ItemId),
-                    string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct())));
+            var isBehaviorShouldRun =
+                OnStart_QuestBehaviorCore(
+                    string.Format("Using {0} on {1}",
+                        Utility.GetItemNameFromId(ItemId),
+                        string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct())));
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
                 _waitTimerAfterUsingItem.WaitTime = TimeSpan.FromMilliseconds(WaitTimeAfterItemUse);
             }
