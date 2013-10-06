@@ -35,9 +35,7 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using Honorbuddy.QuestBehaviorCore;
 
@@ -45,9 +43,7 @@ using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -131,7 +127,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                 CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget);
 
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimes", 1);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MaxRange, "Range", 4.0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MaxRange, "MaxRangeToUseItem", 25.0);
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTimeAfterItemUse", 0);
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, Location, "", Me.Location);
 

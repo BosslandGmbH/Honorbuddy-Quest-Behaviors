@@ -373,6 +373,7 @@
   <ItemGroup>
     <Content Include="QuestBehaviorCore\Data\AuraIds_OccupiedVehicle.xml" />
     <Content Include="Development\TODO-chinajade.txt" />
+    <Content Include="QuestBehaviorCore\Data\BagContainers.xml" />
     <Content Include="QuestBehaviorCore\Data\PluginCategory.xml" />
     <Content Include="QuestBehaviorCore\Data\SwimBreath.xml" />
   </ItemGroup>
