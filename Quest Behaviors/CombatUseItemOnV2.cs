@@ -489,18 +489,19 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
                 // Go after viable target...
                 new Decorator(context => Query.IsViable(SelectedTarget),
-                    new PrioritySelector(
-                        new Decorator(context => SelectedTarget.Distance >= CharacterSettings.Instance.PullDistance,
-                            new UtilityBehaviorPS.MoveTo(
-                                context => SelectedTarget.Location,
-                                context => SelectedTarget.Name,
-                                context => MovementBy)),
+                    // HV: there's no range restriction on POI.Kill so this isn't needed anymore.
+                    //new PrioritySelector(
+                    //    new Decorator(context => SelectedTarget.Distance >= CharacterSettings.Instance.PullDistance,
+                    //        new UtilityBehaviorPS.MoveTo(
+                    //            context => SelectedTarget.Location,
+                    //            context => SelectedTarget.Name,
+                    //            context => MovementBy)),
                         // Set Kill POI, if Honorbuddy doesn't think there is anything to do...
                         // NB: We don't want to do this blindly (i.e., we check for PoiType.None), to allow HB
                         // the decision to loot/sell/repair/etc as needed.
                         new DecoratorIsPoiType(PoiType.None,
                             new ActionFail(context => Utility.Target(SelectedTarget, false, PoiType.Kill)))
-                    )),
+                    ),
 
                 // No mobs in immediate vicinity...
                 new Decorator(context => !Query.IsViable(SelectedTarget),

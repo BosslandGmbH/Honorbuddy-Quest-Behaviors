@@ -287,10 +287,8 @@ namespace Honorbuddy.QuestBehaviorCore
             // Set POI as needed...
             if ((poiType != PoiType.None) && !Query.IsPoiMatch(wowObject, poiType))
             {
-                // Do not try setting the POI unless we are within PullDistance of the target...
-                // Honorbuddy has a nasty habit of clearing a Kill POI for targets that are outside
-                // of a certain (internal) range.
-                if (wowUnit.Distance < 40 /*CharacterSettings.Instance.PullDistance TODO--FIX THIS when IW rewrite*/)
+                // accept targets that are within targeting collection range.
+                if (wowUnit.Distance < Targeting.CollectionRange)
                     { BotPoi.Current = new BotPoi(wowUnit, poiType); }
 
                 else

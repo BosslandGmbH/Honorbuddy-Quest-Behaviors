@@ -91,6 +91,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
             }
         }
 
+        private uint[] _enemyIds = { 59889 };
+
         public List<WoWUnit> EnemysStudents
         {
             get
@@ -131,10 +133,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    // empty for now..
                 }
-
                 // Clean up unmanaged resources (if any) here...
+                Targeting.Instance.IncludeTargetsFilter -= IncludeTargetsFilter;
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -254,6 +256,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
             if (!IsDone)
             {
                 TreeRoot.GoalText = "Students No More In Progress";
+                Targeting.Instance.IncludeTargetsFilter += IncludeTargetsFilter;
+            }
+        }
+
+        void IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
+        {
+            var studs = Students;
+            if (!studs.Any()) return;
+            foreach (var unit in incomingUnits.OfType<WoWUnit>())
+            {
+                if (studs.Any(s => s.CurrentTargetGuid == unit.Guid))
+                    outgoingUnits.Add(unit);
             }
         }
 
