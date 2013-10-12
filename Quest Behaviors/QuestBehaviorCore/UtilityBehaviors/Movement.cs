@@ -251,7 +251,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 return new PrioritySelector(
                     // If we are flying, land and set up for ground travel...
                     new Decorator(context => WoWMovement.ActiveMover.IsFlying,
-                        new UtilityBehaviorPS.DescendForDismount(context => "Preparing for ground travel")),
+                        new LandAndDismount("[QB] Preparing for ground travel")),
 
                     // If we can navigate to destination, use navigator...
                     new Decorator(context => Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, CachedDestination),

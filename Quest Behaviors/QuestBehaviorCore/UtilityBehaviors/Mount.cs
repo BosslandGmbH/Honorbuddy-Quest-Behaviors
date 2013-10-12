@@ -11,7 +11,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-
+using Levelbot.Actions.General;
 using Styx;
 using Styx.CommonBot;
 using Styx.Helpers;
@@ -28,73 +28,26 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class UtilityBehaviorPS
     {
-        /// <summary>
-        /// Descends to a height safe for dismounting.  "Safe" is defined as 'not flying, or no more than
-        /// MAXDISMOUNTHEIGHTDELEGATE above the ground.
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * If MAXDISMOUNTHEIGHTDELEGATE is not provided, a suitable value
-        /// is used.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <returns></returns>
-        /// <remarks>17Apr2013-01:44UTC chinajade</remarks>
-        public class DescendForDismount : PrioritySelector
+        /// <summary> Finds a proper location to land and dismounts. </summary>
+        ///
+        /// <remarks> raphus, 12/10/2013. </remarks>
+        public class LandAndDismount : PrioritySelector
         {
-            public DescendForDismount(ProvideStringDelegate reasonDelegate = null)
-            {
-                MaxDismountHeightDelegate = (context => 8.0);
-                ReasonDelegate = reasonDelegate ?? (context => string.Empty);
-
+			public LandAndDismount(string reason = "[QB] LandAndDismount")
+			{
+				Reason = reason;
                 Children = CreateChildren();
             }
 
-
-            // BT contruction-time properties...
-            private ProvideDoubleDelegate MaxDismountHeightDelegate { get; set; }
-            private ProvideStringDelegate ReasonDelegate { get; set; }
-
+			// BT contruction-time properties...
+            private string Reason { get; set; }
 
             private List<Composite> CreateChildren()
             {
                 return new List<Composite>()
                 {
-                    // Descend, if needed...
-                    new Decorator(context => !IsReadyToDismount(context),
-                        new PrioritySelector(
-                            new Decorator(context => !WoWMovement.ActiveMover.MovementInfo.IsDescending,
-                                new Action(context =>
-                                {
-                                    var reason = ReasonDelegate(context);
-
-                                    TreeRoot.StatusText = "Descending before dismount"
-                                        + (!string.IsNullOrEmpty(reason) ? (": " + reason) : string.Empty);
-                                    WoWMovement.Move(WoWMovement.MovementDirection.Descend);
-                                })),
-                            new CompositeThrottle(TimeSpan.FromMilliseconds(1000),
-                                new Action(context =>
-                                {
-                                    const double probeHeight = 400.0;
-                                    var height = WoWMovement.ActiveMover.GetTraceLinePos().HeightOverGroundOrWater(probeHeight);
-
-                                    QBCLog.DeveloperInfo("Descending from {0}",
-                                        ((height > probeHeight) ? "unknown height" : string.Format("{0:F1}", height)));
-                                }))
-                        )),
-
-                    // Stop descending...
-                    new Decorator(context => WoWMovement.ActiveMover.MovementInfo.IsDescending,
-                        new Action(context =>
-                        {
-                            QBCLog.DeveloperInfo("Descent Stopped");
-                            WoWMovement.MoveStop(WoWMovement.MovementDirection.Descend);
-                        }))
+					new Mount.ActionLandAndDismount(Reason),
                 };
-            }
-
-            private bool IsReadyToDismount(object context)
-            {
-                return !WoWMovement.ActiveMover.IsFlying
-                        || (WoWMovement.ActiveMover.GetTraceLinePos().HeightOverGroundOrWater() < MaxDismountHeightDelegate(context));
             }
         }
     }
@@ -155,7 +108,8 @@ namespace Honorbuddy.QuestBehaviorCore
                                                       && Me.IsShapeshifted(),
                                 new PrioritySelector(
                                     // Need to land, if flying...
-                                    new UtilityBehaviorPS.DescendForDismount(),
+                                    new Decorator(ret => WoWMovement.ActiveMover.IsFlying,
+										new LandAndDismount()),
 
                                     // NB: Some quest behaviors use this to cancel _any_ shapeshifted form, even when not flying.
                                     // So please keep that in mind while maintaining code.
@@ -171,13 +125,17 @@ namespace Honorbuddy.QuestBehaviorCore
                                                         || (CachedMountStrategy == MountStrategyType.DismountOrCancelShapeshift))
                                                       && Me.IsMounted(),
                                 new PrioritySelector(
-                                    new UtilityBehaviorPS.DescendForDismount(),
+                                    // Need to land, if flying...
+                                    new Decorator(ret => WoWMovement.ActiveMover.IsFlying,
+										new LandAndDismount()),
+
                                     new Decorator(context => Me.IsShapeshifted(),
                                         new Action(context =>
                                         {
                                             TreeRoot.StatusText = "Canceling 'mounted' shapeshift form.";
                                             Lua.DoString("CancelShapeshiftForm()");
                                         })),
+
                                     new Decorator(context => Me.IsMounted(),
                                         new Action(context =>
                                         {
