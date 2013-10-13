@@ -91,7 +91,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    CharacterSettings.Instance.UseMount = _mount;
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -206,7 +207,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         }
 
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_MainCombat()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne,PhaseTwo, new ActionAlwaysSucceed())));
         }
@@ -228,7 +229,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
             }
         }
 
-
+        private bool _mount;
         public override void OnStart()
         {
 
@@ -242,18 +243,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
+                _mount = CharacterSettings.Instance.UseMount;
                 CharacterSettings.Instance.UseMount = false;
-                
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
                 //TreeRoot.TicksPerSecond = 30;
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].

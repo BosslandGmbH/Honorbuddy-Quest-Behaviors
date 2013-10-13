@@ -98,7 +98,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheSealIsBroken
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -201,7 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheSealIsBroken
         WoWPoint spot = new WoWPoint(1104.14, 467.4733, -44.5488);
 
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_MainCombat()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, ClickPortals, new ActionAlwaysSucceed())));
         }
@@ -237,18 +237,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheSealIsBroken
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
-
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);

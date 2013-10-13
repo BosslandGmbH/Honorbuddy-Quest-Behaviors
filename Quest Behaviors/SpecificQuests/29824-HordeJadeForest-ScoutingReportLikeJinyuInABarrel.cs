@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -19,7 +18,6 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
@@ -28,13 +26,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
     [CustomBehaviorFileName(@"SpecificQuests\29824-HordeJadeForest-ScoutingReportLikeJinyuInABarrel")]
     public class LikeJinyuinaBarrel : CustomForcedBehavior
     {
-        ~LikeJinyuinaBarrel()
-        {
-            Dispose(false);
-        }
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
-        public LikeJinyuinaBarrel(Dictionary<string, string> args)
-            : base(args)
+        public LikeJinyuinaBarrel(Dictionary<string, string> args) : base(args)
         {
             try
             {
@@ -55,9 +51,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -69,15 +63,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
 
 
         // Private properties
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
+        }
+
+        ~LikeJinyuinaBarrel()
+        {
+            Dispose(false);
         }
 
 
@@ -91,7 +87,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+                    CharacterSettings.Instance.UseMount = _mount;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -105,44 +102,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             _isDisposed = true;
         }
 
-
         #region Overrides of CustomForcedBehavior
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
+        private bool _mount;
+        private uint[] jinyu = new uint[] {55793, 56701, 55791, 55711, 55709, 55710};
+        private bool spoke = false;
 
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-
+                return new Decorator(
+                    ret => IsQuestComplete(),
+                    new Action(
+                        delegate
+                        {
+                            TreeRoot.StatusText = "Finished!";
+                            CharacterSettings.Instance.UseMount = true;
+                            _isBehaviorDone = true;
+                            return RunStatus.Success;
+                        }));
             }
-        }
-
-
-
-        public void CastSpell(string action)
-        {
-
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            Logging.Write("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
         }
 
 
@@ -152,60 +132,92 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         //209691 - sniper rifle
         public WoWGameObject rifle
         {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r => r.Entry == 209691);
-            }
-
+            get { return ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r => r.Entry == 209691); }
         }
 
 
-        uint[] jinyu = new uint[] { 55793, 56701, 55791, 55711, 55709, 55710 };
         public List<WoWUnit> Enemy
         {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => jinyu.Contains(r.Entry)).ToList();
-            }
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => jinyu.Contains(r.Entry)).ToList(); }
         }
 
 
         public WoWUnit Barrel
         {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 55784);
-            }
-
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 55784); }
         }
 
 
-        private bool spoke = false;
         public Composite PhaseOne
         {
             get
             {
-                return
-                    new Decorator(r => !spoke, new PrioritySelector(
+                return new Decorator(
+                    r => !spoke,
+                    new PrioritySelector(
                         new Decorator(r => !rifle.WithinInteractRange, new Action(r => WoWMovement.ClickToMove(rifle.Location))),
-                        new Decorator(r => rifle.WithinInteractRange, 
+                        new Decorator(
+                            r => rifle.WithinInteractRange,
                             new Sequence(
                                 new Sleep(450),
-                                new Action(r =>
-                                {
-                                    Navigator.PlayerMover.MoveStop();
-                                    rifle.Interact();
+                                new Action(
+                                    r =>
+                                    {
+                                        Navigator.PlayerMover.MoveStop();
+                                        rifle.Interact();
 
-                                    spoke = true;
-                                })))
-
-                        ));
+                                        spoke = true;
+                                    })))));
             }
         }
 
+
+        public Composite PhaseTwo
+        {
+            get
+            {
+                return new PrioritySelector(
+                    new Decorator(r => Barrel != null, new Action(r => Barrel.Interact())),
+                    new Decorator(
+                        r => Enemy.Count > 0,
+                        new Action(
+                            r =>
+                            {
+                                foreach (var unit in Enemy)
+                                {
+                                    unit.Interact(false);
+                                }
+                                Logging.Write("dsad" + new Random().Next());
+                                //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
+                                //StyxWoW.Sleep(100);
+                            })));
+            }
+        }
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+            return quest == null || quest.IsCompleted;
+        }
+
+        public void CastSpell(string action)
+        {
+            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+            if (spell == null)
+                return;
+
+            Logging.Write("[Pet] Casting {0}", action);
+            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+        }
 
         public override void OnTick()
         {
@@ -222,9 +234,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                     }
                     else
                     {
-                        StyxWoW.Sleep((int)((StyxWoW.WoWClient.Latency * 2) + 150));
+                        StyxWoW.Sleep((int) ((StyxWoW.WoWClient.Latency*2) + 150));
                         Navigator.PlayerMover.MoveStop();
-                        StyxWoW.Sleep((int)((StyxWoW.WoWClient.Latency * 2) + 150));
+                        StyxWoW.Sleep((int) ((StyxWoW.WoWClient.Latency*2) + 150));
 
 
                         for (int i = 0; i < 10; i++)
@@ -249,41 +261,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
 
                 if (IsQuestComplete())
                 {
-
                     break;
-
                 }
             }
 
             //base.OnTick();
         }
 
-        public Composite PhaseTwo
-        {
-            get
-            {
-                return new PrioritySelector(
 
-                    new Decorator(r => Barrel != null, new Action(r => Barrel.Interact())),
-                     new Decorator(r => Enemy.Count > 0, new Action(r =>
-                                                                      {
-
-                                                                          foreach (var unit in Enemy)
-                                                                          {
-                                                                              unit.Interact(false);
-                                                                          }
-                                                                          Logging.Write("dsad" + new Random().Next());
-                                                                          //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
-                                                                          //StyxWoW.Sleep(100);
-                                                                      }
-                                                           ))
-                    );
-            }
-
-        }
-
-
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_MainCombat()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne, PhaseTwo, new ActionAlwaysSucceed())));
         }
@@ -296,20 +282,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         }
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
         public override void OnStart()
         {
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -319,28 +293,19 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
+                _mount = CharacterSettings.Instance.UseMount;
                 CharacterSettings.Instance.UseMount = false;
-
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
                 //TreeRoot.TicksPerSecond = 30;
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
+
         #endregion
     }
 }

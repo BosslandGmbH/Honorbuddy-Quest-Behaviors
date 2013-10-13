@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -20,7 +19,7 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
+using Tripper.Tools.Math;
 using Action = Styx.TreeSharp.Action;
 
 
@@ -29,13 +28,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
     [CustomBehaviorFileName(@"SpecificQuests\29731-HordeJadeForest-ScoutingReportOnTheRightTrack")]
     public class OnTheRightTrack : CustomForcedBehavior
     {
-        ~OnTheRightTrack()
-        {
-            Dispose(false);
-        }
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
-        public OnTheRightTrack(Dictionary<string, string> args)
-            : base(args)
+        public OnTheRightTrack(Dictionary<string, string> args) : base(args)
         {
             try
             {
@@ -47,8 +44,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -58,9 +53,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -74,10 +67,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
         public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-
 
 
         // Private properties
@@ -86,6 +75,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
             get { return (StyxWoW.Me); }
         }
 
+        ~OnTheRightTrack()
+        {
+            Dispose(false);
+        }
 
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
@@ -98,7 +91,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    CharacterSettings.Instance.UseMount = _mount;
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -112,143 +106,110 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
             _isDisposed = true;
         }
 
-
-
-
- 
-
-
         #region Overrides of CustomForcedBehavior
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
+        private static readonly WoWPoint spot = new WoWPoint(853.4566, -1950.396, 61.24099);
+        private static readonly WoWPoint bounce = new WoWPoint(884.9406, -1863.337, 62.95205);
 
+        private CircularQueue<WoWPoint> _circularQueue = new CircularQueue<WoWPoint>() {spot, bounce};
 
+        private bool _mount;
 
         public Composite DoneYet
         {
             get
-            {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-
+            {            
+                return new Decorator(
+                    ret => IsQuestComplete() || !Me.InVehicle,
+                    new Action(
+                        delegate
+                        {
+                            TreeRoot.StatusText = "Finished!";
+                            CharacterSettings.Instance.UseMount = true;
+                            _isBehaviorDone = true;
+                            return RunStatus.Success;
+                        }));
             }
         }
-
-   
-
-        public void CastSpell(string action)
-        {
-
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            Logging.Write("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
-        }
-
-        bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-    
-
 
         public WoWUnit Enemy
         {
             get
             {
                 return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 55550 && !x.HasAura("Smoke Bomb") && x.GotTarget && x.CurrentTarget == Me.CharmedUnit).OrderBy(x => x.Distance).FirstOrDefault();
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                        .Where(x => x.Entry == 55550 && !x.HasAura("Smoke Bomb") && x.GotTarget && x.CurrentTarget == Me.CharmedUnit)
+                        .OrderBy(x => x.Distance)
+                        .FirstOrDefault();
             }
-
         }
-
-
-        private int stage = 0;
-        WoWPoint spot = new WoWPoint(853.4566, -1950.396, 61.24099);
-        WoWPoint bounce = new WoWPoint(884.9406,-1863.337,62.95205);
 
         public Composite Move
         {
             get
             {
-                return
-                    new PrioritySelector(
-                        new Decorator(r => spot.Distance(Me.Location) > 10 && stage <= 0, new Action(r => Navigator.MoveTo(spot))),
-                        new Decorator(r => spot.Distance(Me.Location) < 10 && stage == 0,new Action(r => stage = 1))
-
-
-                        );
+                return new PrioritySelector(
+                    new Decorator(r => _circularQueue.Peek().Distance(Me.Location) < 10, new Action(r => _circularQueue.Dequeue())),
+                    new Action(r => Navigator.MoveTo(_circularQueue.Peek())));
             }
-
-        }
-
-
-        public Composite bouncez
-        {
-            get
-            {
-                return
-                    new PrioritySelector(
-                        new Decorator(r => bounce.Distance(Me.Location) > 3 && stage == 1, new Action(r => Navigator.MoveTo(bounce))),
-                        new Decorator(r => bounce.Distance(Me.Location) <= 3 && stage == 1, new Action(r => stage = -1))
-
-
-                        );
-            }
-
         }
 
         public Composite Obj1
         {
             get
             {
-                return new Decorator(r=> Enemy != null, new Action(
-                    
-                   r =>
-                    
-                {
-                 Enemy.Target();
-                    CastSpell("Smoke Bomb");
-                }
-                
-                ));
+                return new Decorator(
+                    r => Enemy != null,
+                    new Action(
+                        r =>
+
+                        {
+                            Enemy.Target();
+                            CastSpell("Smoke Bomb");
+                        }));
             }
         }
 
-
-
-        
-
-
-
-
-        
-        protected override Composite CreateBehavior()
+        public override bool IsDone
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, Obj1, bouncez,Move, new ActionAlwaysSucceed())));
+            get
+            {
+                return (_isBehaviorDone // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+            return quest == null || quest.IsCompleted;
+        }
+
+        public void CastSpell(string action)
+        {
+            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+            if (spell == null)
+                return;
+
+            Logging.Write("[Pet] Casting {0}", action);
+            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+        }
+
+        private bool IsObjectiveComplete(int objectiveId, uint questId)
+        {
+            if (Me.QuestLog.GetQuestById(questId) == null)
+            {
+                return false;
+            }
+            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
+            return Lua.GetReturnVal<bool>(string.Concat(new object[] {"return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")"}), 2);
+        }
+
+
+        protected Composite CreateBehavior_MainCombat()
+        {
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, Obj1, Move, new ActionAlwaysSucceed())));
+        }
 
 
         public override void Dispose()
@@ -258,20 +219,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
         }
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
         public override void OnStart()
         {
-
-            
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -281,36 +230,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
+                _mount = CharacterSettings.Instance.UseMount;
                 CharacterSettings.Instance.UseMount = false;
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+                Navigator.Clear();
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-
-
-
-
         }
-
-
-
-
-
-
 
         #endregion
     }

@@ -269,7 +269,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
-
             AimingTimer.Reset();
 
             // If the quest is complete, this behavior is already done...
