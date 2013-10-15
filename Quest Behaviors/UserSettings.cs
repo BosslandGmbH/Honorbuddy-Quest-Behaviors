@@ -517,7 +517,10 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
                     else if (_backingPropertyInfo.PropertyType == typeof(string))
                     { _constraint = new ConstrainString(); }
-
+					else if (_backingPropertyInfo.PropertyType == typeof(byte))
+					{
+						_constraint = new ConstrainByte(byte.MinValue, byte.MaxValue);
+					}
                     else
                     {
                         throw (new ArgumentException(string.Format("For configurable '{0}',"
@@ -637,6 +640,36 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         public int MinValue { get; set; }
     }
 
+	class ConstrainByte : Constraint
+	{
+		public ConstrainByte(byte minValue, byte maxValue)
+		{
+			MinValue = minValue;
+			MaxValue = maxValue;
+		}
+
+		public override object AcquireUserInput(CustomForcedBehavior behavior,
+													string configName,
+													object originalValue)
+		{
+			if (originalValue != null)
+			{
+				string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
+				if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
+				{ return originalValue; }
+			}
+			return (behavior.GetAttributeAsNullable<byte>(configName, false, new CustomForcedBehavior.ConstrainTo.Domain<byte>(MinValue, MaxValue), null));
+		}
+
+		public override string AsString()
+		{
+			return (string.Format("[{0}..{1}]", MinValue, MaxValue));
+		}
+
+		public override Type ConstraintType { get { return (typeof(byte)); } }
+		public byte MaxValue { get; set; }
+		public byte MinValue { get; set; }
+	}
 
     class ConstrainString : Constraint
     {
