@@ -143,7 +143,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
             public BattlefieldContext ReInitialize()
             {
                 BarrelRollingTimer.Restart();
-                IsKegIgnited = false;
                 KegBomb = FindUnitsFromId(_mobId_KegBomb).FirstOrDefault();
                 KegBombVehicle =
                     ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
@@ -163,7 +162,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
             }
 
             public Stopwatch BarrelRollingTimer { get; private set; }
-            public bool IsKegIgnited { get; set; }
+
+            public bool IsKegIgnited
+            {
+                get
+                {
+                    var charmedUnit = StyxWoW.Me.CharmedUnit;
+                    return charmedUnit != null && charmedUnit.HasAura("Ignite Keg");
+                }
+            }
+
             public WoWUnit KegBomb { get; private set; }
             public WoWUnit KegBombVehicle { get; private set; }
             public WoWUnit SelectedTarget { get; set; }
@@ -359,13 +367,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                                 new Action(context => { WoWMovement.MoveStop(); })),
                             new Decorator(context => !Me.IsSafelyFacing(_combatContext.KegBomb),
                                 new Action(context => { _combatContext.KegBomb.Face(); })),
-                            new Action(context =>
-                            {
-                                _combatContext.ReInitialize();
-                                _combatContext.KegBomb.Interact();
-                                LogMessage("info", "Started barrel roll #{0}", ++_barrelRollCount);
-                                return RunStatus.Failure;
-                            }),
+                            new Sequence(
+                                // N.B. we need to wait a bit before jumping in vehicle after a round -
+                                // due to a bug that prevents bot from leaving vehicle until a relog
+                                new WaitContinue(2, context => false, new ActionAlwaysSucceed()),
+                                new Action(context =>
+                                {
+                                    _combatContext.ReInitialize();
+                                    _combatContext.KegBomb.Interact();
+                                    LogMessage("info", "Started barrel roll #{0}", ++_barrelRollCount);
+                                    return RunStatus.Failure;
+                                })),
                             new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
                         )),
 
@@ -460,13 +472,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
             if (!context.IsKegIgnited)
             {
                 Lua.DoString(IgniteKeg_LuaCommand);
-                context.IsKegIgnited = true;
             }
         }
 
 
         private bool IsQuestObjectiveComplete(int questId, int objectiveId)
         {
+            var a = StyxWoW.Me.Name.Substring(0,(int)Math.Ceiling(StyxWoW.Me.Name.Length / 2d)) + new string('*', (int)Math.Floor(StyxWoW.Me.Name.Length / 2d));
+
             if (Me.QuestLog.GetQuestById((uint)questId) == null)
                 { return false; }
 

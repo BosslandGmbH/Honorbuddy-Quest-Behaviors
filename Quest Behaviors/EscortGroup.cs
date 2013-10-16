@@ -816,7 +816,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                 new Action(context => { BehaviorState = BehaviorStateType.IdentifySpecificUnitsToEscort; })),
                  
                             // Continue with interaction
-                            UtilityBehavior_GossipToStartEvent(FindEscortedUnits(StartNpcIds, SearchForNpcsRadius)),
+                            UtilityBehavior_GossipToStartEvent(),
 
                             new Action(context =>
                             {
@@ -911,7 +911,9 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                 }
                             })))
                     #endregion
-                ));
+                ),
+                // Prevent the behavior from dropping down to the Roam behavior because of it can cause confliction. e.g. 
+                new ActionAlwaysSucceed());
         }
         #endregion
 
@@ -1303,9 +1305,9 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
 
         /// <returns>Returns RunStatus.Success if gossip in progress; otherwise, RunStatus.Failure if gossip complete or unnecessary</returns>
-        private Composite UtilityBehavior_GossipToStartEvent(IEnumerable<WoWUnit> escortedUnits)
+        private Composite UtilityBehavior_GossipToStartEvent()
         {
-            return new PrioritySelector(gossipUnitContext => escortedUnits.OrderBy(u => u.Distance).FirstOrDefault(),
+            return new PrioritySelector(gossipUnitContext => FindEscortedUnits(StartNpcIds, SearchForNpcsRadius).OrderBy(u => u.Distance).FirstOrDefault(),
                 new Decorator(gossipUnitContext => (gossipUnitContext != null) && !_gossipBlacklist.Contains((WoWUnit)gossipUnitContext),
                     new PrioritySelector(
                         // If unit in line of sight, target it...

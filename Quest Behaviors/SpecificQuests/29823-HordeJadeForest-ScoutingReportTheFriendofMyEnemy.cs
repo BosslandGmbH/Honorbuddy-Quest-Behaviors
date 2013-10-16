@@ -7,7 +7,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.Common;
@@ -19,7 +18,6 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
@@ -28,13 +26,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
     [CustomBehaviorFileName(@"SpecificQuests\29823-HordeJadeForest-ScoutingReportTheFriendofMyEnemy")]
     public class TheFriendofMyEnemy : CustomForcedBehavior
     {
-        ~TheFriendofMyEnemy()
-        {
-            Dispose(false);
-        }
+        private bool _isBehaviorDone;
+        private bool _isDisposed;
+        private Composite _root;
 
-        public TheFriendofMyEnemy(Dictionary<string, string> args)
-            : base(args)
+        public TheFriendofMyEnemy(Dictionary<string, string> args) : base(args)
         {
             try
             {
@@ -46,8 +42,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                 //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -57,9 +51,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -73,16 +65,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-
 
 
         // Private properties
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
+        }
+
+        ~TheFriendofMyEnemy()
+        {
+            Dispose(false);
         }
 
 
@@ -96,7 +89,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    CharacterSettings.Instance.UseMount = _useMount;
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -110,41 +104,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
             _isDisposed = true;
         }
 
-
         #region Overrides of CustomForcedBehavior
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
+        private bool _useMount;
+        private bool spoke = false;
+        private WoWPoint spot = new WoWPoint(370.5139, -2026.915, 57.19295);
 
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-
+                return new Decorator(
+                    ret => IsQuestComplete(),
+                    new Action(
+                        delegate
+                        {
+                            TreeRoot.StatusText = "Finished!";
+                            CharacterSettings.Instance.UseMount = true;
+                            _isBehaviorDone = true;
+                            return RunStatus.Success;
+                        }));
             }
-        }
-
-
-        public void CastSpell(string action)
-        {
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            Logging.Write("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
         }
 
 
@@ -159,81 +139,103 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
         {
             get
             {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.GotTarget && (x.CurrentTarget == Me.CharmedUnit || x.CurrentTarget == Kiryn)).OrderBy(x => Kiryn.Location.Distance(x.Location)).FirstOrDefault();
+                var charmedUnit = Me.CharmedUnit;
+                var kiryn = Kiryn;
+                if (charmedUnit == null)
+                    return null;
+                return (from unit in ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
+                    let target = unit.CurrentTarget
+                    let orderByLoc = kiryn != null ? kiryn.Location : charmedUnit.Location
+                    where target != null && (target == kiryn || target == charmedUnit)
+                    orderby orderByLoc.DistanceSqr(unit.Location)
+                    select unit).FirstOrDefault();
             }
-
         }
 
 
-        WoWPoint spot = new WoWPoint(370.5139, -2026.915, 57.19295);
-
-
-        private bool spoke = false;
         public Composite PhaseOne
         {
             get
             {
-                return 
-                    new Decorator(r => !spoke,new PrioritySelector(
-                        new Decorator(r => Kiryn == null || !Kiryn.WithinInteractRange, new Action(r=>Navigator.MoveTo(spot))),
-                        new Decorator(r => !GossipFrame.Instance.IsVisible, new Action(r=>Kiryn.Interact())),
-                        new Decorator(r => GossipFrame.Instance.IsVisible, new Action(r=>{GossipFrame.Instance.SelectGossipOption(0);
+                return new Decorator(
+                    r => !spoke,
+                    new PrioritySelector(
+                        new Decorator(r => Kiryn == null || !Kiryn.WithinInteractRange, new Action(r => Navigator.MoveTo(spot))),
+                        new Decorator(r => !GossipFrame.Instance.IsVisible, new Action(r => Kiryn.Interact())),
+                        new Decorator(
+                            r => GossipFrame.Instance.IsVisible,
+                            new Action(
+                                r =>
+                                {
+                                    GossipFrame.Instance.SelectGossipOption(0);
 
-                                                                                             spoke = true;
-                        }))
-                        
-                        ));
+                                    spoke = true;
+                                }))));
             }
         }
 
 
         public Composite PhaseTwo
         {
-            get 
-            { 
-                return  new PrioritySelector(
-                    
-                    new Decorator(r => Me.CurrentTarget == null && Enemy != null, new Action(r=>Enemy.Target())),
-                     new Decorator(r => Me.CurrentTarget != null, new Action(r =>
-                                                                                 {
-                                                                                     var target = Me.CurrentTarget;
-                                                                                     //target.Face();
-                                                                                     if (target.IsWithinMeleeRange)
-                                                                                     {
-                                                                                         CastSpell("Uppercut");
-                                                                                     }
-                                                                                     else if (target.Distance > 5)
-                                                                                     {
-                                                                                         CastSpell("Fling Filth");
-                                                                                     }
-                                                                                 }))                    
-                    );
+            get
+            {
+                return new PrioritySelector(
+                    new Decorator(r => Me.CurrentTarget == null && Enemy != null, new Action(r => Enemy.Target())),
+                    new Decorator(
+                        r => Me.CurrentTarget != null,
+                        new Action(
+                            r =>
+                            {
+                                var target = Me.CurrentTarget;
+                                //target.Face();
+                                if (target.IsWithinMeleeRange)
+                                {
+                                    CastSpell("Uppercut");
+                                }
+                                else if (target.DistanceSqr > 5 * 5)
+                                {
+                                    CastSpell("Fling Filth");
+                                }
+                            })));
             }
         }
 
-
-        protected override Composite CreateBehavior()
+        public override bool IsDone
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,PhaseOne,PhaseTwo, new ActionAlwaysSucceed())));
+            get
+            {
+                return (_isBehaviorDone // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
+        public bool IsQuestComplete()
+        {
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+            return quest == null || quest.IsCompleted;
+        }
+
+        public void CastSpell(string action)
+        {
+            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+            if (spell == null)
+                return;
+
+            Logging.Write("[Pet] Casting {0}", action);
+            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+        }
+
+
+        protected Composite CreateBehavior_MainCombat()
+        {
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne, PhaseTwo, new ActionAlwaysSucceed())));
+        }
 
 
         public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
         }
 
 
@@ -248,26 +250,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportTheFriendofMyE
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
+                _useMount = CharacterSettings.Instance.UseMount;
                 CharacterSettings.Instance.UseMount = false;
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
         }
+
         #endregion
     }
 }

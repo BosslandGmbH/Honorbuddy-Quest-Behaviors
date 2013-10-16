@@ -30,7 +30,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         private bool _isDisposed;
         private Composite _root;
 
-        public LikeJinyuinaBarrel(Dictionary<string, string> args) : base(args)
+        public LikeJinyuinaBarrel(Dictionary<string, string> args)
+            : base(args)
         {
             try
             {
@@ -105,15 +106,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         #region Overrides of CustomForcedBehavior
 
         private bool _mount;
-        private uint[] jinyu = new uint[] {55793, 56701, 55791, 55711, 55709, 55710};
+        private uint[] jinyu = new uint[] { 55793, 56701, 55791, 55711, 55709, 55710 };
         private bool spoke = false;
-
+        WoWPoint _phase2RelativePos = new WoWPoint(0, 0, -30);
         public Composite DoneYet
         {
             get
             {
                 return new Decorator(
-                    ret => IsQuestComplete(),
+                    ret => IsQuestComplete() || !Me.InVehicle,
                     new Action(
                         delegate
                         {
@@ -130,7 +131,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         //<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
 
         //209691 - sniper rifle
-        public WoWGameObject rifle
+        public WoWGameObject Rifle
         {
             get { return ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r => r.Entry == 209691); }
         }
@@ -152,9 +153,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
         {
             get
             {
+                WoWGameObject rifle = null;
                 return new Decorator(
-                    r => !spoke,
-                    new PrioritySelector(
+                    r => Me.RelativeLocation != _phase2RelativePos,
+                    new PrioritySelector(ctx => rifle = Rifle,
                         new Decorator(r => !rifle.WithinInteractRange, new Action(r => WoWMovement.ClickToMove(rifle.Location))),
                         new Decorator(
                             r => rifle.WithinInteractRange,
@@ -165,8 +167,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                                     {
                                         Navigator.PlayerMover.MoveStop();
                                         rifle.Interact();
-
-                                        spoke = true;
                                     })))));
             }
         }
@@ -183,13 +183,23 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                         new Action(
                             r =>
                             {
+                                var barrel = Barrel;
+                                if (Barrel != null)
+                                {
+                                    Barrel.Interact();
+                                }
+
                                 foreach (var unit in Enemy)
                                 {
-                                    unit.Interact(false);
+                                    unit.Interact(true);
                                 }
-                                Logging.Write("dsad" + new Random().Next());
-                                //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
-                                //StyxWoW.Sleep(100);
+
+                                if (IsQuestComplete() || !Me.InVehicle)
+                                {
+                                    return RunStatus.Success;
+                                }
+
+                                return RunStatus.Running;
                             })));
             }
         }
@@ -205,7 +215,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
 
         public bool IsQuestComplete()
         {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest == null || quest.IsCompleted;
         }
 
@@ -217,55 +227,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
 
             Logging.Write("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-        }
-
-        public override void OnTick()
-        {
-            while (true)
-            {
-                ObjectManager.Update();
-
-
-                if (!spoke)
-                {
-                    if (!rifle.WithinInteractRange)
-                    {
-                        WoWMovement.ClickToMove(rifle.Location);
-                    }
-                    else
-                    {
-                        StyxWoW.Sleep((int) ((StyxWoW.WoWClient.Latency*2) + 150));
-                        Navigator.PlayerMover.MoveStop();
-                        StyxWoW.Sleep((int) ((StyxWoW.WoWClient.Latency*2) + 150));
-
-
-                        for (int i = 0; i < 10; i++)
-                        {
-                            rifle.Interact();
-                        }
-
-                        spoke = true;
-                    }
-                }
-
-                if (Barrel != null)
-                {
-                    Barrel.Interact();
-                }
-
-                foreach (var unit in Enemy)
-                {
-                    unit.Interact(true);
-                }
-
-
-                if (IsQuestComplete())
-                {
-                    break;
-                }
-            }
-
-            //base.OnTick();
         }
 
 
@@ -300,7 +261,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportLikeJinyuInABa
                 //TreeRoot.TicksPerSecond = 30;
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }

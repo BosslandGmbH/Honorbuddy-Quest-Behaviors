@@ -14,7 +14,7 @@
 //
 using System;
 using System.Collections.Generic;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -123,16 +123,18 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
         protected override Composite CreateBehavior()
         {
             return _root ?? (_root =
-                new Decorator(ret => !_timer.IsFinished,
-                    new CompositeThrottle(TimeSpan.FromMilliseconds(500),
-                        new Action(context =>
-                        {
-                            TreeRoot.StatusText =
-                                !string.IsNullOrEmpty(StatusText)
-                                ? UtilSubstituteInMessage(StatusText)
-                                : string.Format("Wait time remaining... {0} of {1}.",
-                                    Utility.PrettyTime(_timer.TimeLeft), _waitTimeAsString);
-                        })))
+                new PrioritySelector(
+                    new Decorator(ret => !_timer.IsFinished,
+                        new CompositeThrottle(TimeSpan.FromMilliseconds(500),
+                            new Action(context =>
+                            {
+                                TreeRoot.StatusText =
+                                    !string.IsNullOrEmpty(StatusText)
+                                    ? UtilSubstituteInMessage(StatusText)
+                                    : string.Format("Wait time remaining... {0} of {1}.",
+                                        Utility.PrettyTime(_timer.TimeLeft), _waitTimeAsString);
+                            }))), 
+                    new ActionAlwaysSucceed())
             );
         }
 

@@ -204,6 +204,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                         new SwitchArgument<WoWClass>(WoWClass.Shaman,
                             new PrioritySelector(
+                                TryCast(17364),       // Stormstrike: http://wowhead.com/spell=17364
                                 TryCast(403),       // Lightning Bolt: http://wowhead.com/spell=403
                                 TryCast(73899),     // Primal Strike: http://wowhead.com/spell=73899
                                 TryAutoAttack()
@@ -219,6 +220,8 @@ namespace Honorbuddy.QuestBehaviorCore
                             new PrioritySelector(
                                 TryCast(78),        // Heroic Strike: http://wowhead.com/spell=78
                                 TryCast(34428),     // Victory Rush: http://wowhead.com/spell=34428
+                                TryCast(23922),     // Shield Slam: http://wowhead.com/spell=23922
+                                TryCast(20243),     // Devastate: http://wowhead.com/spell=20243
                                 TryAutoAttack()
                             ))
                     )

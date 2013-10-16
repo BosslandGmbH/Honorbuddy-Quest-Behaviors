@@ -957,7 +957,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         protected override Composite CreateMainBehavior()
         {
             return new PrioritySelector(
-                // empty, for now
+                // Prevent the behavior from dropping down to the Roam behavior because of it can cause confliction. e.g. 
+                new ActionAlwaysSucceed()
                 );
         }
         #endregion
