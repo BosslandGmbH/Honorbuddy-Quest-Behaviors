@@ -219,7 +219,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
                                               new Action(ret => Navigator.MoveTo(Students[0].Location)))))
                                                             
 
-                    ))));
+                    )),
+                    new ActionAlwaysSucceed()));
         }
 
         public override void Dispose()

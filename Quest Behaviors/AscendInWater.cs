@@ -12,12 +12,12 @@
 //
 //      DestName [Default:"<X,Y,Z>"]:   a human-readable name of the location to which the toon is moving.
 //
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
@@ -28,7 +28,6 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
@@ -37,12 +36,14 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
     [CustomBehaviorFileName(@"AscendInWater")]
     public class AscendInWater : CustomForcedBehavior
     {
-        public AscendInWater(Dictionary<string, string> args)
-            : base(args)
+        // Private variables for internal state
+        private static readonly WaitTimer MaxAscendTimer = new WaitTimer(TimeSpan.FromSeconds(30));
+        private bool _isDisposed;
+        private Composite _root;
+
+        public AscendInWater(Dictionary<string, string> args) : base(args)
         {
-            try
-            {
-            }
+            try {}
 
             catch (Exception except)
             {
@@ -51,26 +52,28 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
-        // Private variables for internal state
-        private bool _isDisposed;
-        private Composite _root;
-
         // Private properties
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: AscendInWater.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId
+        {
+            get { return ("$Id: AscendInWater.cs 501 2013-05-10 16:29:10Z chinajade $"); }
+        }
 
+        public override string SubversionRevision
+        {
+            get { return ("$Revision: 501 $"); }
+        }
 
-        static readonly WaitTimer Timer = WaitTimer.OneSecond;
 
         ~AscendInWater()
         {
@@ -104,15 +107,19 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             _isDisposed = true;
         }
 
-
         #region Overrides of CustomForcedBehavior
+
+        public override bool IsDone
+        {
+            get { return MaxAscendTimer.IsFinished || !Me.IsSwimming || !Me.GetMirrorTimerInfo(MirrorTimerType.Breath).IsVisible; }
+        }
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(100)))
-                    ));
+            return _root ??
+                   (_root =
+                       new PrioritySelector(new Decorator(ctx => !Me.MovementInfo.IsAscending, 
+                           new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend)))));
         }
 
 
@@ -123,12 +130,6 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
         }
 
 
-        public override bool IsDone
-        {
-            get { return Timer.IsFinished && !Me.IsSwimming; }
-        }
-
-
         public override void OnStart()
         {
             // This reports problems, and stops BT processing if there was a problem with attributes...
@@ -136,17 +137,16 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             // constructor call.
             OnStart_HandleAttributeProblem();
 
-            Timer.Reset();
+            MaxAscendTimer.Reset();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = this.GetType().Name + ": Ascending in water";
+                TreeRoot.GoalText = GetType().Name + ": Ascending in water";
             }
         }
 
         #endregion
     }
 }
-
