@@ -111,7 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 
         public override bool IsDone
         {
-            get { return MaxAscendTimer.IsFinished || !Me.IsSwimming || !Me.GetMirrorTimerInfo(MirrorTimerType.Breath).IsVisible; }
+            get { return MaxAscendTimer.IsFinished || !Me.IsSwimming ; }
         }
 
         protected override Composite CreateBehavior()
