@@ -343,9 +343,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                                                                                   "Username",
 																				  "RecentProfiles",
                                                                                   "MountDistance",
-                                                                                  "PullDistance",
                                                                                   "UseFlightPaths",
-                                                                                  "UseMount",
                                                                                   "LootChests",
                                                                                   "FindVendorsAutomatically"
                                                                               };
