@@ -18,7 +18,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
+using Bots.BGBuddy.Helpers;
+using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -38,8 +41,64 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
     {
         // Private variables for internal state
         private static readonly WaitTimer MaxAscendTimer = new WaitTimer(TimeSpan.FromSeconds(30));
+
+        private static readonly WaitTimer MinRunTimer = new WaitTimer(TimeSpan.FromSeconds(1));
+        private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
+
+        #region Overrides of CustomForcedBehavior
+
+        public override bool IsDone
+        {
+            get { return _isBehaviorDone; }
+        }
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ??
+                   (_root =
+                       new Decorator(
+                           ctx => !IsDone,
+                           new PrioritySelector(
+                               new Decorator(
+                                   ctx => MaxAscendTimer.IsFinished || !Me.IsSwimming,
+                                   new Sequence(
+                                       // N.B. It appears that WoWMovement.Move calls are throttled so in order to stop ascending this behavior -
+                                       // uses the lua version.
+                                       new Action(ctx => Lua.DoString("AscendStop()")),
+                                       new Action(ctx => _isBehaviorDone = true))),
+                               new Decorator(
+                                   ctx => !Me.MovementInfo.IsAscending && Me.IsSwimming,
+                                   new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend))))));
+        }
+
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            MaxAscendTimer.Reset();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeRoot.GoalText = GetType().Name + ": Ascending in water";
+            }
+        }
+
+        #endregion
 
         public AscendInWater(Dictionary<string, string> args) : base(args)
         {
@@ -52,7 +111,9 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
+                LogMessage(
+                    "error",
+                    "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -98,7 +159,6 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
-                WoWMovement.MoveStop();
 
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
@@ -106,47 +166,5 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 
             _isDisposed = true;
         }
-
-        #region Overrides of CustomForcedBehavior
-
-        public override bool IsDone
-        {
-            get { return MaxAscendTimer.IsFinished || !Me.IsSwimming ; }
-        }
-
-        protected override Composite CreateBehavior()
-        {
-            return _root ??
-                   (_root =
-                       new PrioritySelector(new Decorator(ctx => !Me.MovementInfo.IsAscending, 
-                           new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend)))));
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            MaxAscendTimer.Reset();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                TreeRoot.GoalText = GetType().Name + ": Ascending in water";
-            }
-        }
-
-        #endregion
     }
 }

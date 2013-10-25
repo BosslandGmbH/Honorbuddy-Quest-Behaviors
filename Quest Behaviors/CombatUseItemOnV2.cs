@@ -510,7 +510,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                         context => MovementBy,
                         context => { /*NoOp*/ },
                         context => TargetExclusionAnalysis.Analyze(
-                            Element, () => Query.FindMobsAndFactions(MobIds), TargetExclusionChecks)))
+                            Element, () => Query.FindMobsAndFactions(MobIds), TargetExclusionChecks))),
+                // return Success to prevent the behavior from dropping down to the Roam behavior and potentially causing movement conflictions. 
+                new ActionAlwaysSucceed()
             );
         }
         #endregion

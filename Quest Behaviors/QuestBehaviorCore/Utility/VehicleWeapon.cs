@@ -31,7 +31,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         public VehicleWeapon(int abilityIndex /*[1..12]*/,
                              WeaponArticulation weaponArticulation = null,
-                             double? fixedMuzzleVelocity = null)
+                             double? fixedMuzzleVelocity = null, double? gravity = null)
             : base(abilityIndex)
         {
             FixedMuzzleVelocity = fixedMuzzleVelocity;
@@ -41,6 +41,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 FixedMuzzleVelocity.HasValue
                 ? FixedMuzzleVelocity.Value
                 : double.NaN;   // "we don't know, yet"
+            
+            GravityInFpsSqr = 
+                gravity.HasValue 
+                ? gravity.Value 
+                : 32.174;
 
             MeasuredMuzzleVelocity_Average = double.NaN;
             MeasuredMuzzleVelocity_Min = double.NaN;
@@ -52,6 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public bool LogWeaponFiringDetails { get; set; }
         public double MuzzleVelocityInFps { get; private set; }
+        public double GravityInFpsSqr { get; private set; }
         public double MeasuredMuzzleVelocity_Average { get; private set; }
         public double MeasuredMuzzleVelocity_Max { get; private set; }
         public double MeasuredMuzzleVelocity_Min { get; private set; }
@@ -67,7 +73,6 @@ namespace Honorbuddy.QuestBehaviorCore
         private bool NeedsTestFire { get { return double.IsNaN(MuzzleVelocityInFps); } }
         private WeaponArticulation WeaponArticulation { get; set; }
 
-        const double g = 32.1740; // feet/sec^2
         #endregion
 
 
@@ -77,14 +82,13 @@ namespace Honorbuddy.QuestBehaviorCore
             if (targetLocation == WoWPoint.Empty)
                 { return null; }
 
-            const double g = 32.174; // in feet per second^2
             double v0Sqr = MuzzleVelocityInFps * MuzzleVelocityInFps;
             double horizontalDistance = WoWMovement.ActiveMover.Location.Distance2D(targetLocation);
             double heightDiff = targetLocation.Z - WoWMovement.ActiveMover.Location.Z;
 
-            double tmp1 = g * (horizontalDistance * horizontalDistance);
+            double tmp1 = GravityInFpsSqr * (horizontalDistance * horizontalDistance);
             double tmp2 = 2 * heightDiff * v0Sqr;
-            double radicalTerm = (v0Sqr * v0Sqr) - (g * (tmp1 + tmp2));
+            double radicalTerm = (v0Sqr * v0Sqr) - (GravityInFpsSqr * (tmp1 + tmp2));
 
             // If radicalTerm is negative, then both roots are imaginary...
             // This means that the muzzleVelocity is insufficient to hit the target
@@ -95,12 +99,12 @@ namespace Honorbuddy.QuestBehaviorCore
             radicalTerm = Math.Sqrt(radicalTerm);
 
             // Prefer the 'lower' angle, if its within the articulation range...
-            double root = Math.Atan((v0Sqr - radicalTerm) / (g * horizontalDistance));
+            double root = Math.Atan((v0Sqr - radicalTerm) / (GravityInFpsSqr * horizontalDistance));
             if (WeaponArticulation.IsWithinAzimuthLimits(root))
                 { return root; }
 
             // First root provides no solution, try second root...
-            root = Math.Atan((v0Sqr + radicalTerm) / (g * horizontalDistance));
+            root = Math.Atan((v0Sqr + radicalTerm) / (GravityInFpsSqr * horizontalDistance));
             if (WeaponArticulation.IsWithinAzimuthLimits(root))
                 { return root; }
 
@@ -126,15 +130,20 @@ namespace Honorbuddy.QuestBehaviorCore
                     select missile;
 
 
+                WoWMissile launchedMissile = firedMissileQuery.FirstOrDefault();
+                /* N.B This has been commented out to fix momentary game 'freeze up' from framelock but has been left here for - 
+                   future reference in the event this logic needs to be further repaired.
+
                 // Launch missile, and wait until launch is observed;
                 MissileWatchingTimer.Reset();
-
-                WoWMissile launchedMissile = null;
+                 
                 while ((launchedMissile == null) && !MissileWatchingTimer.IsFinished)
                 {
-                    ObjectManager.Update();
+                    // WoWMissiles are read directly from the games memory and are not stored in the 'ObjectManager' 
+                    // ObjectManager.Update();
                     launchedMissile = firedMissileQuery.FirstOrDefault();
                 }
+                */
 
                 // If we failed to see the missile, report error and move on...
                 if (launchedMissile == null)
@@ -156,7 +165,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 double sinTwoTheta = Math.Sin(2 * launchAngle);
                 double cosTheta = Math.Cos(launchAngle);
 
-                muzzleVelocity = Math.Sqrt(((R * R) * g) / (R * sinTwoTheta + 2 * h * (cosTheta * cosTheta)));
+                muzzleVelocity = Math.Sqrt(((R * R) * GravityInFpsSqr) / (R * sinTwoTheta + 2 * h * (cosTheta * cosTheta)));
             }
 
             return muzzleVelocity;

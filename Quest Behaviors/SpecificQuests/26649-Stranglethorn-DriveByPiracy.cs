@@ -3,8 +3,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
+using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -13,7 +15,6 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 
 
@@ -22,105 +23,146 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
     [CustomBehaviorFileName(@"SpecificQuests\26649-Stranglethorn-DriveByPiracy")]
     public class q26649 : CustomForcedBehavior
     {
-        public q26649(Dictionary<string, string> args)
-            : base(args) { }
-
-
+        private const double WeaponAzimuthMax = 1.134464;
+        private const double WeaponAzimuthMin = -0.348367;
+        private const double CannonballMuzzleVelocity = 80;
+        private const double CannonballGravity = 19.29;
+        private const uint VentureCoOilWorkerId = 43596;
         public static LocalPlayer me = StyxWoW.Me;
-        static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26649));if c==1 then return 1 else return 0 end", 0) == 1; } }
+
+        private readonly WeaponArticulation _weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
+
+        private uint QuestId = 26649;
+        private bool _isBehaviorDone;
+        private Composite _root;
         public double angle = 0;
-        public double CurentAngle = 0;
-        public WoWUnit gooby
+        public q26649(Dictionary<string, string> args) : base(args) {}
+
+
+        public override bool IsDone
+        {
+            get { return _isBehaviorDone; }
+        }
+
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
+
+        private WoWUnit BestTarget
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 43596 && !u.IsDead))
-                                    .OrderBy(u => u.Distance2D).FirstOrDefault();
+                var myLoc = Me.Location;
+                return
+                    ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
+                        .Where(u => u.Entry == VentureCoOilWorkerId && u.IsAlive)
+                        .OrderBy(u => u.Location.DistanceSqr(myLoc))
+                        .FirstOrDefault();
             }
         }
-
-
-        private uint QuestId = 26649;
 
         public bool IsQuestComplete()
         {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
             return quest == null || quest.IsCompleted;
         }
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
+
+        public override void OnStart()
         {
-            if (StyxWoW.Me.QuestLog.GetQuestById(questId) == null)
+            OnStart_HandleAttributeProblem();
+            if (!IsDone)
             {
-                return false;
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
+                TreeRoot.GoalText = ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
         }
 
-        WoWPoint wp = new WoWPoint(-14878.15, 296.5315, 0.93627);
-        private Composite _root;
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-
-
-                    new Decorator(ret => IsQuestComplete(),
-                        new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Finished!"),
-                            new Action(ret => Lua.DoString("CastPetAction({0})", 5)),
-                            new WaitContinue(120,
-                            new Action(delegate
-                            {
-                                _isDone = true;
-                                return RunStatus.Success;
-                            }))
-                            )),
-
-                    new Decorator(ret => gooby != null,
-                    new Action(ret =>
-                        {
-
-                            var status = StyxWoW.Me.CurrentTarget;
-                            if (status == null || status.Entry != 43596 || status.Distance2D > 100)
-                                gooby.Target();
-
-                            //WoWMovement.ClickToMove(gooby.Location);
-                            WoWMovement.ConstantFace(me.CurrentTarget.Guid);
-                            angle = -((me.Z - me.CurrentTarget.Z)/(me.CurrentTarget.Location.Distance(me.Location))) +
-                                    ((me.CurrentTarget.Location.Distance2D(me.Location) - 20)/
-                                     me.CurrentTarget.Location.Distance(me.Location)/10);
-                            CurentAngle = Lua.GetReturnVal<double>("return VehicleAimGetAngle()", 0);
-                            if (CurentAngle < angle)
-                            {
-                                Lua.DoString(string.Format("VehicleAimIncrement(\"{0}\")", (angle - CurentAngle)));
-                            }
-                            if (CurentAngle > angle)
-                            {
-                                Lua.DoString(string.Format("VehicleAimDecrement(\"{0}\")", (CurentAngle - angle)));
-                            }
-                            Lua.DoString("CastPetAction(1) CastPetAction(2) CastPetAction(3)");
-
-                    }
-                    ))
-                )
-            );
+            return _root ??
+                   (_root =
+                       new Decorator(
+                           ctx => !IsDone,
+                           new PrioritySelector(CreateBehavior_CheckCompletion(), CreateBehavior_ShootPirates())));
         }
 
-
-
-
-
-
-        private bool _isDone;
-        public override bool IsDone
+        public Composite CreateBehavior_ShootPirates()
         {
-            get { return _isDone; }
+            var cannon = new VehicleWeapon(3, _weaponArticulation, CannonballMuzzleVelocity, CannonballGravity);
+            const int readyAuraId = 81513;
+            const int aimAuraId = 81514;
+            WoWUnit charmedUnit = null;
+
+            WoWUnit selectedTarget = null;
+            return new PrioritySelector(
+                ctx => selectedTarget = BestTarget,
+                new Decorator(
+                    r => selectedTarget != null,
+                    new PrioritySelector(
+                        ctx => charmedUnit = Me.CharmedUnit,
+                        new Decorator(
+                            ctx => !charmedUnit.HasAura(readyAuraId),
+                            new Action(ctx => Lua.DoString("CastPetAction({0})", 1))),
+                        // aim weapon and fire.
+                        new Decorator(
+                            ctx => cannon.WeaponAim(selectedTarget),
+                            new Sequence(
+                                new Action(ctx => Lua.DoString("CastPetAction({0})", 2)),
+                                new WaitContinue(2, ctx => charmedUnit.HasAura(aimAuraId), new ActionAlwaysSucceed()),
+                                new Action(ctx => cannon.WeaponFire()))))));
         }
 
+        public Composite CreateBehavior_CheckCompletion()
+        {
+            return new Decorator(
+                ret => !_isBehaviorDone && IsQuestComplete(),
+                new Sequence(
+                    new ActionSetActivity("Finished!"),
+                    new Action(ctx => Lua.DoString("CastPetAction({0})", 5)),
+                    new Action(ctx => _isBehaviorDone = true)));
+        }
+
+        #region Cleanup
+
+        private bool _isDisposed;
+
+        ~q26649()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        #endregion
     }
 }
-
