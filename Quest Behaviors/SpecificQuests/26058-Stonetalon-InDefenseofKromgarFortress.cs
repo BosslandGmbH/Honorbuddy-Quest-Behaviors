@@ -103,7 +103,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
             WoWUnit selectedTarget = null;
 
             return _root ??
-                   (_root =
+                   (_root = new Decorator(ctx => !IsDone,
                        new PrioritySelector(
                            new Decorator(
                                ret => IsQuestComplete,
@@ -160,7 +160,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
                                            new WaitContinue(
                                                Delay.AfterWeaponFire,
                                                context => false,
-                                               new ActionAlwaysSucceed())))))));
+                                               new ActionAlwaysSucceed()))))))));
         }
 
         #endregion

@@ -115,6 +115,10 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
+    <Reference Include="Tripper.RecastManaged, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b2150347bb351956, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\Honorbuddy\Tripper.RecastManaged.dll</HintPath>
+    </Reference>
     <Reference Include="Tripper.Tools">
       <HintPath>..\Dependencies\Tripper.Tools.dll</HintPath>
     </Reference>

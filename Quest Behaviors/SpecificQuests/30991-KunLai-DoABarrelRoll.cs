@@ -429,10 +429,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                                     Me.SetFacing(neededFacing);
                                     return RunStatus.Success;
                                 }))
-                        )),
-
-                    // Deny CombatRoutine from running while behavior is in progress (see note at top of method for why)...
-                    new ActionAlwaysSucceed()
+                        ))
                 ));
         }
 

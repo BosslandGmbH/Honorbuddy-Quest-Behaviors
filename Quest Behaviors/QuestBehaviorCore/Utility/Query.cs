@@ -484,6 +484,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 && wowUnit.IsAlive
                 && !wowUnit.IsFriendly
                 && wowUnit.Attackable
+                && wowUnit.CanSelect
                 && !wowUnit.IsBlacklistedForCombat();
         }
 
