@@ -248,7 +248,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         {
             get
             {
-                return new Decorator(r => Hellfire && Me.Level >= 60 && Me.Gold >= 268 && FlightLevel < 2, new Action(r => SetupTrainer()));
+                return new Decorator(r => Hellfire && Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2, new Action(r => SetupTrainer()));
 
             }
         }
@@ -257,7 +257,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         {
             get
             {
-                return new Decorator(r => OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) || (Me.Level >= 60 && Me.Gold >= 268 && FlightLevel < 2)), new Action(r => SetupTrainer()));
+                return new Decorator(r => OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) || (Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2)), new Action(r => SetupTrainer()));
 
             }
         }
