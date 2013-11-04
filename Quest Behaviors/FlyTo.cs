@@ -8,9 +8,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading;
-
+using CommonBehaviors.Decorators;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
@@ -136,7 +137,9 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                     new Decorator(
                         ret => Land && Destination.DistanceSqr(StyxWoW.Me.Location) < Distance * Distance,
                         new Mount.ActionLandAndDismount()),
-                    new Action(ret => Flightor.MoveTo(Destination, !IgnoreIndoors)))));
+					// Don't run FlyTo when there is a poi set
+					new DecoratorIsPoiType(PoiType.None, 
+						new Action(ret => Flightor.MoveTo(Destination, !IgnoreIndoors))))));
         }
 
 
