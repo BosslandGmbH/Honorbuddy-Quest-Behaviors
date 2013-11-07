@@ -54,26 +54,6 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             get { return _isBehaviorDone; }
         }
 
-        protected override Composite CreateBehavior()
-        {
-            return _root ??
-                   (_root =
-                       new Decorator(
-                           ctx => !IsDone,
-                           new PrioritySelector(
-                               new Decorator(
-                                   ctx => MaxAscendTimer.IsFinished || !Me.IsSwimming,
-                                   new Sequence(
-                                       // N.B. It appears that WoWMovement.Move calls are throttled so in order to stop ascending this behavior -
-                                       // uses the lua version.
-                                       new Action(ctx => Lua.DoString("AscendStop()")),
-                                       new Action(ctx => _isBehaviorDone = true))),
-                               new Decorator(
-                                   ctx => !Me.MovementInfo.IsAscending && Me.IsSwimming,
-                                   new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend))))));
-        }
-
-
         public override void Dispose()
         {
             Dispose(true);
@@ -94,6 +74,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
                 TreeRoot.GoalText = GetType().Name + ": Ascending in water";
             }
         }
@@ -135,6 +116,25 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             get { return ("$Revision: 501 $"); }
         }
 
+        protected Composite CreateBehavior_CombatMain()
+        {
+            return _root ??
+                   (_root =
+                       new Decorator(
+                           ctx => !IsDone,
+                           new PrioritySelector(
+                               new Decorator(
+                                   ctx => MaxAscendTimer.IsFinished || !Me.IsSwimming,
+                                   new Sequence(
+                                       // N.B. It appears that WoWMovement.Move calls are throttled so in order to stop ascending this behavior -
+                                       // uses the lua version.
+                                       new Action(ctx => Lua.DoString("AscendStop()")),
+                                       new Action(ctx => _isBehaviorDone = true))),
+                               new Decorator(
+                                   ctx => !Me.MovementInfo.IsAscending && Me.IsSwimming,
+                                   new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend))))));
+        }
+
 
         ~AscendInWater()
         {
@@ -152,7 +152,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...

@@ -61,10 +61,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 ? Me.Location.Distance(destination)
                 : Me.Location.SurfacePathDistance(destination);
 
-            double myMovementSpeed =
-                Me.IsSwimming
-                ? Me.MovementInfo.SwimmingForwardSpeed
-                : Me.MovementInfo.RunSpeed;
+            // these speeds have been verified.
+            double myMovementSpeed = Me.IsSwimming
+                ? Me.MovementInfo.RunSpeed
+                : Me.IsFlying ? Me.MovementInfo.FlyingForwardSpeed : Me.MovementInfo.ForwardSpeed;
 
             double timeToDestination = distanceToCover / myMovementSpeed;
 
