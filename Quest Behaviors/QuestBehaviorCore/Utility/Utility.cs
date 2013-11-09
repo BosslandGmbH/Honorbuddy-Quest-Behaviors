@@ -63,7 +63,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // these speeds have been verified.
             double myMovementSpeed = Me.IsSwimming
-                ? Me.MovementInfo.RunSpeed
+                ? Me.MovementInfo.SwimmingForwardSpeed
                 : Me.IsFlying ? Me.MovementInfo.FlyingForwardSpeed : Me.MovementInfo.ForwardSpeed;
 
             double timeToDestination = distanceToCover / myMovementSpeed;

@@ -93,7 +93,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-
+        readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
         // Private properties
 
         private LocalPlayer Me
@@ -164,12 +164,12 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         {
             const double upperLimitOnMaxTime = 3 /*mins*/*60 /*secs*/;
             // these speeds have been verified.
-            var speed = Me.IsSwimming
-                ? Me.MovementInfo.RunSpeed
+            double myMovementSpeed = Me.IsSwimming
+                ? Me.MovementInfo.SwimmingForwardSpeed
                 : Me.IsFlying ? Me.MovementInfo.FlyingForwardSpeed : Me.MovementInfo.ForwardSpeed;
             var distanceToCover = WoWMovement.ActiveMover.Location.Distance(destination);
 
-            double timeToDestination = distanceToCover/speed;
+            double timeToDestination = distanceToCover / myMovementSpeed;
 
             timeToDestination = Math.Max(timeToDestination, 15.0); // 15sec hard lower limit
             timeToDestination *= 2.5; // factor of safety
@@ -196,7 +196,6 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 
         protected Composite CreateBehavior_Antistuck()
         {
-            var stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
             var stuckSucceedTimer = new WaitTimer(TimeSpan.FromSeconds(6));
 
             var prevPosition = WoWPoint.Empty;
@@ -206,7 +205,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 
             return new PrioritySelector(
                 new Decorator(
-                    ctx => stuckTimer.IsFinished,
+                    ctx => _stuckTimer.IsFinished,
 
                     new Sequence(
                         ctx => myLoc = WoWMovement.ActiveMover.Location,
@@ -250,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                                 new Action(ctx => stuckSucceedTimer.Reset()))),
 
                         new Action(ctx => prevPosition = myLoc),
-                        new Action(ctx => stuckTimer.Reset()))));
+                        new Action(ctx => _stuckTimer.Reset()))));
         }
 
         private WoWMovement.MovementDirection GetRandomMovementDirection()
@@ -349,10 +348,16 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                                            new ActionAlwaysFail())),
                                    CreateBehavior_PerformCTM())),
 
-                           // _runTimer needs to be recalculated after combat is over.
+                           // _runTimer needs to be recalculated after combat is over and stuck timer needs to rest.
                            new Decorator(
-                               ctx => Me.IsActuallyInCombat && _runTimer != null,
-                               new Action(ctx => _runTimer = null))));
+                               ctx => Me.IsActuallyInCombat ,
+                               new Action(
+                                   ctx =>
+                                   {
+                                       _runTimer = null;
+                                       _stuckTimer.Reset();
+                                       return RunStatus.Failure;
+                                   }))));
         }
 
         public override void Dispose()

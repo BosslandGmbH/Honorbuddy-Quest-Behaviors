@@ -276,9 +276,9 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                         new Decorator(c => InVehicle && VehicleType == 0,
                             new Action(c =>
                             {
-                                if (_vehicle == null)
+                                if (_vehicle == null || !_vehicle.IsValid)
                                 {
-                                    _vehicle = VehicleList[0];
+                                    _vehicle = VehicleList.FirstOrDefault();
                                 }
 
                                 if (_vehicle.Location.Distance(FirePoint) <= 5)
@@ -305,9 +305,9 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                         new Decorator(c => InVehicle && VehicleType == 1,
                             new Action(c =>
                             {
-                                if (_vehicle == null)
+                                if (_vehicle == null || !_vehicle.IsValid)
                                 {
-                                    _vehicle = VehicleList[0];
+                                    _vehicle = VehicleList.FirstOrDefault();
                                 }
 
                                 if (NpcAttackList.Count > 1)
@@ -356,9 +356,9 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                         new Decorator(c => InVehicle && VehicleType == 2,
                             new Action(c =>
                             {
-                                if (_vehicle == null && VehicleList[0] != null)
+                                if (_vehicle == null || !_vehicle.IsValid)
                                 {
-                                    _vehicle = VehicleList[0];
+                                    _vehicle = VehicleList.FirstOrDefault();
                                 }
 
                                 if ((Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted))

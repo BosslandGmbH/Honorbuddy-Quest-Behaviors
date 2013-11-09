@@ -11,6 +11,7 @@ using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -131,7 +132,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -234,8 +235,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
 
         public bool ValidSafeSpot()
         {
-            foreach (var x in from x in SafeSpots where Me.Location.Distance(x.LandingSpot) < 60 let barrel = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(
-                u => u.Entry == 207127 && u.Location.Distance(x.BarrelSpot) < u.InteractRange) where barrel != null select x)
+            var myLoc = Me.Location;
+            var query = from x in SafeSpots
+                        where myLoc.DistanceSqr(x.LandingSpot) < 60 * 60
+                        let barrel = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(
+                            u => u.Entry == 207127 && u.Location.DistanceSqr(x.BarrelSpot) < u.InteractRangeSqr)
+                        where barrel != null
+                        select x;
+
+            foreach (var x in query)
             {
                 Target = x;
                 return true;
@@ -389,10 +397,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         }
 
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
 
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, StateOne, StateTwo, StateTwoDragon, Circle, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone && !Me.IsActuallyInCombat && Me.IsAlive, new PrioritySelector(DoneYet, StateOne, StateTwo, StateTwoDragon, Circle, new ActionAlwaysSucceed())));
         }
 
 
@@ -436,25 +444,19 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null &&
-                    TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 //Find the current closest flight spot;
                 float distance = float.MaxValue;
                 FlightSpot = 0;
-                for(int i =0;i<FlightPath.Count();i++)
+                var myLoc = Me.Location;
+
+                for(int i =0; i<FlightPath.Length; i++)
                 {
-                    if (Me.Location.Distance(FlightPath[i]) < distance)
+                    if (myLoc.Distance(FlightPath[i]) < distance)
                     {
-                        distance = Me.Location.Distance(FlightPath[i]);
+                        distance = myLoc.Distance(FlightPath[i]);
                         FlightSpot = i;
                     }
                 }
