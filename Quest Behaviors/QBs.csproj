@@ -96,10 +96,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="GreyMagic">
-      <HintPath>..\Dependencies\GreyMagic.dll</HintPath>
+      <HintPath>..\..\..\HonorBuddy\GreyMagic.dll</HintPath>
     </Reference>
-    <Reference Include="Honorbuddy">
-      <HintPath>..\Dependencies\Honorbuddy.exe</HintPath>
+    <Reference Include="Honorbuddy-cleaned">
+      <HintPath>..\..\..\HonorBuddy\Honorbuddy-cleaned.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -146,6 +146,7 @@
     <Compile Include="Misc\InstanceTimer.cs" />
     <Compile Include="Misc\LoadProfileOn.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
+    <Compile Include="Misc\ProfileCompatibilityInfo.cs" />
     <Compile Include="MountHook.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />

@@ -153,7 +153,7 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
             //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
             //     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
             
-            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
             var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
