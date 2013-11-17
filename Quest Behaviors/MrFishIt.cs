@@ -85,7 +85,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         // Private variables for internal state
         private Version _Version { get { return new Version(1, 0, 8); } }
         public static double _PoolGUID;
-        private ConfigMemento _configMemento;
+        private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isDisposed, _cancelBehavior;
         private Composite _root;
 
@@ -184,7 +184,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop; 
                 Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);

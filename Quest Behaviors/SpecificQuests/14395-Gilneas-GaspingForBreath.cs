@@ -236,7 +236,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         private Composite _behaviorTreeHook_CombatOnly = null;
         private Composite _behaviorTreeHook_DeathMain = null;
         private Composite _behaviorTreeHook_Main = null;
-        private ConfigMemento _configMemento = null;
+        private QuestBehaviorCore.ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         private StateType_MainBehavior _state_MainBehavior;
@@ -364,7 +364,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

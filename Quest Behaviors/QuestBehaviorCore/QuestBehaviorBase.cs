@@ -214,7 +214,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_DeathMain;
         private Composite _behaviorTreeHook_QuestbotMain;
         private Composite _behaviorTreeHook_Main;
-        private ConfigMemento _mementoSettings;
+        private QuestBehaviorCore.ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
         private AvoidMobsType _temporaryAvoidMobs;
         private BlackspotsType _temporaryBlackspots;
@@ -440,11 +440,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _mementoSettings = new ConfigMemento();
-
-                // Preserved (and restore on dispose) LevelBot settings, in case the child needs to change them...
-                LevelBotOriginalValue_BehaviorFlags = LevelBot.BehaviorFlags;
-                LevelBotOriginalValue_ShouldUseSpiritHealer = LevelBot.ShouldUseSpiritHealer;
+                _mementoSettings = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

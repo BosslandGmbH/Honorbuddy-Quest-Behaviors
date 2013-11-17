@@ -77,13 +77,12 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -238,7 +237,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         private Composite _behaviorRoot;
         private HuntingGroundBehavior _behavior_HuntingGround;
         private KeyValuePair<string, int> _buttonAction;
-        private ConfigMemento _configMemento;
+        private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isBehaviorInProgress;
         private bool _isBehaviorDone;
         private bool _isDisposed;
@@ -657,7 +656,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 CharacterSettings.Instance.PullDistance = 1;
 

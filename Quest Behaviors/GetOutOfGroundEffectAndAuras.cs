@@ -379,7 +379,6 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
         private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
-        private double EscortMaxLeadDistance { get; set; }
         private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
         private IEnumerable<WoWUnit> MeAsGroup  = new List<WoWUnit>() { StyxWoW.Me };
@@ -387,7 +386,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private BehaviorStateType _behaviorState = BehaviorStateType.InitialState;
         private Composite _behaviorTreeHook_Combat = null;
         private Composite _behaviorTreeHook_Death = null;
-        private ConfigMemento _configMemento = null;
+        private QuestBehaviorCore.ConfigMemento _configMemento = null;
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
@@ -504,7 +503,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
                 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

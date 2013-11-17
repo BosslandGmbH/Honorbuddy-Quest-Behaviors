@@ -5,18 +5,13 @@
 //
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
-using CommonBehaviors.Actions;
+
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -80,20 +75,16 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         public WoWPoint EndLocation { get; private set; }
         public WoWPoint GetOffLocation { get; private set; }
         public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public WoWPoint StandLocation { get; private set; }
         public WoWPoint StartLocation { get; private set; }
         public int TransportId { get; private set; }
         public WoWPoint WaitAtLocation { get; private set; }
 
         // Private variables for internal state
-        private ConfigMemento _configMemento;
+        private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-        private bool _usedTransport;
-        private bool _wasOnWaitLocation;
 
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -274,7 +265,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

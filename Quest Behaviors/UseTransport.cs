@@ -87,7 +87,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         public WoWPoint WaitAtLocation { get; private set; }
 
         // Private variables for internal state
-        private ConfigMemento _configMemento;
+        private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
@@ -238,7 +238,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

@@ -254,7 +254,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         private Composite _behaviorTreeHook_Combat = null;
         private Composite _behaviorTreeHook_Death = null;
         private Composite _behaviorTreeHook_Main = null;
-        private ConfigMemento _configMemento = null;
+        private QuestBehaviorCore.ConfigMemento _configMemento = null;
         private StateType_Behavior _currentState_Behavior = StateType_Behavior.Invalid;
         private StateType_KegBomb _currentState_KegBomb = StateType_KegBomb.Invalid;
         private StateType_PitchTipArrowDragging _currentState_MobDragging = StateType_PitchTipArrowDragging.Invalid;
@@ -394,7 +394,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
                 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

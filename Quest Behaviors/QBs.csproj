@@ -148,7 +148,9 @@
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="Misc\ProfileCompatibilityInfo.cs" />
     <Compile Include="MountHook.cs" />
+    <Compile Include="QuestBehaviorCore\Extensions\Extensions_Generics.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\ConfigMemento.cs" />
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />

@@ -438,7 +438,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         private Composite _behaviorTreeHook_CombatOnly = null;
         private Composite _behaviorTreeHook_DeathMain = null;
         private Composite _behaviorTreeHook_Main = null;
-        private ConfigMemento _configMemento = null;
+        private QuestBehaviorCore.ConfigMemento _configMemento = null;
         private LocalBlacklist _gossipBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
@@ -564,7 +564,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

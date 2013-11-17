@@ -43,7 +43,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
         public override string SubversionId { get { return ("$Id: 10838-Hellfire-TheDemoniacScryer.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
         public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
 
-        private ConfigMemento _configMemento;
+        private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
@@ -166,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
                 // More info about how the ConfigMemento applies to saving and restoring user configuration
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new ConfigMemento();
+                _configMemento = new QuestBehaviorCore.ConfigMemento();
 
                 BotEvents.OnBotStop  += BotEvents_OnBotStop;
 
