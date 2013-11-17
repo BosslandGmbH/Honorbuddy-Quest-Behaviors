@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -126,7 +127,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -147,7 +148,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
 
 
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root =
                 new PrioritySelector(
@@ -232,16 +233,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

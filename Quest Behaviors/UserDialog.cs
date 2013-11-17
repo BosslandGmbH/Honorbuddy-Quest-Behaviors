@@ -554,6 +554,8 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
         private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
+        // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+        private bool? _lootMobs;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id: UserDialog.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
@@ -576,7 +578,8 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+                    ProfileManager.CurrentProfile.LootMobs = _lootMobs;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -717,6 +720,8 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new QuestBehaviorCore.ConfigMemento();
+                // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+                _lootMobs = ProfileManager.CurrentProfile.LootMobs;
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -728,7 +733,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                 CharacterSettings.Instance.HarvestHerbs = false;
                 CharacterSettings.Instance.HarvestMinerals = false;
                 CharacterSettings.Instance.LootChests = false;
-                CharacterSettings.Instance.LootMobs = false;
+                ProfileManager.CurrentProfile.LootMobs = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
 

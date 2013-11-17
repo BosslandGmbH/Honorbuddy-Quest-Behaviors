@@ -475,7 +475,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                     _behavior_SwimBreath.CreateBehavior(),
 
                     // If there is loot to clean up...
-                    new Decorator(context => CharacterSettings.Instance.LootMobs,
+                    new Decorator(context => LootTargeting.LootMobs,
                         _behavior_UnderwaterLooting.CreateBehavior(() => true)),
 
                     // Find next target...
@@ -1331,7 +1331,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         public Composite CreateBehavior(ForceLootDelegate forceLoot)
         {
             return (_behaviorRoot ?? (_behaviorRoot =
-                new Decorator(ret => ((CharacterSettings.Instance.LootMobs || forceLoot()) && (LootList.Count() > 0)),
+                new Decorator(ret => ((LootTargeting.LootMobs || forceLoot()) && (LootList.Any())),
                     new PrioritySelector(
 
                         // If we're swimming, we need to do loot cleanup for ourselves...

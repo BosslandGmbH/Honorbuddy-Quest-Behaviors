@@ -117,28 +117,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
                 return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
                     where MobIds.Contains(u.Entry) && !u.IsDead
                     let loc = u.Location
-                    where loc.DistanceSqr(myLoc) < 350*350 && (point1.DistanceSqr(loc) < 80*80 && point2.DistanceSqr(loc) < 60*60)
                     orderby loc.DistanceSqr(myLoc)
                     select u).ToList();
             }
         }
 
 
-        public Composite DoneYet
+        public Composite CreateBehavior_CheckCompletion()
         {
-            get
-            {
-                return new Decorator(
-                    ret => IsQuestComplete(),
-                    new Action(
-                        delegate
-                        {
-                            TreeRoot.StatusText = "Finished!";
-                            Lua.DoString("VehicleExit()");
-                            _isBehaviorDone = true;
-                            return RunStatus.Success;
-                        }));
-            }
+            return new Decorator(
+                ret => IsQuestComplete(),
+                new Action(
+                    delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        Lua.DoString("VehicleExit()");
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
         }
 
 
@@ -150,92 +146,85 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
         //Point 1
         //<Vendor Name="Kota Kon" Entry="60754" Type="Repair" X="2794.707" Y="1695.803" Z="642.4144" />
 
-        public Composite MantidKill
+        public Composite CreateBehavior_KillMantid()
         {
-            get
-            {
-                WoWUnit attackTarget = null;
-                WoWUnit yeti = null;
-                WaitTimer leapSmashTimer = WaitTimer.TenSeconds;
+            WoWUnit attackTarget = null;
+            WoWUnit yeti = null;
+            WaitTimer leapSmashTimer = WaitTimer.TenSeconds;
 
-                return new Decorator(
-                    r => !IsQuestComplete() && Me.InVehicle && (yeti = Me.CharmedUnit) != null,
-                    new PrioritySelector(
-                        ctx => attackTarget = GetAttackTarget(),
-                        new Decorator(
-                            ctx => attackTarget != null,
-                            new PrioritySelector(
-                                new ActionSetActivity("Moving to Attack"),
-                                new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid, new ActionFail(ctx => attackTarget.Target())),
-                                new Decorator(ctx => !Me.IsSafelyFacing(attackTarget) || !yeti.IsSafelyFacing(attackTarget), new ActionFail(ctx => attackTarget.Face())),
-                                // cast 'Hozen Snack' ability to heal up.
-                                new Decorator(ctx => yeti.HealthPercent <= 70, new ActionFail(ctx => Lua.DoString("CastPetAction(4)"))),
-                                // cast 'Leap Smash' ability on targets outside of melee
-                                new Decorator(
-                                    ctx =>
-                                        yeti.Location.DistanceSqr(attackTarget.Location) > 30*30 && yeti.Location.DistanceSqr(attackTarget.Location) < 90 * 90 && leapSmashTimer.IsFinished,
-                                    new Sequence(
-                                        new Action(ctx => Lua.DoString("CastPetAction(1)")),
-                                        new WaitContinue(2, ctx => StyxWoW.Me.CurrentPendingCursorSpell != null, new ActionAlwaysSucceed()),
-                                        new Action(ctx => SpellManager.ClickRemoteLocation(attackTarget.Location)),
-                                        new Action(ctx => leapSmashTimer.Reset()))),
-                                // cast 'Headbutt' ability on melee range target.
-                                new Decorator(
-                                    ctx => yeti.Location.DistanceSqr(attackTarget.Location) <= 25*25,
-                                    new PrioritySelector(
-                                        new Decorator(
-                                            ctx => yeti.Location.DistanceSqr(attackTarget.Location) <= 25* 25 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
-                                            new ActionFail(ctx => WoWMovement.ClickToMove(Me.CharmedUnit.Location))),
-                                        new Action(ctx => Lua.DoString("CastPetAction(2)")))),
-                                new Decorator(ctx => yeti.Location.DistanceSqr(attackTarget.Location) > 25 * 25, new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
-                        new Decorator(
-                            ctx => attackTarget == null,
-                            new PrioritySelector(
-                                new Decorator(
-                                    ctx => yeti.Location.DistanceSqr(WaitPoint) > 10 * 10,
-                                    new PrioritySelector(
-                                        // can't set path precision so I'll just handle it directly...
-                                        new Decorator(
-                                            ctx =>
-                                            {
-                                                var nav = Navigator.NavigationProvider as MeshNavigator;
-                                                if (nav == null)
-                                                    return false;
-                                                if (nav.CurrentMovePath == null || nav.CurrentMovePath.Index >= nav.CurrentMovePath.Path.Points.Length)
-                                                    return false;
-                                                var point = nav.CurrentMovePath.Path.Points[nav.CurrentMovePath.Index];
-                                                return point.DistanceSqr(yeti.Location) < 6 * 6;
-                                            },
-                                            new Action(ctx => ((MeshNavigator) Navigator.NavigationProvider).CurrentMovePath.Index++)),
-                                        new Action(ctx => Navigator.MoveTo(WaitPoint)))),
-                                new ActionSetActivity("No viable targets, waiting."))),
-                        new ActionAlwaysSucceed()));
-            }
+            return new Decorator(
+                r => !IsQuestComplete() && Me.InVehicle && (yeti = Me.CharmedUnit) != null,
+                new PrioritySelector(
+                    ctx => attackTarget = GetAttackTarget(),
+                    new Decorator(
+                        ctx => attackTarget != null,
+                        new PrioritySelector(
+                            new ActionFail(ctx => _stuckTimer.Reset()),
+                            new ActionSetActivity("Moving to Attack"),
+                            new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid, new ActionFail(ctx => attackTarget.Target())),
+                            new Decorator(ctx => !Me.IsSafelyFacing(attackTarget) || !yeti.IsSafelyFacing(attackTarget), new ActionFail(ctx => attackTarget.Face())),
+                            // cast 'Hozen Snack' ability to heal up.
+                            new Decorator(ctx => yeti.HealthPercent <= 70, new ActionFail(ctx => Lua.DoString("CastPetAction(4)"))),
+                            // cast 'Leap Smash' ability on targets outside of melee
+                            new Decorator(
+                                ctx =>
+                                    yeti.Location.DistanceSqr(attackTarget.Location) > 30*30 && yeti.Location.DistanceSqr(attackTarget.Location) < 90 * 90 && leapSmashTimer.IsFinished,
+                                new Sequence(
+                                    new Action(ctx => Lua.DoString("CastPetAction(1)")),
+                                    new WaitContinue(2, ctx => StyxWoW.Me.CurrentPendingCursorSpell != null, new ActionAlwaysSucceed()),
+                                    new Action(ctx => SpellManager.ClickRemoteLocation(attackTarget.Location)),
+                                    new Action(ctx => leapSmashTimer.Reset()))),
+                            // cast 'Headbutt' ability on melee range target.
+                            new Decorator(
+                                ctx => yeti.Location.DistanceSqr(attackTarget.Location) <= 25*25,
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ctx => yeti.Location.DistanceSqr(attackTarget.Location) <= 25* 25 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
+                                        new ActionFail(ctx => WoWMovement.ClickToMove(Me.CharmedUnit.Location))),
+                                    new Action(ctx => Lua.DoString("CastPetAction(2)")))),
+                            new Decorator(ctx => yeti.Location.DistanceSqr(attackTarget.Location) > 25 * 25, new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
+                    new Decorator(
+                        ctx => attackTarget == null,
+                        new PrioritySelector(
+                            new Decorator(
+                                ctx => yeti.Location.DistanceSqr(WaitPoint) > 10 * 10,
+                                new PrioritySelector(
+                                    // can't set path precision so I'll just handle it directly...
+                                    // the yeti takes wide turns so needs a higher path precision than normal
+                                    new Decorator(
+                                        ctx =>
+                                        {
+                                            var nav = Navigator.NavigationProvider as MeshNavigator;
+                                            if (nav == null)
+                                                return false;
+                                            if (nav.CurrentMovePath == null || nav.CurrentMovePath.Index >= nav.CurrentMovePath.Path.Points.Length)
+                                                return false;
+                                            WoWPoint point = nav.CurrentMovePath.Path.Points[nav.CurrentMovePath.Index];
+                                            return point.DistanceSqr(yeti.Location) < 6 * 6;
+                                        },
+                                        new Action(ctx => ((MeshNavigator) Navigator.NavigationProvider).CurrentMovePath.Index++)),
+                                    
+                                    CreateBehavior_Antistuck(),
+
+                                    new Action(ctx => Navigator.MoveTo(WaitPoint)))),
+                            new ActionSetActivity("No viable targets, waiting."))),
+                    new ActionAlwaysSucceed()));
         }
 
-        public Composite DoDps
+        public Composite CreateBehavior_GetIn()
         {
-            get { return new PrioritySelector(RoutineManager.Current.CombatBuffBehavior, RoutineManager.Current.CombatBehavior); }
-        }
-
-
-        public Composite GetIn
-        {
-            get
-            {
-                return new Decorator(
-                    r => !Me.InVehicle && !Me.IsActuallyInCombat,
-                    new PrioritySelector(
-                        new Decorator(
-                            r => Yeti != null,
-                            new Action(
-                                r =>
-                                {
-                                    Yeti.Interact();
-                                    Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
-                                })),
-                        new Decorator(r => Yeti == null, new Action(r => Navigator.MoveTo(StartPoint)))));
-            }
+            return new Decorator(
+                r => !Me.InVehicle && !Me.IsActuallyInCombat,
+                new PrioritySelector(
+                    new Decorator(
+                        r => Yeti != null,
+                        new Action(
+                            r =>
+                            {
+                                Yeti.Interact();
+                                Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
+                            })),
+                    new Decorator(r => Yeti == null, new Action(r => Navigator.MoveTo(StartPoint)))));
         }
 
         private WoWUnit GetAttackTarget()
@@ -250,7 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 
             var nearestHostileAttackingPlayer =
                 ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .Where(r => r.Entry != 60754 && r.GotTarget && r.CurrentTarget == charmedUnit && (point1.DistanceSqr(r.Location) < 80 * 80 || point2.DistanceSqr(r.Location) < 60 * 60))
+                    .Where(r => r.Entry != 60754 && r.GotTarget && r.CurrentTarget == charmedUnit)
                     .OrderBy(r => r.DistanceSqr)
                     .FirstOrDefault();
 
@@ -294,7 +283,73 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 
         protected Composite CreateBehavior_MainCombat()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetIn, MantidKill)));
+            return _root ?? (_root = 
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+                        CreateBehavior_CheckCompletion(), 
+                        CreateBehavior_GetIn(), 
+                        CreateBehavior_KillMantid())));
         }
+
+        #region StuckHandler
+
+        readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
+        private static readonly Random _rnd = new Random();
+
+        protected Composite CreateBehavior_Antistuck()
+        {
+            var prevPosition = WoWPoint.Empty;
+            WoWPoint myLoc = WoWPoint.Empty;
+            var moveDirection = WoWMovement.MovementDirection.None;
+
+            return new PrioritySelector(
+                new Decorator(
+                    ctx => _stuckTimer.IsFinished,
+                    new Sequence(
+                        ctx => myLoc = WoWMovement.ActiveMover.Location,
+                        // checks if stuck
+                        new DecoratorContinue(
+                            ctx => myLoc.DistanceSqr(prevPosition) < 3 * 3,
+                            new Sequence(         
+                                        ctx => moveDirection = GetRandomMovementDirection(),
+                                        new Action(ctx => QBCLog.Debug("Stuck. Movement Directions: {0}", moveDirection)),
+                                        new Action(ctx => WoWMovement.Move(moveDirection)),
+                                        new WaitContinue(2, ctx => false, new ActionAlwaysSucceed()),
+                                        new Action(ctx => WoWMovement.MoveStop(moveDirection)))),
+
+                        new Action(ctx => prevPosition = myLoc),
+                        new Action(ctx => _stuckTimer.Reset()))));
+        }
+
+        private WoWMovement.MovementDirection GetRandomMovementDirection()
+        {
+            // randomly move left or ritht
+            WoWMovement.MovementDirection ret = _rnd.Next(2) == 0
+                ? WoWMovement.MovementDirection.StrafeLeft
+                : WoWMovement.MovementDirection.StrafeRight;
+
+            // randomly choose to go diagonal backwords + left or right
+            if (_rnd.Next(2) == 0)
+                ret |= WoWMovement.MovementDirection.Backwards;
+
+            // randomly choose to jump (or descend if flying or swimming)
+            if (_rnd.Next(2) == 0)
+            {
+                var activeMover = WoWMovement.ActiveMover;
+                if (activeMover.IsFlying || activeMover.IsSwimming)
+                {
+                    ret |= _rnd.Next(2) == 0
+                        ? WoWMovement.MovementDirection.JumpAscend
+                        : WoWMovement.MovementDirection.Descend;
+                }
+                else
+                {
+                    ret |= WoWMovement.MovementDirection.JumpAscend;
+                }
+            }
+            return ret;
+        }
+        #endregion
+
     }
 }

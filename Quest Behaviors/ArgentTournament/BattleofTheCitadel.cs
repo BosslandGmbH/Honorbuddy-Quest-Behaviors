@@ -114,7 +114,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -537,7 +537,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ??
                    (_root =
@@ -579,17 +579,7 @@ namespace Styx.Bot.Quest_Behaviors
             if (!IsDone)
             {
 
-
-
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 mainhand = Me.Inventory.Equipped.MainHand;
                 

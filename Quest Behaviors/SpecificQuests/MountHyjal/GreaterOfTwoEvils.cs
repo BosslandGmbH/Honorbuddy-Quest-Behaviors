@@ -9,6 +9,7 @@ using System.Linq;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -103,7 +104,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main",  CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -164,7 +165,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root =
                 new Decorator(ret => !_isBehaviorDone,
@@ -301,34 +302,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current == null)
-                    LogMessage("fatal", "TreeRoot.Current == null");
-                else if (TreeRoot.Current.Root == null)
-                    LogMessage("fatal", "TreeRoot.Current.Root == null");
-                else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
-                    LogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
-                else
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (!(currentRoot is GroupComposite))
-                        LogMessage("fatal", "!(currentRoot is GroupComposite)");
-                    else
-                    {
-                        if (currentRoot is Sequence)
-                            _lastStateReturn = RunStatus.Failure;
-                        else if (currentRoot is PrioritySelector)
-                            _lastStateReturn = RunStatus.Success;
-                        else
-                        {
-                            DLog("Unknown type of Group Composite at root");
-                            _lastStateReturn = RunStatus.Success;
-                        }
-
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");

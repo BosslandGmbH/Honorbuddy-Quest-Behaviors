@@ -88,7 +88,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isDisposed, _cancelBehavior;
         private Composite _root;
-
+        // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+        private bool? _lootMobs;
 
         ~MrFishIt()
         {
@@ -106,7 +107,9 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                    // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+                    ProfileManager.CurrentProfile.LootMobs = _lootMobs;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -185,6 +188,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new QuestBehaviorCore.ConfigMemento();
+                // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+                _lootMobs = ProfileManager.CurrentProfile.LootMobs;
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop; 
                 Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);
@@ -200,7 +205,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 CharacterSettings.Instance.HarvestHerbs = false;
                 CharacterSettings.Instance.HarvestMinerals = false;
                 CharacterSettings.Instance.LootChests = false;
-                CharacterSettings.Instance.LootMobs = false;
+                ProfileManager.CurrentProfile.LootMobs = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;
@@ -208,16 +213,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // Make sure we don't get logged out
                 GlobalSettings.Instance.LogoutForInactivity = false;
 
-                // some CustomClass make problems, so we stop it now
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
                 if (quest == null)
@@ -257,7 +253,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             }
         }
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root =
                 new Decorator(ret => !IsDone /*&& !LootOpen*/,

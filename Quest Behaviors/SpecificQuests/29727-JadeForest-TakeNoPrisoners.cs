@@ -165,6 +165,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
 
         protected Composite CreateBehavior_MainCombat()
         {
+                
             return _root ?? (_root =
                 new PrioritySelector(
                     new Decorator(

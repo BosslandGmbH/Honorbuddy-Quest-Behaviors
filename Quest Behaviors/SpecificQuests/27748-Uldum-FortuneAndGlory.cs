@@ -11,6 +11,7 @@ using System.Threading;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -93,7 +94,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior());
+                    Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -105,19 +107,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
             }
 
             _isDisposed = true;
-        }
-
-
-        public Composite DoDps
-        {
-            get
-            {
-                return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
-                                      RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
-            }
         }
 
         #region Overrides of CustomForcedBehavior
@@ -134,41 +123,33 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
             get
             {
                 return new Decorator(ret => IsQuestComplete(), new Action(delegate
-                                                                                           {
-                                                                                               TreeRoot.StatusText =
-                                                                                                   "Finished!";
-                                                                                               _isBehaviorDone = true;
-                                                                                               return RunStatus.Success;
-                                                                                           }));
+                {
+                    TreeRoot.StatusText =
+                        "Finished!";
+                    _isBehaviorDone = true;
+                    return RunStatus.Success;
+                }));
             }
         }
 
-
+        private const uint ObsidianColossusId = 46646;
 
         public WoWUnit Enemey
         {
             get
             {
                 return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.IsAlive && u.Entry == 46646);
+                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.IsAlive && u.Entry == ObsidianColossusId);
             }
         }
-
-
-        public Composite ShootStuff
-        {
-            get
-            {
-                return new Decorator(ret => Me.CurrentTarget == Enemey, DoDps);
-            }
-        }
-
 
         public Composite TargetHim
         {
             get
             {
-                return new Decorator(ret => Me.CurrentTarget != Enemey, new Action(r => Enemey.Target()));
+                return new PrioritySelector(ctx => Enemey, 
+                    new Decorator(ctx => Me.CurrentTarget != (WoWUnit)ctx, 
+                        new Action(ctx => ((WoWUnit)ctx).Target())));
             }
         }
 
@@ -177,7 +158,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
         {
             get
             {
-                return new Decorator(ret => Enemey != null && Enemey.HealthPercent > 26, new ActionAlwaysSucceed());
+                return new PrioritySelector(ctx => Enemey,
+                    new Decorator(ctx => ctx != null && ((WoWUnit)ctx).HealthPercent > 26, new ActionAlwaysSucceed()));
             }
         }
 
@@ -185,23 +167,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
         {
             get
             {
-                return new Decorator(ret => Me.CurrentTarget.IsCasting && Me.CurrentTarget.CastingSpellId == 87990 && SpellManager.CanCast(PullMob()),
-                    new Action(delegate
-                                   { var x = PullMob();
-                                       SpellManager.Cast(x);
-                                   }
-                                   ));
+                return new PrioritySelector( ctx => Me.CurrentTarget,
+                    new Decorator(ctx => ctx != null && ((WoWUnit)ctx).IsCasting && ((WoWUnit)ctx).CastingSpellId == 87990 && SpellManager.CanCast(InteruptSpellName),
+                    new Action(ctx => SpellManager.Cast(InteruptSpellName))));
             }
         }
 
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, WaitAround,TargetHim, Kick, ShootStuff)));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, WaitAround,TargetHim, Kick)));
         }
-
-
-
-
 
 
         public override void Dispose()
@@ -221,58 +196,34 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
         }
 
 
-        public string PullMob()
+        public string InteruptSpellName
         {
-            string spell = "";
-
-            switch (Me.Class)
+            get
             {
-                case WoWClass.Mage:
-                    spell = "Counterspell";
-                    break;
-                case WoWClass.Druid:
-                    spell = "dsad";
-                    break;
-                case WoWClass.Paladin:
-                    spell = "Rebuke";
-                    break;
-                case WoWClass.Priest:
-                    spell = "dasd";
-                    break;
-                case WoWClass.Shaman:
-                    spell = "Wind Shear";
-                    break;
-                case WoWClass.Warlock:
-                    spell = "dsad";
-                    break;
-                case WoWClass.DeathKnight:
-                    spell = "Mind Freeze";
-                    break;
-                case WoWClass.Hunter:
-                    spell = "Silencing Shot";
-                    break;
-                case WoWClass.Warrior:
-                    spell = "Pummel";
-                    break;
-                case WoWClass.Rogue:
-                    spell = "Kick";
-                    break;
-
+                switch (Me.Class)
+                {
+                    case WoWClass.Mage:
+                        return "Counterspell";
+                    case WoWClass.Paladin:
+                        return "Rebuke";
+                    case WoWClass.Shaman:
+                        return "Wind Shear";
+                    case WoWClass.DeathKnight:
+                        return "Mind Freeze";
+                    case WoWClass.Hunter:
+                        return "Silencing Shot";
+                    case WoWClass.Warrior:
+                        return "Pummel";
+                    case WoWClass.Rogue:
+                        return "Kick";
+                }
+                return String.Empty;
             }
-
-            return spell;
-
-
         }
 
 
         public override void OnStart()
         {
-
-
-
-
-
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -283,21 +234,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null &&
-                    TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior());
+                Targeting.Instance.IncludeTargetsFilter += Instance_IncludeTargetsFilter;
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
                 TreeRoot.GoalText = this.GetType().Name + ": " +
                                     ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+            }
+        }
+
+        void Instance_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
+        {
+            foreach (var unit in incomingUnits.OfType<WoWUnit>())
+            {
+                if (unit.Entry == ObsidianColossusId && unit.HealthPercent <= 26)
+                    outgoingUnits.Add(unit);
             }
         }
 

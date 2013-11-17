@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
@@ -55,16 +56,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleForTheSkies
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
-
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
                 TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
@@ -149,9 +141,50 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleForTheSkies
 
 
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, DpsHim, Boom, new ActionAlwaysSucceed())));
         }
+
+        #region Cleanup
+
+        ~BattlefortheSkies()
+        {
+            Dispose(false);
+        }
+
+        private bool _isDisposed;
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
+            {
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
+            }
+
+            _isDisposed = true;
+        }
+
+        #endregion
     }
 }

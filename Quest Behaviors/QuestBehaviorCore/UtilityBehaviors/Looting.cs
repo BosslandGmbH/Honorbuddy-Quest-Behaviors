@@ -57,7 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Loot) && CharacterSettings.Instance.LootMobs,
+                    new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Loot) && LootTargeting.LootMobs,
                         new PrioritySelector(context => CachedLootObject = Utility.LootableObject(),
                             new Decorator(context => (CachedLootObject != null) && (CachedLootObject.Distance > CachedLootObject.InteractRange),
                                 new UtilityBehaviorPS.MoveTo(
@@ -93,7 +93,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new CompositeThrottle(context => CharacterSettings.Instance.LootMobs && (Me.FreeBagSlots <= 0),
+                    new CompositeThrottle(context => LootTargeting.LootMobs && (Me.FreeBagSlots <= 0),
                         TimeSpan.FromSeconds(10),
                         new ActionFail(context =>
                         {

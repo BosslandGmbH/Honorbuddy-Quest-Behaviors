@@ -40,6 +40,7 @@ using System.Linq;
 using Honorbuddy.QuestBehaviorCore;
 
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -192,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -256,7 +257,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root =
                 new PrioritySelector(
@@ -311,16 +312,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, RootCompositeOverride());
-                    }
-                }
-
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

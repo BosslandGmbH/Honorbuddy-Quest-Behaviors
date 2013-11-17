@@ -10,6 +10,7 @@ using System.Linq;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -98,7 +99,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -234,9 +235,8 @@ new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentT
             Lua.DoString("CastPetAction(2);");
         }
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
-
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new Sequence(new DecoratorContinue(r=> Mount != null  && (Mount.GetAllAuras().FirstOrDefault(x=>x.SpellId == 88043 || x.SpellId ==88189) != null),new Action(r=>Shield())),new PrioritySelector(DoneYet, PartOne, PartTwo, new ActionAlwaysSucceed()))));
         }
 
@@ -274,21 +274,7 @@ new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentT
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (TreeRoot.Current != null && TreeRoot.Current.Root != null &&
-                    TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (currentRoot is GroupComposite)
-                    {
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                    }
-                }
-
- 
-
-                
-                
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

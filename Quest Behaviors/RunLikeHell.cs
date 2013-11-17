@@ -10,6 +10,7 @@ using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -166,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -217,7 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root =
                 new Decorator(ret => !IsDone && (!AllowCombat || !Me.Combat),
@@ -333,35 +334,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 Counter = 1;
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-
-                if (TreeRoot.Current == null)
-                    LogMessage("fatal", "TreeRoot.Current == null");
-                else if (TreeRoot.Current.Root == null)
-                    LogMessage("fatal", "TreeRoot.Current.Root == null");
-                else if (TreeRoot.Current.Root.LastStatus == RunStatus.Running)
-                    LogMessage("fatal", "TreeRoot.Current.Root.LastStatus == RunStatus.Running");
-                else
-                {
-                    var currentRoot = TreeRoot.Current.Root;
-                    if (!(currentRoot is GroupComposite))
-                        LogMessage("fatal", "!(currentRoot is GroupComposite)");
-                    else
-                    {
-                        if (currentRoot is Sequence)
-                            _lastStateReturn = RunStatus.Failure;
-                        else if (currentRoot is PrioritySelector)
-                            _lastStateReturn = RunStatus.Success;
-                        else
-                        {
-                            LogMessage("debug", "Unknown type of Group Composite at root");
-                            _lastStateReturn = RunStatus.Success;
-                        }
-
-                        var root = (GroupComposite)currentRoot;
-                        root.InsertChild(0, CreateBehavior());
-                        LogMessage("debug", "Disabled Combat");
-                    }
-                }
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
             }
         }
 

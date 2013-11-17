@@ -324,6 +324,8 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                                        ctx => _runTimer.IsFinished,
                                        new Sequence(
                                            new Action(ctx => WoWMovement.MoveStop()),
+                                           // N.B. set the runtimer to null so if player manually correct problem and starts bot up it restarts the timer.
+                                           new Action(ctx => _runTimer = null),
                                            new Action(
                                                ctx => QBCLog.Fatal(
                                                    "MyCTM is not able to reach {0} from {1}",
@@ -340,7 +342,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 
                                    // check if bot has reached the destination.
                                    new Decorator(
-                                       ret => Destination.DistanceSqr(Me.Location) <= 3,
+                                       ret => Destination.DistanceSqr(Me.Location) <= 3 * 3,
                                        new Sequence(
                                            new Action(ctx => QBCLog.Info("MyCTM finished moving to {0}", DestinationName)),
                                            new Action(ctx => _isBehaviorDone = true),

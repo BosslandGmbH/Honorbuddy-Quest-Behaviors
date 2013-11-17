@@ -119,7 +119,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
+        // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+        private bool? _lootMobs;
         public Stopwatch TimeOut = new Stopwatch();
 
         // Private properties
@@ -199,7 +200,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+                    ProfileManager.CurrentProfile.LootMobs = _lootMobs;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -475,7 +477,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new QuestBehaviorCore.ConfigMemento();
-
+                // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
+                _lootMobs = ProfileManager.CurrentProfile.LootMobs ;
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
                 // Disable any settings that may interfere with the escort --
@@ -485,7 +488,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                 CharacterSettings.Instance.HarvestHerbs = false;
                 CharacterSettings.Instance.HarvestMinerals = false;
                 CharacterSettings.Instance.LootChests = false;
-                CharacterSettings.Instance.LootMobs = false;
+                ProfileManager.CurrentProfile.LootMobs = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
 

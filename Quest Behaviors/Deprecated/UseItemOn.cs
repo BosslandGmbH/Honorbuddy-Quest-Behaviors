@@ -167,6 +167,7 @@ using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -364,7 +365,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // empty, for now
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -489,113 +490,114 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
+        protected Composite CreateBehavior_CombatMain()
         {
             return _root ?? (_root =
-            new PrioritySelector(
-                new Decorator(ret => Counter >= NumOfTimes,
-                    new Action(ret => _isBehaviorDone = true)),
-
-                new Decorator(context => CurrentObject != null,
+                new Decorator(ctx => !_isBehaviorDone,
                     new PrioritySelector(
-                        new Decorator(ret => CurrentObject.DistanceSqr > Range * Range,
-                            new Switch<NavigationType>(ret => NavigationState,
-                                new SwitchArgument<NavigationType>(
-                                    NavigationType.CTM,
-                                    new Sequence(
-                                        new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
-                                        new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
-                                    )),
-                                new SwitchArgument<NavigationType>(
-                                    NavigationType.Mesh,
-                                    new Sequence(
-                                        new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
-                                        new Action(ret => Navigator.MoveTo(CurrentObject.Location))
-                                        )),
-                                new SwitchArgument<NavigationType>(
-                                    NavigationType.None,
-                                    new Sequence(
-                                        new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
-                                        new Action(ret => _isBehaviorDone = true)
-                                    )))),
+                        new Decorator(ret => Counter >= NumOfTimes,
+                            new Action(ret => _isBehaviorDone = true)),
 
-                        new Decorator(ret => CurrentObject.DistanceSqr <= Range * Range && Item != null && Item.Cooldown == 0,
-                            new Sequence(
-                                new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                    new Action(ret =>
+                        new Decorator(context => (IgnoreCombat || !Me.IsActuallyInCombat) && CurrentObject != null,
+                            new PrioritySelector(
+                                new Decorator(ret => CurrentObject.DistanceSqr > Range * Range,
+                                    new Switch<NavigationType>(ret => NavigationState,
+                                        new SwitchArgument<NavigationType>(
+                                            NavigationType.CTM,
+                                            new Sequence(
+                                                new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
+                                                new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
+                                            )),
+                                        new SwitchArgument<NavigationType>(
+                                            NavigationType.Mesh,
+                                            new Sequence(
+                                                new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
+                                                new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+                                                )),
+                                        new SwitchArgument<NavigationType>(
+                                            NavigationType.None,
+                                            new Sequence(
+                                                new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
+                                                new Action(ret => _isBehaviorDone = true)
+                                            )))),
+
+                                new Decorator(ret => CurrentObject.DistanceSqr <= Range * Range && Item != null && Item.Cooldown == 0,
+                                    new Sequence(
+                                        new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
+                                            new Action(ret =>
+                                            {
+                                                WoWMovement.MoveStop();
+                                                StyxWoW.SleepForLagDuration();
+                                            })),
+
+                                        new Action(ret =>
+                                        {
+                                            bool targeted = false;
+                                            TreeRoot.StatusText = "Using item on \"" + CurrentObject.Name + "\"";
+                                            if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
+                                            {
+                                                (CurrentObject as WoWUnit).Target();
+                                                targeted = true;
+                                                StyxWoW.SleepForLagDuration();
+                                            }
+
+                                            WoWMovement.Face(CurrentObject.Guid);
+
+                                            Item.UseContainerItem();
+                                            _npcBlacklist.Add(CurrentObject.Guid);
+
+                                            StyxWoW.SleepForLagDuration();
+                                            Counter++;
+
+                                            if (WaitTime < 100)
+                                                WaitTime = 100;
+
+                                            if (WaitTime > 100)
+                                            {
+                                                if (targeted)
+                                                    StyxWoW.Me.ClearTarget();
+                                            }
+
+                                            StyxWoW.Sleep(WaitTime);
+                                        })
+                                    ))
+                                )),
+
+                        // If we couldn't find a mob, move to next hunting grounds waypoint...
+                        new Decorator(context => CurrentObject == null,
+                            new PrioritySelector(
+                                new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
+                                    new Action(context =>
                                     {
-                                        WoWMovement.MoveStop();
-                                        StyxWoW.SleepForLagDuration();
+                                        if (!WaitForNpcs)
+                                            { _isBehaviorDone = true; }
+
+                                        else if (HuntingGrounds.Waypoints.Count() > 1)
+                                            { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }
+
+                                        else
+                                        {
+                                            string message = "Waiting for mobs or objects to respawn.";
+                                            LogInfo(message);
+                                            TreeRoot.StatusText = message;
+                                        }
                                     })),
 
-                                new Action(ret =>
-                                {
-                                    bool targeted = false;
-                                    TreeRoot.StatusText = "Using item on \"" + CurrentObject.Name + "\"";
-                                    if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
+                                new Sequence(
+                                    new Action(context =>
                                     {
-                                        (CurrentObject as WoWUnit).Target();
-                                        targeted = true;
-                                        StyxWoW.SleepForLagDuration();
-                                    }
+                                        string destinationName =
+                                            string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name)
+                                            ? "Moving to next hunting ground waypoint"
+                                            : string.Format("Moving to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name);
 
-                                    WoWMovement.Face(CurrentObject.Guid);
-
-                                    Item.UseContainerItem();
-                                    _npcBlacklist.Add(CurrentObject.Guid);
-
-                                    StyxWoW.SleepForLagDuration();
-                                    Counter++;
-
-                                    if (WaitTime < 100)
-                                        WaitTime = 100;
-
-                                    if (WaitTime > 100)
-                                    {
-                                        if (targeted)
-                                            StyxWoW.Me.ClearTarget();
-                                    }
-
-                                    StyxWoW.Sleep(WaitTime);
-                                })
+                                        TreeRoot.StatusText = destinationName;
+                                        Navigator.MoveTo(CurrentHuntingGroundWaypoint.Location);
+                                    }),
+                                    new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
+                                )
                             ))
-                        )),
-
-                // If we couldn't find a mob, move to next hunting grounds waypoint...
-                new Decorator(context => CurrentObject == null,
-                    new PrioritySelector(
-                        new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
-                            new Action(context =>
-                            {
-                                if (!WaitForNpcs)
-                                    { _isBehaviorDone = true; }
-
-                                else if (HuntingGrounds.Waypoints.Count() > 1)
-                                    { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }
-
-                                else
-                                {
-                                    string message = "Waiting for mobs or objects to respawn.";
-                                    LogInfo(message);
-                                    TreeRoot.StatusText = message;
-                                }
-                            })),
-
-                        new Sequence(
-                            new Action(context =>
-                            {
-                                string destinationName =
-                                    string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name)
-                                    ? "Moving to next hunting ground waypoint"
-                                    : string.Format("Moving to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name);
-
-                                TreeRoot.StatusText = destinationName;
-                                Navigator.MoveTo(CurrentHuntingGroundWaypoint.Location);
-                            }),
-                            new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                        )
-                    ))
-                ));
+                        )));
         }
 
 
@@ -654,16 +656,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
             }
-
-            if (IgnoreCombat && TreeRoot.Current != null && TreeRoot.Current.Root != null && TreeRoot.Current.Root.LastStatus != RunStatus.Running)
-            {
-                var currentRoot = TreeRoot.Current.Root;
-                if (currentRoot is GroupComposite)
-                {
-                    var root = (GroupComposite)currentRoot;
-                    root.InsertChild(0, CreateBehavior());
-                }
-            }
+            TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
         }
 
         #endregion
