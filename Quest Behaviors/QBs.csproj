@@ -96,10 +96,10 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="GreyMagic">
-      <HintPath>..\..\..\HonorBuddy\GreyMagic.dll</HintPath>
+      <HintPath>..\Dependencies\GreyMagic.dll</HintPath>
     </Reference>
-    <Reference Include="Honorbuddy-cleaned">
-      <HintPath>..\..\..\HonorBuddy\Honorbuddy-cleaned.exe</HintPath>
+    <Reference Include="Honorbuddy">
+      <HintPath>..\Dependencies\Honorbuddy.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -115,9 +115,8 @@
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="Tripper.RecastManaged, Version=1.0.0.0, Culture=neutral, PublicKeyToken=b2150347bb351956, processorArchitecture=x86">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\Honorbuddy\Tripper.RecastManaged.dll</HintPath>
+    <Reference Include="Tripper.RecastManaged">
+      <HintPath>..\Dependencies\Tripper.RecastManaged.dll</HintPath>
     </Reference>
     <Reference Include="Tripper.Tools">
       <HintPath>..\Dependencies\Tripper.Tools.dll</HintPath>
