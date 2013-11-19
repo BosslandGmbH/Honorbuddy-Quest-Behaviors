@@ -167,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -218,7 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
 
         #region Overrides of CustomForcedBehavior
 
-        protected Composite CreateBehavior_CombatMain()
+        protected Composite CreateBehavior_QuestbotMain()
         {
             return _root ?? (_root =
                 new Decorator(ret => !IsDone && (!AllowCombat || !Me.Combat),
@@ -334,7 +334,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 Counter = 1;
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
             }
         }
 

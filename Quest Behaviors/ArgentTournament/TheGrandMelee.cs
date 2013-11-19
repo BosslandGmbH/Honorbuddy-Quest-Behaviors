@@ -118,7 +118,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -346,7 +346,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
-        protected Composite CreateBehavior_CombatMain()
+        protected Composite CreateBehavior_QuestbotMain()
         {
             return _root ??
                    (_root =
@@ -399,7 +399,7 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     Debuffs.Add(Enemy[i], EnemyDebuff[i]);
                 }
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
                 // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 

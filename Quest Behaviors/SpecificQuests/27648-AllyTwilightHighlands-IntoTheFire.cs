@@ -100,7 +100,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.IntoTheFire
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -184,7 +184,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.IntoTheFire
 
 
 
-        protected Composite CreateBehavior_CombatMain()
+        protected Composite CreateBehavior_QuestbotMain()
         {
 
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,Stuff)));
@@ -223,7 +223,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.IntoTheFire
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);

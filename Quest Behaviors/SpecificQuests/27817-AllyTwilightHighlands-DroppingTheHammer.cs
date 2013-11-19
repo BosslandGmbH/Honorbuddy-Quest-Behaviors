@@ -99,7 +99,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -235,7 +235,7 @@ new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentT
             Lua.DoString("CastPetAction(2);");
         }
 
-        protected Composite CreateBehavior_CombatMain()
+        protected Composite CreateBehavior_QuestbotMain()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new Sequence(new DecoratorContinue(r=> Mount != null  && (Mount.GetAllAuras().FirstOrDefault(x=>x.SpellId == 88043 || x.SpellId ==88189) != null),new Action(r=>Shield())),new PrioritySelector(DoneYet, PartOne, PartTwo, new ActionAlwaysSucceed()))));
         }
@@ -274,7 +274,7 @@ new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentT
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 

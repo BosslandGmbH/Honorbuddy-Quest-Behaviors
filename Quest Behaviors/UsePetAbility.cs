@@ -180,7 +180,6 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
         public override string SubversionId { get { return ("$Id: UsePetAbility.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
         public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
 
-
         ~UsePetAbility()
         {
             Dispose(false);
@@ -197,7 +196,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -214,7 +213,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 
         #region Overrides of CustomForcedBehavior
 
-        protected Composite CreateBehavior_CombatMain()
+        protected Composite CreateBehavior_QuestbotMain()
         {
             return _root ?? (_root =
                 new Decorator(ctx => !_isBehaviorDone && (!Me.IsActuallyInCombat || IgnoreCombat),
@@ -326,7 +325,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 
                 TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
             }
-            TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+            TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
         }
 
         #endregion
