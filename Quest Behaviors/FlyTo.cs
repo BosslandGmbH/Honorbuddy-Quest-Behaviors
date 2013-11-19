@@ -78,6 +78,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         // Private variables for internal state
         private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isDisposed;
+	    private bool _reachedDestination;
         private Composite _root;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -135,7 +136,9 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 new PrioritySelector(
                     new Decorator(
                         ret => Land && Destination.DistanceSqr(StyxWoW.Me.Location) < Distance * Distance,
-                        new Mount.ActionLandAndDismount()),
+						new Sequence(
+							new Mount.ActionLandAndDismount(),
+							new Action(ret => _reachedDestination = true))),
 					// Don't run FlyTo when there is a poi set
 					new DecoratorIsPoiType(PoiType.None, 
 						new Action(ret => Flightor.MoveTo(Destination, !IgnoreIndoors))))));
@@ -153,7 +156,8 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
         {
             get
             {
-                return ((Destination.Distance(StyxWoW.Me.Location) <= Distance) && (!Land || !StyxWoW.Me.Mounted)     // normal completion
+                return ((Destination.Distance(StyxWoW.Me.Location) <= Distance) && (!Land || !StyxWoW.Me.Mounted)
+						|| _reachedDestination // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
