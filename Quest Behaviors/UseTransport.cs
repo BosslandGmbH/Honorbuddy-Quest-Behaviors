@@ -91,9 +91,6 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-        // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
-        private bool? _lootMobs;
-
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
@@ -117,8 +114,6 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 // Clean up managed resources, if explicit disposal...
                 if (isExplicitlyInitiatedDispose)
                 {
-                    // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
-                    ProfileManager.CurrentProfile.LootMobs = _lootMobs;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -242,8 +237,6 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new QuestBehaviorCore.ConfigMemento();
-                // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
-                _lootMobs = ProfileManager.CurrentProfile.LootMobs;
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 

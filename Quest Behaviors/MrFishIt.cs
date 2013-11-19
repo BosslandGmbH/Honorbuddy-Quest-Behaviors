@@ -88,8 +88,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         private QuestBehaviorCore.ConfigMemento _configMemento;
         private bool _isDisposed, _cancelBehavior;
         private Composite _root;
-        // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
-        private bool? _lootMobs;
 
         ~MrFishIt()
         {
@@ -108,8 +106,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 if (isExplicitlyInitiatedDispose)
                 {
                     TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
-                    // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
-                    ProfileManager.CurrentProfile.LootMobs = _lootMobs;
                 }
 
                 // Clean up unmanaged resources (if any) here...
@@ -188,8 +184,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // can be found here...
                 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
                 _configMemento = new QuestBehaviorCore.ConfigMemento();
-                // ToDo: remove once LootMobs state is saved and restored by ConfigMemento
-                _lootMobs = ProfileManager.CurrentProfile.LootMobs;
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop; 
                 Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);

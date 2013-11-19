@@ -11,6 +11,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.TreeSharp;
 
 using Action = Styx.TreeSharp.Action;
@@ -24,18 +25,23 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
         /// <summary>
         /// Allows you to load a profile, it needs to be in the same folder as your current profile.
         /// ##Syntax##
-        /// ProfileName: The name of the profile with the ".xml" extension.
+        /// ProfileName: 
+        ///     The name of the profile with or without the ".xml" extension.
+        /// 
+        /// RememberProfile [optional; Default: False] 
+        ///     Set this to True if Honorbuddy should remember and load the profile the next time it's started. Default (False)
         /// </summary>
         /// 
         public LoadProfile(Dictionary<string, string> args)
             : base(args)
         {
             try
-            {
+            {                
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
                 ProfileName = GetAttributeAs<string>("ProfileName", true, ConstrainAs.StringNonEmpty, new[] { "Profile" }) ?? "";
+                RememberProfile = GetAttributeAsNullable<bool>("RememberProfile", false, null, null) ?? false;
 
                 if (!ProfileName.ToLower().EndsWith(".xml"))
                 { ProfileName += ".xml"; }
@@ -57,6 +63,7 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 
         // Attributes provided by caller
         public String ProfileName { get; private set; }
+        public bool RememberProfile { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -126,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
                                 {
                                     TreeRoot.StatusText = "Loading profile '" + NewProfilePath + "'";
                                     LogMessage("info", "Loading profile '{0}'", ProfileName);
-                                    ProfileManager.LoadNew(NewProfilePath, false);
+                                    ProfileManager.LoadNew(NewProfilePath, RememberProfile);
                                 }),
                                 new WaitContinue(TimeSpan.FromMilliseconds(300), ret => false, new ActionAlwaysSucceed()),
                                 new Action(delegate { _isBehaviorDone = true; })
