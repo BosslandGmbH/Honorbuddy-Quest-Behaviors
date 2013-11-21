@@ -276,6 +276,62 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
+        private void BuildQuestState(StringBuilder builder, string linePrefix)
+        {
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                var questCount = Me.QuestLog.GetAllQuests().Count;
+
+                // Analyze plugins for known problem ones...
+                builder.AppendFormat("{0}Quest Log ({1} total):", linePrefix, questCount);
+                builder.Append(Environment.NewLine);
+                if (questCount <= 0)
+                {
+                    builder.AppendFormat("{0}    None", linePrefix);
+                    builder.Append(Environment.NewLine);
+                    return;
+                }
+
+                // Present the quest in the same oder shown in user's quest log...
+                var questsQuery =
+                    Me.QuestLog.GetAllQuests()
+                    .Select(q => new { Quest = q, Index = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", q.Id), 0) })
+                    .OrderBy(val => val.Index);
+
+                foreach (var quest in questsQuery)
+                {
+                    var questState =
+                        quest.Quest.IsCompleted ? "COMPLETED"
+                        : quest.Quest.IsFailed ? "FAILED"
+                        : "incomplete";
+
+                    builder.AppendFormat("{0}    \"{1}\"(http://wowhead.com/quest={2}) {3}{4}",
+                        linePrefix,
+                        quest.Quest.Name,
+                        quest.Quest.Id,
+                        questState,
+                        (quest.Quest.IsDaily ? ", Daily" : ""));
+                    builder.Append(Environment.NewLine);
+
+                    foreach (var objective in quest.Quest.GetObjectives().OrderBy(o => o.Index))
+                    {
+                        var objectiveIndex = objective.Index + 1;   // HB is zero-based, but LUA is one-based
+                        var objectiveQuery = string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, quest.Index);
+                        var objectiveText = Lua.GetReturnVal<string>(objectiveQuery, 0);
+                        var objectiveIsFinished = Lua.GetReturnVal<bool>(objectiveQuery, 2);
+
+                        builder.AppendFormat("{0}        {1} (type: {2}) {3}",
+                            linePrefix,
+                            objectiveText,
+                            objective.Type,
+                            (objectiveIsFinished ? "OBJECTIVE_COMPLETE" : ""));
+                        builder.Append(Environment.NewLine);
+                    }
+                }
+            }
+        }
+
+
         private bool EmitStateInfo()
         {
             var fps = GetFPS();
@@ -336,6 +392,11 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             List<string> problemPlugInList;
             builderInfo.Append(Environment.NewLine);
             BuildPluginList(builderInfo, linePrefix, out problemPlugInList);
+
+
+            // Quest state...
+            builderInfo.Append(Environment.NewLine);
+            BuildQuestState(builderInfo, linePrefix);
 
 
             // Warnings & Errors...
