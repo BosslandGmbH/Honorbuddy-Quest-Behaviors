@@ -20,6 +20,8 @@ using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest;
 using Styx.Helpers;
+using Styx.Pathing;
+
 #endregion
 
 
@@ -44,6 +46,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             // Sub-Mementos...
             _subMementoLevelBot = new LevelBotMemento();
+            _subMementoNavigator = new NavigatorMemento();
             _subMementoProfileSettings = new ProfileSettingsMemento();
         }
 
@@ -54,6 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private XElement _settingsLevelBot;
         private XElement _settingsStyx;
         private LevelBotMemento _subMementoLevelBot;
+        private NavigatorMemento _subMementoNavigator;
         private ProfileSettingsMemento _subMementoProfileSettings;
         #endregion
 
@@ -103,6 +107,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     _subMementoLevelBot.Restore();
                     _subMementoLevelBot = null;
+                }
+
+                if (_subMementoNavigator != null)
+                {
+                    _subMementoNavigator.Restore();
+                    _subMementoNavigator = null;
                 }
 
                 if (_subMementoProfileSettings != null)
@@ -194,6 +204,26 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // This memento captures the settings embedded in the Navigator
+        // that a quest behavior is interested in altering.
+        private class NavigatorMemento
+        {
+            private readonly float _pathPrecision;
+
+
+            public NavigatorMemento()
+            {
+                _pathPrecision = Navigator.PathPrecision;
+            }
+
+
+            public void Restore()
+            {
+                Navigator.PathPrecision = _pathPrecision;
+            }
+        }
+        
+        
         // This class captures any profile settings that can be directly modified (i.e.,
         // that have a 'setter' operation defined for them), or indirectly modified
         // (i.e., they directly expose their internal representation).
