@@ -197,6 +197,7 @@ using System.Linq;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -598,7 +599,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 // If a preferred target is available and not targeted, switch targets...
                 new PrioritySelector(preferredUnitContext => FindUnitsFromIds(PreferKillingMobIds).FirstOrDefault(),
                     new Decorator(preferredUnitContext => (preferredUnitContext != null)
-                                            && ((Me.CurrentTarget == null) || !PreferKillingMobIds.Contains((int)Me.CurrentTarget.Entry)),
+                                            && ((Me.CurrentTarget == null) || !PreferKillingMobIds.Contains((int)Me.CurrentTarget.Entry))
+                                            &&  !Query.IsPoiMatch( (WoWUnit)preferredUnitContext, PoiType.Kill),
                         new Action(preferredUnitContext =>
                         {
                             LogMessage("info", "Reprioritizing target to '{0}'", ((WoWUnit)preferredUnitContext).Name);

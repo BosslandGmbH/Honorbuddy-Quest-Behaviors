@@ -43,7 +43,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
         private Composite _behaviorTreeHook_Combat;
         private bool _isDisposed;
 
-        private WoWPoint _prophetLocation = new WoWPoint(5246.656, 54.33482, 31.962);
+        private readonly WoWPoint _prophetLocation = new WoWPoint(5246.656, 54.33482, 31.962);
         public ProphetKharzulBehavior(Dictionary<string, string> args) : base(args) { }
 
         private LocalPlayer Me
@@ -133,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 
                                                     Navigator.PlayerMover.MoveTowards(_platformPoint);
                                                     // we need to jump to get up on the platform
-                                                    if (!Me.MovementInfo.IsAscending && _platformPoint.Distance(Me.Location) <= 7 && Me.Z < 33)
+                                                    if (!Me.MovementInfo.IsAscending && _platformPoint.Distance(Me.Location) <= 9 && Me.Z < 33)
                                                         WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
                                                     return RunStatus.Success;
                                                 })))),
