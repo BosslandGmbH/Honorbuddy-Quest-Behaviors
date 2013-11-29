@@ -33,6 +33,12 @@ namespace Honorbuddy.QuestBehaviorCore
         // 28May2013-08:11UTC chinajade
         public static bool IsQuestComplete(this LocalPlayer localPlayer, int questId)
         {
+            Contract.Requires(questId >= 0, context => "questId >= 0");
+
+            // A QuestId of zero is never complete...
+            if (questId == 0)
+                { return false; }
+
             PlayerQuest quest = localPlayer.QuestLog.GetQuestById((uint)questId);
 
             return (quest != null)
@@ -44,9 +50,12 @@ namespace Honorbuddy.QuestBehaviorCore
         // 24Feb2013-08:11UTC chinajade
         public static bool IsQuestObjectiveComplete(this LocalPlayer localPlayer, int questId, int objectiveIndex)
         {
-            // If quest and objective was not specified, obviously its not complete...
-            if ((questId <= 0) || (objectiveIndex <= 0))
-                { return false; }
+            Contract.Requires(questId >= 0, context => "questId >= 0");
+            Contract.Requires(objectiveIndex >= 0, context => "objectiveIndex >= 0");
+
+            // For an questId or objectiveIndex are zero, we're just interested in quest completion...
+            if ((questId == 0) || (objectiveIndex == 0))
+                { return localPlayer.IsQuestComplete(questId); }
 
             // If quest is not in our log, obviously its not complete...
             if (localPlayer.QuestLog.GetQuestById((uint)questId) == null)

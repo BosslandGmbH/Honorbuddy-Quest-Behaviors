@@ -1,8 +1,18 @@
 ﻿// Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicMoveTo
 //
+
+#region Summary and Documentation
 // QUICK DOX:
 //      Moves the toon to a desired location in the game world.
 //      NOTE: This behavior is deprecated--use the built-in <RunTo> element instead.    
@@ -12,26 +22,29 @@
 //
 //      DestName [Default:"<X,Y,Z>"]:   a human-readable name of the location to which the toon is moving.
 //
+#endregion
 
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
-using Bots.BGBuddy.Helpers;
-using CommonBehaviors.Actions;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.AscendInWater
@@ -75,7 +88,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
-                TreeRoot.GoalText = GetType().Name + ": Ascending in water";
+                this.UpdateGoalText(0);
             }
         }
 
@@ -83,6 +96,8 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 
         public AscendInWater(Dictionary<string, string> args) : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try {}
 
             catch (Exception except)
@@ -92,9 +107,9 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage(
-                    "error",
-                    "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -108,12 +123,12 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId
         {
-            get { return ("$Id: AscendInWater.cs 501 2013-05-10 16:29:10Z chinajade $"); }
+            get { return ("$Id$"); }
         }
 
         public override string SubversionRevision
         {
-            get { return ("$Revision: 501 $"); }
+            get { return ("$Revision$"); }
         }
 
         protected Composite CreateBehavior_CombatMain()

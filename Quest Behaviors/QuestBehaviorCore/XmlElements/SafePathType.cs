@@ -73,8 +73,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public IList<WaypointType> Waypoints { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: SafePathType.cs 596 2013-07-09 14:42:06Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 596 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
 
         public void AppendWaypoint(WoWPoint wowPoint, string name = "", double radius = 7.0)

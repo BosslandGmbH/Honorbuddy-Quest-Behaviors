@@ -1,31 +1,39 @@
 // Behavior originally contributed by Unknown.
 //
-// DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForceSetVendor
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 // TODO:
 // * Great idea here, don't want to lose it...
 //    http://www.thebuddyforum.com/honorbuddy-forum/developer-forum/25863-quest-behavior-castspellon-help.html#post281838
 //    (We need to build a very small timer into this behavior).
 //
+
+#region Summary and Documentation
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForceSetVendor
+//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
-using Styx;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
-using Styx.TreeSharp;
-using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-
-using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
@@ -49,13 +57,15 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
         public ForceSetVendor(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // Deprecation warnings...
                 if (args.ContainsKey("VendorType"))
                 {
-                    LogMessage("warning", "The VendorType attribute has been deprecated.\n"
-                                          + "Please replace it with DoMail/DoRepair/DoSell/DoTrain='true'");
+                    QBCLog.Warning("The VendorType attribute has been deprecated.\n"
+                                + "Please replace it with DoMail/DoRepair/DoSell/DoTrain='true'");
                 }
 
                 // QuestRequirement* attributes are explained here...
@@ -101,9 +111,9 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -123,8 +133,8 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
         private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: ForceSetVendor.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~ForceSetVendor()
@@ -188,25 +198,24 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                List<string> reasons = new List<string>();
-
-                if (DoMail)
-                { reasons.Add("Mail"); }
-                if (DoRepair)
-                { reasons.Add("Repair"); }
-                if (DoSell)
-                { reasons.Add("Sell"); }
-                if (DoTrain)
-                { reasons.Add("Train"); }
-
-                TreeRoot.GoalText = "Scheduled run for " + string.Join(", ", reasons.ToArray());
-
                 CharacterSettings.Instance.FindVendorsAutomatically = true;
                 Vendors.ForceMail |= DoMail;
                 Vendors.ForceRepair |= DoRepair;
                 Vendors.ForceSell |= DoSell;
                 Vendors.ForceTrainer |= DoTrain;
 
+                List<string> reasons = new List<string>();
+
+                if (DoMail)
+                    { reasons.Add("Mail"); }
+                if (DoRepair)
+                    { reasons.Add("Repair"); }
+                if (DoSell)
+                    { reasons.Add("Sell"); }
+                if (DoTrain)
+                    { reasons.Add("Train"); }
+
+                this.UpdateGoalText(QuestId, "Scheduled run for " + string.Join(", ", reasons.ToArray()));
 
                 _isBehaviorDone = true;
             }

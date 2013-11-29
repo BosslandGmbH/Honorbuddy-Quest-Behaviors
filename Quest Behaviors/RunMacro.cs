@@ -1,36 +1,36 @@
 // Behavior originally contributed by AxaZol.
 //
 // LICENSE:
-// This work is licensed under the 
-//    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
-//    http://creativecommons.org/licenses/by-nc-sa/3.0/
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
-//    Creative Commons
-//    171 Second Street, Suite 300
-//    San Francisco, California, 94105, USA. 
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_RunMacro
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
-using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
+#endregion
 
-using Action = Styx.TreeSharp.Action;
 
 
 namespace Honorbuddy.Quest_Behaviors.RunMacro
@@ -41,6 +41,8 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
         public RunMacro(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -65,9 +67,9 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -87,8 +89,8 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
         private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: RunMacro.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~RunMacro()
@@ -154,9 +156,7 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
             {
                 for (int counter = 1; counter <= NumOfTimes; ++counter)
                 {
-                    TreeRoot.GoalText = GoalText;
-                    LogMessage("debug", "Running macro {0} times", NumOfTimes);
-
+                    this.UpdateGoalText(QuestId, string.Format("Running macro {0} times", NumOfTimes));
                     TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
 
                     Lua.DoString(string.Format("RunMacroText(\"{0}\")", Macro), 0);

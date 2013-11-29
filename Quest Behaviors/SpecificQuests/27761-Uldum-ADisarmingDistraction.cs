@@ -1,13 +1,28 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -18,6 +33,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
@@ -33,18 +49,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
         public BomberMan(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 27761; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 27761;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -54,27 +68,23 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
-        private WoWPoint[] BombSpots = { new WoWPoint(-10702.17, -2455.62, 123.2423), new WoWPoint(-10678.92, -2452.069, 100.3572), new WoWPoint(-10588.04, -2439.058, 93.703) };
 
 
         // Private properties
@@ -82,7 +92,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
         {
             get { return (StyxWoW.Me); }
         }
-
 
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
@@ -110,30 +119,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
         }
 
 
-
-
-
-
         #region Overrides of CustomForcedBehavior
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
 
         public Composite DoneYet
         {
             get
             {
                 return
-                    new Decorator(ret => IsQuestComplete() && Me.Mounted, new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
+                    new Decorator(ret => Me.IsQuestComplete(QuestId) && Me.Mounted,
+                        new Action(delegate
+                        {
+                            TreeRoot.StatusText = "Finished!";
+                            _isBehaviorDone = true;
+                            return RunStatus.Success;
+                        }));
 
             }
         }
@@ -267,25 +266,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ADisarmingDistraction
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

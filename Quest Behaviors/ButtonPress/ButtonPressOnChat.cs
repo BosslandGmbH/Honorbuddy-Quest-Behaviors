@@ -8,6 +8,8 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ButtonPressOnChat
 //     
@@ -73,13 +75,21 @@
 //      X/Y/Z [Default: toon's current location]: the general area where a target may be found
 //              to initate the query-response cycle.
 // 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
 using CommonBehaviors.Actions;
-
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -91,6 +101,7 @@ using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
@@ -101,6 +112,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         public ButtonPressOnChat(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 int tmpItemId;
@@ -138,19 +151,19 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 // Semantic coherency...
                 if (SimpleTextToButtonMap.Count() <= 0)
                 {
-                    LogMessage("error", "You must supply at least one 'ButtonNPhraseM' attribute.");
+                    QBCLog.Error("You must supply at least one 'ButtonNPhraseM' attribute.");
                     IsAttributeProblem = true;
                 }
 
                 if ((MobId == 0) && (tmpItemId == 0))
                 {
-                    LogMessage("error", "Either ItemId and MobId must be specified.");
+                    QBCLog.Error("Either ItemId and MobId must be specified.");
                     IsAttributeProblem = true;
                 }
 
                 if ((MobId != 0) && (tmpItemId != 0))
                 {
-                    LogMessage("error", "ItemId and MobId are mutually exclusive--please specify one, but not both.");
+                    QBCLog.Error("ItemId and MobId are mutually exclusive--please specify one, but not both.");
                     IsAttributeProblem = true;
                 }
 
@@ -169,7 +182,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 // If no MonitoringStartPhrases, we start 'hot'...
                 _buttonAction = ButtonEmpty;
                 if (MonitorStartPhrases.Count() <= 0)
-                { _isMonitoringEnabled = true; }
+                    { _isMonitoringEnabled = true; }
 
                 // Final initialization...
                 if (tmpItemId > 0)
@@ -177,13 +190,12 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                     Item = Me.CarriedItems.FirstOrDefault(i => i.Entry == tmpItemId);
                     if (Item == null)
                     {
-                        LogMessage("error", "ItemId({0}) is not in our inventory", tmpItemId);
+                        QBCLog.Error("ItemId({0}) is not in our inventory", tmpItemId);
                         IsAttributeProblem = true;
                     }
                 }
 
-                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
-                                                                    ViableTargets,
+                _behavior_HuntingGround = new HuntingGroundBehavior(ViableTargets,
                                                                     HuntingGroundAnchor,
                                                                     1000.0);
                 _wowClientLocale = GetWoWClientLocale();
@@ -197,11 +209,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -237,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         private Composite _behaviorRoot;
         private HuntingGroundBehavior _behavior_HuntingGround;
         private KeyValuePair<string, int> _buttonAction;
-        private QuestBehaviorCore.ConfigMemento _configMemento;
+        private ConfigMemento _configMemento;
         private bool _isBehaviorInProgress;
         private bool _isBehaviorDone;
         private bool _isDisposed;
@@ -258,8 +270,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: ButtonPressOnChat.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Rev: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ButtonPressOnChat()
@@ -283,9 +295,10 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                { _configMemento.Dispose(); }
-
-                _configMemento = null;
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
@@ -329,9 +342,9 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 if (phraseSources.Count() <= 1)
                 { continue; }
 
-                LogMessage("error", "You may only use a phrase for one trigger condition.\n"
-                                    + "The phrase \"{0}\" was used for the following: {1}.\n",
-                                    phrase, ("'" + string.Join("', '", phraseSources.ToArray()) + "'"));
+                QBCLog.Error("You may only use a phrase for one trigger condition.\n"
+                            + "The phrase \"{0}\" was used for the following: {1}.\n",
+                            phrase, ("'" + string.Join("', '", phraseSources.ToArray()) + "'"));
                 IsAttributeProblem = true;
             }
         }
@@ -365,29 +378,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         {
             if (completionReason != null)
             {
-                LogMessage("debug", "Behavior done (" + completionReason + ")");
+                QBCLog.DeveloperInfo("Behavior done (" + completionReason + ")");
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
                 _isBehaviorDone = true;
             }
-        }
-
-
-        public bool IsQuestComplete()
-        {
-            return (UtilIsProgressRequirementsMet(QuestId,
-                                                  QuestInLogRequirement.InLog,
-                                                  QuestCompleteRequirement.Complete));
-        }
-
-
-        private void PendMessage(string message)
-        {
-            // The server sometimes send empty messages, just ignore them...
-            if (string.IsNullOrEmpty(message))
-            { return; }
-
-            _messagesPending.Enqueue(message);
         }
 
 
@@ -401,7 +396,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         private void ProcessMessage(string message)
         {
             if (DebugShowText && !string.IsNullOrEmpty(message))
-            { LogMessage("info", "Saw message '{0}'", message); }
+                { QBCLog.Info("Saw message '{0}'", message); }
 
             // Look for our 'start monitoring' trigger phrase...
             if (!_isMonitoringEnabled && (MonitorStartPhrases.Count() > 0))
@@ -411,7 +406,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 
                 if (triggerPhrase != null)
                 {
-                    LogMessage("debug", "Monitoring turned on by trigger phrase '{0}'", triggerPhrase);
+                    QBCLog.DeveloperInfo("Monitoring turned on by trigger phrase '{0}'", triggerPhrase);
                     _isMonitoringEnabled = true;
                 }
             }
@@ -424,7 +419,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 
                 if (triggerPhrase != null)
                 {
-                    LogMessage("debug", "Monitoring turned off by trigger phrase '{0}'", triggerPhrase);
+                    QBCLog.DeveloperInfo("Monitoring turned off by trigger phrase '{0}'", triggerPhrase);
                     _isMonitoringEnabled = false;
                 }
             }
@@ -441,13 +436,13 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 
                 if ((_buttonAction.Value > 0) && (phraseFail != null))
                 {
-                    LogMessage("debug", "Phrase '{0}' failed with Button {1}.", _buttonAction.Key, _buttonAction.Value);
+                    QBCLog.DeveloperInfo("Phrase '{0}' failed with Button {1}.", _buttonAction.Key, _buttonAction.Value);
                     _buttonAction = ButtonEmpty;
                 }
 
                 if ((_buttonAction.Value > 0) && (phraseSucceed != null))
                 {
-                    LogMessage("debug", "Phrase '{0}' succeeded with Button {1}.", _buttonAction.Key, _buttonAction.Value);
+                    QBCLog.DeveloperInfo("Phrase '{0}' succeeded with Button {1}.", _buttonAction.Key, _buttonAction.Value);
                     _buttonAction = ButtonEmpty;
                 }
             }
@@ -464,9 +459,9 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 {
                     if (phraseToButtonMap[phrase] != buttonNum)
                     {
-                        LogMessage("error", "Phrase(\"{0}\") cannot be associated with two different buttons."
-                                            + "  (Attempted to associate with Button{1}Phrase and Button{2}Phrase.)",
-                                            phrase, phraseToButtonMap[phrase], buttonNum);
+                        QBCLog.Error("Phrase(\"{0}\") cannot be associated with two different buttons."
+                                    + "  (Attempted to associate with Button{1}Phrase and Button{2}Phrase.)",
+                                    phrase, phraseToButtonMap[phrase], buttonNum);
                         IsAttributeProblem = true;
                     }
 
@@ -486,7 +481,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                 new PrioritySelector(
 
                     // If the quest is complete, and we need to press a final button...
-                    new Decorator(ret => IsQuestComplete(),
+                    new Decorator(ret => Me.IsQuestComplete(QuestId),
                         new Sequence(
                             new DecoratorContinue(ret => ButtonOnQuestComplete.HasValue,
                                 new Sequence(
@@ -502,7 +497,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                             new DecoratorContinue(ret => ExitVehicleAtQuestComplete,
                                 new Action(delegate
                                 {
-                                    LogMessage("debug", "Exiting Vehicle");
+                                    QBCLog.DeveloperInfo("Exiting Vehicle");
                                     Lua.DoString("VehicleExit()");
                                 })),
 
@@ -629,14 +624,14 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
             // Check locale
             if (!SupportedLocales.Contains(_wowClientLocale) && !SupportedLocales.Contains("*") /*any locale*/)
             {
-                LogMessage("fatal", "This profile does not support the locale of your WoWClient ({0}),"
-                                    + " and will be unable to continue.  Supported locales include: {1}.\n"
-                                    + "Your choices are:\n"
-                                    + " 1) complete Quest \"{2}\" by hand, and restart the profile after its complete, or\n"
-                                    + " 2) Ask the profile writer to support your WoWclient's locale ({0})",
-                                    _wowClientLocale,
-                                    ("'" + string.Join("', '", SupportedLocales) + "'"),
-                                    QuestName);
+                QBCLog.Fatal("This profile does not support the locale of your WoWClient ({0}),"
+                            + " and will be unable to continue.  Supported locales include: {1}.\n"
+                            + "Your choices are:\n"
+                            + " 1) complete Quest \"{2}\" by hand, and restart the profile after its complete, or\n"
+                            + " 2) Ask the profile writer to support your WoWclient's locale ({0})",
+                            _wowClientLocale,
+                            ("'" + string.Join("', '", SupportedLocales) + "'"),
+                            QuestName);
                 IsAttributeProblem = true;
             }
 
@@ -650,18 +645,12 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 CharacterSettings.Instance.PullDistance = 1;
 
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + QuestName;
+                this.UpdateGoalText(QuestId);
 
                 _isBehaviorInProgress = true;
                 GuiShowProgress(null);
@@ -688,14 +677,12 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         public delegate WoWObject WoWObjectDelegate();
 
 
-        public HuntingGroundBehavior(LoggerDelegate loggerDelegate,
-                                     ViableTargetsDelegate viableTargets,
+        public HuntingGroundBehavior(ViableTargetsDelegate viableTargets,
                                      WoWPoint huntingGroundAnchor,
                                      double collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = huntingGroundAnchor;
-            LogMessage = loggerDelegate;
             ViableTargets = viableTargets;
 
             UseHotspots(null);
@@ -712,7 +699,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         // Public properties...
         public double CollectionDistance { get; private set; }
         public WoWObject CurrentTarget { get; private set; }
-        public Queue<WoWPoint> Hotspots { get; set; }
         public WoWPoint HuntingGroundAnchor { get; private set; }
 
 
@@ -723,7 +709,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         private readonly TimeSpan Delay_RepopWait = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private readonly LoggerDelegate LogMessage;
         private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private const double MinDistanceToUse_DruidAquaticForm = 27.0;
         private int SpellId_DruidAquaticForm = 1066;
@@ -762,7 +747,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                                         && (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
                     new Action(delegate
                     {
-                        LogMessage("warning", "Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                        QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
                         CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
                         CurrentTarget = null;
                     })),
@@ -862,7 +847,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                         else
                         { Me.ClearTarget(); }
 
-                        LogMessage("debug", "Auto-blacklist timer restarted due to combat.");
+                        QBCLog.DeveloperInfo("Auto-blacklist timer restarted due to combat.");
                         _currentTargetAutoBlacklistTime = CalculateAutoBlacklistTime(CurrentTarget);
                         _currentTargetAutoBlacklistTimer.Reset();
                         _currentTargetAutoBlacklistTimer.Start();

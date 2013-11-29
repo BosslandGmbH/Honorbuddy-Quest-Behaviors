@@ -8,11 +8,11 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
-// DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForcedDismount
-
 
 #region Summary and Documentation
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ForcedDismount
+//
 // QUICK DOX:
 //      Dismounts a toon from a mount (or Druid flying form).  If flying, the behavior will
 //      descend straight down to ground/water level before conducting the dismount.
@@ -67,9 +67,9 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -93,8 +93,8 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
         #region Private and Convenience variables
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: ForcedDismount.cs 569 2013-06-26 02:37:28Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Rev: 569 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
         #endregion
 
 
@@ -128,7 +128,7 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
             // So we don't want to falsely inform the user of things that will be skipped.
             if (isBehaviorShouldRun)
             {
-                // empty, fow now
+                // empty, for now
             }
         }
 

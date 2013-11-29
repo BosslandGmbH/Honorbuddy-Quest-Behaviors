@@ -91,11 +91,11 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
-                            + "\nFROM HERE:\n"
-                            + except.StackTrace + "\n");
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -108,8 +108,8 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
         public WoWPoint VehicleAcquisitionArea { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: BallisticVehicle.cs 601 2013-07-09 17:34:22Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 601 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
@@ -196,7 +196,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
 
                 AuraIds_OccupiedVehicle = GetOccupiedVehicleAuraIds();
 
-                if (Me.InVehicle)
+                if (Query.IsInVehicle())
                 {
                     QBCLog.Info("VEHICLE SPELLS--");
                     foreach (var wowPetSpell in Me.PetSpells.Where(s => s.Spell != null))
@@ -247,7 +247,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                         new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.AcquiringVehicle,
                             new PrioritySelector(
                                 // If we acquired a vehicle, move to hunting grounds...
-                                new Decorator(context => Me.InVehicle,
+                                new Decorator(context => Query.IsInVehicle(),
                                     new PrioritySelector(
                                         // Discover vehicle's abilities...
                                         new Decorator(context => VehicleAbilities == null,
@@ -293,7 +293,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                         new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.Hunting,
                             new PrioritySelector(
                                 // If we're no longer in vehicle, go fetch another...
-                                new Decorator(context => !Me.InVehicle,
+                                new Decorator(context => !Query.IsInVehicle(),
                                     new Action(context =>
                                     {
                                         VehicleWeaponMover = null;
@@ -346,7 +346,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
         {
             return new PrioritySelector(
                 // Prevent the Combat routine from running while we're in the vehicle...
-                new Decorator(context => Me.InVehicle,
+                new Decorator(context => Query.IsInVehicle(),
                     new ActionAlwaysSucceed())
                 );
         }
@@ -466,7 +466,7 @@ IsAbilityReady();
                 double launchAngle = WoWMathHelper.NormalizeRadian(Lua.GetReturnVal<float>("return VehicleAimGetAngle()", 0));
                 double muzzleVelocity = 0.0;
 
-                if ((StyxWoW.Me.InVehicle) && (Spell != null) && (Spell.SpellMissileId > 0))
+                if (Query.IsInVehicle() && (Spell != null) && (Spell.SpellMissileId > 0))
                 {
                     IEnumerable<WoWMissile> firedMissileQuery =
                         from missile in WoWMissile.InFlightMissiles
@@ -547,40 +547,6 @@ IsAbilityReady();
         }
 
 
-        // NB: In WoW, larger headings are to left, and larger Azimuths are up
-        private void AimAndFire(WoWUnit target, double muzzleVelocity, VehicleWeaponMoverType vehicleWeaponMover)
-        {
-            //if (Me.InVehicle && (target != null))
-            //{
-            //    // Handle heading...
-            //    double traveltime = target.Distance / (Projectile_FeetPerSecond * 3.0f /*feet to yards*/);
-            //    WoWPoint targetLeadPoint = target.Location.RayCast(target.RenderFacing, (float)(target.MovementInfo.CurrentSpeed * traveltime));
-            //    float neededHeading = WoWMathHelper.CalculateNeededFacing(Me.Location, targetLeadPoint);
-            //    neededHeading = WoWMathHelper.NormalizeRadian(neededHeading);
-            //    Me.SetFacing(neededHeading);
-
-            //    // Handle Azimuth...
-            //    // "Location" is measured at the feet of the toon.  We want to aim for the 'middle' of the toon's
-            //    // height.
-            //    double currentAzimuth = NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
-            //    double? neededAzimuth = CalculateBallisticLaunchAngle(target, muzzleVelocity, articulation);
-            //    if (neededAzimuth.HasValue)
-            //    {
-            //        LogInfo("Firing at {0} (dist: {1:F1})", target.Name, target.Distance);
-
-            //        neededAzimuth = NormalizeAngleToPi(neededAzimuth.Value);
-
-            //        // Execute fire...
-            //        // NB: VehicleAimIncrement() handles negative values of 'increment' correctly...
-            //        Lua.DoString("VehicleAimIncrement({0}); {1}", (neededAzimuth - currentAzimuth), "CastPetAction(1)" /*TODO*/);
-            //    }
-
-            //    else
-            //        { LogInfo("No firing solution to {0} (dist: {1})", target.Name, target.Location.Distance(Me.Location)); }
-            //}
-        }
-
-
         private WoWUnit FindBestTarget()
         {
             IEnumerable<int> targetMobIds =
@@ -622,7 +588,7 @@ IsAbilityReady();
         public IEnumerable<VehicleAbility> DiscoverVehicleAbilities()
         {
             // If not in vehicle, no way to discover abilities...
-            if (!Me.InVehicle)
+            if (!Query.IsInVehicle())
                 { return null; }
 
             var abilities = new List<VehicleAbility>();
@@ -646,7 +612,7 @@ QBCLog.Info("ABILITY: {0}", ability.ToString());
         {
             public VehicleWeaponMoverType()
             {
-                Contract.Requires(Me.InVehicle, context => "Me.InVehicle");
+                Contract.Requires(Query.IsInVehicle(), context => "Query.IsInVehicle()");
 
                 AzimuthBaseAbsolute = AzimuthCurrentAbsolute();
                 HeadingBaseAbsolute = HeadingCurrentAbsolute();

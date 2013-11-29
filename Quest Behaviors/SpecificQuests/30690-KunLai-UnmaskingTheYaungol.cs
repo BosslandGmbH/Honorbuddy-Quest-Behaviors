@@ -39,18 +39,17 @@
 //     <CustomBehavior File="30690-KunLai-UnmaskingTheYaungol" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -74,6 +73,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
         public UnmaskingTheYaungol(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 30690; // http://wowhead.com/quest=30690
@@ -101,11 +102,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -128,8 +129,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
         public WoWPoint WaitPoint { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 30690-KunLai-UnmaskingTheYaungol.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -174,7 +175,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
         private Composite _behaviorTreeHook_Combat = null;
         private Composite _behaviorTreeHook_Main = null;
         private BattlefieldContext _combatContext = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         #endregion
@@ -266,14 +267,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
             // If the needed item is not in my inventory, report problem...
             if (!Me.BagItems.Any(i => ItemId_BlindingRageTrap == (int)i.Entry))
             {
-                LogMessage("error", "The behavior requires \"Blind Rage Trap\"(ItemId: {0}) to be in our bags; however, it cannot be located)",
+                QBCLog.Error("The behavior requires \"Blind Rage Trap\"(ItemId: {0}) to be in our bags; however, it cannot be located)",
                     ItemId_BlindingRageTrap);
                 IsAttributeProblem = true;
             }
@@ -287,13 +288,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
                 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -307,16 +302,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
-                
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"\nLooting and Harvesting are disabled while behavior in progress",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 _combatContext = new BattlefieldContext(ItemId_BlindingRageTrap, GameObjectId_BlindingRageTrap);
 
                 _behaviorTreeHook_Combat = CreateCombatBehavior();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
+
+                this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while behavior in progress");
             }
         }
         #endregion
@@ -331,7 +323,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                         // If a Malevolent Fury on battlefield, switch to kill it first...
                         new Decorator(context => _combatContext.MalevolentFury != null,
                             new PrioritySelector(
-                                new Action(context => { LogMessage("info", "Fighting Malevolent Fury"); return RunStatus.Failure; }),
+                                new Action(context => { QBCLog.Info("Fighting Malevolent Fury"); return RunStatus.Failure; }),
                                 new Decorator(context => (Me.CurrentTarget != _combatContext.MalevolentFury),
                                     new Action(context =>
                                     {
@@ -357,7 +349,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                                                     && (_combatContext.BlindingRageTrap != null)
                                                     && (_combatContext.BlindingRageTrap.CooldownTimeLeft <= TimeSpan.Zero),
                             new PrioritySelector(
-                                new Action(context => { LogMessage("info", "Using Blinding Rage Trap"); return RunStatus.Failure; }),
+                                new Action(context => { QBCLog.Info("Using Blinding Rage Trap"); return RunStatus.Failure; }),
                                 new Decorator(context => _combatContext.Kobai.Distance > Me.CombatReach,
                                     new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); })),
                                 new Decorator(context => Me.IsMoving,
@@ -378,7 +370,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                                                 && Me.HasAura(AuraId_StealMask)
                                                 && (_combatContext.MalevolentFury == null),
                             new PrioritySelector(
-                                new Action(context => { LogMessage("info", "Pilfering Mask"); return RunStatus.Failure; }),
+                                new Action(context => { QBCLog.Info("Pilfering Mask"); return RunStatus.Failure; }),
                                 new Decorator(context => _combatContext.Kobai.Distance > Me.CombatReach,
                                     new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); })),
                                 new Decorator(context => (Me.CurrentTarget != _combatContext.Kobai),
@@ -408,7 +400,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                                 // Wait for Kobai to arrive...
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Waiting for Kobai to move into kill zone (dist: {0:F1})",
+                                    QBCLog.Info("Waiting for Kobai to move into kill zone (dist: {0:F1})",
                                         Math.Max(_combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) - KobaiSafePullAreaRadius, 0.0));
                                     return RunStatus.Failure;
                                 }),
@@ -418,7 +410,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                         // Kobai in kill zone, pull him...
                         new Decorator(context => _combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) <= KobaiSafePullAreaRadius,
                             new PrioritySelector(
-                                new Action(context => { LogMessage("info", "Engaging Kobai"); return RunStatus.Failure; }),
+                                new Action(context => { QBCLog.Info("Engaging Kobai"); return RunStatus.Failure; }),
                                 new Mount.ActionLandAndDismount(),
                                 new Decorator(context => (Me.CurrentTarget != _combatContext.Kobai),
                                     new Action(context =>
@@ -436,7 +428,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 new Decorator(context => !Me.Combat && (_combatContext.Kobai == null)
                                         && (Me.Location.Distance(WaitPoint) <= Navigator.PathPrecision),
                     new Sequence(
-                        new Action(context => { LogMessage("info", "Waiting for Kobai to respawn"); }),
+                        new Action(context => { QBCLog.Info("Waiting for Kobai to respawn"); }),
                         new Wait(TimeSpan.FromSeconds(5), context => false, new ActionAlwaysSucceed())
                     ))
 
@@ -449,7 +441,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
             return new PrioritySelector(
                 // If quest is done, behavior is done...
                 new Decorator(context => !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete),
-                    new Action(context => { LogMessage("info", "Finished"); _isBehaviorDone = true; })),
+                    new Action(context => { QBCLog.Info("Finished"); _isBehaviorDone = true; })),
 
                 // Move to start position, if needed...
                 UtilityBehavior_MoveToStartPosition()
@@ -470,7 +462,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                             new Action(context => { Mount.MountUp(() => WaitPoint); })),
                         new Action(context =>
                         {
-                            LogMessage("info", "Moving to start position");
+                            QBCLog.Info("Moving to start position");
                             Navigator.MoveTo(WaitPoint);
                         })
                     )),

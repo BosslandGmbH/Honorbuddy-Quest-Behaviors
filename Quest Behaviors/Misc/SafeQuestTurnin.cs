@@ -1,38 +1,56 @@
 ﻿// Behavior originally contributed by Nesox.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Removes all units from targeting while running.
+// ##Syntax##
+// QuestId: Id of the quest, duh!
+// QuestName: Name of the quest.
+// TurnInName: Name of the npc to turn in quest at.
+// TurnInId: id of the npc to turn in the quest at.
+// X: X axis of this npc
+// Y: Y axis of this npc
+// Z: Z axis of this npc
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 
 using Bots.Quest.QuestOrder;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
 {
-    /// <summary>
-    /// Removes all units from targeting while running.
-    /// ##Syntax##
-    /// QuestId: Id of the quest, duh!
-    /// QuestName: Name of the quest.
-    /// TurnInName: Name of the npc to turn in quest at.
-    /// TurnInId: id of the npc to turn in the quest at.
-    /// X: X axis of this npc
-    /// Y: Y axis of this npc
-    /// Z: Z axis of this npc
-    /// </summary>
+
     [CustomBehaviorFileName(@"Misc\SafeQuestTurnin")]
     public class SafeQuestTurnin : CustomForcedBehavior
     {
         public SafeQuestTurnin(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -54,9 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -77,8 +95,8 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
         private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: SafeQuestTurnin.cs 535 2013-05-30 17:14:06Z dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 535 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~SafeQuestTurnin()
@@ -158,17 +176,17 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                this.UpdateGoalText(QuestId);
+
                 QuestTurnIn = new ForcedQuestTurnIn((uint)QuestId, QuestName, (uint)TurnInId, TurnInName, TurnInLocation);
 
                 if (QuestTurnIn == null)
-                { LogMessage("fatal", "Unable to complete {0}", this.GetType().Name); }
+                    { QBCLog.Fatal("Unable to complete {0}", this.GetType().Name); }
 
                 Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
                 QuestTurnIn.OnStart();
             }
         }
-
-
         #endregion
     }
 }

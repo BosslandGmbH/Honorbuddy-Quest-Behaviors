@@ -1,4 +1,5 @@
-﻿//
+﻿// Behavior originally contributed by AknA.
+//
 // LICENSE:
 // This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -8,17 +9,23 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
-#region information
-// Behavior originally contributed by AknA.
+#region Summary and Documentation
 // A variation of MyCTM with extra check if you're in a instance or not.
 // Primary use is to zone in/out of instances and not have strange behaviors once you have, otherwize it works exactly like MyCTM.
+#endregion
+
+
+#region Examples
 // How to use : <CustomBehavior File="InInstance" X="123" Y="456" Z="789" /> 
 #endregion
 
-#region using
+
+#region Usings
 using System;
 using System.Collections.Generic;
 
+using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -26,9 +33,9 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
-using CommonBehaviors.Actions;
 using Action = Styx.TreeSharp.Action;
 #endregion
+
 
 namespace Honorbuddy.Quest_Behaviors.InInstance
 {
@@ -38,6 +45,8 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
         public InInstance(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 DestinationName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? "";
@@ -52,9 +61,9 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -145,7 +154,10 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
             // constructor call.
             OnStart_HandleAttributeProblem();
 
-            if (!IsDone) { TreeRoot.GoalText = "CTMoving to " + DestinationName; }
+            if (!IsDone)
+            {
+                this.UpdateGoalText(0, "Moving to " + DestinationName);
+            }
         }
         #endregion
     }

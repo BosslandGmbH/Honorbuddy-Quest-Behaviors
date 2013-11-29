@@ -1,4 +1,5 @@
-﻿//
+﻿// Behavior originally contributed by AknA.
+//
 // LICENSE:
 // This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -8,9 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
-
-#region Information
-// Behavior originally contributed by AknA.
+#region Summary and Documentation
 // 
 // Examples :
 // This would make the profile pause until all party members are within interact range (and then continue the profile).
@@ -45,15 +44,20 @@
 // Special thanks to Natfoth for helping me understand and improving my Behavior Tree programming.
 #endregion
 
-#region using
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Windows.Media;
 
-using Styx.Common;
+using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -61,9 +65,9 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
-using CommonBehaviors.Actions;
 using Action = Styx.TreeSharp.Action;
 #endregion
+
 
 namespace Styx.Bot.Quest_Behaviors
 {
@@ -73,6 +77,8 @@ namespace Styx.Bot.Quest_Behaviors
         public LoadProfileOn(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 MinLevel = GetAttributeAsNullable("MinLevel", false, ConstrainAs.Milliseconds, null) ?? 0;
@@ -85,9 +91,14 @@ namespace Styx.Bot.Quest_Behaviors
 
             catch (Exception except)
             {
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -164,7 +175,7 @@ namespace Styx.Bot.Quest_Behaviors
             Lua.DoString("RegisterAddonMessagePrefix('QBCEL')");
             */
             BotEvents.OnBotStop += BotEvents_OnBotStop;
-            Logging.WriteDiagnostic("Init done.");
+            QBCLog.DeveloperInfo("Init done.");
             _Init = true;
         }
         #endregion
@@ -220,7 +231,7 @@ namespace Styx.Bot.Quest_Behaviors
             {
                 if (p == null)
                 {
-                    Logging.Write(Colors.DeepSkyBlue, "[LoadProfileOn]: Can't scan party member, assuming member is too far away");
+                    QBCLog.Info("Can't scan party member, assuming member is too far away");
                     return false;
                 }
                 if (p.Name != Me.Name && WoWMovement.CalculatePointFrom(p.Location, 0).DistanceSqr(Me.Location) > p.InteractRange)
@@ -237,7 +248,7 @@ namespace Styx.Bot.Quest_Behaviors
         /*
         private static void CheckExpansions() {
             var CEL = Lua.GetReturnVal<int>("return GetAccountExpansionLevel()", 0);
-            Logging.WriteDiagnostic("Sending AddonMessage.");
+            QBCLog.DeveloperInfo("Sending AddonMessage.");
             Lua.DoString(string.Format("SendAddonMessage('QBCEL', '{0}', 'PARTY')", CEL));
         }
         */
@@ -252,7 +263,7 @@ namespace Styx.Bot.Quest_Behaviors
             foreach (var t in _partyMembers.Where(t => t.Name == sender)) {
                 t.ExpansionLevel = explvl;
                 t.Known = true;
-                Logging.WriteDiagnostic("Player : {0} has ExpansionLevel : {1}", sender, message);
+                QBCLog.DeveloperInfo("Player : {0} has ExpansionLevel : {1}", sender, message);
             }
         }
         */
@@ -276,7 +287,7 @@ namespace Styx.Bot.Quest_Behaviors
             }
             catch (WebException request)
             {
-                Logging.WriteDiagnostic(Colors.Red, request.Message);
+                QBCLog.DeveloperInfo(request.Message);
                 a = false;
             }
             return a;
@@ -317,7 +328,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Someone is below MinLevel.
                             new DecoratorContinue(context => !CheckLevel(),
                                 new Sequence(
-                                    new Action(context => Logging.Write(Colors.DeepSkyBlue, string.Format("[LoadProfileOn]: Someone in your party is below level {0}.", MinLevel))),
+                                    new Action(context => QBCLog.Info("Someone in your party is below level {0}.", MinLevel)),
                                     new Action(context => _isBehaviorDone = true)
                                 )
                             ),
@@ -352,7 +363,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Everyone is within interact range.
                             new DecoratorContinue(context => CheckPartyRange(),
                                 new Sequence(
-                                    new Action(context => Logging.Write(Colors.DeepSkyBlue, "[LoadProfileOn]: Everyone is within range.")),
+                                    new Action(context => QBCLog.Info("Everyone is within range.")),
                                     new Action(context => CheckRange = 0)
                                 )
                             )
@@ -372,13 +383,13 @@ namespace Styx.Bot.Quest_Behaviors
                             new Sequence(
                                 new DecoratorContinue(context => !DoAllHaveExp(),
                                     new Sequence(
-                                        new Action(context => Logging.Write(Colors.DeepSkyBlue, "[LoadProfileOn]: Everyone in your group doesn't have ExpansionLevel '{0}'", ChkExp)),
+                                        new Action(context => QBCLog.Info("Everyone in your group doesn't have ExpansionLevel '{0}'", ChkExp)),
                                         new Action(context => _isBehaviorDone = true)
                                     )
                                 ),
                                 new DecoratorContinue(context => DoAllHaveExp(),
                                     new Sequence(
-                                        new Action(context => Logging.Write(Colors.DeepSkyBlue, "[LoadProfileOn]: Everyone has atleast ExpansionLevel '{0}'", ChkExp)),
+                                        new Action(context => QBCLog.Info("Everyone has atleast ExpansionLevel '{0}'", ChkExp)),
                                         new Action(context => ChkExp = 0)
                                     )
                                 )
@@ -396,14 +407,14 @@ namespace Styx.Bot.Quest_Behaviors
                 // You have included a RemotePath but not a ProfileName.
                             new DecoratorContinue(context => ProfileName == "",
                                 new Sequence(
-                                    new Action(context => Logging.Write(Colors.Red, "[LoadProfileOn]: You need to include a ProfileName.")),
+                                    new Action(context => QBCLog.Error("You need to include a ProfileName.")),
                                     new Action(context => _isBehaviorDone = true)
                                 )
                             ),
                 // Remote Profile doesn't exist.
                             new DecoratorContinue(context => (ProfileName != "" && !UrlExists(NewRemoteProfilePath)),
                                 new Sequence(
-                                    new Action(context => Logging.Write(Colors.Red, "[LoadProfileOn]: Profile '{0}' does not exist.", ProfileName)),
+                                    new Action(context => QBCLog.Error("Profile '{0}' does not exist.", ProfileName)),
                                     new Action(context => _isBehaviorDone = true)
                                 )
                             ),
@@ -411,7 +422,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new DecoratorContinue(context => (ProfileName != "" && UrlExists(NewRemoteProfilePath)),
                                 new Sequence(
                                     new Action(context => TreeRoot.StatusText = "Loading profile '" + ProfileName + "'"),
-                                    new Action(context => Logging.Write(Colors.DeepSkyBlue, "[LoadProfileOn]: Loading profile '{0}'", ProfileName)),
+                                    new Action(context => QBCLog.Info("Loading profile '{0}'", ProfileName)),
                                     new Action(context => ProfileManager.LoadNew(new MemoryStream(new WebClient().DownloadData(NewRemoteProfilePath)))),
                                     new WaitContinue(TimeSpan.FromMilliseconds(300), context => false, new ActionAlwaysSucceed()),
                                     new Action(context => _isBehaviorDone = true)
@@ -428,7 +439,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Local Profile doesn't exist.
                             new DecoratorContinue(context => !File.Exists(NewLocalProfilePath),
                                 new Sequence(
-                                    new Action(context => Logging.Write(Colors.Red, "[LoadProfileOn]: Profile '{0}' does not exist.", ProfileName)),
+                                    new Action(context => QBCLog.Error("Profile '{0}' does not exist.", ProfileName)),
                                     new Action(context => _isBehaviorDone = true)
                                 )
                             ),
@@ -436,7 +447,7 @@ namespace Styx.Bot.Quest_Behaviors
                             new DecoratorContinue(context => File.Exists(NewLocalProfilePath),
                                 new Sequence(
                                     new Action(context => TreeRoot.StatusText = "Loading profile '" + ProfileName + "'"),
-                                    new Action(context => Logging.Write(Colors.DeepSkyBlue, "[LoadProfileOn]: Loading profile '{0}'", ProfileName)),
+                                    new Action(context => QBCLog.Error("Loading profile '{0}'", ProfileName)),
                                     new Action(context => ProfileManager.LoadNew(NewLocalProfilePath, false)),
                                     new WaitContinue(TimeSpan.FromMilliseconds(300), context => false, new ActionAlwaysSucceed()),
                                     new Action(context => _isBehaviorDone = true)
@@ -465,7 +476,10 @@ namespace Styx.Bot.Quest_Behaviors
             // constructor call.
             OnStart_HandleAttributeProblem();
 
-            if (!IsDone) { }
+            if (!IsDone)
+            {
+                this.UpdateGoalText(0, "Loading " + (ProfileName ?? "no profile"));
+            }
         }
         #endregion
     }

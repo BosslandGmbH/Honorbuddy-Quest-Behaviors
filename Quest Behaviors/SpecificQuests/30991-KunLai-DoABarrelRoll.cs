@@ -30,6 +30,7 @@
 //     <CustomBehavior File="30991-KunLai-DoABarrelRoll" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
@@ -37,6 +38,7 @@ using System.Diagnostics;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -60,6 +62,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
         public DoABarrelRoll(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 30991; // http://wowhead.com/quest=30991
@@ -97,11 +101,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -121,12 +125,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
         public int QuestObjectiveIndex_OsulTreelauncher { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint StartPoint;
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 30991-KunLai-DoABarrelRoll.cs 559 2013-06-16 12:23:12Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 559 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -196,7 +199,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
         private Composite _behaviorTreeHook_Main = null;
         private Composite _behaviorTreeHook_Combat = null;
         private BattlefieldContext _combatContext = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         #endregion
@@ -289,7 +292,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -302,13 +305,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
                 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -322,16 +319,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
-                
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 _combatContext = new BattlefieldContext(MobId_KegBomb, MobId_KegBombVehicle);
 
                 _behaviorTreeHook_Combat = CreateCombatBehavior();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
+
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion
@@ -355,11 +349,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                         new Action(context =>
                         {
                             _isBehaviorDone = true;
-                            LogMessage("info", "Finished");
+                            QBCLog.Info("Finished");
                         })),
 
                     // If not in Keg Bomb Vehicle, move to it and get inside...
-                    new Decorator(context => !Me.InVehicle && (_combatContext.KegBomb != null),
+                    new Decorator(context => !Query.IsInVehicle() && (_combatContext.KegBomb != null),
                         new PrioritySelector(
                             new Decorator(context => _combatContext.KegBomb.Distance > _combatContext.KegBomb.InteractRange,
                                 new Action(context => { Navigator.MoveTo(_combatContext.KegBomb.Location); })),
@@ -375,14 +369,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                                 {
                                     _combatContext.ReInitialize();
                                     _combatContext.KegBomb.Interact();
-                                    LogMessage("info", "Started barrel roll #{0}", ++_barrelRollCount);
+                                    QBCLog.Info("Started barrel roll #{0}", ++_barrelRollCount);
                                     return RunStatus.Failure;
                                 })),
                             new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
                         )),
 
                     // If we are in the vehicle...
-                    new Decorator(context => Me.InVehicle && (_combatContext.KegBombVehicle != null),
+                    new Decorator(context => Query.IsInVehicle() && (_combatContext.KegBombVehicle != null),
                         new PrioritySelector(
                             // If we've been in the barrel too long, just blow it up...
                             // Blacklist whatever target we were after, and try again
@@ -390,7 +384,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                                                         && !_combatContext.IsKegIgnited,
                                 new Action(context =>
                                 {
-                                    LogMessage("warning", "We've been in the barrel too long--we're blowing it up to try again");
+                                    QBCLog.Warning("We've been in the barrel too long--we're blowing it up to try again");
                                     IgniteKeg(_combatContext);
                                     if (_combatContext.SelectedTarget != null)
                                         { Blacklist.Add(_combatContext.SelectedTarget, BlacklistFlags.Combat, TimeSpan.FromMinutes(3)); }
@@ -416,7 +410,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                                     if (((neededRotation > (Math.PI / 2)) && (neededRotation < ((Math.PI * 2) - (Math.PI / 2))))
                                         && !_combatContext.IsKegIgnited)
                                     {
-                                        LogMessage("warning", "We passed the selected target--igniting barrel to try again.");
+                                        QBCLog.Warning("We passed the selected target--igniting barrel to try again.");
                                         IgniteKeg(_combatContext);
                                         Blacklist.Add(_combatContext.SelectedTarget, BlacklistFlags.Combat, TimeSpan.FromMinutes(3));
                                     }

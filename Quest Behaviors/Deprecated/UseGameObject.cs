@@ -1,12 +1,29 @@
 // Behavior originally contributed by Unknown.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UseGameObject
 //
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using Honorbuddy.QuestBehaviorCore;
 
@@ -19,6 +36,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UseGameObject
@@ -29,6 +47,8 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
         public UseGameObject(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -52,9 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -100,8 +120,8 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseGameObject.cs 580 2013-06-30 06:53:32Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 580 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseGameObject()
@@ -162,8 +182,8 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
                                         new Action(ret => StyxWoW.SleepForLagDuration()))
                                     )),
 
-                            new Action(ret => LogMessage("info", "Using Object \"{0}\" {1}/{2} times",
-                                                                 ((WoWGameObject)ret).Name, _counter + 1, NumOfTimes)),
+                            new Action(ret => QBCLog.Info("Using Object \"{0}\" {1}/{2} times",
+                                                            ((WoWGameObject)ret).Name, _counter + 1, NumOfTimes)),
                             new Action(ret => ((WoWGameObject)ret).Interact()),
                             new Action(ret => StyxWoW.SleepForLagDuration()),
                             new Action(ret => StyxWoW.Sleep(WaitTime)),
@@ -199,7 +219,7 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
 
         public override void OnStart()
         {
-            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
+            QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -210,9 +230,7 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

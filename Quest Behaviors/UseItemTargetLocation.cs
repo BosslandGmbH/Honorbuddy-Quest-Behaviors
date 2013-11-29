@@ -1,14 +1,45 @@
 // Behavior originally contributed by Raphus.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
 //
+// Allows you to use item on an object or at a location
+// ##Syntax##
+// [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed
+// [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
+// ItemId: Id of the item that will be used
+// [Optional]WaitTime: Time to wait after using the item 
+// UseType: PointToObject (from X,Y,Z to an object's location)
+//          PointToPoint  (from X,Y,Z to ClickToX,ClickToY,ClickToZ)
+//          ToObject      (from range of an object to object's location)
+//          Default is PointToPoint
+// [Optional]X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
+// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click 
+// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 4)
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
-using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -19,6 +50,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
@@ -26,22 +58,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
     [CustomBehaviorFileName(@"UseItemTargetLocation")]
     public class UseItemTargetLocation : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use item on an object or at a location
-        /// ##Syntax##
-        /// [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed
-        /// [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
-        /// ItemId: Id of the item that will be used
-        /// [Optional]WaitTime: Time to wait after using the item 
-        /// UseType: PointToObject (from X,Y,Z to an object's location)
-        ///          PointToPoint  (from X,Y,Z to ClickToX,ClickToY,ClickToZ)
-        ///          ToObject      (from range of an object to object's location)
-        ///          Default is PointToPoint
-        /// [Optional]X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
-        /// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click 
-        /// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 4)
-        /// </summary>
-        /// 
         public enum QBType
         {
             PointToPoint = 0,
@@ -67,11 +83,17 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         public UseItemTargetLocation(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
                 ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
@@ -81,9 +103,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
                 UseType = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.PointToPoint;
@@ -99,9 +118,9 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -135,59 +154,58 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId); } }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
-        /*private WoWObject           UseObject1 { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                                .Where(o => MobIds.Contains((int)o.Entry))
-                                                                .OrderBy(o => o.Distance)
-                                                                .FirstOrDefault(); }}*/
 
         private WoWObject UseObject
         {
             get
             {
-                WoWObject @object = null;
+                WoWObject obj = null;
                 switch (ObjType)
                 {
                     case ObjectType.GameObject:
-                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>().OrderBy(ret => ret.Distance).FirstOrDefault(obj =>
-                            !_npcBlacklist.Contains(obj.Guid) &&
-                            obj.Distance < CollectionDistance &&
-                            MobIds.Contains((int)obj.Entry));
+                        obj = ObjectManager.GetObjectsOfType<WoWGameObject>()
+                            .OrderBy(ret => ret.Distance)
+                            .FirstOrDefault(target =>
+                                !_npcBlacklist.Contains(target.Guid) &&
+                                target.Distance < CollectionDistance &&
+                                MobIds.Contains((int)target.Entry));
 
                         break;
 
                     case ObjectType.Npc:
 
                         var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                               .OrderBy(obj => obj.Distance)
-                                                               .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
-                                                               obj.Distance < CollectionDistance &&
-                                                               !Me.Minions.Contains(obj) &&
-                                                                MobIds.Contains((int)obj.Entry));
+                                                               .OrderBy(target => target.Distance)
+                                                               .Where(target => !_npcBlacklist
+                                                               .Contains(target.Guid) &&
+                                                                   target.Distance < CollectionDistance &&
+                                                                   !Me.Minions.Contains(target) &&
+                                                                    MobIds.Contains((int)target.Entry));
 
                         var npcStateQualifiedTargets = baseTargets
-                                                            .OrderBy(obj => obj.Distance)
+                                                            .OrderBy(target => target.Distance)
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
                                                                               || ((NpcState == NpcStateType.Dead) && target.IsDead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
                                                                               || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
 
 
-                        @object = npcStateQualifiedTargets.FirstOrDefault();
+                        obj = npcStateQualifiedTargets.FirstOrDefault();
 
                         break;
 
                 }
 
-                if (@object != null)
-                { LogMessage("debug", @object.Name); }
+                if (obj != null)
+                    { QBCLog.DeveloperInfo(obj.Name); }
 
-                return @object;
+                return obj;
             }
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseItemTargetLocation.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseItemTargetLocation()
@@ -231,14 +249,14 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                     new Decorator(context => Item == null,
                         new Action(context =>
                         {
-                            LogMessage("error", "ItemId({0}) is not in our backpack", ItemId);
+                            QBCLog.Error("ItemId({0}) is not in our backpack", ItemId);
                             TreeRoot.Stop();
                             _isBehaviorDone = true;
                         })),
 
                     // Wait for item to come off of cooldown...
                     new Decorator(context => Item.CooldownTimeLeft > TimeSpan.Zero,
-                        new Action(context => LogMessage("info", "Waiting for {0} to leave cooldown (time remaining: {1})",
+                        new Action(context => QBCLog.Info("Waiting for {0} to leave cooldown (time remaining: {1})",
                                                          Item.Name, Item.CooldownTimeLeft))),
 
                     new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
@@ -366,9 +384,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

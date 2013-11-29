@@ -1,25 +1,39 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
@@ -33,14 +47,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
 
         public AcidRain(Dictionary<string, string> args) : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 29827; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 29827;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
             }
@@ -52,18 +66,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
 
@@ -106,21 +120,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
 
         #region Overrides of CustomForcedBehavior
 
-        private WoWPoint spot = new WoWPoint(1104.14, 467.4733, -44.5488);
-
         public Composite DoneYet
         {
             get
             {
-                return new Decorator(
-                    ret => IsQuestComplete(),
-                    new Action(
-                        delegate
-                        {
-                            TreeRoot.StatusText = "Finished!";
-                            _isBehaviorDone = true;
-                            return RunStatus.Success;
-                        }));
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
             }
         }
 
@@ -152,14 +162,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
         {
             get
             {
-                return new Decorator(
-                    r => Nibstabber != null && !IsObjectiveComplete(2, (uint) QuestId),
-                    new Action(
-                        r =>
-                        {
-                            CastSpell("Throw Star");
-                            SpellManager.ClickRemoteLocation(Nibstabber.Location);
-                        }));
+                return new Decorator(r => Nibstabber != null && !Me.IsQuestObjectiveComplete(QuestId, 2),
+                    new Action(r =>
+                    {
+                        CastSpell("Throw Star");
+                        SpellManager.ClickRemoteLocation(Nibstabber.Location);
+                    }));
             }
         }
 
@@ -168,20 +176,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
         {
             get
             {
-                return new Decorator(
-                    r => Gutripper != null && !IsObjectiveComplete(1, (uint) QuestId),
-                    new Action(
-                        r =>
-                        {
-                            CastSpell("Throw Star");
-                            SpellManager.ClickRemoteLocation(Gutripper.Location);
-                        }));
+                return new Decorator( r => Gutripper != null && !Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new Action(r =>
+                    {
+                        CastSpell("Throw Star");
+                        SpellManager.ClickRemoteLocation(Gutripper.Location);
+                    }));
             }
         }
-
-
-        //WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
-        // WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
 
 
         public Composite Aoe
@@ -196,12 +198,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
                 return (_isBehaviorDone // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
-        }
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
-            return quest == null || quest.IsCompleted;
         }
 
         public static WoWPoint ModifiedLocation(WoWUnit u)
@@ -225,18 +221,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
             if (spell == null)
                 return;
 
-            Logging.Write("[Pet] Casting {0}", action);
+            QBCLog.Info("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-        }
-
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] {"return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")"}), 2);
         }
 
 
@@ -266,11 +252,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

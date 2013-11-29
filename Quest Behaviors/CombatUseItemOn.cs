@@ -1,5 +1,15 @@
 // Behavior originally contributed by Raphus.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CombatUseItemOn
 //
@@ -33,6 +43,14 @@
 //  Notes:
 //      * One or more of CastingSpellId, HasAuraId, MobHasAuraId, or MobHpPercentLeft must be specified.
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,6 +68,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
@@ -60,6 +79,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
         public CombatUseItemOn(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 CastingSpellId = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
@@ -81,8 +102,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                 // semantic coherency checks --
                 if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0.0))
                 {
-                    LogMessage("error", "One or more of the following attributes must be specified:\n"
-                                         + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
+                    QBCLog.Error("One or more of the following attributes must be specified:\n"
+                                + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
                     IsAttributeProblem = true;
                 }
 
@@ -97,9 +118,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -173,8 +194,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: CombatUseItemOn.cs 582 2013-06-30 21:54:48Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 582 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CombatUseItemOn()
@@ -314,9 +335,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

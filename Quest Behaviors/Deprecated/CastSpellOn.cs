@@ -1,5 +1,15 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CastSpellOn
 //
@@ -24,10 +34,18 @@
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //      Range [Default:25 yards]: maximum distance from the target at which a cast attempt should be made.
 //
+
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using Honorbuddy.QuestBehaviorCore;
 
@@ -40,6 +58,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.CastSpellOn
@@ -50,6 +69,8 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
         public CastSpellOn(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
@@ -69,7 +90,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                 // Semantic checks
                 if (Range <= MinRange)
                 {
-                    LogMessage("fatal", "\"Range\" attribute must be greater than \"MinRange\" attribute.");
+                    QBCLog.Fatal("\"Range\" attribute must be greater than \"MinRange\" attribute.");
                     IsAttributeProblem = true;
                 }
 
@@ -90,9 +111,9 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -182,8 +203,8 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: CastSpellOn.cs 664 2013-07-23 12:44:32Z Dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 664 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CastSpellOn()
@@ -377,16 +398,14 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
                 // If toon doesn't know any of the prescribed spells, we're done...
                 if (!SpellIds.Any(s => SpellManager.HasSpell(s)))
                 {
-                    LogMessage("fatal", "Toon doesn't know any of: {0}",
+                    QBCLog.Fatal("Toon doesn't know any of: {0}",
                         string.Join(", ", SpellIds.Select(s => FriendlySpellIdentifier(s))));
 
                     _isBehaviorDone = true;
                     return;
                 }
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

@@ -1,13 +1,36 @@
 // Behavior originally contributed by Natfoth.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Kill/Collect things within the Water
+// ##Syntax##
+// QuestId: Id of the quest.
+// NpcID: MobId of the vehicle before it is mounted.
+// ObjectID, ObjectID2, ObjectID3: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
+// NumberOfTimes: Button bar Number starting from 1
+// X,Y,Z: Where you want to be at when you fire.
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,6 +40,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.WaterBehavior
@@ -24,28 +48,21 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
     [CustomBehaviorFileName(@"WaterBehavior")]
     public class WaterBehavior : CustomForcedBehavior
     {
-        /// <summary>
-        /// Kill/Collect things within the Water
-        /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// NpcID: MobId of the vehicle before it is mounted.
-        /// ObjectID, ObjectID2, ObjectID3: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
-        /// NumberOfTimes: Button bar Number starting from 1
-        /// X,Y,Z: Where you want to be at when you fire.
-        /// </summary>
-        /// 
+
         public WaterBehavior(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
 
-                LogMessage("warning", "*****\n"
-                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
-                                        + "*\n"
-                                        + "* WaterBehavior adds _no_ _additonal_ _value_ over the CollectThings behavior.\n"
-                                        + "* Please update the profile to use the CollectThings behavior."
-                                        + "*****");
+                QBCLog.Warning("*****\n"
+                            + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                            + "*\n"
+                            + "* WaterBehavior adds _no_ _additonal_ _value_ over the CollectThings behavior.\n"
+                            + "* Please update the profile to use the CollectThings behavior."
+                            + "*****");
 
 
                 // QuestRequirement* attributes are explained here...
@@ -66,9 +83,9 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -92,8 +109,8 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: WaterBehavior.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~WaterBehavior()
@@ -326,8 +343,6 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
 
         public override void OnStart()
         {
-            
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -337,9 +352,7 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

@@ -1,12 +1,35 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Finds Npc's that match MobId,MobId2 or MobId3 and beats them up using AutoAttack. useful for a dk quest
+// ##Syntax##
+// MobId, MobId2, ...MobIdN[CountRequired:1]: Id of the NPC
+// QuestId:Id of the quest to perform this Behavior on. This behavior will finish is the quest is complete. 
+// HealthPercent(Optional) Health Present to stop autoattack at and let CC take over: Default: 25
+// X,Y,Z: The location where you want to move to
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
@@ -18,19 +41,11 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
 {
-    /// <summary>
-    /// Finds Npc's that match MobId,MobId2 or MobId3 and beats them up using AutoAttack. useful for a dk quest
-    /// ##Syntax##
-    /// MobId, MobId2, ...MobIdN[CountRequired:1]: Id of the NPC
-    /// QuestId:Id of the quest to perform this Behavior on. This behavior will finish is the quest is complete. 
-    /// HealthPercent(Optional) Health Present to stop autoattack at and let CC take over: Default: 25
-    /// X,Y,Z: The location where you want to move to
-    /// </summary>
-    /// 
     [CustomBehaviorFileName(@"Deprecated\FindAndBeatNpcs")]
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\FindAndBeatNpcs")]  // Deprecated location--do not use
     public class FindAndBeatNpcs : CustomForcedBehavior
@@ -38,6 +53,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
         public FindAndBeatNpcs(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -58,9 +75,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -93,8 +110,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: FindAndBeatNpcs.cs 559 2013-06-16 12:23:12Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 559 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~FindAndBeatNpcs()
@@ -222,9 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

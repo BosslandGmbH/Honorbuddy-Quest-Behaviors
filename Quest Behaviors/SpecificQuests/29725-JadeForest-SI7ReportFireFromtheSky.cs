@@ -1,5 +1,15 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_FireFromTheSky
 //
@@ -9,24 +19,31 @@
 //  Notes:
 //      * Make sure to Save Gizmo.
 //
+#endregion
 
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
@@ -37,6 +54,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
         public JadeForestFireFromTheSky(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
 
             try
             {
@@ -52,9 +70,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -71,11 +89,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
         private Composite _root;
 
         // Private properties
-        private int Counter { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         public static int[] MobIds = new[] { 55550, 55589 };
-        public static int DwarfID = 55286;
 
         public static WoWPoint Shrine1Location = new WoWPoint(789.3542f, -1988.882f, 54.2512f);
         public static WoWPoint Shrine2Location = new WoWPoint(963.9094, -1960.19, 67.762);
@@ -112,8 +128,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 29725-JadeForest-SI7ReportFireFromtheSky.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~JadeForestFireFromTheSky()
@@ -146,8 +162,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
             _isDisposed = true;
         }
 
-        
-
 
         #region Overrides of CustomForcedBehavior
 
@@ -171,8 +185,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                                         }))
                                     )),
 
-                                new Decorator(
-                                    ret => !Me.InVehicle,
+                                new Decorator(ret => !Query.IsInVehicle(),
                                     new PrioritySelector(
                                         new Decorator(ret => Sully == null,
                                             new Sequence(
@@ -194,55 +207,50 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
                                              )))),
 
 
-                                    new Decorator(
-                                        ret => Me.InVehicle,
-                                            new PrioritySelector(
-                                                new Decorator(ret => Enemy != null && AimingTimer.IsFinished,
-                                                    new Sequence(
-                                                        new Action(ret => Enemy.Target()),
-                                                        new Sleep(400),
-                                                        new Action(ret => Lua.DoString("CastPetAction({0})", 1)),
-                                                        new Action(ret => AimingTimer.Reset()))),
+                                    new Decorator(ret => Query.IsInVehicle(),
+                                        new PrioritySelector(
+                                            new Decorator(ret => Enemy != null && AimingTimer.IsFinished,
+                                                new Sequence(
+                                                    new Action(ret => Enemy.Target()),
+                                                    new Sleep(400),
+                                                    new Action(ret => Lua.DoString("CastPetAction({0})", 1)),
+                                                    new Action(ret => AimingTimer.Reset()))),
 
-                                                new Decorator(ret => !_firstExplored,
-                                                    new PrioritySelector(
-                                                        new Decorator(ret => Shrine1Location.Distance(Me.Location) > 3,
-                                                            new Action(ret => Navigator.MoveTo(Shrine1Location))),
-                                                        new Decorator(ret => Shrine1Location.Distance(Me.Location) <= 3,
-                                                            new Action(ret => _firstExplored = true)))),
+                                            new Decorator(ret => !_firstExplored,
+                                                new PrioritySelector(
+                                                    new Decorator(ret => Shrine1Location.Distance(Me.Location) > 3,
+                                                        new Action(ret => Navigator.MoveTo(Shrine1Location))),
+                                                    new Decorator(ret => Shrine1Location.Distance(Me.Location) <= 3,
+                                                        new Action(ret => _firstExplored = true)))),
 
-                                                new Decorator(ret => !_secondExplored,
-                                                    new PrioritySelector(
-                                                        new Decorator(ret => Shrine2Location.Distance(Me.Location) > 3,
-                                                            new Action(ret => Navigator.MoveTo(Shrine2Location))),
-                                                        new Decorator(ret => Shrine2Location.Distance(Me.Location) <= 3,
-                                                            new Action(ret => _secondExplored = true)))),
+                                            new Decorator(ret => !_secondExplored,
+                                                new PrioritySelector(
+                                                    new Decorator(ret => Shrine2Location.Distance(Me.Location) > 3,
+                                                        new Action(ret => Navigator.MoveTo(Shrine2Location))),
+                                                    new Decorator(ret => Shrine2Location.Distance(Me.Location) <= 3,
+                                                        new Action(ret => _secondExplored = true)))),
 
-                                                new Decorator(ret => !_thridExplored,
-                                                    new PrioritySelector(
-                                                        new Decorator(ret => Shrine3Location.Distance(Me.Location) > 3,
-                                                            new Action(ret => Navigator.MoveTo(Shrine3Location))),
-                                                        new Decorator(ret => Shrine3Location.Distance(Me.Location) <= 3,
-                                                            new Sequence(
-                                                               new Action(ret => _thridExplored = true),
-                                                               new Action(ret => WaitAtThridTimer.Reset()))))),
+                                            new Decorator(ret => !_thridExplored,
+                                                new PrioritySelector(
+                                                    new Decorator(ret => Shrine3Location.Distance(Me.Location) > 3,
+                                                        new Action(ret => Navigator.MoveTo(Shrine3Location))),
+                                                    new Decorator(ret => Shrine3Location.Distance(Me.Location) <= 3,
+                                                        new Sequence(
+                                                            new Action(ret => _thridExplored = true),
+                                                            new Action(ret => WaitAtThridTimer.Reset()))))),
 
-                                                new Decorator(ret => !_waitForThrid,
-                                                    new PrioritySelector(
-                                                        new Decorator(ret => WaitAtThridTimer.IsFinished,
-                                                            new Action(ret => _waitForThrid = true)))),
+                                            new Decorator(ret => !_waitForThrid,
+                                                new PrioritySelector(
+                                                    new Decorator(ret => WaitAtThridTimer.IsFinished,
+                                                        new Action(ret => _waitForThrid = true)))),
 
-                                                new Decorator(ret => !_campExplored && _waitForThrid,
-                                                    new PrioritySelector(
-                                                        new Decorator(ret => CampLocation.Distance(Me.Location) > 3,
-                                                            new Action(ret => Navigator.MoveTo(CampLocation))),
-                                                        new Decorator(ret => CampLocation.Distance(Me.Location) <= 3,
-                                                               new Action(ret => _campExplored = true))))
-                                                            
-
+                                            new Decorator(ret => !_campExplored && _waitForThrid,
+                                                new PrioritySelector(
+                                                    new Decorator(ret => CampLocation.Distance(Me.Location) > 3,
+                                                        new Action(ret => Navigator.MoveTo(CampLocation))),
+                                                    new Decorator(ret => CampLocation.Distance(Me.Location) <= 3,
+                                                            new Action(ret => _campExplored = true))))
                                             ))
-                                                            
-
                     ))));
         }
 
@@ -277,9 +285,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SI7ReportFireFromtheSky
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

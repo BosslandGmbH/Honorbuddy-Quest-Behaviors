@@ -1,19 +1,37 @@
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
@@ -24,16 +42,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
         public Blastranaar(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 30232;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
                 SpellIds = GetNumberedAttributesAsArray<int>("SpellId", 1, ConstrainAs.SpellId, null);
-                //SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
                 SpellId = SpellIds.FirstOrDefault(id => SpellManager.HasSpell(id));
             }
-            catch
+
+            catch (Exception except)
             {
-                Logging.Write("Problem parsing a QuestId in behavior: Ruffling Some Feathers");
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
             }
         }
         public int QuestId { get; set; }
@@ -42,10 +70,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
         public int[] SpellIds { get; private set; }
         public int SpellId { get; private set; }
         private Composite _root;
-        public WoWPoint Location2 = new WoWPoint(1574.712, 1428.84, 484.7786);
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
-		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
+
         public override bool IsDone
         {
             get
@@ -63,16 +88,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
-                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
-            }
-        }
-
-        public WoWSpell CurrentBehaviorSpell
-        {
-            get
-            {
-                return WoWSpell.FromId(SpellId);
+                this.UpdateGoalText(QuestId);
             }
         }
 
@@ -85,36 +101,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
         }
 
 
-	
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsObjectiveComplete(1, (uint)QuestId), new Action(delegate
+                return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
 
@@ -123,36 +120,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
         {
             get
             {
-                return
-                    new Decorator(ret => !IsObjectiveComplete(1, (uint)QuestId), new Action(c =>
+                return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new Action(c =>
                     {
-			if (Pomfruit[0].Location.Distance(Me.Location) > 10)
-			{
-				TreeRoot.StatusText = "Moving to Silkfeather Hawk";
-				WoWMovement.ClickToMove(Pomfruit[0].Location);
-				Pomfruit[0].Target();
-		    			Pomfruit[0].Face();
-                    			StyxWoW.Sleep(3000);
-                    			WoWMovement.MoveStop();
-                    			SpellManager.Cast(SpellId);
-                    			StyxWoW.Sleep(3000);
-
-			}
-                        			TreeRoot.StatusText = "Finished Pulling!";
-                        			_isBehaviorDone = true;
-                        			return RunStatus.Success;
-	
-
+			            if (Pomfruit[0].Location.Distance(Me.Location) > 10)
+			            {
+				            TreeRoot.StatusText = "Moving to Silkfeather Hawk";
+				            WoWMovement.ClickToMove(Pomfruit[0].Location);
+				            Pomfruit[0].Target();
+		    			    Pomfruit[0].Face();
+                    		StyxWoW.Sleep(3000);
+                    		WoWMovement.MoveStop();
+                    		SpellManager.Cast(SpellId);
+                    		StyxWoW.Sleep(3000);
+			            }
+                        TreeRoot.StatusText = "Finished Pulling!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
                     }));
-
             }
         }
-
-
-
-
-
-
 
 		
         protected override Composite CreateBehavior()

@@ -1,28 +1,48 @@
 // Behavior originally contributed by Raphus.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Allows you to use Transports.
+// ##Syntax##
+// TransportId: ID of the transport.
+// TransportStart: Start point of the transport that we will get on when its close enough to that point.
+// TransportEnd: End point of the transport that we will get off when its close enough to that point.
+// WaitAt: Where you wish to wait the transport at
+// GetOff: Where you wish to end up at when transport reaches TransportEnd point
+// StandOn: The point you wish the stand while you are in the transport
+//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
 using Styx.WoWInternals.DBC;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UseHearthstone
@@ -30,26 +50,16 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
     [CustomBehaviorFileName(@"UseHearthstone")]
     public class UseHearthstone : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use Transports.
-        /// ##Syntax##
-        /// TransportId: ID of the transport.
-        /// TransportStart: Start point of the transport that we will get on when its close enough to that point.
-        /// TransportEnd: End point of the transport that we will get off when its close enough to that point.
-        /// WaitAt: Where you wish to wait the transport at
-        /// GetOff: Where you wish to end up at when transport reaches TransportEnd point
-        /// StandOn: The point you wish the stand while you are in the transport
-        /// </summary>
-        ///
         public UseHearthstone(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-
 
                 WaitOnCd = GetAttributeAsNullable<bool>("WaitForCD", false, null, null) ?? false;
             }
@@ -61,9 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -112,12 +122,6 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
             _isDisposed = true;
         }
 
-
-        public void BotEvents_OnBotStop(EventArgs args)
-        {
-            Dispose();
-        }
-
 //thanks to dungonebuddy
         private uint CheckId(uint uint_13)
         {
@@ -128,7 +132,6 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
             }
             return table.AreaId;
         }
-
 
 
         private bool IsInHearthStoneArea
@@ -143,12 +146,11 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
                 }
                 if (CheckId(hearthstoneAreaId) != CheckId(zoneId))
                 {
-                    Logging.WriteDiagnostic("Zone: {0}, hearthAreaId: {1}", new object[] { zoneId, hearthstoneAreaId });
+                    QBCLog.DeveloperInfo("Zone: {0}, hearthAreaId: {1}", zoneId, hearthstoneAreaId);
                 }
                 return (CheckId(hearthstoneAreaId) == CheckId(zoneId));
             }
         }
-
 
 
         #region Overrides of CustomForcedBehavior

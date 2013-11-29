@@ -55,7 +55,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public double AzimuthGet()
         {
             return
-                Me.InVehicle
+                Query.IsInVehicle()
                 ? UtilAzimuthCurrentAbsolute()
                 : double.NaN;
         }
@@ -78,7 +78,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public double HeadingGet()
         {
             return
-                Me.InVehicle
+                Query.IsInVehicle()
                 ? WoWMovement.ActiveMover.Rotation
                 : double.NaN;
         }
@@ -88,7 +88,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // NB: method instead of a property, because significant time may be involved in execution
         public bool HeadingSet(WoWPoint location)
         {
-            if (Me.InVehicle)
+            if (Query.IsInVehicle())
             {
                 Me.SetFacing(location);
                 return true;
@@ -99,7 +99,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public bool HeadingSet(WoWObject wowObject)
         {
-            if (Me.InVehicle && Query.IsViable(wowObject))
+            if (Query.IsInVehicle() && Query.IsViable(wowObject))
             {
                 WoWMovement.ConstantFace(wowObject.Guid);
                 return true;

@@ -1,12 +1,34 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_MyCTM
 //
+//     Allows you to physically click on the screen so that your bot can get around non meshed locations or off objects.
+//     *** There is no navigation with this ****
+//     ##Syntax##
+//     QuestId: Id of the quest.
+//     X,Y,Z: Where you wish to move.
+#endregion
 
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Threading;
+
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -18,8 +40,10 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 using Vector3 = Tripper.Tools.Math.Vector3;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.MyCTM
@@ -33,15 +57,10 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         private Composite _root;
         private WaitTimer _runTimer;
 
-        /// <summary>
-        ///     Allows you to physically click on the screen so that your bot can get around non meshed locations or off objects.
-        ///     *** There is no navigation with this ****
-        ///     ##Syntax##
-        ///     QuestId: Id of the quest.
-        ///     X,Y,Z: Where you wish to move.
-        /// </summary>
         public MyCTM(Dictionary<string, string> args) : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -75,9 +94,9 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage(
-                    "error",
-                    "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -104,12 +123,12 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId
         {
-            get { return ("$Id: MyCTM.cs 501 2013-05-10 16:29:10Z chinajade $"); }
+            get { return ("$Id$"); }
         }
 
         public override string SubversionRevision
         {
-            get { return ("$Revision: 501 $"); }
+            get { return ("$Revision$"); }
         }
 
         private bool ShouldPerformCTM
@@ -382,7 +401,8 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
             {
                 Navigator.NavigationProvider.StuckHandler.Reset();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
-                TreeRoot.GoalText = "CTMoving to " + DestinationName;
+
+                this.UpdateGoalText(QuestId, "CTMoving to " + DestinationName);
             }
         }
 

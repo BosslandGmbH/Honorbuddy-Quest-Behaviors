@@ -1,22 +1,41 @@
 ﻿// ReSharper disable CheckNamespace
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DefendObject
@@ -38,15 +57,11 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
         private List<WoWUnit> _enemyUnits = new List<WoWUnit>();
         private readonly WaitTimer _enemyListTimer = WaitTimer.FiveSeconds;
 
-        /// <summary>
-        /// Defends an Object.
-        /// </summary>
-        /// <remarks>
-        /// Created 12/8/2010.
-        /// </remarks>
-        /// <param name="args">A variable-length parameters list containing arguments.</param>
+
         public DefendObject(Dictionary<string, string> args) : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 _location = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? _me.Location;
@@ -64,9 +79,9 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -74,7 +89,6 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
         Composite _root;
         protected override Composite CreateBehavior()
         {
-
             return _root ?? (_root = new Decorator(ret => _me.IsAlive && !IsDone,
                 new PrioritySelector(
                     new Decorator(ret => !_me.Combat,
@@ -123,7 +137,9 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
 
         public override void OnStart()
         {
-            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "EscortGroup");
+            QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "EscortGroup");
+
+            this.UpdateGoalText(_questId);
         }
 
         private void PopulateList()
@@ -143,7 +159,7 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
 
             System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
 
-            Logging.Write(LogLevel.Diagnostic, newColor, "DefendObject: PopulateList()!");
+            QBCLog.DeveloperInfo("DefendObject: PopulateList()!");
         }
 
         public override void OnTick()
@@ -156,19 +172,17 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
                 }
                 else
                 {
-                    Color color = Color.LightSalmon;
-
-                    System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(color.A, color.R, color.G, color.B);
-
                     try
                     {
                         FindObject();
-                        Logging.Write(LogLevel.Diagnostic, newColor, "DefendObject: Attempting to find Defendant...");
+                        QBCLog.DeveloperInfo("DefendObject: Attempting to find Defendant...");
                     }
-                    catch (Exception ex)
+                    catch (Exception except)
                     {
-                        Logging.Write(LogLevel.Diagnostic,
-                                           "DefendObject: TickException: " + ex.Message + " Trace: " + ex.StackTrace);
+                        QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                                + "\nFROM HERE:\n"
+                                + except.StackTrace + "\n");
+                        IsAttributeProblem = true;
                     }
                 }
             }

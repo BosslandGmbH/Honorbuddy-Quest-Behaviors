@@ -1,18 +1,26 @@
 ﻿// Behavior originally contributed by Chinajade.
 //
 // LICENSE:
-// This work is licensed under the 
+// This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
-//      Creative Commons
-//      171 Second Street, Suite 300
-//      San Francisco, California, 94105, USA.
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UserDialog
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -20,11 +28,13 @@ using System.Linq;
 using System.Media;
 using System.Windows.Forms;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.TreeSharp;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UserDialog
@@ -485,6 +495,8 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
         public UserDialog(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 string[] expiryActionNames = UserDialogForm.ExpiryActionHandler.GetEnumNames().ToArray();
@@ -528,9 +540,9 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -551,13 +563,13 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
         // Private variables for internal state
         private Composite _behavior;
         private AsyncCompletionToken _completionToken;
-        private QuestBehaviorCore.ConfigMemento _configMemento;
+        private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UserDialog.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UserDialog()
@@ -580,13 +592,16 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
 
                 // Clean up unmanaged resources (if any) here...
                 if (_completionToken != null)
-                { _completionToken.Dispose(); }
+                {
+                    _completionToken.Dispose();
+                    _completionToken = null;
+                }
 
                 if (_configMemento != null)
-                { _configMemento.Dispose(); }
-
-                _completionToken = null;
-                _configMemento = null;
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
                 TreeRoot.GoalText = string.Empty;
@@ -622,11 +637,11 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                 TreeRoot.StatusText = terminationMessage;
                 
                 DialogText = DialogText.Replace(@"\n", System.Environment.NewLine).Replace(@"\t", "\t");
-                LogMessage(messageType, "[{0}] {1}\nDisposition: {2}", DialogTitle, DialogText, terminationMessage);
+                QBCLog.DeveloperInfo("[{0}, {1}] {2}\nDisposition: {3}", DialogTitle, messageType, DialogText, terminationMessage);
             }
 
             if (popdownReason.IsBotStop())
-            { TreeRoot.Stop(); }
+                { TreeRoot.Stop(); }
         }
 
 
@@ -709,13 +724,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -741,7 +750,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                                                             SoundCue,
                                                             SoundCueIntervalInSeconds);
 
-                TreeRoot.GoalText = "User Attention Required...";
+                this.UpdateGoalText(QuestId, "User Attention Required...");
                 TreeRoot.StatusText = "Waiting for user dialog to close";
             }
         }

@@ -1,27 +1,39 @@
 ﻿// Behavior originally contributed by Nesox / complete rework by Chinajade
 //
-// Documentation:
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+
+#region Summary and Documentation
+//
 // * Summons the dragon, and mounts it
 // * Fires at targets as it moves around range
 // * Behavior is stop/start friendly
 //
+#endregion
+
+
+#region Examples
+#endregion
+
 
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 
 using Bots.Grind;
-
 using CommonBehaviors.Actions;
-
 using Honorbuddy.QuestBehaviorCore;
-
 using Styx;
 using Styx.Common;
-using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -81,9 +93,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -179,8 +191,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: AnEndToAllThings.cs 569 2013-06-26 02:37:28Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 569 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
         #endregion
 
 
@@ -438,7 +450,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
         {
             return new PrioritySelector(
                 // Start over...
-                new Decorator(context => !Me.InVehicle,
+                new Decorator(context => !Query.IsInVehicle(),
                     new Action(context => { BehaviorState = BehaviorStateType.MountingVehicle; })),
 
                 // Exit vehicle...

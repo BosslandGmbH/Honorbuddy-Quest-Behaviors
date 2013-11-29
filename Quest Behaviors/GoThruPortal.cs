@@ -1,26 +1,55 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Supports walk through portals in a way that does not result
+// in red error messages in WoW or in the HB log/debug files.
+// 
+// xyz should be a position as close as possible to portal entrance 
+// without entering.
+// 
+// ##Syntax##
+// [Optional] QuestId: The id of the quest (0 is default)
+// [Optional] QuestName: The name of the quest.
+// [Optional] Timeout: time in milliseconds it allows for completing (10000 is default)
+// X,Y,Z: used with current location to create a vector it moves along
+// 
+// ##Example##
+// use RunTo to get start position, then GoThruPortal to run throuhg xyz vector
+// on way through portal.
+// 
+//     <RunTo X="4646.201" Y="-3685.043" Z="954.2496" />
+//     <CustomBehavior File="GoThruPortal" X="4656.928" Y="-3685.472" Z="957.185" />
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.GoThruPortal
@@ -28,30 +57,11 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
     [CustomBehaviorFileName(@"GoThruPortal")]
     public class GoThruPortal : CustomForcedBehavior
     {
-        /// <summary>
-        /// Supports walk through portals in a way that does not result
-        /// in red error messages in WoW or in the HB log/debug files.
-        /// 
-        /// xyz should be a position as close as possible to portal entrance 
-        /// without entering.
-        /// 
-        /// ##Syntax##
-        /// [Optional] QuestId: The id of the quest (0 is default)
-        /// [Optional] QuestName: The name of the quest.
-        /// [Optional] Timeout: time in milliseconds it allows for completing (10000 is default)
-        /// X,Y,Z: used with current location to create a vector it moves along
-        /// 
-        /// ##Example##
-        /// use RunTo to get start position, then GoThruPortal to run throuhg xyz vector
-        /// on way through portal.
-        /// 
-        ///     <RunTo X="4646.201" Y="-3685.043" Z="954.2496" />
-        ///     <CustomBehavior File="GoThruPortal" X="4656.928" Y="-3685.472" Z="957.185" />
-        /// 
-        /// </summary>
         public GoThruPortal(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -77,9 +87,9 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -103,8 +113,8 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
         private string ZoneText { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: GoThruPortal.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~GoThruPortal()
@@ -157,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
                         new Action(delegate
                         {
                             _isBehaviorDone = true;
-                            LogMessage("info", "Went thru portal.");
+                            QBCLog.Info("Went thru portal.");
                             StyxWoW.Sleep(500);
                             WoWMovement.MoveStop();
                             StyxWoW.Sleep(500);
@@ -178,7 +188,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            LogMessage("fatal", "Unable to reach end point.  Failed to go through portal.");
+                            QBCLog.Fatal("Unable to reach end point.  Failed to go through portal.");
                             return RunStatus.Success;
                         })),
 
@@ -187,14 +197,14 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
                         {
                             _isBehaviorDone = true;
                             WoWMovement.MoveStop();
-                            LogMessage("fatal", "Timed out after {0} ms.  Failed to go through portal", Timeout);
+                            QBCLog.Fatal("Timed out after {0} ms.  Failed to go through portal", Timeout);
                             return RunStatus.Success;
                         })),
 
                     new Decorator(ret => !StyxWoW.Me.IsMoving,
                         new Action(delegate
                         {
-                            LogMessage("info", "Moving to {0}", MovePoint);
+                            QBCLog.Info("Moving to {0}", MovePoint);
                             WoWMovement.ClickToMove(MovePoint);
                             return RunStatus.Success;
                         }))
@@ -232,7 +242,7 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = "Moving through Portal";
+                this.UpdateGoalText(QuestId, "Moving through Portal");
             }
         }
 

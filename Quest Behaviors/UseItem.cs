@@ -50,7 +50,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
@@ -93,8 +92,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
@@ -126,8 +125,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
         private WoWItem Item { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId)); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseItem.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseItem()

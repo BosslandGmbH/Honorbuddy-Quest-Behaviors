@@ -190,8 +190,8 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
@@ -247,8 +247,8 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
         private WoWUnit SelectedTarget { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: TargetAndMoveToMob.cs 719 2013-07-26 11:08:04Z dogan $"; } }
-        public override string SubversionRevision { get { return "$Rev: 719 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

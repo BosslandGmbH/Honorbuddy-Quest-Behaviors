@@ -1,12 +1,37 @@
 // Behavior originally contributed by Raphus.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Allows you to use Transports.
+// ##Syntax##
+// TransportId: ID of the transport.
+// TransportStart: Start point of the transport that we will get on when its close enough to that point.
+// TransportEnd: End point of the transport that we will get off when its close enough to that point.
+// WaitAt: Where you wish to wait the transport at
+// GetOff: Where you wish to end up at when transport reaches TransportEnd point
+// StandOn: The point you wish the stand while you are in the transport
+//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,6 +42,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Hooks
@@ -24,22 +50,13 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
     [CustomBehaviorFileName(@"Hooks\UseTransport2")]
     public class UseTransport2 : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use Transports.
-        /// ##Syntax##
-        /// TransportId: ID of the transport.
-        /// TransportStart: Start point of the transport that we will get on when its close enough to that point.
-        /// TransportEnd: End point of the transport that we will get off when its close enough to that point.
-        /// WaitAt: Where you wish to wait the transport at
-        /// GetOff: Where you wish to end up at when transport reaches TransportEnd point
-        /// StandOn: The point you wish the stand while you are in the transport
-        /// </summary>
-        ///
         public UseTransport2(Dictionary<string, string> args)
             : base(args)
         {
             try
             {
+                QBCLog.BehaviorLoggingContext = this;
+
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
@@ -62,9 +79,9 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -81,7 +98,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         public WoWPoint WaitAtLocation { get; private set; }
 
         // Private variables for internal state
-        private QuestBehaviorCore.ConfigMemento _configMemento;
+        private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
@@ -90,14 +107,15 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseTransport.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseTransport2()
         {
             Dispose(false);
         }
+
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
         {
@@ -113,9 +131,10 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                { _configMemento.Dispose(); }
-
-                _configMemento = null;
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
                 TreeRoot.GoalText = string.Empty;
@@ -258,13 +277,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -283,16 +296,9 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
                 startingMap = Me.MapId;
 
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((!string.IsNullOrEmpty(DestName)) ? DestName :
-                                                                  (quest != null) ? ("\"" + quest.Name + "\"") :
-                                                                  "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
-
-
         #endregion
     }
 }

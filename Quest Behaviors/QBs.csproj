@@ -95,11 +95,13 @@
     <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GreyMagic">
-      <HintPath>..\Dependencies\GreyMagic.dll</HintPath>
+    <Reference Include="GreyMagic, Version=2.5.8633.429, Culture=neutral, PublicKeyToken=260525fa2b0e778a, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\HonorBuddy\GreyMagic.dll</HintPath>
     </Reference>
-    <Reference Include="Honorbuddy">
-      <HintPath>..\Dependencies\Honorbuddy.exe</HintPath>
+    <Reference Include="Honorbuddy, Version=2.5.8633.429, Culture=neutral, PublicKeyToken=50a565ab5c01ae50, processorArchitecture=x86">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\..\..\HonorBuddy\Honorbuddy.exe</HintPath>
     </Reference>
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="PresentationCore" />
@@ -147,7 +149,9 @@
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="Misc\ProfileCompatibilityInfo.cs" />
     <Compile Include="MountHook.cs" />
+    <Compile Include="QuestBehaviorCore\Logging.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Generics.cs" />
+    <Compile Include="QuestBehaviorCore\QBCLog.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
     <Compile Include="QuestBehaviorCore\Utility\ConfigMemento.cs" />
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
@@ -191,7 +195,6 @@
     <Compile Include="QuestBehaviorCore\QuestBehaviorXmlBase.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\WaypointType.cs" />
     <Compile Include="QuestBehaviorCore\DataFileAccess.cs" />
-    <Compile Include="QuestBehaviorCore\Logging.cs" />
     <Compile Include="QuestBehaviorCore\LocalBlacklist.cs" />
     <Compile Include="QuestBehaviorCore\PetControl.cs" />
     <Compile Include="Deprecated\BasicInteractWith.cs" />
@@ -377,6 +380,7 @@
   <ItemGroup>
     <EmbeddedResource Include="UserDialog.resx">
       <DependentUpon>UserDialog.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
   </ItemGroup>
   <ItemGroup>

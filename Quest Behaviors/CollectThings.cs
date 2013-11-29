@@ -8,9 +8,11 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_CollectThings
-//     
+//
 // QUICK DOX:
 //      Collects items from mobs or objects when (right-click) 'interaction' is required.
 //      Most useful for those type of quests where you blow something up,
@@ -59,6 +61,10 @@
 //              which targets (mobs or objects) will be sought.  The hunting ground is defined by
 //              this value coupled with the CollectionDistance.
 // 
+#endregion
+
+
+#region Examples
 // Exmaples:
 // <CustomBehavior File="CollectThings" ...other args... >
 //     <Hotspot Name="Cathedral Square fishing dock" X="4554.003" Y="-4718.743" Z="883.0464" StartPoint="true" />
@@ -66,6 +72,10 @@
 //     <Hotspot Name="The Blue Recluse" X="4584.166" Y="-4693.487" Z="882.7331" StartPoint="true" />
 // </CustomBehavior>
 // 
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -81,7 +91,6 @@ using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.Plugins;
 using Styx.TreeSharp;
@@ -90,6 +99,7 @@ using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.CollectThings
@@ -114,6 +124,8 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         public CollectThings(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 bool isCollectItemCountRequired = false;
@@ -149,16 +161,16 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                 // Semantic coherency --
                 if ((MobIds.Count() <= 0) && (ObjectIds.Count() <= 0))
                 {
-                    LogMessage("error", "You must specify one or more MobId(s) or ObjectId(s)");
+                    QBCLog.Error("You must specify one or more MobId(s) or ObjectId(s)");
                     IsAttributeProblem = true;
                 }
 
                 if (HuntingGroundRadius < (NonCompeteDistance * 2))
                 {
-                    LogMessage("error", "The CollectionDistance (saw '{0}') must be at least twice the size"
-                                        + " of the NonCompeteDistance (saw '{1}').",
-                                        HuntingGroundRadius,
-                                        NonCompeteDistance);
+                    QBCLog.Error("The CollectionDistance (saw '{0}') must be at least twice the size"
+                                + " of the NonCompeteDistance (saw '{1}').",
+                                HuntingGroundRadius,
+                                NonCompeteDistance);
                     IsAttributeProblem = true;
                 }
 
@@ -170,12 +182,11 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 
 
                 // Sub-behaviors...
-                _behavior_SwimBreath = new SwimBreathBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
-                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
-                                                                    IsViableTarget,
+                _behavior_SwimBreath = new SwimBreathBehavior();
+                _behavior_HuntingGround = new HuntingGroundBehavior(IsViableTarget,
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
-                _behavior_UnderwaterLooting = new UnderwaterLootingBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects));
+                _behavior_UnderwaterLooting = new UnderwaterLootingBehavior();
             }
 
             catch (Exception except)
@@ -183,11 +194,11 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -238,8 +249,8 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: CollectThings.cs 719 2013-07-26 11:08:04Z dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 719 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CollectThings()
@@ -310,7 +321,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 
             if (completionReason != null)
             {
-                LogMessage("debug", "Behavior done (" + completionReason + ")");
+                QBCLog.DeveloperInfo("Behavior done (" + completionReason + ")");
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
             }
@@ -379,7 +390,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             {
                 if (isRequired)
                 {
-                    LogMessage("error", "Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
+                    QBCLog.Error("Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
                     IsAttributeProblem = true;
                 }
                 return (null);
@@ -387,7 +398,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 
             if (!bool.TryParse(element.Attribute(attributeName).Value, out tmpBool))
             {
-                LogMessage("error", "Hotspot{0} '{1}' attribute is malformed", location, attributeName);
+                QBCLog.Error("Hotspot{0} '{1}' attribute is malformed", location, attributeName);
                 IsAttributeProblem = true;
                 return (null);
             }
@@ -409,7 +420,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             {
                 if (isRequired)
                 {
-                    LogMessage("error", "Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
+                    QBCLog.Error("Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
                     IsAttributeProblem = true;
                 }
                 return (null);
@@ -417,7 +428,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 
             if (!double.TryParse(element.Attribute(attributeName).Value, out tmpDouble))
             {
-                LogMessage("error", "Hotspot{0} '{1}' attribute is malformed", location, attributeName);
+                QBCLog.Error("Hotspot{0} '{1}' attribute is malformed", location, attributeName);
                 IsAttributeProblem = true;
                 return (null);
             }
@@ -438,7 +449,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             {
                 if (isRequired)
                 {
-                    LogMessage("error", "Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
+                    QBCLog.Error("Hotspot{0} is missing the '{1}' attribute (required)", location, attributeName);
                     IsAttributeProblem = true;
                 }
                 return (null);
@@ -566,9 +577,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                     _pluginAntiDrown.Enabled = false;
                 }
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
 
                 GuiShowProgress(null);
             }
@@ -631,15 +640,13 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         public delegate WoWObject WoWObjectDelegate();
 
 
-        public HuntingGroundBehavior(LoggerDelegate loggerDelegate,
-                                     IsViableTargetDelegate isViableTarget,
+        public HuntingGroundBehavior(IsViableTargetDelegate isViableTarget,
                                      WoWPoint huntingGroundAnchor,
                                      double collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = new WoWPointNamed(huntingGroundAnchor, "Hunting Ground Anchor", true);
             IsViableTarget = isViableTarget;
-            Logger = loggerDelegate;
 
             // UseHotspots(null, false);
         }
@@ -655,7 +662,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         // Public properties...
         public double CollectionDistance { get; private set; }
         public WoWObject CurrentTarget { get; private set; }
-        public Queue<WoWPoint> Hotspots { get; set; }
         public WoWPointNamed HuntingGroundAnchor { get; private set; }
         public IsViableTargetDelegate IsViableTarget { get; private set; }
 
@@ -667,7 +673,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         private readonly TimeSpan Delay_StatusUpdateThrottle = TimeSpan.FromMilliseconds(1000);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private readonly LoggerDelegate Logger;
         private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private const double MinDistanceToUse_DruidAquaticForm = 27.0;
         private int SpellId_DruidAquaticForm = 1066;
@@ -715,7 +720,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                                         && (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
                     new Action(delegate
                     {
-                        Logger("warning", "Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                        QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
                         CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
                         CurrentTarget = null;
                     })),
@@ -985,10 +990,10 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             if (hotspotsStarting.Count() <= 0)
             {
                 hotspotsStarting = hotspotsByDistance;
-                Logger("debug", "No explicit starting hotspot(s)--considering all");
+                QBCLog.DeveloperInfo("No explicit starting hotspot(s)--considering all");
             }
 
-            Logger("debug", "Hotspot count: {0} ({1})", hotspotsByDistance.Count(),
+            QBCLog.DeveloperInfo("Hotspot count: {0} ({1})", hotspotsByDistance.Count(),
                         (randomStartingHotspot ? "randomized" : "starting at nearest"));
 
             WoWPoint startingLocation = (randomStartingHotspot
@@ -999,7 +1004,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             while (_hotSpots.Peek().Location != startingLocation)
             { _hotSpots.Enqueue(_hotSpots.Dequeue()); }
 
-            Logger("debug", "Starting hotspot is {0}", _hotSpots.Peek().Name);
+            QBCLog.DeveloperInfo("Starting hotspot is {0}", _hotSpots.Peek().Name);
 
             return (_hotSpots.Peek());
         }
@@ -1048,7 +1053,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
     /// </summary>
     //
     // Usage:
-    //  private SwimBreathBehavior   _swimBreathBehavior  = new SwimBreathBehavior((msgType, fmt, args) => LogMessage(msgType,  fmt, args));
+    //  private SwimBreathBehavior   _swimBreathBehavior  = new SwimBreathBehavior();
     //  ...
     //  new PrioritySelector(
     //      _swimBreathBehavior.CreateBehavior(),
@@ -1058,9 +1063,9 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         public delegate void LoggerDelegate(string messageType, string format, params object[] args);
 
 
-        public SwimBreathBehavior(LoggerDelegate loggerDelegate)
+        public SwimBreathBehavior()
         {
-            Logger = loggerDelegate;
+            // empty
         }
 
 
@@ -1077,7 +1082,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             }
         }
         private readonly TimeSpan Delay_StatusUpdateThrottle = TimeSpan.FromMilliseconds(3000);
-        private readonly LoggerDelegate Logger;
         private int MinTime_DruidBreath = 30000;    // in milliseconds
         private int MinTime_WarlockBreath = 30000;    // in milliseconds
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -1208,7 +1212,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                                 new Action(delegate
                                 {
                                     _nearestAirSource = GetNearestAirSource();
-                                    Logger("info", "Moving to {0} for breath. (distance {1:0.0})",
+                                    QBCLog.Info("Moving to {0} for breath. (distance {1:0.0})",
                                                     _nearestAirSource.Name, _nearestAirSource.Distance);
                                     _isSwimBreathNeeded = true;
                                 })
@@ -1276,7 +1280,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
     /// </summary>
     //
     // Usage:
-    //  private UnderwaterLootingBehavior   _underwaterLootingBehavior  = new UnderwaterLootingBehavior((msgType, fmt, args) => LogMessage(msgType,  fmt, args));
+    //  private UnderwaterLootingBehavior   _underwaterLootingBehavior  = new UnderwaterLootingBehavior();
     //  ...
     //  new PrioritySelector(
     //      _underwaterLootingBehavior.CreateBehavior(),
@@ -1287,9 +1291,9 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         public delegate void LoggerDelegate(string messageType, string format, params object[] args);
 
 
-        public UnderwaterLootingBehavior(LoggerDelegate loggerDelegate)
+        public UnderwaterLootingBehavior()
         {
-            Logger = loggerDelegate;
+            // empty
         }
 
 
@@ -1299,7 +1303,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
         private readonly TimeSpan Delay_WaitForLootCleanup = TimeSpan.FromMilliseconds(5000);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
         private readonly TimeSpan Delay_WowClientWaitForLootFrame = TimeSpan.FromSeconds(10);
-        private readonly LoggerDelegate Logger;
         private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private int SpellId_DruidAquaticForm = 1066;
 

@@ -28,16 +28,17 @@
 //     <CustomBehavior File="SpecificQuests\27738-Uldum-ThePitOfScales" />
 #endregion
 
+
 //#define DEBUG_THEPITOFSCALES
+
 
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -46,8 +47,6 @@ using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Pathing.Avoidance;
-using System.Text;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
@@ -66,6 +65,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         public ThePitOfScales(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 27738; // http://wowhead.com/quest=27738
@@ -105,11 +106,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -140,8 +141,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 27738-Uldum-ThePitOfScales.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -171,7 +172,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         private Composite _behaviorTreeHook_CombatOnly = null;
         private Composite _behaviorTreeHook_DeathMain = null;
         private Composite _behaviorTreeHook_Main = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         private IEnumerable<int> _preferredMobIds = null;
@@ -278,7 +279,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -291,13 +292,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -313,17 +308,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 CharacterSettings.Instance.UseMount = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
 
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
-
                 _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
                 _behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
                 _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
+
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion
@@ -403,7 +395,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
                                         if (SelectedTarget.Distance < safetyDistance)
                                         {
-                                            LogMessage("warning", "Blacklisting current Croc Egg selection");
+                                            QBCLog.Warning("Blacklisting current Croc Egg selection");
                                             Blacklist.Add(PreferredCrocEgg, BlacklistFlags.Combat, TimeSpan.FromSeconds(60));
                                         }
                                     }
@@ -445,7 +437,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                         new Action(context =>
                         {
                             _isBehaviorDone = true;
-                            LogMessage("info", "Finished");
+                            QBCLog.Info("Finished");
                         })),
 
                     new Mount.ActionLandAndDismount(),
@@ -469,7 +461,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                             new Decorator(context => Me.Location.Distance(BattlefieldWaitingArea) > Navigator.PathPrecision,
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Moving to waiting area while competing players on battlefield");
+                                    QBCLog.Info("Moving to waiting area while competing players on battlefield");
                                     MoveWithinDangerousArea(BattlefieldWaitingArea);
                                 })),
                             new Wait(TimeSpan.FromSeconds(30), context => false, new ActionAlwaysSucceed()),
@@ -488,7 +480,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                                                             && ((WoWUnit)tahetUnitContext).HasAura(AuraId_TahetImprisoned),
                             new PrioritySelector(
                                 new Action(tahetUnitContext => {
-                                    LogMessage("info", "Moving to Tahet to start event"); return RunStatus.Failure; }),
+                                    QBCLog.Info("Moving to Tahet to start event"); return RunStatus.Failure; }),
                                 new Decorator(tahetUnitContext => ((WoWUnit)tahetUnitContext).Distance > ((WoWUnit)tahetUnitContext).InteractRange,
                                     new Action(tahetUnitContext => { MoveWithinDangerousArea(((WoWUnit)tahetUnitContext).Location); })),
                                 new Decorator(tahetUnitContext => Me.IsMoving,
@@ -499,14 +491,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                                     new Action(tahetUnitContext => { ((WoWUnit)tahetUnitContext).Interact(); }))
                             )),
                         new Decorator(tahetUnitContext => tahetUnitContext == null,
-                            new Action(tahetUnitContext => { LogMessage("info", "Waiting for Tahet to respawn"); }))
+                            new Action(tahetUnitContext => { QBCLog.Info("Waiting for Tahet to respawn"); }))
                         ),
 
                     // If we're outside the battlefield, move back to anchor...
                     new Decorator(context => Me.Location.Distance(BattlefieldCenterPoint) > BattlefieldRadius,
                         new Action(context =>
                         {
-                            LogMessage("info", "Moving back to center of Battlefield");
+                            QBCLog.Info("Moving back to center of Battlefield");
                             MoveWithinDangerousArea(BattlefieldCenterPoint);
                         }))
                 ));
@@ -600,9 +592,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         {
             if (unitIds == null)
             {
-                string message = "BEHAVIOR MAINTENANCE ERROR: unitIds argument may not be null";
+                string message = "unitIds argument may not be null";
 
-                LogMessage("error", message);
+                QBCLog.MaintenanceError(message);
                 throw new ArgumentException(message);
             }
 
@@ -696,7 +688,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                             new PrioritySelector(
                                 new Action(targetContext =>
                                 {
-                                    LogMessage("info", "Getting attention of {0}", ((WoWUnit)targetContext).Name);
+                                    QBCLog.Info("Getting attention of {0}", ((WoWUnit)targetContext).Name);
                                     return RunStatus.Failure;
                                 }),
                                 UtilityBehavior_SpankMob(selectedTargetDelegate)))
@@ -710,7 +702,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 new Decorator(isBeingAttackedContext => ((bool)isBeingAttackedContext),
                     new Action(isBeingAttackedContext =>
                     {
-                        LogMessage("info", "Shaking off Young Crocolisks");
+                        QBCLog.Info("Shaking off Young Crocolisks");
                         WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
                         IsShakingYoungCrocolisksOff = true;
                         return RunStatus.Failure; // let other actions continue while we deal with the situation
@@ -719,7 +711,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 new Decorator(isBeingAttackedContext => !((bool)isBeingAttackedContext) && IsShakingYoungCrocolisksOff,
                     new Action(isBeingAttackedContext =>
                     {
-                        LogMessage("info", "Young Crocolisks delt with");
+                        QBCLog.Info("Young Crocolisks delt with");
                         WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
                         IsShakingYoungCrocolisksOff = false;
                         return RunStatus.Failure; // let other actions continue
@@ -812,7 +804,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 // If toon has managed to get inside the area, force him out the quickest way possible...
                 if (IsInsideArea(currentLocation))
                 {
-                    _behavior.LogMessage("warning", "Immediately moving out of dangerous (Croc Egg) area");
+                    QBCLog.Warning("Immediately moving out of dangerous (Croc Egg) area");
 
                     WoWPoint nearestSafeNavPoint =
                        (from tuple in _navPointsCounterclockwise
@@ -841,7 +833,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                         orderby destination.Distance(point) * traversalCost
                         select point;
 
-                    _behavior.LogMessage("warning", "Altering destination outside of the danger area");
+                    QBCLog.Warning("Altering destination outside of the danger area");
                     destination = newLocalDestinations.FirstOrDefault();
                 }
 
@@ -859,13 +851,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 // and we must send the toon around 3/4ths of the circle to stay out of the area.
                 Tuple<WoWPoint, double> traversalClockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, false);
                 Tuple<WoWPoint, double> traversalCounterclockwise = FindPathToDestination(_navPointsCounterclockwise, currentLocation, destination, true);
-
-                #if DEBUG_THEPITOFSCALES
-                string level = ((traversalClockwise.Item2 > 1000.0) || (traversalCounterclockwise.Item2 > 1000.0)) ? "warning" : "info";
-                _behavior.LogMessage(level, "Traversal cost:  CW({0:F2}),  CCW({1:F2})",
-                    traversalClockwise.Item2,
-                    traversalCounterclockwise.Item2);
-                #endif
 
                 return (traversalClockwise.Item2 < traversalCounterclockwise.Item2)  // compare path costs
                     ? traversalClockwise.Item1
@@ -987,7 +972,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
                 if (exitNavPoints.Count() == 0)
                 {
-                    _behavior.LogMessage("warning", "Unable to locate navigational 'exit point'--heading through area");
+                    QBCLog.Warning("Unable to locate navigational 'exit point'--heading through area");
                     return Tuple.Create(destination, double.MaxValue);
                 }
 
@@ -1009,7 +994,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
                 if (entryNavTuple.Item1 == WoWPoint.Empty)
                 {
-                    _behavior.LogMessage("warning", "Unable to locate navigational 'entry point'--using nearest point");
+                    QBCLog.Warning("Unable to locate navigational 'entry point'--using nearest point");
                     return pathPoints.OrderBy(t => currentLocation.Distance(t.Item1)).FirstOrDefault();
                 }
 
@@ -1039,7 +1024,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                         ))
                         );
 
-                _behavior.LogMessage("info", "{0}", tmp.ToString());
+                QBCLog.Info(tmp.ToString());
                 #endif
                 
                 return entryNavTuple;
@@ -1126,7 +1111,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             if (petAction == null)
                 return;
 
-            LogMessage("info", "Instructing pet to \"{0}\"", petActionName);
+            QBCLog.Info("Instructing pet to \"{0}\"", petActionName);
             Lua.DoString("CastPetAction({0})", petAction.ActionBarIndex +1);
         }
 
@@ -1137,7 +1122,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             if (petAction == null)
                 return;
 
-            LogMessage("info", "Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
+            QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
             StyxWoW.Me.SetFocus(wowUnit);
             Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
             StyxWoW.Me.SetFocus(0);
@@ -1184,7 +1169,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 new Decorator(petStanceNameContext => !knownStanceNames.Contains((string)petStanceNameContext),
                     new Action(petStanceNameContext =>
                     {
-                        LogMessage("error", "BEHAVIOR MAINTENANCE ERROR: Unknown pet stance '{0}'.  Must be one of: {1}",
+                        QBCLog.MaintenanceError("Unknown pet stance '{0}'.  Must be one of: {1}",
                             (string)petStanceNameContext,
                             string.Join(", ", knownStanceNames));
                         TreeRoot.Stop();

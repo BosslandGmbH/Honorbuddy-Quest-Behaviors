@@ -18,21 +18,20 @@
 //     <CustomBehavior File="30798-BreakingTheEmporersShield" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -56,6 +55,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
         public BreakingTheEmperorsShield(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 AvoidTargetsWithAura = new int[] { 118596 /*Protection of Zian*/ };
@@ -71,11 +72,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -91,8 +92,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 30798-KunLai-BreakingTheEmperorsShield.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -104,7 +105,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 
         private Composite _behaviorTreeCombatHook = null;
         private Composite _behaviorTreeMainRoot = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         private WoWUnit _targetPoiUnit = null;
@@ -136,9 +137,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
                     { TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeCombatHook); }
 
                 if (_configMemento != null)
-                    { _configMemento.Dispose(); }
-                
-                _configMemento = null;
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
 
@@ -191,7 +193,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -204,13 +206,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -220,14 +216,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
                 // or the bot is stopped.
                 CharacterSettings.Instance.PullDistance = 25;
                 GlobalSettings.Instance.KillBetweenHotspots = true;
-                
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 _behaviorTreeCombatHook = CreateCombatBehavior();
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeCombatHook);
+
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion

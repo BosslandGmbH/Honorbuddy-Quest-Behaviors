@@ -1,20 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
+﻿//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System.Collections.Generic;
+using System.Linq;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
@@ -25,12 +40,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
         public _24817(Dictionary<string, string> Args)
             : base(Args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
         }
 
         public int QuestId { get; set; }
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
         private bool IsBehaviorDone = false;
         private Composite _root;
         public List<WoWGameObject> q24817controller
@@ -47,13 +62,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
                 return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 36682 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
             }
         }
-        public List<WoWUnit> q24817_vehicle
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 38318 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
-            }
-        }
         public override bool IsDone
         {
             get
@@ -66,8 +74,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
-                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
         protected override Composite CreateBehavior()

@@ -28,21 +28,20 @@
 //     <CustomBehavior File="30978-TownlongSteppes-HostileSkies" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
-using System.Text;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -60,6 +59,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
         public HostileSkies(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 30978; // http://wowhead.com/quest=30978
@@ -91,11 +92,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -120,8 +121,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 30978-TownlongSteppes-HostileSkies.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -132,7 +133,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
 
         private Composite _behaviorTreeHook_CombatOnly = null;
         private Composite _behaviorTreeHook_Main = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         #endregion
@@ -225,7 +226,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -238,13 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
                 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -258,14 +253,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
-                
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 _behaviorTreeHook_CombatOnly = CreateCombatOnlyBehavior();
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
+
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion
@@ -293,11 +285,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                     new Action(context =>
                     {
                         _isBehaviorDone = true;
-                        LogMessage("info", "Finished");
+                        QBCLog.Info("Finished");
                     })),
 
                 // If using cannon, start spanking targets...
-                new Decorator(context => Me.InVehicle,                  
+                new Decorator(context => Query.IsInVehicle(),                  
                     // Ready, Aim, Fire!
                     new Action(context =>
                     {
@@ -321,7 +313,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                     })),
                         
                 // If not using cannon, get in cannon vehicle...
-                new Decorator(context => !Me.InVehicle,
+                new Decorator(context => !Query.IsInVehicle(),
                     new PrioritySelector(cannonContext => FindUnitsFromId(MobId_NurongsCannon).FirstOrDefault(),
 
                         // If unable to locate cannon, warn user and stop...
@@ -334,7 +326,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                                 new Wait(TimeSpan.FromMilliseconds(5000), cannonContext => IsDone, new ActionAlwaysSucceed()),
                                 new Action(cannonContext =>
                                 {
-                                    LogMessage("error", "PROFILE ERROR: Nurong's Cannon is not in the area--please repair profile");
+                                    QBCLog.Error("PROFILE ERROR: Nurong's Cannon is not in the area--please repair profile");
                                     TreeRoot.Stop();
                                     _isBehaviorDone = true;
                                 })
@@ -347,13 +339,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                             new Action(cannonContext => { ((WoWUnit)cannonContext).Face(); })),
                         new Decorator(cannonContext => Me.IsMoving,
                             new Action(cannonContext => { WoWMovement.MoveStop(); })),
-                        new Decorator(cannonContext => !Me.InVehicle,
+                        new Decorator(cannonContext => !Query.IsInVehicle(),
                             new Action(cannonContext =>
                             {
                                 ((WoWUnit)cannonContext).Interact();
                                 CannonVehicle = null;
                             })),
-                        new Wait(TimeSpan.FromMilliseconds(5000), cannonContext => Me.InVehicle, new ActionAlwaysSucceed())
+                        new Wait(TimeSpan.FromMilliseconds(5000), cannonContext => Query.IsInVehicle(), new ActionAlwaysSucceed())
                     ))
             );
         }

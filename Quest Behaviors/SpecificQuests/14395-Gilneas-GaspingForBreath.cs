@@ -36,23 +36,20 @@
 //     <CustomBehavior File="TEMPLATE" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using System.Text;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
@@ -71,6 +68,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         public GaspingForBreath(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // Quest handling...
@@ -166,9 +165,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
                 IsAttributeProblem = true;
@@ -193,8 +192,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 14395-Gilneas-GaspingForBreath.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -226,7 +225,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
             {
                 // For DEBUGGING...
                 //if (_state_MainBehavior != value)
-                //    { LogMessage("info", "State_MainBehavior: {0}", value); }
+                //    { QBCLog.Info("State_MainBehavior: {0}", value); }
 
                 _state_MainBehavior = value;
             }
@@ -236,7 +235,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         private Composite _behaviorTreeHook_CombatOnly = null;
         private Composite _behaviorTreeHook_DeathMain = null;
         private Composite _behaviorTreeHook_Main = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         private StateType_MainBehavior _state_MainBehavior;
@@ -345,7 +344,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -358,13 +357,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -381,11 +374,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
                 BlackspotManager.AddBlackspots(Blackspots);
 
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
-
                 State_MainBehavior = StateType_MainBehavior.DroppingOffVictim;
 
                 _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
@@ -394,6 +382,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
                 _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
+
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion
@@ -436,7 +426,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                     new Action(context =>
                     {
                         _isBehaviorDone = true;
-                        LogMessage("info", "Finished");
+                        QBCLog.Info("Finished");
                     })),
 
 
@@ -445,7 +435,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                     #region State: DEFAULT
                     new Action(context =>   // default case
                     {
-                        LogMaintenanceError("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
+                        QBCLog.MaintenanceError("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
                         TreeRoot.Stop();
                         _isBehaviorDone = true;
                     }),
@@ -479,7 +469,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                             new Decorator(context => !IsViableDrowningWatchman(SelectedTarget),
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Finding new Drowning Watchman to save");
+                                    QBCLog.Info("Finding new Drowning Watchman to save");
                                     CurrentPath = null;
                                     SelectedTarget = FindDrowningWatchman();
                                 })),
@@ -659,7 +649,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
         // 24Feb2013-08:11UTC chinajade
         private IEnumerable<WoWUnit> FindUnitsFromIds(params int[] unitIds)
         {
-            ContractRequires(() => unitIds != null, () => "unitIds argument may not be null");
+            Contract.Requires(unitIds != null, context => "unitIds argument may not be null");
 
             return
                 from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
@@ -714,7 +704,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                         // provides no CanInteract() method (or equivalent) to make this determination.
                         new Action(interactUnitContext =>
                         {
-                            LogDeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
+                            QBCLog.DeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
                             ((WoWUnit)interactUnitContext).Interact();
                             return RunStatus.Failure;
                         }),
@@ -751,122 +741,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
         #region Pet Helpers
         // Cut-n-paste any PetControl helper methods you need, here...
-        #endregion
-
-
-        #region Diagnostic Methods
-        // These are needed by a number of the pre-supplied methods...
-        public delegate bool    ContractPredicateDelegate();
-        public delegate string  StringProviderDelegate();
-
-        /// <summary>
-        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY returns true, no action is taken.
-        /// If false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
-        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
-        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
-        /// so we don't pay a performance penalty to build an error message that is not used
-        /// when ISCONTRACTOKAY is true.</para></description></item>
-        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
-        /// dynamically compile parts of the project at run time.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="isContractOkay"></param>
-        /// <param name="stringProviderDelegate"></param>
-        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
-        ///  30Jun2012-15:58UTC chinajade
-        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
-        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
-        ///  throughout the code.
-        public bool ContractRequires(ContractPredicateDelegate isContractOkay, StringProviderDelegate stringProviderDelegate)
-        {
-            bool isOkay = isContractOkay();
-
-            if (!isOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
-                StackTrace  trace   = new StackTrace(1);
-
-                LogMessage("error", "[CONTRACT VIOLATION] {0}\nLocation:\n{1}",
-                                        message, trace.ToString());
-            }
-
-            return isOkay;
-        }
-
-
-        /// <summary>
-        /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
-        /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
-        /// <para>This is useful when emitting log messages.</para>
-        /// </summary>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * This method uses reflection--making it relatively 'expensive' to call.
-        /// Use it with caution.</para></description></item>
-        /// </list></para>
-        /// <returns></returns>
-        ///  7Jul2012-20:26UTC chinajade
-        public static string    GetMyMethodName(bool  showDeclaringType   = false)
-        {
-            var method  = (new StackTrace(1)).GetFrame(0).GetMethod();
-
-            if (showDeclaringType)
-                { return (method.DeclaringType + "." + method.Name); }
-
-            return (method.Name);
-        }
-
-
-        /// <summary>
-        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogDeveloperInfo(string message, params object[] args)
-        {
-            LogMessage("debug", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogError(string message, params object[] args)
-        {
-            LogMessage("error", message, args);
-        }
-        
-        
-        /// <summary>
-        /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
-        /// action a user can perform in the field for these types of errors.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        ///  30Jun2012-15:58UTC chinajade
-        public void LogMaintenanceError(string message, params object[] args)
-        {
-            string          formattedMessage    = string.Format(message, args);
-            StackTrace      trace               = new StackTrace(1);
-
-            LogMessage("error", "[MAINTENANCE ERROR] {0}\nLocation:\n{1}", formattedMessage, trace.ToString());
-        }
-
-
-        /// <summary>
-        /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogWarning(string message, params object[] args)
-        {
-            LogMessage("warning", message, args);
-        }
         #endregion
     }
 

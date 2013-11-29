@@ -58,7 +58,6 @@ using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 
-
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -67,8 +66,6 @@ using Styx.CommonBot.Routines;
 using Styx.Plugins;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
-
 #endregion
 
 
@@ -81,6 +78,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         public ProfileCompatibilityInfo(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
@@ -96,8 +95,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");

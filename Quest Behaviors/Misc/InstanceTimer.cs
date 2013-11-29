@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
 // This is an variation of WaitTimer done by Nesox.
 // InstanceTimer is a Quest Behavior developed to prevent that you get "You've entered too many instances".
 // When you enter a instance you start the timer.
@@ -26,29 +27,40 @@
 // <CustomBehavior File="Misc\InstanceTimer" Timer="Check" WaitTime="10000" />
 // WaitTime is in milliseconds and in above case is 10 seconds - the time you spent in instance.
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Windows.Media;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
+
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Styx.Bot.Quest_Behaviors {
     [CustomBehaviorFileName(@"Misc\InstanceTimer")]
-    /// <summary>
-    /// InstanceTimer by AknA
-    /// ##Syntax##
-    /// Timer: Start, Check
-    /// WaitTime (send with Check): time (in milliseconds) to wait sience Timer was started (default : 12min 30sec)
-    /// </summary>
-    public class InstanceTimer : CustomForcedBehavior {
+    public class InstanceTimer : CustomForcedBehavior
+    {
         public InstanceTimer(Dictionary<string, string> args)
-		: base(args) {
-            try {
+		: base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+
+            try
+            {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
@@ -57,15 +69,16 @@ namespace Styx.Bot.Quest_Behaviors {
                 WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 750000;
             }
 
-            catch (Exception except) {
+            catch (Exception except)
+            {
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -82,11 +95,14 @@ namespace Styx.Bot.Quest_Behaviors {
         private Common.Helpers.WaitTimer _timeInInstance;
         private string _waitTimeAsString;
 
-        ~InstanceTimer() {
+        ~InstanceTimer()
+        {
             Dispose(false);
         }
 
-        public void Dispose(bool isExplicitlyInitiatedDispose) {
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
+        {
             if (!_isDisposed) {
                 // NOTE: we should call any Dispose() method for any managed or unmanaged
                 // resource, if that resource provides a Dispose() method.
@@ -105,14 +121,16 @@ namespace Styx.Bot.Quest_Behaviors {
             _isDisposed = true;
         }
 
-        private string UtilSubstituteInMessage(string message) {
+        private string UtilSubstituteInMessage(string message)
+        {
             message = message.Replace("{TimeRemaining}", UtilBuildTimeAsString(_timer.TimeLeft));
             message = message.Replace("{TimeDuration}", _waitTimeAsString);
 
             return (message);
         }
 
-        private static string UtilBuildTimeAsString(TimeSpan timeSpan) {
+        private static string UtilBuildTimeAsString(TimeSpan timeSpan)
+        {
             var formatString = "";
             if (timeSpan.Hours > 0) { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
             else if (timeSpan.Minutes > 0) { formatString = "{1:D2}m:{2:D2}s"; }
@@ -147,20 +165,24 @@ namespace Styx.Bot.Quest_Behaviors {
 
         public override bool IsDone { get { return ((_timer != null) && _timer.IsFinished); } }
 
-        public override void OnStart() {
+        public override void OnStart() 
+        {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
 
-            if (!IsDone) {
-                if (Timer == "Start") {
+            if (!IsDone)
+            {
+                if (Timer == "Start") 
+                {
                     WaitTime = 0;
                     Lua.DoString("StartInstanceTimerMin = date(\"%M\")");
                     Lua.DoString("StartInstanceTimerSec = date(\"%S\")");
-                    Logging.Write(Colors.DeepSkyBlue, "[InstanceTimer]: Started.");
+                    QBCLog.Info("Started.");
                 }
-                if (Timer == "Check") {
+                if (Timer == "Check")
+                {
                     var startInstanceVar1 = Lua.GetReturnVal<int>("return StartInstanceTimerMin", 0);
                     var startInstanceVar2 = Lua.GetReturnVal<int>("return StartInstanceTimerSec", 0);
                     Lua.DoString("EndInstanceTimerMin = date(\"%M\")");
@@ -175,13 +197,14 @@ namespace Styx.Bot.Quest_Behaviors {
                     var calcInstanceVar = ((((endInstanceVar1 - startInstanceVar1) * 60) + (endInstanceVar2 - startInstanceVar2)) * 1000);
                     _timeInInstance = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, calcInstanceVar));
                     var timeInInstanceAsString = UtilBuildTimeAsString(_timeInInstance.WaitTime);
-                    Logging.Write(Colors.DeepSkyBlue, "[InstanceTimer]: Your instance run took " + timeInInstanceAsString);
+                    QBCLog.Info("Your instance run took " + timeInInstanceAsString);
                     if (calcInstanceVar >= WaitTime) { WaitTime = 0; }
-                    if (calcInstanceVar < WaitTime) {
+                    if (calcInstanceVar < WaitTime)
+                    {
                         WaitTime = WaitTime - calcInstanceVar;
                         _timeInInstance = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, WaitTime));
                         timeInInstanceAsString = UtilBuildTimeAsString(_timeInInstance.WaitTime);
-                        Logging.Write(Colors.DeepSkyBlue, "[InstanceTimer]: Waiting for " + timeInInstanceAsString);
+                        QBCLog.Info("Waiting for " + timeInInstanceAsString);
                     }
                 }
                 _timer = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, WaitTime));

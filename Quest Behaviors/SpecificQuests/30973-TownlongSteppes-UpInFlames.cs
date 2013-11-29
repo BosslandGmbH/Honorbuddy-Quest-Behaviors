@@ -8,6 +8,7 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+
 #region Summary and Documentation
 // QUICK DOX:
 // 30973-TownlongSteppes-UpInFlames.cs is a point-solution behavior.
@@ -41,14 +42,14 @@
 //     <CustomBehavior File="30973-TownlongSteppes-UpInFlames" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -57,7 +58,6 @@ using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using System.Text;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
@@ -76,6 +76,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         public UpInFlames(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 30973; // http://wowhead.com/quest=30973
@@ -124,11 +126,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -142,7 +144,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         public double HuntingGroundAnchorRadius { get; private set; }
         public double KegBombMaxRange { get; private set; }
         public double KegBombReleaseRange { get; private set; }
-        public double LoiterTimeForPitchTippedArrowBuff { get; private set; }
         public int MobId_KegBomb { get; private set; }
         public int MobId_KorthikTimberhusk { get; private set; }
         public double NoCompeteDistance { get; private set; }
@@ -154,8 +155,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: 30973-TownlongSteppes-UpInFlames.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -219,7 +220,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             {
                 // For DEBUGGING...
                 //if (_currentState_Behavior != value)
-                //    { LogMessage("info", "Behavior State: {0}", value); }
+                //    { QBCLog.Info("Behavior State: {0}", value); }
 
                 _currentState_Behavior = value;
             }
@@ -232,7 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             {
                 // For DEBUGGING...
                 //if (_currentState_KegBomb != value)
-                //    { LogMessage("info", "KegBomb State: {0}", value); }
+                //    { QBCLog.Info("KegBomb State: {0}", value); }
 
                 _currentState_KegBomb = value;
             }
@@ -245,7 +246,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             {
                 // For DEBUGGING...
                 //if (_currentState_MobDragging != value)
-                //    { LogMessage("info", "MobDrag State: {0}", value); }
+                //    { QBCLog.Info("MobDrag State: {0}", value); }
 
                 _currentState_MobDragging = value;
             }
@@ -254,7 +255,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         private Composite _behaviorTreeHook_Combat = null;
         private Composite _behaviorTreeHook_Death = null;
         private Composite _behaviorTreeHook_Main = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private StateType_Behavior _currentState_Behavior = StateType_Behavior.Invalid;
         private StateType_KegBomb _currentState_KegBomb = StateType_KegBomb.Invalid;
         private StateType_PitchTipArrowDragging _currentState_MobDragging = StateType_PitchTipArrowDragging.Invalid;
@@ -356,7 +357,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
             if ((QuestId != 0) && (quest == null))
             {
-                LogMessage("error", "This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
+                QBCLog.Error("This behavior has been associated with QuestId({0}), but the quest is not in our log", QuestId);
                 IsAttributeProblem = true;
             }
 
@@ -378,7 +379,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                     .ToList();
                 if (Me.GotAlivePet && missingSpells.Count() > 0)
                 {
-                    LogMessage("error", "USER CONFIGURATION ERROR:"
+                    QBCLog.Error("USER CONFIGURATION ERROR:"
                                 + " The following Pet Abilities must be on the Pet ActionBar for this behavior to work: \"{0}\""
                                 + " (missing on PetActionBar: \"{1}\")",
                         string.Join("\", \"", requiredPetSpells),
@@ -388,13 +389,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                     _isBehaviorDone = true;
                 }
 
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
                 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -403,11 +398,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 // NOTE: these settings are restored to their normal values when the behavior completes
                 // or the bot is stopped.
                 CharacterSettings.Instance.PullDistance = 1;    // we want behavior to explicitly pull all mobs
-                
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 State_Behavior = StateType_Behavior.MovingToHuntingGroundAnchor;
                 State_MobDrag = StateType_PitchTipArrowDragging.LookingForPitchTippedGroundEffects;
@@ -417,6 +407,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
                 _behaviorTreeHook_Death = CreateDeathBehavior();
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_Death);
+
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion
@@ -464,7 +456,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                         new Action(context =>
                         {
                             _isBehaviorDone = true;
-                            LogMessage("info", "Finished");
+                            QBCLog.Info("Finished");
                         })),
 
                     // Stateful operation:
@@ -472,7 +464,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                     #region State: DEFAULT
                     new Action(context =>   // default case
                     {
-                        LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", State_Behavior);
+                        QBCLog.MaintenanceError("BehaviorState({0}) is unhandled", State_Behavior);
                         TreeRoot.Stop();
                         _isBehaviorDone = true;
                     }),
@@ -489,7 +481,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             new Decorator(context => Me.Location.Distance(HuntingGroundAnchorPoint) > HuntingGroundAnchorRadius,
                                 new Action(context =>
                                 {
-                                    LogMessage("info", "Returning to center of hunting ground",
+                                    QBCLog.Info("Returning to center of hunting ground",
                                                 Me.Location.Distance(HuntingGroundAnchorPoint));
                                     Navigator.MoveTo(HuntingGroundAnchorPoint);
                                 })),
@@ -704,7 +696,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                             && (Me.Pet.Location.Distance(locationDelegate(context)) > maxDistanceAllowed),
                 new Action(context =>
                 {
-                    LogMessage("info", "Bringing Pet within {0} yards of Keg Bomb (dist: {1:F1})",
+                    QBCLog.Info("Bringing Pet within {0} yards of Keg Bomb (dist: {1:F1})",
                         maxDistanceAllowed,
                         Me.Pet.Location.Distance(locationDelegate(context)));
                             
@@ -712,7 +704,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                     WoWPetSpell petAction = Me.PetSpells.FirstOrDefault(p => p.ToString() == petCommand);
                     if ((petAction != null) && (petAction.Spell != null))
                     {
-                        LogMessage("info", "[Pet] Casting {0}", petAction.Action.ToString());
+                        QBCLog.Info("[Pet] Casting {0}", petAction.Action.ToString());
                         Lua.DoString("CastPetAction({0})", petAction.ActionBarIndex + 1);
                     }
 
@@ -728,7 +720,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 #region State: DEFAULT
                 new Action(context =>   // default case
                 {
-                    LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: StateType_PitchTipArrowDragging({0}) is unhandled", State_MobDrag);
+                    QBCLog.MaintenanceError("StateType_PitchTipArrowDragging({0}) is unhandled", State_MobDrag);
                     TreeRoot.Stop();
                     _isBehaviorDone = true;
                 }),
@@ -804,7 +796,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                                 if ((((float)distanceToAimPositionContext) > Navigator.PathPrecision) && !Me.IsMoving)
                                 {
-                                    LogMessage("info", "Dragging mob into Pitch Arrow ground-effect.",
+                                    QBCLog.Info("Dragging mob into Pitch Arrow ground-effect.",
                                         (float)distanceToAimPositionContext);
                                     WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
                                 }
@@ -840,7 +832,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             SelectedPitchTippedArrow = null;
                             SelectedPitchTippedArrowAimLocation = WoWPoint.Empty;
                             State_MobDrag = StateType_PitchTipArrowDragging.LookingForPitchTippedGroundEffects;
-                            LogMessage("info", "Dragging complete");
+                            QBCLog.Info("Dragging complete");
 
                             return RunStatus.Failure; // allows 'lower' nodes in Behavior tree to run
                         })
@@ -860,7 +852,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 #region State: DEFAULT
                 new Action(context =>   // default case
                 {
-                    LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: StateType_KegBomb({0}) is unhandled", State_KegBomb);
+                    QBCLog.MaintenanceError("StateType_KegBomb({0}) is unhandled", State_KegBomb);
                     TreeRoot.Stop();
                     _isBehaviorDone = true;
                 }),
@@ -955,9 +947,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                         new Action(context =>
                         {
                             if (SelectedTarget.HasAura(AuraId_Timberhusk))
-                                { LogMessage("info", "Getting {0}'s attention", SelectedTarget.Name); }
+                                { QBCLog.Info("Getting {0}'s attention", SelectedTarget.Name); }
                             else
-                                { LogMessage("info", "Killing unbuffed {0}", SelectedTarget.Name); }
+                                { QBCLog.Info("Killing unbuffed {0}", SelectedTarget.Name); }
                             return RunStatus.Failure; // fall through
                         }),
                         new Decorator(context => (Me.CurrentTarget != SelectedTarget),
@@ -1026,7 +1018,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             new Decorator(roughAimPositionContext => Me.Location.Distance((WoWPoint)roughAimPositionContext) > Navigator.PathPrecision,
                                 new Action(roughAimPositionContext =>
                                 { 
-                                    LogMessage("info", "Moving to Keg Bomb", 
+                                    QBCLog.Info("Moving to Keg Bomb (dist: {0:F1})", 
                                         Me.Location.Distance((WoWPoint)roughAimPositionContext));
                                     Navigator.MoveTo((WoWPoint)roughAimPositionContext);
                                 })),
@@ -1052,7 +1044,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 
                                         if (SelectedKegBombAimPosition == WoWPoint.Empty)
                                         {
-                                            LogMessage("warning", "Unable to calculate aim position for Keg Bomb--blacklisting Keg Bomb.");
+                                            QBCLog.Warning("Unable to calculate aim position for Keg Bomb--blacklisting Keg Bomb.");
                                             State_KegBomb = StateType_KegBomb.BombUseComplete;
                                         }
                                     })),
@@ -1156,7 +1148,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             if (petAction == null)
                 return;
 
-            LogMessage("info", "Instructing pet to \"{0}\"", petActionName);
+            QBCLog.Info("Instructing pet to \"{0}\"", petActionName);
             Lua.DoString("CastPetAction({0})", petAction.ActionBarIndex +1);
         }
 
@@ -1167,7 +1159,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             if (petAction == null)
                 return;
 
-            LogMessage("info", "Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
+            QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
             StyxWoW.Me.SetFocus(wowUnit);
             Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
             StyxWoW.Me.SetFocus(0);
@@ -1214,7 +1206,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                 new Decorator(petStanceNameContext => !knownStanceNames.Contains((string)petStanceNameContext),
                     new Action(petStanceNameContext =>
                     {
-                        LogMessage("error", "BEHAVIOR MAINTENANCE ERROR: Unknown pet stance '{0}'.  Must be one of: {1}",
+                        QBCLog.MaintenanceError("Unknown pet stance '{0}'.  Must be one of: {1}",
                             (string)petStanceNameContext,
                             string.Join(", ", knownStanceNames));
                         TreeRoot.Stop();

@@ -1,15 +1,30 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
-//				<CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" /> // originally made for hyjal behavior
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
 
 
+#region Examples
+//   <CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" />
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -20,6 +35,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.StandAndKill
@@ -35,6 +51,8 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
         public StandAndKill(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -44,8 +62,7 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
                 QuestId = GetAttributeAsNullable<int>("QuestId",false, ConstrainAs.QuestId(this), null) ?? 0;
                 MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
-                
+                QuestRequirementInLog = QuestInLogRequirement.InLog;    
             }
 
             catch (Exception except)
@@ -55,9 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -71,14 +88,10 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
         public WoWPoint Location { get; private set; }
 
 
-
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
-
-
 
 
         // Private properties
@@ -109,8 +122,6 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
                 base.Dispose();
             }
 
-
-
             _isDisposed = true;
         }
 
@@ -125,47 +136,20 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete() || (Enemy == null), new Action(delegate
+                return new Decorator(ret => Me.IsQuestComplete(QuestId) || (Enemy == null),
+                    new Action(delegate
                     {
-
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
-        }
-
-        public bool IsQuestComplete()
-        {
-            if (QuestId == 0)
-                return false;
-
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
         }
 
         public WoWUnit Enemy
         {
             get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIds && u.IsAlive).OrderBy(u => u.Distance).FirstOrDefault(); }
         }
-
-    
-
-
-        public Composite DoDps
-        {
-            get
-            {
-                return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
-            }
-        }
-
-
 
         
         public Composite Stuff
@@ -202,13 +186,8 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
         }
 
 
-
-
         public override void OnStart()
         {
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -219,10 +198,8 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

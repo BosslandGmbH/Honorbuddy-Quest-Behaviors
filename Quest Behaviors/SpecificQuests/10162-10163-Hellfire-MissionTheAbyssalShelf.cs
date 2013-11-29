@@ -1,8 +1,21 @@
 // Behavior originally contributed by mastahg / rework by chinajade
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
 
 #region Usings
 using System;
@@ -11,11 +24,8 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Bots.Grind;
-
 using CommonBehaviors.Actions;
-
 using Honorbuddy.QuestBehaviorCore;
-
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -51,9 +61,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }

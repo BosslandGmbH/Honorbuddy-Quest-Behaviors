@@ -1,16 +1,46 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Stops the Quest Bot.  Will write 'Msg' to the log and Goal Text.
+// Also write the line number it halted at for easily locating in profile.
+// 
+// Useful for testing assumptions in quest profile and during profile
+// development to force profile to automatically stop at designated point
+// 
+// ##Syntax##
+// [optional] QuestId: Id of the quest (default is 0)
+// [optional] Msg: text value to display (default says stopped by profile)
+// [optional] Color: color to use for message in log (default is red)
+// 
+// Note:  QuestId behaves the same as on every other behavior.  If 0, then
+// halt always occurs.  Otherwise, for non-zero QuestId only halts if the
+// character has the quest and its not completed
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 
-using Styx.Common;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Halt
@@ -18,35 +48,22 @@ namespace Honorbuddy.Quest_Behaviors.Halt
     [CustomBehaviorFileName(@"Halt")]
     public class Halt : CustomForcedBehavior
     {
-        /// <summary>
-        /// Stops the Quest Bot.  Will write 'Msg' to the log and Goal Text.
-        /// Also write the line number it halted at for easily locating in profile.
-        /// 
-        /// Useful for testing assumptions in quest profile and during profile
-        /// development to force profile to automatically stop at designated point
-        /// 
-        /// ##Syntax##
-        /// [optional] QuestId: Id of the quest (default is 0)
-        /// [optional] Msg: text value to display (default says stopped by profile)
-        /// [optional] Color: color to use for message in log (default is red)
-        /// 
-        /// Note:  QuestId behaves the same as on every other behavior.  If 0, then
-        /// halt always occurs.  Otherwise, for non-zero QuestId only halts if the
-        /// character has the quest and its not completed
-        /// </summary>
         public Halt(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Color = GetAttributeAsNullable<Color>("Color", false, null, null) ?? Color.Red;
-                Message = GetAttributeAs<string>("Message", false, ConstrainAs.StringNonEmpty, new[] { "Msg", "Text" }) ?? "Quest Profile HALT";
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
+                Color = GetAttributeAsNullable<Color>("Color", false, null, null) ?? Color.Red;
+                Message = GetAttributeAs<string>("Message", false, ConstrainAs.StringNonEmpty, new[] { "Msg", "Text" }) ?? "Quest Profile HALT";
             }
 
             catch (Exception except)
@@ -56,9 +73,9 @@ namespace Honorbuddy.Quest_Behaviors.Halt
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -74,8 +91,8 @@ namespace Honorbuddy.Quest_Behaviors.Halt
         private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: Halt.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~Halt()
@@ -144,11 +161,10 @@ namespace Honorbuddy.Quest_Behaviors.Halt
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(Color.A, Color.R, Color.G, Color.B);
-                Logging.Write(LogLevel.Diagnostic, newColor, "\n\n    " + Message + "\n");
+                QBCLog.DeveloperInfo("\n\n    " + Message + "\n");
 
-                TreeRoot.GoalText = Message;
-                LogMessage("info", "Halting bot");
+                this.UpdateGoalText(QuestId, Message);
+
                 TreeRoot.Stop("Bot stop requested by Halt quest behavior.");
             }
         }

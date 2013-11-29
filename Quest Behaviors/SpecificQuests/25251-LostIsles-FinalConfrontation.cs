@@ -1,20 +1,36 @@
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading;
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System.Collections.Generic;
+using System.Linq;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
@@ -23,11 +39,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
     public class q25251 : CustomForcedBehavior
 	{
 		public q25251(Dictionary<string, string> args)
-            : base(args){}
+            : base(args)
+		{
+            QBCLog.BehaviorLoggingContext = this;
+		}
     
         
-        public static LocalPlayer me = StyxWoW.Me;
-		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
+        public static LocalPlayer Me = StyxWoW.Me;
 		static public bool OnCooldown1 { get { return Lua.GetReturnVal<int>("a,b,c=GetActionCooldown(121);if b==0 then return 1 else return 0 end", 0) == 0; } }
 		static public bool OnCooldown2 { get { return Lua.GetReturnVal<int>("a,b,c=GetActionCooldown(122);if b==0 then return 1 else return 0 end", 0) == 0; } }
 		static public bool OnCooldown3 { get { return Lua.GetReturnVal<int>("a,b,c=GetActionCooldown(123);if b==0 then return 1 else return 0 end", 0) == 0; } }
@@ -58,9 +76,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
         {
             return _root ?? (_root =
                 new PrioritySelector(
-					
-					
-                    new Decorator(ret => me.QuestLog.GetQuestById(25251) !=null && me.QuestLog.GetQuestById(25251).IsCompleted,
+
+
+                    new Decorator(ret => Me.QuestLog.GetQuestById(25251) != null && Me.QuestLog.GetQuestById(25251).IsCompleted,
 						new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Finished!"),
                             new WaitContinue(120,
@@ -69,7 +87,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
                                 _isDone = true;
                                 return RunStatus.Success;
                             })))),
-					new Decorator(ret => !InVehicle,
+                    new Decorator(ret => !Query.IsInVehicle(),
 						new Action(ret =>
 						{
 							if (flylist.Count == 0)
@@ -77,26 +95,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								Navigator.MoveTo(flyloc);
 								StyxWoW.Sleep(1000);
 							}
-							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) > 5)
+                            if (flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) > 5)
 							{
 								Navigator.MoveTo(flylist[0].Location);
 								StyxWoW.Sleep(1000);
 							}
-							if (flylist.Count > 0 && flylist[0].Location.Distance(me.Location) <= 5)
+                            if (flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) <= 5)
 							{
 								WoWMovement.MoveStop();
 								flylist[0].Interact();
 								StyxWoW.Sleep(1000);
 							}
 						})),
-					new Decorator(ret => InVehicle,
+                    new Decorator(ret => Query.IsInVehicle(),
 						new Action(ret =>
 						{
-							if (!InVehicle)
+                            if (!Query.IsInVehicle())
 								return RunStatus.Success;
-							if (me.QuestLog.GetQuestById(25251).IsCompleted)
+                            if (Me.QuestLog.GetQuestById(25251).IsCompleted)
 							{
-								while (me.Location.Distance(flyloc) > 10)
+                                while (Me.Location.Distance(flyloc) > 10)
 								{
 									Navigator.MoveTo(flyloc);
 									StyxWoW.Sleep(1000);
@@ -106,7 +124,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 							}
 							if (objmob.Count == 0)
 							{
-								if (me.Location.Distance(temploc) <= 7)
+                                if (Me.Location.Distance(temploc) <= 7)
 									locreached = true;
 								if (!locreached)
 								{
@@ -117,11 +135,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								Navigator.MoveTo(startloc);
 								StyxWoW.Sleep(1000);
 							}
-							if (objmob.Count > 0 && (objmob[0].Location.Distance(me.Location) > 40 || !objmob[0].InLineOfSight))
+                            if (objmob.Count > 0 && (objmob[0].Location.Distance(Me.Location) > 40 || !objmob[0].InLineOfSight))
 							{
 								
 								objmob[0].Target();
-								if (me.Location.Distance(temploc) <= 7)
+                                if (Me.Location.Distance(temploc) <= 7)
 									locreached = true;
 								if (!locreached)
 								{
@@ -135,7 +153,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								}
 								StyxWoW.Sleep(1000);
 							}
-							if (objmob.Count > 0 && objmob[0].Location.Distance(me.Location) <= 40 && objmob[0].InLineOfSight)
+                            if (objmob.Count > 0 && objmob[0].Location.Distance(Me.Location) <= 40 && objmob[0].InLineOfSight)
 							{
 								WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
 								WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards);
@@ -145,22 +163,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 								Lua.DoString("UseAction(123, 'target', 'LeftButton')");
 								if (!OnCooldown2)
 								Lua.DoString("UseAction(122, 'target', 'LeftButton')");
-								if (!OnCooldown1 && objmob[0].Location.Distance(me.Location) <= 10)
+                                if (!OnCooldown1 && objmob[0].Location.Distance(Me.Location) <= 10)
 								Lua.DoString("UseAction(121, 'target', 'LeftButton')");
 							}
 							return RunStatus.Running;
 						}
 					))
-					
-					
                 )
 			);
         }
 
-        
-
-        
-        
 
         private bool _isDone;
         public override bool IsDone
@@ -168,6 +180,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
             get { return _isDone; }
         }
 
+
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
+            if (!IsDone)
+            {
+                this.UpdateGoalText(0);
+            }
+        }
     }
 }
 

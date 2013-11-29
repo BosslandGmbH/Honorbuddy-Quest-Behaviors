@@ -1,17 +1,35 @@
-﻿using System.Collections.Generic;
+﻿//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System.Collections.Generic;
 using System.Linq;
 
-using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
-using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Hooks
@@ -22,37 +40,24 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         public BlackrockMaskHook(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
 
-                QuestId = 0;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-                //True = hook running, false = hook stopped
-                state = GetAttributeAsNullable<bool>("state", false, null, null) ?? false;
- 
+            //True = hook running, false = hook stopped
+            _state = GetAttributeAsNullable<bool>("state", false, null, null) ?? false;
         }
-        public int QuestId { get; set; }
-        private bool _isBehaviorDone;
 
 
-        private bool state;
-
-        private Composite _root;
+        private bool _inserted = false;
+        private bool _state;
         
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
-        
+
         public override bool IsDone
         {
             get
             {
-                return inserted;
+                return _inserted;
             }
         }
-
-        private bool inserted = false;
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
-
 
 
         public static WoWItem Disguise
@@ -71,122 +76,53 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             get { return StyxWoW.Me.HasAura(89261); }
         }
 
-        public static Composite _myHook;
-        public static Composite myHook
+        private static Composite _myHook;
+        private static Composite CreateHook()
         {
-            get
-            {
-                if (_myHook == null)
-                {
-                    _myHook = new Decorator(r => Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 && !Disguised, new Action(r =>
+            return 
+                new Decorator(r => Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 && !Disguised,
+                    new Action(r =>
                     {
                         Navigator.PlayerMover.MoveStop();
                         Disguise.Use();
-                    }));                    
-					return _myHook;
-                }
-                else
-                {
-                    return _myHook;
-                }
-            }
-            set
-            {
-                _myHook = value;
-            }
+                    }));
         }
 
         public override void OnStart()
         {
             OnStart_HandleAttributeProblem();
 
-            Logging.Write("BlackrockMaskHook:{0}  - gfrsa",state);
-            if (state == true)
+            if (_state == true)
             {
                 if (_myHook == null)
                 {
-                    Logging.Write("BlackrockMaskHook:Inserting hook - gfrsa");
-                    TreeHooks.Instance.InsertHook("Questbot_Main", 0, myHook);
+                    QBCLog.Info("Inserting hook");
+                    _myHook = CreateHook();
+                    TreeHooks.Instance.InsertHook("Questbot_Main", 0, _myHook);
                 }
                 else
                 {
-                    Logging.Write("BlackrockMaskHook:Insert was requested, but was already present - gfrsa");
+                    QBCLog.Info("Insert was requested, but was already present");
                 }
 
-
+                _inserted = true;
             }
+
             else
             {
                 if (_myHook != null)
                 {
-                    Logging.Write("BlackrockMaskHook:Removing hook - gfrsa");
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", myHook);
-                    myHook = null;
+                    QBCLog.Info("Removing hook");
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", _myHook);
+                    _myHook = null;
                 }
                 else
                 {
-                    Logging.Write("BlackrockMaskHook:Remove was requested, but hook was not present - gfrsa");
+                    QBCLog.Info("Remove was requested, but hook was not present");
                 }
 
-            }
-
-
-            /*if (_myHook == null)
-            {
-                Logging.Write("BlackrockMaskHook:Inserting hook - gfrsa");
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, myHook);
-            }
-            else
-            {
-                Logging.Write("BlackrockMaskHook:Removing hook - gfrsa");
-                TreeHooks.Instance.RemoveHook("Questbot_Main", myHook);
-                myHook = null;
-            }*/
-            inserted = true;
-
-        }
-
-
-
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-        public Composite DoneYet
-        {
-            get
-            {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-
+                _inserted = false;
             }
         }
-
-
-        
-
-
-
-
-
     }
 }

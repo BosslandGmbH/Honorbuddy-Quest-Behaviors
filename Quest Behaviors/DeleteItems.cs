@@ -1,13 +1,33 @@
 // Behavior originally contributed by Mastahg
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.WoWInternals;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DeleteItems
@@ -18,6 +38,8 @@ namespace Honorbuddy.Quest_Behaviors.DeleteItems
         public DeleteItems(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -33,25 +55,20 @@ namespace Honorbuddy.Quest_Behaviors.DeleteItems
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
 
-private string[] Names;
-
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private string[] Names;
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
-
-
 
 
         ~DeleteItems()
@@ -114,17 +131,17 @@ private string[] Names;
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                this.UpdateGoalText(0);
 
                 foreach(var name in Names)
                 {
-                    Logging.Write("Searching for "+name + " ....");
+                    QBCLog.Info("Searching for " + name + "...");
                     
                     foreach(var item in StyxWoW.Me.BagItems.FindAll(x => x.Entry == name.ToUInt32()))
                     {
                         item.PickUp();
                         Lua.DoString("DeleteCursorItem();");
                     }
-
                 }
 
                 _isBehaviorDone = true;

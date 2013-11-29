@@ -1,27 +1,41 @@
 ﻿// Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
-//				<CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" /> // originally made for hyjal behavior
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+//    <CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" /> // originally made for hyjal behavior
+#endregion
 
 
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Bots.Grind;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
@@ -38,12 +52,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
         public theballadofmaximillian(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-
                 QuestId = 24707;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
@@ -57,30 +72,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
         // Attributes provided by caller
-        public int MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
-
 
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
-
-
 
 
         // Private properties
@@ -110,7 +119,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
                 // Call parent Dispose() (if it exists) here ...
                 base.Dispose();
             }
-            //Logging.Write("Disposing");
 
             //LevelBot.BehaviorFlags |= ~BehaviorFlags.Combat;
 
@@ -128,36 +136,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
                     {
-
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
 
-        public bool IsQuestComplete()
-        {
-            if (QuestId == 0)
-                return false;
-
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-
-        public Composite DoDps
-        {
-            get
-            {
-                return
-                    new PrioritySelector(RoutineManager.Current.HealBehavior, RoutineManager.Current.CombatBuffBehavior, RoutineManager.Current.CombatBehavior);
-            }
-        }
 
         public WoWPoint start = new WoWPoint(-7228.146, -599.6198, -271.2461);
 
@@ -193,13 +181,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
             get
             {
                 return new PrioritySelector(
-                    new Decorator(r=> !Me.InVehicle && (maxi == null || maxi.Distance > 5), new Action(r=>Navigator.MoveTo(start))),
-                    new Decorator(r => !Me.InVehicle && maxi != null, new Action(r => {maxi.Interact();
-                    GossipFrame.Instance.SelectGossipOption(0);
-                    })),
-                     new Decorator(r => Me.InVehicle &&  Dragon == null, shoot(1)),
-                     new Decorator(r => Me.InVehicle && Dragon != null && Me.CurrentTarget != Dragon, new Action(r => Dragon.Target())),
-                     new Decorator(r => Me.InVehicle && Dragon != null, new Action(r =>
+                    new Decorator(r => !Query.IsInVehicle() && (maxi == null || maxi.Distance > 5), new Action(r => Navigator.MoveTo(start))),
+                    new Decorator(r => !Query.IsInVehicle() && maxi != null,
+                        new Action(r =>
+                        {
+                            maxi.Interact();
+                            GossipFrame.Instance.SelectGossipOption(0);
+                        })),
+                     new Decorator(r => Query.IsInVehicle() && Dragon == null, shoot(1)),
+                     new Decorator(r => Query.IsInVehicle() && Dragon != null && Me.CurrentTarget != Dragon, new Action(r => Dragon.Target())),
+                     new Decorator(r => Query.IsInVehicle() && Dragon != null, new Action(r =>
                          {
                              if (Dragon.Distance <= 12) {Lua.DoString("CastPetAction({0})", 1);}
                              if (rock != null){Lua.DoString("CastPetAction({0})", 2);}
@@ -243,11 +234,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 
         public override void OnStart()
         {
-
-
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -257,14 +243,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
                 //LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
 
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

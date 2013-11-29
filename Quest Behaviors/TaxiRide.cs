@@ -1,5 +1,6 @@
 // Behavior originally contributed by Cava
 // Part of this code obtained from HB QB's and UseTaxi.cs originaly contributed by Vlad
+//
 // LICENSE:
 // This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -7,6 +8,7 @@
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
 #region Summary and Documentation
 // QUICK DOX:
@@ -56,31 +58,28 @@
 // <CustomBehavior File="TaxiRide" MobId="12345" DestName="ViewNodesOnly" />
 #endregion
 
+
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
-using Styx;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
 #endregion
 
+
 namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
 {
     [CustomBehaviorFileName(@"TaxiRide")]
     public class TaxiRide : CustomForcedBehavior
     {
-	#region Constructor and argument processing  
+	    #region Constructor and argument processing  
         public enum NpcStateType
         {
             Alive,
@@ -96,25 +95,26 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
         public TaxiRide(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-
                 QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;
+                CurrentCommand = GetAttributeAsNullable<NpcCommand>("MobCommand", false, null, new[] { "NpcCommand" }) ?? NpcCommand.Target;
+                DestName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "ViewNodesOnly";
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.Alive;
-                CurrentCommand = GetAttributeAsNullable<NpcCommand>("MobCommand", false, null, new[] { "NpcCommand" }) ?? NpcCommand.Target;
-                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
-                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;
                 TaxiNumber = GetAttributeAs<string>("TaxiNumber", false, ConstrainAs.StringNonEmpty, null) ?? "0";
-		        DestName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "ViewNodesOnly";
+                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
             }
 
             catch (Exception except)
@@ -124,14 +124,14 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
-	// Attributes provided by caller
+	    // Attributes provided by caller
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -143,11 +143,11 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
         public int WaitTime { get; private set; }
         public double MobHpPercentLeft { get; private set; }
         public string TaxiNumber { get; private set; }
-	public string DestName { get; set; }
-	#endregion
+	    public string DestName { get; set; }
+	    #endregion
 
 
-    #region Private and Convenience variables
+        #region Private and Convenience variables
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
@@ -155,8 +155,8 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: TaxiRide.cs 525 2013-05-22 21:28:47Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 525 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 	#endregion
 
         ~TaxiRide()
@@ -193,7 +193,7 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
         {
             get
             {
-                WoWUnit @object = null;
+                WoWUnit obj = null;
 
                 var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
                         .OrderBy(target => target.Distance)
@@ -205,12 +205,12 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
                         .Where(target => ((NpcState == NpcStateType.DontCare)
                         || ((NpcState == NpcStateType.Dead) && target.IsDead)
                         || ((NpcState == NpcStateType.Alive) && target.IsAlive)));
-                        @object = npcStateQualifiedTargets.FirstOrDefault();
+                        obj = npcStateQualifiedTargets.FirstOrDefault();
 
-                if (@object != null)
-                { LogMessage("debug", @object.Name); }
+                if (obj != null)
+                    { QBCLog.DeveloperInfo(obj.Name); }
 
-                return @object;
+                return obj;
             }
         }
 
@@ -335,7 +335,7 @@ namespace Styx.Bot.Quest_Behaviors.Cava.TaxiRide
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = "TaxiRide Started";
+                this.UpdateGoalText(QuestId, "TaxiRide started");
             }
         }
 

@@ -1,13 +1,29 @@
 ﻿// Behavior originally contributed by Unknown / rework by Chinajade
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.Common.Helpers;
@@ -21,6 +37,7 @@ using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
@@ -31,6 +48,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
         public TheLightOfDawn(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -54,9 +73,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -92,7 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
             set
             {
                 if (_state_Behavior != value)
-                { LogMessage("info", "Behavior State: {0}", value); }
+                    { QBCLog.DeveloperInfo("Behavior State: {0}", value); }
 
                 _state_Behavior = value;
             }
@@ -111,8 +130,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
         private StateType_Behavior _state_Behavior;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: TheLightOfDawn.cs 664 2013-07-23 12:44:32Z Dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 664 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         #region Destructor, Dispose, and cleanup
@@ -222,14 +241,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
                 State_Behavior = StateType_Behavior.ChattingToStartBattle;
-
             
                 _behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
@@ -237,6 +251,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                 TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
                 _behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
+
+                this.UpdateGoalText(QuestId);
             }
         }
 
@@ -263,7 +279,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                         #region State: DEFAULT
                         new Action(context =>   // default case
                         {
-                            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: State_Behavior({0}) is unhandled", State_Behavior);
+                            QBCLog.MaintenanceError("State_Behavior({0}) is unhandled", State_Behavior);
                             TreeRoot.Stop();
                             _isBehaviorDone = true;
                         }),
@@ -471,7 +487,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                     new Action(context =>
                     {
                         _isBehaviorDone = true;
-                        LogMessage("info", "Finished");
+                        QBCLog.Info("Finished");
                     }))
                 );
         }

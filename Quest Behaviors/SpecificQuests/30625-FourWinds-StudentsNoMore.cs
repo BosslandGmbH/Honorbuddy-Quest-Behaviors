@@ -1,14 +1,31 @@
 // Behavior originally contributed by Natfoth.
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
 using CommonBehaviors.Decorators;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -19,6 +36,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
@@ -29,6 +47,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
         public FourWindsStudentsNoMore(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
 
             try
             {
@@ -44,9 +63,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -81,18 +100,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
             }
         }
 
-        public List<WoWUnit> EnemysAll
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                     .Where(u => u.FactionId == 2550 && !u.IsDead && u.Distance < 199)
-                                     .OrderBy(u => u.Distance).ToList());
-            }
-        }
-
-        private uint[] _enemyIds = { 59889 };
-
         public List<WoWUnit> EnemysStudents
         {
             get
@@ -114,8 +121,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 30625-FourWinds-StudentsNoMore.cs 664 2013-07-23 12:44:32Z Dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 664 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         ~FourWindsStudentsNoMore()
         {
@@ -255,8 +262,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.StudentsNoMore
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = "Students No More In Progress";
                 Targeting.Instance.IncludeTargetsFilter += IncludeTargetsFilter;
+                this.UpdateGoalText(QuestId);
             }
         }
 

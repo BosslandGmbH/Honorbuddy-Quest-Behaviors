@@ -1,5 +1,15 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_Escort
 //
@@ -23,24 +33,32 @@
 //      X, Y, Z [Default: toon's current position]: world-coordinates of the general location where
 //              the Mob to be escorted can be found.
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Escort
@@ -69,6 +87,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
         public Escort(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 EscortUntil = GetAttributeAsNullable<EscortUntilType>("EscortUntil", false, null, null) ?? EscortUntilType.QuestComplete;
@@ -92,9 +112,9 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -115,7 +135,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
         // Private variables for internal state
-        private QuestBehaviorCore.ConfigMemento _configMemento;
+        private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
@@ -137,14 +157,14 @@ namespace Honorbuddy.Quest_Behaviors.Escort
         {
             get
             {
-                WoWObject @object = null;
+                WoWObject obj = null;
 
                 switch (MobType)
                 {
                     case ObjectType.GameObject:
-                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>()
+                        obj = ObjectManager.GetObjectsOfType<WoWGameObject>()
                                                 .OrderBy(ret => ret.Distance)
-                                                .FirstOrDefault(obj => ObjectId.Contains((int)obj.Entry));
+                                                .FirstOrDefault(target => ObjectId.Contains((int)target.Entry));
                         break;
 
                     case ObjectType.Npc:
@@ -155,14 +175,14 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         var npcStateQualifiedTargets = baseTargets
                                                             .Where(target => (target.IsAlive));
 
-                        @object = npcStateQualifiedTargets.FirstOrDefault();
+                        obj = npcStateQualifiedTargets.FirstOrDefault();
                         break;
                 }
 
-                if (@object != null)
-                { LogMessage("debug", @object.Name); }
+                if (obj != null)
+                { QBCLog.DeveloperInfo(obj.Name); }
 
-                return @object;
+                return obj;
             }
         }
 
@@ -178,8 +198,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: Escort.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~Escort()
@@ -203,9 +223,10 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                { _configMemento.Dispose(); }
-
-                _configMemento = null;
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
                 TreeRoot.GoalText = string.Empty;
@@ -222,14 +243,6 @@ namespace Honorbuddy.Quest_Behaviors.Escort
         public void BotEvents_OnBotStop(EventArgs args)
         {
             Dispose();
-        }
-
-
-        public bool IsQuestComplete()
-        {
-            return (UtilIsProgressRequirementsMet(QuestId,
-                                                  QuestInLogRequirement.InLog,
-                                                  QuestCompleteRequirement.Complete));
         }
 
         #region Overrides of CustomForcedBehavior
@@ -255,7 +268,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         })),
 
                     // If quest is completed, we're done...
-                    new Decorator(ret => ((EscortUntil == EscortUntilType.QuestComplete) && IsQuestComplete()),
+                    new Decorator(ret => ((EscortUntil == EscortUntilType.QuestComplete) && Me.IsQuestComplete(QuestId)),
                         new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Finished!"),
                             new WaitContinue(120,
@@ -337,7 +350,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                         })),
 
                     // If quest is completed, we're done...
-                    new Decorator(ret => ((EscortUntil == EscortUntilType.QuestComplete) && IsQuestComplete()),
+                    new Decorator(ret => ((EscortUntil == EscortUntilType.QuestComplete) && Me.IsQuestComplete(QuestId)),
                         new Sequence(
                             new Action(ret => TreeRoot.StatusText = "Finished!"),
                             new WaitContinue(120,
@@ -456,7 +469,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 
         public override void OnStart()
         {
-            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "EscortGroup");
+            QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "EscortGroup");
 
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
@@ -467,13 +480,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
                 // Disable any settings that may interfere with the escort --
@@ -487,9 +494,15 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
 
-                WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => ObjectId.Contains((int)unit.Entry));
+                var mobNames =
+                   (from mob in ObjectManager.GetObjectsOfType<WoWUnit>()
+                    where ObjectId.Contains((int)mob.Entry)
+                    let mobName = Utility.GetObjectNameFromId((int)mob.Entry)
+                    orderby mobName
+                    select mobName)
+                    .Distinct();
 
-                TreeRoot.GoalText = "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + ObjectId + ")"));
+                this.UpdateGoalText(QuestId, string.Format("Escorting {0}", string.Join(", ", mobNames)));
             }
         }
 

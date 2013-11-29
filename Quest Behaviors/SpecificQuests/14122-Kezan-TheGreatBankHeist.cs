@@ -1,9 +1,27 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+﻿//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System.Collections.Generic;
+using System.Linq;
+
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -12,6 +30,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
@@ -21,14 +40,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
     {
         public _14122(Dictionary<string, string> args):base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
         }
         public int QuestId { get; set; }
         private bool IsAttached;
         private bool IsBehaviorDone;
         private WoWPoint wp = new WoWPoint(-8361.689, 1726.248, 39.94792);
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
         public List<WoWGameObject> q14122bank
         {
             get
@@ -65,7 +84,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
                             new Decorator(
                                 ret => IsAttached,
                                 new Sequence(
-                                    new Action(ret => Logging.Write("Detaching")),
+                                    new Action(ret => QBCLog.Info("Detaching")),
                                     new Action(ret => Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", q14122msg)),
                                     new Action(ret => IsBehaviorDone = true)
                                     )))),
@@ -89,8 +108,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
-                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
         public void q14122msg(object sender, LuaEventArgs arg)

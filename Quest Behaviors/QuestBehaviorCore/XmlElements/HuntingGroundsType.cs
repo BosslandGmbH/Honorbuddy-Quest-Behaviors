@@ -129,8 +129,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         private readonly IVisitStrategy _visitStrategy;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: HuntingGroundsType.cs 712 2013-07-25 15:25:19Z dogan $"; } }
-        public override string SubversionRevision { get { return "$Rev: 712 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

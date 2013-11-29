@@ -158,10 +158,8 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Text;
-using System.Threading;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
@@ -210,6 +208,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
         public UseItemOn(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 int tmpMobHasAuraId;
@@ -255,7 +255,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogError("[MAINTENANCE PROBLEM]: " + except.Message
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
                 IsAttributeProblem = true;
@@ -343,8 +343,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
         private Composite _root;  
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseItemOn.cs 580 2013-06-30 06:53:32Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 580 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
         #endregion
 
 
@@ -393,7 +393,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
             }
             catch
             {
-                LogMessage("fatal", "Could not find {0}({0}).", attributeName, auraId);
+                QBCLog.Fatal("Could not find {0}({0}).", attributeName, auraId);
                 IsAttributeProblem = true;
             }
 
@@ -442,7 +442,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                 }
 
                 if (@object != null)
-                { LogDeveloperInfo(@object.Name); }
+                    { QBCLog.DeveloperInfo(@object.Name); }
 
                 return @object;
             }
@@ -578,7 +578,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                                         else
                                         {
                                             string message = "Waiting for mobs or objects to respawn.";
-                                            LogInfo(message);
+                                            QBCLog.Info(message);
                                             TreeRoot.StatusText = message;
                                         }
                                     })),
@@ -619,7 +619,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
         public override void OnStart()
         {
-            QuestBehaviorCore.QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
+            QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
 
             // Hunting ground processing...
             IList<HuntingGroundType> tmpHuntingGrounds;
@@ -636,7 +636,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 if (HuntingGrounds.Waypoints.Count() <= 0)
                 {
-                    LogError("Neither the X/Y/Z attributes nor the <HuntingGrounds> sub-element has been specified.");
+                    QBCLog.Error("Neither the X/Y/Z attributes nor the <HuntingGrounds> sub-element has been specified.");
                     IsAttributeProblem = true;
                 }
             }
@@ -650,13 +650,11 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
 
                 CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
             }
-            TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
         }
 
         #endregion
@@ -684,7 +682,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 catch (Exception except)
                 {
-                    parentBehavior.LogMessage("error", "[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
+                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
                         xElement.ToString(), except.Message, except.StackTrace);
                     IsAttributeProblem = true;
                 }
@@ -749,7 +747,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 catch (Exception except)
                 {
-                    parentBehavior.LogMessage("error", "[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
+                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
                         xElement.ToString(), except.Message, except.StackTrace);
                     IsAttributeProblem = true;
                 }
@@ -860,7 +858,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 catch(Exception ex)
                 {
-                    parentBehavior.LogMessage("error", "{0}: {1}", element.ToString(), ex.ToString());
+                    QBCLog.Error("{0}: {1}", element.ToString(), ex.ToString());
                     isAttributeProblem = true;
                 }
             }
@@ -905,128 +903,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
             #endregion
 
             CustomForcedBehavior _parent;
-        }
-        #endregion
-
-
-        #region Diagnostic Methods
-        public delegate string StringProviderDelegate();
-
-        /// <summary>
-        /// <para>This is an efficent poor man's mechanism for reporting contract violations in methods.</para>
-        /// <para>If the provided ISCONTRACTOKAY evaluates to true, no action is taken.
-        /// If ISCONTRACTOKAY is false, a diagnostic message--given by the STRINGPROVIDERDELEGATE--is emitted to the log, along with a stack trace.</para>
-        /// <para>This emitted information can then be used to locate and repair the code misusing the interface.</para>
-        /// <para>For convenience, this method returns the evaluation if ISCONTRACTOKAY.</para>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * The interface is built in terms of a StringProviderDelegate,
-        /// so we don't pay a performance penalty to build an error message that is not used
-        /// when ISCONTRACTOKAY is true.</para></description></item>
-        /// <item><description><para> * The .NET 4.0 Contract support is insufficient due to the way Buddy products
-        /// dynamically compile parts of the project at run time.</para></description></item>
-        /// </list></para>
-        /// </summary>
-        /// <param name="isContractOkay"></param>
-        /// <param name="stringProviderDelegate"></param>
-        /// <returns>the evaluation of the provided ISCONTRACTOKAY predicate delegate</returns>
-        ///  30Jun2012-15:58UTC chinajade
-        ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
-        ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
-        ///  throughout the code.
-        public bool ContractRequires(bool isContractOkay, StringProviderDelegate stringProviderDelegate)
-        {
-            if (!isContractOkay)
-            {
-                // TODO: (Future enhancement) Build a string representation of isContractOkay if stringProviderDelegate is null
-                string      message = stringProviderDelegate() ?? "NO MESSAGE PROVIDED";
-                StackTrace  trace   = new StackTrace(1);
-
-                LogError("[CONTRACT VIOLATION] {0}\nLocation:\n{1}",  message, trace.ToString());
-            }
-
-            return isContractOkay;
-        }
-
-
-        /// <summary>
-        /// <para>Returns the name of the method that calls this function. If SHOWDECLARINGTYPE is true,
-        /// the scoped method name is returned; otherwise, the undecorated name is returned.</para>
-        /// <para>This is useful when emitting log messages.</para>
-        /// </summary>
-        /// <para>Notes:<list type="bullet">
-        /// <item><description><para> * This method uses reflection--making it relatively 'expensive' to call.
-        /// Use it with caution.</para></description></item>
-        /// </list></para>
-        /// <returns></returns>
-        ///  7Jul2012-20:26UTC chinajade
-        public static string    GetMyMethodName(bool  showDeclaringType   = false)
-        {
-            var method  = (new StackTrace(1)).GetFrame(0).GetMethod();
-
-            if (showDeclaringType)
-                { return (method.DeclaringType + "." + method.Name); }
-
-            return (method.Name);
-        }
-
-
-        /// <summary>
-        /// <para>For DEBUG USE ONLY--don't use in production code! (Almost exclusively used by DebuggingTools methods.)</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogDeveloperInfo(string message, params object[] args)
-        {
-            LogMessage("debug", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogError(string message, params object[] args)
-        {
-            LogMessage("error", message, args);
-        }
-        
-        
-        /// <summary>
-        /// <para>Normal information to keep user informed.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogInfo(string message, params object[] args)
-        {
-            LogMessage("info", message, args);
-        }
-        
-        
-        /// <summary>
-        /// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
-        /// action a user can perform in the field for these types of errors.
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        ///  30Jun2012-15:58UTC chinajade
-        public void LogMaintenanceError(string message, params object[] args)
-        {
-            string          formattedMessage    = string.Format(message, args);
-            StackTrace      trace               = new StackTrace(1);
-
-            LogMessage("error", "[MAINTENANCE ERROR] {0}\nLocation:\n{1}", formattedMessage, trace.ToString());
-        }
-
-
-        /// <summary>
-        /// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
-        /// </summary>
-        /// <param name="message"></param>
-        /// <param name="args"></param>
-        public void LogWarning(string message, params object[] args)
-        {
-            LogMessage("warning", message, args);
         }
         #endregion
     }

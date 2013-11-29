@@ -1,10 +1,30 @@
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Xml.Linq;
+
 using Bots.Quest;
-using Bots.Quest.QuestOrder;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -12,7 +32,9 @@ using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
 using Honorbuddy.Quest_Behaviors.ForceSetVendor;
+
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Hooks
@@ -23,29 +45,25 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         public MountHook(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
 
-            QuestId = 0;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
             //True = hook running, false = hook stopped
-            state = GetAttributeAsNullable<bool>("state", true, null, null) ?? false;
+            _state = GetAttributeAsNullable<bool>("state", true, null, null) ?? false;
 
         }
-        public int QuestId { get; set; }
-        private bool _isBehaviorDone;
 
+        private bool _inserted;
+        private bool _state;
 
-        private bool state;
-
-        private Composite _root;
 
         public override bool IsDone
         {
             get
             {
-                return inserted;
+                return _inserted;
             }
         }
 
-        private bool inserted = false;
         private static LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
@@ -76,8 +94,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         {
             get
             {
-
-
                 if (SpellManager.HasSpell(ColdWeatherFlying))
                     return 3;
 
@@ -93,6 +109,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
         }
 
+
         private static bool Hellfire
         {
             get
@@ -101,6 +118,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             }
         }
 
+
         private static bool OldWorld
         {
             get
@@ -108,6 +126,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 return (StyxWoW.Me.MapId == 0 || StyxWoW.Me.MapId == 1);
             }
         }
+
 
         //Return the trainer we want based on faction and location and skill.
         private static int TrainerId
@@ -118,11 +137,11 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                 {
                     return Me.IsAlliance ? AllianceLowbie : HordieLowbie;
                 }
+
                 if (Hellfire)
                 {
                     return Me.IsAlliance ? AllianceFlight : HordeFlight;
                 }
-
 
                 return 0;
             }
@@ -130,27 +149,10 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 
         public static Boolean setupQO;
-        public static QuestOrder customQuestOrder;
-
-
-
-
-
-
-
-        private static Composite QOrunner;
-
-        private static void CleanupQuestOrder()
-        {
-            Logging.Write("Custom quest order complete, cleaning up.");
-            TreeHooks.Instance.RemoveHook("GoobyHook2", QOrunner);
-            customQuestOrder = null;
-
-        }
 
         private static void SetupQuestLowbieOrder()
         {
-            Logging.Write("Starting ground quest order.");
+            QBCLog.Info("Starting ground quest order.");
             
             //Replace with memorystream once profile is finalized    
             //var reader = new StreamReader(File.OpenRead(@"C:\Users\Dennis\Desktop\New folder\hbx\GroundTraining.XML"));
@@ -163,9 +165,10 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             setupQO = true;
         }
 
+
         private static void SetupQuestFlyingOrder()
         {
-            Logging.Write("Starting flying quest order.");
+            QBCLog.Info("Starting flying quest order.");
             //var reader = new StreamReader(File.OpenRead(@"C:\Users\Dennis\Desktop\New folder\hbx\GroundTraining.XML"));
             var reader = new StreamReader(new MemoryStream(Convert.FromBase64String(FlyingMounts)));
             XElement xml = XElement.Parse(reader.ReadToEnd());
@@ -174,8 +177,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             QuestState.Instance.Order.Nodes.InsertRange(0, Profile.QuestOrder);
             QuestState.Instance.Order.UpdateNodes();
             setupQO = true;
-
-
         }
 
         //Races that give us problems:
@@ -204,7 +205,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
         private static void SetupTrainer()
         {
-            Logging.Write(System.Windows.Media.Colors.Aquamarine, "Creating ForceTrainRiding object");
+            QBCLog.Info("Creating ForceTrainRiding object");
             var args = new Dictionary<string, string> { { "MobId", TrainerId.ToString() } };
 
             gooby = new ForceTrainRiding(args);
@@ -217,11 +218,11 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
             if (gooby.GetType() == typeof(ForceTrainRiding))
             {
-                Logging.Write(System.Windows.Media.Colors.Aquamarine, "Cleaningup ForceTrainRiding object");
+                QBCLog.Info("Cleaning up ForceTrainRiding object");
             }
             else
             {
-                Logging.Write(System.Windows.Media.Colors.Aquamarine, "Cleaningup InteractWith object");
+                QBCLog.Info("Cleaning up InteractWith object");
             }
 
             TreeHooks.Instance.RemoveHook("GoobyHook", gooby.Branch);
@@ -263,59 +264,49 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         }
 
         public static Composite _myHook;
-        public static Composite myHook
+        public static Composite CreateHook()
         {
-            get
-            {
-                if (_myHook == null)
-                {
-                    _myHook = new Decorator(r => !Me.Combat, new PrioritySelector(runOtherComposite, PurchaseMount, OldWordComposite, HellfireComposite));
-                    return _myHook;
-                }
-                return _myHook;
-            }
-            set
-            {
-                _myHook = value;
-            }
+            return new Decorator(r => !Me.Combat,
+                new PrioritySelector(runOtherComposite,
+                    PurchaseMount,
+                    OldWordComposite,
+                    HellfireComposite));
         }
 
         public override void OnStart()
         {
             OnStart_HandleAttributeProblem();
 
-            Logging.Write("MountHook:{0}  - zxbca", state);
-            if (state == true)
+            if (_state == true)
             {
                 if (_myHook == null)
                 {
-                    Logging.Write("MountHook:Inserting hook - zxbca");
-                    TreeHooks.Instance.InsertHook("Questbot_Main", 0, myHook);
+                    QBCLog.Info("Inserting hook");
+                    _myHook = CreateHook();
+                    TreeHooks.Instance.InsertHook("Questbot_Main", 0, _myHook);
                 }
                 else
                 {
-                    Logging.Write("MountHook:Insert was requested, but was already present - zxbca");
+                    QBCLog.Info("Insert was requested, but was already present");
                 }
 
-
+                _inserted = true;
             }
             else
             {
                 if (_myHook != null)
                 {
-                    Logging.Write("MountHook:Removing hook - zxbca");
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", myHook);
-                    myHook = null;
+                    QBCLog.Info("Removing hook");
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", _myHook);
+                    _myHook = null;
                 }
                 else
                 {
-                    Logging.Write("MountHook:Remove was requested, but hook was not present - zxbca");
+                    QBCLog.Info("Remove was requested, but hook was not present");
                 }
 
+                _inserted = false;
             }
-
-            inserted = true;
-
         }
 
 
@@ -325,8 +316,5 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private const string FlyingMounts = "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4NCjxIQlByb2ZpbGU+DQogICA8TmFtZT5NYXN0YWhnIEZseWluZyBNb3VudCBUcmFpbmluZzwvTmFtZT4NCiAgIDxNaW5MZXZlbD4xPC9NaW5MZXZlbD4NCiAgIDxNYXhMZXZlbD4xMDE8L01heExldmVsPg0KICAgPE1pbkR1cmFiaWxpdHk+MC4zPC9NaW5EdXJhYmlsaXR5Pg0KICAgPE1pbkZyZWVCYWdTbG90cz4zPC9NaW5GcmVlQmFnU2xvdHM+DQogICA8TWFpbEdyZXk+RmFsc2U8L01haWxHcmV5Pg0KICAgPE1haWxXaGl0ZT5GYWxzZTwvTWFpbFdoaXRlPg0KICAgPE1haWxHcmVlbj5UcnVlPC9NYWlsR3JlZW4+DQogICA8TWFpbEJsdWU+VHJ1ZTwvTWFpbEJsdWU+DQogICA8TWFpbFB1cnBsZT5UcnVlPC9NYWlsUHVycGxlPg0KICAgPFNlbGxHcmV5PlRydWU8L1NlbGxHcmV5Pg0KICAgPFNlbGxXaGl0ZT5UcnVlPC9TZWxsV2hpdGU+DQogICA8U2VsbEdyZWVuPlRydWU8L1NlbGxHcmVlbj4NCiAgIDxTZWxsQmx1ZT5UcnVlPC9TZWxsQmx1ZT4NCiAgIDxTZWxsUHVycGxlPkZhbHNlPC9TZWxsUHVycGxlPg0KICAgPE1haWxib3hlcz4NCiAgICAgIDwhLS0gRW1wdHkgb24gUHVycG9zZSAtLT4NCiAgIDwvTWFpbGJveGVzPg0KICAgPEJsYWNrc3BvdHMgLz4NCiAgIDxRdWVzdE9yZGVyIElnbm9yZUNoZWNrUG9pbnRzPSJmYWxzZSI+DQogICAgICA8SWYgQ29uZGl0aW9uPSIhTWUuSXNIb3JkZSI+DQogICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWVzc2FnZSIgVGV4dD0iQ29tcGlsaW5nIEFsbGlhbmNlIE1vdW50IiBMb2dDb2xvcj0iT3JhbmdlIiAvPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iU3R5eFdvVy5NZS5NYXBJZCA9PSA1MzAiPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKCFIYXNJdGVtKDI1NDcyKSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjM1MTAxIiBCdXlJdGVtSWQ9IjI1NDcyIiBXYWl0VGltZT0iNTAwMCIgSWdub3JlTW9ic0luQmxhY2tzcG90cz0idHJ1ZSIgIFg9Ii02NzQuNDc3NCIgWT0iMjc0My4xMjgiIFo9IjkzLjkxNzMiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNDAwMCIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iU3R5eFdvVy5NZS5NYXBJZCA9PSAwIj4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IighSGFzSXRlbSgyNTQ3MikpIj4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSI0Mzc2OCIgQnV5SXRlbUlkPSIyNTQ3MiIgV2FpdFRpbWU9IjUwMDAiIElnbm9yZU1vYnNJbkJsYWNrc3BvdHM9InRydWUiIFg9Ii04ODI5LjE4IiBZPSI0ODIuMzQiIFo9IjEwOS42MTYiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNDAwMCIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPFdoaWxlIENvbmRpdGlvbj0iSGFzSXRlbSgyNTQ3MikiPg0KICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoMjU0NzIpIiBXYWl0VGltZT0iMTAwMCIgLz4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJXYWl0VGltZXIiIFdhaXRUaW1lPSIyMDAwIiBHb2FsVGV4dD0iVXNpbmcgaXRlbSB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICA8L1doaWxlPg0KICAgICAgPC9JZj4NCiAgICAgIDxJZiBDb25kaXRpb249Ik1lLklzSG9yZGUiPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1lc3NhZ2UiIFRleHQ9IkNvbXBpbGluZyBIb3JkZSBNb3VudCIgTG9nQ29sb3I9Ik9yYW5nZSIgLz4NCiAgICAgICAgIDxJZiBDb25kaXRpb249IlN0eXhXb1cuTWUuTWFwSWQgPT0gNTMwIj4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IiFIYXNJdGVtKDI1NDc0KSI+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iMzUwOTkiIEJ1eUl0ZW1JZD0iMjU0NzQiIFdhaXRUaW1lPSI0MDAwIiBYPSI0Ny43NjE1MyIgWT0iMjc0Mi4wMjIiIFo9Ijg1LjI3MTE5IiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDxSdW5UbyBYPSI4MC45MzgyNiIgWT0iMjcxMy4wMjkiIFo9Ijg1LjY5NzIxIiAvPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249IlN0eXhXb1cuTWUuTWFwSWQgPT0gMSI+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIhSGFzSXRlbSgyNTQ3NCkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjQ0OTE4IiBCdXlJdGVtSWQ9IjI1NDc0IiBXYWl0VGltZT0iNDAwMCIgWD0iMTgwNi45NCIgWT0iLTQzNDAuNjciIFo9IjEwMi4wNTA2IiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgIDwvSWY+DQogICAgICAgICA8V2hpbGUgQ29uZGl0aW9uPSJIYXNJdGVtKDI1NDc0KSI+DQogICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWlzY1xSdW5MdWEiIEx1YT0iVXNlSXRlbUJ5TmFtZSgyNTQ3NCkiIFdhaXRUaW1lPSIxMDAwIiAvPg0KICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IldhaXRUaW1lciIgV2FpdFRpbWU9IjIwMDAiIEdvYWxUZXh0PSJVc2luZyBpdGVtIHtUaW1lUmVtYWluaW5nfSIgLz4NCiAgICAgICAgIDwvV2hpbGU+DQogICAgICA8L0lmPg0KICAgPC9RdWVzdE9yZGVyPg0KPC9IQlByb2ZpbGU+DQo=";
 
         #endregion
-
-
-
     }
 }

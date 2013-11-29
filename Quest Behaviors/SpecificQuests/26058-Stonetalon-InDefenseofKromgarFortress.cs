@@ -1,21 +1,39 @@
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
+
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
@@ -35,7 +53,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
         private bool _isDone;
         private Composite _root;
 
-        public q26058(Dictionary<string, string> args) : base(args) {}
+        public q26058(Dictionary<string, string> args) : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+        }
 
         private VehicleWeapon WeaponFireCannon { get; set; }
 
@@ -66,18 +87,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
             }
         }
 
-        private bool IsQuestComplete
-        {
-            get
-            {
-                var quest = Me.QuestLog.GetQuestById(QuestId);
-                return quest == null || quest.IsCompleted;
-            }
-        }
-
         #region Overrides
-
-        private ulong _selectedTargetGuid;
 
         public override bool IsDone
         {
@@ -90,10 +100,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById(QuestId);
-                TreeRoot.GoalText = ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+
                 var weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
                 WeaponFireCannon = new VehicleWeapon(1, weaponArticulation, WeaponMuzzleVelocity);
+
+                this.UpdateGoalText(QuestId);
             }
         }
 
@@ -106,13 +117,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InDefenseofKromgarFortress
                    (_root = new Decorator(ctx => !IsDone,
                        new PrioritySelector(
                            new Decorator(
-                               ret => IsQuestComplete,
+                               ret => Me.IsQuestComplete(QuestId),
                                new Sequence(
                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
                                    new Action(ret => Lua.DoString("VehicleExit()")),
                                    new Action(ctx => _isDone = true))),
                            new Decorator(
-                               ret => !Me.InVehicle,
+                               ret => !Query.IsInVehicle(),
                                new PrioritySelector(
                                    ctx =>
                                        turret =

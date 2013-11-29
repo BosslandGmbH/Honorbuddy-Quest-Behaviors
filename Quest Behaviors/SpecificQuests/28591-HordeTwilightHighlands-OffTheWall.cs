@@ -1,23 +1,38 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
@@ -33,14 +48,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
         public OffTheWall(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 28591; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 28591;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
             }
@@ -52,20 +67,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -105,30 +118,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
         }
 
 
-
         #region Overrides of CustomForcedBehavior
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-
-
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
 
         public WoWUnit Marksmen
         {
@@ -163,12 +153,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
         }
 
 
-
-
-        private WoWPoint endspot = new WoWPoint(1076.7, 455.7638, -44.20478);
-        private WoWPoint spot = new WoWPoint(1109.848, 462.9017, -45.03053);
-
-
         WoWUnit GetTurret()
         {
             return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.CharmedByUnitGuid == 0 || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 49135)
@@ -182,26 +166,22 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(new Action(ret => Loopstuff()))));
         }
 
-        private bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
-
 
         public void Loopstuff()
         {
             while (true)
             {
                 ObjectManager.Update();
-                if (IsQuestComplete())
+                if (Me.IsQuestComplete(QuestId))
                 {
                     _isBehaviorDone = true;
                     break;
                 }
 
-
-
                 try
                 {
 
-                    if (!InVehicle)
+                    if (!Query.IsInVehicle())
                     {
                         var turret = GetTurret();
                         if (turret != null)
@@ -215,7 +195,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
                         }
                         else
                         {
-                            Logging.Write("Unable to find turret");
+                            QBCLog.Info("Unable to find turret");
                         }
                     }
                     else
@@ -242,29 +222,28 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
                         }
                         else
                         {
-                            if (!IsObjectiveComplete(1, (uint) QuestId))
+                            if (!Me.IsQuestObjectiveComplete(QuestId, 1))
                             {
                                 if (Marksmen != null)
                                     Marksmen.Target();
                             }
-                            else if (!IsObjectiveComplete(2, (uint) QuestId))
+                            else if (!Me.IsQuestObjectiveComplete(QuestId, 2))
                             {
                                 if (Cannoner != null)
                                     Cannoner.Target();
                             }
-                            else if (!IsObjectiveComplete(3, (uint) QuestId))
+                            else if (!Me.IsQuestObjectiveComplete(QuestId, 3))
                             {
                                 if (Cannon != null)
                                     Cannon.Target();
                             }
-
                         }
                     }
 
                 }
                 catch (Exception e)
                 {
-                    Logging.Write("Erorr: " + e);
+                    QBCLog.Error(e.ToString());
                 }
             }
         }
@@ -289,12 +268,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 
         public override void OnStart()
         {
-
-
-
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -306,15 +279,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
-
-
-
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

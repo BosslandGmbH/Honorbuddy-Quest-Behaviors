@@ -1,27 +1,67 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
 //
+// Allows you to use item on an object or at a location
+// ##Syntax##
+// [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed
+// [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
+// SpellIndex: Button bar Number starting from 1
+// ItemId: Id of the item that will be used
+// [Optional]NumOfTimes: Number of times
+// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
+// [Optional]MobHpPercentLeft: What HP % of the mob when it will use the ability
+// [Optional]WaitTime: Time to wait after using the item 
+// UseType: Current (Current Location)
+//          Location  (From X,Y,Z No Target)
+//          ToObject  (from range of an object to object's location)
+//          Default is Current
+// [Optional]MobState: Alive (NPC is still alive at any HP)
+//          BelowHp  (Alive but below HP % left)
+//          Dead  (Dead as in not alive)
+//          DontCare  (Can really be anything even dead)
+//          Default is DontCare
+// [Optional]X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
+// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 20)
+// [Optional]MinRange: Will backup if too close. (default 4)
+// [Optional]IgnoreCombat: Will Ignore All Combat (default False)
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UsePetAbility
@@ -29,32 +69,6 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
     [CustomBehaviorFileName(@"UsePetAbility")]
     public class UsePetAbility : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use item on an object or at a location
-        /// ##Syntax##
-        /// [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed
-        /// [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
-        /// SpellIndex: Button bar Number starting from 1
-        /// ItemId: Id of the item that will be used
-        /// [Optional]NumOfTimes: Number of times
-        /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
-        /// [Optional]MobHpPercentLeft: What HP % of the mob when it will use the ability
-        /// [Optional]WaitTime: Time to wait after using the item 
-        /// UseType: Current (Current Location)
-        ///          Location  (From X,Y,Z No Target)
-        ///          ToObject  (from range of an object to object's location)
-        ///          Default is Current
-        /// [Optional]MobState: Alive (NPC is still alive at any HP)
-        ///          BelowHp  (Alive but below HP % left)
-        ///          Dead  (Dead as in not alive)
-        ///          DontCare  (Can really be anything even dead)
-        ///          Default is DontCare
-        /// [Optional]X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
-        /// [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 20)
-        /// [Optional]MinRange: Will backup if too close. (default 4)
-        /// [Optional]IgnoreCombat: Will Ignore All Combat (default False)
-        /// </summary>
-        /// 
         public enum QBType
         {
             Current = 0,
@@ -74,28 +88,30 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
         public UsePetAbility(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AttackButton = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new[] { "AttackIndex", "SpellIndex" }) ?? 0;
-                ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-                MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "ObjectId" });
-                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
-                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
+
+                AttackButton = GetAttributeAsNullable<int>("AttackButton", true, ConstrainAs.HotbarButton, new[] { "AttackIndex", "SpellIndex" }) ?? 0;
+                ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
+                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "ObjectId" });
+                MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
                 UseType = GetAttributeAsNullable<QBType>("UseType", false, null, null) ?? QBType.Current;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
-                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
-
 
                 Counter = 1;
             }
@@ -107,9 +123,9 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -119,6 +135,8 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
         public int AttackButton { get; private set; }
         public WoWPoint ClickToLocation { get; private set; }
         public double CollectionDistance { get; private set; }
+        public bool IgnoreCombat { get; private set; }
+        public double MinRange { get; private set; }
         public int[] MobIds { get; private set; }
         public double MobHpPercentLeft { get; private set; }
         public WoWPoint MoveToLocation { get; private set; }
@@ -128,10 +146,8 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public double Range { get; private set; }
-        public double MinRange { get; private set; }
         public QBType UseType { get; private set; }
         public int WaitTime { get; private set; }
-        public bool IgnoreCombat { get; private set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -142,43 +158,39 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
         public int Counter { get; private set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private readonly List<ulong> _npcBlacklist = new List<ulong>();
-        /*private WoWObject           UseObject1 { get { return ObjectManager.GetObjectsOfType<WoWObject>(true, false)
-                                                                .Where(o => MobIds.Contains((int)o.Entry))
-                                                                .OrderBy(o => o.Distance)
-                                                                .FirstOrDefault(); }}*/
 
         private WoWUnit UseObject
         {
             get
             {
                 var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                               .OrderBy(obj => obj.Distance)
-                                                               .Where(obj => !_npcBlacklist.Contains(obj.Guid) &&
-                                                               obj.Distance < CollectionDistance &&
-                                                               !Me.Minions.Contains(obj) &&
-                                                                MobIds.Contains((int)obj.Entry));
+                                                               .OrderBy(target => target.Distance)
+                                                               .Where(target => !_npcBlacklist.Contains(target.Guid) &&
+                                                               target.Distance < CollectionDistance &&
+                                                               !Me.Minions.Contains(target) &&
+                                                                MobIds.Contains((int)target.Entry));
 
                         var npcStateQualifiedTargets = baseTargets
-                                                            .OrderBy(obj => obj.Distance)
+                                                            .OrderBy(target => target.Distance)
                                                             .Where(target => ((NpcState == NpcStateType.DontCare)
                                                                               || ((NpcState == NpcStateType.Dead) && target.IsDead)
                                                                               || ((NpcState == NpcStateType.Alive) && target.IsAlive)
                                                                               || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
 
 
-                        WoWUnit @object = npcStateQualifiedTargets.FirstOrDefault();
+                        WoWUnit obj = npcStateQualifiedTargets.FirstOrDefault();
 
 
-                if (@object != null)
-                { LogMessage("debug", @object.Name); }
+                if (obj != null)
+                    { QBCLog.DeveloperInfo(obj.Name); }
 
-                return @object;
+                return obj;
             }
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UsePetAbility.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         ~UsePetAbility()
         {
@@ -321,11 +333,10 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
-            TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
         }
 
         #endregion

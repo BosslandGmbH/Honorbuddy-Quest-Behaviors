@@ -1,26 +1,35 @@
 // Behavior originally contributed by Caytchen.
 //
 // LICENSE:
-// This work is licensed under the 
-//    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
-//    http://creativecommons.org/licenses/by-nc-sa/3.0/
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
-//    Creative Commons
-//    171 Second Street, Suite 300
-//    San Francisco, California, 94105, USA. 
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_Message
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Drawing;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Message
@@ -31,6 +40,8 @@ namespace Honorbuddy.Quest_Behaviors.Message
         public Message(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -52,9 +63,9 @@ namespace Honorbuddy.Quest_Behaviors.Message
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -73,8 +84,8 @@ namespace Honorbuddy.Quest_Behaviors.Message
         private bool _isDisposed;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: Message.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~Message()

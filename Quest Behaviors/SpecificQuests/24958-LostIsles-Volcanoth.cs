@@ -1,5 +1,28 @@
-using CommonBehaviors.Actions;
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -8,12 +31,10 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
+
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 {
@@ -23,13 +44,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 		public Volcanoth(Dictionary<string, string> args)
 			: base(args)
 		{
+            QBCLog.BehaviorLoggingContext = this;
+
 			try
 			{
 				QuestId = 24958;
 			}
-			catch
+
+			catch (Exception except)
 			{
-				Logging.Write("Problem parsing a QuestId in behavior: Volcanoth");
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
 			}
 		}
 		private Composite _behaviorTreeHook_CombatMain;
@@ -37,8 +69,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 		private bool _isBehaviorDone;
 		public int TurtleMobId = 38855;
 		private Composite _root;
-		public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-		public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
 
 		public override bool IsDone
 		{
@@ -60,6 +90,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 			{
 				_behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
 				TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
+
+                this.UpdateGoalText(QuestId);
 			}
 		}
 		
@@ -79,31 +111,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 				return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == TurtleMobId && !u.IsDead && u.Distance < 500).OrderBy(u => u.Distance).FirstOrDefault();
 			}
 		}
-	
-		public bool IsQuestComplete()
-		{
-			var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-			return quest == null || quest.IsCompleted;
-		}
-		
-		private bool IsObjectiveComplete(int objectiveId, uint questId)
-		{
-			if (Me.QuestLog.GetQuestById(questId) == null)
-			{
-				return false;
-			}
-			int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-			return
-				Lua.GetReturnVal<bool>(
-					string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-		}
+
 
 		public Composite DoneYet
 		{
 			get
 			{
-				return
-					new Decorator(ret => IsQuestComplete(), new Action(delegate
+				return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
 					{
 						TreeRoot.StatusText = "Finished!";
 						_isBehaviorDone = true;

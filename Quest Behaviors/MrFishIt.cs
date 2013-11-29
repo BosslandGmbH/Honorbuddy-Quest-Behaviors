@@ -1,19 +1,35 @@
 ﻿// Behavior originally contributed by BarryDurex
 // [Quest Behavior] MrFishIt - v1.0.8
-//
 // Credits: [Bot]MrFishIt by Nesox | [Bot]PoolFishingBuddy by Iggi66
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//   
+
+#region Summary and Documentation
 // DOCUMENTATION: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/neutral/96244-quest-behavior-mrfishit-fishing-some-questitems.html
-//     
-//
+//  
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Windows.Media;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -27,6 +43,7 @@ using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.MrFishIt
@@ -37,23 +54,25 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         public MrFishIt(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                WaterPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                PoolId = GetAttributeAsNullable<int>("PoolId", false, ConstrainAs.ItemId, null) ?? 0;
-                CollectItemId = GetAttributeAsNullable<int>("CollectItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                CollectItemCount = GetAttributeAsNullable<int>("CollectItemCount", false, ConstrainAs.RepeatCount, null) ?? 1;
-                MoveToPool = GetAttributeAsNullable<bool>("MoveToPool", false, null, null) ?? true;
-                TestFishing = GetAttributeAsNullable<bool>("TestFishing", false, null, null) ?? false;
-                PoolFishingBuddy.MaxCastRange = GetAttributeAsNullable<int>("MaxCastRange", false, ConstrainAs.ItemId, null) ?? 20;
-                PoolFishingBuddy.MinCastRange = GetAttributeAsNullable<int>("MinCastRange", false, ConstrainAs.ItemId, null) ?? 15;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
+                CollectItemCount = GetAttributeAsNullable<int>("CollectItemCount", false, ConstrainAs.RepeatCount, null) ?? 1;
+                CollectItemId = GetAttributeAsNullable<int>("CollectItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                PoolFishingBuddy.MaxCastRange = GetAttributeAsNullable<int>("MaxCastRange", false, ConstrainAs.ItemId, null) ?? 20;
+                PoolFishingBuddy.MinCastRange = GetAttributeAsNullable<int>("MinCastRange", false, ConstrainAs.ItemId, null) ?? 15;
+                MoveToPool = GetAttributeAsNullable<bool>("MoveToPool", false, null, null) ?? true;
+                PoolId = GetAttributeAsNullable<int>("PoolId", false, ConstrainAs.ItemId, null) ?? 0;
+                TestFishing = GetAttributeAsNullable<bool>("TestFishing", false, null, null) ?? false;
+                WaterPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
             }
 
             catch (Exception except)
@@ -63,29 +82,29 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
         // Attributes provided by caller
-        public WoWPoint WaterPoint { get; private set; }
-        public int CollectItemId { get; private set; }
-        public static int PoolId { get; private set; }
         public int CollectItemCount { get; private set; }
+        public int CollectItemId { get; private set; }
         public bool MoveToPool { get; private set; }
-        public bool TestFishing { get; private set; }
+        public static int PoolId { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public bool TestFishing { get; private set; }
+        public WoWPoint WaterPoint { get; private set; }
 
         // Private variables for internal state
         private Version _Version { get { return new Version(1, 0, 8); } }
         public static double _PoolGUID;
-        private QuestBehaviorCore.ConfigMemento _configMemento;
+        private ConfigMemento _configMemento;
         private bool _isDisposed, _cancelBehavior;
         private Composite _root;
 
@@ -110,9 +129,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                { _configMemento.Dispose(); }
-
-                _configMemento = null;
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
                 _cancelBehavior = true;
 
@@ -177,13 +197,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop; 
                 Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);
@@ -211,11 +225,11 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
                 PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
                 if (quest == null)
-                    TreeRoot.GoalText = "[MrFishIt][v" + _Version.ToString() + "] Fishing Item [" + CollectItemId + "] - In Progress";
+                    this.UpdateGoalText(QuestId, "Fishing Item [" + CollectItemId + "]");
                 else
-                    TreeRoot.GoalText = "[MrFishIt][v" + _Version.ToString() + "] Fishing Item for [" + quest.Name + "] - In Progress";
+                    this.UpdateGoalText(QuestId, "Fishing Item for [" + quest.Name + "]");
 
-                Logging.WriteDiagnostic(Colors.Green, "[MrFishIt][v{0}] Fishing Item: {1} - Quantity: {2} - QuestID: {3}", _Version.ToString(), CollectItemId, CollectItemCount, CollectItemId);
+                QBCLog.DeveloperInfo("Fishing Item: {1} - Quantity: {2} - QuestID: {3}", _Version.ToString(), CollectItemId, CollectItemCount, CollectItemId);
             }
         }
 
@@ -234,7 +248,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
                 if (_pool != null)
                 {
-                    //Logging.WriteDiagnostic(DateTime.Now.ToLongTimeString() + " - hasPoolFound - set " + _pool.Guid.ToString() + " - " + _pool.Name + " - " + _pool.Distance2D);
+                    //QBCLog.DeveloperInfo(DateTime.Now.ToLongTimeString() + " - hasPoolFound - set " + _pool.Guid.ToString() + " - " + _pool.Name + " - " + _pool.Distance2D);
                     if (_PoolGUID != (double)_pool.Guid)
                     {
                         PoolFishingBuddy.looking4NewLoc = true;
@@ -281,17 +295,17 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         private void HandleLootOpened(object sender, LuaEventArgs args)
         {
             LootOpen = true;
-            Logging.WriteDiagnostic(Colors.Firebrick, "looting..");
+            QBCLog.DeveloperInfo("looting..");
 
             object[] arg = args.Args;
             if ((string)arg[0] == "0")
             {
-                Logging.WriteDiagnostic(Colors.Firebrick, "no autoloot");
+                QBCLog.DeveloperInfo("no autoloot");
                 Lua.DoString("for i=1, GetNumLootItems() do LootSlot(i) ConfirmBindOnUse() end CloseLoot()");
             }
-            Logging.WriteDiagnostic(Colors.Firebrick, "looting done..");
+            QBCLog.DeveloperInfo("looting done.");
         }
-        private void HandleLootClosed(object sender, LuaEventArgs args) { Logging.WriteDiagnostic(Colors.Firebrick, "(hook)looting done.."); LootOpen = false; }
+        private void HandleLootClosed(object sender, LuaEventArgs args) { QBCLog.DeveloperInfo("(hook)looting done."); LootOpen = false; }
 
         private Composite CreateFishBehavior()
         {
@@ -308,7 +322,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                         // Interact with the bobber
                         new Action(delegate
                         {
-                            Logging.Write(Colors.Aqua, "[MrFishIt] Got a bite!");
+                            QBCLog.Info("[MrFishIt] Got a bite!");
                             WoWGameObject bobber = Fishing.FishingBobber;
 
                             if (bobber != null)
@@ -333,8 +347,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 // Do we need to recast?
                 new Decorator(ret => Fishing.FishingBobber == null || !Fishing.IsFishing || (Fishing.IsFishing && PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole),
                     new Sequence(
-                        new Action(ret => { if (Fishing.FishingBobber == null) Logging.WriteDiagnostic("[MrFishIt] no FishingBobber found!?"); }),
-                        new Action(ret => Logging.Write(Colors.Aquamarine, "[MrFishIt] Casting ...")),
+                        new Action(ret => { if (Fishing.FishingBobber == null) QBCLog.DeveloperInfo("no FishingBobber found!?"); }),
+                        new Action(ret => QBCLog.Info("Casting...")),
                         new Action(ret => { if (WaterPoint != WoWPoint.Empty) { StyxWoW.Me.SetFacing(WaterPoint); StyxWoW.Sleep(200); } }),
                         new Action(ret => { if (PoolId != 0) { StyxWoW.Me.SetFacing(_PoolGUID.asWoWGameObject()); StyxWoW.Sleep(200); } }),
                         new Action(ret => SpellManager.Cast("Fishing")),
@@ -350,6 +364,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
         #endregion
     }
+
+
     static class Fishing
     {
         //static readonly List<int> FishingIds = new List<int> { 131474, 7620, 7731, 7732, 18248, 33095, 51294, 88868 };
@@ -384,7 +400,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 ObjectManager.Update();
                 var d = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o != null && o.IsValid && o.CreatedByGuid == StyxWoW.Me.Guid);
                 //if (d != null)
-                //    Logging.WriteDiagnostic("[FishingBobber]Name: {0} - AnimationState: {1}", d.Name, d.AnimationState);
+                //    QBCLog.DeveloperInfo("[FishingBobber]Name: {0} - AnimationState: {1}", d.Name, d.AnimationState);
 
                 return ObjectManager.GetObjectsOfType<WoWGameObject>()
                     .FirstOrDefault(o => o != null && o.IsValid && o.CreatedByGuid == StyxWoW.Me.Guid &&
@@ -442,7 +458,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         /// </summary>
         static public WoWPoint getSaveLocation(WoWPoint Location, int minDist, int maxDist, int traceStep, int traceStep2)
         {
-            Logging.WriteDiagnostic("[MrFishIt] - Navigation: Looking for save Location around {0}.", Location);
+            QBCLog.DeveloperInfo("Navigation: Looking for save Location around {0}.", Location);
 
             WoWPoint point = WoWPoint.Empty;
             float _PIx2 = 3.14159f * 2f;
@@ -484,7 +500,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                     if (getHighestSurroundingSlope(p2) < 1.2f && GameWorld.IsInLineOfSight(pLoS, Location) && p2.Distance2D(Location) <= maxDist)
                     {
                         looking4NewLoc = false;
-                        Logging.WriteDiagnostic("[MrFishIt] - Navigation: Moving to {0}. Distance: {1}", p2, Location.Distance(p2));
+                        QBCLog.DeveloperInfo("Navigation: Moving to {0}. Distance: {1}", p2, Location.Distance(p2));
                         return p2;
                     }
                 }
@@ -496,14 +512,14 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                 }
             }
 
-            Logging.Write(Colors.Red, "{0}[MrFishIt] - No valid points returned by RayCast, blacklisting for 2 minutes.", DateTime.Now.ToLongTimeString());
+            QBCLog.Warning("{0} - No valid points returned by RayCast, blacklisting for 2 minutes.", DateTime.Now.ToLongTimeString());
             Blacklist.Add(Pool, BlacklistFlags.All, TimeSpan.FromMinutes(2));
             return WoWPoint.Empty;
         }
 
         static public WoWPoint getSaveLocation(WoWPoint Location, int minDist, int maxDist, int traceStep)
         {
-            Logging.WriteDiagnostic("[MrFishIt] - Navigation: Looking for save Location around {0}.", Location);
+            QBCLog.DeveloperInfo("Navigation: Looking for save Location around {0}.", Location);
 
             float _PIx2 = 3.14159f * 2f;
 
@@ -520,7 +536,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                     if (getHighestSurroundingSlope(p) < 1.2f && GameWorld.IsInLineOfSight(pLoS, Location) /*&& Navigator.CanNavigateFully(StyxWoW.Me.Location, Location)*/)
                     {
                         looking4NewLoc = false;
-                        Logging.WriteDiagnostic("[MrFishIt] - Navigation: Moving to {0}. Distance: {1}", p, Location.Distance(p));
+                        QBCLog.DeveloperInfo("Navigation: Moving to {0}. Distance: {1}", p, Location.Distance(p));
                         return p;
                     }
                 }
@@ -534,13 +550,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
             if (Pool != null)
             {
-                Logging.Write(Colors.Red, "[MrFishIt] - No valid points returned by RayCast, blacklisting for 2 minutes.");
+                QBCLog.Warning("No valid points returned by RayCast, blacklisting for 2 minutes.");
                 Blacklist.Add(Pool, BlacklistFlags.All, TimeSpan.FromMinutes(2));
                 return WoWPoint.Empty;
             }
             else
             {
-                Logging.Write(Colors.Red, "[MrFishIt] - No valid points returned by RayCast, can't navigate without user interaction. Stopping!");
+                QBCLog.Warning("No valid points returned by RayCast, can't navigate without user interaction. Stopping!");
                 TreeRoot.Stop();
                 return WoWPoint.Empty;
             }
@@ -553,7 +569,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         /// <returns>Highest slope of surrounding terrain, returns 100 if the slope can't be determined</returns>
         public static float getHighestSurroundingSlope(WoWPoint p)
         {
-            Logging.WriteDiagnostic("[MrFishIt] - Navigation: Sloapcheck on Point: {0}", p);
+            QBCLog.DeveloperInfo("Navigation: Sloapcheck on Point: {0}", p);
             float _PIx2 = 3.14159f * 2f;
             float highestSlope = -100;
             float slope = 0;
@@ -570,7 +586,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                     highestSlope = (float)slope;
                 }
             }
-            Logging.WriteDiagnostic("[MrFishIt] - Navigation: Highslope {0}", highestSlope);
+            QBCLog.DeveloperInfo("Navigation: Highslope {0}", highestSlope);
             return Math.Abs( highestSlope );
         }
 
@@ -600,10 +616,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
             if (ground != WoWPoint.Empty)
             {
-                Logging.WriteDiagnostic("[MrFishIt] - Ground Z: {0}.", ground.Z);
+                QBCLog.DeveloperInfo("Ground Z: {0}.", ground.Z);
                 return ground.Z;
             }
-            Logging.WriteDiagnostic("[MrFishIt] - Ground Z returned float.MinValue.");
+            QBCLog.DeveloperInfo("Ground Z returned float.MinValue.");
             return float.MinValue;
         }
 
@@ -611,7 +627,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         {
             return new Decorator(ret => Pool != null && !Blacklist.Contains(Pool, BlacklistFlags.All),
                 new Sequence(
-                    new Action(ret => Logging.WriteDiagnostic("[MrFishIt][PFB] - Composit: CreateMoveToPoolBehaviour")),
+                    new Action(ret => QBCLog.DeveloperInfo("Composit: CreateMoveToPoolBehaviour")),
                     new Action(ret => movetopoolTimer.Start()),
 
                     new PrioritySelector(
@@ -619,14 +635,14 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                         // Timer
                         new Decorator(ret => movetopoolTimer.ElapsedMilliseconds > 30000,
                             new Sequence(
-                                new Action(ret => Logging.Write(LogLevel.Diagnostic, Colors.Red, "[MrFishIt] - Timer for moving to ground elapsed, blacklisting for 2 minutes.")),
+                                new Action(ret => QBCLog.Warning("Timer for moving to ground elapsed, blacklisting for 2 minutes.")),
                                 new Action(ret => Blacklist.Add(MrFishIt._PoolGUID.asWoWGameObject(), BlacklistFlags.All, TimeSpan.FromMinutes(2)))                                
                         )),
 
                         //// Blacklist if other Player is detected
                         //new Decorator(ret => Helpers.PlayerDetected && !PoolFisherSettings.Instance.NinjaPools,
                         //    new Sequence(
-                        //            new Action(ret => Logging.Write(System.Drawing.Color.Red, "{0} - Detected another player in pool range, blacklisting for 2 minutes.", Helpers.LogPrefix)),
+                        //            new Action(ret => QBCLog.Warning("Detected another player in pool range, blacklisting for 2 minutes.")),
                         //            new Action(ret => Helpers.BlackListPool(Pool)),
                         //            new Action(delegate { return RunStatus.Success; })
                         //)),
@@ -643,7 +659,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                         new Sequence(
                                         new Action(ret => saveLocation.Add(getSaveLocation(Pool.Location, MinCastRange, 
                                             MaxCastRange, 50, 60))),
-                                        new Action(ret => Logging.WriteDiagnostic(Colors.Green, "[MrFishIt] - Added {0} to saveLocations.", saveLocation[0]))
+                                        new Action(ret => QBCLog.DeveloperInfo("Added {0} to saveLocations.", saveLocation[0]))
                                     )),
 
                                     // Pool ist kein Feuerteich 
@@ -651,7 +667,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                         new Sequence(
                                         new Action(ret => saveLocation.Add(getSaveLocation(Pool.Location, MinCastRange, 
                                             MaxCastRange, 50))),
-                                        new Action(ret => Logging.WriteDiagnostic(Colors.Green, "[MrFishIt] - Added {0} to saveLocations.", saveLocation[0]))
+                                        new Action(ret => QBCLog.DeveloperInfo("Added {0} to saveLocations.", saveLocation[0]))
                                     ))                                
                         ))),
 
@@ -662,13 +678,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                 // Pool still there?
                                 new Decorator(ret => MrFishIt._PoolGUID.asWoWGameObject() == null,
                                     new Sequence(
-                                        new Action(ret => Logging.Write(Colors.DarkCyan, "[MrFishIt] - Fishing Pool is gone, moving on."))
+                                        new Action(ret => QBCLog.Info("Fishing Pool is gone, moving on."))
                                 )),
 
                                 // reached max attempts for new locations?
                                 new Decorator(ret => newLocAttempts == MaxNewLocAttempts + 1,
                                     new Sequence(
-                                    new Action(ret => Logging.Write(Colors.Red, "[MrFishIt] - Reached max. attempts for new locations, blacklisting for 2 minutes.")),
+                                    new Action(ret => QBCLog.Warning("Reached max. attempts for new locations, blacklisting for 2 minutes.")),
                                     new Action(ret => Blacklist.Add(Pool, BlacklistFlags.All, TimeSpan.FromMinutes(2)))
                                 )),
 
@@ -677,7 +693,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                     new Sequence(
                                         new Wait(2, ret => StyxWoW.Me.IsCasting, new ActionIdle()),
                                         new Action(ret => newLocAttempts++),
-                                        new Action(ret => Logging.Write(Colors.Red, "[MrFishIt] - Moving to new Location.. Attempt: {0} of {1}.", newLocAttempts, MaxNewLocAttempts))
+                                        new Action(ret => QBCLog.Warning("Moving to new Location.. Attempt: {0} of {1}.", newLocAttempts, MaxNewLocAttempts))
                                 )),
                                             
 
@@ -693,7 +709,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                                 new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Descend)),
                                                 new Action(ret => Flightor.MountHelper.Dismount()),
                                                 new Action(ret => WoWMovement.MoveStop()),
-                                                new Action(ret => Logging.WriteDiagnostic(Colors.Red, "[MrFishIt] - Navigation: Dismount. Current Location {0}, PoolPoint: {1}, Distance: {2}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
+                                                new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {0}, PoolPoint: {1}, Distance: {2}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
                                                 new Wait(3, ret => Flightor.MountHelper.Mounted, new ActionIdle()),
                                                 MrFishIt.CreateWaitForLagDuration()
 
@@ -703,7 +719,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                         //        new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Descend)),
                                         //        new Action(ret => Mount.Dismount()),
                                         //        new Action(ret => WoWMovement.MoveStop()),
-                                        //        new Action(ret => Logging.WriteNavigator(System.Drawing.Color.Red, "{0} - Navigation: Dismount. Current Location {1}, PoolPoint: {2}, Distance: {3}", Helpers.LogPrefix, StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
+                                        //        new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {1}, PoolPoint: {2}, Distance: {3}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
                                         //        new Wait(3, ret => Flightor.MountHelper.Mounted, new ActionIdle()),
                                         //        new Action(ret => StyxWoW.Sleep((Ping * 2) + 500))))
                                         
@@ -712,11 +728,11 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                 // in Line Line of sight?
                                 new Decorator(ret => StyxWoW.Me.Location.Distance(saveLocation[0]) <= 2 && !Pool.InLineOfSight && !StyxWoW.Me.IsMoving && !Flightor.MountHelper.Mounted,
                                     new Sequence(
-                                    new Action(ret => Logging.Write(Colors.Red, "[MrFishIt] - Pool is not in Line of Sight!")),
+                                    new Action(ret => QBCLog.Warning("Pool is not in Line of Sight!")),
                                     new Action(ret => badLocations.Add(saveLocation[0])),
                                     new Action(ret => saveLocation.Clear()),
                                     new Action(ret => newLocAttempts++),
-                                    new Action(ret => Logging.Write(Colors.Red, "[MrFishIt] - Moving to new Location.. Attempt: {0} of {1}.", newLocAttempts, MaxNewLocAttempts)),
+                                    new Action(ret => QBCLog.Warning("Moving to new Location.. Attempt: {0} of {1}.", newLocAttempts, MaxNewLocAttempts)),
                                     new Action(ret => looking4NewLoc = true)
                                 )),
 
@@ -730,8 +746,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
                                         new Sequence(
                                             new ActionSetActivity(ret => "Moving to new Location"),
-                                            new Action(ret => Logging.WriteDiagnostic("[MrFishIt] - Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + saveLocation[0].Distance(StyxWoW.Me.Location) + " (Not Mounted)")),
-                                            //new Action(ret => Logging.Write(System.Drawing.Color.DarkCyan, "{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Not Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location))),
+                                            new Action(ret => QBCLog.DeveloperInfo("Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + saveLocation[0].Distance(StyxWoW.Me.Location) + " (Not Mounted)")),
+                                            //new Action(ret => QBCLog.Info("{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Not Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location))),
                                             // Move
                                             new Action(ret => Navigator.MoveTo(saveLocation[0]))
                                         )
@@ -748,8 +764,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
                                         // Move
                                         new Sequence(
                                             new ActionSetActivity(ret => "[MrFishIt] Moving to Ground"),
-                                            new Action(ret => Logging.WriteDiagnostic("[MrFishIt] - Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) + " (Mounted)")),
-                                            //new Action(ret => Logging.Write(System.Drawing.Color.DarkCyan, "{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location))),
+                                            new Action(ret => QBCLog.DeveloperInfo("Navigation: Moving to Pool: " + saveLocation[0] + ", Location: " + StyxWoW.Me.Location + ", distance: " + StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)) + " (Mounted)")),
+                                            //new Action(ret => QBCLog.Info("{0} - Moving to Pool: {1}, Location: {2}, Distance: {3}. (Mounted)", Helpers.TimeNow, PoolPoints[0], StyxWoW.Me.Location, PoolPoints[0].Distance(StyxWoW.Me.Location)),
                                             new Action(ret => Flightor.MoveTo(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), true))
                                         )
                                 ))

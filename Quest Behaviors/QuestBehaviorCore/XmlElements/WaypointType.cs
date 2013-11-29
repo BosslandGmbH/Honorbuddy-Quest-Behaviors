@@ -85,8 +85,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         const double NavigatorPathPrecisionBuffer = 1.5;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: WaypointType.cs 593 2013-07-08 10:41:44Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 593 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
 
         public override string ToString()

@@ -156,7 +156,6 @@ using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
@@ -193,8 +192,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
-                                + "\nFROM HERE:\n"
-                                + except.StackTrace + "\n");
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -252,8 +251,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         #endregion
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: WaitForPatrol.cs 574 2013-06-28 08:54:59Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 574 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         #region Destructor, Dispose, and cleanup

@@ -1,5 +1,18 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+// DOCUMENTATION:
+//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
+//
 // WaitTimer by Nesox
 // Simple behavior that forces hb to wait until the timer runs out.
 // ##Syntax##
@@ -9,14 +22,20 @@
 // WaitTime: time (in milliseconds) to wait. eg; 15000 for 15 seconds.
 // VariantTime[Optional]: a random amount of time between [0..VariantTime] will be selected and added to the WaitTime
 //
-// DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_WaitTimer
-//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+#endregion
 using System;
 using System.Collections.Generic;
+
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
-using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -32,17 +51,20 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
         public WaitTimer(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                StatusText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Wait time remaining... {TimeRemaining} of {TimeDuration}.";
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                WaitTime = GetAttributeAsNullable<int>("WaitTime", true, ConstrainAs.Milliseconds, null) ?? 1000;
+
+                StatusText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Wait time remaining... {TimeRemaining} of {TimeDuration}.";
                 VariantTime = GetAttributeAsNullable<int>("VariantTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", true, ConstrainAs.Milliseconds, null) ?? 1000;
             }
 
             catch (Exception except)
@@ -52,9 +74,9 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -74,8 +96,8 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
         private string _waitTimeAsString;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: WaitTimer.cs 555 2013-06-12 09:00:14Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 555 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~WaitTimer()
@@ -174,7 +196,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 
                 _timer.Reset();
 
-                TreeRoot.GoalText = "Waiting for " + _waitTimeAsString;
+                this.UpdateGoalText(QuestId, "Waiting for " + _waitTimeAsString);
             }
         }
 

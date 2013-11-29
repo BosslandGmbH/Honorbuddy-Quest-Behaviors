@@ -1,5 +1,15 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_BasicVehicleBehavior
 //
@@ -18,23 +28,29 @@
 //              http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 //      SpellId [Default:none]: Spell to cast (if any) once the vehicle arrives at its destination
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
@@ -46,14 +62,16 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
         public BasicVehicleBehaviour(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
-                LogMessage("warning", "*****\n"
-                                        + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
-                                        + "*\n"
-                                        + "* BasicVehicleBehavior adds _no_ _additonal_ _value_ over the VehicleMover behavior.\n"
-                                        + "* Please update the profile to use the VehicleMover behavior."
-                                        + "*****");
+                QBCLog.Warning("*****\n"
+                            + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                            + "*\n"
+                            + "* BasicVehicleBehavior adds _no_ _additonal_ _value_ over the VehicleMover behavior.\n"
+                            + "* Please update the profile to use the VehicleMover behavior."
+                            + "*****");
 
                 LocationDest = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new[] { "Dest" }) ?? WoWPoint.Empty;
                 LocationMount = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
@@ -73,9 +91,9 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -103,8 +121,8 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
         public WoWPoint MountedPoint { get; private set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: BasicVehicleBehaviour.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~BasicVehicleBehaviour()
@@ -232,7 +250,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
                                 })
                                 ),
 
-                            new Action(ret => LogMessage("debug", string.Empty))
+                            new Action(ret => QBCLog.DeveloperInfo(string.Empty))
                         )
                     ));
         }
@@ -266,7 +284,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
+                this.UpdateGoalText(QuestId);
             }
         }
 

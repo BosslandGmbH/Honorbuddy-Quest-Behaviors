@@ -1,14 +1,29 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -17,8 +32,9 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Action = Styx.TreeSharp.Action;
 
+using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -35,6 +51,8 @@ namespace Styx.Bot.Quest_Behaviors
         public BattleofTheCitadel(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -42,14 +60,8 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
-
-                //Enemy = GetAttributeAsArray<uint>("Enemys", false, new ConstrainTo.Domain<uint>(0, 100000), new[] { "Enemy" }, null);
-                //EnemyDebuff = GetAttributeAsArray<uint>("EnemysDebuff", false, new ConstrainTo.Domain<uint>(0, 100000), new[] { "EnemyDebuff" }, null);
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -59,9 +71,9 @@ namespace Styx.Bot.Quest_Behaviors
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -131,45 +143,27 @@ namespace Styx.Bot.Quest_Behaviors
 
         #region Overrides of CustomForcedBehavior
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
         public Composite DoneYet
         {
             get
             {
                 return
-                    new Decorator(r=> IsQuestComplete(),new PrioritySelector(
+                    new Decorator(r=> Me.IsQuestComplete(QuestId),new PrioritySelector(
                         new Decorator(r=>Me.Location.Distance(Location) > 3, new Action(r=>Navigator.MoveTo(Location))),
-                        new Decorator(ret => Me.Location.Distance(Location) < 3, new Action(delegate
-                                                                                                {
-                                                                                                    Lua.DoString(
-                                                                                                        "RunMacroText(\"/leavevehicle\")");
+                        new Decorator(ret => Me.Location.Distance(Location) < 3,
+                            new Action(delegate
+                            {
+                                Lua.DoString("RunMacroText(\"/leavevehicle\")");
 
-                                                                                                    mainhand.UseContainerItem();
-                                                                                                    if (offhand != null)
-                                                                                                    {
-                                                                                                        offhand.UseContainerItem();
-                                                                                                    }
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }))));
-
+                                mainhand.UseContainerItem();
+                                if (offhand != null)
+                                {
+                                    offhand.UseContainerItem();
+                                }
+                                TreeRoot.StatusText = "Finished!";
+                                _isBehaviorDone = true;
+                                return RunStatus.Success;
+                            }))));
             }
         }
 
@@ -181,7 +175,7 @@ namespace Styx.Bot.Quest_Behaviors
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write(string.Format("[Pet] Casting {0}", action));
+            QBCLog.Info("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }
@@ -478,14 +472,13 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
         
-        WoWPoint Area = new WoWPoint(6289.036,2335.079,482.9755);
         private int spot = 0;
         Composite PickFight
         {
             get
             {
                 return new Decorator(r=>!Me.Combat && !MyMount.Combat,new PrioritySelector(
-           new Decorator(r=>!IsObjectiveComplete(1,(uint)QuestId),new Action(r=>
+           new Decorator(r=>!Me.IsQuestObjectiveComplete(QuestId, 1),new Action(r=>
                                                                                 {
 
                                                                                     ObjectManager.Update();
@@ -522,7 +515,7 @@ namespace Styx.Bot.Quest_Behaviors
                                                                                         }
                                                                                         else
                                                                                         {
-                                                                                            Logging.Write("in range");
+                                                                                            QBCLog.Info("in range");
                                                                                             Navigator.PlayerMover.MoveStop();
                                                                                             Me.CurrentTarget.Face();
                                                                                             UsePetSkill("Charge");
@@ -573,7 +566,7 @@ namespace Styx.Bot.Quest_Behaviors
             // constructor call.
             OnStart_HandleAttributeProblem();
             Navigator.PathPrecision = 1;
-            Logging.Write("Quest Behavior made by mastahg.");
+
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
@@ -587,25 +580,10 @@ namespace Styx.Bot.Quest_Behaviors
                 {
                     offhand = Me.Inventory.Equipped.OffHand;
                 }
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

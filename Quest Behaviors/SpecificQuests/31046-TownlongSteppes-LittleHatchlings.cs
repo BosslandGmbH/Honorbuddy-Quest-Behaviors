@@ -1,11 +1,29 @@
-﻿using System;
+﻿//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -14,6 +32,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.LittleHatchlings
@@ -24,23 +43,30 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.LittleHatchlings
         public Blastranaar(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 31046;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
             }
-            catch
+            catch (Exception except)
             {
-                Logging.Write("Problem parsing a QuestId in behavior: Little Hatchlings");
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
             }
         }
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
         public int MobIdLao = 62567;
         private Composite _root;
-        public WoWPoint Location2 = new WoWPoint(1574.712, 1428.84, 484.7786);
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
-		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
+
         public override bool IsDone
         {
             get
@@ -58,8 +84,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.LittleHatchlings
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
-                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 
@@ -67,75 +92,53 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.LittleHatchlings
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdLao && !u.IsDead && u.Distance < 10000).OrderBy(u => u.Distance).ToList();
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u => u.Entry == MobIdLao && !u.IsDead && u.Distance < 10000)
+                    .OrderBy(u => u.Distance)
+                    .ToList();
             }
         }
 
-
-	
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
 
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsObjectiveComplete(1, (uint)QuestId), new Action(delegate
+                return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
-
-
-
-
-
-
 
 		
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(
-			DoneYet,
+            return _root ?? (_root = 
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+			            DoneYet,
 
-			new DecoratorContinue(ret => !IsObjectiveComplete(1, (uint)QuestId),
+			            new DecoratorContinue(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
                             new Sequence( 
-				new DecoratorContinue(ret => Lao[0].Location.Distance(Me.Location) > 10,
-			     	new Sequence(
-		    			new Action(r => Lao[0].Target()),
-                    			new Action(ret => Flightor.MoveTo(Lao[0].Location)),
-		    			new Action(r => Lao[0].Face())
-					)),
-				new DecoratorContinue(ret => Lao[0].Location.Distance(Me.Location) <= 10,
-			     	new Sequence(
-                    			new Action(ret => WoWMovement.MoveStop()),
-                    			new Action(ret => TreeRoot.StatusText = "Finished!"),
-                    			new Action(ret => _isBehaviorDone = true),
-                    			new Action(ret => RunStatus.Success)
-					)))),
-
-
-
-					new ActionAlwaysSucceed())));
+				                new DecoratorContinue(ret => Lao[0].Location.Distance(Me.Location) > 10,
+			     	                new Sequence(
+		    			                new Action(r => Lao[0].Target()),
+                    			                new Action(ret => Flightor.MoveTo(Lao[0].Location)),
+		    			                new Action(r => Lao[0].Face())
+					                )),
+				                new DecoratorContinue(ret => Lao[0].Location.Distance(Me.Location) <= 10,
+			     	                new Sequence(
+                    			                new Action(ret => WoWMovement.MoveStop()),
+                    			                new Action(ret => TreeRoot.StatusText = "Finished!"),
+                    			                new Action(ret => _isBehaviorDone = true),
+                    			                new Action(ret => RunStatus.Success)
+					                )))),
+					            new ActionAlwaysSucceed())));
         }
     }
 }

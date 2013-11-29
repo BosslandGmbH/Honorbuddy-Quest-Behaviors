@@ -1,14 +1,28 @@
-// Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using Bots.Grind;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -20,6 +34,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
@@ -35,14 +50,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         public SealingTheWay(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
                 QuestId = 26501;//GetAttributeAsNullable<int>("QuestId",false, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
                 MobIds = new uint[] { 50635, 50638, 50643, 50636 };
@@ -55,9 +70,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -68,28 +83,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
-
 
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
-
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
 
 
         // Private properties
@@ -120,8 +119,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
                 base.Dispose();
             }
 
-
-
             _isDisposed = true;
         }
 
@@ -136,22 +133,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
                     {
-
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
-        }
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
         }
 
         public WoWUnit Geomancer(WoWPoint loc)
@@ -186,23 +175,28 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
                         new Action(c => RoutineManager.Current.Pull()));
             }
         }
-        public WoWPoint[] Spots = new WoWPoint[] {new WoWPoint(411.33,1659.2,348.8838),
-new WoWPoint(420.792,1718.1,349.4922),
-new WoWPoint(457.47,1727.42,348.5146),
-new WoWPoint(491.014,1659.59,348.2862)};
+        public WoWPoint[] Spots = new WoWPoint[]
+        {
+            new WoWPoint(411.33,1659.2,348.8838),
+            new WoWPoint(420.792,1718.1,349.4922),
+            new WoWPoint(457.47,1727.42,348.5146),
+            new WoWPoint(491.014,1659.59,348.2862)
+        };
 
 
         public Composite Part(int i)
         {
-            return new Decorator(r => !IsObjectiveComplete(i, (uint)QuestId), new PrioritySelector(
-
-                 new Decorator(r => Geomancer(Spots[i - 1]) != null && Geomancer(Spots[i - 1]).Distance > 10, new Action(r => Flightor.MoveTo(Geomancer(Spots[i - 1]).Location))),
-                    new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[i - 1]) != null, new Action(r => Bad(Spots[i - 1]).Target())),
-                    new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[i - 1]).CurrentTarget != null), new Action(r => Geomancer(Spots[i - 1]).CurrentTarget.Target())),
-
-                    //new Decorator(r => Me.CurrentTarget != null && !Me.CurrentTarget.IsFriendly, DoDps),
-                new Decorator(r => !Me.Combat && Bad(Spots[i - 1]) != null, DoPull),
-                    new Decorator(r => Bad(Spots[i - 1]) == null, UseItem(i - 1))));
+            return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, i),
+                new PrioritySelector(
+                    new Decorator(r => Geomancer(Spots[i - 1]) != null && Geomancer(Spots[i - 1]).Distance > 10,
+                        new Action(r => Flightor.MoveTo(Geomancer(Spots[i - 1]).Location))),
+                    new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[i - 1]) != null,
+                        new Action(r => Bad(Spots[i - 1]).Target())),
+                    new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[i - 1]).CurrentTarget != null),
+                        new Action(r => Geomancer(Spots[i - 1]).CurrentTarget.Target())),
+                    new Decorator(r => !Me.Combat && Bad(Spots[i - 1]) != null, DoPull),
+                        new Decorator(r => Bad(Spots[i - 1]) == null,
+                            UseItem(i - 1))));
 
         }
 
@@ -247,13 +241,8 @@ new WoWPoint(491.014,1659.59,348.2862)};
         }
 
 
-
-
         public override void OnStart()
         {
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -264,10 +253,8 @@ new WoWPoint(491.014,1659.59,348.2862)};
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

@@ -1,14 +1,29 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -21,6 +36,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
@@ -36,14 +52,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         public BoomGoestheDoonamite(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 29967; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 29967;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
             }
@@ -55,9 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -109,26 +125,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
 
         #region Overrides of CustomForcedBehavior
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
                         CharacterSettings.Instance.UseMount = true;
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
 
@@ -140,7 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
             if (spell == null)
                 return;
 
-            Logging.Write("[Pet] Casting {0}", action);
+            QBCLog.Info("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 
         }
@@ -176,13 +184,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         {
             get
             {
-                return
-                    new Decorator(r => !Me.InVehicle, new PrioritySelector(
-                        new Decorator(r => Clutchpop == null || !Clutchpop.WithinInteractRange, new Action(r => Navigator.MoveTo(spot))),
-                        new Decorator(r => !GossipFrame.Instance.IsVisible, new Action(r => Clutchpop.Interact())),
-                        new Decorator(r => GossipFrame.Instance.IsVisible, new Action(r =>GossipFrame.Instance.SelectGossipOption(0)))
-
-                        ));
+                return new Decorator(r => !Query.IsInVehicle(),
+                    new PrioritySelector(
+                        new Decorator(r => Clutchpop == null || !Clutchpop.WithinInteractRange,
+                            new Action(r => Navigator.MoveTo(spot))),
+                        new Decorator(r => !GossipFrame.Instance.IsVisible,
+                            new Action(r => Clutchpop.Interact())),
+                        new Decorator(r => GossipFrame.Instance.IsVisible,
+                            new Action(r =>GossipFrame.Instance.SelectGossipOption(0)))
+                    ));
             }
         }
 
@@ -232,8 +242,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
         private bool _mount;
         public override void OnStart()
         {
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -248,13 +256,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
 
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
-                //TreeRoot.TicksPerSecond = 30;
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
        #endregion

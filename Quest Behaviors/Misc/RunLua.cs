@@ -1,11 +1,35 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Runs the lua script x amount of times waiting x milliseconds inbetween
+// ##Syntax##           
+// Lua: the lua script to run
+// NumOfTimes: (Optional) - The number of times to execute this script. default:1
+// QuestId: (Optional) - the quest to perform this action on
+// WaitTime: (Optional) - The time in milliseconds to wait before executing the next. default: 0ms
+//                         This is a Post-LUA delay.
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
@@ -14,25 +38,19 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.RunLua
 {
-    /// <summary>
-    /// Runs the lua script x amount of times waiting x milliseconds inbetween
-    /// ##Syntax##           
-    /// Lua: the lua script to run
-    /// NumOfTimes: (Optional) - The number of times to execute this script. default:1
-    /// QuestId: (Optional) - the quest to perform this action on
-    /// WaitTime: (Optional) - The time in milliseconds to wait before executing the next. default: 0ms
-    ///                         This is a Post-LUA delay.
-    /// </summary>
     [CustomBehaviorFileName(@"Misc\RunLua")]
     public class RunLua : CustomForcedBehavior
     {
         public RunLua(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -53,9 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -77,8 +95,8 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
         private readonly WaitTimer _waitTimer = new WaitTimer(TimeSpan.Zero);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: RunLua.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~RunLua()
@@ -165,9 +183,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
                 TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
                                                     GetType().Name, LuaCommand, NumOfTimes, WaitTime);
 

@@ -49,10 +49,8 @@ using System.Xml.Linq;
 
 using Honorbuddy.QuestBehaviorCore;
 
-using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
-using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
@@ -123,8 +121,8 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         // Add what you need here...
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: TEMPLATE_QB.cs 597 2013-07-09 14:48:09Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 597 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

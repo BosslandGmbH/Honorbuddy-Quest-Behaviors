@@ -1,8 +1,18 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 // WIKI DOCUMENTATION:
 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_AbandonQuest
 //
+
+#region Summary and Documentation
 // QUICK DOX:
 //      Allows you to abandon a quest in your quest log.
 //
@@ -26,7 +36,14 @@
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Failed" />
 //     <CustomBehavior File="AbandonQuest" QuestId="25499" Type="Incomplete" />
 //
-//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 
@@ -39,6 +56,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.AbandonQuest
@@ -57,6 +75,8 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
         public AbandonQuest(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
@@ -71,9 +91,9 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -91,8 +111,8 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
         private readonly WaitTimer _waitTimerAfterAbandon = new WaitTimer(TimeSpan.Zero);
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: AbandonQuest.cs 628 2013-07-15 13:57:54Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 628 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~AbandonQuest()
@@ -176,19 +196,19 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
 
                 if (quest == null)
                 {
-                    LogMessage("warning", "Cannot find quest with QuestId({0}).", QuestId);
+                    QBCLog.Warning("Cannot find quest with QuestId({0}).", QuestId);
                     _isBehaviorDone = true;
                 }
 
                 else if ((quest != null) && quest.IsCompleted && (Type != AbandonType.All))
                 {
-                    LogMessage("warning", "Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name);
+                    QBCLog.Warning("Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name);
                     _isBehaviorDone = true;
                 }
 
                 else if ((quest != null) && !quest.IsFailed && (Type == AbandonType.Failed))
                 {
-                    LogMessage("warning", "Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name);
+                    QBCLog.Warning("Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name);
                     _isBehaviorDone = true;
                 }
 
@@ -197,7 +217,7 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                     TreeRoot.GoalText = string.Format("Abandoning QuestId({0}): \"{1}\"", QuestId, quest.Name);
                     QuestLog ql = new QuestLog();
                     ql.AbandonQuestById((uint)QuestId);
-                    LogMessage("info", "Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
+                    QBCLog.Info("Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
 
                     _waitTimerAfterAbandon.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
                     _waitTimerAfterAbandon.Reset();

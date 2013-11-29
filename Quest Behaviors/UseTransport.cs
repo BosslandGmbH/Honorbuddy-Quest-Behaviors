@@ -1,26 +1,48 @@
 // Behavior originally contributed by Raphus.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Allows you to use Transports.
+// ##Syntax##
+// TransportId: ID of the transport.
+// TransportStart: Start point of the transport that we will get on when its close enough to that point.
+// TransportEnd: End point of the transport that we will get off when its close enough to that point.
+// WaitAt: Where you wish to wait the transport at
+// GetOff: Where you wish to end up at when transport reaches TransportEnd point
+// StandOn: The point you wish the stand while you are in the transport
+//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UseTransport
@@ -28,20 +50,11 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
     [CustomBehaviorFileName(@"UseTransport")]
     public class UseTransport : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to use Transports.
-        /// ##Syntax##
-        /// TransportId: ID of the transport.
-        /// TransportStart: Start point of the transport that we will get on when its close enough to that point.
-        /// TransportEnd: End point of the transport that we will get off when its close enough to that point.
-        /// WaitAt: Where you wish to wait the transport at
-        /// GetOff: Where you wish to end up at when transport reaches TransportEnd point
-        /// StandOn: The point you wish the stand while you are in the transport
-        /// </summary>
-        ///
         public UseTransport(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -66,9 +79,9 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -79,15 +92,13 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         public WoWPoint EndLocation { get; private set; }
         public WoWPoint GetOffLocation { get; private set; }
         public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public WoWPoint StandLocation { get; private set; }
         public WoWPoint StartLocation { get; private set; }
         public int TransportId { get; private set; }
         public WoWPoint WaitAtLocation { get; private set; }
 
         // Private variables for internal state
-        private QuestBehaviorCore.ConfigMemento _configMemento;
+        private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
@@ -95,8 +106,8 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UseTransport.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UseTransport()
@@ -118,9 +129,11 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 
                 // Clean up unmanaged resources (if any) here...
                 if (_configMemento != null)
-                { _configMemento.Dispose(); }
+                {
+                    _configMemento.Dispose();
+                    _configMemento = null;
+                }
 
-                _configMemento = null;
 
                 BotEvents.OnBotStop -= BotEvents_OnBotStop;
                 TreeRoot.GoalText = string.Empty;
@@ -169,7 +182,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                         ret => GetOffLocation != WoWPoint.Empty && Me.Location.DistanceSqr(GetOffLocation) < 2*2,
                         new Sequence(
                             new Action(ret => _usedTransport = false),
-                            new Action(ret => LogMessage("Info", "Successfully used the transport.")),
+                            new Action(ret => QBCLog.Info("Successfully used the transport.")),
                             new Action(ret => _isBehaviorDone = true))),
                     new Decorator(
                         ret => Me.IsOnTransport || _usedTransport,
@@ -177,12 +190,12 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                              new Decorator(
                                 ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(EndLocation) < 1.5*1.5,
                                 new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving out of transport")),
+                                    new Action(ret => QBCLog.Info("Moving out of transport")),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)))),
                             new Action(ret =>
                                 {
                                     _usedTransport = true;
-                                    LogMessage("Info", "Waiting for the end location");
+                                    QBCLog.Info("Waiting for the end location");
                                 })
                         )),
                     new Decorator(
@@ -191,16 +204,16 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                             new Decorator(
                                 ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(StartLocation) < 1.5*1.5 && WaitAtLocation.DistanceSqr(Me.Location) < 2 * 2,
                                 new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving inside transport")),
+                                    new Action(ret => QBCLog.Info("Moving inside transport")),
                                     new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
                             new Decorator(
                                 ret => WaitAtLocation.DistanceSqr(Me.Location) > 2 * 2,
                                 new Sequence(
-                                    new Action(ret => LogMessage("Info", "Moving to wait location")),
+                                    new Action(ret => QBCLog.Info("Moving to wait location")),
                                     new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
                             new Sequence(
                                 new Mount.ActionLandAndDismount(),
-                                new Action(ret => LogMessage("Info", "Waiting for transport")))
+                                new Action(ret => QBCLog.Info("Waiting for transport")))
                             ))
                     ));
         }
@@ -230,13 +243,7 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -254,15 +261,9 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
                 CharacterSettings.Instance.PullDistance = 1;
                 CharacterSettings.Instance.UseFlightPaths = false;
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((!string.IsNullOrEmpty(DestName)) ? DestName :
-                                                                  (quest != null) ? ("\"" + quest.Name + "\"") :
-                                                                  "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
-
-
         #endregion
     }
 }

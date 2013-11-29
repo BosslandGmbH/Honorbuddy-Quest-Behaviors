@@ -1,19 +1,48 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_NoControlVehicle
 //
+// For Vehicles you do not have to move, such as Cannons, Horses, Bombings, and even ground targeting cannons.
+// ##Syntax##
+// QuestId: Id of the quest.
+// NpcMountID: MobId of the vehicle before it is mounted.
+// VehicleId: Between 0 - 99 The lower the number the closer to the ground it will be
+// TargetId, TargetId2, ...TargetIdN: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
+// SpellIndex: Button bar Number starting from 1 
+// OftenToUse: This is used for a few quests that the mob is flying but respawns fast, So the bot can fire in the same spot over and over.
+// TimesToUse: Where you want to be at when you fire.
+// TypeId: Where you want to aim.
+// PreviousFireLocation Coords: This should only be used if you are already inside of the vehicle when you call the behaviors again, and
+//                                 should be the same coords as FireLocation on the call before it, Check the Wiki for more info or examples.
+//
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Threading;
 
-using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -21,6 +50,7 @@ using Styx.WoWInternals.WoWObjects;
 using Tripper.Tools.Math;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
@@ -29,24 +59,11 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
     [CustomBehaviorFileName(@"NoControlVehicle")]  // Deprecated location--do not use
     public class NoControlVehicle : CustomForcedBehavior
     {
-        /// <summary>
-        /// For Vehicles you do not have to move, such as Cannons, Horses, Bombings, and even ground targeting cannons.
-        /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// NpcMountID: MobId of the vehicle before it is mounted.
-        /// VehicleId: Between 0 - 99 The lower the number the closer to the ground it will be
-        /// TargetId, TargetId2, ...TargetIdN: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
-        /// SpellIndex: Button bar Number starting from 1 
-        /// OftenToUse: This is used for a few quests that the mob is flying but respawns fast, So the bot can fire in the same spot over and over.
-        /// TimesToUse: Where you want to be at when you fire.
-        /// TypeId: Where you want to aim.
-        /// PreviousFireLocation Coords: This should only be used if you are already inside of the vehicle when you call the behaviors again, and
-        ///                                 should be the same coords as FireLocation on the call before it, Check the Wiki for more info or examples.
-        /// </summary>
-        ///
         public NoControlVehicle(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -77,9 +94,9 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -110,7 +127,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 
         // Private properties
         private int Counter { get; set; }
-        private bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; } }
+        
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private List<WoWUnit> NpcList
         {
@@ -169,8 +186,8 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: NoControlVehicle.cs 563 2013-06-17 21:21:35Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 563 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~NoControlVehicle()
@@ -203,45 +220,13 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
             _isDisposed = true;
         }
 
-
-        double AimAngle
-        {
-            get
-            {
-                if (NpcList[0].Location.Distance(MountedPoint) < 10)
-                { return 0; }
-
-                else if (NpcList[0].Location.Distance(MountedPoint) >= 10 && NpcList[0].Location.Distance(MountedPoint) < 20)
-                { return 0.2; }
-
-                else if (NpcList[0].Location.Distance(MountedPoint) >= 20 && NpcList[0].Location.Distance(MountedPoint) < 30)
-                { return 0.4; }
-
-                else if (NpcList[0].Location.Distance(MountedPoint) >= 40 && NpcList[0].Location.Distance(MountedPoint) < 60)
-                { return 0.5; }
-
-                else
-                { return 0.2; }
-            }
-        }
-
-
-        public bool IsQuestComplete()
-        {
-            if (QuestId == 0)
-                return false;
-
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
             return _root ??
                 (_root = new PrioritySelector(
-                    new Decorator(c => (Counter > NumOfTimes) || IsQuestComplete(),
+                    new Decorator(c => (Counter > NumOfTimes) || Me.IsQuestComplete(QuestId),
                         new Action(c =>
                         {
                             TreeRoot.StatusText = "Finished!";
@@ -254,7 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                         })
                     ),
 
-                    new Decorator(c => NpcVehicleList.Any() && !InVehicle,
+                    new Decorator(c => NpcVehicleList.Any() && !Query.IsInVehicle(),
                         new Action(c =>
                         {
                             if (!NpcVehicleList[0].WithinInteractRange)
@@ -273,7 +258,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                     new Decorator(c => SpellType == 1,
                         new Action(c =>
                         {
-                            if (!InVehicle)
+                            if (!Query.IsInVehicle())
                                 return RunStatus.Failure;
                             var target = NpcList.FirstOrDefault();
                             var vehicle = VehicleList.FirstOrDefault();
@@ -298,10 +283,10 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                     new Decorator(c => SpellType == 2,
                         new Action(c =>
                         {
-                            if (!InVehicle)
+                            if (!Query.IsInVehicle())
                                 return RunStatus.Failure;
 
-                            if (Counter > NumOfTimes && QuestId == 0 || IsQuestComplete())
+                            if (Counter > NumOfTimes && QuestId == 0 || Me.IsQuestComplete(QuestId))
                             {
                                 Lua.DoString("VehicleExit()");
                                 _isBehaviorDone = true;
@@ -323,7 +308,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                             return RunStatus.Running;
                         })),
 
-                   new Decorator(c => InVehicle && SpellType == 3,
+                   new Decorator(c => Query.IsInVehicle() && SpellType == 3,
                        new PrioritySelector(
                            ret => NpcList.OrderBy(u => u.DistanceSqr).FirstOrDefault(u => Me.Transport.IsSafelyFacing(u)),
                             new Decorator(
@@ -351,10 +336,10 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                     new Decorator(c => SpellType == 4,
                         new Action(c =>
                         {
-                            if (!InVehicle)
+                            if (!Query.IsInVehicle())
                                 return RunStatus.Failure;
 
-                            if (Counter > NumOfTimes && QuestId == 0 || IsQuestComplete())
+                            if (Counter > NumOfTimes && QuestId == 0 || Me.IsQuestComplete(QuestId))
                             {
                                 Lua.DoString("VehicleExit()");
                                 _isBehaviorDone = true;
@@ -378,10 +363,10 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
                    new Decorator(c => SpellType == 5,
                         new Action(c =>
                         {
-                            if (!InVehicle)
+                            if (!Query.IsInVehicle())
                                 return RunStatus.Failure;
 
-                            if (Counter > NumOfTimes && QuestId == 0 || IsQuestComplete())
+                            if (Counter > NumOfTimes && QuestId == 0 || Me.IsQuestComplete(QuestId))
                             {
                                 Lua.DoString("VehicleExit()");
                                 _isBehaviorDone = true;
@@ -446,9 +431,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

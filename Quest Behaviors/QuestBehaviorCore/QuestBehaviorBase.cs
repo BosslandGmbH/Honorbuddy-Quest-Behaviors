@@ -203,8 +203,8 @@ namespace Honorbuddy.QuestBehaviorCore
         public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: QuestBehaviorBase.cs 719 2013-07-26 11:08:04Z dogan $"; } }
-        public override string SubversionRevision { get { return "$Rev: 719 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -214,7 +214,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_DeathMain;
         private Composite _behaviorTreeHook_QuestbotMain;
         private Composite _behaviorTreeHook_Main;
-        private QuestBehaviorCore.ConfigMemento _mementoSettings;
+        private ConfigMemento _mementoSettings;
         private bool _isBehaviorDone;
         private AvoidMobsType _temporaryAvoidMobs;
         private BlackspotsType _temporaryBlackspots;
@@ -434,13 +434,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     AudibleNotifyOn(true);
                 }
 
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _mementoSettings = new QuestBehaviorCore.ConfigMemento();
+                _mementoSettings = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -468,7 +462,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 _temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
                 BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
 
-                UpdateGoalText(extraGoalTextDescription);
+                this.UpdateGoalText(QuestId, extraGoalTextDescription);
 
                 _behaviorTreeHook_CombatMain = new ExceptionCatchingWrapper(this, CreateBehavior_CombatMain());
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
@@ -671,23 +665,24 @@ namespace Honorbuddy.QuestBehaviorCore
                 );
         }
         #endregion
+    }
 
 
-        #region Helpers
-        public void UpdateGoalText(string extraGoalTextDescription)
+    public static class CustomForcedBehavior_Extensions
+    {
+        public static void UpdateGoalText(this CustomForcedBehavior cfb, int QuestId, string extraGoalTextDescription = null)
         {
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
             TreeRoot.GoalText = string.Format(
                 "{1}: \"{2}\"{0}{3}{0}{0}{4}",
                 Environment.NewLine,
-                QBCLog.GetVersionedBehaviorName(this),
+                QBCLog.VersionedBehaviorName,
                 ((quest != null)
                     ? string.Format("\"{0}\" (http://wowhead.com/quest={1})", quest.Name, QuestId)
                     : "In Progress (no associated quest)"),
                 (extraGoalTextDescription ?? string.Empty),
-                Utility.GetProfileReference(Element));
+                Utility.GetProfileReference(cfb.Element));
         }
-        #endregion
     }
 }

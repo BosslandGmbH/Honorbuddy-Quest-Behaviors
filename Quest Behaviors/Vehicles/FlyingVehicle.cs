@@ -1,5 +1,15 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // DOCUMENTATION:
 // Moves to along a path in a vehicle using the specific actionbar butons until quest is complete
 // ##Syntax##
@@ -19,23 +29,29 @@
 // NpcScanRange: (optional) Maximum range from player to scan for NPCs
 // Precision: (optional) This behavior moves on to the next waypoint when at Precision distance or less to current waypoint. Default 4;    
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
@@ -46,11 +62,17 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         public FlyingVehicle(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
                 Buttons = GetAttributeAsArray<int>("Buttons", false, ConstrainAs.HotbarButton, null, null);
                 DropPassengerButton = GetAttributeAsNullable<int>("DropPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
                 EndPath = GetAttributeAsArray<WoWPoint>("EndPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
@@ -62,9 +84,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                 Path = GetAttributeAsArray<WoWPoint>("Path", true, ConstrainAs.WoWPointNonEmpty, null, null);
                 PickUpPassengerButton = GetAttributeAsNullable<int>("PickUpPassengerButton", false, ConstrainAs.HotbarButton, null) ?? 0;
                 Precision = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
-                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 SpeedButton = GetAttributeAsNullable<int>("SpeedButton", false, ConstrainAs.HotbarButton, null) ?? 0;
                 StartPath = GetAttributeAsArray<WoWPoint>("StartPath", true, ConstrainAs.WoWPointNonEmpty, null, null);
                 VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
@@ -77,9 +96,9 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -125,8 +144,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
         private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: FlyingVehicle.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~FlyingVehicle()
@@ -157,12 +176,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             }
 
             _isDisposed = true;
-        }
-
-
-        bool InVehicle
-        {
-            get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') then return 1 else return 0 end", 0) == 1; }
         }
 
 
@@ -201,7 +214,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                 {
                     if (!_doingUnstuck)
                     {
-                        LogMessage("info", "Stuck... Doing unstuck routine");
+                        QBCLog.Info("Stuck... Doing unstuck routine");
                         _direction = WoWMovement.MovementDirection.JumpAscend |
                             (_rand.Next(0, 2) == 1 ? WoWMovement.MovementDirection.StrafeRight : WoWMovement.MovementDirection.StrafeLeft)
                             | WoWMovement.MovementDirection.Backwards;
@@ -227,7 +240,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             {
                 WoWUnit veh = GetVehicle();
                 if (veh == null && _state != State.liftoff && _state != State.landing)
-                { LogMessage("fatal", "Something went seriously wrong..."); }
+                    { QBCLog.Fatal("Something went seriously wrong..."); }
 
                 switch (_state)
                 {
@@ -240,6 +253,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                                 return StartPath[_pathIndex];
                         }
                         return WoWPoint.Zero;
+
                     case State.looping:
                         if (_pathIndex < Path.Length)
                         {
@@ -291,7 +305,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                             switch (_state)
                             {
                                 case State.liftoff:
-                                    bool inVehicle = InVehicle;
+                                    bool inVehicle = Query.IsInVehicle();
 
                                     if (!_liftoffStopwatch.IsRunning || !inVehicle)
                                     {
@@ -453,9 +467,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

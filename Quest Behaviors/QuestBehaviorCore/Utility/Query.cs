@@ -147,6 +147,29 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 25Aug2013 chinajade
+        public static void InCompetitionReset()
+        {
+            _inCompetitionTimers.Clear();
+        }
+
+
+        // 25Aug2013 chinajade
+        public static TimeSpan InCompetitionTimeRemaining(WoWObject wowObject)
+        {
+            DateTime waitStart;
+            if (_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
+            {
+                var now = DateTime.Now;
+
+                if (now <= (waitStart + _inCompetitionMaxWaitTime))
+                { return waitStart + _inCompetitionMaxWaitTime - now; }
+            }
+
+            return TimeSpan.Zero;
+        }
+
+
         public static bool IsAnyNpcFrameVisible()
         {
             return
@@ -172,29 +195,6 @@ namespace Honorbuddy.QuestBehaviorCore
             var typeOfException = except.GetType();
 
             return !(typeOfException == typeof(ThreadAbortException));
-        }
-
-
-        // 25Aug2013 chinajade
-        public static void InCompetitionReset()
-        {
-            _inCompetitionTimers.Clear();
-        }
-
-
-        // 25Aug2013 chinajade
-        public static TimeSpan InCompetitionTimeRemaining(WoWObject wowObject)
-        {
-            DateTime waitStart;
-            if (_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
-            {
-                var now = DateTime.Now;
-
-                if (now <= (waitStart + _inCompetitionMaxWaitTime))
-                    { return waitStart + _inCompetitionMaxWaitTime - now; }
-            }
-
-            return TimeSpan.Zero;
         }
 
 
@@ -297,6 +297,58 @@ namespace Honorbuddy.QuestBehaviorCore
                 : (wowUnit.InLineOfSight && wowUnit.InLineOfSpellSight);
         }
 
+
+        // 25Nov2013-09:30UTC chinajade
+        public static bool IsInVehicle()
+        {
+            return StyxWoW.Me.InVehicle
+                || Lua.GetReturnVal<bool>("return IsPossessBarVisible()", 0);
+        }
+
+
+        // 25Nov2013 HighVoltz
+        public static bool IsMeleeSpec(WoWSpec spec)
+        {
+            return !IsRangeSpec(spec);
+        }
+        
+        
+        // 25Nov2013 HighVoltz
+        public static bool IsRangeSpec(WoWSpec spec)
+        {
+            switch (spec)
+            {
+                case WoWSpec.HunterBeastMastery:
+                case WoWSpec.HunterMarksmanship:
+                case WoWSpec.HunterSurvival:
+
+                case WoWSpec.MageArcane:
+                case WoWSpec.MageFire:
+                case WoWSpec.MageFrost:
+
+                case WoWSpec.PriestDiscipline:
+                case WoWSpec.PriestHoly:
+                case WoWSpec.PriestShadow:
+
+                case WoWSpec.WarlockAffliction:
+                case WoWSpec.WarlockDemonology:
+                case WoWSpec.WarlockDestruction:
+
+                case WoWSpec.ShamanElemental:
+                case WoWSpec.ShamanRestoration:
+
+                case WoWSpec.PaladinHoly:
+
+                case WoWSpec.DruidBalance:
+                case WoWSpec.DruidRestoration:
+
+                case WoWSpec.MonkMistweaver:
+
+                    return true;
+                default:
+                    return false;
+            }
+        }
 
 
         public static bool IsMobTargetingUs(WoWUnit wowUnit)

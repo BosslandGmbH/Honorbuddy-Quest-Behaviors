@@ -1,5 +1,15 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // WIKI DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_FireFromTheSky
 //
@@ -9,7 +19,14 @@
 //  Notes:
 //      * Make sure to Save Gizmo.
 //
+#endregion
 
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,6 +45,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
@@ -38,6 +56,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         public FourWindsLessonInBravery(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 29918;
@@ -52,9 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -77,8 +97,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 29918-FourWinds-ALessonInBravery.cs 574 2013-06-28 08:54:59Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 574 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~FourWindsLessonInBravery()
@@ -164,7 +184,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
             get
             {
                 return
-                    new Decorator(ret => !Me.InVehicle,
+                    new Decorator(ret => !Query.IsInVehicle(),
                         new PrioritySelector(
                             new Decorator(r => Query.IsViable(GiantAssBird),
                                 new Action(r =>
@@ -182,7 +202,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         {
             get
             {
-                return new Decorator(ret => Me.InVehicle,
+                return new Decorator(ret => Query.IsInVehicle(),
                     new PrioritySelector(
                         // Get back on bid when tossed off...
                         new Decorator(context => Me.HasAura(AuraId_Mangle),
@@ -242,11 +262,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
             {
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
-
                 AuraIds_OccupiedVehicle = QuestBehaviorBase.GetOccupiedVehicleAuraIds();
+
+                this.UpdateGoalText(QuestId);
             }
         }
 

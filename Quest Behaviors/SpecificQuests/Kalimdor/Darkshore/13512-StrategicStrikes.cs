@@ -1,25 +1,42 @@
+// Behavior originally contributed by Kickazz006
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+// This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255).
+// Code was taken from Shak.
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Action = Styx.TreeSharp.Action;
 
-/* This behavior is for killing Thane noobface in Grizzly Hills (Horde 12259 and Alliance 12255) 
-		This behavior was developed by Kickazz006
-		Code was taken from Shak
-		How I used it in this behavior was chop each in half and take the bits that I needed
-		Feel free to re-use the code to your liking (anyone else)
-	*/
+using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
@@ -30,6 +47,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         public StrategicStrikes(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
 
             try
             {
@@ -47,9 +65,9 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -68,8 +86,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         private Composite _root;
 
         // Private properties
-        private int Counter { get; set; }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+        private LocalPlayer Me { get { return StyxWoW.Me; } }
 
         static readonly WaitTimer MoveTimer = WaitTimer.OneSecond;
         private static readonly WaitTimer Timer = new WaitTimer(TimeSpan.FromSeconds(3));
@@ -107,8 +124,8 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == 44995 && i.Cooldown == 0); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 13512-StrategicStrikes.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~StrategicStrikes()
@@ -235,9 +252,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? quest.Name : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

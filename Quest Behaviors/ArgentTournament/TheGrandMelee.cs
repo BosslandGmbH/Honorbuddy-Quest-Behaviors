@@ -1,27 +1,40 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Bots.Quest;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Database;
-using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Action = Styx.TreeSharp.Action;
 
+using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Styx.Bot.Quest_Behaviors
@@ -37,6 +50,8 @@ namespace Styx.Bot.Quest_Behaviors
         public TheGrandMelee(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -44,14 +59,11 @@ namespace Styx.Bot.Quest_Behaviors
                 // ...and also used for IsDone processing.
                 Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??MountSpot;
                 QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
 
                 Enemy = GetAttributeAsArray<uint>("Enemys", false, new ConstrainTo.Domain<uint>(0, 100000), new[] { "Enemy" }, null);
                 EnemyDebuff = GetAttributeAsArray<uint>("EnemysDebuff", false, new ConstrainTo.Domain<uint>(0, 100000), new[] { "EnemyDebuff" }, null);
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -61,9 +73,9 @@ namespace Styx.Bot.Quest_Behaviors
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -87,7 +99,6 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -133,17 +144,7 @@ namespace Styx.Bot.Quest_Behaviors
         }
 
 
-  
-
-
-
         #region Overrides of CustomForcedBehavior
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
 
 
         public Composite DoneYet
@@ -151,11 +152,9 @@ namespace Styx.Bot.Quest_Behaviors
             get
             {
                 return
-                    new Decorator(ret => IsQuestComplete() && !Me.Combat, new Action(delegate
+                    new Decorator(ret => Me.IsQuestComplete(QuestId) && !Me.Combat, new Action(delegate
                     {
-
-                        Lua.DoString(
-    "RunMacroText(\"/leavevehicle\")");
+                        Lua.DoString("RunMacroText(\"/leavevehicle\")");
 
                         mainhand.UseContainerItem();
                         if (offhand != null)
@@ -167,10 +166,8 @@ namespace Styx.Bot.Quest_Behaviors
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
-
         
 
         public void UsePetSkill(string action)
@@ -179,9 +176,8 @@ namespace Styx.Bot.Quest_Behaviors
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
             if (spell == null)
                 return;
-            Logging.Write(string.Format("[Pet] Casting {0}", action));
+            QBCLog.Info("[Pet] Casting {0}", action);
             Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
         }
 
         WoWUnit Mount
@@ -381,12 +377,11 @@ namespace Styx.Bot.Quest_Behaviors
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
-            Logging.Write("Quest Behavior made by mastahg.");
+
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
                 mainhand = Me.Inventory.Equipped.MainHand;
 
                 if (mainhand.ItemInfo.EquipSlot != InventoryType.TwoHandWeapon)
@@ -401,25 +396,9 @@ namespace Styx.Bot.Quest_Behaviors
                 }
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                // Me.QuestLog.GetQuestById(27761).GetObjectives()[2].
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
-
-
-
-
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

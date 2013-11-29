@@ -1,4 +1,11 @@
-﻿// LICENSE:
+﻿// Behavior originally contributed by mastahg
+// 24/9/2013 - Practically rewritten, the old behaviour didn't do anything. - Aevitas
+// 24-Sep-2013 - Added logic to get in tank. - Chinajade
+//              The profile can't use UtilityBehaviorPS.Interact() for this, because the tank
+//              goes invalidimmediately after interacting with it, which causes Interact()
+//              to throw exceptions because it is unable to finish the job on an InValid object.
+//
+// LICENSE:
 // This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
@@ -7,13 +14,8 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
-// Behavior originally contributed by mastahg
-// 24/9/2013 - Practically rewritten, the old behaviour didn't do anything. - Aevitas
-// 24-Sep-2013 - Added logic to get in tank. - Chinajade
-//              The profile can't use UtilityBehaviorPS.Interact() for this, because the tank
-//              goes invalidimmediately after interacting with it, which causes Interact()
-//              to throw exceptions because it is unable to finish the job on an InValid object.
 
+#region Summary and Documentation
 // Documentation:
 // * Moves to Siege Tank, dismounts, and enters tank
 // * Fires at targets as it moves around range
@@ -30,6 +32,12 @@
 //   aren't significant enough to waste significant effort trying to find the buried
 //   information--if its available at all.
 //
+#endregion
+
+
+#region Examples
+#endregion
+
 
 #region Usings
 using System;
@@ -38,7 +46,6 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Bots.Grind;
-
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -48,7 +55,6 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 
 using Action = Styx.TreeSharp.Action;
 #endregion
@@ -87,9 +93,9 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -145,8 +151,8 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
         private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 24910-Tanaris-RocketRescue.cs 574 2013-06-28 08:54:59Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Rev: 574 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
         #endregion
 
 
@@ -194,7 +200,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
         {
             return new PrioritySelector(
                 // Disable combat routine while we are in the vehicle...
-                new Decorator(context => Me.InVehicle,
+                new Decorator(context => Query.IsInVehicle(),
                     new ActionAlwaysSucceed())
                 );
         }
@@ -476,7 +482,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 
         private bool IsInTank()
         {
-            return Me.InVehicle;
+            return Query.IsInVehicle();
         }
 
 

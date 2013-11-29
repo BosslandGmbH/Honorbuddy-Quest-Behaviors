@@ -89,8 +89,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: SwimBreathType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 555 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
 
         public override string ToString()
@@ -173,8 +173,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public string Name { get; set; }
 
             // DON'T EDIT THESE--they are auto-populated by Subversion
-            public override string SubversionId { get { return "$Id: SwimBreathType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
-            public override string SubversionRevision { get { return "$Rev: 555 $"; } }
+            public override string SubversionId { get { return "$Id$"; } }
+            public override string SubversionRevision { get { return "$Rev$"; } }
 
 
             public override string ToString()
@@ -244,8 +244,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public string Name { get; set; }
 
             // DON'T EDIT THESE--they are auto-populated by Subversion
-            public override string SubversionId { get { return "$Id: SwimBreathType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
-            public override string SubversionRevision { get { return "$Rev: 555 $"; } }
+            public override string SubversionId { get { return "$Id$"; } }
+            public override string SubversionRevision { get { return "$Rev$"; } }
 
 
             public override string ToString()
@@ -315,8 +315,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public string Name { get; set; }
 
             // DON'T EDIT THESE--they are auto-populated by Subversion
-            public override string SubversionId { get { return "$Id: SwimBreathType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
-            public override string SubversionRevision { get { return "$Rev: 555 $"; } }
+            public override string SubversionId { get { return "$Id$"; } }
+            public override string SubversionRevision { get { return "$Rev$"; } }
 
 
             public override string ToString()

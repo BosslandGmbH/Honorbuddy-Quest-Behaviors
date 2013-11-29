@@ -1,10 +1,29 @@
-﻿using System.Collections.Generic;
+﻿//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
+using System;
+using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -12,6 +31,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
@@ -22,24 +42,31 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
         public Blastranaar(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
-                QuestId = 30243;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestId = 30243;
             }
-            catch
+
+            catch (Exception except)
             {
-                Logging.Write("Problem parsing a QuestId in behavior: Dark Skies");
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
             }
         }
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
         public int MobIdMantid = 63972;
-		public int Xaril = 62151;
         private Composite _root;
-        public WoWPoint Location = new WoWPoint(138.3817, 225.952, 214.7609);
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
-		static public bool InVehicle { get { return Lua.GetReturnVal<int>("if IsPossessBarVisible() or UnitInVehicle('player') or not(GetBonusBarOffset()==0) then return 1 else return 0 end", 0) == 1; } }
+
         public override bool IsDone
         {
             get
@@ -57,8 +84,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
-                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 
@@ -66,40 +92,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdMantid && !u.IsDead && u.Distance < 10000).OrderBy(u => u.Distance).ToList();
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u => u.Entry == MobIdMantid && !u.IsDead && u.Distance < 10000)
+                    .OrderBy(u => u.Distance)
+                    .ToList();
             }
         }
-	
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
+
 
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsObjectiveComplete(1, (uint)QuestId) && IsObjectiveComplete(3, (uint)QuestId), new Action(delegate
+                return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 1) && Me.IsQuestObjectiveComplete(QuestId, 3),
+                    new Action(delegate
                     {
 						Lua.DoString("CastPetAction(6)");
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
 
@@ -108,27 +121,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
         {
             get
             {
-                return new Decorator(r => !IsObjectiveComplete(1, (uint)QuestId), new Action(r =>
-                                                                                                {
-                                                                                                    Lua.DoString(
-                                                                                                        "CastPetAction(1)");
-                                                                                                    SpellManager.
-                                                                                                        ClickRemoteLocation
-                                                                                                        (Mantid[10].
-                                                                                                             Location);
-                                                                                                    Lua.DoString(
-                                                                                                        "CastPetAction(2)");
-                                                                                                    SpellManager.
-                                                                                                        ClickRemoteLocation
-                                                                                                        (Mantid[10].
-                                                                                                             Location);
-												    StyxWoW.Sleep(8500);
-                                                                                                }));
+                return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new Action(r =>
+                    {
+                        Lua.DoString("CastPetAction(1)");
+                        SpellManager.ClickRemoteLocation(Mantid[10].Location);
+                        Lua.DoString("CastPetAction(2)");
+                        SpellManager.ClickRemoteLocation(Mantid[10].Location);
+                        StyxWoW.Sleep(8500);
+                    }));
             }
         }
-
-
-
 
 		
         protected override Composite CreateBehavior()

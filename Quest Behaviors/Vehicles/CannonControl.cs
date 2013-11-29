@@ -1,45 +1,59 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Shoots a Cannon
+// ##Syntax##
+// VehicleId: ID of the vehicle
+// QuestId: Id of the quest to perform this behavior on
+// MaxAngle: Maximum Angle to aim, use /dump VehicleAimGetNormAngle() in game to get the angle
+// MinAngle: Minimum Angle to aim, use /dump VehicleAimGetNormAngle() in game to get the angle
+// Buttons:A series of numbers that represent the buttons to press in order of importance, separated by comma, for example Buttons ="2,1" 
+// ExitButton: (Optional)Button to press to exit the cannon. 1-12
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 {
-    /// <summary>
-    /// Shoots a Cannon
-    /// ##Syntax##
-    /// VehicleId: ID of the vehicle
-    /// QuestId: Id of the quest to perform this behavior on
-    /// MaxAngle: Maximum Angle to aim, use /dump VehicleAimGetNormAngle() in game to get the angle
-    /// MinAngle: Minimum Angle to aim, use /dump VehicleAimGetNormAngle() in game to get the angle
-    /// Buttons:A series of numbers that represent the buttons to press in order of importance, separated by comma, for example Buttons ="2,1" 
-    /// ExitButton: (Optional)Button to press to exit the cannon. 1-12
-    /// </summary>
     [CustomBehaviorFileName(@"Vehicles\CannonControl")]
     public class CannonControl : CustomForcedBehavior
     {
         public CannonControl(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -67,9 +81,9 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -83,7 +97,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public List<int> SpellIds { get; private set; }
         public int VehicleId { get; private set; }
 
         // Private variables for internal state
@@ -97,8 +110,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
         // Private properties
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: CannonControl.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~CannonControl()
@@ -141,11 +154,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
             }
         }
 
-        private static bool IsInVehicle
-        {
-            get { return Lua.GetReturnVal<bool>("return UnitInVehicle('player')", 0); }
-        }
-
 
         #region Overrides of CustomForcedBehavior
 
@@ -154,22 +162,22 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
             return _root ?? (_root =
                 new PrioritySelector(
                     new Decorator(c => Vehicle == null,
-                            new Action(c => LogMessage("fatal", "No cannons found."))
+                            new Action(c => QBCLog.Fatal("No cannons found."))
                         ),
 
-                    new Decorator(c => Vehicle != null && !IsInVehicle,
+                    new Decorator(c => Vehicle != null && !Query.IsInVehicle(),
                         new Action(c =>
                         {
                             if (!Vehicle.WithinInteractRange)
                             {
                                 Navigator.MoveTo(Vehicle.Location);
-                                LogMessage("info", "Moving to Cannon");
+                                QBCLog.Info("Moving to Cannon");
                             }
                             else
                                 Vehicle.Interact();
                         })
                     ),
-                    new Decorator(c => IsInVehicle && Vehicle != null,
+                    new Decorator(c => Query.IsInVehicle() && Vehicle != null,
                         new Action(c =>
                         {
                             // looping since current versions of HB seem to be unresponsive for periods of time
@@ -241,9 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

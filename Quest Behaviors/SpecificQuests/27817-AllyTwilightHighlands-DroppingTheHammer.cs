@@ -1,14 +1,29 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -21,6 +36,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
@@ -36,14 +52,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
         public DroppingTheHammer(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 27817;//GetAttributeAsNullable<int>("QuestId",false, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 27817;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
                 MobIds = new uint[] { 50635, 50638, 50643, 50636 };
@@ -56,9 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -69,17 +85,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
-
 
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-
-
-
 
 
         // Private properties
@@ -110,8 +121,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
                 base.Dispose();
             }
 
-
-
             _isDisposed = true;
         }
 
@@ -126,22 +135,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
                     {
-
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
-        }
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
         }
 
         public WoWUnit Normal
@@ -171,31 +172,16 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
         }
 
 
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (this.Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return
-                Lua.GetReturnVal<bool>(
-                    string.Concat(new object[] { "return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")" }), 2);
-        }
-
-
-
-
-
         public Composite PartOne
         {
             get
             {
-                return
-                    new Decorator(r=>!IsObjectiveComplete(1,(uint)QuestId),
-                       new PrioritySelector(
-                        new Decorator(r => Me.CurrentTarget == null || Me.CurrentTarget.Distance > 55, new Action(r=>Normal.Target())),
-                        new Decorator(r => Me.CurrentTarget != null && Me.CurrentTarget.Distance <= 55, new Action(r=>Hammer()))));
+                return new Decorator(r=>!Me.IsQuestObjectiveComplete(QuestId, 1),
+                    new PrioritySelector(
+                        new Decorator(r => Me.CurrentTarget == null || Me.CurrentTarget.Distance > 55,
+                            new Action(r=>Normal.Target())),
+                        new Decorator(r => Me.CurrentTarget != null && Me.CurrentTarget.Distance <= 55,
+                            new Action(r=>Hammer()))));
             }
         }
 
@@ -203,25 +189,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DroppingTheHammer
         {
             get
             {
-                return
-                    new Decorator(r => !IsObjectiveComplete(2, (uint)QuestId),
-                       new PrioritySelector(
-                        new Decorator(r => Me.IsOnTransport && Me.CurrentTarget == null || Me.CurrentTarget.Distance > 55, new Action(r => Boss.Target())),
-                        new Decorator(r => Me.IsOnTransport && Me.CurrentTarget != null && Me.CurrentTarget.Distance <= 55, new Action(r => Hammer())),
-new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentTarget.IsCasting) && Me.CurrentTarget.CastingSpellId == 88207 && Me.CurrentTarget.Distance < 10, new Action(r =>
-{
-    var moveTo = WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, StyxWoW.Me.CurrentTarget.Location, 10f);
+                return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2),
+                    new PrioritySelector(
+                    new Decorator(r => Me.IsOnTransport && Me.CurrentTarget == null || Me.CurrentTarget.Distance > 55,
+                        new Action(r => Boss.Target())),
+                    new Decorator(r => Me.IsOnTransport && Me.CurrentTarget != null && Me.CurrentTarget.Distance <= 55,
+                        new Action(r => Hammer())),
+                    new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentTarget.IsCasting) && Me.CurrentTarget.CastingSpellId == 88207 && Me.CurrentTarget.Distance < 10,
+                        new Action(r =>
+                        {
+                            var moveTo = WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, StyxWoW.Me.CurrentTarget.Location, 10f);
 
-    if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
-    {
-        Navigator.MoveTo(moveTo);
-        return RunStatus.Success;
-    }
+                            if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
+                            {
+                                Navigator.MoveTo(moveTo);
+                                return RunStatus.Success;
+                            }
 
-    return RunStatus.Failure;
-})),
-
-                         new Decorator(r => !Me.IsOnTransport && Me.Combat,DoDps)));
+                            return RunStatus.Failure;
+                        })),
+                        new Decorator(r => !Me.IsOnTransport && Me.Combat,
+                            DoDps)));
             }
         }
 
@@ -258,13 +246,8 @@ new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentT
         }
 
 
-
-
         public override void OnStart()
         {
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -276,10 +259,7 @@ new Decorator(r => !Me.IsOnTransport && Me.CurrentTarget != null && (Me.CurrentT
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

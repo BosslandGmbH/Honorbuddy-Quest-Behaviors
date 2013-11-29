@@ -1,23 +1,41 @@
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
-using Bots.Quest.Objectives;
+
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
-using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+
 using Action = Styx.TreeSharp.Action;
 using WaitTimer = Styx.Common.Helpers.WaitTimer;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
@@ -34,11 +52,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
         private Composite _root;
         private bool _useMount;
         private WoWPoint point1 = new WoWPoint(2794.707, 1695.803, 642.4144);
-        //Point 2
-        //<Vendor Name="Kota Kon" Entry="60754" Type="Repair" X="2738.181" Y="1908.858" Z="622.8558" />
-        private WoWPoint point2 = new WoWPoint(2738.181, 1908.858, 622.8558);
-        public QuestCompleteRequirement questCompleteRequirement = QuestCompleteRequirement.NotComplete;
-        public QuestInLogRequirement questInLogRequirement = QuestInLogRequirement.InLog;
 
         #region Cleanup
 
@@ -84,13 +97,23 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 
         public TheBurlapGrind(Dictionary<string, string> args) : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 QuestId = 30747; //GetAttributeAsQuestId("QuestId", true, null) ?? 0;
             }
-            catch
+            catch (Exception except)
             {
-                Logging.Write("Problem parsing a QuestId in behavior: Rampage Against The Machine");
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
             }
         }
 
@@ -107,7 +130,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
             get { return (StyxWoW.Me); }
         }
 
-        //<Vendor Name="Broketooth Ravager" Entry="60743" Type="Repair" X="2593.242" Y="1785.711" Z="665.8227" />
 
         public List<WoWUnit> Monkies
         {
@@ -125,26 +147,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 
         public Composite CreateBehavior_CheckCompletion()
         {
-            return new Decorator(
-                ret => IsQuestComplete(),
-                new Action(
-                    delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        Lua.DoString("VehicleExit()");
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
+            return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                new Action(delegate
+                {
+                    TreeRoot.StatusText = "Finished!";
+                    Lua.DoString("VehicleExit()");
+                    _isBehaviorDone = true;
+                    return RunStatus.Success;
+                }));
         }
 
 
         public WoWUnit Yeti
         {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.NpcFlags == 1 && r.Entry == 60587 && r.Location.DistanceSqr(StartPoint) < 30*30); }
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(r => r.NpcFlags == 1 && r.Entry == 60587 && r.Location.DistanceSqr(StartPoint) < 30*30);
+            }
         }
 
-        //Point 1
-        //<Vendor Name="Kota Kon" Entry="60754" Type="Repair" X="2794.707" Y="1695.803" Z="642.4144" />
 
         public Composite CreateBehavior_KillMantid()
         {
@@ -152,19 +174,19 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
             WoWUnit yeti = null;
             WaitTimer leapSmashTimer = WaitTimer.TenSeconds;
 
-            return new Decorator(
-                r => !IsQuestComplete() && Me.InVehicle && (yeti = Me.CharmedUnit) != null,
-                new PrioritySelector(
-                    ctx => attackTarget = GetAttackTarget(),
-                    new Decorator(
-                        ctx => attackTarget != null,
+            return new Decorator(r => !Me.IsQuestComplete(QuestId) && Query.IsInVehicle() && (yeti = Me.CharmedUnit) != null,
+                new PrioritySelector(ctx => attackTarget = GetAttackTarget(),
+                    new Decorator(ctx => attackTarget != null,
                         new PrioritySelector(
                             new ActionFail(ctx => _stuckTimer.Reset()),
                             new ActionSetActivity("Moving to Attack"),
-                            new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid, new ActionFail(ctx => attackTarget.Target())),
-                            new Decorator(ctx => !Me.IsSafelyFacing(attackTarget) || !yeti.IsSafelyFacing(attackTarget), new ActionFail(ctx => attackTarget.Face())),
+                            new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid,
+                                new ActionFail(ctx => attackTarget.Target())),
+                            new Decorator(ctx => !Me.IsSafelyFacing(attackTarget) || !yeti.IsSafelyFacing(attackTarget),
+                                new ActionFail(ctx => attackTarget.Face())),
                             // cast 'Hozen Snack' ability to heal up.
-                            new Decorator(ctx => yeti.HealthPercent <= 70, new ActionFail(ctx => Lua.DoString("CastPetAction(4)"))),
+                            new Decorator(ctx => yeti.HealthPercent <= 70,
+                                new ActionFail(ctx => Lua.DoString("CastPetAction(4)"))),
                             // cast 'Leap Smash' ability on targets outside of melee
                             new Decorator(
                                 ctx =>
@@ -182,7 +204,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
                                         ctx => yeti.Location.DistanceSqr(attackTarget.Location) <= 25* 25 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
                                         new ActionFail(ctx => WoWMovement.ClickToMove(Me.CharmedUnit.Location))),
                                     new Action(ctx => Lua.DoString("CastPetAction(2)")))),
-                            new Decorator(ctx => yeti.Location.DistanceSqr(attackTarget.Location) > 25 * 25, new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
+                            new Decorator(ctx => yeti.Location.DistanceSqr(attackTarget.Location) > 25 * 25,
+                                new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
                     new Decorator(
                         ctx => attackTarget == null,
                         new PrioritySelector(
@@ -213,17 +236,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 
         public Composite CreateBehavior_GetIn()
         {
-            return new Decorator(
-                r => !Me.InVehicle && !Me.IsActuallyInCombat,
+            return new Decorator(r => !Query.IsInVehicle() && !Me.IsActuallyInCombat,
                 new PrioritySelector(
-                    new Decorator(
-                        r => Yeti != null,
-                        new Action(
-                            r =>
-                            {
-                                Yeti.Interact();
-                                Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
-                            })),
+                    new Decorator(r => Yeti != null,
+                        new Action(r =>
+                        {
+                            Yeti.Interact();
+                            Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
+                        })),
                     new Decorator(r => Yeti == null, new Action(r => Navigator.MoveTo(StartPoint)))));
         }
 
@@ -259,25 +279,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
                 _useMount = CharacterSettings.Instance.UseMount;
                 CharacterSettings.Instance.UseMount = false;
 
-                PlayerQuest Quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
-                TreeRoot.GoalText = ((Quest != null) ? ("\"" + Quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
-        }
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-        private bool IsObjectiveComplete(int objectiveId, uint questId)
-        {
-            if (Me.QuestLog.GetQuestById(questId) == null)
-            {
-                return false;
-            }
-            int returnVal = Lua.GetReturnVal<int>("return GetQuestLogIndexByID(" + questId + ")", 0);
-            return Lua.GetReturnVal<bool>(string.Concat(new object[] {"return GetQuestLogLeaderBoard(", objectiveId, ",", returnVal, ")"}), 2);
         }
 
 

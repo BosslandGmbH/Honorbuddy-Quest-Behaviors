@@ -1,26 +1,41 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_MountVehOnly
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
-using Styx.Plugins;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.MountVehOnly
@@ -40,15 +55,18 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
         public MountVehOnly(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
                 VehicleMountId = GetAttributeAsNullable<int>("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "MobMountId", "NpcMountId" }) ?? 0;
             }
 
@@ -59,9 +77,9 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -81,21 +99,22 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
 
         // Private properties
         public int Counter { get; set; }
-        private bool InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         private List<WoWUnit> VehicleList
         {
             get
             {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => u.Entry == VehicleMountId && !u.IsDead)
-                                        .OrderBy(u => u.Distance).ToList());
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u => u.Entry == VehicleMountId && !u.IsDead)
+                    .OrderBy(u => u.Distance)
+                    .ToList();
             }
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: MountVehOnly.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~MountVehOnly()
@@ -147,11 +166,8 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
                                         }))
                                     )),
 
-                           new Decorator(ret => InVehicle,
-                                new Sequence(
-                                        new Action(ret => Counter++)
-                                    )
-                                ),
+                           new Decorator(ret => Query.IsInVehicle(),
+                                new Action(ret => Counter++)),
 
                            new Decorator(ret => VehicleList.Count == 0,
                                 new Sequence(
@@ -209,9 +225,7 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

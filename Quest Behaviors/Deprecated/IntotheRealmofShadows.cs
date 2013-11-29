@@ -1,12 +1,30 @@
 ﻿// Behavior originally contributed by HighVoltz.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Into the Realm of Shadows]
+// ##Syntax##
+// X,Y,Z: The location where you want to move to
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Inventory;
@@ -18,15 +36,11 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
 {
-    /// <summary>
-    /// Into the Realm of Shadows]
-    /// ##Syntax##
-    /// X,Y,Z: The location where you want to move to
-    /// </summary>
     [CustomBehaviorFileName(@"Deprecated\IntotheRealmofShadows")]
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\IntotheRealmofShadows")]  // Deprecated location--do not use
     public class IntotheRealmofShadows : CustomForcedBehavior
@@ -34,6 +48,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
         public IntotheRealmofShadows(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
@@ -46,9 +62,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -63,12 +79,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
         private Composite _root;
 
         // Private properties
-        private bool IsInVehicle { get { return Lua.GetReturnVal<int>("return UnitIsControlling('player')", 0) == 1; } }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: IntotheRealmofShadows.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~IntotheRealmofShadows()
@@ -120,7 +135,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
                             Rest.Feed();
                             return RunStatus.Running;
                         }
-                        if (IsInVehicle)
+                        if (Query.IsInVehicle())
                         {
                             _isBehaviorDone = true;
                             return RunStatus.Success;
@@ -200,7 +215,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                TreeRoot.GoalText = this.GetType().Name + ": In Progress";
+                this.UpdateGoalText(0);
             }
         }
 

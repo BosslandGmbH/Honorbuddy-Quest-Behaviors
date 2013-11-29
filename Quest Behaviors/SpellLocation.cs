@@ -1,20 +1,34 @@
+//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
 
-using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
-using Styx.Pathing;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpellLocation
@@ -23,26 +37,35 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
     public class SpellLocation : CustomForcedBehavior
 	{
 		public SpellLocation(Dictionary<string, string> args)
-			: base(args){
-	            try
+			: base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+
+	        try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-             
-				Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                // ...and also used for IsDone processing.            
         		QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
           		QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
 				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
                 Counter = 1;
             }
 		
             catch (Exception except)
             {
-                Logging.Write("Error: " + except);
-                
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
+                IsAttributeProblem = true;
             }
 		}    
 
@@ -55,7 +78,6 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 		private bool _isBehaviorDone;
 		private bool _isDisposed;
-		public static LocalPlayer me = StyxWoW.Me;
 	
 		~SpellLocation()
         {
@@ -86,6 +108,7 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
 
             _isDisposed = true;
         }
+
 
 		protected override Composite CreateBehavior()
 		{
@@ -125,13 +148,9 @@ namespace Honorbuddy.Quest_Behaviors.SpellLocation
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
-				
+                this.UpdateGoalText(QuestId);
 			}
         }
-
 	}
 }
 	

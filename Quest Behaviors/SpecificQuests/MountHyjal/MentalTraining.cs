@@ -1,15 +1,40 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Completes the quest http://www.wowhead.com/quest=25299
+// This behavior completes the quest by correctly responding to
+// 10 yes/no questions by checking the toons question aura.
+// 
+// Requires you to already be in position at the quest give Instructor Mylva X="4524.021" Y="-4731.176" Z="887.9406"
+// 
+// ##Syntax##
+// QuestId: Id of the quest (default is 0)
+// [Optional] QuestName: optional quest name (documentation only)
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -17,6 +42,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
@@ -24,21 +50,11 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
     [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\MentalTraining")]
     public class MentalTraining : CustomForcedBehavior
     {
-        /// <summary>
-        /// Completes the quest http://www.wowhead.com/quest=25299
-        /// This behavior completes the quest by correctly responding to
-        /// 10 yes/no questions by checking the toons question aura.
-        /// 
-        /// Requires you to already be in position at the quest give Instructor Mylva X="4524.021" Y="-4731.176" Z="887.9406"
-        /// 
-        /// ##Syntax##
-        /// QuestId: Id of the quest (default is 0)
-        /// [Optional] QuestName: optional quest name (documentation only)
-        /// </summary>
-        /// 
         public MentalTraining(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -58,9 +74,9 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -80,8 +96,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: MentalTraining.cs 664 2013-07-23 12:44:32Z Dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 664 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~MentalTraining()
@@ -115,18 +131,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
         }
 
 
-        public bool DoWeHaveQuest()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest != null;
-        }
-
-        public bool IsQuestComplete()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
         public bool HasAura(WoWUnit unit, int auraId)
         {
             WoWAura aura = (from a in unit.Auras
@@ -144,11 +148,11 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
                 new PrioritySelector(
 
                     // check if we have finished 10 questions (marked complete)
-                    new Decorator(ret => IsQuestComplete(),
+                    new Decorator(ret => Me.IsQuestComplete(QuestId),
                         new PrioritySelector(
                             new Decorator(ret => Me.HasAura("Mental Training"),
                                 new Sequence(
-                                    new Action( ret => Logging.Write(LogLevel.Normal,"Mental Training complete - exiting Orb")),
+                                    new Action( ret => QBCLog.Info("Mental Training complete - exiting Orb")),
                                     new Action( ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")")),
                                     CreateWaitForLagDuration()
                                     )
@@ -161,10 +165,10 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
                     new Decorator(ret => !Me.HasAura("Mental Training"),
                         new Sequence( 
                             new Action( delegate {
-                                Logging.Write("Using Orb of Ascension");
+                                QBCLog.Info("Using Orb of Ascension");
                                 WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
                                 if (orb == null)
-                                { LogMessage("fatal", "Quest item \"Orb of Ascension\" not in inventory."); }
+                                    { QBCLog.Fatal("Quest item \"Orb of Ascension\" not in inventory."); }
 
                                 orb.Use(true);
                                 return RunStatus.Success;
@@ -176,7 +180,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
                     // if we have YES aura 74008, then click yes
                     new Decorator(ret => HasAura(Me, 74008),
                         new Sequence(
-                            new Action(ret => Logging.Write("Answering YES")),
+                            new Action(ret => QBCLog.Info("Answering YES")),
                             new WaitContinue( TimeSpan.FromMilliseconds(500), ret => false, new ActionAlwaysSucceed()),
                             new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")")),
                             new WaitContinue( 1, ret => !HasAura(Me, 74008), new ActionAlwaysSucceed())
@@ -186,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
                     // if we have NO aura 74009, then click no
                     new Decorator(ret => HasAura(Me, 74009),
                         new Sequence(
-                            new Action(ret => Logging.Write("Answering NO")),
+                            new Action(ret => QBCLog.Info("Answering NO")),
                             new WaitContinue(TimeSpan.FromMilliseconds(500), ret => false, new ActionAlwaysSucceed()),
                             new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")")),
                             new WaitContinue(1, ret => !HasAura(Me, 74009), new ActionAlwaysSucceed())
@@ -229,9 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

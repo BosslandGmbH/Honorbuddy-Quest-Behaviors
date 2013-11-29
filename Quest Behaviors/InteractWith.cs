@@ -8,12 +8,11 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_InteractWith
 //
-
-
-#region Summary and Documentation
 //
 // QUICK DOX:
 // INTERACTWITH interacts with mobs or objects in various fashions, including:
@@ -598,8 +597,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private WaitTimer _watchdogTimerToReachDestination = null;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: InteractWith.cs 719 2013-07-26 11:08:04Z dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 719 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
         #endregion
 
 
@@ -773,7 +772,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
                                 if (SelectedTarget != null)
                                 {
-                                    UpdateGoalText(GetGoalText());
+                                    this.UpdateGoalText(QuestId, GetGoalText());
                                     InteractAttemptCount = 0;
                                     _watchdogTimerToReachDestination = null;
                                     return RunStatus.Failure;

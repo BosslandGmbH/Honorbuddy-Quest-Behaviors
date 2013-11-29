@@ -1,13 +1,40 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Completes the quest http://www.wowhead.com/quest=25310
+// by using the item to enter a vehicle then casting
+// its attack and shield abilities as needed to defeat the target
+// 
+// Note: you must already be within 100 yds of MobId when starting
+// 
+// ##Syntax##
+// QuestId: Id of the quest (default is 0)
+// MobId:  Id of the mob to kill
+// [Optional] QuestName: optional quest name (documentation only)
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -18,6 +45,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
@@ -25,22 +53,11 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
     [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\GreaterOfTwoEvils")]
     public class GreaterOfTwoEvils : CustomForcedBehavior
     {
-        /// <summary>
-        /// Completes the quest http://www.wowhead.com/quest=25310
-        /// by using the item to enter a vehicle then casting
-        /// its attack and shield abilities as needed to defeat the target
-        /// 
-        /// Note: you must already be within 100 yds of MobId when starting
-        /// 
-        /// ##Syntax##
-        /// QuestId: Id of the quest (default is 0)
-        /// MobId:  Id of the mob to kill
-        /// [Optional] QuestName: optional quest name (documentation only)
-        /// </summary>
-        /// 
         public GreaterOfTwoEvils(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -59,9 +76,9 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -84,8 +101,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: GreaterOfTwoEvils.cs 559 2013-06-16 12:23:12Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 559 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~GreaterOfTwoEvils()
@@ -122,34 +139,13 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
         public void Log(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            LogMessage("info", format + (++_lineCount % 2 == 0 ? "" : " "), args);
+            QBCLog.Info(format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
         public void DLog(string format, params object[] args)
         {
             // following linecount hack is to stop dup suppression of Log window
-            LogMessage("debug", format + (++_lineCount % 2 == 0 ? "" : " "), args);
-        }
-
-        public bool DoWeHaveQuest()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-            return quest != null;
-        }
-
-        public bool IsQuestComplete()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-        public bool HasAura(WoWUnit unit, int auraId)
-        {
-            WoWAura aura = (from a in unit.Auras
-                            where a.Value.SpellId == auraId
-                            select a.Value).FirstOrDefault();
-            return aura != null;
+            QBCLog.DeveloperInfo(format + (++_lineCount % 2 == 0 ? "" : " "), args);
         }
 
         private WoWUnit Target
@@ -170,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
             return _root ?? (_root =
                 new Decorator(ret => !_isBehaviorDone,
                     new PrioritySelector(
-                        new Decorator(ret => IsQuestComplete(),
+                        new Decorator(ret => Me.IsQuestComplete(QuestId),
                             new PrioritySelector(
                                 new Decorator(ret => Me.HasAura("Flame Ascendancy"),
                                     new Sequence( 
@@ -213,7 +209,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
                                 WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().FirstOrDefault(i => i != null && i.Entry == 54814);
                                 if (item == null)
                                 {
-                                    LogMessage("fatal", "Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
+                                    QBCLog.Fatal("Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
                                     TreeRoot.Stop();
                                 }
 
@@ -303,9 +299,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

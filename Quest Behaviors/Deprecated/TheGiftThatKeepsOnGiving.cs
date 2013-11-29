@@ -1,45 +1,58 @@
 ﻿// Behavior originally contributed by Nesox.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// <summary>
+// Allows you to use items on nearby gameobjects/npc's
+// ##Syntax##
+// [Optional]QuestId: The id of the quest.
+// MobId, MobId2, ...MobIdN [CountRequired:1]: The id of the object.
+// ItemId: The id of the item to use.
+// [Optional]NumOfTimes: Number of times to use said item.
+// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:10000 yards( some NPCs can be view further then 100 yards)
+// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
+// [Optional]StopMovingOnUse: (true/false) stops moving when using item. Default:true (By:HighVoltz)
+// [Optional]HasGroundTarget: (true/false) true if you need to click the ground to cast spell in that area(Default: false)(By:HighVoltz)
+// [Optional]IsDead: (true/false) true item is to be used on dead targets (Default: false)(By:HighVoltz)
+// [Optional]InteractRange: The distance from the Object/NPC to use the item. Default: 4.5(By:HighVoltz)
+// [Optional]MinionCount: Number of minions to gather. Used for the quest "The Gift That Keeps On Giving" Default: 0(By:HighVoltz)
+// [Optional] X,Y,Z: The general location where theese objects can be found
+// </summary>
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
-
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
 {
-    /// <summary>
-    /// Allows you to use items on nearby gameobjects/npc's
-    /// ##Syntax##
-    /// [Optional]QuestId: The id of the quest.
-    /// MobId, MobId2, ...MobIdN [CountRequired:1]: The id of the object.
-    /// ItemId: The id of the item to use.
-    /// [Optional]NumOfTimes: Number of times to use said item.
-    /// [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:10000 yards( some NPCs can be view further then 100 yards)
-    /// [Optional]HasAura: If a unit has a certian aura to check before using item. (By: j0achim)
-    /// [Optional]StopMovingOnUse: (true/false) stops moving when using item. Default:true (By:HighVoltz)
-    /// [Optional]HasGroundTarget: (true/false) true if you need to click the ground to cast spell in that area(Default: false)(By:HighVoltz)
-    /// [Optional]IsDead: (true/false) true item is to be used on dead targets (Default: false)(By:HighVoltz)
-    /// [Optional]InteractRange: The distance from the Object/NPC to use the item. Default: 4.5(By:HighVoltz)
-    /// [Optional]MinionCount: Number of minions to gather. Used for the quest "The Gift That Keeps On Giving" Default: 0(By:HighVoltz)
-    /// [Optional] X,Y,Z: The general location where theese objects can be found
-    /// </summary>
     [CustomBehaviorFileName(@"Deprecated\TheGiftThatKeepsOnGiving")]
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving")]  // Deprecated location--do not use
     public class TheGiftThatKeepsOnGiving : CustomForcedBehavior
@@ -47,6 +60,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
         public TheGiftThatKeepsOnGiving(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -85,9 +100,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -120,8 +135,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: TheGiftThatKeepsOnGiving.cs 559 2013-06-16 12:23:12Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 559 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~TheGiftThatKeepsOnGiving()
@@ -222,7 +237,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
 
                                 // If we don't have the item stop!
                                 new DecoratorContinue(ctx => ctx == null,
-                                    new Action(ctx => LogMessage("fatal", "Could not find ItemId({0}) in inventory.", ItemId))),
+                                    new Action(ctx => QBCLog.Fatal("Could not find ItemId({0}) in inventory.", ItemId))),
 
                                 new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
                                     new Action(ctx => Object.ToUnit().Target())),
@@ -252,7 +267,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
                         )),
 
                     new Sequence(
-                        new Action(ctx => LogMessage("info", "Moving to {0}", Location)),
+                        new Action(ctx => QBCLog.Info("Moving to {0}", Location)),
                         new Action(ctx => Navigator.MoveTo(Location))
                         )
                  ));
@@ -287,9 +302,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

@@ -1,27 +1,40 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
@@ -37,14 +50,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         public Shroud(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 28367;//GetAttributeAsNullable<int>("QuestId",false, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 28367;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
                 MobIds = new uint[] { 50635, 50638, 50643, 50636 };
@@ -57,9 +70,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -74,35 +87,39 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         public int FlightSpot;
         public int State = 4;
         public Pair Target;
-        public WoWPoint[] FlightPath  = new WoWPoint[]{new WoWPoint(0,0,0),new WoWPoint(-9065.746, -178.7902, 186.2216)
-,new WoWPoint(-8767.904, -47.82138, 186.2216)
-,new WoWPoint(-8839.586, 94.10641, 186.2216)
-,new WoWPoint(-8977.347, 180.7038, 186.2216)
-,new WoWPoint(-9150.972, 66.71052, 186.2216)};
+        public WoWPoint[] FlightPath  = new WoWPoint[]
+        {
+            new WoWPoint(0,0,0),
+            new WoWPoint(-9065.746, -178.7902, 186.2216),
+            new WoWPoint(-8767.904, -47.82138, 186.2216),
+            new WoWPoint(-8839.586, 94.10641, 186.2216),
+            new WoWPoint(-8977.347, 180.7038, 186.2216),
+            new WoWPoint(-9150.972, 66.71052, 186.2216)
+        };
 
         public Pair[] SafeSpots = new Pair[]
-                                      {
-                                          new Pair(new WoWPoint(-8865.017, -67.25845, 142.4352),
-                                                   new WoWPoint(-8879.103, -27.9558, 141.0528)),
-                                          new Pair(new WoWPoint(-8880.18, 100.8362, 142.3729),
-                                                   new WoWPoint(-8923.264, 81.26907, 141.0495)),
-                                          new Pair(new WoWPoint(-9009.845, 136.4343, 141.2677),
-                                                   new WoWPoint(-9020.673, 102.5993, 141.0485)),
-                                          new Pair(new WoWPoint(-9055.021, 111.2494, 142.7882),
-                                                   new WoWPoint(-9050.942, 78.64673, 141.0491)),
-                                          new Pair(new WoWPoint(-9055.021, 111.2494, 142.7882),
-                                                   new WoWPoint(-9058.617, 60.17788, 141.0492)),
-                                          new Pair(new WoWPoint(-9098.441, -107.1487, 142.0959),
-                                                   new WoWPoint(-9074.733, -81.41763, 141.049)),
-                                          new Pair(new WoWPoint(-8897.744, -86.20571, 142.4366),
-                                                   new WoWPoint(-8927.161, -55.22403, 141.0703)),
-                                          new Pair(new WoWPoint(-8867.855, -68.69208, 142.4369),
-                                                   new WoWPoint(-8878.626, -28.24805, 141.0537)),
-                                          new Pair(new WoWPoint(-8903.402, 116.398, 142.4555),
-                                                   new WoWPoint(-8913.154, 105.3958, 141.0488)),
-                                          new Pair(new WoWPoint(-8883.854, 100.8373, 141.4563),
-                                                   new WoWPoint(-8912.104, 82.27669, 141.0491))
-                                      };
+        {
+            new Pair(new WoWPoint(-8865.017, -67.25845, 142.4352),
+                    new WoWPoint(-8879.103, -27.9558, 141.0528)),
+            new Pair(new WoWPoint(-8880.18, 100.8362, 142.3729),
+                    new WoWPoint(-8923.264, 81.26907, 141.0495)),
+            new Pair(new WoWPoint(-9009.845, 136.4343, 141.2677),
+                    new WoWPoint(-9020.673, 102.5993, 141.0485)),
+            new Pair(new WoWPoint(-9055.021, 111.2494, 142.7882),
+                    new WoWPoint(-9050.942, 78.64673, 141.0491)),
+            new Pair(new WoWPoint(-9055.021, 111.2494, 142.7882),
+                    new WoWPoint(-9058.617, 60.17788, 141.0492)),
+            new Pair(new WoWPoint(-9098.441, -107.1487, 142.0959),
+                    new WoWPoint(-9074.733, -81.41763, 141.049)),
+            new Pair(new WoWPoint(-8897.744, -86.20571, 142.4366),
+                    new WoWPoint(-8927.161, -55.22403, 141.0703)),
+            new Pair(new WoWPoint(-8867.855, -68.69208, 142.4369),
+                    new WoWPoint(-8878.626, -28.24805, 141.0537)),
+            new Pair(new WoWPoint(-8903.402, 116.398, 142.4555),
+                    new WoWPoint(-8913.154, 105.3958, 141.0488)),
+            new Pair(new WoWPoint(-8883.854, 100.8373, 141.4563),
+                    new WoWPoint(-8912.104, 82.27669, 141.0491))
+        };
 
 
 
@@ -110,9 +127,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
-        
-
-       
 
 
         // Private properties
@@ -143,8 +157,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
                 base.Dispose();
             }
    
-
-
             _isDisposed = true;
         }
 
@@ -161,46 +173,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
 
         #region Overrides of CustomForcedBehavior
 
-
-
-
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
-                                                                           {
-                                                                               
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
+                    {                                                     
                         TreeRoot.StatusText = "Finished!";
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
-
             }
         }
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
 
         public WoWUnit Dragon
         {
             get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 48444 && u.IsAlive); }
-        }
-
-
-        public Composite DoDps
-        {
-            get
-            {
-                return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
-            }
         }
 
 
@@ -432,9 +422,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
         
         public override void OnStart()
         {
-
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -444,7 +431,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
                 //Find the current closest flight spot;
@@ -461,13 +447,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ShroudOfTheMakers
                     }
                 }
                 
-
-                
-
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

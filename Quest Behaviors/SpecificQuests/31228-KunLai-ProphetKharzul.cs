@@ -7,14 +7,24 @@
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
+#region Summary and Documentation
 // NOTICE: This behavior is writen specificly for the Prophet Khar'zul quest ( http://www.wowhead.com/quest=31228 ) and should not be used for anything else.
+#endregion
 
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -27,6 +37,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
@@ -44,7 +55,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
         private bool _isDisposed;
 
         private readonly WoWPoint _prophetLocation = new WoWPoint(5246.656, 54.33482, 31.962);
-        public ProphetKharzulBehavior(Dictionary<string, string> args) : base(args) { }
+
+        public ProphetKharzulBehavior(Dictionary<string, string> args) : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+        }
 
         private LocalPlayer Me
         {
@@ -56,8 +71,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
             get
             {
                 var quest = Me.QuestLog.GetQuestById(QuestId);
-                //return false;
-                return quest == null || quest.IsCompleted; //|| quest.GetData(out questData) && questData.ObjectivesDone[1] == 1;
+                return quest == null || quest.IsCompleted;
             }
         }
 
@@ -71,6 +85,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
             BotEvents.OnBotStop += BotEvents_OnBotStop;
             _behaviorTreeHook_Combat = CreateCombatBehavior();
             TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
+
+            this.UpdateGoalText(QuestId);
         }
 
         protected override Composite CreateBehavior()
@@ -121,25 +137,25 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
                                         new Decorator(ctx => _platformPoint.Distance(Me.Location) > 20, new Action(ctx => Navigator.MoveTo(_prophetLocation))),
                                         new Decorator(
                                             ctx => _platformPoint.Distance(Me.Location) <= 20,
-                                            new Action<WoWUnit>(
-                                                prophet =>
+                                            new Action<WoWUnit>(prophet =>
+                                            {
+                                                if (Query.IsMeleeSpec(Me.Specialization) && prophet.Location.Distance(_platformPoint) >= MeleeRange(prophet))
                                                 {
-                                                    if (IsMeleeSpec(Me.Specialization) && prophet.Location.Distance(_platformPoint) >= MeleeRange(prophet))
-                                                    {
-                                                        Logging.Write("I am melee and Prophet K is not within melee range of platform so I will ignore shadow fog");
-                                                        return RunStatus.Failure;
-                                                    }
-                                                    TreeRoot.StatusText = "Moving to platform";
+                                                    QBCLog.Info("I am melee and Prophet K is not within melee range of platform so I will ignore shadow fog");
+                                                    return RunStatus.Failure;
+                                                }
+                                                TreeRoot.StatusText = "Moving to platform";
 
-                                                    Navigator.PlayerMover.MoveTowards(_platformPoint);
-                                                    // we need to jump to get up on the platform
-                                                    if (!Me.MovementInfo.IsAscending && _platformPoint.Distance(Me.Location) <= 9 && Me.Z < 33)
-                                                        WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-                                                    return RunStatus.Success;
-                                                })))),
-                // stop jumping after we're on top of platform.
-                                new Decorator(ctx => Me.MovementInfo.IsAscending, new Action(ctx => WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend))))),
-                // Handle Crow Storm. Assume the crow storm is placed on top of platform...
+                                                Navigator.PlayerMover.MoveTowards(_platformPoint);
+                                                // we need to jump to get up on the platform
+                                                if (!Me.MovementInfo.IsAscending && _platformPoint.Distance(Me.Location) <= 9 && Me.Z < 33)
+                                                    WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+                                                return RunStatus.Success;
+                                            })))),
+                                // stop jumping after we're on top of platform.
+                                new Decorator(ctx => Me.MovementInfo.IsAscending, 
+                                    new Action(ctx => WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend))))),
+                        // Handle Crow Storm. Assume the crow storm is placed on top of platform...
                         new Decorator(
                             ctx => (crowStorm = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == CrowStormId && u.Distance < 6.5f)) != null,
                             new PrioritySelector(
@@ -185,56 +201,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
             _isDisposed = true;
         }
 
+
         public void BotEvents_OnBotStop(EventArgs args)
         {
             Dispose();
         }
 
-        private static bool IsRangeSpec(WoWSpec spec)
-        {
-            switch (spec)
-            {
-                case WoWSpec.HunterBeastMastery:
-                case WoWSpec.HunterMarksmanship:
-                case WoWSpec.HunterSurvival:
-
-                case WoWSpec.MageArcane:
-                case WoWSpec.MageFire:
-                case WoWSpec.MageFrost:
-
-                case WoWSpec.PriestDiscipline:
-                case WoWSpec.PriestHoly:
-                case WoWSpec.PriestShadow:
-
-                case WoWSpec.WarlockAffliction:
-                case WoWSpec.WarlockDemonology:
-                case WoWSpec.WarlockDestruction:
-
-                case WoWSpec.ShamanElemental:
-                case WoWSpec.ShamanRestoration:
-
-                case WoWSpec.PaladinHoly:
-
-                case WoWSpec.DruidBalance:
-                case WoWSpec.DruidRestoration:
-
-                case WoWSpec.MonkMistweaver:
-
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private static bool IsMeleeSpec(WoWSpec spec)
-        {
-            return !IsRangeSpec(spec);
-        }
 
         private static float MeleeRange(WoWUnit unit)
         {
             if (unit == null)
                 return 0f;
+
             if (unit.IsPlayer)
                 return 3.5f;
 

@@ -7,6 +7,7 @@
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
 
 #region Summary and Documentation
 // GETOUTOFGROUNDEFFECTANDAURAS has the following characteristics:
@@ -104,6 +105,7 @@
 // * Timeouts: 1) While searching for NPCs, 2) for overall quest completion
 #endregion
 
+
 #region FAQs
 // * There is an NPC that starts the event, but it doesn't have a dialog box pop up?
 //      Specify a StartNpcId, but no StartEventGossipOptions.  StartEventGossipOptions
@@ -149,6 +151,7 @@
 
 #endregion
 
+
 #region Examples
 // "The Celestial Experience" (http://www.wowhead.com/quest=31394)
 // This quest has three consecutive NPCs that must be killed in a large circular room.
@@ -188,6 +191,7 @@
 //      </CustomBehavior>
 // 
 #endregion
+
 
 #region Usings
 using System;
@@ -242,6 +246,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         public GetOutOfGroundEffectAndAuras(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // Parameters dealing with 'starting' the behavior...
@@ -274,7 +280,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 // Semantic Coherency checks --
                 if ((StartEventGossipOptions.Count() > 0) && (StartNpcIds.Count() <= 0))
                 {
-                    LogMessage("error", "If StartEscortGossipOptions are specified, you must also specify one or more StartNpcIdN");
+                    QBCLog.Error("If StartEscortGossipOptions are specified, you must also specify one or more StartNpcIdN");
                     IsAttributeProblem = true;
                 }
 
@@ -282,26 +288,26 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     && ((EventCompleteWhen == EventCompleteWhenType.QuestComplete)
                         || (EventCompleteWhen == EventCompleteWhenType.QuestCompleteOrFails)))
                 {
-                    LogMessage("error", "With a EventCompleteWhen argument of QuestComplete, you must specify a QuestId argument");
+                    QBCLog.Error("With a EventCompleteWhen argument of QuestComplete, you must specify a QuestId argument");
                     IsAttributeProblem = true;
                 }
 
                 if ((EventCompleteWhen == EventCompleteWhenType.QuestObjectiveComplete)
                     && ((QuestId == 0) || (QuestObjectiveIndex == 0)))
                 {
-                    LogMessage("error", "With an EventCompleteWhen argument of QuestObjectiveComplete, you must specify both QuestId and QuestObjectiveIndex arguments");
+                    QBCLog.Error("With an EventCompleteWhen argument of QuestObjectiveComplete, you must specify both QuestId and QuestObjectiveIndex arguments");
                     IsAttributeProblem = true;
                 }
 
                 if ((QuestObjectiveIndex != 0) && (EventCompleteWhen != EventCompleteWhenType.QuestObjectiveComplete))
                 {
-                    LogMessage("error", "The QuestObjectiveIndex argument should not be specified unless EventCompleteWhen is QuestObjectiveComplete");
+                    QBCLog.Error("The QuestObjectiveIndex argument should not be specified unless EventCompleteWhen is QuestObjectiveComplete");
                     IsAttributeProblem = true;
                 }
 
                 if ((EventCompleteWhen == EventCompleteWhenType.SpecificMobsDead) && (EventCompleteDeadMobIds.Count() <= 0))
                 {
-                    LogMessage("error", "With an EventCompleteWhen argument of SpecificMobsDead, you must specify one or more EventCompleteDeadMobIdN argument");
+                    QBCLog.Error("With an EventCompleteWhen argument of SpecificMobsDead, you must specify one or more EventCompleteDeadMobIdN argument");
                     IsAttributeProblem = true;
                 }
 
@@ -311,8 +317,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     && (MoveOutOfGroundEffectAuraIds.Count() <= 0)
                     && (PreferKillingMobIds.Count() <= 0))
                 {
-                    LogMessage("error", "None of MoveAwayFromMobWithAuraIdN, MoveAwayFromMobCastingSpellIdN, MoveBehindMobCastingSpellIdN,"
-                                        + " MoveOutOfGroundEffectAuraIdN, or PreferKillingMobIdN were specified");
+                    QBCLog.Error("None of MoveAwayFromMobWithAuraIdN, MoveAwayFromMobCastingSpellIdN, MoveBehindMobCastingSpellIdN,"
+                                    + " MoveOutOfGroundEffectAuraIdN, or PreferKillingMobIdN were specified");
                     IsAttributeProblem = true;
                 }
 
@@ -329,11 +335,11 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -363,8 +369,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private MovementByType MovementBy { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: GetOutOfGroundEffectAndAuras.cs 501 2013-05-10 16:29:10Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 501 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -387,13 +393,12 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private BehaviorStateType _behaviorState = BehaviorStateType.InitialState;
         private Composite _behaviorTreeHook_Combat = null;
         private Composite _behaviorTreeHook_Death = null;
-        private QuestBehaviorCore.ConfigMemento _configMemento = null;
+        private ConfigMemento _configMemento = null;
         private int _gossipOptionIndex;
         private bool _isBehaviorDone = false;
         private bool _isDisposed = false;
         private List<WoWPoint> _safespots = null;
         private WoWPoint _toonStartingPosition = StyxWoW.Me.Location;
-        private Stopwatch _waitForStartTimer = new Stopwatch();
         #endregion
 
 
@@ -484,7 +489,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
             _safespots = ParsePath("Safespots");
             if (_safespots.Count() <= 0)
             {
-                LogMessage("error", "The <Safespots> element is missing or empty");
+                QBCLog.Error("The <Safespots> element is missing or empty");
                 IsAttributeProblem = true;
             }
 
@@ -497,13 +502,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                // The ConfigMemento() class captures the user's existing configuration.
-                // After its captured, we can change the configuration however needed.
-                // When the memento is dispose'd, the user's original configuration is restored.
-                // More info about how the ConfigMemento applies to saving and restoring user configuration
-                // can be found here...
-                //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_Saving_and_Restoring_User_Configuration
-                _configMemento = new QuestBehaviorCore.ConfigMemento();
+                _configMemento = new ConfigMemento();
 
                 BotEvents.OnBotStop += BotEvents_OnBotStop;
 
@@ -518,16 +517,9 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
                 CharacterSettings.Instance.PullDistance = 25;
-                
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = string.Format(
-                    "{0}: \"{1}\"\nLooting and Harvesting are disabled while event in progress",
-                    this.GetType().Name,
-                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress (no associated quest)"));
 
                 // If search path not provided, use our current location...
-                if (_safespots.Count() <= 0)
+                if (!_safespots.Any())
                     { _safespots.Add(Me.Location); }
 
                 _toonStartingPosition = Me.Location;
@@ -537,6 +529,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_Death);
                 _behaviorTreeHook_Combat = CreateCombatBehavior();
                 TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
+
+                this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while event in progress");
             }
         }
         #endregion
@@ -603,7 +597,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                                             &&  !Query.IsPoiMatch( (WoWUnit)preferredUnitContext, PoiType.Kill),
                         new Action(preferredUnitContext =>
                         {
-                            LogMessage("info", "Reprioritizing target to '{0}'", ((WoWUnit)preferredUnitContext).Name);
+                            QBCLog.Info("Reprioritizing target to '{0}'", ((WoWUnit)preferredUnitContext).Name);
                             BotPoi.Current = new BotPoi((WoWUnit)preferredUnitContext, PoiType.Kill);
                         }))
                     )
@@ -626,12 +620,12 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
             // is effected.  Ths entry state is "InitialState".
             return new PrioritySelector(
                     new Decorator(context => _isBehaviorDone,
-                        new Action(context => { LogMessage("info", "Behavior Finished"); })),
+                        new Action(context => { QBCLog.Info("Behavior Finished"); })),
 
                     new Switch<BehaviorStateType>(context => _behaviorState,
                         new Action(context =>   // default case
                         {
-                            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", _behaviorState);
+                            QBCLog.Error("BEHAVIOR MAINTENANCE PROBLEM: BehaviorState({0}) is unhandled", _behaviorState);
                             TreeRoot.Stop();
                             _isBehaviorDone = true;
                         }),
@@ -662,8 +656,8 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                                 new CompositeThrottle(TimeSpan.FromSeconds(10),
                                     new Action(escortedUnitsContext =>
                                     {
-                                        LogMessage("warning", "Unable to locate start units: {0}",
-                                                            Utility_GetNamesOfUnits(StartNpcIds));
+                                        QBCLog.Warning("Unable to locate start units: {0}",
+                                                    Utility_GetNamesOfUnits(StartNpcIds));
                                     }))
                             )),
 
@@ -715,7 +709,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                                     new Action(delegate { _isBehaviorDone = true; })),
                                 new Action(delegate
                                 {
-                                    LogMessage("info", "Looks like we've failed the event, returning to start to re-do");
+                                    QBCLog.Info("Looks like we've failed the event, returning to start to re-do");
                                     _behaviorState = BehaviorStateType.InitialState;
                                 })
                             ))
@@ -777,7 +771,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 {
                     PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
                     if (quest.IsCompleted)
-                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
+                        { QBCLog.Info("Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
                     return (quest == null) || quest.IsCompleted;
                 }
 
@@ -785,19 +779,19 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 {
                     PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
                     if (quest.IsCompleted)
-                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
+                        { QBCLog.Info("Event done due to Quest(\"{0}\", {1}) complete", quest.Name, quest.Id); }
                     if (quest.IsCompleted)
-                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) failed", quest.Name, quest.Id); }
+                        { QBCLog.Info("Event done due to Quest(\"{0}\", {1}) failed", quest.Name, quest.Id); }
                     return (quest == null) || quest.IsCompleted || quest.IsFailed;
                 }
 
                 case EventCompleteWhenType.QuestObjectiveComplete:
                 {
-                    bool isObjectiveComplete = (IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex));
+                    bool isObjectiveComplete = (Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex));
                     PlayerQuest quest = Me.QuestLog.GetQuestById((uint)QuestId);
 
                     if (isObjectiveComplete)
-                        { LogMessage("info", "Event done due to Quest(\"{0}\", {1}) objective {2} complete", quest.Name, quest.Id, QuestObjectiveIndex); }
+                        { QBCLog.Info("Event done due to Quest(\"{0}\", {1}) objective {2} complete", quest.Name, quest.Id, QuestObjectiveIndex); }
 
                     return (isObjectiveComplete);
                 }
@@ -806,16 +800,15 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 {
                     WoWUnit ourDeadTarget =
                         ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                        .Where(u => EventCompleteDeadMobIds.Contains((int)u.Entry) && u.IsDead && u.TaggedByMe)
-                        .FirstOrDefault();
+                        .FirstOrDefault(u => EventCompleteDeadMobIds.Contains((int)u.Entry) && u.IsDead && u.TaggedByMe);
 
                     if (ourDeadTarget != null)
-                        { LogMessage("info", "Event done due to killing '{0}'({1})", ourDeadTarget.Name, ourDeadTarget.Entry); }
+                        { QBCLog.Info("Event done due to killing '{0}'({1})", ourDeadTarget.Name, ourDeadTarget.Entry); }
                     return (ourDeadTarget != null);
                 }
             }
 
-            LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: EventCompleteWhen({0}) state is unhandled", EventCompleteWhen);
+            QBCLog.MaintenanceError("EventCompleteWhen({0}) state is unhandled", EventCompleteWhen);
             TreeRoot.Stop();
             return true;
         }
@@ -840,18 +833,6 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
         private bool IsInCombat(IEnumerable<WoWUnit> group)
         {
             return group.Any(u => u.Combat || ((u.Pet != null) && u.Pet.Combat));
-        }
-
-        
-        private bool IsQuestObjectiveComplete(int questId, int objectiveId)
-        {
-            if (Me.QuestLog.GetQuestById((uint)questId) == null)
-                { return false; }
-
-            int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);
-
-            return
-                Lua.GetReturnVal<bool>(string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveId, questLogIndex), 2);
         }
 
 
@@ -955,7 +936,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
                             new Sequence(
                                 new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Target()),
-                                new Action(gossipUnitContext => LogMessage("info", "Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
+                                new Action(gossipUnitContext => QBCLog.Info("Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
                                 new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Interact()),
                                 new WaitContinue(LagDuration, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
                                 new WaitContinue(Delay_GossipDialogThrottle, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
@@ -1002,7 +983,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     {
                         double destinationDistance = Me.Location.Distance(locationDelegate(context));
                         string locationName = locationNameDelegate(context) ?? locationDelegate(context).ToString();
-                        LogMessage("info", string.Format("Moving {0}", locationName));
+                        QBCLog.Info("Moving {0}", locationName);
                     })
                     ),
 
@@ -1020,7 +1001,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     {
                         if (MovementBy == MovementByType.NavigatorOnly)
                         {
-                            LogMessage("warning", "Failed to move--is area unmeshed?");
+                            QBCLog.Warning("Failed to move--is area unmeshed?");
                             return RunStatus.Failure;
                         }
 
@@ -1113,21 +1094,21 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     XAttribute xAttribute = element.Attribute("X");
                     if (xAttribute == null)
                     {
-                        LogMessage("error", "Unable to locate X attribute for {0}", elementAsString);
+                        QBCLog.Error("Unable to locate X attribute for {0}", elementAsString);
                         isAttributeMissing = true;
                     }
 
                     XAttribute yAttribute = element.Attribute("Y");
                     if (yAttribute == null)
                     {
-                        LogMessage("error", "Unable to locate Y attribute for {0}", elementAsString);
+                        QBCLog.Error("Unable to locate Y attribute for {0}", elementAsString);
                         isAttributeMissing = true;
                     }
 
                     XAttribute zAttribute = element.Attribute("Z");
                     if (zAttribute == null)
                     {
-                        LogMessage("error", "Unable to locate Z attribute for {0}", elementAsString);
+                        QBCLog.Error("Unable to locate Z attribute for {0}", elementAsString);
                         isAttributeMissing = true;
                     }
 
@@ -1142,21 +1123,21 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     double x = 0.0;
                     if (!double.TryParse(xAttribute.Value, out x))
                     {
-                        LogMessage("error", "Unable to parse X attribute for {0}", elementAsString);
+                        QBCLog.Error("Unable to parse X attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
                     double y = 0.0;
                     if (!double.TryParse(yAttribute.Value, out y))
                     {
-                        LogMessage("error", "Unable to parse Y attribute for {0}", elementAsString);
+                        QBCLog.Error("Unable to parse Y attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 
                     double z = 0.0;
                     if (!double.TryParse(zAttribute.Value, out z))
                     {
-                        LogMessage("error", "Unable to parse Z attribute for {0}", elementAsString);
+                        QBCLog.Error("Unable to parse Z attribute for {0}", elementAsString);
                         isParseProblem = true;
                     }
 

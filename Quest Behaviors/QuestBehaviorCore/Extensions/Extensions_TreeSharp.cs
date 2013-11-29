@@ -190,7 +190,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     var message = QBCLog.BuildMessageWithContext(_questBehaviorBase.Element,
                         "{0} EXCEPTION CONTEXT ({1}):",
-                        QBCLog.GetVersionedBehaviorName(_questBehaviorBase),
+                        QBCLog.VersionedBehaviorName,
                         except.GetType().Name);
 
                     if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)

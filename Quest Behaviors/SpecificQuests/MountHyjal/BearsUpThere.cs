@@ -1,17 +1,42 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// BearsUpThere by Bobby53 
+// 
+// Completes the vehicle quest http://www.wowhead.com/quest=25462
+// 
+// To use, you must use the Ladder at <RunTo  X="5254.562" Y="-1536.917" Z="1361.341" />
+// Due to how the coordinate system is relative to the vehicle once you enter, it
+// is setup to only support this specific ladder.  
+// 
+// ##Syntax##
+// QuestId: Id of the quest (default is 0)
+// [Optional] QuestName: optional quest name (documentation only)
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.Linq;
-using System.Threading;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -19,6 +44,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
@@ -26,23 +52,11 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
     [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BearsUpThere")]
     public class BearsUpThere : CustomForcedBehavior
     {
-        /// <summary>
-        /// BearsUpThere by Bobby53 
-        /// 
-        /// Completes the vehicle quest http://www.wowhead.com/quest=25462
-        /// 
-        /// To use, you must use the Ladder at <RunTo  X="5254.562" Y="-1536.917" Z="1361.341" />
-        /// Due to how the coordinate system is relative to the vehicle once you enter, it
-        /// is setup to only support this specific ladder.  
-        /// 
-        /// ##Syntax##
-        /// QuestId: Id of the quest (default is 0)
-        /// [Optional] QuestName: optional quest name (documentation only)
-        /// </summary>
-        /// 
         public BearsUpThere(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -62,9 +76,9 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -85,8 +99,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: BearsUpThere.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         //  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest
@@ -148,17 +162,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         }
 
 
-        public void Dlog(string format, params object[] args)
-        {
-            System.Windows.Media.Color newColor = System.Windows.Media.Color.FromArgb(Color.CornflowerBlue.A, Color.CornflowerBlue.R, Color.CornflowerBlue.G, Color.CornflowerBlue.B);
-            Logging.Write(LogLevel.Diagnostic, newColor, string.Format(format, args));
-        }
-
-        private static bool IsInVehicle
-        {
-            get { return Lua.GetReturnVal<bool>("return UnitInVehicle('player')", 0); }
-        }
-
         private void WaitForCurrentSpell()
         {
             while (SpellManager.GlobalCooldown)
@@ -174,25 +177,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             }
         }
 
-        private bool CanCastNow(int spellId)
-        {
-#if  FIGUERED_OUT_VEHICLE_SPELLS
-            if (!SpellManager.HasSpell(spellId))
-            {
-                Elog("spell manager does not know spellid: {0}", spellId);
-                TreeRoot.Stop();
-            }
-
-            int stopWaiting = System.Environment.TickCount + 5000;
-            while ( !SpellManager.CanCast( spellId) && stopWaiting > Environment.TickCount )
-                StyxWoW.Sleep(100);
-
-            return SpellManager.CanCast( spellId );
-#else
-            WaitForCurrentSpell();
-            return true;
-#endif
-        }
 
         private RunStatus ClimbUp()
         {
@@ -205,14 +189,14 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
             if (Me.Location.Distance(lastPos) != 0)
             {
-                Dlog("(Climb Up) moved +{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
+                QBCLog.DeveloperInfo("(Climb Up) moved +{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
                 if (!IsClimbingTheTree())
                     _lvlCurrent = LEVEL_TOP;
                 else
                     _lvlCurrent++;
             }
             else
-                Dlog("(Climb Up) no movement UP occurred");
+                QBCLog.DeveloperInfo("(Climb Up) no movement UP occurred");
 
             return RunStatus.Success;
         }
@@ -239,10 +223,10 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             if (Me.Location.Distance(lastPos) != 0)
             {
                 _lvlCurrent--;
-                Dlog("(Climb Down) moved -{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
+                QBCLog.DeveloperInfo("(Climb Down) moved -{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
             }
             else
-                Dlog("(Climb Down) no movement DOWN occurred");
+                QBCLog.DeveloperInfo("(Climb Down) no movement DOWN occurred");
 
             return RunStatus.Success;
         }
@@ -265,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         private RunStatus AimAngle()
         {
             double angleAdjust = GetAimAdjustment();
-            Dlog("(Aim Angle) adjusting current angle {0} by {1} to {2}", GetAimAngle(), angleAdjust, AIM_ANGLE);
+            QBCLog.DeveloperInfo("(Aim Angle) adjusting current angle {0} by {1} to {2}", GetAimAngle(), angleAdjust, AIM_ANGLE);
 
             Lua.DoString("VehicleAimDecrement({0})", angleAdjust);
 
@@ -289,7 +273,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         {
             double normRotation = TRAMP_LEFT_SIDE > TRAMP_RIGHT_SIDE ? 0 : 360;
             double currRotation = Me.Transport.RotationDegrees;
-            Dlog("(AimRotation) Trampoline Boundary - Left Edge: {0}  Right Edge: {1}", TRAMP_LEFT_SIDE, TRAMP_RIGHT_SIDE);
+            QBCLog.DeveloperInfo("(AimRotation) Trampoline Boundary - Left Edge: {0}  Right Edge: {1}", TRAMP_LEFT_SIDE, TRAMP_RIGHT_SIDE);
 
             WoWMovement.MovementDirection whichWay = WoWMovement.MovementDirection.None;
             string dirCmd;
@@ -307,11 +291,11 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             }
             else // if (whichWay == WoWMovement.MovementDirection.None)
             {
-                Dlog("(AimRotation) Done, Ending Rotation: {0}", Me.Transport.RotationDegrees);
+                QBCLog.DeveloperInfo("(AimRotation) Done, Ending Rotation: {0}", Me.Transport.RotationDegrees);
                 return RunStatus.Failure;
             }
 
-            Dlog("(AimRotation) Current Rotation: {0} - {1}", Me.Transport.RotationDegrees, whichWay.ToString().ToUpper());
+            QBCLog.DeveloperInfo("(AimRotation) Current Rotation: {0} - {1}", Me.Transport.RotationDegrees, whichWay.ToString().ToUpper());
 #if WOWMOVEMENT_TIMED_TURNS_STOPFAILING
             WoWMovement.Move(whichWay, TimeSpan.FromMilliseconds( 10));
             WoWMovement.MoveStop(whichWay);
@@ -336,7 +320,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
         private RunStatus ChuckBear()
         {
-            Dlog("(Chuck-A-Bear) threw bear at trampoline");
+            QBCLog.DeveloperInfo("(Chuck-A-Bear) threw bear at trampoline");
             // bool canCast = CanCastNow(CHUCK_A_BEAR);
             // Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
             Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")");
@@ -389,19 +373,18 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
                 if (IsBearCubInBags())
                 {
-                    LogMessage("info", "(Loot Bear) grabbed a bear to throw");
+                    QBCLog.Info("(Loot Bear) grabbed a bear to throw");
                     return RunStatus.Success;
                 }
             }
 
-            Dlog("(Loot Bear) no bear at level {0}", _lvlCurrent);
+            QBCLog.DeveloperInfo("(Loot Bear) no bear at level {0}", _lvlCurrent);
             return RunStatus.Failure;
         }
 
         public bool InTree()
         {
             RunningBehavior = Me.Transport != null;
-            //Dlog("Checking Tree: HasAura: " + IsInVehicle + " Is Climbing Tree: " + IsClimbingTheTree());
             return Me.Transport != null || IsClimbingTheTree();
         }
 
@@ -414,12 +397,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         {
             PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
             return quest != null;
-        }
-
-        public bool IsQuestComplete()
-        {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
         }
 
         public bool HasAura(int auraId)
@@ -446,15 +423,16 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
                     // is quest abandoned or complete?
                 //  ..  move down until we auto-exit vehicle
-                    new Decorator(ret => !DoWeHaveQuest() || IsQuestComplete(), new Action(ret => ClimbDown())),
+                    new Decorator(ret => !DoWeHaveQuest() || Me.IsQuestComplete(QuestId),
+                        new Action(ret => ClimbDown())),
 
                     // level unknown and already at top?  set to top then
                     new Decorator(ret => _lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree(),
-                                    new Action(delegate
-                                        {
-                                            _lvlCurrent = LEVEL_TOP;
-                                            return RunStatus.Success;
-                                        })),
+                        new Action(delegate
+                            {
+                                _lvlCurrent = LEVEL_TOP;
+                                return RunStatus.Success;
+                            })),
 
                     // level unknown?
                 //  ..  move to top and establish known level
@@ -520,18 +498,16 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                if (DoWeHaveQuest() && !IsQuestComplete() && !InTree())
+                if (DoWeHaveQuest() && !Me.IsQuestComplete(QuestId) && !InTree())
                 {
-                    LogMessage("fatal", "==================================================================\n"
-                                        + "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
-                                        + "==================================================================");
+                    QBCLog.Fatal("==================================================================\n"
+                                + "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
+                                + "==================================================================");
                 }
 
                 else
                 {
-                    PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                    TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                    this.UpdateGoalText(QuestId);
                 }
             }
         }

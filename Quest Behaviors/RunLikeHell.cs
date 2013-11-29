@@ -1,14 +1,79 @@
 ﻿// Behavior originally contributed by Bobby53.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
+// Allows you to Run following a specific path.  Supports options to prevent combat 
+// (disables CC while running), use Click-To-Move instead of Navigator, and
+// the ability to specify a mob that when it enters the specified range, causes
+// you to move to the nexts point.  
+// 
+// A few key difference between this and having several RunTo/NoCombatMoveTo in sequence:
+// - HonorBuddy allows CC control between lines if attacked; RunLikeHell does not
+// - Syntax allows easy switch from ClickToMove() to Navigator.MoveTo() when a mesh is updated
+// - On startup, RunLikeHell finds the closest point in the path and starts there
+// - If Combat=true, will only fight if aggro picked up while running.. will not Pull
+// 
+// If QuestId is non-zero, behavior will stop when quest becomes complete even if 
+// it has not completed NumOfTimes iterations of full path specified
+// 
+// You can control the movement with the options below. 
+// 
+// ##Syntax##
+// [Optional] QuestId: Id of the quest (default is 0)
+// [Optional] WaitTime: ms to pause at each point (default is 0)
+// [Optional] MobId: wait at point until mob is within Range yds (default is to move immediately)
+// [Optional] Range: when mob is within this distance, move to next point (default is 15)
+// [Optional] NumOfTimes: number of times to run path (default is 1)
+// [Optional] Combat: fight back if attacked (default is true, false you keep moving)
+// [Optional] UseCTM: use ClickToMove if true, otherwise Navigator (default is false)
+// [Required] <Hotspot X="" Y="" Z="" /> : child elements specifying path to run
+//
+#endregion
+
+
+#region Examples
+// following will take path one time as listed
+// <CustomBehavior File="RunLikeHell" >
+//     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
+//     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
+//     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
+// </CustomBehavior>
+// 
+// following path up to 4 times and moves to next spot only 
+// if the mob #40434 is within 10 yds
+// <CustomBehavior File="RunLikeHell" NumOfTimes="4" MobId="40434" Range="10">
+//     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
+//     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
+//     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
+// </CustomBehavior>
+// 
+// following follows path up to 4 times and moves to next spot only 
+// if the mob #40434 is within 10 yds.  stops at 4 loops or when quest complete
+// <CustomBehavior File="RunLikeHell" QuestId="25499" NumOfTimes="4" MobId="40434" Range="10">
+//     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
+//     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
+//     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
+// </CustomBehavior>
+// 
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -19,6 +84,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.RunLikeHell
@@ -26,73 +92,23 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
     [CustomBehaviorFileName(@"RunLikeHell")]
     public class RunLikeHell : CustomForcedBehavior
     {
-        /// <summary>
-        /// Allows you to Run following a specific path.  Supports options to prevent combat 
-        /// (disables CC while running), use Click-To-Move instead of Navigator, and
-        /// the ability to specify a mob that when it enters the specified range, causes
-        /// you to move to the nexts point.  
-        /// 
-        /// A few key difference between this and having several RunTo/NoCombatMoveTo in sequence:
-        /// - HonorBuddy allows CC control between lines if attacked; RunLikeHell does not
-        /// - Syntax allows easy switch from ClickToMove() to Navigator.MoveTo() when a mesh is updated
-        /// - On startup, RunLikeHell finds the closest point in the path and starts there
-        /// - If Combat=true, will only fight if aggro picked up while running.. will not Pull
-        /// 
-        /// If QuestId is non-zero, behavior will stop when quest becomes complete even if 
-        /// it has not completed NumOfTimes iterations of full path specified
-        /// 
-        /// You can control the movement with the options below. 
-        /// 
-        /// ##Syntax##
-        /// [Optional] QuestId: Id of the quest (default is 0)
-        /// [Optional] WaitTime: ms to pause at each point (default is 0)
-        /// [Optional] MobId: wait at point until mob is within Range yds (default is to move immediately)
-        /// [Optional] Range: when mob is within this distance, move to next point (default is 15)
-        /// [Optional] NumOfTimes: number of times to run path (default is 1)
-        /// [Optional] Combat: fight back if attacked (default is true, false you keep moving)
-        /// [Optional] UseCTM: use ClickToMove if true, otherwise Navigator (default is false)
-        /// [Required] <Hotspot X="" Y="" Z="" /> : child elements specifying path to run
-        /// 
-        /// ##Examples##
-        /// following will take path one time as listed
-        /// <CustomBehavior File="RunLikeHell" >
-        ///     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
-        ///     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
-        ///     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
-        /// </CustomBehavior>
-        /// 
-        /// following path up to 4 times and moves to next spot only 
-        /// if the mob #40434 is within 10 yds
-        /// <CustomBehavior File="RunLikeHell" NumOfTimes="4" MobId="40434" Range="10">
-        ///     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
-        ///     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
-        ///     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
-        /// </CustomBehavior>
-        /// 
-        /// following follows path up to 4 times and moves to next spot only 
-        /// if the mob #40434 is within 10 yds.  stops at 4 loops or when quest complete
-        /// <CustomBehavior File="RunLikeHell" QuestId="25499" NumOfTimes="4" MobId="40434" Range="10">
-        ///     <Hotspot X="4554.003" Y="-4718.743" Z="883.0464" />
-        ///     <Hotspot X="4578.725" Y="-4721.257" Z="882.8724" />
-        ///     <Hotspot X="4584.166" Y="-4693.487" Z="882.7331" />
-        /// </CustomBehavior>
-        /// 
-        /// </summary>
-        /// 
         public RunLikeHell(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                AllowCombat = GetAttributeAsNullable<bool>("AllowCombat", false, null, new[] { "Combat" }) ?? true;
-                MobId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
-                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
+                AllowCombat = GetAttributeAsNullable<bool>("AllowCombat", false, null, new[] { "Combat" }) ?? true;
+                MobId = GetAttributeAsNullable<int>("MobId", false, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 15;
                 UseCTM = GetAttributeAsNullable<bool>("UseCTM", false, null, null) ?? false;
                 WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
@@ -107,9 +123,9 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -147,8 +163,8 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
         private Queue<WoWPoint> Path { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: RunLikeHell.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~RunLikeHell()
@@ -308,8 +324,6 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
                 ParsePath();        // refresh the list of points
 
                 // find the closest point in path
@@ -333,8 +347,9 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
 
                 Counter = 1;
 
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+
+                this.UpdateGoalText(QuestId);
             }
         }
 

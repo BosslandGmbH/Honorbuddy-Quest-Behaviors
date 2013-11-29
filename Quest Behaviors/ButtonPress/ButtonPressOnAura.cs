@@ -8,6 +8,8 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ButtonPressOnAura
 //     
@@ -50,6 +52,14 @@
 //              which targets (mobs or objects) will be sought.  The hunting ground is defined by
 //              this value coupled with the CollectionDistance.
 // 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -69,6 +79,7 @@ using Styx.WoWInternals.WoWObjects;
 using Styx.WoWInternals.World;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
@@ -79,6 +90,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         public ButtonPressOnAura(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 int[] tmpAuras;
@@ -115,13 +128,12 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                 // Semantic coherency --
                 if ((SelfAuraToButtonMap.Count() == 0) && (TargetAuraToButtonMap.Count() == 0))
                 {
-                    LogMessage("error", "You must specify at least one ButtonNTargetAura attribute.");
+                    QBCLog.Error("You must specify at least one ButtonNTargetAura attribute.");
                     IsAttributeProblem = true;
                 }
 
                 // Final initialization...
-                _behavior_HuntingGround = new HuntingGroundBehavior((messageType, format, argObjects) => LogMessage(messageType, format, argObjects),
-                                                                    ViableTargets,
+                _behavior_HuntingGround = new HuntingGroundBehavior(ViableTargets,
                                                                     HuntingGroundAnchor,
                                                                     HuntingGroundRadius);
             }
@@ -131,11 +143,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -185,8 +197,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: ButtonPressOnAura.cs 719 2013-07-26 11:08:04Z dogan $"); } }
-        public override string SubversionRevision { get { return ("$Rev: 719 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
 
 
         ~ButtonPressOnAura()
@@ -245,19 +257,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         }
 
 
-        public bool IsQuestComplete()
-        {
-            return (UtilIsProgressRequirementsMet(QuestId,
-                                                  QuestInLogRequirement.InLog,
-                                                  QuestCompleteRequirement.Complete));
-        }
-
-
         private void GuiShowProgress(string completionReason)
         {
             if (completionReason != null)
             {
-                LogMessage("debug", "Behavior done (" + completionReason + ")");
+                QBCLog.DeveloperInfo("Behavior done (" + completionReason + ")");
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
                 _isBehaviorDone = true;
@@ -284,9 +288,9 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
             {
                 if (auraIdToButtonMap.ContainsKey(auraId))
                 {
-                    LogMessage("error", "AuraId({0}) cannot be associated with two buttons."
-                                        + "  (Attempted to associate with Button{1} and Button{2}.)",
-                                        auraId, auraIdToButtonMap[auraId], buttonNum);
+                    QBCLog.Error("AuraId({0}) cannot be associated with two buttons."
+                                + "  (Attempted to associate with Button{1} and Button{2}.)",
+                                auraId, auraIdToButtonMap[auraId], buttonNum);
                     IsAttributeProblem = true;
                     break;
                 }
@@ -304,7 +308,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                 new PrioritySelector(
 
                     // If the quest is complete, and we need to press a final button...
-                    new Decorator(ret => IsQuestComplete(),
+                    new Decorator(ret => Me.IsQuestComplete(QuestId),
                         new Sequence(
                             new DecoratorContinue(ret => ButtonOnQuestComplete.HasValue,
                                 new Action(delegate
@@ -408,9 +412,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
 
                 _isBehaviorInProgress = true;
                 GuiShowProgress(null);
@@ -437,14 +439,12 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         public delegate WoWObject WoWObjectDelegate();
 
 
-        public HuntingGroundBehavior(LoggerDelegate loggerDelegate,
-                                     ViableTargetsDelegate viableTargets,
+        public HuntingGroundBehavior(ViableTargetsDelegate viableTargets,
                                      WoWPoint huntingGroundAnchor,
                                      double collectionDistance)
         {
             CollectionDistance = collectionDistance;
             HuntingGroundAnchor = huntingGroundAnchor;
-            Logger = loggerDelegate;
             ViableTargets = viableTargets;
 
             UseHotspots(null);
@@ -461,7 +461,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         // Public properties...
         public double CollectionDistance { get; private set; }
         public WoWObject CurrentTarget { get; private set; }
-        public Queue<WoWPoint> Hotspots { get; set; }
         public WoWPoint HuntingGroundAnchor { get; private set; }
 
 
@@ -471,7 +470,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         private readonly TimeSpan Delay_RepopWait = TimeSpan.FromMilliseconds(500);
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(0);
         private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-        private readonly LoggerDelegate Logger;
         private static LocalPlayer Me { get { return (StyxWoW.Me); } }
         private const double MinDistanceToUse_DruidAquaticForm = 27.0;
         private int SpellId_DruidAquaticForm = 1066;
@@ -510,7 +508,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                         && (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
                     new Action(delegate
                     {
-                        Logger("warning", "Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                        QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
                         CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
                         CurrentTarget = null;
                     })),
@@ -553,8 +551,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                         )),
 
                                 // We find a point 'near' our anchor at which to wait...
-                // This way, if multiple people are using the same profile at the same time,
-                // they won't be standing on top of each other.
+                                // This way, if multiple people are using the same profile at the same time,
+                                // they won't be standing on top of each other.
                                 new Decorator(ret => (_huntingGroundWaitPoint == WoWPoint.Empty),
                                     new Action(delegate
                                         {
@@ -583,72 +581,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                 new Decorator(ret => ((CurrentTarget is WoWUnit) && (Me.CurrentTarget != CurrentTarget)),
                     new Action(delegate { CurrentTarget.ToUnit().Target(); }))
                 ));
-        }
-
-
-        public Composite CreateBehavior_MoveNearTarget(WoWObjectDelegate target,
-                                                          DistanceDelegate minRange,
-                                                          DistanceDelegate maxRange)
-        {
-            return (
-            new PrioritySelector(context => target(),
-
-                // If we're too far from target, move closer...
-                new Decorator(wowObject => (((WoWObject)wowObject).Distance > maxRange()),
-                    new Sequence(
-                        new Action(wowObject =>
-                        {
-                            TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-                                                                ((WoWObject)wowObject).Name,
-                                                                ((WoWObject)wowObject).Distance);
-                        }),
-
-                        CreateBehavior_InternalMoveTo(() => target().Location)
-                    )),
-
-                // If we're too close to target, back up...
-                new Decorator(wowObject => (((WoWObject)wowObject).Distance < minRange()),
-                    new PrioritySelector(
-
-                        // If backing up, make sure we're facing the target...
-                        new Decorator(ret => Me.MovementInfo.MovingBackward,
-                            new Action(wowObject => WoWMovement.Face(((WoWObject)wowObject).Guid))),
-
-                        // Start backing up...
-                        new Action(wowObject =>
-                        {
-                            TreeRoot.StatusText = "Too close to \"" + ((WoWObject)wowObject).Name + "\"--backing up";
-                            WoWMovement.MoveStop();
-                            WoWMovement.Face(((WoWObject)wowObject).Guid);
-                            WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
-                        })
-                        )),
-
-                // We're between MinRange and MaxRange, stop movement and face the target...
-                new Decorator(ret => Me.IsMoving,
-                    new Sequence(
-                        new Action(delegate { WoWMovement.MoveStop(); }),
-                        new Action(wowObject => WoWMovement.Face(((WoWObject)wowObject).Guid)),
-                        new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
-                        new ActionAlwaysFail()      // fall through to next element
-                        ))
-            ));
-        }
-
-
-        public Composite CreateBehavior_MoveToLocation(LocationDelegate location)
-        {
-            return (
-            new PrioritySelector(context => location(),
-
-                // If we're not at location, move to it...
-                new Decorator(wowPoint => (Me.Location.Distance((WoWPoint)wowPoint) > Navigator.PathPrecision),
-                    new Sequence(
-                        new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint),
-
-                        CreateBehavior_InternalMoveTo(() => location())
-                    ))
-            ));
         }
 
 
@@ -782,38 +714,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 
 
     #region Extensions to HBcore
-
-    public class DecoratorThrottled : Decorator
-    {
-        public DecoratorThrottled(TimeSpan throttleTime,
-                                  CanRunDecoratorDelegate canRun,
-                                  Composite composite)
-            : base(canRun, composite)
-        {
-            _throttleTime = throttleTime;
-
-            _throttle = new Stopwatch();
-            _throttle.Reset();
-            _throttle.Start();
-        }
-
-
-        protected override bool CanRun(object context)
-        {
-            if (_throttle.Elapsed < _throttleTime)
-            { return (false); }
-
-            _throttle.Reset();
-            _throttle.Start();
-
-            return (base.CanRun(context));
-        }
-
-
-        private Stopwatch _throttle;
-        private TimeSpan _throttleTime;
-    }
-
 
     // The HBcore 'global' blacklist will also prevent looting.  We don't want that.
     // Since the HBcore blacklist is not built to instantiate, we have to roll our

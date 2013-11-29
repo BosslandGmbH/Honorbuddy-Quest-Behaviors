@@ -1,14 +1,46 @@
 // Behavior originally contributed by Natfoth.
 //
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_VehicleBehavior
 //
+// Will control a vehicle and fire on locations/Mobs
+// ##Syntax##
+// QuestId: Id of the quest.
+// NpcMountID: MobId of the vehicle before it is mounted.
+// VehicleID: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
+// SpellIndex: Button bar Number starting from 1
+// FireHeight: Between 0 - 99 The lower the number the closer to the ground it will be
+// FireTillFinish: This is used for a few quests that the mob is flying but respawns fast, So the bot can fire in the same spot over and over.
+// FireLocation Coords: Where you want to be at when you fire.
+// TargetLocation Coords: Where you want to aim.
+// PreviousFireLocation Coords: This should only be used if you are already inside of the vehicle when you call the behaviors again, and
+//                                 should be the same coords as FireLocation on the call before it, Check the Wiki for more info or examples.
+// 
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 using System.Xml.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -19,6 +51,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
@@ -27,37 +60,25 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
     [CustomBehaviorFileName(@"VehicleBehavior")]  // Deprecated location--do not use
     public class VehicleBehavior : CustomForcedBehavior
     {
-        /// <summary>
-        /// Will control a vehicle and fire on locations/Mobs
-        /// ##Syntax##
-        /// QuestId: Id of the quest.
-        /// NpcMountID: MobId of the vehicle before it is mounted.
-        /// VehicleID: Mob of the actual Vehicle, sometimes it will be the some but sometimes it will not be.
-        /// SpellIndex: Button bar Number starting from 1
-        /// FireHeight: Between 0 - 99 The lower the number the closer to the ground it will be
-        /// FireTillFinish: This is used for a few quests that the mob is flying but respawns fast, So the bot can fire in the same spot over and over.
-        /// FireLocation Coords: Where you want to be at when you fire.
-        /// TargetLocation Coords: Where you want to aim.
-        /// PreviousFireLocation Coords: This should only be used if you are already inside of the vehicle when you call the behaviors again, and
-        ///                                 should be the same coords as FireLocation on the call before it, Check the Wiki for more info or examples.
-        /// </summary>
-        /// 
         public VehicleBehavior(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
                 AttackButton = GetAttributeAsNullable("AttackButton", true, ConstrainAs.HotbarButton, new[] { "SpellIndex" }) ?? 0;
                 FirePoint = GetAttributeAsNullable("FireLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 FireHeight = GetAttributeAsNullable("FireHeight", false, new ConstrainTo.Domain<int>(1, 999), null) ?? 1;
                 FireUntilFinished = GetAttributeAsNullable<bool>("FireUntilFinished", false, null, new[] { "FireTillFinish" }) ?? false;
                 PreviousLocation = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
-                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
                 TargetPoint = GetAttributeAsNullable("TargetLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 VehicleId = GetAttributeAsNullable("VehicleId", true, ConstrainAs.VehicleId, new[] { "VehicleID" }) ?? 0;
                 VehicleMountId = GetAttributeAsNullable("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 0;
@@ -69,7 +90,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
                 VehicleType = GetAttributeAsNullable("VehicleType", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 0;
                 Counter = 0;
-
             }
 
             catch (Exception except)
@@ -79,9 +99,9 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                        + "\nFROM HERE:\n"
-                                        + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -115,7 +135,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
         // Private properties
         private int Counter { get; set; }
-        private bool InVehicle { get { return Lua.GetReturnVal<bool>("return  UnitUsingVehicle(\"player\")", 0); } }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
         private List<WoWUnit> NpcAttackList
@@ -168,8 +187,8 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: VehicleBehavior.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~VehicleBehavior()
@@ -240,7 +259,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                            new Decorator(ret => !_isInitialized && VehicleType == 2,
                             new Action(ret => ParsePaths())),
 
-                        new Decorator(c => !InVehicle && NpcVehicleList.Count == 0,
+                        new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count == 0,
                             new Action(c =>
                             {
 
@@ -252,7 +271,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                             })
                         ),
 
-                           new Decorator(c => !InVehicle && NpcVehicleList.Count > 0,
+                           new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count > 0,
                             new Action(c =>
                             {
                                 if (!NpcVehicleList[0].WithinInteractRange)
@@ -273,7 +292,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
                             })
                         ),
-                        new Decorator(c => InVehicle && VehicleType == 0,
+                        new Decorator(c => Query.IsInVehicle() && VehicleType == 0,
                             new Action(c =>
                             {
                                 if (_vehicle == null || !_vehicle.IsValid)
@@ -302,7 +321,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                 return RunStatus.Running;
                             })),
 
-                        new Decorator(c => InVehicle && VehicleType == 1,
+                        new Decorator(c => Query.IsInVehicle() && VehicleType == 1,
                             new Action(c =>
                             {
                                 if (_vehicle == null || !_vehicle.IsValid)
@@ -340,7 +359,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
                                     var testfly = StyxWoW.Me.MovementInfo.CanFly;
 
-                                    //Logging.Write("" + testfly);
+                                    //QBCLog.Info("" + testfly);
 
 
                                     Flightor.MoveTo(StartObjectivePoint);
@@ -353,7 +372,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                 return RunStatus.Running;
                             })),
 
-                        new Decorator(c => InVehicle && VehicleType == 2,
+                        new Decorator(c => Query.IsInVehicle() && VehicleType == 2,
                             new Action(c =>
                             {
                                 if (_vehicle == null || !_vehicle.IsValid)
@@ -468,9 +487,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = GetType().Name + ": " + ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
 

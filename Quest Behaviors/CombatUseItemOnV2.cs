@@ -227,7 +227,6 @@ using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
-using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -295,8 +294,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
                 // Maintenance problems occur for a number of reasons.  The primary two are...
                 // * Changes were made to the behavior, and boundary conditions weren't properly tested.
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-                // resolved.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
                         + "\nFROM HERE:\n"
                         + except.StackTrace + "\n");
@@ -325,8 +324,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         private int WaitTimeAfterItemUse { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: CombatUseItemOnV2.cs 719 2013-07-26 11:08:04Z dogan $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 719 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)

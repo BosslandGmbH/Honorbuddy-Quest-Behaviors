@@ -1,27 +1,40 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
-using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
@@ -33,6 +46,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
         public Steping(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -43,8 +58,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                 MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
-
-
             }
 
             catch (Exception except)
@@ -54,9 +67,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -156,44 +169,19 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
         }
 
 
-        private bool IsRanged
-        {
-            get
-            {
-                return (((Me.Class == WoWClass.Druid) &&
-                         (SpellManager.HasSpell("BalanceSpell") || SpellManager.HasSpell("RestoSpell"))) ||
-                        ((Me.Class == WoWClass.Shaman) &&
-                         (SpellManager.HasSpell("ElementalSpell") || SpellManager.HasSpell("RestoSpell"))) ||
-                        (Me.Class == WoWClass.Hunter) || (Me.Class == WoWClass.Mage) || (Me.Class == WoWClass.Priest) ||
-                        (Me.Class == WoWClass.Warlock));
-            }
-        }
-
-
-
         #region Overrides of CustomForcedBehavior
-
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
 
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret =>
-                        (IsQuestComplete()),
-                        new Sequence(new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                     new Action(delegate
-                                     {
-                                         _isBehaviorDone = true;
-                                         return RunStatus.Success;
-                                     })));
-
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
             }
         }
 
@@ -230,7 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                         catch (NullReferenceException e)
                         {
                             lastguid = 0;
-                            Logging.Write("Erorr: " + e);
+                            QBCLog.Error(e.ToString());
                         }
                         
                         //Navigator.MoveTo(target.Location);
@@ -315,12 +303,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
-
         }
 
 

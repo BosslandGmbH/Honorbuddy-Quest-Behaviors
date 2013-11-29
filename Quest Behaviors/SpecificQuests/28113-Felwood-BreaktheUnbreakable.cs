@@ -1,8 +1,27 @@
-﻿using System;
+﻿//
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
+//
+
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
+
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -13,6 +32,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
@@ -23,6 +43,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
         public _28113(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             QuestId = 28113;
             touchdown = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
         }
@@ -35,38 +57,30 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
         private bool _isDisposed;
 
 
-        //	206625	Jadefire Barrier	5.1960515975952148	4.75	<4576.11, -384.74, 303.044>	<4576.11, -384.74, 303.044>	10111		0		32		0	0	0		Ready	Door	Styx.WoWInternals.WoWObjects.WoWDoor	None	0	255	False	False	False	False	False	None	False	False	spells\sunwell_fire_barrier_ext_center.mdx		False	641637240	True	GameObject	Object, GameObject	17371271210385544193	0	22.5625	False	False	17371271210385544193	4576.11	-384.74	303.044	0	0	26.998952419497073	5.0990185737609863	25.9999897480011	False	<4576.11, -384.74, 303.044>	None	TaxiNotEligible	False	False	True	False	False	False
-
-
         private WoWItem ClawThing
         {
             get { return StyxWoW.Me.BagItems.FirstOrDefault(r => r.Entry == 63031); }
         }
 
         private bool touched;
-        //Handin <Vendor Name="dsada" Entry="0" Type="Repair" X="4567.456" Y="-406.0457" Z="305.6446" />
-        private WoWPoint touchdown;// = new WoWPoint(4566.125,-402.532,305.2783);
-        //kill <Vendor Name="dsada" Entry="0" Type="Repair" X="4584.85" Y="-359.2484" Z="301.6123" />
-        //private WoWPoint touchdown = new WoWPoint(4566.125, -402.532, 305.2783);
+        private WoWPoint touchdown;
 
         protected Composite CreateBehavior_QuestbotMain()
         {
 
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,
-                //new Decorator(r => HookDone, new Action(r => TreeHooks.Instance.RemoveHook("Combat_OOC", Hook))),
                 new Decorator(r => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()),
                 new Decorator(r => Firewall != null && Firewall.Distance < 10, new Action(r => { Navigator.PlayerMover.MoveStop();ClawThing.Use(); })),
                 new Decorator(r => !touched && touchdown.Distance(StyxWoW.Me.Location) < 5, new Action(r => touched = true)),
                 new Decorator(r => !touched, new Action(r => WoWMovement.ClickToMove(touchdown)))
                 )));
-
         }
+
 
         private WoWGameObject Firewall
         {
             get { return ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r => r.Entry == 206625 && r.FlagsUint == 32); }
         }
-
 
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
@@ -110,6 +124,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
             }
         }
 
+
         public override bool IsDone
         {
             get
@@ -121,12 +136,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
 
         public override void OnStart()
         {
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
+
             //TreeHooks.Instance.InsertHook("Combat_OOC", 0, Hook);
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
@@ -134,10 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
     }

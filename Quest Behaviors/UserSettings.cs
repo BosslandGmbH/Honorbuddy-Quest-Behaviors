@@ -1,38 +1,38 @@
 ﻿// Behavior originally contributed by Chinajade.
 //
 // LICENSE:
-// This work is licensed under the 
+// This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
-//      Creative Commons
-//      171 Second Street, Suite 300
-//      San Francisco, California, 94105, USA. 
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_UserSettings
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Threading;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Routines;
 using Styx.Helpers;
-using Styx.Pathing;
-using Styx.Plugins;
-using Styx.TreeSharp;
-using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-
-using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.UserSettings
@@ -114,6 +114,8 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         public UserSettings(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 _configurationSettings = UtilBuildConfigurationSettings();
@@ -155,9 +157,9 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -166,7 +168,6 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         // Attributes provided by caller
         public bool DebugShowDetails { get; private set; }
         public bool DebugShowDiff { get; private set; }
-        public bool IsBehaviorDone { get; private set; }
         public bool IsStopBot { get; private set; }
         public string PresetName { get; private set; }
         public int QuestId { get; private set; }
@@ -183,8 +184,8 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         private ConfigurationChangeRequest _userChangeRequest;
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: UserSettings.cs 501 2013-05-10 16:29:10Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 501 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         ~UserSettings()
@@ -229,7 +230,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
                 if (_persistData.DebugShowChangesApplied)
                 {
-                    LogMessage("info", "Bot stopping.  Original user settings restored as follows...\n" + tmpChanges);
+                    QBCLog.Info("Bot stopping.  Original user settings restored as follows...\n" + tmpChanges);
                 }
 
                 // Remove our OnBotStop handler
@@ -272,6 +273,8 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+                this.UpdateGoalText(QuestId);
+
                 // The BotStop handler will put the original configuration settings back in place...
                 // Note, we only want to hook it once for this behavior.
                 if (!_persistData.IsBotStopHooked)
@@ -286,7 +289,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     string tmpString = _presetChangeRequests[PresetName].Apply();
 
                     if (_persistData.DebugShowChangesApplied)
-                    { LogMessage("info", "Using preset '{0}'...\n{1}", PresetName, tmpString); }
+                        { QBCLog.Info("Using preset '{0}'...\n{1}", PresetName, tmpString); }
                 }
 
                 // Second, apply any change requests...
@@ -295,24 +298,29 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     string tmpString = _userChangeRequest.Apply();
 
                     if (_persistData.DebugShowChangesApplied)
-                    { LogMessage("info", "Applied changes...\n{0}", tmpString); }
+                        { QBCLog.Info("Applied changes...\n{0}", tmpString); }
                 }
 
                 // Third, show state, if requested...                
                 if (DebugShowDetails)
-                { LogMessage("info", UtilCurrentConfigAsString(_configurationSettings)); }
+                    { QBCLog.Info(UtilCurrentConfigAsString(_configurationSettings)); }
 
                 if (DebugShowDiff)
                 {
-                    LogMessage("info", "Changes from original user's settings--\n"
-                                           + _originalConfiguration.GetChangesAsString());
+                    QBCLog.Info("Changes from original user's settings--\n"
+                             + _originalConfiguration.GetChangesAsString());
+                }
+                else
+                {
+                    QBCLog.DeveloperInfo("Changes from original user's settings--\n"
+                             + _originalConfiguration.GetChangesAsString());     
                 }
 
                 // Forth, stop the bot, if requested...
                 if (IsStopBot)
                 {
-                    LogMessage("info", "Stopping the bot per profile request.");
-                    TreeRoot.Stop();
+                    QBCLog.Info("Stopping the bot per profile request.");
+                    TreeRoot.Stop("Stopping the bot per profile request.");
                 }
 
                 _isBehaviorDone = true;

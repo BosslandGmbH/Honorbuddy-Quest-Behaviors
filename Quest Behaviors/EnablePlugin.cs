@@ -1,24 +1,34 @@
 // Behavior originally contributed by AxaZol.
 //
 // LICENSE:
-// This work is licensed under the 
-//    Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
-//    http://creativecommons.org/licenses/by-nc-sa/3.0/
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
 // or send a letter to
-//    Creative Commons
-//    171 Second Street, Suite 300
-//    San Francisco, California, 94105, USA. 
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
+
+#region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_RunMacro
 //
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
+using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.EnablePlugin
@@ -29,6 +39,8 @@ namespace Honorbuddy.Quest_Behaviors.EnablePlugin
         public EnablePlugins(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
@@ -44,25 +56,20 @@ namespace Honorbuddy.Quest_Behaviors.EnablePlugin
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
 
 
 
-private string[] Names;
-
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private string[] Names;
 
         // Private variables for internal state
         private bool _isBehaviorDone;
         private bool _isDisposed;
-       
-
 
 
         ~EnablePlugins()
@@ -128,7 +135,8 @@ private string[] Names;
 
                 foreach(var name in Names)
                 {
-                    //Logging.Write("Enable Plugins:"+name);
+                    this.UpdateGoalText(0, "Enabling plugins: " + string.Join(", ", Names));
+
                     var firstOrDefault = Styx.Plugins.PluginManager.Plugins.FirstOrDefault(x => x.Name == name);
                     if (firstOrDefault != null)
                         firstOrDefault.Enabled = true;

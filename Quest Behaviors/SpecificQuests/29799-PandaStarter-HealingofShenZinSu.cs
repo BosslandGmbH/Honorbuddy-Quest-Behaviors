@@ -1,14 +1,29 @@
 // Behavior originally contributed by mastahg.
 //
-// DOCUMENTATION:
-//     
+// LICENSE:
+// This work is licensed under the
+//     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
+// also known as CC-BY-NC-SA.  To view a copy of this license, visit
+//      http://creativecommons.org/licenses/by-nc-sa/3.0/
+// or send a letter to
+//      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
+#endregion
+
+
+#region Examples
+#endregion
+
+
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
 
 using CommonBehaviors.Actions;
+using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
@@ -20,6 +35,7 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+#endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
@@ -35,14 +51,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
         public HealingofShenZinSu(Dictionary<string, string> args)
             : base(args)
         {
+            QBCLog.BehaviorLoggingContext = this;
+
             try
             {
                 // QuestRequirement* attributes are explained here...
                 //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
                 // ...and also used for IsDone processing.
-                //Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-                QuestId = 29799; //GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                //MobIds = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                QuestId = 29799;
                 QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = QuestInLogRequirement.InLog;
             }
@@ -54,9 +70,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error",
-                           "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message + "\nFROM HERE:\n" + except.StackTrace +
-                           "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -107,22 +123,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
 
         #region Overrides of CustomForcedBehavior
 
-        public bool IsQuestComplete()
-        {
-            var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-            return quest == null || quest.IsCompleted;
-        }
-
-
         public Composite DoneYet
         {
             get
             {
-                return
-                    new Decorator(ret => IsQuestComplete(), new Action(delegate
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
-                        //CharacterSettings.Instance.UseMount = true;
                         _isBehaviorDone = true;
                         return RunStatus.Success;
                     }));
@@ -176,44 +184,36 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
                     new Decorator(r => Me.Combat, RoutineManager.Current.CombatBehavior),
 
                     //Sometimes wreckage would popup and make us stray, if theres a nearby healer click that first.
-                    new Decorator(r => PriestsClickable != null && PriestsClickable.Distance < 5, new Action(r=>PriestsClickable.Interact(true))),
-                    new Decorator(r => Wreckage != null, new Action(r =>
-                                                                    {Navigator.MoveTo(Wreckage.Location);
-                                                                        Wreckage.Interact();
-                                                                    } )),
-                    new Decorator(r => PriestsClickable != null, new Action(r =>
-                                                                                {
+                    new Decorator(r => PriestsClickable != null && PriestsClickable.Distance < 5,
+                        new Action(r=>PriestsClickable.Interact(true))),
+                    new Decorator(r => Wreckage != null,
+                        new Action(r =>
+                        {
+                            Navigator.MoveTo(Wreckage.Location);
+                            Wreckage.Interact();
+                        } )),
+                    new Decorator(r => PriestsClickable != null,
+                        new Action(r =>
+                        {
 
-                                                                                    Navigator.MoveTo(PriestsClickable.Location);
+                            Navigator.MoveTo(PriestsClickable.Location);
 
-                                                                                    if (PriestsClickable.WithinInteractRange)
-                                                                                    {
-                                                                                        PriestsClickable.Interact(true);
-                                                                                    }
+                            if (PriestsClickable.WithinInteractRange)
+                            {
+                                PriestsClickable.Interact(true);
+                            }
                                                                                     
-                                                                                })),
-                    new Decorator(r => Me.CurrentTarget == null && InCombat != null && InCombat.GotTarget, new Action(r =>
-                                                                                                                          {
-                                                                                                                              Logging.Write("Attacking nearby enemy");
-                                                                                                                              InCombat
-                                                                                                                                  .
-                                                                                                                                  CurrentTarget
-                                                                                                                                  .
-                                                                                                                                  Target
-                                                                                                                                  ();
+                        })),
+                    new Decorator(r => Me.CurrentTarget == null && InCombat != null && InCombat.GotTarget,
+                        new Action(r =>
+                        {
+                            QBCLog.Info("Attacking nearby enemy");
+                            InCombat.CurrentTarget.Target();
 
-                                                                                                                              InCombat.CurrentTarget.Interact();
-                                                                                                                              Navigator
-                                                                                                                                  .
-                                                                                                                                  MoveTo
-                                                                                                                                  (InCombat
-                                                                                                                                       .
-                                                                                                                                       CurrentTarget
-                                                                                                                                       .
-                                                                                                                                       Location);
-                                                                                                                          }
+                            InCombat.CurrentTarget.Interact();
+                            Navigator.MoveTo(InCombat.CurrentTarget.Location);
+                        }
                         ))
-                    
                     );
             }
         }
@@ -221,7 +221,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
 
         protected Composite CreateBehavior_QuestbotMain()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetonPole,new ActionAlwaysSucceed())));
+            return _root ?? (_root =
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(DoneYet, GetonPole,new ActionAlwaysSucceed())));
         }
 
 
@@ -244,8 +246,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
 
         public override void OnStart()
         {
-
-
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -256,10 +256,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HealingofShenZinSu
             if (!IsDone)
             {
                 TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                TreeRoot.GoalText = this.GetType().Name + ": " +
-                                    ((quest != null) ? ("\"" + quest.Name + "\"") : "In Progress");
+                this.UpdateGoalText(QuestId);
             }
         }
         #endregion

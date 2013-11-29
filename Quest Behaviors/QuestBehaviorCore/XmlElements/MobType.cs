@@ -63,8 +63,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #region Private and Convenience variables
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: Copy of WaypointType.cs 555 2013-06-12 09:00:14Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 555 $"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

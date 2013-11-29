@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
+#region Summary and Documentation
 // Documentation:
 // * Moves to Siege Tank, dismounts, and enters tank
 // * Fires at targets as it moves around range
@@ -25,6 +26,11 @@
 //   aren't significant enough to waste significant effort trying to find the buried
 //   information--if its available at all.
 //
+#endregion
+
+
+#region Examples
+#endregion
 
 #region Usings
 using System;
@@ -33,7 +39,6 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Bots.Grind;
-
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -84,9 +89,9 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                LogMessage("error", "BEHAVIOR MAINTENANCE PROBLEM: " + except.Message
-                                    + "\nFROM HERE:\n"
-                                    + except.StackTrace + "\n");
+                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -148,8 +153,8 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
         private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: 24910-Tanaris-RocketRescue.cs 574 2013-06-28 08:54:59Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Rev: 574 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
         #endregion
 
 
@@ -197,7 +202,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
         {
             return new PrioritySelector(
                 // Disable combat routine while we are in the vehicle...
-                new Decorator(context => Me.InVehicle,
+                new Decorator(context => Query.IsInVehicle(),
                     new ActionAlwaysSucceed())
                 );
         }
@@ -477,7 +482,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 
         private bool IsInBalloon()
         {
-            return Me.InVehicle
+            return Query.IsInVehicle()
                 && !(Me.HasAura(AuraId_EmergencyRocketPack)
                     || Me.HasAura(AuraId_Parachute));
         }

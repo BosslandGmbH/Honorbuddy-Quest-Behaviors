@@ -219,8 +219,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
                 QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
-                            + "\nFROM HERE:\n"
-                            + except.StackTrace + "\n");
+                        + "\nFROM HERE:\n"
+                        + except.StackTrace + "\n");
                 IsAttributeProblem = true;
             }
         }
@@ -239,8 +239,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         private bool WaitForVehicle { get; set; }
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id: VehicleMover.cs 574 2013-06-28 08:54:59Z chinajade $"); } }
-        public override string SubversionRevision { get { return ("$Revision: 574 $"); } }
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
@@ -527,7 +527,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         private bool IsInVehicle()
         {
             return
-                Me.InVehicle
+                Query.IsInVehicle()
                 || Me.HasAura(AuraId_ProxyVehicle);
         }
         #endregion
