@@ -63,9 +63,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Teldrassil
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
-                        + "\nFROM HERE:\n"
-                        + except.StackTrace + "\n");
+                QBCLog.Exception(except);
                 IsAttributeProblem = true;
             }
         }

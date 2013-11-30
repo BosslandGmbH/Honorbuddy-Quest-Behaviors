@@ -57,11 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             catch (Exception except)
             {
                 if (Query.IsExceptionReportingNeeded(except))
-                {
-                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE ({2}):\n{3}\n",
-                                               xElement.ToString(), except.Message, except.GetType().Name,
-                                               except.StackTrace);
-                }
+                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
                 IsAttributeProblem = true;
             }
         }

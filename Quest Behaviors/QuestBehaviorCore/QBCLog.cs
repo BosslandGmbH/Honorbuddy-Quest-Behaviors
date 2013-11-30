@@ -146,6 +146,27 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             Logging.Write(Colors.Red, BuildLogMessage("error", format, args));
         }
+
+
+        /// <summary>
+        /// <para>Exception situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+        /// </summary>
+        /// <param name="except"></param>
+        /// <param name="formatForPrefix"></param>
+        /// <param name="argsForPrefix"></param>
+        public static void Exception(Exception except, string formatForPrefix = null, params object[] argsForPrefix)
+        {
+            var messagePrefix =
+                (formatForPrefix == null)
+                ? "MAINTENANCE PROBLEM"
+                : string.Format(formatForPrefix, argsForPrefix);
+
+            QBCLog.Error("[{0}]: {1}\nFROM HERE ({2}):\n{3}\n",
+                messagePrefix,
+                except.Message,
+                except.GetType().Name,
+                except.StackTrace);
+        }
            
         
         /// <summary>

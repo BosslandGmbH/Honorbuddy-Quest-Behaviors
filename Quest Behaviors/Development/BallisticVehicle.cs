@@ -93,9 +93,7 @@ namespace Honorbuddy.QuestBehaviors.BallisticVehicle
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
-                        + "\nFROM HERE:\n"
-                        + except.StackTrace + "\n");
+                QBCLog.Exception(except);
                 IsAttributeProblem = true;
             }
         }
@@ -796,8 +794,7 @@ QBCLog.Info("ABILITY: {0}", ability.ToString());
 
                 catch (Exception except)
                 {
-                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
-                        xElement.ToString(), except.Message, except.StackTrace);
+                    QBCLog.Exception(except);
                     IsAttributeProblem = true;
                 }
             }

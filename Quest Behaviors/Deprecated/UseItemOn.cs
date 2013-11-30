@@ -255,9 +255,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                 // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
                 // In any case, we pinpoint the source of the problem area here, and hopefully it
                 // can be quickly resolved.
-                QBCLog.Error("[MAINTENANCE PROBLEM]: " + except.Message
-                        + "\nFROM HERE:\n"
-                        + except.StackTrace + "\n");
+                QBCLog.Exception(except);
                 IsAttributeProblem = true;
             }
         }
@@ -391,7 +389,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
             {
                 tmpString = WoWSpell.FromId(auraId).Name;
             }
-            catch
+            catch (Exception except)
             {
                 QBCLog.Fatal("Could not find {0}({0}).", attributeName, auraId);
                 IsAttributeProblem = true;
@@ -682,8 +680,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 catch (Exception except)
                 {
-                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
-                        xElement.ToString(), except.Message, except.StackTrace);
+                    QBCLog.Exception(except);
                     IsAttributeProblem = true;
                 }
             }
@@ -747,8 +744,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 
                 catch (Exception except)
                 {
-                    QBCLog.Error("[PROFILE PROBLEM with \"{0}\"]: {1}\nFROM HERE:\n{2}\n",
-                        xElement.ToString(), except.Message, except.StackTrace);
+                    QBCLog.Exception(except);
                     IsAttributeProblem = true;
                 }
             }
@@ -856,9 +852,9 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
                     tmpList.Add(parser);
                 }
 
-                catch(Exception ex)
+                catch(Exception except)
                 {
-                    QBCLog.Error("{0}: {1}", element.ToString(), ex.ToString());
+                    QBCLog.Exception(except);
                     isAttributeProblem = true;
                 }
             }
