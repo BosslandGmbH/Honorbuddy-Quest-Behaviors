@@ -281,19 +281,19 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
             return _root ?? (_root =
                 new PrioritySelector(
                     new Decorator(
-                        ret => !Me.Combat,
-                            new PrioritySelector(
+                        ret => !Me.Combat && Me.IsAlive,
+                            new PrioritySelector( ctx => Mob,
                                 new Decorator(
-                                    ret => Mob == null,
+                                    ret => ret == null,
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = "Moving to location"),
                                         new Action(ret => Navigator.MoveTo(Location)))),
                                 new Decorator(
-                                    ret => Mob != null && Mob.Distance > MaxRange,
+                                    ret => ret != null && ((WoWUnit)ret).Distance > MaxRange,
                                     new Action(ret => Navigator.MoveTo(Mob.Location))),
                                 new Decorator(
-                                    ret => Me.CurrentTarget == null && Mob.Distance <= MaxRange,
-                                    new Action(ret => Mob.Target())),
+                                    ret => !Me.GotTarget && Mob.Distance <= MaxRange,
+                                    new Action(ret => ((WoWUnit)ret).Target())),
                                 new Decorator(
                                     ret => RoutineManager.Current.PullBehavior != null,
                                     RoutineManager.Current.PullBehavior),
