@@ -311,8 +311,26 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return !IsRangeSpec(spec);
         }
-        
-        
+
+
+        /// <summary>
+        /// Returns 'true' for items that start quests, or are quest objectives.
+        /// </summary>
+        /// <param name="wowItem"></param>
+        /// <returns></returns>
+        // 3Nov2013 chinajade
+        public static bool IsQuestItem(WoWItem wowItem)
+        {
+            // If not valid, then not a quest item...
+            if ((wowItem == null) || !wowItem.IsValid)
+                { return false; }
+
+            return
+                (wowItem.ItemInfo.BeginQuestId != 0)                    // Begins a quest?
+                || (wowItem.ItemInfo.Bond == WoWItemBondType.Quest);    // Objective of quest?
+        }
+
+
         // 25Nov2013 HighVoltz
         public static bool IsRangeSpec(WoWSpec spec)
         {

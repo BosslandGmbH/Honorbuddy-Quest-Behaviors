@@ -134,6 +134,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         private const int MaximumLatencyWarningThreshold = 850;
         private const int MinimumFpsWarningThreshold = 7;
 
+        private static bool _isBotStopHooked; 
+
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
@@ -173,11 +175,92 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
             if (isFatalErrorsEncountered)
                 { TreeRoot.Stop("Game client state is incompatible with profile.  Please repair errors."); }
+
+            // Install bot stop handler only once...
+            if (!_isBotStopHooked)
+            {
+                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                _isBotStopHooked = true;
+            }
         }
         #endregion
 
 
         #region Helpers
+        private void BotEvents_OnBotStop(EventArgs args)
+        {
+            EmitStateInfo();
+
+            // Unhook the bot stop handler...
+            BotEvents.OnBotStop += BotEvents_OnBotStop;
+            _isBotStopHooked = false;
+        }
+
+
+        private void BuildEquipmentList(StringBuilder builder, string linePrefix)
+        {
+            Func<WoWItem, string>   buildDescription =
+                (wowItem) =>
+                {
+                    if ((wowItem != null) && wowItem.IsValid)
+                    {
+                        return string.Format("{0} (http://wowhead.com/item={1}){2}",
+                            wowItem.Name,
+                            wowItem.Entry,
+                            (Query.IsQuestItem(wowItem) ? " ***QUEST ITEM***" : ""));
+                    }
+                    return "";
+                };
+            var paperDoll = Me.Inventory.Equipped;
+
+            builder.AppendFormat("{0}Equipped Items:", linePrefix);
+            builder.Append(Environment.NewLine);
+
+            builder.AppendFormat("{0}        Head: {1}", linePrefix, buildDescription(paperDoll.Head));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}        Neck: {1}", linePrefix, buildDescription(paperDoll.Neck));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}    Shoulder: {1}", linePrefix, buildDescription(paperDoll.Shoulder));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}        Back: {1}", linePrefix, buildDescription(paperDoll.Back));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}       Chest: {1}", linePrefix, buildDescription(paperDoll.Chest));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}       Shirt: {1}", linePrefix, buildDescription(paperDoll.Shirt));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}      Tabard: {1}", linePrefix, buildDescription(paperDoll.Tabard));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}       Wrist: {1}", linePrefix, buildDescription(paperDoll.Wrist));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}       Hands: {1}", linePrefix, buildDescription(paperDoll.Hands));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}     Finger1: {1}", linePrefix, buildDescription(paperDoll.Finger1));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}     Finger2: {1}", linePrefix, buildDescription(paperDoll.Finger2));
+            builder.Append(Environment.NewLine);
+            builder.Append(Environment.NewLine);
+
+            builder.AppendFormat("{0}    MainHand: {1}", linePrefix, buildDescription(paperDoll.MainHand));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}     OffHand: {1}", linePrefix, buildDescription(paperDoll.OffHand));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}      Ranged: {1}", linePrefix, buildDescription(paperDoll.Ranged));
+            builder.Append(Environment.NewLine);
+            builder.Append(Environment.NewLine);
+
+            builder.AppendFormat("{0}       Waist: {1}", linePrefix, buildDescription(paperDoll.Waist));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}    Trinket1: {1}", linePrefix, buildDescription(paperDoll.Trinket1));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}    Trinket2: {1}", linePrefix, buildDescription(paperDoll.Trinket2));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}        Legs: {1}", linePrefix, buildDescription(paperDoll.Legs));
+            builder.Append(Environment.NewLine);
+            builder.AppendFormat("{0}        Feet: {1}", linePrefix, buildDescription(paperDoll.Feet));
+            builder.Append(Environment.NewLine);
+        }
+
+
         private void BuildGameClientAddOnList(StringBuilder builder, string linePrefix, out List<string> problemAddOnList)
         {
             problemAddOnList = new List<string>();
@@ -214,7 +297,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             builder.AppendFormat("{0}Game client addons:", linePrefix);
             builder.Append(Environment.NewLine);
             if (!addOns.Any())
-                { builder.AppendFormat("{0}    NONE", linePrefix); }
+            {
+                builder.AppendFormat("{0}    NONE", linePrefix);
+                builder.Append(Environment.NewLine);
+            }
             else
             {
                 foreach (var addOn in addOns.OrderBy(a => a.Key))
@@ -243,6 +329,34 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
+        // Stolen from Talented2
+        private static IEnumerable<TalentPlacement> BuildLearnedTalents()
+        {
+            var talents = new List<TalentPlacement>();
+
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                for (int tierIndex = 0; tierIndex < 6; tierIndex++)
+                {
+                    for (int talentIndex = 1; talentIndex <= 3; talentIndex++)
+                    {
+                        var index = tierIndex * 3 + talentIndex;
+                        var vals = Lua.GetReturnValues("return GetTalentInfo(" + index + ")");
+                        var name = vals[0];
+                        var learned = int.Parse(vals[4]) != 0;
+
+                        if (learned)
+                        {
+                            talents.Add(new TalentPlacement(tierIndex + 1, talentIndex, name));
+                        }
+                    }
+                }
+            }
+
+            return talents;
+        }
+
+
         private void BuildPluginList(StringBuilder builder, string linePrefix, out List<string> problemPlugInList)
         {
             problemPlugInList = new List<string>();
@@ -253,7 +367,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             builder.AppendFormat("{0}Plugins:", linePrefix);
             builder.Append(Environment.NewLine);
             if (!plugIns.Any())
-                { builder.AppendFormat("{0}    NONE", linePrefix); }
+            {
+                builder.AppendFormat("{0}    NONE", linePrefix);
+                builder.Append(Environment.NewLine);
+            }
             else
             {
                 foreach (var plugIn in plugIns.OrderBy(plugin => plugin.Name))
@@ -290,31 +407,53 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
-        // Stolen from Talented2
-        private static IEnumerable<TalentPlacement> BuildLearnedTalents()
+        private void BuildQuestItemList(StringBuilder builder, string linePrefix)
         {
-            var talents = new List<TalentPlacement>();
-
             using (StyxWoW.Memory.AcquireFrame())
             {
-                for (int tierIndex = 0; tierIndex < 6; tierIndex++)
-                {
-                    for (int talentIndex = 1; talentIndex <= 3; talentIndex++)
-                    {
-                        var index = tierIndex * 3 + talentIndex;
-                        var vals = Lua.GetReturnValues("return GetTalentInfo(" + index + ")");
-                        var name = vals[0];
-                        var learned = int.Parse(vals[4]) != 0;
+                var questItems =
+                   (from item in Me.BagItems
+                    where Query.IsQuestItem(item)
+                    select item)
+                    .Distinct()
+                    .ToList();
 
-                        if (learned)
+                // Analyze plugins for known problem ones...
+                builder.AppendFormat("{0}Quest Items in backpack:", linePrefix);
+                builder.Append(Environment.NewLine);
+                if (!questItems.Any())
+                {
+                    builder.AppendFormat("{0}    NONE", linePrefix);
+                    builder.Append(Environment.NewLine);
+                }
+                else
+                {
+                    foreach (var questItem in questItems.OrderBy(item => item.ItemInfo.InternalInfo.QuestId).ThenBy(item => item.Name))
+                    {
+                        var questId = questItem.ItemInfo.InternalInfo.QuestId;
+                        var quest = Quest.FromId((uint)questId);
+                        var stackCount =
+                            Me.CarriedItems
+                            .Where(i => (i.Entry == questItem.Entry))
+                            .Sum(i => i.StackCount);
+
+                        builder.AppendFormat("{0}    {1}{2} (http://wowhead.com/item={3})",
+                            linePrefix,
+                            questItem.Name,
+                            ((stackCount <= 1) ? "" : string.Format(" x{0}", stackCount)),
+                            questItem.Entry);
+                        builder.Append(Environment.NewLine);
+                        if (questItem.ItemInfo.BeginQuestId != 0)
                         {
-                            talents.Add(new TalentPlacement(tierIndex + 1, talentIndex, name));
+                            builder.AppendFormat("{0}        => starts quest \"{1}\"(http://wowhead.com/quest={2})",
+                                linePrefix,
+                                ((quest != null) ? quest.Name : "UnknownQuest"),
+                                questId);
+                            builder.Append(Environment.NewLine);
                         }
                     }
                 }
             }
-
-            return talents;
         }
 
 
@@ -424,6 +563,14 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             // Quest state...
             builderInfo.Append(Environment.NewLine);
             BuildQuestState(builderInfo, linePrefix);
+
+            // Quest Items in backpack...
+            builderInfo.Append(Environment.NewLine);
+            BuildQuestItemList(builderInfo, linePrefix);
+
+            // Equipment List...
+            builderInfo.Append(Environment.NewLine);
+            BuildEquipmentList(builderInfo, linePrefix);
 
 
             // Executable environment info...
@@ -546,12 +693,12 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
 
             // Emit compatibility info...
-            QBCLog.DeveloperInfo(builderInfo.ToString());
+            QBCLog.DeveloperInfo(this, builderInfo.ToString());
 
             // Emit warnings...
             if (builderWarnings.Length > 0)
             {
-                QBCLog.Warning("PROFILE COMPATIBILITY WARNINGS:{0}{1}",
+                QBCLog.Warning(this, "PROFILE COMPATIBILITY WARNINGS:{0}{1}",
                     Environment.NewLine,
                     builderWarnings.ToString());
             }
@@ -559,13 +706,13 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             // Emit errors...
             if (builderErrors.Length > 0)
             {
-                QBCLog.Error("PROFILE COMPATIBILITY ERRORS:{0}{1}",
+                QBCLog.Error(this, "PROFILE COMPATIBILITY ERRORS:{0}{1}",
                     Environment.NewLine,
                     builderErrors.ToString());
             }
 
             // Emit end demark...
-            QBCLog.DeveloperInfo("---------- END: Profile Compatibility Info ----------");
+            QBCLog.DeveloperInfo(this, "---------- END: Profile Compatibility Info ----------");
 
             // Return value indicating whether or not fatal errors encountered...
             return builderErrors.Length > 0;
