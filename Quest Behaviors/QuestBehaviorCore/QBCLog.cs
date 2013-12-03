@@ -124,6 +124,16 @@ namespace Honorbuddy.QuestBehaviorCore
             Logging.Write(Colors.Fuchsia, BuildLogMessage("debug", format, args));
         }
 
+        public static void Debug(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            Debug(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
+        }
+
         
         /// <summary>
         /// <para>For chasing longer-term (i.e., sporadic) issues.  These messages are only emitted to the log--not the scrolly window,
@@ -135,6 +145,16 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", format, args));
         }
+
+        public static void DeveloperInfo(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            DeveloperInfo(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
+        }
         
         
         /// <summary>
@@ -145,6 +165,16 @@ namespace Honorbuddy.QuestBehaviorCore
         public static void Error(string format, params object[] args)
         {
             Logging.Write(Colors.Red, BuildLogMessage("error", format, args));
+        }
+
+        public static void Error(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            Error(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
         }
 
 
@@ -167,6 +197,16 @@ namespace Honorbuddy.QuestBehaviorCore
                 except.GetType().Name,
                 except.StackTrace);
         }
+
+        public static void Exception(CustomForcedBehavior cfbContext, Exception except, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            Exception(except, format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
+        }
            
         
         /// <summary>
@@ -179,6 +219,16 @@ namespace Honorbuddy.QuestBehaviorCore
             Logging.Write(Colors.Red, BuildLogMessage("fatal", format, args));
             TreeRoot.Stop("Fatal error in quest behavior, or profile.");
         }
+
+        public static void Fatal(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            Fatal(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
+        }
         
         
         /// <summary>
@@ -189,6 +239,16 @@ namespace Honorbuddy.QuestBehaviorCore
         public static void Info(string format, params object[] args)
         {
             Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", format, args));
+        }
+
+        public static void Info(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            Info(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
         }
         
         
@@ -205,6 +265,16 @@ namespace Honorbuddy.QuestBehaviorCore
             var trace = new StackTrace(1);
 
             Error("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", formattedMessage, trace.ToString());
+        }
+
+        public static void MaintenanceError(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            MaintenanceError(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
         }
 
 
@@ -244,6 +314,16 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             Fatal("[PROFILE ERROR] {0}", string.Format(format, args));
         }
+
+        public static void ProfileError(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            ProfileError(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
+        }
         
         
         /// <summary>
@@ -254,6 +334,16 @@ namespace Honorbuddy.QuestBehaviorCore
         public static void Warning(string format, params object[] args)
         {
             Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", format, args));
+        }
+
+        public static void Warning(CustomForcedBehavior cfbContext, string format, params object[] args)
+        {
+            CustomForcedBehavior originalCfbContext = BehaviorLoggingContext;
+            BehaviorLoggingContext = cfbContext;
+
+            Warning(format, args);
+
+            BehaviorLoggingContext = originalCfbContext;
         }
 
         

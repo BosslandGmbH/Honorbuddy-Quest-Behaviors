@@ -64,7 +64,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         }
 
 
-        public static WoWUnit Bunny
+        private WoWUnit Bunny
         {
             get
             {
@@ -74,7 +74,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 
         //44329/
-        public static WoWUnit Stickbone
+        private WoWUnit Stickbone
         {
             get
             {
@@ -82,7 +82,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             }
         }
 
-        public static WoWItem Bomb
+        private WoWItem Bomb
         {
             get
             {

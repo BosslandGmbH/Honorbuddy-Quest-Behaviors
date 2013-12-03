@@ -64,6 +64,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             }
         }
 
+
         private static LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
@@ -90,7 +91,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         #endregion
 
 
-        private static int FlightLevel
+        private int FlightLevel
         {
             get
             {
@@ -104,13 +105,11 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                     return 1;
 
                 return 0;
-
             }
-
         }
 
 
-        private static bool Hellfire
+        private bool Hellfire
         {
             get
             {
@@ -119,7 +118,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         }
 
 
-        private static bool OldWorld
+        private bool OldWorld
         {
             get
             {
@@ -129,7 +128,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 
         //Return the trainer we want based on faction and location and skill.
-        private static int TrainerId
+        private int TrainerId
         {
             get
             {
@@ -148,11 +147,11 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         }
 
 
-        public static Boolean setupQO;
+        private Boolean setupQO;
 
-        private static void SetupQuestLowbieOrder()
+        private void SetupQuestLowbieOrder()
         {
-            QBCLog.Info("Starting ground quest order.");
+            QBCLog.Info(this, "Starting ground quest order.");
             
             //Replace with memorystream once profile is finalized    
             //var reader = new StreamReader(File.OpenRead(@"C:\Users\Dennis\Desktop\New folder\hbx\GroundTraining.XML"));
@@ -166,9 +165,9 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         }
 
 
-        private static void SetupQuestFlyingOrder()
+        private void SetupQuestFlyingOrder()
         {
-            QBCLog.Info("Starting flying quest order.");
+            QBCLog.Info(this, "Starting flying quest order.");
             //var reader = new StreamReader(File.OpenRead(@"C:\Users\Dennis\Desktop\New folder\hbx\GroundTraining.XML"));
             var reader = new StreamReader(new MemoryStream(Convert.FromBase64String(FlyingMounts)));
             XElement xml = XElement.Parse(reader.ReadToEnd());
@@ -189,23 +188,27 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         //Worgen -> ???
 
 
-        private static Composite PurchaseMount
+        private Composite PurchaseMount
         {
-
             get
             {
                 return new PrioritySelector(
-                    new Decorator(r => FlightLevel == 1 && !Mount.GroundMounts.Any() && !setupQO, new Action(r => SetupQuestLowbieOrder())),
-                    new Decorator(r => FlightLevel == 1 && Mount.GroundMounts.Any() && setupQO, new Action(r => setupQO = false)),
-                    new Decorator(r => FlightLevel == 2 && !Mount.FlyingMounts.Any() && !setupQO, new Action(r => SetupQuestFlyingOrder())),
-                    new Decorator(r => FlightLevel == 2 && Mount.FlyingMounts.Any() && setupQO, new Action(r => setupQO = false))
+                    new Decorator(r => FlightLevel == 1 && !Mount.GroundMounts.Any() && !setupQO,
+                        new Action(r => SetupQuestLowbieOrder())),
+                    new Decorator(r => FlightLevel == 1 && Mount.GroundMounts.Any() && setupQO,
+                        new Action(r => setupQO = false)),
+                    new Decorator(r => FlightLevel == 2 && !Mount.FlyingMounts.Any() && !setupQO,
+                        new Action(r => SetupQuestFlyingOrder())),
+                    new Decorator(r => FlightLevel == 2 && Mount.FlyingMounts.Any() && setupQO,
+                        new Action(r => setupQO = false))
                     );
             }
         }
 
-        private static void SetupTrainer()
+
+        private void SetupTrainer()
         {
-            QBCLog.Info("Creating ForceTrainRiding object");
+            QBCLog.Info(this, "Creating ForceTrainRiding object");
             var args = new Dictionary<string, string> { { "MobId", TrainerId.ToString() } };
 
             gooby = new ForceTrainRiding(args);
@@ -213,16 +216,17 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             TreeHooks.Instance.ReplaceHook("GoobyHook", gooby.Branch);
         }
 
-        private static void CleanUpCustomForcedBehavior()
+
+        private void CleanUpCustomForcedBehavior()
         {
 
             if (gooby.GetType() == typeof(ForceTrainRiding))
             {
-                QBCLog.Info("Cleaning up ForceTrainRiding object");
+                QBCLog.Info(this, "Cleaning up ForceTrainRiding object");
             }
             else
             {
-                QBCLog.Info("Cleaning up InteractWith object");
+                QBCLog.Info(this, "Cleaning up InteractWith object");
             }
 
             TreeHooks.Instance.RemoveHook("GoobyHook", gooby.Branch);
@@ -233,7 +237,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
         //Composites
         private static CustomForcedBehavior gooby = null;
-        private static Composite runOtherComposite
+        private Composite RunOtherComposite
         {
             get
             {
@@ -245,33 +249,38 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             }
         }
 
-        private static Composite HellfireComposite
+
+        private Composite HellfireComposite
         {
             get
             {
-                return new Decorator(r => Hellfire && Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2, new Action(r => SetupTrainer()));
-
+                return new Decorator(r => Hellfire && Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2,
+                    new Action(r => SetupTrainer()));
             }
         }
 
-        private static Composite OldWordComposite
+
+        private Composite OldWordComposite
         {
             get
             {
-                return new Decorator(r => OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) || (Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2)), new Action(r => SetupTrainer()));
-
+                return new Decorator(r => OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) || (Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2)),
+                    new Action(r => SetupTrainer()));
             }
         }
+
 
         public static Composite _myHook;
-        public static Composite CreateHook()
+        public Composite CreateHook()
         {
             return new Decorator(r => !Me.Combat,
-                new PrioritySelector(runOtherComposite,
+                new PrioritySelector(
+                    RunOtherComposite,
                     PurchaseMount,
                     OldWordComposite,
                     HellfireComposite));
         }
+
 
         public override void OnStart()
         {
