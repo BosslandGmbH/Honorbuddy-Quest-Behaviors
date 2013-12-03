@@ -193,11 +193,20 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 // a dependency, then it is indirectly disabled.
                 var addOnInfoQuery = string.Format("return GetAddOnInfo({0})", i);
                 var addOnTitle = StripUiEscapeSequences(Lua.GetReturnVal<string>(addOnInfoQuery, 1));
+                addOnTitle = string.IsNullOrEmpty(addOnTitle) ? "UnnamedAddon" : addOnTitle;
+
                 var addOnEnabled =
                     Lua.GetReturnVal<bool>(addOnInfoQuery, 3) /*enabled*/
                     && Lua.GetReturnVal<bool>(addOnInfoQuery, 4) /*loadable*/;
 
-                addOns.Add(addOnTitle ?? string.Empty, addOnEnabled);
+                // Make certain addon name is unique...
+                var addOnName = addOnTitle;
+                for (var sameNameIndex = 2; addOns.ContainsKey(addOnName); ++sameNameIndex)
+                {
+                    addOnName = string.Format("{0}_{1}", addOnTitle, sameNameIndex);
+                }
+
+                addOns.Add(addOnName, addOnEnabled);
             }
 
 
@@ -251,11 +260,19 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 {
                     var attentionPrefix = string.Empty;
                     var enabledMessage = plugIn.Enabled ? "enabled" : "disabled";
-                    var isProblemPlugIn = IsKnownProblemName(KnownProblemPlugInNames, plugIn.Name) && plugIn.Enabled;
+
+                    // Make certain plugin name is unique...
+                    var plugInName = string.IsNullOrEmpty(plugIn.Name) ? "UnnamedPlugin" : plugIn.Name;
+                    for (var sameNameIndex = 2; problemPlugInList.Contains(plugInName); ++sameNameIndex)
+                    {
+                        plugInName = string.Format("{0}_{1}", plugIn.Name, sameNameIndex);
+                    }
+
+                    var isProblemPlugIn = IsKnownProblemName(KnownProblemPlugInNames, plugInName) && plugIn.Enabled;
 
                     if (isProblemPlugIn)
                     {
-                        problemPlugInList.Add(plugIn.Name);
+                        problemPlugInList.Add(plugInName);
                         attentionPrefix = "*** ";
                         enabledMessage = "ENABLED ***PROBLEMATICAL*** PLUGIN";
                     } 
@@ -263,13 +280,41 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     builder.AppendFormat("{0}    {1}{2} v{3} (by {4}): {5}",
                         linePrefix,
                         attentionPrefix,
-                        (string.IsNullOrEmpty(plugIn.Name) ? "UnnamedPlugin" : plugIn.Name),
+                        plugInName,
                         plugIn.Version,
                         (string.IsNullOrEmpty(plugIn.Author) ? "UnknownAuthor" : plugIn.Author),
                         enabledMessage);
                     builder.Append(Environment.NewLine);
                 }
             }
+        }
+
+
+        // Stolen from Talented2
+        private static IEnumerable<TalentPlacement> BuildLearnedTalents()
+        {
+            var talents = new List<TalentPlacement>();
+
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                for (int tierIndex = 0; tierIndex < 6; tierIndex++)
+                {
+                    for (int talentIndex = 1; talentIndex <= 3; talentIndex++)
+                    {
+                        var index = tierIndex * 3 + talentIndex;
+                        var vals = Lua.GetReturnValues("return GetTalentInfo(" + index + ")");
+                        var name = vals[0];
+                        var learned = int.Parse(vals[4]) != 0;
+
+                        if (learned)
+                        {
+                            talents.Add(new TalentPlacement(tierIndex + 1, talentIndex, name));
+                        }
+                    }
+                }
+            }
+
+            return talents;
         }
 
 
@@ -351,6 +396,17 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 GetPlayerFaction(Me)
                 );
             builderInfo.Append(Environment.NewLine);
+            builderInfo.AppendFormat("{0}Specialization: {1}", linePrefix, Me.Specialization);
+            builderInfo.Append(Environment.NewLine);
+            foreach (var talent in BuildLearnedTalents().OrderBy(t => t.Tier))
+            {
+                builderInfo.AppendFormat("{0}    Tier {1}: {2}({3})",
+                    linePrefix,
+                    talent.Tier,
+                    talent.Name,
+                    talent.Index);
+                builderInfo.Append(Environment.NewLine);
+            }
 
             builderInfo.AppendFormat("{0}Location: {1} => {2} => {3} => {4}",
                 linePrefix,
@@ -359,10 +415,15 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 (Me.SubZoneText ?? "noSubZone"),
                 Me.Location);
             builderInfo.Append(Environment.NewLine);
+
             builderInfo.AppendFormat("{0}Profile: {1}", linePrefix, GetCurrentProfileName());
             builderInfo.Append(Environment.NewLine);
             builderInfo.AppendFormat("{0}Combat Routine: {1}", linePrefix, GetCombatRoutineName());
             builderInfo.Append(Environment.NewLine);
+
+            // Quest state...
+            builderInfo.Append(Environment.NewLine);
+            BuildQuestState(builderInfo, linePrefix);
 
 
             // Executable environment info...
@@ -389,11 +450,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             List<string> problemPlugInList;
             builderInfo.Append(Environment.NewLine);
             BuildPluginList(builderInfo, linePrefix, out problemPlugInList);
-
-
-            // Quest state...
-            builderInfo.Append(Environment.NewLine);
-            BuildQuestState(builderInfo, linePrefix);
 
 
             // Warnings & Errors...
@@ -625,7 +681,23 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
             return name;
         }
-        private readonly Regex _regexUiEscape = new Regex(@"\|c[0-9A-Fa-f]{1,8}([^|]*)(\|r)?", RegexOptions.IgnoreCase);
+        private readonly Regex _regexUiEscape = new Regex(@"\|c[0-9A-Fa-f]{1,8}([^|]*)(\s*\|r)?", RegexOptions.IgnoreCase);
+
+
+
+        private class TalentPlacement
+        {
+            public readonly int Tier;
+            public readonly int Index;
+            public readonly string Name;
+
+            public TalentPlacement(int tier, int index, string name)
+            {
+                Tier = tier;
+                Index = index;
+                Name = name;
+            }
+        }
         #endregion
     }
 }
