@@ -98,7 +98,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         }
 
                         // If we have mob aggro, cancel the watchdog timer and allow combat to proceed...
-                        if (SelectedTarget.Aggro)
+                        if (SelectedTarget.Aggro || SelectedTarget.PetAggro)
                         {
                             WatchdogTimer_TimeToEngage = null;
                             return true;

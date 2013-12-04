@@ -9,186 +9,245 @@
 //
 
 #region Summary and Documentation
-#endregion
 
+#endregion
 
 #region Examples
+
 #endregion
 
-
 #region Usings
-using System.Collections.Generic;
-using System.Linq;
 
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Runtime.InteropServices;
 using Honorbuddy.QuestBehaviorCore;
+using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
-#endregion
 
+#endregion
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
 {
     [CustomBehaviorFileName(@"SpecificQuests\25251-LostIsles-FinalConfrontation")]
     public class q25251 : CustomForcedBehavior
-	{
-		public q25251(Dictionary<string, string> args)
-            : base(args)
-		{
-            QBCLog.BehaviorLoggingContext = this;
-		}
-    
-        
-        public static LocalPlayer Me = StyxWoW.Me;
-		static public bool OnCooldown1 { get { return Lua.GetReturnVal<int>("a,b,c=GetActionCooldown(121);if b==0 then return 1 else return 0 end", 0) == 0; } }
-		static public bool OnCooldown2 { get { return Lua.GetReturnVal<int>("a,b,c=GetActionCooldown(122);if b==0 then return 1 else return 0 end", 0) == 0; } }
-		static public bool OnCooldown3 { get { return Lua.GetReturnVal<int>("a,b,c=GetActionCooldown(123);if b==0 then return 1 else return 0 end", 0) == 0; } }
-		WoWPoint startloc = new WoWPoint(2298.823, 2433.5, 26.45126);
-		WoWPoint flyloc = new WoWPoint(2120.643, 2402.012, 49.6927);
-		WoWPoint temploc = new WoWPoint(2400.707, 2532.421, 4.890985);
-        private bool locreached;
-		public List<WoWUnit> objmob
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 39582 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
-		public List<WoWUnit> flylist
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 39592 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
+    {
+
+        private const int QuestId = 25251;
+        private readonly WoWPoint _flyloc = new WoWPoint(2120.643, 2402.012, 49.6927);
+        private readonly WoWPoint _wallyLocation = new WoWPoint(2277.934, 2420.762, 22.582);
+
+        private CircularQueue<WoWPoint> _gallywixPath = new CircularQueue<WoWPoint>()
+                                                        {
+                                                            new WoWPoint(2400.707, 2532.421, 4.890985),
+                                                            new WoWPoint(2298.823, 2433.5, 26.45126)
+                                                        };
+
+        private bool _isBehaviorDone = false;
         private Composite _root;
-        protected override Composite CreateBehavior()
+
+        public q25251(Dictionary<string, string> args)
+            : base(args)
         {
-            return _root ?? (_root =
-                new PrioritySelector(
-
-
-                    new Decorator(ret => Me.QuestLog.GetQuestById(25251) != null && Me.QuestLog.GetQuestById(25251).IsCompleted,
-						new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Finished!"),
-                            new WaitContinue(120,
-                            new Action(delegate
-                            {
-                                _isDone = true;
-                                return RunStatus.Success;
-                            })))),
-                    new Decorator(ret => !Query.IsInVehicle(),
-						new Action(ret =>
-						{
-							if (flylist.Count == 0)
-							{
-								Navigator.MoveTo(flyloc);
-								StyxWoW.Sleep(1000);
-							}
-                            if (flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) > 5)
-							{
-								Navigator.MoveTo(flylist[0].Location);
-								StyxWoW.Sleep(1000);
-							}
-                            if (flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) <= 5)
-							{
-								WoWMovement.MoveStop();
-								flylist[0].Interact();
-								StyxWoW.Sleep(1000);
-							}
-						})),
-                    new Decorator(ret => Query.IsInVehicle(),
-						new Action(ret =>
-						{
-                            if (!Query.IsInVehicle())
-								return RunStatus.Success;
-                            if (Me.QuestLog.GetQuestById(25251).IsCompleted)
-							{
-                                while (Me.Location.Distance(flyloc) > 10)
-								{
-									Navigator.MoveTo(flyloc);
-									StyxWoW.Sleep(1000);
-								}
-								Lua.DoString("VehicleExit()");
-								return RunStatus.Success;
-							}
-							if (objmob.Count == 0)
-							{
-                                if (Me.Location.Distance(temploc) <= 7)
-									locreached = true;
-								if (!locreached)
-								{
-									Navigator.MoveTo(temploc);
-									StyxWoW.Sleep(1000);
-								}
-								else
-								Navigator.MoveTo(startloc);
-								StyxWoW.Sleep(1000);
-							}
-                            if (objmob.Count > 0 && (objmob[0].Location.Distance(Me.Location) > 40 || !objmob[0].InLineOfSight))
-							{
-								
-								objmob[0].Target();
-                                if (Me.Location.Distance(temploc) <= 7)
-									locreached = true;
-								if (!locreached)
-								{
-									Navigator.MoveTo(temploc);
-									StyxWoW.Sleep(1000);
-								}
-								if (locreached)
-								{
-									Navigator.MoveTo(objmob[0].Location);
-									StyxWoW.Sleep(1000);
-								}
-								StyxWoW.Sleep(1000);
-							}
-                            if (objmob.Count > 0 && objmob[0].Location.Distance(Me.Location) <= 40 && objmob[0].InLineOfSight)
-							{
-								WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
-								WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards);
-								objmob[0].Target();
-								objmob[0].Face();
-								if (!OnCooldown3)
-								Lua.DoString("UseAction(123, 'target', 'LeftButton')");
-								if (!OnCooldown2)
-								Lua.DoString("UseAction(122, 'target', 'LeftButton')");
-                                if (!OnCooldown1 && objmob[0].Location.Distance(Me.Location) <= 10)
-								Lua.DoString("UseAction(121, 'target', 'LeftButton')");
-							}
-							return RunStatus.Running;
-						}
-					))
-                )
-			);
+            QBCLog.BehaviorLoggingContext = this;
         }
 
 
-        private bool _isDone;
+        public static LocalPlayer Me
+        {
+            get { return StyxWoW.Me; }
+        }
+
+        public WoWUnit Gallywix
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(u => (u.Entry == 39582 && !u.IsDead));
+            }
+        }
+
+        public WoWUnit Robot
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u => (u.Entry == 39592 && !u.IsDead))
+                    .OrderBy(u => u.DistanceSqr).FirstOrDefault();
+            }
+        }
+
         public override bool IsDone
         {
-            get { return _isDone; }
+            get
+            {
+                return _isBehaviorDone
+                       ||
+                       !UtilIsProgressRequirementsMet(
+                           QuestId,
+                           QuestInLogRequirement.InLog,
+                           QuestCompleteRequirement.NotComplete);
+            }
         }
 
+        protected Composite CreateBehavior_QuestbotMain()
+        {
+            return _root ?? (_root =
+                new Decorator(
+                    ctx => !_isBehaviorDone && Me.IsAlive,
+                    new PrioritySelector(
+                        // If quest is complete then move to a safe place and exit vehicle.
+                        new Decorator(
+                            ctx => Me.QuestLog.GetQuestById(QuestId).IsCompleted,
+                            new PrioritySelector(
+                                new Decorator(
+                                    ctx => Me.Location.DistanceSqr(_flyloc) > 10*10,
+                                    CreateBehavior_VehicleMoveTo(ctx => _flyloc, 5)),
+                                new Sequence(
+                                    new Action(ctx => Lua.DoString("VehicleExit()")),
+                                    new Action(ctx => _isBehaviorDone = true)))),
+                        // Get in a vehicle if not in one.
+                        new Decorator(
+                            ret => !Query.IsInVehicle(),
+                            new PrioritySelector(
+                                ctx => Robot,
+                                new Decorator(ctx => ctx == null, new Action(ctx => Navigator.MoveTo(_flyloc))),
+                                new Decorator(
+                                    ctx => ((WoWUnit) ctx).DistanceSqr > 5*5,
+                                    new Action(ctx => Navigator.MoveTo(((WoWUnit) ctx).Location))),
+                                new Decorator(ctx => Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
+                                new Action(ctx => ((WoWUnit) ctx).Interact()))),
+                        new PrioritySelector(
+                            ctx => Gallywix,
+                            // search for gallywix
+                            new Decorator(
+                                ctx => ctx == null,
+                                new PrioritySelector(
+                                    new Decorator(
+                                        ctx => Me.Location.Distance2DSqr(_gallywixPath.Peek()) < 5*5,
+                                        new Action(ctx => _gallywixPath.Dequeue())),
+                                    CreateBehavior_VehicleMoveTo(ctx => _gallywixPath.Peek(), 5))),
+                            // target
+                            new Decorator(
+                                ctx => Me.CurrentTarget != (WoWUnit) ctx,
+                                new Action(ctx => ((WoWUnit) ctx).Target())),
+                            // Move within range and LOS of Gallywix
+                            new Decorator(
+                                ctx => ((WoWUnit) ctx).DistanceSqr > 40*40
+                                       || !((WoWUnit) ctx).InLineOfSpellSight,
+                                CreateBehavior_VehicleMoveTo(ctx => ((WoWUnit) ctx).Location, 5)),
+                            // stop moving after getting within range and los
+                            new Decorator(ctx => WoWMovement.ActiveMover.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
+                            // face
+                            new Decorator(
+                                ctx => !WoWMovement.ActiveMover.IsSafelyFacing((WoWUnit) ctx),
+                                new Action(ctx => ((WoWUnit) ctx).Face())),
+                            // fire away.
+                            new Decorator(ctx => CanUsePetButton(3), new Action(ctx => UsePetButton(3))),
+                            new Decorator(ctx => CanUsePetButton(2), new Action(ctx => UsePetButton(2))),
+                            new Decorator(ctx => CanUsePetButton(1), new Action(ctx => UsePetButton(1))))))
+                );
+        }
+
+        private Composite CreateBehavior_VehicleMoveTo(Func<object, WoWPoint> locationSelector, float? pathPrecision = null)
+        {
+            var stuckCheckSw = new Stopwatch();
+
+            var lastPoint = WoWPoint.Zero;
+
+            float originalPrecision = Navigator.PathPrecision;
+
+            // normal stuck handler doesn't trigger when in a vehicle.
+            var IsStuck = new Func<bool>(
+                () =>
+                {
+                    var result = false;
+                    if (stuckCheckSw.ElapsedMilliseconds > 2000 || !stuckCheckSw.IsRunning)
+                    {
+                        var activeMover = WoWMovement.ActiveMover;
+                        if (activeMover == null)
+                            return false;
+                        var loc = activeMover.Location;
+                        if (lastPoint != WoWPoint.Zero)
+                        {
+
+                            double myMovementSpeed = activeMover.IsSwimming
+                                ? activeMover.MovementInfo.SwimmingForwardSpeed
+                                : activeMover.MovementInfo.ForwardSpeed;
+                            var expectedDist = myMovementSpeed/stuckCheckSw.Elapsed.TotalSeconds * 0.5;
+                            if (loc.DistanceSqr(lastPoint) < expectedDist*expectedDist)
+                            {
+                                result = true;
+                            }
+                        }
+
+                        lastPoint = loc;
+                        stuckCheckSw.Restart();
+                    }
+                    return result;
+                });
+
+            return new Action(
+                ctx =>
+                {
+                    var result = MoveResult.Failed;
+                    if (IsStuck())
+                    {
+                        Navigator.NavigationProvider.StuckHandler.Unstick();
+                    }
+                    if (pathPrecision.HasValue)
+                    {
+                        originalPrecision = Navigator.PathPrecision;
+                        Navigator.PathPrecision = pathPrecision.Value;
+                    }
+                    try
+                    {
+                       result= Navigator.MoveTo(locationSelector(ctx));
+                    }
+                    finally
+                    {
+                        if (pathPrecision.HasValue)
+                            Navigator.PathPrecision = originalPrecision;
+                    }
+                    return Navigator.GetRunStatusFromMoveResult(result);
+                });
+        }
+
+        private bool CanUsePetButton(int index)
+        {
+            string lua = string.Format("if GetPetActionCooldown({0}) == 0 then return 1 end return 0", index);
+            return Lua.GetReturnVal<int>(lua, 0) == 1;
+        }
+
+        private void UsePetButton(int index)
+        {
+            Lua.DoString("CastPetAction({0})", index);
+        }
 
         public override void OnStart()
         {
             OnStart_HandleAttributeProblem();
             if (!IsDone)
             {
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
                 this.UpdateGoalText(0);
             }
         }
+
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+            base.OnFinished();
+        }
     }
 }
-
