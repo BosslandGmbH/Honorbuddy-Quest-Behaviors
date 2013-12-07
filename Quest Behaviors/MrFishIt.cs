@@ -296,7 +296,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             QBCLog.DeveloperInfo("looting..");
 
             object[] arg = args.Args;
-            if ((string)arg[0] == "0")
+            if ((double)arg[0] == 0)
             {
                 QBCLog.DeveloperInfo("no autoloot");
                 Lua.DoString("for i=1, GetNumLootItems() do LootSlot(i) ConfirmBindOnUse() end CloseLoot()");
