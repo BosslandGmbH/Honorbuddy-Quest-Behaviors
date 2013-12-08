@@ -116,11 +116,20 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         // be ignored if the base addon is disabled.
         private static readonly string[] KnownProblemGameClientAddOnNames =
             {
-                "Bartender4",           // Bartender4: http://www.zygorguides.com/
-                "CollectMe",            // CollectMe: http://www.curse.com/addons/wow/collect_me
-                "ElvUI",                // ElvUI: http://www.tukui.org/dl.php
-                "Tukui",                // TukUI: http://www.tukui.org/dl.php
-                "Zygor Guides Viewer"   // Zygor Guides: http://www.zygorguides.com/
+                // Replaces UI components & events...
+                "Bartender4",           // http://www.curse.com/addons/wow/bartender4/
+                "ElvUI",                // http://www.tukui.org/dl.php
+                "Tukui",                // http://www.tukui.org/dl.php
+                "Zygor Guides Viewer",  // http://www.zygorguides.com/
+
+                // Modifies Tradeskill window...
+                "Auctionator",          // http://www.curse.com/addons/wow/auctionator/
+                "GnomeWorks",           // http://www.wowace.com/addons/gnomeworks/
+                "LilSparky's Workshop", // http://www.wowace.com/addons/lil-sparkys-workshop/
+                "Overachiever",         // http://wow.curseforge.com/addons/overachiever/
+
+                // Deploys Minipets...
+                "CollectMe",            // http://www.curse.com/addons/wow/collect_me
             };
 
         // Match is case-insensitive StartsWith.
