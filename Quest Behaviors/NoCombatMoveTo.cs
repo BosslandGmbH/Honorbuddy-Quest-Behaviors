@@ -28,7 +28,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-
+using Bots.Grind;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -91,6 +91,7 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
         // Private variables for internal state
         private bool _isBehaviorDone;
         private Composite _root;
+	    private BehaviorFlags? _orginalBehaviorFlags;
 
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -137,23 +138,21 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
             if (!IsDone)
             {
                 this.UpdateGoalText(QuestId, "Moving to " + (string.IsNullOrEmpty(DestinationName) ? "Unspecified destination" : DestinationName));
-				Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
+	            _orginalBehaviorFlags = LevelBot.BehaviorFlags;
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Vendor);
             }
         }
 
 	    public override void OnFinished()
 	    {
+		    if (_orginalBehaviorFlags.HasValue)
+			    LevelBot.BehaviorFlags = _orginalBehaviorFlags.Value;
 			this.UpdateGoalText(QuestId);
 		    TreeRoot.StatusText = string.Empty;
-			Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
 	    }
 
 	    #endregion
 
-		void Instance_RemoveTargetsFilter(List<WoWObject> units)
-		{
-			units.RemoveAll(ctx => true);
-		}
     }
 }
 
