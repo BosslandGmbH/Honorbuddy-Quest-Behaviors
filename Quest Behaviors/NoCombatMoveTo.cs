@@ -90,7 +90,6 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
         private Composite _root;
 
         // Private properties
@@ -100,39 +99,7 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
 
-
-        ~NoCombatMoveTo()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        #region Overrides of CustomForcedBehavior
+	    #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
         {
@@ -142,52 +109,11 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
                            new Decorator(ret => Destination.Distance(Me.Location) <= 3,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
+                                    new Action(ctx =>_isBehaviorDone = true))),
 
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
-
-
-                           new Decorator(c => Destination.Distance(Me.Location) > 3,
-                            new Action(c =>
-                            {
-                                if (Destination.Distance(Me.Location) <= 3)
-                                {
-                                    return RunStatus.Success;
-                                }
-                                TreeRoot.StatusText = "Moving To Location - X: " + Destination.X + " Y: " + Destination.Y + " Z: " + Destination.Z;
-
-                                WoWPoint[] pathtoDest1 = Navigator.GeneratePath(Me.Location, Destination);
-
-                                foreach (WoWPoint p in pathtoDest1)
-                                {
-                                    while (!Me.IsDead && p.Distance(Me.Location) > 2)
-                                    {
-                                        StyxWoW.Sleep(100);
-                                        WoWMovement.ClickToMove(p);
-                                    }
-
-                                    if(Me.IsDead)
-                                        return RunStatus.Success;
-                                }
-
-
-                                return RunStatus.Running;
-                            }))
+						  new Action(ctx => Navigator.MoveTo(Destination))
                     ));
         }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
 
         public override bool IsDone
         {
@@ -211,10 +137,23 @@ namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
             if (!IsDone)
             {
                 this.UpdateGoalText(QuestId, "Moving to " + (string.IsNullOrEmpty(DestinationName) ? "Unspecified destination" : DestinationName));
+				Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
             }
         }
 
-        #endregion
+	    public override void OnFinished()
+	    {
+			this.UpdateGoalText(QuestId);
+		    TreeRoot.StatusText = string.Empty;
+			Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+	    }
+
+	    #endregion
+
+		void Instance_RemoveTargetsFilter(List<WoWObject> units)
+		{
+			units.RemoveAll(ctx => true);
+		}
     }
 }
 
