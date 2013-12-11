@@ -201,7 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             EmitStateInfo();
 
             // Unhook the bot stop handler...
-            BotEvents.OnBotStop += BotEvents_OnBotStop;
+            BotEvents.OnBotStop -= BotEvents_OnBotStop;
             _isBotStopHooked = false;
         }
 
