@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -30,7 +30,7 @@ using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-
+using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
 #endregion
 
@@ -39,8 +39,9 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 {
     [CustomBehaviorFileName(@"PerformTradeskillOn")]
     class PerformTradeskillOn : CustomForcedBehavior
-    {
-        public PerformTradeskillOn(Dictionary<string, string> args)
+	{
+		#region Constructor and Argument Processing
+		public PerformTradeskillOn(Dictionary<string, string> args)
             : base(args)
         {
             QBCLog.BehaviorLoggingContext = this;
@@ -54,7 +55,7 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
                 QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
                 QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-                CastOnItemId = GetAttributeAsNullable<int>("CastOnItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                CastOnItemId = GetAttributeAsNullable<int>("CastOnItemId", false, ConstrainAs.ItemId, null) ;
                 NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, new[] { "NumTimes" }) ?? 1;
                 TradeSkillId = GetAttributeAsNullable<int>("TradeSkillId", true, ConstrainAs.SpellId, null) ?? 0;
                 TradeSkillItemId = GetAttributeAsNullable<int>("TradeSkillItemId", true, ConstrainAs.ItemId, null) ?? 0;
@@ -72,7 +73,6 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
             }
         }
 
-
         // Attributes provided by caller
         public int? CastOnItemId { get; private set; }  /// If set, an item ID to cast the trade skill on.
         public int NumOfTimes { get; private set; }
@@ -81,120 +81,111 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public int TradeSkillId { get; private set; }
         public int TradeSkillItemId { get; private set; }  // Identifier for the trade skill item. E.g; the actual 'item' we use from the tradeskill window.
-
+		 #endregion
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
-
+	    private WoWSpell _tradeskillSpell;
+	    private bool _isTradeskillOpen;
+	    private int _numOfCasts;
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-        ~PerformTradeskillOn()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        private void PerformTradeSkill()
-        {
-            Lua.DoString("DoTradeSkill(" + GetTradeSkillIndex() + ", " + (NumOfTimes == 0 ? 1 : NumOfTimes) + ")");
-            StyxWoW.Sleep(500);
-
-            if (CastOnItemId.HasValue)
-            {
-                var item = StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value);
-                if (item == null)
-                {
-                    QBCLog.Fatal("Could not find ItemId({0}).", CastOnItemId.Value);
-                    return;
-                }
-                item.Use();
-                StyxWoW.Sleep(500);
-            }
-
-            if (Lua.GetReturnVal<bool>("return StaticPopup1:IsVisible()", 0))
-                Lua.DoString("StaticPopup1Button1:Click()");
-
-            StyxWoW.Sleep(500);
-
-            while (StyxWoW.Me.IsCasting)
-            {
-                StyxWoW.Sleep(100);
-            }
-
-            _isBehaviorDone = true;
-        }
-
+   
+	    public override void OnFinished()
+	    {
+			Lua.Events.DetachEvent("TRADE_SKILL_SHOW", OnTradeSkillOpen);
+			Lua.Events.DetachEvent("TRADE_SKILL_CLOSE", OnTradeSkillClose);
+			TreeRoot.GoalText = string.Empty;
+			TreeRoot.StatusText = string.Empty;
+	    }
 
         private Composite CreateTradeSkillCast()
         {
             return
                 new PrioritySelector(
-                    new Decorator(ret => Lua.GetReturnVal<bool>("return StaticPopup1:IsVisible()", 0),
-                        new Action(ret => Lua.DoString("StaticPopup1Button1:Click()"))
-                    ),
+					new Decorator(ctx => _numOfCasts >= NumOfTimes, new Action(ctx => _isBehaviorDone = true)),
 
-                    new Decorator(ret => !Lua.GetReturnVal<bool>("return TradeSkillFrame:IsVisible()", 0),
-                        new Action(ret => WoWSpell.FromId((int)TradeSkillId).Cast())),
+					new Decorator(ret => !IsTradeskillFrameShown,
+						new Sequence(
+							new Action(ctx => _tradeskillSpell.Cast()),
+							new Sleep(1000))),
 
                     new Decorator(ret => StyxWoW.Me.IsCasting,
                         new ActionAlwaysSucceed()),
 
-                new Action(ret => PerformTradeSkill()));
+					new Sequence( ctx => GetTradeSkillIndex(),
+
+						// check we have the material to craft recipe
+						new DecoratorContinue(ctx => GetMaxRepeat((int)ctx) == 0,
+							new Action(
+								ctx =>
+								{
+									_isBehaviorDone = true;
+									return RunStatus.Failure;
+								})),
+
+						new Action(ctx => Lua.DoString("DoTradeSkill({0}, {1})", (int)ctx, 1)),
+						new WaitContinue(TimeSpan.FromMilliseconds(500), ctx => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()),
+
+						new DecoratorContinue(ctx => CastOnItemId.HasValue,
+							new Sequence( ctx =>  StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value),
+								new DecoratorContinue(ctx => ctx == null, 
+									new Action(ctx => QBCLog.Fatal("Could not find ItemId({0}).", CastOnItemId.Value))),
+								new Action(ctx => ((WoWItem)ctx ).Use()),
+								new WaitContinue(TimeSpan.FromMilliseconds(500), ctx => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()))),
+
+						new DecoratorContinue(ctx => Lua.GetReturnVal<bool>("return StaticPopup1:IsVisible()", 0),
+							new Sequence(
+								new Action(ctx => Lua.DoString("StaticPopup1Button1:Click()")),
+								new WaitContinue(TimeSpan.FromMilliseconds(500), ctx => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()))),
+
+						new Action(ctx => _numOfCasts++),
+							// wait for cast to finish.
+						new WaitContinue(TimeSpan.FromMilliseconds(3000), ctx => !StyxWoW.Me.IsCasting, new ActionAlwaysSucceed())));
         }
 
+	    int GetMaxRepeat(int index)
+	    {
+		    var lua = string.Format("return GetTradeSkillInfo({0})", index);
+		    return Lua.GetReturnVal<int>(lua, 2);
+	    }
 
         private int GetTradeSkillIndex()
         {
-                int count = Lua.GetReturnVal<int>("return GetNumTradeSkills()", 0);
+                var count = Lua.GetReturnVal<int>("return GetNumTradeSkills()", 0);
                 for (int i = 1; i <= count; i++)
                 {
-                    string link = Lua.GetReturnVal<string>("return GetTradeSkillItemLink(" + i + ")", 0);
+                    var link = Lua.GetReturnVal<string>("return GetTradeSkillItemLink(" + i + ")", 0);
 
                     // Make sure it's not a category!
                     if (string.IsNullOrEmpty(link))
                     {
                         continue;
                     }
+					/* below are 2 examples of links. the 1st link has a spell ID and the second a item ID)
+						|cffffd000|Henchant:7428|h[Enchant Bracer - Minor Dodge]|h|r
+						|cffffffff|Hitem:6218:0:0:0:0:0:0:0:90:0:0|h[Runed Copper Rod]|h|r
+					 */
+	                bool createsItem = link.Contains("|Hitem:");
+					link = link.Remove(0, link.IndexOf(':') + 1);
+	                link = link.Remove(link.IndexOf(':') != -1 ? link.IndexOf(':') : link.IndexOf('|'));
 
-                    link = link.Remove(0, link.IndexOf(':') + 1);
-                    if (link.IndexOf(':') != -1)
-                        link = link.Remove(link.IndexOf(':'));
-                    else
-                        link = link.Remove(link.IndexOf('|'));
+	                int id = int.Parse(link);
+					// 
 
-                    int id = int.Parse(link);
-
-                    QBCLog.DeveloperInfo("ID: " + id + " at " + i + " - " + WoWSpell.FromId(id).Name);
-
+					if (createsItem)
+					{
+						var item = ItemInfo.FromId((uint)id);
+						if (item != null)
+							QBCLog.DeveloperInfo(string.Format("ItemID: {0} at {1} - {2}", id, i, item.Name));
+					}
+					else
+					{
+						var spell = WoWSpell.FromId(id);
+						if (spell != null)
+  							QBCLog.DeveloperInfo(string.Format("SpellID: {0} at {1} - {2} ", id, i, spell.Name));	
+					}
                     if (id == TradeSkillItemId)
                         return i;
                 }
@@ -202,6 +193,13 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
             return 0;
         }
 
+	    bool IsTradeskillFrameShown
+	    {
+		    get
+		    {
+				return Lua.GetReturnVal<bool>("return TradeSkillFrame:IsVisible()", 0) || _isTradeskillOpen;
+		    }
+	    }
 
         #region Overrides of CustomForcedBehavior
 
@@ -213,14 +211,6 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 
                 CreateTradeSkillCast());
         }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
 
         public override bool IsDone
         {
@@ -234,6 +224,11 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 
         public override void OnStart()
         {
+	        _tradeskillSpell = WoWSpell.FromId(TradeSkillId);
+	        if (_tradeskillSpell == null)
+	        {
+				QBCLog.ProfileError("TradeSkillId {0} is not a valid spell Id.", TradeSkillId);
+	        }
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
@@ -243,10 +238,23 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
+				Lua.Events.AttachEvent("TRADE_SKILL_SHOW", OnTradeSkillOpen);
+				Lua.Events.AttachEvent("TRADE_SKILL_CLOSE", OnTradeSkillClose);
+				// make sure we start with tradeskill frame closed to ensure the correct tradeskill window is opened.
+				Lua.DoString("CloseTradeSkill()");
                 this.UpdateGoalText(QuestId);
             }
         }
 
-        #endregion
+	    private void OnTradeSkillOpen(object sender, LuaEventArgs args)
+	    {
+		    _isTradeskillOpen = true;
+	    }
+
+		private void OnTradeSkillClose(object sender, LuaEventArgs args)
+		{
+			_isTradeskillOpen = false;
+		}
+	    #endregion
     }
 }
