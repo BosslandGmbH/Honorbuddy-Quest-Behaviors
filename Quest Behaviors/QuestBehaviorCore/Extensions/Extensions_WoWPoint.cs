@@ -259,6 +259,76 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         /// <summary>
+        /// Returns the time it takes to traverse to the DESTINATION.  The caller
+        /// can supply a FACTOROFSAFETY that acts as a multiplier on the calculated time.
+        /// The caller can provide a LOWERLIMITOFMAXTIME to place a minimum bound on the
+        /// traversal time returned.
+        /// The caller can provide UPPERLIMITONMAXTIME to place an upper bound on the
+        /// traversal time calculated.
+        /// <para>Notes:<list type="bullet">
+        /// <item><description><para> * If we are on the ground, the traversal time is calculated
+        /// based on the ground path to the destination.  This may require navigating around obstacles,
+        /// or via a particular path to the destination.  If we are swimming or flying, the the
+        /// travesal time is calculated as straight line-of-sight to the destination.</para></description></item>
+        /// <item><description><para> * The FACTOROFSAFETY defaults to 1.0.  The 1.0 value calculates
+        /// the precise time needed to arrive at the destination if everything goes perfect.
+        /// The factor of safety should be increased to accomodate 'stuck' situations, mounting
+        /// time, and other factors.  In most situations, a good value for factor of safety
+        /// is about 2.5.</para></description></item>
+        /// <item><description><para> * The LOWERLIMITOFMAXTIME places a lower bound on the
+        /// traversal time.  This lower limit is imposed after the factor of safety has
+        /// been applied.</para></description></item>
+        /// <item><description><para> * The UPPERLIMITONMAXTIME places an upper bound on the
+        /// traversal time.  This upper limit is imposed after the factor of safety has
+        /// been applied.  We can get times that are effectively 'infinite' in situations 
+        /// where the Navigator was unable to calculate a path to the target.  This puts
+        /// an upper limit on such bogus values.</para></description></item>
+        /// </list></para>
+        /// </summary>
+        /// <param name="destination"></param>
+        /// <param name="factorOfSafety"></param>
+        /// <param name="lowerLimitOnMaxTime"></param>
+        /// <param name="upperLimitOnMaxTime"></param>
+        /// <returns></returns>
+        public static TimeSpan MaximumTraversalTime(this WoWPoint destination,
+                                                    double factorOfSafety = 1.0,
+                                                    TimeSpan? lowerLimitOnMaxTime = null,
+                                                    TimeSpan? upperLimitOnMaxTime = null)
+        {
+            lowerLimitOnMaxTime = lowerLimitOnMaxTime ?? TimeSpan.Zero;
+
+            var isFlying = WoWMovement.ActiveMover.IsFlying;
+            var isSwimming = WoWMovement.ActiveMover.IsSwimming;
+
+            var distanceToCover =
+                (isSwimming || isFlying)
+                ? WoWMovement.ActiveMover.Location.Distance(destination)
+                : Me.Location.SurfacePathDistance(destination);
+
+            // these speeds have been verified.
+            double myMovementSpeed =
+                isSwimming ? Me.MovementInfo.SwimmingForwardSpeed
+                : isFlying ? Me.MovementInfo.FlyingForwardSpeed
+                : Me.MovementInfo.ForwardSpeed;
+
+            double timeToDestination = distanceToCover / myMovementSpeed;
+
+            timeToDestination *= factorOfSafety;
+
+            // Impose hard lower limit...
+            timeToDestination = Math.Max(timeToDestination, lowerLimitOnMaxTime.Value.TotalSeconds);
+
+            // Impose upper limit on the maximum time to reach the destination...
+            // NB: We can get times that are effectively 'infinite' in situations where the Navigator
+            // was unable to calculate a path to the target.  This puts an upper limit on such
+            // bogus values.
+            if (upperLimitOnMaxTime.HasValue)
+                { timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime.Value.TotalSeconds); }
+
+            return (TimeSpan.FromSeconds(timeToDestination));
+        }
+
+        /// <summary>
         /// Calculates the distance between START and DESTINATION if the travel must be conducted
         /// over a surface (i.e., instead of flying).  This is most helpful in tunnels where a mob
         /// can be within X feet of you, but above or below you.  For such mobs, the direct distance

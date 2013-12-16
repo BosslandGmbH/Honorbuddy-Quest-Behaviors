@@ -141,7 +141,7 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public abstract partial class QuestBehaviorBase : CustomForcedBehavior
     {
-        #region Consructor and Argument Processing
+        #region Constructor and Argument Processing
         protected QuestBehaviorBase(Dictionary<string, string> args)
             : base(args)
         {
@@ -212,14 +212,12 @@ namespace Honorbuddy.QuestBehaviorCore
         private Composite _behaviorTreeHook_DeathMain;
         private Composite _behaviorTreeHook_QuestbotMain;
         private Composite _behaviorTreeHook_Main;
-        private ConfigMemento _mementoSettings;
+        private ConfigMemento _configMemento;
         private bool _isBehaviorDone;
         private AvoidMobsType _temporaryAvoidMobs;
         private BlackspotsType _temporaryBlackspots;
 
-        protected bool IsDisposed { get; private set; }
-        protected BehaviorFlags? LevelBotOriginalValue_BehaviorFlags;
-        protected bool? LevelBotOriginalValue_ShouldUseSpiritHealer;
+        protected bool IsOnFinishedRun { get; private set; }
         public static LocalPlayer Me { get { return StyxWoW.Me; } }
         public static readonly Random _random = new Random((int)DateTime.Now.Ticks);
         
@@ -227,30 +225,37 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Destructor, Dispose, and cleanup
-        ~QuestBehaviorBase()
+        #endregion
+
+
+        #region Overrides of CustomForcedBehavior
+
+        protected sealed override Composite CreateBehavior()
         {
-            Dispose(false);
+            return _behaviorTreeHook_Main
+                ?? (_behaviorTreeHook_Main = new ExceptionCatchingWrapper(this, CreateMainBehavior()));
+        }
+
+
+        public sealed override bool IsDone
+        {
+            get
+            { 
+                return _isBehaviorDone     // normal completion
+                        || TerminateWhen()
+                        || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
+                        || (TerminationChecksQuestProgress
+                            && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
         }
 
 
         // 24Feb2013-08:10UTC chinajade
-        protected virtual void Dispose(bool isExplicitlyInitiatedDispose)
+        public override void OnFinished()
         {
-            if (!IsDisposed)
+            // Defend against being called multiple times (just in case)...
+            if (!IsOnFinishedRun)
             {
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
-
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-
                 if (Targeting.Instance != null)
                 {
                     Targeting.Instance.IncludeTargetsFilter -= TargetFilter_IncludeTargets;
@@ -262,29 +267,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 // NB: we don't unhook _behaviorTreeHook_Main
                 // This was installed when HB created the behavior, and its up to HB to unhook it
 
-                if (_behaviorTreeHook_CombatMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-                    _behaviorTreeHook_CombatMain = null;
-                }
-
-                if (_behaviorTreeHook_CombatOnly != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
-                    _behaviorTreeHook_CombatOnly = null;
-                }
-
-                if (_behaviorTreeHook_DeathMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-                    _behaviorTreeHook_DeathMain = null;
-                }
-
-                if (_behaviorTreeHook_QuestbotMain != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", _behaviorTreeHook_QuestbotMain);
-                    _behaviorTreeHook_DeathMain = null;
-                }
+                BehaviorHookRemove("Combat_Main", ref _behaviorTreeHook_CombatMain);
+                BehaviorHookRemove("Combat_Only", ref _behaviorTreeHook_CombatOnly);
+                BehaviorHookRemove("Death_Main", ref _behaviorTreeHook_DeathMain);
+                BehaviorHookRemove("Questbot_Main", ref _behaviorTreeHook_QuestbotMain);
 
                 // Remove temporary 'avoid mobs'...
                 if (_temporaryAvoidMobs != null)
@@ -301,25 +287,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 }
 
                 // Restore configuration...
-                if (_mementoSettings != null)
+                if (_configMemento != null)
                 {
-                    _mementoSettings.Dispose();
-                    _mementoSettings = null;
-                }
-
-                // Restore Levelbot settings...
-                // If the flags haven't changed, don't bother restoring.  This will prevent HBcore from generating
-                // 'noise' messages to the log.
-                if (LevelBotOriginalValue_BehaviorFlags.HasValue && (LevelBotOriginalValue_BehaviorFlags.Value != LevelBot.BehaviorFlags))
-                {
-                    LevelBot.BehaviorFlags = LevelBotOriginalValue_BehaviorFlags.Value;
-                    LevelBotOriginalValue_BehaviorFlags = null;
-                }
-
-                if (LevelBotOriginalValue_ShouldUseSpiritHealer.HasValue && (LevelBotOriginalValue_ShouldUseSpiritHealer.Value != LevelBot.ShouldUseSpiritHealer))
-                {
-                    LevelBot.ShouldUseSpiritHealer = LevelBotOriginalValue_ShouldUseSpiritHealer.Value;
-                    LevelBotOriginalValue_ShouldUseSpiritHealer = null;
+                    _configMemento.Dispose();
+                    _configMemento = null;
                 }
 
                 TreeRoot.GoalText = string.Empty;
@@ -332,46 +303,9 @@ namespace Honorbuddy.QuestBehaviorCore
                     QBCLog.DeveloperInfo("Behavior completed in {0}", Utility.PrettyTime(_behaviorRunTimer.Elapsed));
                 }
 
+                base.OnFinished();
                 QBCLog.BehaviorLoggingContext = null;
-                base.Dispose();
-            }
-
-            IsDisposed = true;
-        }
-
-
-        private void BotEvents_OnBotStop(EventArgs args)
-        {
-            Dispose();
-        }
-        #endregion
-
-
-        #region Overrides of CustomForcedBehavior
-
-        protected sealed override Composite CreateBehavior()
-        {
-            return _behaviorTreeHook_Main
-                ?? (_behaviorTreeHook_Main = new ExceptionCatchingWrapper(this, CreateMainBehavior()));
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public sealed override bool IsDone
-        {
-            get
-            { 
-                return _isBehaviorDone     // normal completion
-                        || TerminateWhen()
-                        || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                        || (TerminationChecksQuestProgress
-                            && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                IsOnFinishedRun = true;
             }
         }
 
@@ -422,6 +356,8 @@ namespace Honorbuddy.QuestBehaviorCore
             // check them here to see if we even need to start the behavior.
             if (!(IsDone || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)))
             {
+                this.UpdateGoalText(QuestId, extraGoalTextDescription);
+
                 // Start the timer to measure the behavior run time...
                 _behaviorRunTimer.Restart();
 
@@ -432,9 +368,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     AudibleNotifyOn(true);
                 }
 
-                _mementoSettings = new ConfigMemento();
-
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                _configMemento = new ConfigMemento();
 
                 if (Targeting.Instance != null)
                 {
@@ -460,16 +394,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 _temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
                 BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
 
-                this.UpdateGoalText(QuestId, extraGoalTextDescription);
-
-                _behaviorTreeHook_CombatMain = new ExceptionCatchingWrapper(this, CreateBehavior_CombatMain());
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatOnly = new ExceptionCatchingWrapper(this, CreateBehavior_CombatOnly());
-                TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_DeathMain = new ExceptionCatchingWrapper(this, CreateBehavior_DeathMain());
-                TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
-                _behaviorTreeHook_QuestbotMain = new ExceptionCatchingWrapper(this, CreateBehavior_QuestbotMain());
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, _behaviorTreeHook_QuestbotMain);
+                _behaviorTreeHook_CombatMain = BehaviorHookInstall("Combat_Main", CreateBehavior_CombatMain());
+                _behaviorTreeHook_CombatOnly = BehaviorHookInstall("Combat_Only", CreateBehavior_CombatOnly());
+                _behaviorTreeHook_DeathMain = BehaviorHookInstall("Death_Main", CreateBehavior_DeathMain());
+                _behaviorTreeHook_QuestbotMain = BehaviorHookInstall("Questbot_Main", CreateBehavior_QuestbotMain());
 
                 return true;    // behavior should run
             }
@@ -485,6 +413,31 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 QBCLog.DeveloperInfo("{0} behavior complete.  {1}", GetType().Name, (extraMessage ?? string.Empty));
                 _isBehaviorDone = true;
+            }
+        }
+
+
+        // Only installs behaviors the concrete class has defined...
+        private Composite BehaviorHookInstall(string behaviorHookName, Composite behavior)
+        {
+            if (behavior != null)
+            {
+                behavior = new ExceptionCatchingWrapper(this, behavior);
+                TreeHooks.Instance.InsertHook(behaviorHookName, 0, behavior);
+            }
+
+            return behavior;
+        }
+
+
+        // Remove a specific installed behavior...
+        // NB: it nulls the behavior, after it has been detached.
+        private void BehaviorHookRemove(string behaviorHookName, ref Composite behavior)
+        {
+            if (behavior != null)
+            {
+                TreeHooks.Instance.RemoveHook(behaviorHookName, behavior);
+                behavior = null;
             }
         }
 
@@ -626,33 +579,25 @@ namespace Honorbuddy.QuestBehaviorCore
         #region Main Behaviors
         protected virtual Composite CreateBehavior_CombatMain()
         {
-            return new PrioritySelector(
-                // empty, for now...
-                );
+            return null;
         }
 
 
         protected virtual Composite CreateBehavior_CombatOnly()
         {
-            return new PrioritySelector(
-                // empty, for now...
-                );
+            return null;
         }
 
 
         protected virtual Composite CreateBehavior_DeathMain()
         {
-            return new PrioritySelector(
-                // empty, for now...
-                );
+            return null;
         }
 
 
         protected virtual Composite CreateBehavior_QuestbotMain()
         {
-            return new PrioritySelector(
-                // empty, for now...
-                );
+            return null;
         }
 
 

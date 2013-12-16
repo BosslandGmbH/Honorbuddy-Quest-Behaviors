@@ -28,11 +28,11 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
-using CommonBehaviors.Actions;
+using Bots.Grind;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -49,35 +49,18 @@ using Vector3 = Tripper.Tools.Math.Vector3;
 namespace Honorbuddy.Quest_Behaviors.MyCTM
 {
     [CustomBehaviorFileName(@"MyCTM")]
-    public class MyCTM : CustomForcedBehavior
+    public class MyCTM : QuestBehaviorBase
     {
-        private static Random _rnd = new Random();
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-        private WaitTimer _runTimer;
-
+        #region Constructor and Argument Processing
         public MyCTM(Dictionary<string, string> args) : base(args)
         {
             QBCLog.BehaviorLoggingContext = this;
 
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
                 DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] {"Name"}) ?? "";
-                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??
-                              WoWPoint.Empty;
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete =
-                    GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ??
-                    QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog =
-                    GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ??
-                    QuestInLogRequirement.InLog;
-                UseRealitiveLocation = GetAttributeAsNullable<bool>("UseRelative", false, null, new[] {"useRelative"}) ??
-                                       false;
+                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                UseRelativeLocation = GetAttributeAsNullable<bool>("UseRelative", false, null, new[] {"useRelative"}) ?? false;
 
                 OrigDestination = Destination;
 
@@ -100,310 +83,260 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         }
 
 
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+
+
         // Attributes provided by caller
-        public string DestinationName { get; private set; }
-        public WoWPoint OrigDestination { get; private set; }
-        public WoWPoint Destination { get; private set; }
-        public int QuestId { get; private set; }
-        public bool UseRealitiveLocation { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private WoWPoint Destination { get; set; }
+        private string DestinationName { get; set; }
+        private WoWPoint OrigDestination { get; set; }
+        private bool UseRelativeLocation { get; set; }
+        #endregion
 
-        // Private variables for internal state
+
+        #region Private and Convenience variables
+        private WoWMovement.MovementDirection _antiStuckMoveDirection = WoWMovement.MovementDirection.None;
+        private WoWPoint _antiStuckMyLoc = WoWPoint.Empty;
+        private bool _antiStuckPerformSimpleSequence = false;
+        private WoWPoint _antiStuckPrevPosition = WoWPoint.Empty;
+        private readonly WaitTimer _antiStuckStuckSucceedTimer = new WaitTimer(TimeSpan.FromSeconds(6));
+        private WaitTimer _runTimer;
         readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
-        // Private properties
+        #endregion
 
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
 
+        #region Overrides of CustomForcedBehavior
         // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
+        
+        public override void OnStart()
         {
-            get { return ("$Id$"); }
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore("CTMoving to " + DestinationName);
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                // Disable any settings that may cause us to dismount --
+                // When we mount for travel via FlyTo, we don't want to be distracted by other things.
+                // NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
+                // normal values when OnFinished() is called.
+                LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
+
+                Navigator.NavigationProvider.StuckHandler.Reset();
+            }
+        }
+        #endregion
+
+
+        #region Main Behaviors
+        protected override Composite CreateBehavior_CombatMain()
+        {
+            return new PrioritySelector(
+                new Decorator(context => !IsDone && !Me.IsActuallyInCombat,
+                    new PrioritySelector(
+
+                        // Update Location if relative coord is used...
+                        // N.B. Relative locations are only used while on transports and because
+                        // transports are usually moving around 'Location' needs to be updated on every frame.
+                        new Decorator(context => UseRelativeLocation,
+                            new Action(context => Destination = CalculateRelativeLocation(OrigDestination))),
+
+                        // Initialize the timer...
+                        new Decorator(context => _runTimer == null,
+                            new Action(context =>
+                            {
+                                _runTimer = new WaitTimer(Destination.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
+                                QBCLog.DeveloperInfo("Maximum allowed time to reach destination: {0} seconds",
+                                    _runTimer.WaitTime.TotalSeconds);
+                                _runTimer.Reset();
+                                return RunStatus.Failure;
+                            })),
+
+                        // Stop HB if _runTimer finishes...
+                        new Decorator(context => _runTimer.IsFinished,
+                            new Action(context =>
+                                {
+                                    WoWMovement.MoveStop();
+
+                                    // N.B. set the runtimer to null so if player manually correct
+                                    // problem and starts bot up it restarts the timer.
+                                    _runTimer = null;
+
+                                    QBCLog.Fatal("MyCTM is not able to reach {0} from {1}",
+                                        DestinationName,
+                                        WoWMovement.ActiveMover.Location);
+                                })),
+
+                        // Run stuckhandler
+                        CreateBehavior_Antistuck(),
+                        // Default anti-stuck has issues.
+                        // new Decorator(context => Navigator.NavigationProvider.StuckHandler.IsStuck(),
+                        //     new Action(context => Navigator.NavigationProvider.StuckHandler.Unstick())),
+
+                        // check if bot has reached the destination.
+                        new Decorator(context => Destination.DistanceSqr(Me.Location) <= (3 * 3),
+                            new Action(context =>
+                                {
+                                    BehaviorDone(string.Format("Finished moving to {0}", DestinationName));
+
+                                    // Drop down to 'CreateBehavior_PerformCTM' to ensure ctm is performed
+                                    // at least once if start and destination locations are very close on start 
+                                    return RunStatus.Failure;
+                                })),
+                        CreateBehavior_PerformCTM()
+                )),
+
+                // _runTimer needs to be recalculated after combat is over and stuck timer needs to rest.
+                new Decorator(context => Me.IsActuallyInCombat,
+                    new Action(context =>
+                        {
+                            _runTimer = null;
+                            _stuckTimer.Reset();
+                            return RunStatus.Failure;
+                        }))
+            );
+        }
+        #endregion
+
+
+        #region Helpers
+        private Composite CreateBehavior_Antistuck()
+        {
+            return new PrioritySelector(
+                new Decorator(context => _stuckTimer.IsFinished,
+                    new Sequence(context => _antiStuckMyLoc = WoWMovement.ActiveMover.Location,
+
+                        // Check if stuck...
+                        new DecoratorContinue(context => _antiStuckMyLoc.DistanceSqr(_antiStuckPrevPosition) < (3 * 3),
+                            new Sequence(context => _antiStuckPerformSimpleSequence = _antiStuckStuckSucceedTimer.IsFinished,
+                                new DecoratorContinue(context => Me.IsMounted() && !Me.IsFlying,
+                                    new Action(context => Mount.Dismount("Stuck"))),
+
+                                // Perform simple unstuck proceedure...
+                                new DecoratorContinue(context => _antiStuckPerformSimpleSequence,
+                                    new Sequence(
+                                        new Action(context => QBCLog.Debug("Stuck. Trying to jump")),
+                                        new Action(context =>
+                                        {
+                                            // ensure bot is moving forward when jumping (Wow will sometimes automatically
+                                            // stop moving if running against a wall)
+                                            if (ShouldPerformCTM)
+                                                WoWMovement.ClickToMove(Destination);
+                                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+                                        }),
+                                        new Sleep(1000),
+                                        new Action(context => WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend))
+                                    )),
+
+                                // perform less simple unstuck proceedure
+                                new DecoratorContinue(context => !_antiStuckPerformSimpleSequence,
+                                    new Sequence(context => _antiStuckMoveDirection = GetRandomMovementDirection(),
+                                        new Action(context => QBCLog.Debug("Stuck. Movement Directions: {0}", _antiStuckMoveDirection)),
+                                        new Action(context => WoWMovement.Move(_antiStuckMoveDirection)),
+                                        new Sleep(2000),
+                                        new Action(context => WoWMovement.MoveStop(_antiStuckMoveDirection)))),
+
+                                new Action(context => _antiStuckStuckSucceedTimer.Reset()))),
+
+                        new Action(context => _antiStuckPrevPosition = _antiStuckMyLoc),
+                        new Action(context => _stuckTimer.Reset())
+                    )));
         }
 
-        public override string SubversionRevision
+
+        private Composite CreateBehavior_PerformCTM()
         {
-            get { return ("$Revision$"); }
+            // CTM only if not moving or current ctm position isn't our destination.
+            return new Decorator(context => ShouldPerformCTM,
+                new Sequence(
+                    new Action(ctx => WoWMovement.ClickToMove(Destination)),
+                    new Sleep(100)));
         }
+
+        
+        private WoWMovement.MovementDirection GetRandomMovementDirection()
+        {
+            // randomly move left or ritht
+            WoWMovement.MovementDirection randomDirection = 
+                (_random.Next(2) == 0)
+                ? WoWMovement.MovementDirection.StrafeLeft
+                : WoWMovement.MovementDirection.StrafeRight;
+
+            // randomly choose to go diagonal backwords + left or right
+            if (_random.Next(2) == 0)
+                randomDirection |= WoWMovement.MovementDirection.Backwards;
+
+            // randomly choose to jump (or descend if flying or swimming)
+            if (_random.Next(2) == 0)
+            {
+                var activeMover = WoWMovement.ActiveMover;
+                if (activeMover.IsFlying || activeMover.IsSwimming)
+                {
+                    randomDirection |= 
+                        (_random.Next(2) == 0)
+                        ? WoWMovement.MovementDirection.JumpAscend
+                        : WoWMovement.MovementDirection.Descend;
+                }
+                else
+                {
+                    randomDirection |= WoWMovement.MovementDirection.JumpAscend;
+                }
+            }
+            return randomDirection;
+        }
+
+
+        private WoWPoint CalculateRelativeLocation(WoWPoint origDestination)
+        {
+            return Vector3.Transform(origDestination, Me.Transport.GetWorldMatrix());
+        }
+
 
         private bool ShouldPerformCTM
         {
             get
             {
                 return !WoWMovement.ActiveMover.IsMoving ||
-                       WoWMovement.ClickToMoveInfo.ClickPos.DistanceSqr(Destination) > 0.5*0.5;
+                       WoWMovement.ClickToMoveInfo.ClickPos.DistanceSqr(Destination) > (0.5 * 0.5);
             }
         }
-
-
-        ~MyCTM()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-        private RunStatus UpdateRelativeLocation()
-        {
-            Vector3 worldLoc = Vector3.Transform(OrigDestination, Me.Transport.GetWorldMatrix());
-            Destination = worldLoc;
-            // return failure so behavior drops down
-            return RunStatus.Failure;
-        }
-
-        private TimeSpan CalculateMaxRuntime(WoWPoint destination)
-        {
-            const double upperLimitOnMaxTime = 3 /*mins*/*60 /*secs*/;
-            // these speeds have been verified.
-            double myMovementSpeed = Me.IsSwimming
-                ? Me.MovementInfo.SwimmingForwardSpeed
-                : Me.IsFlying ? Me.MovementInfo.FlyingForwardSpeed : Me.MovementInfo.ForwardSpeed;
-            var distanceToCover = WoWMovement.ActiveMover.Location.Distance(destination);
-
-            double timeToDestination = distanceToCover / myMovementSpeed;
-
-            timeToDestination = Math.Max(timeToDestination, 15.0); // 15sec hard lower limit
-            timeToDestination *= 2.5; // factor of safety
-
-            // Place an upper limit on the maximum time to reach the destination...
-            // NB: We can get times that are effectively 'infinite' in situations where the Navigator
-            // was unable to calculate a path to the target.  This puts an upper limit on such
-            // bogus values.
-            timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime);
-
-            return (TimeSpan.FromSeconds(timeToDestination));
-        }
-
-        protected Composite CreateBehavior_PerformCTM()
-        {
-            // CTM only if not moving or current ctm position isn't our destination.
-            return
-                new Decorator(
-                    ctx => ShouldPerformCTM,
-                    new Sequence(
-                        new Action(ctx => WoWMovement.ClickToMove(Destination)),
-                        new Sleep(100)));
-        }
-
-        protected Composite CreateBehavior_Antistuck()
-        {
-            var stuckSucceedTimer = new WaitTimer(TimeSpan.FromSeconds(6));
-
-            var prevPosition = WoWPoint.Empty;
-            WoWPoint myLoc = WoWPoint.Empty;
-            bool performSimpleSequence = false;
-            var moveDirection = WoWMovement.MovementDirection.None;
-
-            return new PrioritySelector(
-                new Decorator(
-                    ctx => _stuckTimer.IsFinished,
-
-                    new Sequence(
-                        ctx => myLoc = WoWMovement.ActiveMover.Location,
-
-                        // checks if stuck
-                        new DecoratorContinue(
-                            ctx => myLoc.DistanceSqr(prevPosition) < 3*3,
-                            new Sequence(
-                                ctx => performSimpleSequence = stuckSucceedTimer.IsFinished,
-
-                                new DecoratorContinue(
-                                    ctx => Me.IsMounted() && !Me.IsFlying,
-                                    new Action(ctx => Mount.Dismount("Stuck"))),
-
-                                // perform simple unstuck proceedure
-                                new DecoratorContinue(
-                                    ctx => performSimpleSequence,
-                                    new Sequence(
-                                        new Action(ctx => QBCLog.Debug("Stuck. Trying to jump")),
-                                        new Action(
-                                            ctx =>
-                                            {
-                                                // ensure bot is moving forward when jumping (Wow will sometimes automatically stop moving if running against a wall)
-                                                if (ShouldPerformCTM)
-                                                    WoWMovement.ClickToMove(Destination);
-                                                WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-                                            }),
-                                        new WaitContinue(1, ctx => false, new ActionAlwaysSucceed()),
-                                        new Action(ctx => WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend )))),
-
-                                // perform less simple unstuck proceedure
-                                new DecoratorContinue(
-                                    ctx => !performSimpleSequence,
-                                    new Sequence(
-                                        ctx => moveDirection = GetRandomMovementDirection(),
-                                        new Action(ctx => QBCLog.Debug("Stuck. Movement Directions: {0}", moveDirection)),
-                                        new Action(ctx => WoWMovement.Move(moveDirection)),
-                                        new WaitContinue(2, ctx => false, new ActionAlwaysSucceed()),
-                                        new Action(ctx => WoWMovement.MoveStop(moveDirection)))),
-
-                                new Action(ctx => stuckSucceedTimer.Reset()))),
-
-                        new Action(ctx => prevPosition = myLoc),
-                        new Action(ctx => _stuckTimer.Reset()))));
-        }
-
-        private WoWMovement.MovementDirection GetRandomMovementDirection()
-        {
-            // randomly move left or ritht
-            WoWMovement.MovementDirection ret = _rnd.Next(2) == 0
-                ? WoWMovement.MovementDirection.StrafeLeft
-                : WoWMovement.MovementDirection.StrafeRight;
-
-            // randomly choose to go diagonal backwords + left or right
-            if (_rnd.Next(2) == 0)
-                ret |= WoWMovement.MovementDirection.Backwards;
-
-            // randomly choose to jump (or descend if flying or swimming)
-            if (_rnd.Next(2) == 0)
-            {
-                var activeMover = WoWMovement.ActiveMover;
-                if (activeMover.IsFlying || activeMover.IsSwimming)
-                {
-                    ret |= _rnd.Next(2) == 0
-                        ? WoWMovement.MovementDirection.JumpAscend
-                        : WoWMovement.MovementDirection.Descend;
-                }
-                else
-                {
-                    ret |= WoWMovement.MovementDirection.JumpAscend;
-                }
-            }
-            return ret;
-        }
-
-        #region Overrides of CustomForcedBehavior
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-        protected Composite CreateBehavior_CombatMain()
-        {
-            return _root ??
-                   (_root =
-                       new PrioritySelector(
-                           new Decorator(
-                               ctx => !_isBehaviorDone && !Me.IsActuallyInCombat,
-                               new PrioritySelector(
-
-                                   // Update Location if relative coord is used.
-                                   // N.B. Relative locations are only used while on transports and because transports are usualy moving around 'Location' needs to be updated on every frame.
-                                   new Decorator(ret => UseRealitiveLocation, new Action(ctx => UpdateRelativeLocation())),
-                                   
-                                   // initialize the timer.
-                                   new Decorator(
-                                       ctx => _runTimer == null,
-                                       new Action(
-                                           ctx =>
-                                           {
-                                               _runTimer = new WaitTimer(CalculateMaxRuntime(Destination));
-                                               QBCLog.Debug(
-                                                   "Maximum allowed time to reach destination: {0} seconds",
-                                                   _runTimer.WaitTime.TotalSeconds);
-                                               _runTimer.Reset();
-                                               return RunStatus.Failure;
-                                           })),
-
-                                   // stop HB if _runTimer finishes
-                                   new Decorator(
-                                       ctx => _runTimer.IsFinished,
-                                       new Sequence(
-                                           new Action(ctx => WoWMovement.MoveStop()),
-                                           // N.B. set the runtimer to null so if player manually correct problem and starts bot up it restarts the timer.
-                                           new Action(ctx => _runTimer = null),
-                                           new Action(
-                                               ctx => QBCLog.Fatal(
-                                                   "MyCTM is not able to reach {0} from {1}",
-                                                   DestinationName,
-                                                   WoWMovement.ActiveMover.Location)))),
-
-                                   // run stuckhandler
-                                   CreateBehavior_Antistuck(),
-                                   /* Default anti-stuck has issues.
-                                   new Decorator(
-                                       ctx => Navigator.NavigationProvider.StuckHandler.IsStuck(),
-                                       new Action(ctx => Navigator.NavigationProvider.StuckHandler.Unstick())),
-                                    */
-
-                                   // check if bot has reached the destination.
-                                   new Decorator(
-                                       ret => Destination.DistanceSqr(Me.Location) <= 3 * 3,
-                                       new Sequence(
-                                           new Action(ctx => QBCLog.Info("MyCTM finished moving to {0}", DestinationName)),
-                                           new Action(ctx => _isBehaviorDone = true),
-                                           // Drop down to 'CreateBehavior_PerformCTM' to ensure ctm is performed at least once if start and destination locations are very close on start 
-                                           new ActionAlwaysFail())),
-                                   CreateBehavior_PerformCTM())),
-
-                           // _runTimer needs to be recalculated after combat is over and stuck timer needs to rest.
-                           new Decorator(
-                               ctx => Me.IsActuallyInCombat ,
-                               new Action(
-                                   ctx =>
-                                   {
-                                       _runTimer = null;
-                                       _stuckTimer.Reset();
-                                       return RunStatus.Failure;
-                                   }))));
-        }
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                Navigator.NavigationProvider.StuckHandler.Reset();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
-
-                this.UpdateGoalText(QuestId, "CTMoving to " + DestinationName);
-            }
-        }
-
         #endregion
     }
 }

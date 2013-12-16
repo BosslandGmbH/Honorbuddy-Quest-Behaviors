@@ -223,23 +223,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
             }
         }
 
-        // Attributes provided by caller
-        public int AuraId_ProxyVehicle { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public int CastTime { get; private set; }
-        public bool Hop { get; private set; }
-        public bool IgnoreCombat { get; private set; }
-        public WoWPoint Destination { get; private set; }
-        public int[] MobIds { get; private set; }
-        public double Precision { get; private set; }
-        public int SpellId { get; private set; }
-        public int[] VehicleIds { get; private set; }
-        private bool WaitForVehicle { get; set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
@@ -256,6 +239,20 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         {
             // empty, for now...
         }
+
+
+        // Attributes provided by caller
+        public int AuraId_ProxyVehicle { get; private set; }
+        public int CastTime { get; private set; }
+        public WoWPoint Destination { get; private set; }
+        public bool Hop { get; private set; }
+        public bool IgnoreCombat { get; private set; }
+        public int[] MobIds { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public double Precision { get; private set; }
+        public int SpellId { get; private set; }
+        public int[] VehicleIds { get; private set; }
+        private bool WaitForVehicle { get; set; }
         #endregion
 
 
@@ -271,14 +268,23 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 
 
         #region Destructor, Dispose, and cleanup
-        ~VehicleMover()
-        {
-            Dispose(false);
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
 
         public override void OnStart()
         {       

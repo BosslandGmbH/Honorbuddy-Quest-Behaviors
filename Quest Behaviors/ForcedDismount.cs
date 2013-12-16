@@ -97,10 +97,6 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
 
 
         #region Destructor, Dispose, and cleanup
-        ~ForcedDismount()
-        {
-            Dispose(false);
-        }
         #endregion
 
 
@@ -108,13 +104,12 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.
 
-
         // Dispose provided by QuestBehaviorBase.
-
 
         // IsDone provided by QuestBehaviorBase.
         // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
+        // OnFinished provided by QuestBehaviorBase.
 
         public override void OnStart()
         {

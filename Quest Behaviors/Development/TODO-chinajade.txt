@@ -21,15 +21,15 @@ HasAura
         public override void OnFinished()
         {
             // Defend against being called multiple times (just in case)...
-            if (!_isOnFinishedRun)
+            if (!IsOnFinishedRun)
             {
                 // Clear messages related to behavior operation...
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
-                // Call parent OnFinished() (if it exists) here...
+                // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
                 base.OnFinished();
-	            _isOnFinishedRun = true;
+	            IsOnFinishedRun = true;
             }
         }
 
@@ -46,6 +46,8 @@ HasAura
 
 TODO
 ====
+* QuestBehaviorBase needs to provide a "Taxi_Check" hook to make available to concrete behaviors
+
 * Need QB to stand at location and defend--location to defend can be very small or large,
   and we must never leave area.
 	+ <!-- Feralas: This is an abuse of InteractWith - if they fix it, "Might of the Stonemaul" could be broken -->

@@ -127,13 +127,16 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
         public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        ~UseItem()
-        {
-            Dispose(false);
-        }
-
-
         #region Overrides of CustomForcedBehavior
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
 
         protected override Composite CreateMainBehavior()
         {

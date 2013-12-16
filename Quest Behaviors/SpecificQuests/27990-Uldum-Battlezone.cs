@@ -147,22 +147,28 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 
         private BehaviorStateType _behaviorState;
         private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Rev$"); } }
         #endregion
 
 
         #region Destructor, Dispose, and cleanup
-        ~Battlezone_27990()
-        {
-            Dispose(false);
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
+
         public override void OnStart()
         {
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,

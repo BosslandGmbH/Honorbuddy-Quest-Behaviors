@@ -106,14 +106,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
 
 
         #region Destructor, Dispose, and cleanup
-        ~MurkethAndShaadraz()
-        {
-            Dispose(false);
-        }
+        #endregion
 
-        protected override void Dispose(bool isExplicitlyInitiatedDispose)
+
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Rev$"); } }
+
+
+        public override void OnFinished()
         {
-            if (!IsDisposed)
+            if (!IsOnFinishedRun)
             {
                 if (_behaviorTreeHook_TaxiCheck != null)
                 {
@@ -121,13 +125,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
                     _behaviorTreeHook_TaxiCheck = null;
                 }
 
-                base.Dispose(isExplicitlyInitiatedDispose);
+                // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+                base.OnFinished();
             }
         }
-        #endregion
 
 
-        #region Overrides of CustomForcedBehavior
         public override void OnStart()
         {
             // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,

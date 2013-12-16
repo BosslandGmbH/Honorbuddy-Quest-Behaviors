@@ -601,10 +601,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
         #region Destructor, Dispose, and cleanup
-        ~InteractWith()
-        {
-            Dispose(false);
-        }
         #endregion
 
 
@@ -612,13 +608,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.
 
-
         // Dispose supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.
 
-
         // IsDone provided by QuestBehaviorBase.
         // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
 
         public override void OnStart()
         {
@@ -981,7 +977,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                         // it when combat completes.
                         if (_watchdogTimerToReachDestination == null)
                         {
-                            _watchdogTimerToReachDestination = new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location));
+                            _watchdogTimerToReachDestination =
+                                new WaitTimer(SelectedTarget.Location.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
                             _watchdogTimerToReachDestination.Reset();
                         }
 

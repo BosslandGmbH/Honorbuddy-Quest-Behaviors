@@ -186,31 +186,28 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
         private BehaviorStateType _behaviorState;
         private readonly LocalBlacklist _targetBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
-
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
         #endregion
 
 
         #region Destructor, Dispose, and cleanup
-        ~AnEndToAllThings()
-        {
-            Dispose(false);
-        }
-        #endregion
-
-
-        #region Target filtering
-        protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
-        {
-            wowObjects.Clear();
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
+
         public override void OnStart()
         {
             ParsePaths();
@@ -549,6 +546,14 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
             return
                 new Decorator(ret => PathPatrol.Peek().Distance2DSqr(DragonVehicle.Location) <= (30 * 30),
                     new ActionFail(ret => PathPatrol.Dequeue()));
+        }
+        #endregion
+
+
+        #region Target filtering
+        protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        {
+            wowObjects.Clear();
         }
         #endregion
 

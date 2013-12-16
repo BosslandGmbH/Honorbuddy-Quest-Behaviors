@@ -122,11 +122,12 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 "Tukui",                // http://www.tukui.org/dl.php
                 "Zygor Guides Viewer",  // http://www.zygorguides.com/
 
-                // Modifies Tradeskill window...
-                "Auctionator",          // http://www.curse.com/addons/wow/auctionator/
-                "GnomeWorks",           // http://www.wowace.com/addons/gnomeworks/
-                "LilSparky's Workshop", // http://www.wowace.com/addons/lil-sparkys-workshop/
-                "Overachiever",         // http://wow.curseforge.com/addons/overachiever/
+                // CJ: Put these on the back burner for now, with the repair of #HB-118...
+                // // Modifies Tradeskill window...
+                // "Auctionator",          // http://www.curse.com/addons/wow/auctionator/
+                // "GnomeWorks",           // http://www.wowace.com/addons/gnomeworks/
+                // "LilSparky's Workshop", // http://www.wowace.com/addons/lil-sparkys-workshop/
+                // "Overachiever",         // http://wow.curseforge.com/addons/overachiever/
 
                 // Deploys Minipets...
                 "CollectMe",            // http://www.curse.com/addons/wow/collect_me
@@ -416,6 +417,36 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
+        class WoWItemIdComparer : IEqualityComparer<WoWItem>
+        {
+            public bool Equals(WoWItem x, WoWItem y)
+            {
+                // Comparison to same object always succeed...
+                if (Object.ReferenceEquals(x, y))
+                    { return true; }
+
+                // Comparison to null always fails...
+                if (Object.ReferenceEquals(x, null) || Object.ReferenceEquals(y, null))
+                    { return false; }
+
+                // Compare the item's id...
+                return x.Entry == y.Entry;
+            }
+
+            // If Equals() returns true for a pair of objects  
+            // then GetHashCode() must return the same value for these objects. 
+            public int GetHashCode(WoWItem wowItem)
+            {
+                // No hash code for null object...
+                if (Object.ReferenceEquals(wowItem, null))
+                    { return 0; }
+
+                // Use hash code for the Entry field if WoWItem is not null...
+                return wowItem.Entry.GetHashCode();
+            }
+        }
+
+
         private void BuildQuestItemList(StringBuilder builder, string linePrefix)
         {
             using (StyxWoW.Memory.AcquireFrame())
@@ -424,7 +455,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                    (from item in Me.BagItems
                     where Query.IsQuestItem(item)
                     select item)
-                    .Distinct()
+                    .Distinct(new WoWItemIdComparer())
                     .ToList();
 
                 // Analyze plugins for known problem ones...

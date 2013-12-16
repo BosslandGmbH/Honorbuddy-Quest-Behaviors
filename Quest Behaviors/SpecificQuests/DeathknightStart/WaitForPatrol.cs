@@ -248,20 +248,25 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
         private StateType_MainBehavior _state_MainBehavior;
         #endregion
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         #region Destructor, Dispose, and cleanup
-        ~WaitForPatrol()
-        {
-            Dispose(false);
-        }
         #endregion
 
 
         #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
 
         public override void OnStart()
         {

@@ -117,8 +117,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         if (WatchdogTimer_TimeToEngage == null)
                         {
                             WatchdogTimer_TimeToEngage =
-                                new WaitTimer(Utility.CalculateMaxTimeToDestination(SelectedTarget.Location, false)
-                                                + MinTimeToEngagement);
+                                new WaitTimer(SelectedTarget.Location.MaximumTraversalTime(2.5, MinTimeToEngagement, TimeSpan.FromSeconds(180)));
                             WatchdogTimer_TimeToEngage.Reset();
                         }
 
