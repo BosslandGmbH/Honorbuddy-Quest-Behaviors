@@ -344,21 +344,18 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         {
             var talents = new List<TalentPlacement>();
 
-            using (StyxWoW.Memory.AcquireFrame())
+            for (int tierIndex = 0; tierIndex < 6; tierIndex++)
             {
-                for (int tierIndex = 0; tierIndex < 6; tierIndex++)
+                for (int talentIndex = 1; talentIndex <= 3; talentIndex++)
                 {
-                    for (int talentIndex = 1; talentIndex <= 3; talentIndex++)
-                    {
-                        var index = tierIndex * 3 + talentIndex;
-                        var vals = Lua.GetReturnValues("return GetTalentInfo(" + index + ")");
-                        var name = vals[0];
-                        var learned = int.Parse(vals[4]) != 0;
+                    var index = tierIndex * 3 + talentIndex;
+                    var vals = Lua.GetReturnValues("return GetTalentInfo(" + index + ")");
+                    var name = vals[0];
+                    var learned = int.Parse(vals[4]) != 0;
 
-                        if (learned)
-                        {
-                            talents.Add(new TalentPlacement(tierIndex + 1, talentIndex, name));
-                        }
+                    if (learned)
+                    {
+                        talents.Add(new TalentPlacement(tierIndex + 1, talentIndex, name));
                     }
                 }
             }
@@ -449,48 +446,45 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
         private void BuildQuestItemList(StringBuilder builder, string linePrefix)
         {
-            using (StyxWoW.Memory.AcquireFrame())
+            var questItems =
+                (from item in Me.BagItems
+                where Query.IsQuestItem(item)
+                select item)
+                .Distinct(new WoWItemIdComparer())
+                .ToList();
+
+            // Analyze plugins for known problem ones...
+            builder.AppendFormat("{0}Quest Items in backpack:", linePrefix);
+            builder.Append(Environment.NewLine);
+            if (!questItems.Any())
             {
-                var questItems =
-                   (from item in Me.BagItems
-                    where Query.IsQuestItem(item)
-                    select item)
-                    .Distinct(new WoWItemIdComparer())
-                    .ToList();
-
-                // Analyze plugins for known problem ones...
-                builder.AppendFormat("{0}Quest Items in backpack:", linePrefix);
+                builder.AppendFormat("{0}    NONE", linePrefix);
                 builder.Append(Environment.NewLine);
-                if (!questItems.Any())
+            }
+            else
+            {
+                foreach (var questItem in questItems.OrderBy(item => item.ItemInfo.InternalInfo.QuestId).ThenBy(item => item.Name))
                 {
-                    builder.AppendFormat("{0}    NONE", linePrefix);
-                    builder.Append(Environment.NewLine);
-                }
-                else
-                {
-                    foreach (var questItem in questItems.OrderBy(item => item.ItemInfo.InternalInfo.QuestId).ThenBy(item => item.Name))
-                    {
-                        var questId = questItem.ItemInfo.InternalInfo.QuestId;
-                        var quest = Quest.FromId((uint)questId);
-                        var stackCount =
-                            Me.CarriedItems
-                            .Where(i => (i.Entry == questItem.Entry))
-                            .Sum(i => i.StackCount);
+                    var questId = questItem.ItemInfo.InternalInfo.QuestId;
+                    var quest = Quest.FromId((uint)questId);
+                    var stackCount =
+                        Me.CarriedItems
+                        .Where(i => (i.Entry == questItem.Entry))
+                        .Sum(i => i.StackCount);
 
-                        builder.AppendFormat("{0}    {1}{2} (http://wowhead.com/item={3})",
+                    builder.AppendFormat("{0}    {1}{2} (http://wowhead.com/item={3})",
+                        linePrefix,
+                        questItem.Name,
+                        ((stackCount <= 1) ? "" : string.Format(" x{0}", stackCount)),
+                        questItem.Entry);
+                    builder.Append(Environment.NewLine);
+                    if (questItem.ItemInfo.BeginQuestId != 0)
+                    {
+                        builder.AppendFormat("{0}        => starts quest \"{1}\"(http://wowhead.com/quest={2})",
                             linePrefix,
-                            questItem.Name,
-                            ((stackCount <= 1) ? "" : string.Format(" x{0}", stackCount)),
-                            questItem.Entry);
+                            ((quest != null) ? quest.Name : "UnknownQuest"),
+                            questId);
                         builder.Append(Environment.NewLine);
-                        if (questItem.ItemInfo.BeginQuestId != 0)
-                        {
-                            builder.AppendFormat("{0}        => starts quest \"{1}\"(http://wowhead.com/quest={2})",
-                                linePrefix,
-                                ((quest != null) ? quest.Name : "UnknownQuest"),
-                                questId);
-                            builder.Append(Environment.NewLine);
-                        }
                     }
                 }
             }
@@ -499,55 +493,52 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
         private void BuildQuestState(StringBuilder builder, string linePrefix)
         {
-            using (StyxWoW.Memory.AcquireFrame())
+            var questCount = Me.QuestLog.GetAllQuests().Count;
+
+            // Analyze plugins for known problem ones...
+            builder.AppendFormat("{0}Quest Log ({1} total):", linePrefix, questCount);
+            builder.Append(Environment.NewLine);
+            if (questCount <= 0)
             {
-                var questCount = Me.QuestLog.GetAllQuests().Count;
-
-                // Analyze plugins for known problem ones...
-                builder.AppendFormat("{0}Quest Log ({1} total):", linePrefix, questCount);
+                builder.AppendFormat("{0}    None", linePrefix);
                 builder.Append(Environment.NewLine);
-                if (questCount <= 0)
+                return;
+            }
+
+            // Present the quest in the same oder shown in user's quest log...
+            var questsQuery =
+                Me.QuestLog.GetAllQuests()
+                .Select(q => new { Quest = q, Index = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", q.Id), 0) })
+                .OrderBy(val => val.Index);
+
+            foreach (var quest in questsQuery)
+            {
+                var questState =
+                    quest.Quest.IsCompleted ? "COMPLETED"
+                    : quest.Quest.IsFailed ? "FAILED"
+                    : "incomplete";
+
+                builder.AppendFormat("{0}    \"{1}\"(http://wowhead.com/quest={2}) {3}{4}",
+                    linePrefix,
+                    quest.Quest.Name,
+                    quest.Quest.Id,
+                    questState,
+                    (quest.Quest.IsDaily ? ", Daily" : ""));
+                builder.Append(Environment.NewLine);
+
+                foreach (var objective in quest.Quest.GetObjectives().OrderBy(o => o.Index))
                 {
-                    builder.AppendFormat("{0}    None", linePrefix);
-                    builder.Append(Environment.NewLine);
-                    return;
-                }
+                    var objectiveIndex = objective.Index + 1;   // HB is zero-based, but LUA is one-based
+                    var objectiveQuery = string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, quest.Index);
+                    var objectiveText = Lua.GetReturnVal<string>(objectiveQuery, 0);
+                    var objectiveIsFinished = Lua.GetReturnVal<bool>(objectiveQuery, 2);
 
-                // Present the quest in the same oder shown in user's quest log...
-                var questsQuery =
-                    Me.QuestLog.GetAllQuests()
-                    .Select(q => new { Quest = q, Index = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", q.Id), 0) })
-                    .OrderBy(val => val.Index);
-
-                foreach (var quest in questsQuery)
-                {
-                    var questState =
-                        quest.Quest.IsCompleted ? "COMPLETED"
-                        : quest.Quest.IsFailed ? "FAILED"
-                        : "incomplete";
-
-                    builder.AppendFormat("{0}    \"{1}\"(http://wowhead.com/quest={2}) {3}{4}",
+                    builder.AppendFormat("{0}        {1} (type: {2}) {3}",
                         linePrefix,
-                        quest.Quest.Name,
-                        quest.Quest.Id,
-                        questState,
-                        (quest.Quest.IsDaily ? ", Daily" : ""));
+                        objectiveText,
+                        objective.Type,
+                        (objectiveIsFinished ? "OBJECTIVE_COMPLETE" : ""));
                     builder.Append(Environment.NewLine);
-
-                    foreach (var objective in quest.Quest.GetObjectives().OrderBy(o => o.Index))
-                    {
-                        var objectiveIndex = objective.Index + 1;   // HB is zero-based, but LUA is one-based
-                        var objectiveQuery = string.Format("return GetQuestLogLeaderBoard({0},{1})", objectiveIndex, quest.Index);
-                        var objectiveText = Lua.GetReturnVal<string>(objectiveQuery, 0);
-                        var objectiveIsFinished = Lua.GetReturnVal<bool>(objectiveQuery, 2);
-
-                        builder.AppendFormat("{0}        {1} (type: {2}) {3}",
-                            linePrefix,
-                            objectiveText,
-                            objective.Type,
-                            (objectiveIsFinished ? "OBJECTIVE_COMPLETE" : ""));
-                        builder.Append(Environment.NewLine);
-                    }
                 }
             }
         }
@@ -555,207 +546,210 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
         private bool EmitStateInfo()
         {
-            var fps = GetFPS();
-            var latency = StyxWoW.WoWClient.Latency;
-            var linePrefix = new String(' ', 4);
-
-            // Build compatibility info...
-            var builderInfo = new StringBuilder();
-
-            builderInfo.Append("---------- BEGIN: Profile Compatibility Info ----------");
-
-            // Toon info...
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}Toon: {1:F1} {2} {3} ({4}, {5})",
-                linePrefix,
-                Me.LevelFraction,
-                Me.Race,
-                Me.Class,
-                Me.Gender,
-                GetPlayerFaction(Me)
-                );
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}Specialization: {1}", linePrefix, Me.Specialization);
-            builderInfo.Append(Environment.NewLine);
-            foreach (var talent in BuildLearnedTalents().OrderBy(t => t.Tier))
+            using (StyxWoW.Memory.AcquireFrame(true))
             {
-                builderInfo.AppendFormat("{0}    Tier {1}: {2}({3})",
-                    linePrefix,
-                    talent.Tier,
-                    talent.Name,
-                    talent.Index);
+                var fps = GetFPS();
+                var latency = StyxWoW.WoWClient.Latency;
+                var linePrefix = new String(' ', 4);
+
+                // Build compatibility info...
+                var builderInfo = new StringBuilder();
+
+                builderInfo.Append("---------- BEGIN: Profile Compatibility Info ----------");
+
+                // Toon info...
                 builderInfo.Append(Environment.NewLine);
-            }
-
-            builderInfo.AppendFormat("{0}Location: {1} => {2} => {3} => {4}",
-                linePrefix,
-                GetCurrentMapContinentName(),
-                (Me.ZoneText ?? "noZone"),
-                (Me.SubZoneText ?? "noSubZone"),
-                Me.Location);
-            builderInfo.Append(Environment.NewLine);
-
-            builderInfo.AppendFormat("{0}Profile: {1}", linePrefix, GetCurrentProfileName());
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}Combat Routine: {1}", linePrefix, GetCombatRoutineName());
-            builderInfo.Append(Environment.NewLine);
-
-            // Quest state...
-            builderInfo.Append(Environment.NewLine);
-            BuildQuestState(builderInfo, linePrefix);
-
-            // Quest Items in backpack...
-            builderInfo.Append(Environment.NewLine);
-            BuildQuestItemList(builderInfo, linePrefix);
-
-            // Equipment List...
-            builderInfo.Append(Environment.NewLine);
-            BuildEquipmentList(builderInfo, linePrefix);
-
-
-            // Executable environment info...
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}Honorbuddy: v{1}", linePrefix, Assembly.GetEntryAssembly().GetName().Version);
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}Game client: v{1} ({2} FPS, {3}ms latency)",
-                linePrefix,
-                StyxWoW.GameVersion,
-                fps,
-                latency);
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}    Auto Loot? {1}", linePrefix, (IsGameClientAutoLootEnabled() ? "enabled" : "DISABLED"));
-            builderInfo.Append(Environment.NewLine);
-            builderInfo.AppendFormat("{0}    Windowed mode? {1}", linePrefix, (IsGameClientWindowedModeEnabled() ? "enabled" : "DISABLED"));
-            builderInfo.Append(Environment.NewLine);
-
-
-            // Configuration info...
-            List<string> problemAddOnList;
-            builderInfo.Append(Environment.NewLine);
-            BuildGameClientAddOnList(builderInfo, linePrefix, out problemAddOnList);
-
-            List<string> problemPlugInList;
-            builderInfo.Append(Environment.NewLine);
-            BuildPluginList(builderInfo, linePrefix, out problemPlugInList);
-
-
-            // Warnings & Errors...
-            var builderErrors = new StringBuilder();
-            var builderWarnings = new StringBuilder();
-
-            // Does Combat Routine match toon's class?
-            // NB: This can happen if the user logs out and back in to the game client
-            // without restarting HB.
-            if (Me.Class != RoutineManager.Current.Class)
-            {
-                builderErrors.AppendFormat("{0}* Combat Routine class({1}) does not match Toon class({2})"
-                    + "--please restart Honorbuddy.",
+                builderInfo.AppendFormat("{0}Toon: {1:F1} {2} {3} ({4}, {5})",
                     linePrefix,
-                    RoutineManager.Current.Class,
-                    Me.Class);
-                builderErrors.Append(Environment.NewLine);
-            }
+                    Me.LevelFraction,
+                    Me.Race,
+                    Me.Class,
+                    Me.Gender,
+                    GetPlayerFaction(Me)
+                    );
+                builderInfo.Append(Environment.NewLine);
+                builderInfo.AppendFormat("{0}Specialization: {1}", linePrefix, Me.Specialization);
+                builderInfo.Append(Environment.NewLine);
+                foreach (var talent in BuildLearnedTalents().OrderBy(t => t.Tier))
+                {
+                    builderInfo.AppendFormat("{0}    Tier {1}: {2}({3})",
+                        linePrefix,
+                        talent.Tier,
+                        talent.Name,
+                        talent.Index);
+                    builderInfo.Append(Environment.NewLine);
+                }
 
-            // Is AutoLoot turned off?
-            if (!IsGameClientAutoLootEnabled())
-            {
-                builderErrors.AppendFormat("{0}* AutoLoot is not enabled in game client"
-                    + "--please turn it on.",
-                    linePrefix);
-                builderErrors.Append(Environment.NewLine);
-            }
-
-
-            // Is Windowed mode?
-            if (!IsGameClientWindowedModeEnabled())
-            {
-                builderErrors.AppendFormat("{0}* The game client is running in 'full screen' mode"
-                    + "--please set it to 'windowed' mode.",
-                    linePrefix);
-                builderErrors.Append(Environment.NewLine);                
-            }
-
-
-            // Mixed mode?
-            if (IsMixedModeBot())
-            {
-                var builder = AllowMixedModeBot ? builderWarnings : builderErrors;
-
-                builder.AppendFormat("{0}* MixedMode bot is not compatible with this profile"
-                    + "--please select >Questing< bot.",
-                    linePrefix);
-                builder.Append(Environment.NewLine);
-            }
-
-            // Problematic AddOns?
-            if (problemAddOnList.Any())
-            {
-                var builder = AllowBrokenAddOns ? builderWarnings : builderErrors;
-
-                builder.AppendFormat("{0}* Problematic game client addons were encountered"
-                    + "--please disable these addons:{1}",
+                builderInfo.AppendFormat("{0}Location: {1} => {2} => {3} => {4}",
                     linePrefix,
-                    string.Join(", ", problemAddOnList.Select(addOnName => string.Format("{0}{1}    {2}", Environment.NewLine, linePrefix, addOnName))));
-                builder.Append(Environment.NewLine);
-            }
+                    GetCurrentMapContinentName(),
+                    (Me.ZoneText ?? "noZone"),
+                    (Me.SubZoneText ?? "noSubZone"),
+                    Me.Location);
+                builderInfo.Append(Environment.NewLine);
 
-            // Problematic PlugIns?
-            if (problemPlugInList.Any())
-            {
-                var builder = AllowBrokenPlugIns ? builderWarnings : builderErrors;
+                builderInfo.AppendFormat("{0}Profile: {1}", linePrefix, GetCurrentProfileName());
+                builderInfo.Append(Environment.NewLine);
+                builderInfo.AppendFormat("{0}Combat Routine: {1}", linePrefix, GetCombatRoutineName());
+                builderInfo.Append(Environment.NewLine);
 
-                builder.AppendFormat("{0}* Problematic plugins were encountered"
-                    + "--please disable these plugins:{1}",
+                // Quest state...
+                builderInfo.Append(Environment.NewLine);
+                BuildQuestState(builderInfo, linePrefix);
+
+                // Quest Items in backpack...
+                builderInfo.Append(Environment.NewLine);
+                BuildQuestItemList(builderInfo, linePrefix);
+
+                // Equipment List...
+                builderInfo.Append(Environment.NewLine);
+                BuildEquipmentList(builderInfo, linePrefix);
+
+
+                // Executable environment info...
+                builderInfo.Append(Environment.NewLine);
+                builderInfo.AppendFormat("{0}Honorbuddy: v{1}", linePrefix, Assembly.GetEntryAssembly().GetName().Version);
+                builderInfo.Append(Environment.NewLine);
+                builderInfo.AppendFormat("{0}Game client: v{1} ({2} FPS, {3}ms latency)",
                     linePrefix,
-                    string.Join(", ", problemPlugInList.Select(plugInName => string.Format("{0}{1}    {2}", Environment.NewLine, linePrefix, plugInName))));
-                builder.Append(Environment.NewLine);
-            }
-
-            // Absurdly low FPS?
-            if (fps < MinimumFpsWarningThreshold)
-            {
-                builderWarnings.AppendFormat("{0}* FPS ({1}) is absurdly low (expected {2} FPS, minimum).",
-                    linePrefix,
+                    StyxWoW.GameVersion,
                     fps,
-                    MinimumFpsWarningThreshold);
-                builderWarnings.Append(Environment.NewLine);
+                    latency);
+                builderInfo.Append(Environment.NewLine);
+                builderInfo.AppendFormat("{0}    Auto Loot? {1}", linePrefix, (IsGameClientAutoLootEnabled() ? "enabled" : "DISABLED"));
+                builderInfo.Append(Environment.NewLine);
+                builderInfo.AppendFormat("{0}    Windowed mode? {1}", linePrefix, (IsGameClientWindowedModeEnabled() ? "enabled" : "DISABLED"));
+                builderInfo.Append(Environment.NewLine);
+
+
+                // Configuration info...
+                List<string> problemAddOnList;
+                builderInfo.Append(Environment.NewLine);
+                BuildGameClientAddOnList(builderInfo, linePrefix, out problemAddOnList);
+
+                List<string> problemPlugInList;
+                builderInfo.Append(Environment.NewLine);
+                BuildPluginList(builderInfo, linePrefix, out problemPlugInList);
+
+
+                // Warnings & Errors...
+                var builderErrors = new StringBuilder();
+                var builderWarnings = new StringBuilder();
+
+                // Does Combat Routine match toon's class?
+                // NB: This can happen if the user logs out and back in to the game client
+                // without restarting HB.
+                if (Me.Class != RoutineManager.Current.Class)
+                {
+                    builderErrors.AppendFormat("{0}* Combat Routine class({1}) does not match Toon class({2})"
+                        + "--please restart Honorbuddy.",
+                        linePrefix,
+                        RoutineManager.Current.Class,
+                        Me.Class);
+                    builderErrors.Append(Environment.NewLine);
+                }
+
+                // Is AutoLoot turned off?
+                if (!IsGameClientAutoLootEnabled())
+                {
+                    builderErrors.AppendFormat("{0}* AutoLoot is not enabled in game client"
+                        + "--please turn it on.",
+                        linePrefix);
+                    builderErrors.Append(Environment.NewLine);
+                }
+
+
+                // Is Windowed mode?
+                if (!IsGameClientWindowedModeEnabled())
+                {
+                    builderErrors.AppendFormat("{0}* The game client is running in 'full screen' mode"
+                        + "--please set it to 'windowed' mode.",
+                        linePrefix);
+                    builderErrors.Append(Environment.NewLine);
+                }
+
+
+                // Mixed mode?
+                if (IsMixedModeBot())
+                {
+                    var builder = AllowMixedModeBot ? builderWarnings : builderErrors;
+
+                    builder.AppendFormat("{0}* MixedMode bot is not compatible with this profile"
+                        + "--please select >Questing< bot.",
+                        linePrefix);
+                    builder.Append(Environment.NewLine);
+                }
+
+                // Problematic AddOns?
+                if (problemAddOnList.Any())
+                {
+                    var builder = AllowBrokenAddOns ? builderWarnings : builderErrors;
+
+                    builder.AppendFormat("{0}* Problematic game client addons were encountered"
+                        + "--please disable these addons:{1}",
+                        linePrefix,
+                        string.Join(", ", problemAddOnList.Select(addOnName => string.Format("{0}{1}    {2}", Environment.NewLine, linePrefix, addOnName))));
+                    builder.Append(Environment.NewLine);
+                }
+
+                // Problematic PlugIns?
+                if (problemPlugInList.Any())
+                {
+                    var builder = AllowBrokenPlugIns ? builderWarnings : builderErrors;
+
+                    builder.AppendFormat("{0}* Problematic plugins were encountered"
+                        + "--please disable these plugins:{1}",
+                        linePrefix,
+                        string.Join(", ", problemPlugInList.Select(plugInName => string.Format("{0}{1}    {2}", Environment.NewLine, linePrefix, plugInName))));
+                    builder.Append(Environment.NewLine);
+                }
+
+                // Absurdly low FPS?
+                if (fps < MinimumFpsWarningThreshold)
+                {
+                    builderWarnings.AppendFormat("{0}* FPS ({1}) is absurdly low (expected {2} FPS, minimum).",
+                        linePrefix,
+                        fps,
+                        MinimumFpsWarningThreshold);
+                    builderWarnings.Append(Environment.NewLine);
+                }
+
+                // Absurdly high latency?
+                if (latency > MaximumLatencyWarningThreshold)
+                {
+                    builderWarnings.AppendFormat("{0}* Latency ({1}ms) is absurdly high (expected {2}ms latency, maximum).",
+                        linePrefix,
+                        latency,
+                        MaximumLatencyWarningThreshold);
+                    builderWarnings.Append(Environment.NewLine);
+                }
+
+
+                // Emit compatibility info...
+                QBCLog.DeveloperInfo(this, builderInfo.ToString());
+
+                // Emit warnings...
+                if (builderWarnings.Length > 0)
+                {
+                    QBCLog.Warning(this, "PROFILE COMPATIBILITY WARNINGS:{0}{1}",
+                        Environment.NewLine,
+                        builderWarnings.ToString());
+                }
+
+                // Emit errors...
+                if (builderErrors.Length > 0)
+                {
+                    QBCLog.Error(this, "PROFILE COMPATIBILITY ERRORS:{0}{1}",
+                        Environment.NewLine,
+                        builderErrors.ToString());
+                }
+
+                // Emit end demark...
+                QBCLog.DeveloperInfo(this, "---------- END: Profile Compatibility Info ----------");
+
+                // Return value indicating whether or not fatal errors encountered...
+                return builderErrors.Length > 0;
             }
-
-            // Absurdly high latency?
-            if (latency > MaximumLatencyWarningThreshold)
-            {
-                builderWarnings.AppendFormat("{0}* Latency ({1}ms) is absurdly high (expected {2}ms latency, maximum).",
-                    linePrefix,
-                    latency,
-                    MaximumLatencyWarningThreshold);
-                builderWarnings.Append(Environment.NewLine);                
-            }
-
-
-            // Emit compatibility info...
-            QBCLog.DeveloperInfo(this, builderInfo.ToString());
-
-            // Emit warnings...
-            if (builderWarnings.Length > 0)
-            {
-                QBCLog.Warning(this, "PROFILE COMPATIBILITY WARNINGS:{0}{1}",
-                    Environment.NewLine,
-                    builderWarnings.ToString());
-            }
-
-            // Emit errors...
-            if (builderErrors.Length > 0)
-            {
-                QBCLog.Error(this, "PROFILE COMPATIBILITY ERRORS:{0}{1}",
-                    Environment.NewLine,
-                    builderErrors.ToString());
-            }
-
-            // Emit end demark...
-            QBCLog.DeveloperInfo(this, "---------- END: Profile Compatibility Info ----------");
-
-            // Return value indicating whether or not fatal errors encountered...
-            return builderErrors.Length > 0;
         }
 
         
