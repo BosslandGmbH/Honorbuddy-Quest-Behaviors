@@ -128,7 +128,7 @@ namespace Honorbuddy.QuestBehaviorCore
                             wowObject.IsValid
                             && isPointViable(target, wowObject.Location)
                         orderby
-                            myLocation.SurfacePathDistance(wowObject.Location)
+                            myLocation.SurfacePathCost(wowObject.Location)
                         select wowObject)
                         .FirstOrDefault();
                 }

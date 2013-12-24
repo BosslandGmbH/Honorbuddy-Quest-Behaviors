@@ -112,8 +112,7 @@ namespace Honorbuddy.QuestBehaviorCore
             using (StyxWoW.Memory.AcquireFrame())
             {
                 return
-                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                     let collectionDistance = destination.CollectionDistance(wowUnit.Location)
+                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)                    
                      where
                         IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
                         && wowUnit.IsHostile
@@ -122,9 +121,10 @@ namespace Honorbuddy.QuestBehaviorCore
                         // exclude any units that are candidates for interacting
                         && !excludedUnitIds.Contains((int)wowUnit.Entry)
                         // Do not pull mobs on the AvoidMobs list
-                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                        && (collectionDistance <= (wowUnit.MyAggroRange + extraRangePadding))
-                     orderby wowUnit.DistanceSqr
+                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)                        
+					 let collectionDistance = destination.CollectionDistance(wowUnit.Location)
+					 where collectionDistance <= (wowUnit.MyAggroRange + extraRangePadding)
+					 orderby wowUnit.DistanceSqr
                      select wowUnit)
                     .ToList();
             }

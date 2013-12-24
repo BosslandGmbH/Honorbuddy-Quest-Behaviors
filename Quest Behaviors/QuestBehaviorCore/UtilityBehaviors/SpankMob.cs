@@ -245,7 +245,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         SelectedTarget =
                             (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                              where IsInterestingToUs(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance, excludedUnits)
-                             orderby wowUnit.SurfacePathDistance()
+                             orderby wowUnit.SurfacePathCost()
                              select wowUnit)
                             .FirstOrDefault();
                     }
@@ -322,7 +322,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     && !excludedUnitIds.Contains((int)wowUnit.Entry)
                     // Do not pull mobs on the AvoidMobs list
                     && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                    && (wowUnit.Location.SurfacePathDistance(DestinationDelegate(wowUnit)) <= (wowUnit.MyAggroRange + ExtraRangePaddingDelegate(wowUnit)));
+                    && (wowUnit.Location.SurfacePathCost(DestinationDelegate(wowUnit)) <= (wowUnit.MyAggroRange + ExtraRangePaddingDelegate(wowUnit)));
             }
 
 
@@ -342,7 +342,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         SelectedTarget =
                             (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                              where IsInterestingToUs(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance, excludedUnitIds)
-                             orderby wowUnit.SurfacePathDistance()
+                             orderby wowUnit.SurfacePathCost()
                              select wowUnit)
                             .FirstOrDefault();
                     }

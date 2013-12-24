@@ -663,13 +663,13 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         {
             return
                 Query.IsViable(wowUnit)
+				&& wowUnit.IsAlive
+				&& wowUnit.Attackable
                 && MobIds.Contains((int)wowUnit.Entry)
-                && wowUnit.Location.CollectionDistance() <= CollectionDistance
                 && Query.IsViableForInteracting(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
                 && Query.IsViableForPulling(wowUnit, IgnoreMobsInBlackspots, NonCompeteDistance)
-                && wowUnit.IsAlive
-                && wowUnit.Attackable
-                && (ItemUseAlwaysSucceeds || !wowUnit.HasAura(ItemAppliesAuraId));
+                && (ItemUseAlwaysSucceeds || !wowUnit.HasAura(ItemAppliesAuraId))
+				&& wowUnit.Location.CollectionDistance() <= CollectionDistance;
         }
 
 

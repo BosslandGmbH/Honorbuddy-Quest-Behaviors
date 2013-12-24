@@ -96,5 +96,16 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return objectFrom.Location.SurfacePathDistance(objectTo.Location);
         }
+
+		public static double SurfacePathCost(this WoWObject objectTo)
+		{
+			return StyxWoW.Me.SurfacePathCost(objectTo);
+		}
+
+
+		public static double SurfacePathCost(this WoWObject objectFrom, WoWObject objectTo)
+		{
+			return objectFrom.Location.SurfacePathCost(objectTo.Location);
+		}
     }
 }

@@ -691,7 +691,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             Query.IsViable(wowUnit)
                                             && wowUnit.Aggro
                                         orderby
-                                            wowUnit.SurfacePathDistance()
+                                            wowUnit.SurfacePathCost()
                                         select wowUnit)
                                         .FirstOrDefault();
 
@@ -1399,13 +1399,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             using (StyxWoW.Memory.AcquireFrame())
             {
                 var entities =
-                    from wowObject in Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds)
-                    let objectCollectionDistance = wowObject.Location.CollectionDistance()
+                    from wowObject in Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds)                    
                     where
-                        Query.IsViable(wowObject)
-                        && (objectCollectionDistance <= CollectionDistance)
+                        Query.IsViable(wowObject)                        
                         && IsInteractNeeded(wowObject, mobState)
                         && Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
+					let objectCollectionDistance = wowObject.Location.CollectionDistance()
+					where 
+						objectCollectionDistance <= CollectionDistance
                     orderby
                         objectCollectionDistance
                         // Fix for undead-quest (and maybe some more), where the targets can be minions...
