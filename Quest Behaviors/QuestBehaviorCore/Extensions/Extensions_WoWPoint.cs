@@ -368,7 +368,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (SurfacePathDistanceCache.TryGet(start, destination, out pathDistance))
 				return pathDistance;
 
-			WoWPoint[] groundPath;
+			var groundPath = new WoWPoint[] {};
 
 			bool canFullyNavigate;
 
@@ -378,15 +378,17 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				var pathResult = meshNavigator.Nav.FindPath(start, destination);
 				canFullyNavigate = pathResult.Succeeded && !pathResult.IsPartialPath;
-				groundPath = pathResult.Points.Select(v => (WoWPoint)v).ToArray();
+
+				if (canFullyNavigate)
+					groundPath = pathResult.Points.Select(v => (WoWPoint)v).ToArray();
 			}
 			else
 			{
 				groundPath = Navigator.GeneratePath(start, destination) ?? new WoWPoint[0];
-				canFullyNavigate = groundPath.Length <= 0;
+				canFullyNavigate = groundPath.Length > 0;
 			}
 
-			if (!canFullyNavigate)
+			if (!canFullyNavigate || groundPath.Length <= 0)
 			{
 				SurfacePathDistanceCache.Add(start, destination, float.NaN);
 				return float.NaN;
