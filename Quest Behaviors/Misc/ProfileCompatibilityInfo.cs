@@ -207,6 +207,67 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
+        private void BuildBagList(StringBuilder builder, string linePrefix)
+        {
+            int freeSlotsNormal = 0;
+            int freeSlotsSpeciality = 0;
+            int totalSlots = 0;
+            StringBuilder tmpBuilder = new StringBuilder();
+
+            Action<WoWContainer> buildBagInfo =
+                (wowContainer) =>
+                {
+                    if ((wowContainer == null) || !wowContainer.IsValid)
+                    {
+                        tmpBuilder.AppendFormat("{0}    NO BAG", linePrefix);
+                        tmpBuilder.Append(Environment.NewLine);
+                        return;
+                    }
+
+                    tmpBuilder.AppendFormat("{0}    {1} [{2}.  {3} free / {4} slots] (http://wowhead.com/item={5})",
+                        linePrefix,
+                        wowContainer.Name,
+                        wowContainer.BagType,
+                        wowContainer.FreeSlots,
+                        wowContainer.Slots,
+                        wowContainer.Entry);
+                    tmpBuilder.Append(Environment.NewLine);
+
+                    if (wowContainer.BagType == BagType.NormalBag)
+                        { freeSlotsNormal += (int)wowContainer.FreeSlots; }
+                    else
+                        { freeSlotsSpeciality += (int)wowContainer.FreeSlots; }
+                    totalSlots += (int)wowContainer.Slots;
+                };
+
+            // Backpack requires special handling, grrrr...
+            var backpack = Me.Inventory.Backpack;
+            tmpBuilder.AppendFormat("{0}    Backpack [{1}: {2} free / {3} slots]",
+                        linePrefix,
+                        BagType.NormalBag,
+                        backpack.FreeSlots,
+                        backpack.Slots);
+            tmpBuilder.Append(Environment.NewLine);
+
+            freeSlotsNormal += (int)backpack.FreeSlots;
+            totalSlots += (int)backpack.Slots;
+
+            // Non-backpack bags...
+            buildBagInfo(Me.GetBag(WoWBagSlot.Bag1));
+            buildBagInfo(Me.GetBag(WoWBagSlot.Bag2));
+            buildBagInfo(Me.GetBag(WoWBagSlot.Bag3));
+            buildBagInfo(Me.GetBag(WoWBagSlot.Bag4));
+
+            builder.AppendFormat("{0}Bags [TOTALS: ({1} normal + {2} speciality) free / {3} total slots]:",
+                linePrefix,
+                freeSlotsNormal,
+                freeSlotsSpeciality,
+                totalSlots);
+            builder.Append(Environment.NewLine);
+            builder.Append(tmpBuilder);
+        }
+
+
         private void BuildEquipmentList(StringBuilder builder, string linePrefix)
         {
             Func<WoWItem, string>   buildDescription =
@@ -544,6 +605,48 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
+        private void BuildSkillsInfo(StringBuilder builder, string linePrefix)
+        {
+            Action<WoWSkill> buildSkillInfo =
+                (wowSkill) =>
+                {
+                    if ((wowSkill != null) && wowSkill.IsValid && (wowSkill.MaxValue > 0))
+                    {
+                        builder.AppendFormat("{0}    {1}: {2}/{3}",
+                            linePrefix,
+                            wowSkill.Name,
+                            wowSkill.CurrentValue,
+                            wowSkill.MaxValue);
+
+                        if (wowSkill.Bonus > 0)
+                            { builder.AppendFormat(" [Bonus: +{0}]", wowSkill.Bonus); }
+
+                        builder.Append(Environment.NewLine);
+                    }
+                };
+
+            
+            builder.AppendFormat("{0}Skills:", linePrefix);
+            builder.Append(Environment.NewLine);
+
+            buildSkillInfo(Me.GetSkill(SkillLine.Alchemy));
+            buildSkillInfo(Me.GetSkill(SkillLine.Archaeology));
+            buildSkillInfo(Me.GetSkill(SkillLine.Blacksmithing));
+            buildSkillInfo(Me.GetSkill(SkillLine.Cooking));
+            buildSkillInfo(Me.GetSkill(SkillLine.Enchanting));
+            buildSkillInfo(Me.GetSkill(SkillLine.Engineering));
+            buildSkillInfo(Me.GetSkill(SkillLine.FirstAid));
+            buildSkillInfo(Me.GetSkill(SkillLine.Fishing));
+            buildSkillInfo(Me.GetSkill(SkillLine.Herbalism));
+            buildSkillInfo(Me.GetSkill(SkillLine.Jewelcrafting));
+            buildSkillInfo(Me.GetSkill(SkillLine.Leatherworking));
+            buildSkillInfo(Me.GetSkill(SkillLine.Mining));
+            buildSkillInfo(Me.GetSkill(SkillLine.Riding));
+            buildSkillInfo(Me.GetSkill(SkillLine.Skinning));
+            buildSkillInfo(Me.GetSkill(SkillLine.Tailoring));
+        }
+
+
         private bool EmitStateInfo()
         {
             using (StyxWoW.Memory.AcquireFrame(true))
@@ -593,6 +696,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 builderInfo.AppendFormat("{0}Combat Routine: {1}", linePrefix, GetCombatRoutineName());
                 builderInfo.Append(Environment.NewLine);
 
+                // Skills...
+                builderInfo.Append(Environment.NewLine);
+                BuildSkillsInfo(builderInfo, linePrefix);
+
                 // Quest state...
                 builderInfo.Append(Environment.NewLine);
                 BuildQuestState(builderInfo, linePrefix);
@@ -600,6 +707,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 // Quest Items in backpack...
                 builderInfo.Append(Environment.NewLine);
                 BuildQuestItemList(builderInfo, linePrefix);
+
+                // Bag List...
+                builderInfo.Append(Environment.NewLine);
+                BuildBagList(builderInfo, linePrefix);
 
                 // Equipment List...
                 builderInfo.Append(Environment.NewLine);
