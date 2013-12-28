@@ -439,7 +439,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			private const int MaxRadiusSqr = MaxRadius*MaxRadius;
 
-			private static readonly TimeSpan MaxCacheTimeSpan = TimeSpan.FromMilliseconds(5000);
+			private static readonly TimeSpan MaxCacheTimeSpan = TimeSpan.FromMilliseconds(2500);
 
 			private static DateTime _lastCleanupTime = DateTime.MinValue;
 
@@ -483,8 +483,6 @@ namespace Honorbuddy.QuestBehaviorCore
 					if (match == null && entry.Start.DistanceSqr(start) < MaxRadiusSqr && entry.Destination.DistanceSqr(destination) < MaxRadiusSqr)
 					{
 						match = entry;
-						// update TimeStamp everytime the entry is used.
-						entry.TimeStamp = now;
 						// exit for loop now if not doing a cleanup pass
 						if (!doCleanup)
 							break;

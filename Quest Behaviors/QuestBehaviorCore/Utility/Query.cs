@@ -48,22 +48,11 @@ namespace Honorbuddy.QuestBehaviorCore
             IEnumerable<int> factionIds = null,
             ProvideBoolDelegate extraQualifiers = null)
         {
-            mobIds = mobIds ?? Enumerable.Empty<int>();
-            factionIds = factionIds ?? Enumerable.Empty<int>();
-            extraQualifiers = extraQualifiers ?? (context => true);
-
             return
                 from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, true)
-                let wowUnit = wowObject as WoWUnit
-                where
-                    Query.IsViable(wowObject)
-                    && (mobIds.Contains((int)wowObject.Entry)
-                        || (includeSelf && wowObject.IsMe)
-                        || ((wowUnit != null) && factionIds.Contains((int)wowUnit.FactionId)))
-                    && extraQualifiers(wowObject)
+				where IsMobOrFaction(wowObject, mobIds, includeSelf, factionIds, extraQualifiers)
                 select wowObject;
         }
-
 
         public static IEnumerable<WoWUnit> FindMobsAttackingMe()
         {
@@ -72,8 +61,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 let unit = o as WoWUnit
                 where
                     IsViable(unit)
-                    && unit.Combat
-                    && unit.CurrentTargetGuid == StyxWoW.Me.Guid
+                    && unit.Aggro
                 select unit;
         }
 
@@ -312,6 +300,23 @@ namespace Honorbuddy.QuestBehaviorCore
             return !IsRangeSpec(spec);
         }
 
+		public static bool IsMobOrFaction(
+			WoWObject wowObject,
+			IEnumerable<int> mobIds,
+			bool includeSelf = false,
+			IEnumerable<int> factionIds = null,
+			ProvideBoolDelegate extraQualifiers = null)
+		{
+			if (!IsViable(wowObject))
+				return false;
+
+			var wowUnit = wowObject as WoWUnit;
+			var isMob = mobIds != null && mobIds.Contains((int)wowObject.Entry);
+			var isMe = includeSelf && wowObject.IsMe;
+			var isFaction = wowUnit != null && factionIds != null && factionIds.Contains((int)wowUnit.FactionId);
+
+			return (isMob || isMe || isFaction) && (extraQualifiers == null || extraQualifiers(wowObject));
+		}
 
         /// <summary>
         /// Returns 'true' for items that start quests, or are quest objectives.
