@@ -189,7 +189,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             // Install bot stop handler only once...
             if (!_isBotStopHooked)
             {
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
                 _isBotStopHooked = true;
             }
         }
@@ -197,12 +197,12 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
 
         #region Helpers
-        private void BotEvents_OnBotStop(EventArgs args)
+        private void BotEvents_OnBotStopped(EventArgs args)
         {
             EmitStateInfo();
 
             // Unhook the bot stop handler...
-            BotEvents.OnBotStop -= BotEvents_OnBotStop;
+            BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
             _isBotStopHooked = false;
         }
 

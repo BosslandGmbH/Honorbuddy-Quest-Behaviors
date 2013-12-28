@@ -217,7 +217,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         }
 
 
-        private void BotEvents_OnBotStop(EventArgs args)
+        private void BotEvents_OnBotStopped(EventArgs args)
         {
             ConfigSnapshot tmpOriginalConfiguration = _persistData.OriginalConfiguration;
 
@@ -232,7 +232,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 }
 
                 // Remove our OnBotStop handler
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
 
                 // Done with our persistent data, since the bot is stopping --
                 // We want to  prevent acting on stale data when the bot is restarted.
@@ -277,7 +277,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 // Note, we only want to hook it once for this behavior.
                 if (!_persistData.IsBotStopHooked)
                 {
-                    BotEvents.OnBotStop += BotEvents_OnBotStop;
+                    BotEvents.OnBotStopped += BotEvents_OnBotStopped;
                     _persistData.IsBotStopHooked = true;
                 }
 

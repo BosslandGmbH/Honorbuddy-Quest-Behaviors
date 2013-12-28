@@ -138,7 +138,7 @@ namespace Styx.Bot.Quest_Behaviors
                 if (isExplicitlyInitiatedDispose) { }  // empty, for now
 
                 // Clean up unmanaged resources (if any) here...
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 // Disabled until I can find out a safer way to to it.
                 // Chat.Addon -= ChatAddon;
                 _isBehaviorDone = false;
@@ -156,23 +156,14 @@ namespace Styx.Bot.Quest_Behaviors
             GC.SuppressFinalize(this);
         }
 
-        public void BotEvents_OnBotStop(EventArgs args) { Dispose(); }
+        public void BotEvents_OnBotStopped(EventArgs args) { Dispose(); }
         #endregion
 
         #region Methods
         #region Init
         private void Init()
         {
-            // Disabled until I can find out a safer way to to it.
-            /*
-            if (CountGroupMembers() > 1) {
-                _partyMembers = new PartyMembers[CountGroupMembers()];
-                for (var i = 0; i < CountGroupMembers(); i++) { _partyMembers[i] = new PartyMembers("", 0, false); }
-            }
-            Chat.Addon += ChatAddon;
-            Lua.DoString("RegisterAddonMessagePrefix('QBCEL')");
-            */
-            BotEvents.OnBotStop += BotEvents_OnBotStop;
+            BotEvents.OnBotStopped += BotEvents_OnBotStopped;
             QBCLog.DeveloperInfo("Init done.");
             _Init = true;
         }

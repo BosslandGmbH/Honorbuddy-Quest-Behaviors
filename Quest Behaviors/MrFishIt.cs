@@ -134,7 +134,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
                 _cancelBehavior = true;
 
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
                 Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
                 TreeRoot.GoalText = string.Empty;
@@ -152,7 +152,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
         }
 
 
-        public void BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStopped(EventArgs args)
         {
             Dispose();
         }
@@ -197,7 +197,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             {
                 _configMemento = new ConfigMemento();
 
-                BotEvents.OnBotStop += BotEvents_OnBotStop; 
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped; 
                 Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);
                 Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
                 LootOpen = false;

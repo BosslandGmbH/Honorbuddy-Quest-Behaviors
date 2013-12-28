@@ -601,7 +601,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
                     _configMemento = null;
                 }
 
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -643,7 +643,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
         }
 
 
-        private void BotEvents_OnBotStop(EventArgs args)
+        private void BotEvents_OnBotStopped(EventArgs args)
         {
             UserDialogExitProcessing(PopdownReason.UNKNOWN);
             Dispose();
@@ -724,7 +724,7 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
             {
                 _configMemento = new ConfigMemento();
 
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
                 // We don't want the bot running around harvesting while the user
                 // is manually controlling it trying to get the task completed.

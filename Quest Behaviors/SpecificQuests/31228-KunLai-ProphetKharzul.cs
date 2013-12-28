@@ -82,7 +82,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 
         public override void OnStart()
         {
-            BotEvents.OnBotStop += BotEvents_OnBotStop;
+            BotEvents.OnBotStopped += BotEvents_OnBotStopped;
             _behaviorTreeHook_Combat = CreateCombatBehavior();
             TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
 
@@ -190,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
                     _behaviorTreeHook_Combat = null;
                 }
 
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -202,7 +202,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
         }
 
 
-        public void BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStopped(EventArgs args)
         {
             Dispose();
         }

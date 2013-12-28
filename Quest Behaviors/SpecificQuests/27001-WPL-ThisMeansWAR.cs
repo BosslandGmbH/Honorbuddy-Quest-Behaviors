@@ -76,7 +76,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 
                 if (done)
                 {
-                    BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                    BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                     Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
                 }
 
@@ -88,7 +88,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
         {
             if (!IsDone)
             {
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
                 Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
 
                 this.UpdateGoalText(0);
@@ -100,7 +100,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
             units.Clear();
         }
 
-        public void BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStopped(EventArgs args)
         {
             Dispose();
         }
@@ -110,7 +110,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
         {
             if (!_isDisposed)
             {
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
 
                 TreeRoot.GoalText = string.Empty;

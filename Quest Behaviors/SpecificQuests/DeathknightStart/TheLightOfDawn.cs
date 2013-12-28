@@ -170,7 +170,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                     _behaviorTreeHook_DeathMain = null;
                 }
                 
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 
                 // Clean up unmanaged resources (if any) here...
                 TreeRoot.GoalText = string.Empty;
@@ -183,7 +183,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
             _isDisposed = true;
         }
 
-        public void BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStopped(EventArgs args)
         {
             Dispose();
         }
@@ -239,7 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)
             {
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
                 State_Behavior = StateType_Behavior.ChattingToStartBattle;
             

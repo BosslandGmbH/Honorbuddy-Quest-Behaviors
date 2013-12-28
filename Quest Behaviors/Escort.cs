@@ -226,7 +226,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
                     _configMemento = null;
                 }
 
-                BotEvents.OnBotStop -= BotEvents_OnBotStop;
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
                 TreeRoot.GoalText = string.Empty;
                 TreeRoot.StatusText = string.Empty;
 
@@ -238,7 +238,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
         }
 
 
-        public void BotEvents_OnBotStop(EventArgs args)
+        public void BotEvents_OnBotStopped(EventArgs args)
         {
             Dispose();
         }
@@ -479,7 +479,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
             if (!IsDone)
             {
                 _configMemento = new ConfigMemento();
-                BotEvents.OnBotStop += BotEvents_OnBotStop;
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
                 // Disable any settings that may interfere with the escort --
                 // When we escort, we don't want to be distracted by other things.
