@@ -168,7 +168,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\WaitForPatrol")]  // old location
     public class WaitForPatrol : QuestBehaviorBase
     {
-        #region Consructor and Argument Processing
+        #region Constructor and Argument Processing
         public WaitForPatrol(Dictionary<string, string> args)
             : base(args)
         {
@@ -244,7 +244,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             }
         }
 
-        private Composite _mainBehavior;
         private StateType_MainBehavior _state_MainBehavior;
         #endregion
 
@@ -344,49 +343,48 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
         protected override Composite CreateMainBehavior()
         {
-            return _mainBehavior ?? (_mainBehavior =
-                new PrioritySelector(
-                    new Decorator(context => !Query.IsViable(Mob_ToAvoid),
-                        new ActionFail(context =>
-                        {
-                            Mob_ToAvoid =
-                                Query.FindMobsAndFactions(Utility.ToEnumerable<int>(MobIdToAvoid))
-                                .FirstOrDefault()
-                                as WoWUnit;
-                        })),
+            return new PrioritySelector(
+                new Decorator(context => !Query.IsViable(Mob_ToAvoid),
+                    new ActionFail(context =>
+                    {
+                        Mob_ToAvoid =
+                            Query.FindMobsAndFactions(Utility.ToEnumerable<int>(MobIdToAvoid))
+                            .FirstOrDefault()
+                            as WoWUnit;
+                    })),
 
-                    new Decorator(context => !Query.IsViable(Mob_ToMoveNear),
-                        new ActionFail(context =>
-                        {
-                            Mob_ToMoveNear =
-                                Query.FindMobsAndFactions(Utility.ToEnumerable<int>(MobIdToMoveNear))
-                                .FirstOrDefault()
-                                as WoWUnit;
-                        })),
+                new Decorator(context => !Query.IsViable(Mob_ToMoveNear),
+                    new ActionFail(context =>
+                    {
+                        Mob_ToMoveNear =
+                            Query.FindMobsAndFactions(Utility.ToEnumerable<int>(MobIdToMoveNear))
+                            .FirstOrDefault()
+                            as WoWUnit;
+                    })),
 
-                    // Stateful Operation:
-                    // NB: We do not allow combat in all states.  Fighting is mostl limited to our 'safespot' position.
-                    new Switch<StateType_MainBehavior>(context => State_MainBehavior,
-                        new Action(context =>   // default case
-                        {
-                            var message = string.Format("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
-                            QBCLog.MaintenanceError(message);
-                            TreeRoot.Stop();
-                            BehaviorDone(message);
-                        }),
+                // Stateful Operation:
+                // NB: We do not allow combat in all states.  Fighting is mostl limited to our 'safespot' position.
+                new Switch<StateType_MainBehavior>(context => State_MainBehavior,
+                    new Action(context =>   // default case
+                    {
+                        var message = string.Format("StateType_MainBehavior({0}) is unhandled", State_MainBehavior);
+                        QBCLog.MaintenanceError(message);
+                        TreeRoot.Stop();
+                        BehaviorDone(message);
+                    }),
 
-                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.MovingToSafespot,
-                            StateBehaviorPS_MovingToSafeSpot()),
+                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.MovingToSafespot,
+                        StateBehaviorPS_MovingToSafeSpot()),
 
-                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathIngressing,
-                            StateBehaviorPS_PathIngressing()),
+                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathIngressing,
+                        StateBehaviorPS_PathIngressing()),
 
-                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathRetreating,
-                            StateBehaviorPS_PathRetreating()),
+                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.PathRetreating,
+                        StateBehaviorPS_PathRetreating()),
 
-                        new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.DestinationReached,
-                            StateBehaviorPS_DestinationReached())
-                    )));
+                    new SwitchArgument<StateType_MainBehavior>(StateType_MainBehavior.DestinationReached,
+                        StateBehaviorPS_DestinationReached())
+                ));
             }
         #endregion
 
