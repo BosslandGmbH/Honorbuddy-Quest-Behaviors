@@ -203,7 +203,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             private bool ShouldBeMounted(object context)
             {
-                return CharacterSettings.Instance.UseMount && !SuppressMountUse(context);
+                return Mount.UseMount && !SuppressMountUse(context);
             }
 
 

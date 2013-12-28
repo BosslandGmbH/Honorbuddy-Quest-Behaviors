@@ -149,7 +149,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                     )),
 
                             // Mount needed?
-                            new Decorator(context => CachedMountStrategy == MountStrategyType.Mount,
+                            new Decorator(context => (CachedMountStrategy == MountStrategyType.Mount) && Mount.UseMount,
                                 new PrioritySelector(
                                     // Flying and Ground mounts...
                                     new Decorator(context => !WoWMovement.ActiveMover.IsSwimming,
