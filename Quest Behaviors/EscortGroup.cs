@@ -260,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         public delegate string MessageDelegate(object context);
         public delegate double RangeDelegate(object context);
 
-        #region Consructor and Argument Processing
+        #region Constructor and Argument Processing
         public enum EscortCompleteWhenType
         {
             DestinationReached,
@@ -300,7 +300,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                 EscortCompleteMaxRange = GetAttributeAsNullable<double>("EscortCompleteMaxRange", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 10.0;
                 EscortMaxFightDistance = GetAttributeAsNullable<double>("EscortMaxFightDistance", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 27.0;
                 EscortMaxFollowDistance = GetAttributeAsNullable<double>("EscortMaxFollowDistance", false, new ConstrainTo.Domain<double>(3.0, 100.0), null) ?? 15.0;
-                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 0.0;
+                NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 40.0), null) ?? 0.0;
                 PriorityTargetIds = GetNumberedAttributesAsArray<int>("PriorityTargetId", 0, ConstrainAs.MobId, null);
                 SearchForNpcsRadius = GetAttributeAsNullable<double>("SearchForNpcsRadius", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 75.0;
 
