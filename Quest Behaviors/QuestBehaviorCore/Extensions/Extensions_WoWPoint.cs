@@ -479,6 +479,12 @@ namespace Honorbuddy.QuestBehaviorCore
 				for (int idx = PathDistanceCache.Count - 1; idx >= 0; idx--)
 				{
 					var entry = PathDistanceCache[idx];
+					// check if we need the entry
+					if (doCleanup && now - entry.TimeStamp > MaxCacheTimeSpan)
+					{
+						PathDistanceCache.RemoveAt(idx);
+						continue;
+					}
 					// check if we have a match
 					if (match == null && entry.Start.DistanceSqr(start) < MaxRadiusSqr && entry.Destination.DistanceSqr(destination) < MaxRadiusSqr)
 					{
@@ -486,11 +492,6 @@ namespace Honorbuddy.QuestBehaviorCore
 						// exit for loop now if not doing a cleanup pass
 						if (!doCleanup)
 							break;
-					}
-					// check if we need the entry
-					else if (doCleanup && now - entry.TimeStamp > MaxCacheTimeSpan)
-					{
-						PathDistanceCache.RemoveAt(idx);
 					}
 				}
 
