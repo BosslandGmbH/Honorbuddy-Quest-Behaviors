@@ -765,7 +765,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                             new Action(context => { State_MobDrag = StateType_PitchTipArrowDragging.DraggingComplete; })),
 
                         // If we've arrived at the desired position, finish up...
-                        new Decorator(context => Me.Location.Distance(SelectedPitchTippedArrowAimLocation) <= Navigator.PathPrecision,
+                        new Decorator(context => Navigator.AtLocation(SelectedPitchTippedArrowAimLocation),
                             new Action(context => { State_MobDrag = StateType_PitchTipArrowDragging.DraggingComplete; })),
 
                         // Do move...
@@ -1013,7 +1013,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                 )),
                             
                             // Move self to the Keg Bomb rough aiming position for Keg Bomb...
-                            new Decorator(roughAimPositionContext => Me.Location.Distance((WoWPoint)roughAimPositionContext) > Navigator.PathPrecision,
+                            new Decorator(roughAimPositionContext => !Navigator.AtLocation((WoWPoint)roughAimPositionContext),
                                 new Action(roughAimPositionContext =>
                                 { 
                                     QBCLog.Info("Moving to Keg Bomb (dist: {0:F1})", 
@@ -1047,7 +1047,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
                                         }
                                     })),
 
-                                new Decorator(context => Me.Location.Distance(SelectedKegBombAimPosition) > Navigator.PathPrecision,
+                                new Decorator(context => !Navigator.AtLocation(SelectedKegBombAimPosition),
                                     new Action(context => { Navigator.MoveTo(SelectedKegBombAimPosition); })),
                                 new Mount.ActionLandAndDismount(),
                                 new Decorator(context => Me.IsMoving,

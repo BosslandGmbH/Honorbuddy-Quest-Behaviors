@@ -808,14 +808,14 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                                         })),
 
                                 // Move to our selected random point...
-                                new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
+                                new Decorator(ret => !Navigator.AtLocation(_huntingGroundWaitPoint),
                                     new Sequence(
                                         new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
                                             new Action(delegate
-            {
-                TreeRoot.StatusText = string.Format("No targets--moving near hunting ground anchor point to wait (distance {0})",
-                                                  Me.Location.Distance(_huntingGroundWaitPoint));
-            })),
+                                            {
+                                                TreeRoot.StatusText = string.Format("No targets--moving near hunting ground anchor point to wait (distance {0})",
+                                                                                  Me.Location.Distance(_huntingGroundWaitPoint));
+                                            })),
                                         CreateBehavior_InternalMoveTo(() => _huntingGroundWaitPoint)
                                         )),
 
@@ -914,7 +914,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
             new PrioritySelector(context => location(),
 
                 // If we're not at location, move to it...
-                new Decorator(wowPoint => (Me.Location.Distance((WoWPoint)wowPoint) > Navigator.PathPrecision),
+                new Decorator(wowPoint => !Navigator.AtLocation((WoWPoint)wowPoint),
                     new Sequence(
                         new DecoratorContinueThrottled(Delay_PositionUpdateThrottle, ret => true,
                             new Action(wowPoint => TreeRoot.StatusText = "Moving to location " + (WoWPoint)wowPoint)),
@@ -1026,8 +1026,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
             WoWPoint currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
-            if (Me.Location.Distance(currentHotspot) > Navigator.PathPrecision)
-            { return (currentHotspot); }
+            if (!Navigator.AtLocation(currentHotspot))
+                { return (currentHotspot); }
 
             // Otherwise, rotate to the next hotspot in the list...
             _hotSpots.Enqueue(currentHotspot);

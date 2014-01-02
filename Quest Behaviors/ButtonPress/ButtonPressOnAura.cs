@@ -561,7 +561,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                         })),
 
                                 // Move to our selected random point...
-                                new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint) > Navigator.PathPrecision),
+                                new Decorator(ret => !Navigator.AtLocation(_huntingGroundWaitPoint),
                                     CreateBehavior_InternalMoveTo(() => _huntingGroundWaitPoint)),
 
                                 // Tell user what's going on...
@@ -684,8 +684,8 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
             WoWPoint currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
-            if (Me.Location.Distance(currentHotspot) > Navigator.PathPrecision)
-            { return (currentHotspot); }
+            if (!Navigator.AtLocation(currentHotspot))
+                { return (currentHotspot); }
 
             // Otherwise, rotate to the next hotspot in the list...
             _hotSpots.Enqueue(currentHotspot);

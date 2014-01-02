@@ -288,7 +288,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                         new SwitchArgument<StateType_Behavior>(StateType_Behavior.WaitingForWarlordDarion,
                             new PrioritySelector(
                                 // Move into position to await Warlord arrival...
-                                new Decorator(context => Me.Location.Distance(Location_WaitToChatWithDarion) > Navigator.PathPrecision,
+                                new Decorator(context => !Navigator.AtLocation(Location_WaitToChatWithDarion),
                                     new Action(context =>
                                     {
                                         TreeRoot.StatusText = "Moving into position to wait on High Warlord Darion to arrive";
@@ -316,7 +316,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                         new SwitchArgument<StateType_Behavior>(StateType_Behavior.CheckingBattlefieldForWarlordDarion,
                             new PrioritySelector(
                                 // Move into position to await Warlord arrival...
-                                new Decorator(context => Me.Location.Distance(Location_WaitForBattleToComplete) > Navigator.PathPrecision,
+                                new Decorator(context => !Navigator.AtLocation(Location_WaitForBattleToComplete),
                                     new Action(context =>
                                     {
                                         TreeRoot.StatusText = "Checking battlefield for High Warlord Darion";
@@ -413,8 +413,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                                     })),
 
                                 // Move into position to await battle start...
-                                new Decorator(context => !HighWarlordDarion.IsMoving
-                                                            && Me.Location.Distance(Location_WaitToChatWithDarion) > Navigator.PathPrecision,
+                                new Decorator(context => !HighWarlordDarion.IsMoving && !Navigator.AtLocation(Location_WaitToChatWithDarion),
                                     new Action(context =>
                                     {
                                         TreeRoot.StatusText = "Waiting for Battle to start";
@@ -435,7 +434,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
                                 new Decorator(context => HighWarlordDarion.Location.Distance(Location_Battlefield.Location) <= Location_Battlefield.Radius,
                                     new PrioritySelector(
                                         // Move to our position to wait for battle to be over...
-                                        new Decorator(context => Me.Location.Distance(Location_WaitForBattleToComplete) > Navigator.PathPrecision,
+                                        new Decorator(context => !Navigator.AtLocation(Location_WaitForBattleToComplete),
                                             new Action(context =>
                                             {
                                                 TreeRoot.StatusText = "Moving to safe spot";

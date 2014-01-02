@@ -691,7 +691,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                             Query.IsViable(wowUnit)
                                             && wowUnit.Aggro
                                         orderby
-                                            wowUnit.SurfacePathCost()
+                                            wowUnit.PathTraversalCost()
                                         select wowUnit)
                                         .FirstOrDefault();
 

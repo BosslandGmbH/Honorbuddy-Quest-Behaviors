@@ -248,7 +248,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
                                 Counter++;
                                 ParsePath();
                             })),
-                        new Decorator(ret => Path.Peek().Distance(Me.Location) <= Navigator.PathPrecision,
+                        new Decorator(ret => Navigator.AtLocation(Path.Peek()),
                             new PrioritySelector(
                                 new Decorator(ret => Me.IsMoving && WaitTime > 0,
                                     new Sequence(                                      

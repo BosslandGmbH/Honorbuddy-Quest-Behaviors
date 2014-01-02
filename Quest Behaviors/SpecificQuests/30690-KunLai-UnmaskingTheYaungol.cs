@@ -423,8 +423,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                     )),
 
                 // Can't find Kobai--must've just been killed--wait for repop...
-                new Decorator(context => !Me.Combat && (_combatContext.Kobai == null)
-                                        && (Me.Location.Distance(WaitPoint) <= Navigator.PathPrecision),
+                new Decorator(context => !Me.Combat && (_combatContext.Kobai == null) && Navigator.AtLocation(WaitPoint),
                     new Sequence(
                         new Action(context => { QBCLog.Info("Waiting for Kobai to respawn"); }),
                         new Wait(TimeSpan.FromSeconds(5), context => false, new ActionAlwaysSucceed())
@@ -454,7 +453,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
         {
             // Move to start position, if needed...
             return new PrioritySelector(
-                new Decorator(context => Me.Location.Distance(WaitPoint) > Navigator.PathPrecision,
+                new Decorator(context => !Navigator.AtLocation(WaitPoint),
                     new PrioritySelector(
                         new Decorator(context => !Me.Mounted && Mount.CanMount(),
                             new Action(context => { Mount.MountUp(() => WaitPoint); })),

@@ -707,7 +707,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		//									Query.IsViable(wowUnit)
 		//									&& wowUnit.Aggro
 		//								orderby
-		//									wowUnit.SurfacePathCost()
+		//									wowUnit.PathTraversalCost()
 		//								select wowUnit)
 		//								.FirstOrDefault();
 
@@ -1609,7 +1609,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				if (unit.PlayerControlled)
 					continue;
 
-				if (unit.Location.SurfacePathCost(unit.Location) > unit.MyAggroRange + unit.InteractRange)
+				if (unit.Location.PathTraversalCost(unit.Location) > (unit.MyAggroRange + unit.InteractRange))
 					continue;
 
 				outgoingUnits.Add(unit);

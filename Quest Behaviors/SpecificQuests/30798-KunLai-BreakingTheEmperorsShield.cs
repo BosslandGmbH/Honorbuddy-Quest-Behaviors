@@ -305,14 +305,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 
         // Returns: RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary
         private Composite UtilityBehavior_MoveWithinRange(LocationDelegate locationDelegate,
-                                                            MessageDelegate locationNameDelegate,
-                                                            RangeDelegate precisionDelegate = null)
+                                                            MessageDelegate locationNameDelegate)
         {
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
             return new Sequence(
                 // Done, if we're already at destination...
-                new DecoratorContinue(context => (Me.Location.Distance(locationDelegate(context)) <= precisionDelegate(context)),
+                new DecoratorContinue(context => Navigator.AtLocation(locationDelegate(context)),
                     new Decorator(context => Me.IsMoving,   // This decorator failing indicates the behavior is complete
                         new Action(delegate { WoWMovement.MoveStop(); }))),
 

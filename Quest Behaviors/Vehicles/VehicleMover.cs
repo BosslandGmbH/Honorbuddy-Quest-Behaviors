@@ -196,7 +196,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                 CastTime = GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null) ?? 1500;
                 Hop = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
                 IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
-                Precision = GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null) ?? 4.0;
+                /*unused*/ GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null);
 
                 var useNavigator = GetAttributeAsNullable<bool>("UseNavigator", false, null, null);
                 if (useNavigator.HasValue)
@@ -249,7 +249,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
         public bool IgnoreCombat { get; private set; }
         public int[] MobIds { get; private set; }
         public int NumOfTimes { get; private set; }
-        public double Precision { get; private set; }
         public int SpellId { get; private set; }
         public int[] VehicleIds { get; private set; }
         private bool WaitForVehicle { get; set; }
@@ -407,7 +406,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                         context => FinalDestination,
                                         context => FinalDestinationName,
                                         context => MovementBy,
-                                        context => Precision,
                                         context => IsInVehicle()),
                                     new Decorator(context => WoWMovement.ActiveMover.IsMoving,
                                         new Action(context => { WoWMovement.MoveStop(); })),

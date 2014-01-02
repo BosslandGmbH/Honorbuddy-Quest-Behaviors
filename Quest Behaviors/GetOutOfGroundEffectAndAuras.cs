@@ -575,8 +575,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                             UtilityBehavior_MoveWithinRange(nearestBehindMobContext => SafespotBehindMob((WoWUnit)nearestBehindMobContext,
                                                                                             ((WoWUnit)nearestBehindMobContext).CombatReach + 3.0),
                                 nearestBehindMobContext => string.Format("behind mob casting '{0}'",
-                                    UnitSpellFromCastingIds((WoWUnit)nearestBehindMobContext, MoveBehindMobCastingSpellIds).Name),
-                                nearestBehindMobContext => ((WoWUnit)nearestBehindMobContext).CombatReach),
+                                    UnitSpellFromCastingIds((WoWUnit)nearestBehindMobContext, MoveBehindMobCastingSpellIds).Name)),
                             new Decorator(nearestBehindMobContext => !Me.IsSafelyFacing((WoWUnit)nearestBehindMobContext),
                                 new Action(nearestBehindMobContext => { ((WoWUnit)nearestBehindMobContext).Face(); }))
                         ))),
@@ -646,8 +645,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                                     new Decorator(startUnitsContext => ((IEnumerable<WoWUnit>)startUnitsContext).Count() > 0,
                                         new PrioritySelector(nearestStartUnitContext => ((IEnumerable<WoWUnit>)nearestStartUnitContext).OrderBy(u => u.Distance).FirstOrDefault(),
                                             UtilityBehavior_MoveWithinRange(nearestStartUnitContext => ((WoWUnit)nearestStartUnitContext).Location,
-                                                                            nearestStartUnitContext => string.Format("to {0}", ((WoWUnit)nearestStartUnitContext).Name),
-                                                                            nearestStartUnitContext => ((WoWUnit)nearestStartUnitContext).InteractRange),
+                                                                            nearestStartUnitContext => string.Format("to {0}", ((WoWUnit)nearestStartUnitContext).Name)),
                                             new Action(startUnitsContext => _behaviorState = BehaviorStateType.InteractingToStart)
                                         ))),
 
@@ -695,7 +693,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                                 new Decorator(context => IsEventComplete() || IsEventFailed(),
                                     new Action(context => { _behaviorState = BehaviorStateType.CheckDone; })),
 
-                                new Decorator(context => (EventLocation != WoWPoint.Empty) && (Me.Location.Distance(EventLocation) > Navigator.PathPrecision),
+                                new Decorator(context => (EventLocation != WoWPoint.Empty) && !Navigator.AtLocation(EventLocation),
                                     UtilityBehavior_MoveWithinRange(context => EventLocation, context => "to start location")),
 
                                 new ActionAlwaysFail()
@@ -927,8 +925,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     new PrioritySelector(
                         // Move to closest unit...
                         UtilityBehavior_MoveWithinRange(gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
-                                                gossipUnitContext => ((WoWUnit)gossipUnitContext).Name,
-                                                gossipUnitContext => ((WoWUnit)gossipUnitContext).InteractRange),
+                                                gossipUnitContext => ((WoWUnit)gossipUnitContext).Name),
 
                         // Interact with unit to open the Gossip dialog...
                         new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
@@ -964,14 +961,11 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
         /// <returns>RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary</returns>
         private Composite UtilityBehavior_MoveWithinRange(LocationDelegate locationDelegate,
-                                                            MessageDelegate locationNameDelegate,
-                                                            RangeDelegate precisionDelegate = null)
+                                                            MessageDelegate locationNameDelegate)
         {
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
             return new Sequence(
                 // Done, if we're already at destination...
-                new DecoratorContinue(context => (Me.Location.Distance(locationDelegate(context)) <= precisionDelegate(context)),
+                new DecoratorContinue(context => Navigator.AtLocation(locationDelegate(context)),
                     new Decorator(context => Me.IsMoving,   // This decorator failing indicates the behavior is complete
                         new Action(delegate { WoWMovement.MoveStop(); }))),
 

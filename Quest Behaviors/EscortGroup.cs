@@ -432,7 +432,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(_random.Next(800, 1700));
         private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
         private List<WoWUnit> EscortedGroup { get; set; }
-        private double EscortNavigationPrecision = 3.0;
         private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
         private LocalPlayer Me { get { return StyxWoW.Me; } }
         private WoWUnit SelectedTarget { get; set; }
@@ -625,8 +624,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                         context => EscortedGroup.All(u => u.Distance > EscortMaxFightDistance),
                         context => EscortedGroup.Any(u => u.Distance < EscortMaxFollowDistance),
                         context => FindGroupCenterPoint(EscortedGroup),
-                        context => "nearest escorted unit",
-                        context => EscortNavigationPrecision),
+                        context => "nearest escorted unit"),
 
                     // Deal with priority targets...
                     new PrioritySelector(priorityUnitContext => FindPriorityTargets(EscortedGroup).OrderBy(u => u.DistanceSqr).FirstOrDefault(),
@@ -774,8 +772,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                 new Action(context => { Mount.MountUp(() => WoWPoint.Empty); })),
 
                             // If we've reached the next point in the search path, and there is more than one, update path...
-                            new Decorator(context => Me.Location.Distance(_searchPath.Peek()) <= Navigator.PathPrecision
-                                                                    && _searchPath.Count() > 1,
+                            new Decorator(context => Navigator.AtLocation(_searchPath.Peek()) && _searchPath.Count() > 1,
                                 new Action(context => { Utility_RotatePath(_searchPath); return RunStatus.Failure; })),
 
                             // Move to next search waypoint as needed...
@@ -784,8 +781,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                 context => true,
                                 context => false,
                                 context => _searchPath.Peek(),
-                                context => "next search waypoint",
-                                context => EscortNavigationPrecision),
+                                context => "next search waypoint"),
 
                             // If no search path, or only one point, just sit at current position and await
                 // for NPCs to arrive...
@@ -847,8 +843,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                 context => EscortedGroup.All(u => u.Distance > EscortMaxFightDistance),
                                 context => EscortedGroup.Any(u => u.Distance < EscortMaxFollowDistance),
                                 context => FindGroupCenterPoint(EscortedGroup),
-                                context => "nearest escorted unit",
-                                context => EscortNavigationPrecision),
+                                context => "nearest escorted unit"),
 
                             // "Lock in" the units we're going to escort, and start escorting
                             new Action(context =>
@@ -1297,7 +1292,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         /// When STARTMOVINGWHEN is true, this behavior moves to LOCATIONDELEGATE.  When STOPMOVINGWHEN is true,
         /// or the toon is within PRECISIONDELEGATE of LOCATIONDELEGATE, the behavior ceases to issue move
         /// directives.  STOPMOVINGWHEN takes precedence over STARTMOVINGWHEN, if both are true.
-        /// If PRECISIONDELEGATE is not supplied, Navigation.PathPrecision is used.
         /// </summary>
         /// <param name="startMovingWhen"></param>
         /// <param name="stopMovingWhen"></param>
@@ -1309,22 +1303,19 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                                                  CanRunDecoratorDelegate startMovingWhen,
                                                  CanRunDecoratorDelegate stopMovingWhen,
                                                  LocationDelegate locationDelegate,
-                                                 MessageDelegate locationNameDelegate,
-                                                 RangeDelegate precisionDelegate = null)
+                                                 MessageDelegate locationNameDelegate)
         {
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
             return new PrioritySelector(
                 // Need to start moving?
                 new Decorator(context => !movementState.IsMoveInProgress && startMovingWhen(context) && !stopMovingWhen(context)
-                                            && (Me.Location.Distance(locationDelegate(context)) > precisionDelegate(context)),
+                                            && !Navigator.AtLocation(locationDelegate(context)),
                     new Action(context => { movementState.IsMoveInProgress = true; })),
 
                 // Headed somewhere?
                 new Decorator(context => movementState.IsMoveInProgress,
                     new PrioritySelector(
-                // Did we arrive at destination?
-                        new Decorator(context => Me.Location.Distance(locationDelegate(context)) <= precisionDelegate(context),
+                        // Did we arrive at destination?
+                        new Decorator(context => Navigator.AtLocation(locationDelegate(context)),
                             new Action(context => { movementState.IsMoveInProgress = false; })),
 
                         // Did stop trigger activate?
@@ -1382,8 +1373,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
                             gossipUnitContext => true,
                             gossipUnitContext => false,
                             gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
-                            gossipUnitContext => ((WoWUnit)gossipUnitContext).Name,
-                            gossipUnitContext => ((WoWUnit)gossipUnitContext).InteractRange),
+                            gossipUnitContext => ((WoWUnit)gossipUnitContext).Name),
 
                         new Mount.ActionLandAndDismount(),
 

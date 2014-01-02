@@ -449,7 +449,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
                     new Action(context => { BehaviorState = BehaviorStateType.MountingVehicle; })),
 
                 // Exit vehicle...
-                new Decorator(context => WoWMovement.ActiveMover.Location.Distance(PathEnd.Peek()) <= Navigator.PathPrecision,
+                new Decorator(context => Navigator.AtLocation(PathEnd.Peek()),
                     new Action(context => { Lua.DoString("VehicleExit()"); })),
 
                 // Move back to 'safe mounting' area...

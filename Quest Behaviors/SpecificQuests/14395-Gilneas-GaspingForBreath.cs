@@ -455,7 +455,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
                             // Move to drop off spot...
                             new Decorator(context => Me.Location.Distance(PositionToMakeLandfall) > Navigator.PathPrecision,
-                                UtilityBehavior_MoveTo(context => PositionToMakeLandfall, context => "back to shore"))
+                                new UtilityBehaviorPS.MoveTo(
+                                    context => PositionToMakeLandfall,
+                                    context => "back to shore"))
                         )),
                     #endregion 
 
@@ -485,12 +487,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                                 new Action(context => { State_MainBehavior = StateType_MainBehavior.Rescuing; })),
 
                             // If we've arrived at the current waypoint, dequeue it...
-                            new Decorator(context => Me.Location.Distance(CurrentPath.Peek()) <= Navigator.PathPrecision,
+                            new Decorator(context => Navigator.AtLocation(CurrentPath.Peek()),
                                 new Action(context => { CurrentPath.Dequeue(); })),
 
                             // Follow the prescribed path...
-                            UtilityBehavior_MoveTo(context => CurrentPath.Peek(),
-                                                   current => "out to Drowned Watcman")
+                            new UtilityBehaviorPS.MoveTo(
+                                context => CurrentPath.Peek(),
+                                current => "out to Drowned Watcman")
                         )),
                     #endregion
 
@@ -542,12 +545,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                                 })),
                                 
                             // If we've arrived at the current waypoint, dequeue it...
-                            new Decorator(context => Me.Location.Distance(CurrentPath.Peek()) <= Navigator.PathPrecision,
+                            new Decorator(context => Navigator.AtLocation(CurrentPath.Peek()),
                                 new Action(context => { CurrentPath.Dequeue(); })),
 
                             // Follow the prescribed path...
-                            UtilityBehavior_MoveTo(context => CurrentPath.Peek(),
-                                                            current => "in to drop off Drowned Watcman")
+                            new UtilityBehaviorPS.MoveTo(
+                                context => CurrentPath.Peek(),
+                                current => "in to drop off Drowned Watchman")
                         ))
                     #endregion
                 ));
@@ -689,8 +693,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
                         // If not within interact range, move closer...
                         new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
-                            UtilityBehavior_MoveTo(interactUnitContext => ((WoWUnit)interactUnitContext).Location,
-                                                            interactUnitContext => "to interact with " + ((WoWUnit)interactUnitContext).Name)),
+                            new UtilityBehaviorPS.MoveTo(
+                                interactUnitContext => ((WoWUnit)interactUnitContext).Location,
+                                interactUnitContext => "to interact with " + ((WoWUnit)interactUnitContext).Name)),
 
                         new Decorator(interactUnitContext => Me.IsMoving,
                             new Action(interactUnitContext => { WoWMovement.MoveStop(); })),
@@ -708,31 +713,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                         }),
                         new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
                     )));
-        }
-
-
-        /// <returns>RunStatus.Success while movement is in progress; othwerise, RunStatus.Failure if no movement necessary</returns>
-        private Composite UtilityBehavior_MoveTo(LocationDelegate locationDelegate,
-                                                            MessageDelegate locationNameDelegate,
-                                                            RangeDelegate precisionDelegate = null)
-        {
-            precisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
-
-            return
-                new Decorator(context => (Me.Location.Distance(locationDelegate(context)) > precisionDelegate(context)),
-                    new Sequence(
-                        new Action(context =>
-                        {
-                            WoWPoint destination = locationDelegate(context);
-                            string locationName = locationNameDelegate(context) ?? destination.ToString();
-
-                            if (!Me.IsSwimming && Navigator.CanNavigateFully(Me.Location, destination))
-                                { Navigator.MoveTo(destination); }
-                            else
-                                { WoWMovement.ClickToMove(destination); }
-                        }),
-                        new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                    ));
         }
         #endregion // Behavior helpers
 

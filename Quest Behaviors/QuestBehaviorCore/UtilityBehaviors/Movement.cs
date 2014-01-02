@@ -70,7 +70,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 DestinationNameDelegate = (context => string.Format("hunting ground waypoint '{0}'",
                                                                     huntingGroundsProvider(context).CurrentWaypoint().Name));
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
-                PrecisionDelegate = (context => Navigator.PathPrecision);
                 SuppressMountUse = suppressMountUse ?? (context => false);
 
                 Children = CreateChildren();
@@ -81,7 +80,6 @@ namespace Honorbuddy.QuestBehaviorCore
             public MoveTo(ProvideWoWPointDelegate destinationDelegate,
                             ProvideStringDelegate destinationNameDelegate,
                             ProvideMovementByDelegate movementByDelegate = null,
-                            ProvideDoubleDelegate precisionDelegate = null,
                             CanRunDecoratorDelegate suppressMountUse = null)
             {
                 Contract.Requires(destinationDelegate != null, context => "destinationDelegate may not be null");
@@ -90,7 +88,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 DestinationDelegate = destinationDelegate;
                 DestinationNameDelegate = destinationNameDelegate;
                 MovementByDelegate = movementByDelegate ?? (context => MovementByType.FlightorPreferred);
-                PrecisionDelegate = precisionDelegate ?? (context => Navigator.PathPrecision);
                 SuppressMountUse = suppressMountUse ?? (context => false);
 
                 Children = CreateChildren();
@@ -101,7 +98,6 @@ namespace Honorbuddy.QuestBehaviorCore
             private ProvideWoWPointDelegate DestinationDelegate { get; set;  }
             private ProvideStringDelegate DestinationNameDelegate { get; set; }
             private ProvideMovementByDelegate MovementByDelegate { get; set; }
-            private ProvideDoubleDelegate PrecisionDelegate { get; set; }
             private CanRunDecoratorDelegate SuppressMountUse { get; set; }
 
             // BT visit-time properties...
@@ -133,7 +129,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                 }                            
                             }),
 
-                            new Decorator(context => (CachedDestination.CollectionDistance(WoWMovement.ActiveMover.Location) > PrecisionDelegate(context)),
+                            new Decorator(context => !Navigator.AtLocation(CachedDestination),
                                 new PrioritySelector(
                                     new Switch<MovementByType>(context => CachedMovementBy,
                                         // default
@@ -179,6 +175,25 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
 
+            /// <summary>
+            /// <para>Dismounts, if we're not supposed to be mounted.
+            /// Mounts, if EXTRAWANTTOMOUNTQUALIFIER is 'true', or the PathTraversalCost is larger that "MountDistance".</para>
+            /// <para>Honorbuddy makes mounting decisions based on straight-line distances.  This means that
+            /// Honorbuddy's 'mounting decisions' are sometimes vastly inferior to what is needed.
+            /// Instead, we need to take the actual traversal cost into account, if we are on the ground.</para>
+            /// <para>Consider the following scenario...  On uneven terrain (think the crags in Netherstorm near the
+            /// dropoffs, or shallow ravines) the straight-line distance may be a few yards, but to "get up there" we have
+            /// to travel down a shallow ravine, find the ramp up, and come back to almost where we were--except this time
+            /// we are on the upper lip of the shallow ravine, rather than in the ravine itself.</para>
+            /// <para>In these scenarios, we wanted to force Honorbuddy to 'mount up' to make the journey.
+            /// Honorbuddy would not have made this decision by itself, because it measured the distance
+            /// as a 'straight line' and said "destination is close enough that I don't need to mount up".</para>
+            /// </summary>
+            /// <param name="extraWantToMountQualifier">when 'true', it _forces_ the toon to mount
+            /// if the toon is in an area where mounting is allowed.  If 'false', Honorbuddy will
+            /// make whatever mounting decisions it normally does.</param>
+            /// <param name="navTypeDelegate"></param>
+            /// <returns></returns>
             private Composite SetMountState(CanRunDecoratorDelegate extraWantToMountQualifier = null,
                                             ProvideNavTypeDelegate navTypeDelegate = null)
             {
@@ -218,10 +233,9 @@ namespace Honorbuddy.QuestBehaviorCore
                     SetMountState(null, navTypeDelegate),
                     new Action(context =>
                     {
-                        var precision = PrecisionDelegate(context);
                         var tempDestination =
                             Navigator.GeneratePath(WoWMovement.ActiveMover.Location, CachedDestination)
-                            .Where(p => WoWMovement.ActiveMover.Location.Distance(p) > precision)
+                            .Where(p => !Navigator.AtLocation(p))
                             .DefaultIfEmpty(CachedDestination)
                             .FirstOrDefault();
 

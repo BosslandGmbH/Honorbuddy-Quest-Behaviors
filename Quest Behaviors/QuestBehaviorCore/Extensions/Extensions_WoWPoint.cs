@@ -163,7 +163,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				// a plaform or pier).  If there is not solid ground all around us, we reject
 				// the candidate.  Our test for validity is that the walking distance must
 				// not be more than 20% greater than the straight-line distance to the point.
-				int viableVectorCount = hitPoints.Sum(point => ((Me.Location.SurfacePathCost(point) < (Me.Location.Distance(point) * 1.20))
+				int viableVectorCount = hitPoints.Sum(point => ((Me.Location.PathTraversalCost(point) < (Me.Location.Distance(point) * 1.20))
 																	  ? 1
 																	  : 0));
 
@@ -336,7 +336,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <param name="start">The start.</param>
 		/// <param name="destination">The destination.</param>
 		/// <returns></returns>
-		public static float SurfacePathCost(this WoWPoint start, WoWPoint destination)
+		public static float PathTraversalCost(this WoWPoint start, WoWPoint destination)
 		{
 			float pathDistance = SurfacePathDistance(start, destination);
 			if (!float.IsNaN(pathDistance))
@@ -435,10 +435,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
 		private class SurfacePathDistanceCache
 		{
-			private const int MaxRadius = 5;
-
-			private const int MaxRadiusSqr = MaxRadius*MaxRadius;
-
 			private static readonly TimeSpan MaxCacheTimeSpan = TimeSpan.FromMilliseconds(2500);
 
 			private static DateTime _lastCleanupTime = DateTime.MinValue;
@@ -471,11 +467,13 @@ namespace Honorbuddy.QuestBehaviorCore
 			/// <returns><c>true</c> if a cache was found, <c>false</c> otherwise.</returns>
 			internal static bool TryGet(WoWPoint start, WoWPoint destination, out float distance)
 			{
-				var now = DateTime.Now;
-				SurfacePathDistanceCache match = null;
-				// do we need to cleanup old caches?
+                SurfacePathDistanceCache match = null;
+                var now = DateTime.Now;
+
+                // do we need to cleanup old caches?
 				var doCleanup = now - _lastCleanupTime > MaxCacheTimeSpan;
-				// iterate the path cache in revere so we can remove entries safely
+
+                // iterate the path cache in revere so we can remove entries safely
 				for (int idx = PathDistanceCache.Count - 1; idx >= 0; idx--)
 				{
 					var entry = PathDistanceCache[idx];
@@ -486,7 +484,7 @@ namespace Honorbuddy.QuestBehaviorCore
 						continue;
 					}
 					// check if we have a match
-					if (match == null && entry.Start.DistanceSqr(start) < MaxRadiusSqr && entry.Destination.DistanceSqr(destination) < MaxRadiusSqr)
+					if (match == null && Navigator.AtLocation(start, entry.Start) && Navigator.AtLocation(destination, entry.Destination))
 					{
 						match = entry;
 						// exit for loop now if not doing a cleanup pass

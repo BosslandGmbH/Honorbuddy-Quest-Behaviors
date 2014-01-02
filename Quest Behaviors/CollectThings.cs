@@ -774,7 +774,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                                         })),
 
                                 // Move to our selected random point...
-                                new Decorator(ret => (Me.Location.Distance(_huntingGroundWaitPoint.Location) > Navigator.PathPrecision),
+                                new Decorator(ret => !Navigator.AtLocation(_huntingGroundWaitPoint.Location),
                                     CreateBehavior_InternalMoveTo(() => _huntingGroundWaitPoint)),
 
                                 // Tell user what's going on...
@@ -842,23 +842,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                         new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
                         new ActionAlwaysFail()      // fall through to next element
                         ))
-            ));
-        }
-
-
-        public Composite CreateBehavior_MoveToLocation(LocationDelegate location)
-        {
-            return (
-            new PrioritySelector(
-
-                // If we're not at location, move to it...
-                new Decorator(wowPoint => (Me.Location.Distance((WoWPoint)wowPoint) > Navigator.PathPrecision),
-                    new Sequence(
-                        new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,
-                            new Action(wowPoint => TreeRoot.StatusText = "Moving to " + location().Name)),
-
-                        CreateBehavior_InternalMoveTo(() => location())
-                    ))
             ));
         }
 
@@ -1013,8 +996,8 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
             WoWPointNamed currentHotspot = _hotSpots.Peek();
 
             // If we haven't reached the current hotspot, it is still the 'next' one...
-            if (Me.Location.Distance(currentHotspot.Location) > Navigator.PathPrecision)
-            { return (currentHotspot); }
+            if (!Navigator.AtLocation(currentHotspot.Location))
+                { return (currentHotspot); }
 
             // Otherwise, rotate to the next hotspot in the list...
             _hotSpots.Enqueue(_hotSpots.Dequeue());
@@ -1166,7 +1149,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
                                 new Decorator(ret =>
                                     {
                                         _nearestAirSource = GetNearestAirSource();
-                                        return (_nearestAirSource.Distance > Navigator.PathPrecision);
+                                        return !Navigator.AtLocation(_nearestAirSource.Location);
                                     },
                                     new Sequence(
                                         new DecoratorContinueThrottled(Delay_StatusUpdateThrottle, ret => true,

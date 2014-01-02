@@ -518,7 +518,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 ),
 
                 // If we've arrived at the current ingress waypoint, dequeue it...
-                new Decorator(context => Me.Location.Distance(Path_Ingress.Peek().Location) <= Navigator.PathPrecision,
+                new Decorator(context => Navigator.AtLocation(Path_Ingress.Peek().Location),
                     new Action(context =>
                     {
                         FollowPath.DismissPetIfNeeded();
@@ -569,7 +569,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                     })),
 
                 // If we've arrived at the current waypoint, dequeue it...
-                new Decorator(context => Me.Location.Distance(Path_Egress.Peek().Location) <= Navigator.PathPrecision,
+                new Decorator(context => Navigator.AtLocation(Path_Egress.Peek().Location),
                     new Action(context => { Path_Egress.Dequeue(); })),
 
                 new UtilityBehaviorPS.MoveTo(

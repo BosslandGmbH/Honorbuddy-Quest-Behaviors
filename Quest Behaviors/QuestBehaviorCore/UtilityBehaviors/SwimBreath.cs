@@ -104,7 +104,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                     new Decorator(ret =>
                                         {
                                             NearestAirSource = GetNearestAirSource();
-                                            return (NearestAirSource.Distance > Navigator.PathPrecision);
+                                            return !Navigator.AtLocation(NearestAirSource.Location);
                                         },
                                         new Sequence(
                                             new CompositeThrottleContinue(Throttle.UserUpdate,

@@ -409,7 +409,7 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
                         new ActionFail(context => { TreeRoot.StatusText ="Returning to base"; })
                     )),
 
-                new Decorator(context => WoWMovement.ActiveMover.Location.Distance(Location_ReturnToSchnottz) > Navigator.PathPrecision,
+                new Decorator(context => !Navigator.AtLocation(Location_ReturnToSchnottz),
                     new UtilityBehaviorPS.MoveTo(
                         context => Location_ReturnToSchnottz,
                         context => "Commander Schnottz",

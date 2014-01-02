@@ -379,7 +379,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                                         float heading = WoWMathHelper.CalculateNeededFacing(SelectedTarget.Location, PreferredCrocEgg.Location);
                                         WoWPoint destination = PreferredCrocEgg.Location.RayCast(heading, avoidDistance);
 
-                                        if (Me.Location.Distance(destination) > Navigator.PathPrecision)
+                                        if (!Navigator.AtLocation(destination))
                                         {
                                             MoveWithinDangerousArea(destination);
                                             return RunStatus.Success;
@@ -456,7 +456,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                     // If we have competition, go to waiting area until other players clear area...
                     new Decorator(context => FindCompetingPlayers().Count() > 0,
                         new PrioritySelector(
-                            new Decorator(context => Me.Location.Distance(BattlefieldWaitingArea) > Navigator.PathPrecision,
+                            new Decorator(context => !Navigator.AtLocation(BattlefieldWaitingArea),
                                 new Action(context =>
                                 {
                                     QBCLog.Info("Moving to waiting area while competing players on battlefield");
@@ -982,7 +982,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                     let traversalCost = tuple.Item2
                     where
                         !WillPathThroughArea(currentLocation, entryPoint)
-                        && (StyxWoW.Me.Location.Distance(entryPoint) > Navigator.PathPrecision)
+                        && !Navigator.AtLocation(entryPoint)
                     let pathTraversalCost = CalculatePathCost(pathPoints, entryPoint, exitNavPoints, doCounterClockwise)
                     orderby
                         pathTraversalCost
@@ -999,31 +999,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 // If entry point is the same as an exit point, proceed to destination unimpaired...
                 if (exitNavPoints.Contains(entryNavTuple.Item1))
                     { return Tuple.Create(destination, 0.0); }
-
-                #if DEBUG_THEPITOFSCALES
-                StringBuilder tmp = new StringBuilder();
-
-                tmp.AppendFormat("\nDESTINATION: {0} (dist: {1:F2}) / Precision: {2:F2}\n",
-                    IsInsideArea(destination) ? "UNSAFE" : "safe",
-                    StyxWoW.Me.Location.Distance(destination),
-                    Navigator.PathPrecision);
-
-                tmp.AppendFormat("CURRENT HEADING TO CENTERPOINT: {0:F2}\n",
-                    WoWMathHelper.CalculateNeededFacing(StyxWoW.Me.Location, CenterPoint) / TAU);
-
-                tmp.AppendFormat("NAV POINTS ({0}):\n    {1}\n",
-                    doCounterClockwise ? "CCW" : "CW",
-                    string.Join("\n    ", pathPoints.Select(t => string.Format("Heading: {0:F2} = {1:F2} {2} {3} (traverse: {4})",
-                        WoWMathHelper.CalculateNeededFacing(CenterPoint, t.Item1) / TAU,
-                        t.Item2,
-                        (t.Item1 == entryNavTuple.Item1) ? string.Format("ENTRY(dist: {0:F2})",  StyxWoW.Me.Location.Distance(entryNavTuple.Item1)): "                  ",
-                        exitNavPoints.Contains(t.Item1) ? string.Format("EXIT (weight: {0:F2})", CalculatePathCost(pathPoints, entryNavTuple.Item1, new List<WoWPoint>() { t.Item1 }, doCounterClockwise)) : "    ",
-                        WillPathThroughArea(StyxWoW.Me.Location, t.Item1))
-                        ))
-                        );
-
-                QBCLog.Info(tmp.ToString());
-                #endif
                 
                 return entryNavTuple;
             }

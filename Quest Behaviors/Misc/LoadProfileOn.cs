@@ -336,7 +336,7 @@ namespace Styx.Bot.Quest_Behaviors
                 // Everyone isn't within interact range, lets wait abit before checking again.
                             new DecoratorContinue(context => !CheckPartyRange(),
                                 new Sequence(
-                                    new DecoratorContinue(context => (Me.Location.DistanceSqr(MyHotSpot) > Navigator.PathPrecision),
+                                    new DecoratorContinue(context => !Navigator.AtLocation(MyHotSpot),
                                         new Sequence(
                                             new DecoratorContinue(context => Navigator.CanNavigateFully(Me.Location, MyHotSpot),
                                                 new Action(context => Navigator.MoveTo(MyHotSpot))

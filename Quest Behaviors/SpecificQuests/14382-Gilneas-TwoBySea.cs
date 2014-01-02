@@ -431,7 +431,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                                 })),
 
                             // Done with all tasks, move back to sane position to continue profile...
-                            new Decorator(context => Me.Location.Distance(Location_CatapultFarm) > Navigator.PathPrecision,
+                            new Decorator(context => !Navigator.AtLocation(Location_CatapultFarm),
                                 new Action(context => { Navigator.MoveTo(Location_CatapultFarm); })),
 
                             new Action(context =>
@@ -485,7 +485,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                                 new ActionAlwaysSucceed()),
 
                             // No catapults to be had, move to center of catapult farm and wait for respawns...
-                            new Decorator(context => Me.Location.Distance(Location_CatapultFarm) > Navigator.PathPrecision,
+                            new Decorator(context => !Navigator.AtLocation(Location_CatapultFarm),
                                 new Action(context => { Navigator.MoveTo(Location_CatapultFarm); })),
                             new Action(context => { QBCLog.Info("Waiting on more Catapults to respawn"); })
                         )),
@@ -559,7 +559,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                                 QBCLog.Info("Exiting {0}'s boat", CurrentTask.MobName);
                                 return RunStatus.Failure;
                             }),
-                            new Decorator(context => Me.Location.Distance(CurrentTask.PositionToLand) > Navigator.PathPrecision,
+                            new Decorator(context => !Navigator.AtLocation(CurrentTask.PositionToLand),
                                 new Action(context => { Navigator.MoveTo(CurrentTask.PositionToLand); })),
                             
                             new Action(context => { State_MainBehavior = StateType_MainBehavior.ExitBoatJumpDown; })
@@ -577,7 +577,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                             }),
                             // NB: There appear to be no mesh "jump links" in the mesh to get off boat.
                             // So, we're left with using ClickToMove to jump down from boat decks.
-                            new Decorator(context => Me.Location.Distance(CurrentTask.PositionToJumpDownOffBoat) > Navigator.PathPrecision,
+                            new Decorator(context => !Navigator.AtLocation(CurrentTask.PositionToJumpDownOffBoat),
                                 new Action(context => { WoWMovement.ClickToMove(CurrentTask.PositionToJumpDownOffBoat); })),
                             
                             new Action(context => { State_MainBehavior = StateType_MainBehavior.AssigningTask; })
@@ -807,7 +807,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
 
                     // Move vehicle into position...
                     // NB: We must use ClickToMove since we're in a vehicle
-                    new Decorator(context => SelectedCatapult.Location.Distance2D(CurrentTask.PositionForLaunch) > Navigator.PathPrecision, //VehicleLocationPathPrecision,
+                    new Decorator(context => SelectedCatapult.Location.Distance2D(CurrentTask.PositionForLaunch) > Navigator.PathPrecision,
                         new Action(context =>
                         {
                             WoWPoint destination = CurrentTask.PositionForLaunch;
