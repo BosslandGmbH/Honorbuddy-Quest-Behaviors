@@ -223,17 +223,14 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 
         public override void OnStart()
         {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore("Moving through Portal");
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
-                this.UpdateGoalText(QuestId, "Moving through Portal");
-
                 InitialZoneText = StyxWoW.Me.ZoneText;
                 OriginalBehaviorFlags = LevelBot.BehaviorFlags;
                 State_MainBehavior = StateType_MainBehavior.MovingToStartPosition;
