@@ -63,6 +63,7 @@ using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
+using Styx.Helpers;
 using Styx.Plugins;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -111,6 +112,19 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
 
         #region Private and Convenience variables
+        private static readonly string[] KnownHonorbuddyShippedPluginNames =
+            {
+                "Anti Drown",
+                "AutoEquip2",
+                "BuddyMonitor",
+                "DrinkPotions",
+                "LeaderPlugin",
+                "Questhelper - ItemForAura",
+                "Refreshment Detection",
+                "Talented2",
+            };
+
+
         // Match is case-insensitive StartsWith.
         // NB: *Please* keep alphabetized.  Any dependent addons will also
         // be ignored if the base addon is disabled.
@@ -425,6 +439,97 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
 
+        private void BuildMountInfo(StringBuilder builder, string linePrefix, out string problemMountWarnings)
+        {
+            problemMountWarnings = "";
+
+            var flyingMountNameOrId =
+                (CharacterSettings.Instance.FlyingMountName != null)
+                ? CharacterSettings.Instance.FlyingMountName.Trim()
+                : "";
+            var groundMountNameOrId = 
+                (CharacterSettings.Instance.MountName != null)
+                ? CharacterSettings.Instance.MountName.Trim()
+                : "";
+
+            var attentionPrefix = "";
+            var problemText = "";
+            if (!string.IsNullOrEmpty(groundMountNameOrId))
+            {
+                if (!Query.IsMountKnown(groundMountNameOrId))
+                {
+                    attentionPrefix = "*** ";
+                    problemText = " (*** Problem: Ground mount is not known to Honorbuddy ***)";
+                    problemMountWarnings +=
+                        string.Format(
+                            "{0}* Ground mount ({1}) is not known to Honorbuddy."
+                            + "  Spelling error?  ItemId instead of SpellId?"
+                            + "  Mount not available on this account?  No skill to use mount?"
+                            + " Please configure ground mount correctly.{2}",
+                            linePrefix,
+                            groundMountNameOrId,
+                            Environment.NewLine);
+                }
+
+                else if (Query.IsMountFlying(groundMountNameOrId))
+                {
+                    attentionPrefix = "*** ";
+                    problemText = " (*** Problem: Ground mount is a flying mount ***)";
+                    problemMountWarnings +=
+                        string.Format("{0}* Ground mount ({1}) is a flying mount."
+                            + "  Please configure a ground-only mount.{2}",
+                            linePrefix,
+                            groundMountNameOrId,
+                            Environment.NewLine);
+                }
+            }
+            builder.AppendFormat("{0}{1}Ground Mount: {2} {3}",
+                linePrefix,
+                attentionPrefix,
+                (string.IsNullOrEmpty(groundMountNameOrId) ? "UNSPECIFIED" : ("'" + groundMountNameOrId + "'")),
+                problemText);
+            builder.Append(Environment.NewLine);
+
+            attentionPrefix = "";
+            problemText = "";
+            if (!string.IsNullOrEmpty(flyingMountNameOrId))
+            {
+                if (!Query.IsMountKnown(flyingMountNameOrId))
+                {
+                    attentionPrefix = "*** ";
+                    problemText = " (*** Problem: Flying mount is not known to Honorbuddy ***)";
+                    problemMountWarnings +=
+                        string.Format(
+                            "{0} Flying mount ({1}) is not known to Honorbuddy."
+                            + "  Spelling error?  ItemId instead of SpellId?"
+                            + "  Mount not available on this account?  No skill to use mount?"
+                            + "Please configure flying mount correctly.{2}",
+                            linePrefix,
+                            flyingMountNameOrId,
+                            Environment.NewLine);
+                }
+
+                else if (!Query.IsMountFlying(flyingMountNameOrId))
+                {
+                    attentionPrefix = "*** ";
+                    problemText = " (*** Problem: Flying mount is not a flying mount ***)";
+                    problemMountWarnings +=
+                        string.Format("{0}* Flying mount ({1}) is NOT a flying mount."
+                            + "  Please configure a mount capable of flying.{2}",
+                            linePrefix,
+                            groundMountNameOrId,
+                            Environment.NewLine);
+                }
+            }
+            builder.AppendFormat("{0}{1}Flying Mount: {2} {3}",
+                linePrefix,
+                attentionPrefix,
+                (string.IsNullOrEmpty(flyingMountNameOrId) ? "UNSPECIFIED" : ("'" + flyingMountNameOrId + "'")),
+                problemText);
+            builder.Append(Environment.NewLine);
+        }
+
+
         private void BuildPluginList(StringBuilder builder, string linePrefix, out List<string> problemPlugInList)
         {
             problemPlugInList = new List<string>();
@@ -432,7 +537,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             var plugIns = PluginManager.Plugins;
 
             // Analyze plugins for known problem ones...
-            builder.AppendFormat("{0}Plugins:", linePrefix);
+            builder.AppendFormat("{0}PlugIns:", linePrefix);
             builder.Append(Environment.NewLine);
             if (!plugIns.Any())
             {
@@ -443,7 +548,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             {
                 foreach (var plugIn in plugIns.OrderBy(plugin => plugin.Name))
                 {
-                    var attentionPrefix = string.Empty;
                     var enabledMessage = plugIn.Enabled ? "enabled" : "disabled";
 
                     // Make certain plugin name is unique...
@@ -453,21 +557,24 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                         plugInName = string.Format("{0}_{1}", plugIn.Name, sameNameIndex);
                     }
 
-                    var isProblemPlugIn = IsKnownProblemName(KnownProblemPlugInNames, plugInName) && plugIn.Enabled;
+                    var isNonBosslandPlugInEnabled = !KnownHonorbuddyShippedPluginNames.Contains(plugInName) && plugIn.Enabled;
+                    var isProblemPlugInEnabled = IsKnownProblemName(KnownProblemPlugInNames, plugInName) && plugIn.Enabled;
 
-                    if (isProblemPlugIn)
+                    if (isProblemPlugInEnabled)
                     {
                         problemPlugInList.Add(plugInName);
-                        attentionPrefix = "*** ";
-                        enabledMessage = "ENABLED ***PROBLEMATICAL*** PLUGIN";
-                    } 
+                        enabledMessage = "ENABLED (***PROBLEMATICAL PLUGIN***)";
+                    }
+                    else if (isNonBosslandPlugInEnabled)
+                    {
+                        enabledMessage = "enabled (NON-BosslandGmbH-SHIPPED PLUGIN)";
+                    }
                     
-                    builder.AppendFormat("{0}    {1}{2} v{3} (by {4}): {5}",
+                    builder.AppendFormat("{0}    {1}{2} v{3}: {4}",
                         linePrefix,
-                        attentionPrefix,
+                        ((isProblemPlugInEnabled || isNonBosslandPlugInEnabled) ? "*** " : ""),
                         plugInName,
                         plugIn.Version,
-                        (string.IsNullOrEmpty(plugIn.Author) ? "UnknownAuthor" : plugIn.Author),
                         enabledMessage);
                     builder.Append(Environment.NewLine);
                 }
@@ -717,7 +824,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 BuildEquipmentList(builderInfo, linePrefix);
 
 
-                // Executable environment info...
+                // Executable environment & configuration info...
                 builderInfo.Append(Environment.NewLine);
                 builderInfo.AppendFormat("{0}Honorbuddy: v{1}", linePrefix, Assembly.GetEntryAssembly().GetName().Version);
                 builderInfo.Append(Environment.NewLine);
@@ -731,11 +838,15 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 builderInfo.Append(Environment.NewLine);
                 builderInfo.AppendFormat("{0}    Windowed mode? {1}", linePrefix, (IsGameClientWindowedModeEnabled() ? "enabled" : "DISABLED"));
                 builderInfo.Append(Environment.NewLine);
+                
+                // Mount checks...
+                string mountWarnings;
+                BuildMountInfo(builderInfo, linePrefix + "    ", out mountWarnings);
+                builderInfo.Append(Environment.NewLine);
 
 
                 // Configuration info...
                 List<string> problemAddOnList;
-                builderInfo.Append(Environment.NewLine);
                 BuildGameClientAddOnList(builderInfo, linePrefix, out problemAddOnList);
 
                 List<string> problemPlugInList;
@@ -832,6 +943,13 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                         linePrefix,
                         latency,
                         MaximumLatencyWarningThreshold);
+                    builderWarnings.Append(Environment.NewLine);
+                }
+
+                // Issues with ground or flying mount?
+                if (!string.IsNullOrEmpty(mountWarnings))
+                {
+                    builderWarnings.Append(mountWarnings);
                     builderWarnings.Append(Environment.NewLine);
                 }
 

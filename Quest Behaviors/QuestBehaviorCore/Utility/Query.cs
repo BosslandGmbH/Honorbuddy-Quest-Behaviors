@@ -119,6 +119,54 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        /// <summary>
+        /// <para>Locates the mount identified by MOUNTNAMEORID in the provided MOUNTLIST.</para>
+        /// <para>MOUNTLIST is usually provided as Mount.Mounts, Mount.FlyingMounts, etc.</para>
+        /// <para>The MOUNTNAMEORID can be the mount 'name' or SpellId.  If a name, the name
+        /// is converted to lowercase to make the comparison.</para>
+        /// </summary>
+        /// <param name="mountList"></param>
+        /// <param name="mountNameOrId"></param>
+        /// <returns>null, if the mount could not be located in the MOUNTLIST.</returns>
+        /// <remarks>5-Jan-2014 00:30 UTC chinajade</remarks>
+        public static Mount.MountWrapper FindMount(IEnumerable<Mount.MountWrapper> mountList, string mountNameOrId)
+        {
+            if (string.IsNullOrEmpty(mountNameOrId))
+            { return null; }
+
+            mountNameOrId = mountNameOrId.Trim().ToLower();
+
+            int mountId;
+            IEnumerable<Mount.MountWrapper> query;
+
+            if (Int32.TryParse(mountNameOrId, out mountId) && (mountId != 0))
+            {
+                query =
+                    from mount in mountList
+                    where
+                        mount.CreatureSpellId == mountId
+                    select mount;
+            }
+
+            else if (!string.IsNullOrEmpty(mountNameOrId))
+            {
+                query =
+                    from mount in mountList
+                    where
+                        mount.CreatureSpell != null
+                        && mount.CreatureSpell.Name.ToLower() == mountNameOrId
+                    select mount;
+            }
+
+            else
+            {
+                return null;
+            }
+
+            return query.FirstOrDefault();
+        }
+
+
         // 25Feb2013-12:50UTC chinajade
         public static IEnumerable<WoWPlayer> FindPlayersNearby(WoWPoint location, double radius, ProvideBoolDelegate extraQualifiers = null)
         {
@@ -318,6 +366,31 @@ namespace Honorbuddy.QuestBehaviorCore
 			return (isMob || isMe || isFaction) && (extraQualifiers == null || extraQualifiers(wowObject));
 		}
 
+
+        public static bool IsMountAquatic(string mountNameOrId)
+        {
+            return FindMount(Mount.UnderwaterMounts, mountNameOrId) != null;
+        }
+
+
+        public static bool IsMountFlying(string mountNameOrId)
+        {
+            return FindMount(Mount.FlyingMounts, mountNameOrId) != null;
+        }
+
+
+        public static bool IsMountGround(string mountNameOrId)
+        {
+            return FindMount(Mount.GroundMounts, mountNameOrId) != null;
+        }
+
+
+        public static bool IsMountKnown(string mountNameOrId)
+        {
+            return FindMount(Mount.Mounts, mountNameOrId) != null;
+        }
+        
+        
         /// <summary>
         /// Returns 'true' for items that start quests, or are quest objectives.
         /// </summary>
