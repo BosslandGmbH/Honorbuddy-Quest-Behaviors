@@ -380,13 +380,14 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+using Styx.CommonBot.Coroutines;
 using Action = Styx.TreeSharp.Action;
 
 #endregion
 
 namespace Honorbuddy.Quest_Behaviors.InteractWith
 {
-	// DO NOT USE THIS BECAUSE IT"S UNDER DEVELOPMENT AND WILL BE MOVED IN THE FUTUTRE!1!1!!1!
+	// DO NOT USE THIS BECAUSE IT"S UNDER DEVELOPMENT AND WILL BE MOVED IN THE FUTURE!1!1!!1!
 	[CustomBehaviorFileName(@"InteractWithV2")]
 	public class InteractWithV2 : QuestBehaviorBase
 	{

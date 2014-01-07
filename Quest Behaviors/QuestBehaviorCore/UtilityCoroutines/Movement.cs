@@ -12,6 +12,7 @@ using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
+using Styx.CommonBot.Coroutines;
 using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore

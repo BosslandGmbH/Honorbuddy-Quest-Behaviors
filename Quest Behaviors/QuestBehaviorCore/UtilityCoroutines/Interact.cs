@@ -8,20 +8,18 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Usings
 using System.Collections;
 using Buddy.Coroutines;
 using Styx.CommonBot;
-
-#region Usings
-
 using System;
 using System.Collections.Generic;
 using CommonBehaviors.Actions;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+using Styx.CommonBot.Coroutines;
 using Action = Styx.TreeSharp.Action;
-
 #endregion
 
 // TODO: Need 'bind at inn' variant

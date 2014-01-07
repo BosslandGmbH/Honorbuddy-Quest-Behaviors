@@ -19,7 +19,7 @@ using System.Threading;
 using Buddy.Coroutines;
 using Styx;
 using Styx.TreeSharp;
-
+using Styx.CommonBot.Coroutines;
 using Action = Styx.TreeSharp.Action;
 #endregion
 

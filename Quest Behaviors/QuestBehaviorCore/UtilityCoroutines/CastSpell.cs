@@ -20,7 +20,7 @@ using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using Action = Styx.TreeSharp.Action;
-
+using Styx.CommonBot.Coroutines;
 #endregion
 
 namespace Honorbuddy.QuestBehaviorCore

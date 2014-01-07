@@ -25,6 +25,7 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
+using Styx.CommonBot.Coroutines;
 using Action = Styx.TreeSharp.Action;
 
 #endregion
