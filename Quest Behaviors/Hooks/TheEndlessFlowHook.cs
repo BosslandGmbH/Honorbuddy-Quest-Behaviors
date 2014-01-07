@@ -48,15 +48,8 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 
         private bool _inserted;
-        
-        public override bool IsDone
-        {
-            get
-            {
-                return _inserted;
-            }
-        }
 
+		public override bool IsDone { get { return true; } }
 
         private LocalPlayer Me
         {

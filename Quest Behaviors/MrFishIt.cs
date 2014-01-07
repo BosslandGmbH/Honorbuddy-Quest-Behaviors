@@ -424,10 +424,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             if (value == null)
                 return false;
 
-            //return ((WoWFishingBobber)value.SubObj).IsBobbing;
+            return ((WoWFishingBobber)value.SubObj).IsBobbing;
             //return null != Fishing.FishingBobber ? 1 == Fishing.FishingBobber.AnimationState : false;
 
-            return value.AnimationState == 1;
+            //return value.AnimationState == 1;
         }
 
         public static WoWGameObject asWoWGameObject(this double GUID)

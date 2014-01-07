@@ -38,9 +38,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -146,6 +147,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         private bool _isBehaviorDone;
         private bool _isDisposed;
         private Composite _root;
+	    private WaitTimer _waitTimer;
 
         // Private properties
         public int Counter { get; private set; }
@@ -243,6 +245,9 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         {
             return _root ?? (_root =
                 new PrioritySelector(
+					// don't drop down while wait timer is running
+					new Decorator(ctx => !_waitTimer.IsFinished, new ActionAlwaysSucceed()),
+
                     // If item is not in our backpack, behavior is done...
                     new Decorator(context => Item == null,
                         new Action(context =>
@@ -277,7 +282,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                 new Action(ret => StyxWoW.SleepForLagDuration()),
                                 new Action(ret => Counter++),
                                 new Action(ret => SpellManager.ClickRemoteLocation(ClickToLocation)),
-                                new Sleep(WaitTime))
+                                new Action(ctx => _waitTimer.Reset())) 
                             )),
 
                     new Decorator(
@@ -312,7 +317,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
-                                        new Sleep(WaitTime)))),
+										new Action(ctx => _waitTimer.Reset())))),
                             new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")
                             )),
 
@@ -343,7 +348,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         new Action(ret => StyxWoW.SleepForLagDuration()),
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
-                                        new Sleep(WaitTime)))),
+                                        new Action(ctx => _waitTimer.Reset())))),
                             new Decorator(
                                 ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
                                 new Sequence(
@@ -383,6 +388,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
             if (!IsDone)
             {
                 this.UpdateGoalText(QuestId);
+				_waitTimer = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
             }
         }
 

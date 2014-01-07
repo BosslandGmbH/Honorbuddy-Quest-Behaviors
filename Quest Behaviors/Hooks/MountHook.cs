@@ -55,15 +55,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         private bool _inserted;
         private bool _state;
 
-
-        public override bool IsDone
-        {
-            get
-            {
-                return _inserted;
-            }
-        }
-
+		public override bool IsDone { get { return true; } }
 
         private static LocalPlayer Me
         {
@@ -273,7 +265,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         public static Composite _myHook;
         public Composite CreateHook()
         {
-            return new Decorator(r => !Me.Combat,
+            return new Decorator(r => !Me.Combat && Me.IsAlive,
                 new PrioritySelector(
                     RunOtherComposite,
                     PurchaseMount,

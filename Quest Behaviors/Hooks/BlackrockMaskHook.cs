@@ -49,16 +49,8 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
         private bool _inserted = false;
         private bool _state;
-        
 
-        public override bool IsDone
-        {
-            get
-            {
-                return _inserted;
-            }
-        }
-
+		public override bool IsDone { get { return true; } }
 
         public static WoWItem Disguise
         {

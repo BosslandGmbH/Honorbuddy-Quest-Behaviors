@@ -59,10 +59,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
                         new Action(r => Lua.DoString("RunMacroText('/click ExtraActionButton1')")))));
         }
 
-        public override bool IsDone
-        {
-            get { return true; }
-        }
+        public override bool IsDone { get { return true; } }
 
         public override void OnStart()
         {
