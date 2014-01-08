@@ -142,6 +142,7 @@
     <Compile Include="Hooks\BlackrockMaskHook.cs" />
     <Compile Include="Hooks\MountHook.cs" />
     <Compile Include="Hooks\TheEndlessFlowHook.cs" />
+    <Compile Include="Misc\DKEnchantWeapon.cs" />
     <Compile Include="Misc\InstanceTimer.cs" />
     <Compile Include="Misc\LoadProfileOn.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
