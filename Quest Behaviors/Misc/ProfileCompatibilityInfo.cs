@@ -136,15 +136,15 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 "Tukui",                // http://www.tukui.org/dl.php
                 "Zygor Guides Viewer",  // http://www.zygorguides.com/
 
-                // CJ: Put these on the back burner for now, with the repair of #HB-118...
-                // // Modifies Tradeskill window...
-                // "Auctionator",          // http://www.curse.com/addons/wow/auctionator/
-                // "GnomeWorks",           // http://www.wowace.com/addons/gnomeworks/
-                // "LilSparky's Workshop", // http://www.wowace.com/addons/lil-sparkys-workshop/
-                // "Overachiever",         // http://wow.curseforge.com/addons/overachiever/
-
                 // Deploys Minipets...
                 "CollectMe",            // http://www.curse.com/addons/wow/collect_me
+                "Critter Caller",       // http://www.curse.com/addons/wow/crittercaller
+                "GoGoPet",              // http://www.curse.com/addons/wow/gogopet
+                "Kennel",               // http://www.curse.com/addons/wow/kennel
+                "Menagerie",            // http://www.curse.com/addons/wow/menagerie
+                "PermanentPet",         // http://www.curse.com/addons/wow/permanentpet
+                "PetLeash",             // http://www.curse.com/addons/wow/petleash
+                "Tiffy's Pet Summoner", // http://www.curse.com/addons/wow/tiffys-pet-summoner
             };
 
         // Match is case-insensitive StartsWith.
