@@ -272,10 +272,11 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             buildBagInfo(Me.GetBag(WoWBagSlot.Bag3));
             buildBagInfo(Me.GetBag(WoWBagSlot.Bag4));
 
-            builder.AppendFormat("{0}Bags [TOTALS: ({1} normal + {2} speciality) free / {3} total slots]:",
+            builder.AppendFormat("{0}Bags [TOTALS: ({1} normal + {2} speciality) = {3} free / {4} total slots]:",
                 linePrefix,
                 freeSlotsNormal,
                 freeSlotsSpeciality,
+                (freeSlotsNormal + freeSlotsSpeciality),
                 totalSlots);
             builder.Append(Environment.NewLine);
             builder.Append(tmpBuilder);
@@ -350,7 +351,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         {
             problemAddOnList = new List<string>();
 
-            var addOns = new Dictionary<string, bool>();
+            var enabledAddOns = new Dictionary<string, bool>();
             var numAddOns = Lua.GetReturnVal<int>("return GetNumAddOns()", 0);
 
             // Build list of game client addon names & their enabled/disabled state...
@@ -367,28 +368,33 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     Lua.GetReturnVal<bool>(addOnInfoQuery, 3) /*enabled*/
                     && Lua.GetReturnVal<bool>(addOnInfoQuery, 4) /*loadable*/;
 
+                // We're only interested in enabled addons...
+                if (!addOnEnabled)
+                    { continue; }
+
                 // Make certain addon name is unique...
                 var addOnName = addOnTitle;
-                for (var sameNameIndex = 2; addOns.ContainsKey(addOnName); ++sameNameIndex)
+                for (var sameNameIndex = 2; enabledAddOns.ContainsKey(addOnName); ++sameNameIndex)
                 {
                     addOnName = string.Format("{0}_{1}", addOnTitle, sameNameIndex);
                 }
 
-                addOns.Add(addOnName, addOnEnabled);
+                enabledAddOns.Add(addOnName, addOnEnabled);
             }
 
 
             // Analyze addons for known problem ones...
-            builder.AppendFormat("{0}Game client addons:", linePrefix);
+            builder.AppendFormat("{0}Game client addons [Showing {1} enabled / {2} total]:",
+                linePrefix, enabledAddOns.Count, numAddOns);
             builder.Append(Environment.NewLine);
-            if (!addOns.Any())
+            if (!enabledAddOns.Any())
             {
                 builder.AppendFormat("{0}    NONE", linePrefix);
                 builder.Append(Environment.NewLine);
             }
             else
             {
-                foreach (var addOn in addOns.OrderBy(a => a.Key))
+                foreach (var addOn in enabledAddOns.OrderBy(a => a.Key))
                 {
                     var addOnName = addOn.Key;
                     var addOnEnabled = addOn.Value;
@@ -648,7 +654,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     builder.Append(Environment.NewLine);
                     if (questItem.ItemInfo.BeginQuestId != 0)
                     {
-                        builder.AppendFormat("{0}        => starts quest \"{1}\"(http://wowhead.com/quest={2})",
+                        builder.AppendFormat("{0}        => starts quest \"{1}\" (http://wowhead.com/quest={2})",
                             linePrefix,
                             ((quest != null) ? quest.Name : "UnknownQuest"),
                             questId);

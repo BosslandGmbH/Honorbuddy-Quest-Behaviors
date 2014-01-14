@@ -146,7 +146,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, useItemStrategy, "UseItemStrategy",
                 CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget);
 
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimes", 1);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimesToUseItem", 1);
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, MaxRange, "MaxRangeToUseItem", 25.0);
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTimeAfterItemUse", 0);
             QuestBehaviorBase.BuildReplacementArg(replacementArgs, Location, "", Me.Location);
