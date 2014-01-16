@@ -117,10 +117,6 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
         #region Private and Convenience variables
         // Add what you need here...
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 
@@ -130,6 +126,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 
 
         #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
+
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.

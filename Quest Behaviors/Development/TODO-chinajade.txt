@@ -29,7 +29,6 @@ HasAura
 
                 // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
                 base.OnFinished();
-	            IsOnFinishedRun = true;
             }
         }
 

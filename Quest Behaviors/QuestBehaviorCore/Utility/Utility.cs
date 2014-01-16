@@ -70,6 +70,14 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        // 15Jan2014-10:57UTC chinajade
+        public static void ExitVehicle()
+        {
+            if (Query.IsInVehicle())
+                { Lua.DoString("VehicleExit()"); }
+        }
+
+
         // 20Apr2013-12:50UTC chinajade
         public static string GetItemNameFromId(int wowItemId)
         {
