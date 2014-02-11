@@ -219,6 +219,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
                                 new SwitchArgument<WoWClass>(WoWClass.Priest,
                                     new PrioritySelector(
+                                        TryCast(589, context => !Me.CurrentTarget.HasAura(589)),      // Shadow Word: Pain: http://wowhead.com/spell=589
                                         TryCast(15407),     // Mind Flay: http://wowhead.com/spell=15407
                                         TryCast(585)        // Smite: http://wowhead.com/spell=585
                                     )),
@@ -271,14 +272,12 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 requirements = requirements ?? (context => true);
                 
-                return new Action(context =>
+                return new Decorator(context => SpellManager.CanCast(spellId) && requirements(context),
+                    new Action(context =>
                     {
-                        if (SpellManager.CanCast(spellId) && requirements(context))
-                        {
-                            QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", Utility.GetSpellNameFromId(spellId));
-                            SpellManager.Cast(spellId);
-                        }
-                    });
+                        QBCLog.DeveloperInfo("MiniCombatRoutine used {0}", Utility.GetSpellNameFromId(spellId));
+                        SpellManager.Cast(spellId);
+                    }));
             }
         }
     }
