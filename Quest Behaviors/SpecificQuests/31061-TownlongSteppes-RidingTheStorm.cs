@@ -1,4 +1,5 @@
-﻿//
+﻿// Behavior created by Hawker largely based on code originally contributed by Natfoth and Raphus.
+//
 // LICENSE:
 // This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
@@ -9,6 +10,7 @@
 //
 
 #region Summary and Documentation
+// Not much to say - very specific qb for a very unusual quest
 #endregion
 
 
@@ -24,8 +26,12 @@ using System.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Routines;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -34,22 +40,23 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RidingTheStorm
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 {
     [CustomBehaviorFileName(@"SpecificQuests\31061-TownlongSteppes-RidingTheStorm")]
-    public class Blastranaar : CustomForcedBehavior
+    public class RidingTheStorm : CustomForcedBehavior
     {
-        public Blastranaar(Dictionary<string, string> args)
+        public RidingTheStorm(Dictionary<string, string> args)
             : base(args)
         {
             QBCLog.BehaviorLoggingContext = this;
 
             try
             {
-                QuestId = 31061;
-                SpellIds = GetNumberedAttributesAsArray<int>("SpellId", 1, ConstrainAs.SpellId, null);
-                SpellId = SpellIds.FirstOrDefault(id => SpellManager.HasSpell(id));
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 31061;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
             }
+
             catch (Exception except)
             {
                 // Maintenance problems occur for a number of reasons.  The primary two are...
@@ -61,60 +68,60 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RidingTheStorm
                 IsAttributeProblem = true;
             }
         }
-        public int QuestId { get; set; }
+
+
+        // Attributes provided by caller
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
+
+
+        // Private variables for internal state
         private bool _isBehaviorDone;
-        public int MobIdCloudrunner = 62586;
-        public int BronzeClawId = 83134;
-        public int[] SpellIds { get; private set; }
-        public int SpellId { get; private set; }
+        private bool _isDisposed;
         private Composite _root;
 
-        public override bool IsDone
+        // Private properties
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+
+        ~RidingTheStorm()
         {
-            get
+            Dispose(false);
+        }
+
+
+        public void Dispose(bool isExplicitlyInitiatedDispose)
+        {
+            if (!_isDisposed)
             {
-                return _isBehaviorDone;
+                // NOTE: we should call any Dispose() method for any managed or unmanaged
+                // resource, if that resource provides a Dispose() method.
+
+                // Clean up managed resources, if explicit disposal...
+                if (isExplicitlyInitiatedDispose)
+                {
+                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+                }
+
+                // Clean up unmanaged resources (if any) here...
+                TreeRoot.GoalText = string.Empty;
+                TreeRoot.StatusText = string.Empty;
+
+                // Call parent Dispose() (if it exists) here ...
+                base.Dispose();
             }
-        }
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
 
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-            }
-        }
-
-        public List<WoWUnit> CloudrunnerOutRange
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdCloudrunner && !u.IsDead && u.Distance < 10000 && u.HealthPercent == 100).OrderBy(u => u.Distance).ToList();
-            }
+            _isDisposed = true;
         }
 
 
-        public List<WoWUnit> CloudrunnerInRange
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdCloudrunner && !u.IsDead && u.Distance < 10000).OrderBy(u => u.Distance).ToList();
-            }
-        }
-
-        public WoWItem BronzeClaw { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == BronzeClawId)); } }
-
-
+        #region Overrides of CustomForcedBehavior
         public Composite DoneYet
         {
             get
             {
-                return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 1),
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
                     new Action(delegate
                     {
                         TreeRoot.StatusText = "Finished!";
@@ -125,58 +132,176 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RidingTheStorm
         }
 
 
-        public Composite CloudrunnerKill
+        public WoWItem BronzeClaw
+        {
+            get { return Me.BagItems.FirstOrDefault(r => r.Entry == 83134); }
+        }
+
+        private IEnumerable<int> dragonIds = new[] { 62584, 62585, 62586, 62311 };
+
+
+        public WoWUnit ShanzeCloudrunner
         {
             get
             {
-                return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
-                    new PrioritySelector(
+                if (!Query.IsViable(_shanzeCloudrunner) ||
+                    (_shanzeCloudrunner != null && _shanzeCloudrunner.IsFriendly))
+                {
+                    _shanzeCloudrunner =
+                        (from wowObject in Query.FindMobsAndFactions(dragonIds)
+                         let wowUnit = wowObject as WoWUnit
+                         where
+                             Query.IsViable(wowUnit)
+                             && wowUnit.IsAlive
+                             // Eliminate Dragons that that have come to their senses
+                             && !wowUnit.IsFriendly
+                             && wowUnit.DistanceSqr < 90 * 90
+                             && !wowUnit.HasAura(122157)
+                         orderby wowUnit.Distance
+                         select wowUnit)
+                        .FirstOrDefault();
+                }
 
-			            new Decorator(ret => CloudrunnerOutRange[0].Location.Distance(Me.Location) > 20 && !Me.Combat,
-                            new Action(c =>
-			                {
-			                    TreeRoot.StatusText = "Using Bronze Claw on CloudRunner";
-			                    CloudrunnerOutRange[0].Target();
+                if (!Query.IsViable(_shanzeCloudrunner))
+                {
+                    TreeRoot.StatusText = "Ejecting from vehicle";
+                    Lua.DoString("VehicleExit()");
+                }
 
-			                    if (BronzeClaw.Cooldown == 0)
-			                    {
-				                    BronzeClaw.UseContainerItem();
-                                    StyxWoW.Sleep(1000);
-				                }
+                return _shanzeCloudrunner;
+            }
+        }
+        private WoWUnit _shanzeCloudrunner;
 
-                                return RunStatus.Success;
-			                })),
+        private static bool SelectNewDragon
+        {
+            get
+            {
+                if (!StyxWoW.Me.GotTarget)
+                {
+                    // Logging.Write("Select something!");
+                    return true;
+                }
+                if (StyxWoW.Me.GotTarget && StyxWoW.Me.CurrentTarget.IsFriendly)
+                {
+                    Logging.Write("Seeking a hostile dragon.");
+                    return true;
+                }
 
-			            new Decorator(ret => CloudrunnerInRange[0].Location.Distance(Me.Location) < 10, new Action(c =>
-			            {
-			                TreeRoot.StatusText = "Killing CloudRunner";
-                    	    SpellManager.Cast(SpellId);
-                            StyxWoW.Sleep(1000);
+                if (StyxWoW.Me.GotTarget && !StyxWoW.Me.CurrentTarget.HasAura(122157)) // Steel Claws debuff
+                {
+                    Logging.Write("Seeking a dragon to use Bronze Claws on.");
+                    return true;
+                }
 
-			                if (CloudrunnerInRange[0].IsFriendly)
-				            {
+                if (!Query.IsInVehicle())
+                {
+                    Logging.Write("Seeking a dragon.");
+                    return true;
+                }
 
-				                TreeRoot.StatusText = "CloudRunner is friendly, switching to new one";
-				                StyxWoW.Sleep(2000);
-                        	    return RunStatus.Success;
-				            }
-
-			                if (Me.IsQuestObjectiveComplete(QuestId, 1))
-				            {
-                        	    TreeRoot.StatusText = "Finished!";
-                        	    _isBehaviorDone = true;
-                        	    return RunStatus.Success;
-				            }
-
-                            return RunStatus.Running;
-			            }))));
+                return false;
             }
         }
 
-		
-        protected override Composite CreateBehavior()
+
+        public Composite GetOnDragon
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, CloudrunnerKill, new ActionAlwaysSucceed())));
+            get
+            {
+                return
+                    new Decorator(ret => SelectNewDragon,
+                        new PrioritySelector(
+                            new Decorator(r => Query.IsViable(ShanzeCloudrunner),
+                                new Action(r =>
+                                {
+                                    Utility.Target(ShanzeCloudrunner);
+                                    Logging.Write("Using Bronze Claws.");
+                                    TreeRoot.StatusText = "Using Bronze Claws.";
+                                    BronzeClaw.Use();
+                                })),
+                                 new Sleep(3000)
+                            ));
+            }
         }
+
+
+        public Composite KillDragon
+        {
+            get
+            {
+                return new Decorator(ret => !SelectNewDragon,
+                    new PrioritySelector(
+                    // Get off when dragon sees sense...
+                    /* new Decorator(context => StyxWoW.Me.GotTarget && (StyxWoW.Me.CurrentTarget.IsFriendly || ,
+                     new Sequence(
+                     new Action(ctx => Me.ClearTarget()),
+                     new ActionAlwaysSucceed())),
+                    
+                     new Sequence(
+							
+                         // Small variant delay to prevent looking like a bot...
+                         new WaitContinue(
+                             Delay.BeforeButtonClick,
+                             context => false,
+                             new ActionAlwaysSucceed()),
+                         new Action(delegate
+                     {
+                         TreeRoot.StatusText = "Ejecting from vehicle";
+                         Lua.DoString("VehicleExit()");
+                     })
+                     )), */
+
+                        // Make certain Dragon stays targeted...
+                        new ActionFail(context => Utility.Target(ShanzeCloudrunner, false, PoiType.Kill)),
+
+                        // Spank Dragon (use backup MiniCombatRoutine if main CR doesn't attack in vehicles...
+                        new ActionFail(context => TreeRoot.StatusText = "Fighting the dragon."),
+                        new UtilityBehaviorPS.MiniCombatRoutine()
+                    ));
+            }
+        }
+
+        protected Composite CreateBehavior_MainCombat()
+        {
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetOnDragon, KillDragon, new ActionAlwaysSucceed())));
+        }
+
+
+        public override void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+
+                this.UpdateGoalText(QuestId);
+            }
+        }
+
+        #endregion
     }
 }
