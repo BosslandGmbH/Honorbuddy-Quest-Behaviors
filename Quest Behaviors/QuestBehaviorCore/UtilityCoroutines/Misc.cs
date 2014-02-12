@@ -25,7 +25,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		///         If the item doesn't arrived within the specified time, the behavior is terminated.
 		///     </para>
 		/// </summary>
-		public class WaitForInventoryItem : SubCoroutine
+		public class WaitForInventoryItem : CoroutineTask
 		{
 			// BT contruction-time properties...
 			public WaitForInventoryItem(

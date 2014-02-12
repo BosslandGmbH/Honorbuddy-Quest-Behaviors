@@ -38,7 +38,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		public static IEnumerator MoveStop()
 		{
 			Navigator.PlayerMover.MoveStop();
-			yield return StyxCoroutine.Wait((int) Delay.LagDuration.TotalMilliseconds, () => WoWMovement.ActiveMover.IsMoving);
+			yield return StyxCoroutine.Wait((int) Delay.LagDuration.TotalMilliseconds, () => !WoWMovement.ActiveMover.IsMoving);
 		}
 
 		public static IEnumerator MoveTo(
@@ -79,35 +79,35 @@ namespace Honorbuddy.QuestBehaviorCore
 				{
 					case MovementByType.FlightorPreferred:
 						yield return TryFlightor(destination, suppressMountUse);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 
 						yield return TryNavigator(destination, suppressMountUse, destinationName);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 
 						yield return TryClickToMove(destination, suppressMountUse, NavType.Fly);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 						break;
 					case MovementByType.NavigatorPreferred:
 						yield return TryNavigator(destination, suppressMountUse, destinationName);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 
 						yield return TryClickToMove(destination, suppressMountUse, NavType.Run);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 						break;
 					case MovementByType.NavigatorOnly:
 						yield return TryNavigator(destination, suppressMountUse, destinationName);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 						break;
 					case MovementByType.ClickToMoveOnly:
 						var navType = WoWMovement.ActiveMover.MovementInfo.CanFly ? NavType.Fly : NavType.Run;
 						yield return TryClickToMove(destination, suppressMountUse, navType);
-						if ((bool)Coroutine.Current.LastResult)
+						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
 						break;
 					case MovementByType.None:
@@ -127,10 +127,8 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!shouldBeMounted && Me.IsMounted())
 			{
 				yield return ExecuteMountStrategy(MountStrategyType.Dismount);
-				if ((bool)Coroutine.Current.LastResult)
-				{
+				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
-				}
 			}
 			// Are we unmounted, and mount use is permitted?
 			// NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
@@ -151,7 +149,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			// NB: Do not 'dismount' for CtM.  We may be using it for aerial navigation, also.
 			yield return SetMountState(destination, suppressMountUse, navType);
-			if ((bool)Coroutine.Current.LastResult)
+			if ((bool)Coroutine.Current.SubRoutineResult)
 				yield break;
 
 			// If Navigator can generate a parital path for us, take advantage of it...
@@ -178,7 +176,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					SetMountState(
 						destination,
 						suppressMountUse || Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, destination));
-				if ((bool)Coroutine.Current.LastResult)
+				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
 				Flightor.MoveTo(destination, 15.0f, true);
 				yield return true;
@@ -194,20 +192,22 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (WoWMovement.ActiveMover.IsFlying)
 			{
 				yield return LandAndDismount("[QB] Preparing for ground travel");
-				if ((bool)Coroutine.Current.LastResult)
+				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
 			}
 			// If we can navigate to destination, use navigator...
 			if (Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, destination))
 			{
 				yield return SetMountState(destination, suppressMountUse, NavType.Run);
-				if ((bool)Coroutine.Current.LastResult)
+				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
 
 				var moveResult = Navigator.MoveTo(destination);
-				yield return Navigator.GetRunStatusFromMoveResult(moveResult) == RunStatus.Success;
-				if ((bool)Coroutine.Current.LastResult)
+				if (Navigator.GetRunStatusFromMoveResult(moveResult) == RunStatus.Success)
+				{
+					yield return true;
 					yield break;
+				}
 			}
 			if (destinationName == null)
 				destinationName = destination.ToString();
@@ -219,9 +219,9 @@ namespace Honorbuddy.QuestBehaviorCore
 		}
 
 
-		public class NoMobsAtCurrentWaypoint : SubCoroutine
+		public class NoMobsAtCurrentWaypoint : CoroutineTask
 		{
-			private ThrottleSubCoroutine _messageThrottle;
+			private ThrottleCoroutineTask _messageThrottle;
 
 			public NoMobsAtCurrentWaypoint(
 				Func<HuntingGroundsType> huntingGroundsProvider,
@@ -248,11 +248,11 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				// Move to next hunting ground waypoint...
 				yield return MoveTo(HuntingGroundsProvider(), MovementByDelegate());
-				if ((bool) Coroutine.Current.LastResult)
+				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
 
 				// Only one hunting ground waypoint to move to?
-				yield return _messageThrottle ?? (_messageThrottle = new ThrottleSubCoroutine(TimeSpan.FromSeconds(10), LogMessage));
+				yield return _messageThrottle ?? (_messageThrottle = new ThrottleCoroutineTask(TimeSpan.FromSeconds(10), LogMessage));
 
 				// Terminate of no targets available?
 				if (TerminateBehaviorIfNoTargetsProvider != null)

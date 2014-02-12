@@ -47,7 +47,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     new Decorator(context => WoWMovement.ActiveMover.IsMoving,
                         new Sequence(
                             new Action(context => { Navigator.PlayerMover.MoveStop(); }),
-                            new Wait(Delay.LagDuration, context => WoWMovement.ActiveMover.IsMoving, new ActionAlwaysSucceed())
+                            new Wait(Delay.LagDuration, context => !WoWMovement.ActiveMover.IsMoving, new ActionAlwaysSucceed())
                         ))
                 };
             }

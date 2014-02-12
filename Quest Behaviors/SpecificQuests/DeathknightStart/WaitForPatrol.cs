@@ -145,7 +145,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-
+using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
@@ -236,9 +236,25 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
             get { return _state_MainBehavior; }
             set
             {
-                // For DEBUGGING...
-                if (_state_MainBehavior != value)
-                    { QBCLog.DeveloperInfo("State_MainBehavior: {0}", value); }
+				if (_state_MainBehavior == value)
+					{ return; }
+                
+				// For DEBUGGING...
+                QBCLog.DeveloperInfo("State_MainBehavior: {0}", value);
+
+				// Disable any settings that may interupt us
+				// NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
+				// normal values when OnFinished() is called.
+				if (value == StateType_MainBehavior.MovingToSafespot)
+	            {
+					// we only want to deal with aggro while in this state.
+					LevelBot.BehaviorFlags = BehaviorFlags.All & ~(BehaviorFlags.Loot | BehaviorFlags.Pull | BehaviorFlags.Vendor | BehaviorFlags.Roam);
+	            }
+	            else
+	            {
+					// We do not want any interuptions while not MOVINGTOSAFESPOT.
+					LevelBot.BehaviorFlags = BehaviorFlags.All & ~(BehaviorFlags.Loot | BehaviorFlags.Combat | BehaviorFlags.Vendor | BehaviorFlags.Roam);
+	            }
 
                 _state_MainBehavior = value;
             }
@@ -297,7 +313,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 CharacterSettings.Instance.LootChests = false;
                 CharacterSettings.Instance.NinjaSkin = false;
                 CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.PullDistance = 0;
+
+				// Disable any settings that may interupt us
+				// NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
+				// normal values when OnFinished() is called.
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull | BehaviorFlags.Vendor | BehaviorFlags.Roam);
 
                 State_MainBehavior = StateType_MainBehavior.MovingToSafespot;
             }
@@ -306,14 +326,14 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 
         #region Main Behaviors
-        protected override Composite CreateBehavior_CombatMain()
-        {
-            return new PrioritySelector(
-                new Decorator(context => (State_MainBehavior == StateType_MainBehavior.PathIngressing)
-                                            || (State_MainBehavior == StateType_MainBehavior.PathRetreating),
-                    CreateBehavior())
-                );
-        }
+		//protected override Composite CreateBehavior_CombatMain()
+		//{
+		//	return new PrioritySelector(
+		//		new Decorator(context => (State_MainBehavior == StateType_MainBehavior.PathIngressing)
+		//									|| (State_MainBehavior == StateType_MainBehavior.PathRetreating),
+		//			CreateBehavior())
+		//		);
+		//}
 
 
         protected override Composite CreateBehavior_CombatOnly()
@@ -404,14 +424,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
         private Composite StateBehaviorPS_MovingToSafeSpot()
         {
-            return new PrioritySelector(
-                new UtilityBehaviorPS.SpankMobTargetingUs(
-                    context => IgnoreMobsInBlackspots,
-                    context => NonCompeteDistance),
-
-                new Decorator(context => !Me.Combat,
-                    new UtilityBehaviorPS.HealAndRest()),
-                    
+            return new PrioritySelector(                
                 // If a "Move Near" mob was specified, move to it...
                 new Decorator(context => MobIdToMoveNear > 0,
                     new PrioritySelector(
@@ -582,6 +595,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 
         #region Helpers
+
         private bool IsSafeToMoveToDestination(WoWUnit avoidNpc)
         {
             // Its safe to move when:

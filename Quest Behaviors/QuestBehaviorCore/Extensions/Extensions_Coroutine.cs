@@ -26,47 +26,9 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-	// Note: Remove once an equivalent class is in HB core.
-	/// <summary>
-	/// Represents a sub coroutine that can be derived from to implement coroutine parts with state.
-	/// </summary>
-	/// <example></example>
-	public abstract class SubCoroutine : IEnumerator
+	public class ThrottleCoroutineTask : CoroutineTask
 	{
-		/// <summary>
-		/// Provides the body of this sub coroutine.
-		/// </summary>
-		/// <returns>An <see cref="IEnumerator"/> that when iterated is the body of this sub coroutine.</returns>
-		protected abstract IEnumerator Run();
-
-		private bool _yielded;
-
-		bool IEnumerator.MoveNext()
-		{
-			// The first MoveNext returns true and constructs _current
-			// That is then returned and ran to full by Coroutine
-			// When the inner IEnumerator is done, MoveNext is called again and returns false
-			// This IEnumerator is then popped off (and disposed, if applicable) - ready to be yielded again.
-
-			_yielded = !_yielded;
-			if (!_yielded)
-				return false;
-
-			_current = Coroutine.WithDebugInfo(Run(), "Styx.CommonBot.Coroutines.MoveNext");
-			return true;
-		}
-
-		private object _current;
-		object IEnumerator.Current { get { return _current; } }
-
-		void IEnumerator.Reset()
-		{
-		}
-	}
-
-	public class ThrottleSubCoroutine : SubCoroutine
-	{
-		public ThrottleSubCoroutine(TimeSpan throttle, Func<IEnumerator> child)
+		public ThrottleCoroutineTask(TimeSpan throttle, Func<IEnumerator> child)
 		{
 			Throttle = throttle;
 			Child = child;

@@ -34,14 +34,14 @@ namespace Honorbuddy.QuestBehaviorCore
 {
 	public partial class UtilityCoroutine
 	{
-		public class WarnIfBagsFull : SubCoroutine
+		public class WarnIfBagsFull : CoroutineTask
 		{
-			private ThrottleSubCoroutine _throttle;
+			private ThrottleCoroutineTask _throttle;
 
 			protected override IEnumerator Run()
 			{
 				if (LootTargeting.LootMobs && Me.FreeBagSlots <= 0)
-					yield return _throttle ?? (_throttle = new ThrottleSubCoroutine(TimeSpan.FromMinutes(10), LogWarning));
+					yield return _throttle ?? (_throttle = new ThrottleCoroutineTask(TimeSpan.FromMinutes(10), LogWarning));
 				yield return false;
 			}
 

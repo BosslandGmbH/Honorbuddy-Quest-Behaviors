@@ -34,8 +34,10 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
+
     public partial class UtilityBehaviorPS
-    {
+    {		/*
+
         /// <summary>
         /// Unequivocally engages mob in combat.  Does no checking for being untagged, etc.
         /// </summary>
@@ -360,5 +362,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 return SelectedTarget;
             }
         }
+			 */
     }
+
 }

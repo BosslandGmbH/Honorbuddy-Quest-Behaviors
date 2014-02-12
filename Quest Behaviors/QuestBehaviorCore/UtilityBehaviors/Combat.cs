@@ -32,6 +32,7 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public partial class UtilityBehaviorPS
     {
+		/*
         /// <summary>
         /// This behavior quits attacking the mob, once the mob is targeting us.
         /// </summary>
@@ -70,6 +71,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 };
             }
         }
+		 */
     }
 
 
