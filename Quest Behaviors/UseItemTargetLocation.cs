@@ -197,7 +197,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                 }
 
                 if (obj != null)
-                    { QBCLog.DeveloperInfo(obj.Name); }
+                { QBCLog.DeveloperInfo(obj.Name); }
 
                 return obj;
             }
@@ -265,25 +265,23 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                     new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
                         new Action(ret => _isBehaviorDone = true)),
 
-                    new Decorator(
-                        ret => UseType == QBType.PointToPoint,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => Me.Location.Distance(MoveToLocation) > 3,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
-                                    new Action(ret => Navigator.MoveTo(MoveToLocation)))),
-                            new Sequence(
-                                new Action(ret => TreeRoot.StatusText = "Using Item"),
-                                new Action(ret => Navigator.PlayerMover.MoveStop()),
-                                new Action(ret => Me.SetFacing(ClickToLocation)),
-                                new Action(ret => StyxWoW.SleepForLagDuration()),
-                                new Action(ret => Item.UseContainerItem()),
-                                new Action(ret => StyxWoW.SleepForLagDuration()),
-                                new Action(ret => Counter++),
-                                new Action(ret => SpellManager.ClickRemoteLocation(ClickToLocation)),
-                                new Action(ctx => _waitTimer.Reset())) 
-                            )),
+					new Decorator(
+						ret => UseType == QBType.PointToPoint,
+						new PrioritySelector(
+							new Decorator(
+								ret => Me.Location.Distance(MoveToLocation) > 3,
+								new Action(ret => Navigator.MoveTo(MoveToLocation))),
+							new Sequence(
+								new Action(ret => TreeRoot.StatusText = "Using Quest Item: " + Counter + " Out of " + NumOfTimes + " Times"),
+								new Action(ret => Navigator.PlayerMover.MoveStop()),
+								new Action(ret => Me.SetFacing(ClickToLocation)),
+								new SleepForLagDuration(),
+								new Action(ret => Item.UseContainerItem()),
+								new SleepForLagDuration(),
+								new Action(ret => Counter++),
+								new Action(ret => SpellManager.ClickRemoteLocation(ClickToLocation)),
+								new Action(ctx => _waitTimer.Reset())
+							))),
 
                     new Decorator(
                         ret => UseType == QBType.PointToObject,
@@ -349,11 +347,11 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ctx => _waitTimer.Reset())))),
-                            new Decorator(
-                                ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving to location"),
-                                    new Action(ret => Navigator.MoveTo(MoveToLocation))))
+							new Decorator(
+								ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
+								new Sequence(
+									new Action(ret => TreeRoot.StatusText = "Moving to location"),
+									new Action(ret => Navigator.MoveTo(MoveToLocation))))
                         ))
                     ));
         }
