@@ -264,7 +264,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 
         protected Composite CreateBehavior_MainCombat()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GetOnDragon, KillDragon, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !IsDone, new PrioritySelector(DoneYet, GetOnDragon, KillDragon, new ActionAlwaysSucceed())));
         }
 
 
