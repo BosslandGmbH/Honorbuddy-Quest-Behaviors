@@ -142,6 +142,12 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                 // NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
                 // normal values when OnFinished() is called.
                 LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
+
+                // Clear any existing POI (after we've disabled Pull/Loot behaviors)...
+                // Otherwise, FlyTo can get stuck trying to pursue the previous POI, if one was
+                // set immediately before the behavior was launched.  This is a boundary condition,
+                // and it happens frequently enough to be really annoying.
+                BotPoi.Clear();
             }
         }
         #endregion
