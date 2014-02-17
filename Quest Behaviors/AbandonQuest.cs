@@ -198,13 +198,13 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                     _isBehaviorDone = true;
                 }
 
-                else if ((quest != null) && quest.IsCompleted && (Type != AbandonType.All))
+                else if (quest.IsCompleted && (Type != AbandonType.All))
                 {
                     QBCLog.Warning("Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name);
                     _isBehaviorDone = true;
                 }
 
-                else if ((quest != null) && !quest.IsFailed && (Type == AbandonType.Failed))
+                else if (!quest.IsFailed && (Type == AbandonType.Failed))
                 {
                     QBCLog.Warning("Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name);
                     _isBehaviorDone = true;
@@ -213,8 +213,7 @@ namespace Honorbuddy.Quest_Behaviors.AbandonQuest
                 else
                 {
                     TreeRoot.GoalText = string.Format("Abandoning QuestId({0}): \"{1}\"", QuestId, quest.Name);
-                    QuestLog ql = new QuestLog();
-                    ql.AbandonQuestById((uint)QuestId);
+                    StyxWoW.Me.QuestLog.AbandonQuestById((uint)QuestId);
                     QBCLog.Info("Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
 
                     _waitTimerAfterAbandon.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
