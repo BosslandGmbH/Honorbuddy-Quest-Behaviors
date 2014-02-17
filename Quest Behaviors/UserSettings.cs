@@ -23,9 +23,10 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Linq;
-using System.Linq.Expressions;
-using System.Reflection;
+using System.Text;
+using System.Xml.Linq;
 
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -38,79 +39,9 @@ using Styx.Helpers;
 namespace Honorbuddy.Quest_Behaviors.UserSettings
 {
     [CustomBehaviorFileName(@"UserSettings")]
-    class UserSettings : CustomForcedBehavior
+    class UserSettings : QuestBehaviorBase
     {
-        // To add, adjust, or remove presets, this is the only method that needs to be modified...
-        // All other code in this class uses the information contained in the returned presetChangeRequests.
-        // Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
-        // at runtime pointing you directly to the problem.
-        private static Dictionary<string, ConfigurationChangeRequest> UtilBuildPresetChangeRequests(Dictionary<string, ConfigDescriptor> configurationSettings,
-                                                                                                      ConfigSnapshot originalConfiguration)
-        {
-            Dictionary<string, ConfigurationChangeRequest> presets = new Dictionary<string, ConfigurationChangeRequest>();
-
-            presets.Add("Grind",
-                        new ConfigurationChangeRequest(configurationSettings)
-                            .Add("GroundMountFarmingMode", false)
-                            .Add("KillBetweenHotspots", true)
-                        );
-
-            presets.Add("HarvestsOff",
-                        new ConfigurationChangeRequest(configurationSettings)
-                            .Add("HarvestHerbs", false)
-                            .Add("HarvestMinerals", false)
-                            .Add("LootMobs", false)
-                            .Add("NinjaSkin", false)
-                            .Add("SkinMobs", false)
-                        );
-
-            presets.Add("HarvestsOn",
-                        new ConfigurationChangeRequest(configurationSettings)
-                            .Add("HarvestHerbs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Herbalism).MaxValue > 0))
-                            .Add("HarvestMinerals", (StyxWoW.Me.GetSkill(Styx.SkillLine.Mining).MaxValue > 0))
-                            .Add("LootMobs", true)
-                            .Add("LootRadius", 45)
-                            .Add("NinjaSkin", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                            .Add("SkinMobs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                        );
-
-            presets.Add("NoDistractions",
-                        new ConfigurationChangeRequest(configurationSettings)
-                            .Add("GroundMountFarmingMode", true)
-                            .Add("HarvestHerbs", false)
-                            .Add("HarvestMinerals", false)
-                            .Add("KillBetweenHotspots", false)
-                            .Add("LootMobs", false)
-                            .Add("NinjaSkin", false)
-                            .Add("SkinMobs", false)
-                        );
-
-            presets.Add("NoTrain",
-                        new ConfigurationChangeRequest(configurationSettings)
-                //.Add("FindVendorsAutomatically", false)
-                        );
-
-            presets.Add("NormalQuesting",
-                        new ConfigurationChangeRequest(configurationSettings)
-                            .Add("GroundMountFarmingMode", false)
-                            .Add("HarvestHerbs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Herbalism).MaxValue > 0))
-                            .Add("HarvestMinerals", (StyxWoW.Me.GetSkill(Styx.SkillLine.Mining).MaxValue > 0))
-                            .Add("KillBetweenHotspots", false)
-                            .Add("LootMobs", true)
-                            .Add("LootRadius", 45)
-                            .Add("NinjaSkin", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                            .Add("RessAtSpiritHealers", false)
-                            .Add("SkinMobs", (StyxWoW.Me.GetSkill(Styx.SkillLine.Skinning).MaxValue > 0))
-                            .Add("UseRandomMount", true)
-                        );
-
-            presets.Add("UserOriginal",
-                        originalConfiguration.MakeChangeRequest());
-
-            return (presets);
-        }
-
-
+        #region Constructor and Argument Processing
         public UserSettings(Dictionary<string, string> args)
             : base(args)
         {
@@ -118,36 +49,49 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
             try
             {
-                _configurationSettings = UtilBuildConfigurationSettings();
-                _persistData = new PersistedData(this.GetType().Name, _configurationSettings);
-                _userChangeRequest = new ConfigurationChangeRequest(_configurationSettings);
+                // Build the 'presets'...
+                // Note that the "UserOriginal" configuration will also be captured as a preset.
+                _presetChangeSets = BuildPresets();
 
-                // If we've yet to capture the user's original settings, do so now...
-                // We need to do this 'up front' because the "UserOriginal" configuration will
-                // also be captured as a preset.
-                _originalConfiguration = _persistData.OriginalConfiguration;
-                _presetChangeRequests = UtilBuildPresetChangeRequests(_configurationSettings,
-                                                                      _originalConfiguration);
-
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                bool? tmpDebugShowChangesApplied;
-
-                tmpDebugShowChangesApplied = GetAttributeAsNullable<bool>("DebugShowChangesApplied", false, null, null);
+                // Behavior-specific attributes...
+                PersistedDebugShowChangesApplied = GetAttributeAsNullable<bool>("DebugShowChangesApplied", false, null, null)
+                    ?? PersistedDebugShowChangesApplied;
                 DebugShowDetails = GetAttributeAsNullable<bool>("DebugShowDetails", false, null, null) ?? false;
                 DebugShowDiff = GetAttributeAsNullable<bool>("DebugShowDiff", false, null, null) ?? false;
-                PresetName = GetAttributeAs<string>("Preset", false, new ConstrainTo.SpecificValues<string>(_presetChangeRequests.Keys.ToArray()), null) ?? "";
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                PresetName = GetAttributeAs<string>("Preset", false, new ConstrainTo.SpecificValues<string>(_presetChangeSets.Keys.ToArray()), null) ?? "";
                 IsStopBot = GetAttributeAsNullable<bool>("StopBot", false, null, null) ?? false;
 
-                _userChangeRequest.GetChangesFromAttributes(this, _originalConfiguration);
+                // Attempted to read the 'recognized attributes', so they won't be marked as "not recognized" by the argument processor...
+                foreach (var recognizedAttribute in ChangeSet.RecognizedSettings)
+                {
+                    GetAttributeAs<object>(recognizedAttribute.Name, false, null, null);
+                }
 
-                // Transfer any 'debug' requests made by the user into our persistent copy --
-                if (tmpDebugShowChangesApplied.HasValue)
-                { _persistData.DebugShowChangesApplied = tmpDebugShowChangesApplied.Value; }
+                _userChangeRequest = ChangeSet.FromXmlAttributes(args,
+                    new List<string>()
+                        {
+                            // Behavior-specific attributes...
+                            "DebugShowChangesApplied",
+                            "DebugShowDetails",
+                            "DebugShowDiff",
+                            "Preset",
+                            "StopBot",
+
+                            // QuestBehaviorBase attributes...
+                            "QuestId",
+                            "QuestCompleteRequirement",
+                            "QuestInLogRequirement",
+                            "QuestObjectiveIndex",
+                            "IgnoreMobsInBlackspots",
+                            "MovementBy",
+                            "NonCompeteDistance",
+                            "TerminateWhen",
+                            "TerminationChecksQuestProgress",
+                        });
+
+                // If we were unable to create an (even empty) changeset, then we ran into a problem...
+                if (_userChangeRequest == null)
+                    { IsAttributeProblem = true;  }
             }
 
             catch (Exception except)
@@ -164,296 +108,294 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
 
         // Attributes provided by caller
-        public bool DebugShowDetails { get; private set; }
-        public bool DebugShowDiff { get; private set; }
-        public bool IsStopBot { get; private set; }
-        public string PresetName { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private bool DebugShowDetails { get; set; }
+        private bool DebugShowDiff { get; set; }
+        private bool IsStopBot { get; set; }
+        private string PresetName { get; set; }
 
-        // Private variables for internal state
-        private Dictionary<string, ConfigDescriptor> _configurationSettings;
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private ConfigSnapshot _originalConfiguration;
-        private PersistedData _persistData;
-        private Dictionary<string, ConfigurationChangeRequest> _presetChangeRequests;
-        private ConfigurationChangeRequest _userChangeRequest;
 
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("LootMobs"),
+                "LootMobs",
+                context => string.Format("Please update profile to use <LootMobs Value=\"{1}\" />, instead.",
+                    Environment.NewLine,
+                    Args["LootMobs"]));
+
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("PullDistance"),
+                "PullDistance",
+                context => string.Format("Please update profile to use <TargetingDistance Value=\"{1}\" />, instead.{0}"
+                    + "  To restore the original value when done, <TargetingDistance Value=\"null\" />.{0}"
+                    + "  Please do not fiddle with TargetingDistance unless _absolutely_ necessary.",
+                    Environment.NewLine,
+                    Args["PullDistance"]));
+
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("UseMount"),
+                "UseMount",
+                context => string.Format("Please update profile to use <UseMount Value=\"{1}\" />, instead.",
+                    Environment.NewLine,
+                    Args["UseMount"]));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            // Empty, for now...
+            // See TEMPLATE_QB for an example.
+        }
+        #endregion
+
+
+        #region Private and Convenience variables
+        private readonly Dictionary<string, ChangeSet> _presetChangeSets;
+        private readonly ChangeSet _userChangeRequest;
+
+        // Persisted Data...
+        private static bool PersistedDebugShowChangesApplied = false;
+        private static bool PersistedIsBotStopHooked = false;
+        #endregion
+
+
+        #region Overrides of QuestBehaviorBase
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        ~UserSettings()
+        protected override ConfigMemento CreateConfigMemento()
         {
-            Dispose(false);
+            // Suppress the creation of a ConfigMemento...
+            // We do NOT want the user settings restored after we have altered them with this behavior.
+            return null;
         }
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
+        public override void OnFinished()
         {
-            if (!_isDisposed)
+            // Defend against being called multiple times (just in case)...
+            if (!IsOnFinishedRun)
             {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
                 // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        private void BotEvents_OnBotStopped(EventArgs args)
-        {
-            ConfigSnapshot tmpOriginalConfiguration = _persistData.OriginalConfiguration;
-
-            // Restore the user's original configuration, since the bot is stopping...
-            if (tmpOriginalConfiguration != null)
-            {
-                string tmpChanges = tmpOriginalConfiguration.Restore();
-
-                if (_persistData.DebugShowChangesApplied)
-                {
-                    QBCLog.Info("Bot stopping.  Original user settings restored as follows...\n" + tmpChanges);
-                }
-
-                // Remove our OnBotStop handler
-                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-
-                // Done with our persistent data, since the bot is stopping --
-                // We want to  prevent acting on stale data when the bot is restarted.
-                _persistData.DePersistData();
-            }
-        }
-
-
-        #region Overrides of CustomForcedBehavior
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+                base.OnFinished();
             }
         }
 
 
         public override void OnStart()
         {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+            if (isBehaviorShouldRun)
             {
-                this.UpdateGoalText(QuestId);
+                var logInfo = new StringBuilder();
+                var logDeveloperInfo = new StringBuilder();
 
                 // The BotStop handler will put the original configuration settings back in place...
                 // Note, we only want to hook it once for this behavior.
-                if (!_persistData.IsBotStopHooked)
+                if (!PersistedIsBotStopHooked)
                 {
                     BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-                    _persistData.IsBotStopHooked = true;
+                    PersistedIsBotStopHooked = true;
                 }
 
                 // First, process Preset request, if any...
                 if (!string.IsNullOrEmpty(PresetName))
                 {
-                    string tmpString = _presetChangeRequests[PresetName].Apply();
+                    var presetChangeSet =
+                       (from preset in _presetChangeSets
+                        where preset.Key == PresetName
+                        select preset.Value)
+                        .FirstOrDefault();
 
-                    if (_persistData.DebugShowChangesApplied)
-                        { QBCLog.Info("Using preset '{0}'...\n{1}", PresetName, tmpString); }
+                    if (presetChangeSet == null)
+                    {
+                        QBCLog.Error("Unable to locate any preset named '{0}'", PresetName);
+                        TreeRoot.Stop();
+                    }
+
+                    var appliedChanges = presetChangeSet.Apply("    ");
+
+                    var appliedChangesBuilder = PersistedDebugShowChangesApplied ? logInfo : logDeveloperInfo;
+                    appliedChangesBuilder.AppendFormat("Using preset '{0}'...{1}", PresetName, appliedChanges);
+                    appliedChangesBuilder.Append(Environment.NewLine);
                 }
 
                 // Second, apply any change requests...
                 if (_userChangeRequest.Count > 0)
                 {
-                    string tmpString = _userChangeRequest.Apply();
+                    string appliedChanges = _userChangeRequest.Apply("    ");
 
-                    if (_persistData.DebugShowChangesApplied)
-                        { QBCLog.Info("Applied changes...\n{0}", tmpString); }
+                    var appliedChangesBuilder = PersistedDebugShowChangesApplied ? logInfo : logDeveloperInfo;
+                    appliedChangesBuilder.AppendFormat("Applied changes...{0}", appliedChanges);
+                    appliedChangesBuilder.Append(Environment.NewLine);
                 }
 
                 // Third, show state, if requested...                
                 if (DebugShowDetails)
-                    { QBCLog.Info(UtilCurrentConfigAsString(_configurationSettings)); }
+                {
+                    var currentConfiguration = ChangeSet.FromCurrentConfiguration();
 
-                if (DebugShowDiff)
-                {
-                    QBCLog.Info("Changes from original user's settings--\n"
-                             + _originalConfiguration.GetChangesAsString());
+                    logInfo.AppendFormat("Details...{0}", currentConfiguration.BuildDetails("    "));
+                    logInfo.Append(Environment.NewLine);
                 }
-                else
-                {
-                    QBCLog.DeveloperInfo("Changes from original user's settings--\n"
-                             + _originalConfiguration.GetChangesAsString());     
-                }
+
+                var diffBuilder = DebugShowDiff ? logInfo : logDeveloperInfo;
+                diffBuilder.AppendFormat("Difference from user's original settings...{0}",
+                    ChangeSet.BuildDifferencesFromOriginalSettings("    "));
+                diffBuilder.Append(Environment.NewLine);
 
                 // Forth, stop the bot, if requested...
                 if (IsStopBot)
                 {
-                    QBCLog.Info("Stopping the bot per profile request.");
-                    TreeRoot.Stop("Stopping the bot per profile request.");
+                    const string message = "Stopping the bot per profile request.";
+                    logInfo.AppendFormat(message);
+                    logInfo.Append(Environment.NewLine);
+
+                    var logInfoString = logInfo.ToString();
+                    if (!string.IsNullOrEmpty(logInfoString))
+                        { QBCLog.Info(logInfoString); }
+
+                    var logDeveloperString = logDeveloperInfo.ToString();
+                    if (!string.IsNullOrEmpty(logDeveloperString))
+                        { QBCLog.DeveloperInfo(logDeveloperString); }
+
+                    TreeRoot.Stop(message);
                 }
 
-                _isBehaviorDone = true;
+                else
+                {
+                    var logInfoString = logInfo.ToString();
+                    if (!string.IsNullOrEmpty(logInfoString))
+                        { QBCLog.Info(logInfoString); }
+
+                    var logDeveloperString = logDeveloperInfo.ToString();
+                    if (!string.IsNullOrEmpty(logDeveloperString))
+                        { QBCLog.DeveloperInfo(logDeveloperString); }
+                }
+
+                BehaviorDone();
             }
         }
-
         #endregion
 
 
-        // Note: The RecognizedAttribute's Dictionary value field was left open for user data, by design.
-        // We take advantage of that here by storing ConfigurationDescriptors to help us further process
-        // the data by moving it into and out of the appropriate properties.
+        private void BotEvents_OnBotStopped(EventArgs args)
+        {
+            // Restore the user's original configuration, since the bot is stopping...
+            if (ChangeSet.OriginalConfiguration != null)
+            {
+                var changesApplied = ChangeSet.OriginalConfiguration.Apply("    ", true);
+                var logMessage =
+                    string.Format("Bot stopping.  Original user settings restored as follows...{0}",
+                        (!string.IsNullOrEmpty(changesApplied)
+                        ? changesApplied
+                        : (Environment.NewLine + "    Original Settings intact--no changes to restore.")));
+
+                if (PersistedDebugShowChangesApplied)
+                    { QBCLog.Info(this, logMessage); }
+                else
+                    { QBCLog.DeveloperInfo(this, logMessage); }
+
+                // Remove our OnBotStop handler
+                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+
+                // Reset persistent data...
+                PersistedIsBotStopHooked = false;
+                PersistedDebugShowChangesApplied = false;
+                ChangeSet.OriginalConfiguration = null;
+                ChangeSet.RecognizedSettings = null;
+            }
+        }
+
+
+        #region Preset ChangeSets
+        // To add, adjust, or remove presets, this is the only method that needs to be modified...
+        // All other code in this class uses the information contained in the returned presetChangeRequests.
         // Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
         // at runtime pointing you directly to the problem.
-        private static Dictionary<string, ConfigDescriptor> UtilBuildConfigurationSettings()
+        private Dictionary<string, ChangeSet> BuildPresets()
         {
-            List<string> ignoredPropertyNames = new List<string>()
-                                                                              {
-                                                                                  "EnabledPlugins",
-                                                                                  "FormLocationX",
-                                                                                  "FormLocationY",
-                                                                                  "LastUsedPath",
-                                                                                  "MailRecipient",
-                                                                                  "MeshesFolderPath",
-                                                                                  "Password",
-                                                                                  "PluginKey",
-                                                                                  "SelectedBotIndex",
-                                                                                  "Username",
-																				  "RecentProfiles",
-                                                                                  "MountDistance",
-                                                                                  "UseFlightPaths",
-                                                                                  "LootChests",
-                                                                                  "FindVendorsAutomatically"
-                                                                              };
-            Dictionary<string, ConfigDescriptor> configurationSetting = new Dictionary<string, ConfigDescriptor>();
-
-
-            // Allowed 'Configuration' attributes--
-            // A default value of 'null' means the item has no default value.
-            foreach (string configItemName in from propertyName in CharacterSettings.Instance.GetSettings().Keys
-                                              where !ignoredPropertyNames.Contains(propertyName)
-                                              select propertyName)
-            {
-                if (configurationSetting.ContainsKey(configItemName))
-                { continue; }
-
-                configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
-                                                                              CharacterSettings.Instance,
-                                                                              null));
-            }
-
-            foreach (string configItemName in from propertyName in LevelbotSettings.Instance.GetSettings().Keys
-                                              where !ignoredPropertyNames.Contains(propertyName)
-                                              select propertyName)
-            {
-                if (configurationSetting.ContainsKey(configItemName))
-                { continue; }
-
-                configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
-                                                                              LevelbotSettings.Instance,
-                                                                              null));
-            }
-
-            foreach (string configItemName in from propertyName in GlobalSettings.Instance.GetSettings().Keys
-                                              where !ignoredPropertyNames.Contains(propertyName)
-                                              select propertyName)
-            {
-                if (configurationSetting.ContainsKey(configItemName))
-                { continue; }
-
-                if (configItemName == "LogLevel")
-                    continue;
-
-                configurationSetting.Add(configItemName, new ConfigDescriptor(configItemName,
-                                                                              GlobalSettings.Instance,
-                                                                              null));
-            }
-
-
-            // Attach constraints to particular elements --
-            Dictionary<string, Constraint> constraints = new Dictionary<string, Constraint>()
-            {
-                { "DrinkAmount",            new ConstrainInteger(0, 100) },
-                { "FoodAmount",             new ConstrainInteger(0, 100) },
-                { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
-                { "LootRadius",             new ConstrainInteger(1, 100) }
-            };
-
-            foreach (KeyValuePair<string, Constraint> kvp in constraints)
-            {
-                // Maintenance error?
-                if (!configurationSetting.ContainsKey(kvp.Key))
+            var presets = new Dictionary<string, ChangeSet>
                 {
-                    throw (new ArgumentException(string.Format("Unable to locate configurable '{0}'"
-                                                               + " in recognizedAttributes for constraint attachment",
-                                                               kvp.Key)));
+                    {
+                        "Grind",
+                        new ChangeSet(new Dictionary<string, object>()
+                        {
+                            { "GroundMountFarmingMode", false },
+                            { "KillBetweenHotspots", true },
+                        })
+                    },
+                    {
+                        "HarvestsOff",
+                        new ChangeSet(new Dictionary<string, object>()
+                        {
+                            { "HarvestHerbs", false },
+                            { "HarvestMinerals", false },
+                            { "LootMobs", false },
+                            { "NinjaSkin", false },
+                            { "SkinMobs", false },
+                        })
+                    },
+                    {
+                        "HarvestsOn",
+                        new ChangeSet(new Dictionary<string, object>()
+                        {
+                            { "HarvestHerbs", (Me.GetSkill(SkillLine.Herbalism).MaxValue > 0) },
+                            { "HarvestMinerals", (Me.GetSkill(SkillLine.Mining).MaxValue > 0) },
+                            { "LootMobs", true },
+                            { "LootRadius", 45 },
+                            { "NinjaSkin", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+                            { "SkinMobs", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+                        })
+                    },
+                    {
+                        "NoDistractions",
+                        new ChangeSet(new Dictionary<string, object>()
+                        {
+                            { "GroundMountFarmingMode", true },
+                            { "HarvestHerbs", false },
+                            { "HarvestMinerals", false },
+                            { "KillBetweenHotspots", false },
+                            { "LootMobs", false },
+                            { "NinjaSkin", false },
+                            { "SkinMobs", false },
+                        })
+                    },
+                    {
+                        "NoTrain",
+                        new ChangeSet(new Dictionary<string, object>())
+                    },
+                    {
+                        "NormalQuesting",
+                        new ChangeSet(new Dictionary<string, object>()
+                        {
+                            { "GroundMountFarmingMode", false },
+                            { "HarvestHerbs", (Me.GetSkill(SkillLine.Herbalism).MaxValue > 0) },
+                            { "HarvestMinerals", (Me.GetSkill(SkillLine.Mining).MaxValue > 0) },
+                            { "KillBetweenHotspots", false },
+                            { "LootMobs", true },
+                            { "LootRadius", 45 },
+                            { "NinjaSkin", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+                            { "RessAtSpiritHealers", false },
+                            { "SkinMobs", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+                            { "UseRandomMount", true },
+                        })
+                    },
+                    {
+                        "UserOriginal",
+                        ChangeSet.OriginalConfiguration
+                    }
+                };
 
-                }
-
-                configurationSetting[kvp.Key].Constraint = kvp.Value;
-            }
-
-            return (configurationSetting);
+            return (presets);
         }
-
-
-        private string UtilCurrentConfigAsString(Dictionary<string, ConfigDescriptor> recognizedAttributes)
-        {
-            string outString = "Current configuration...\n";
-
-
-            // Iterate over the descriptor list, and restore the value for
-            // each item identified
-            var configDescriptors = (from desc in recognizedAttributes.Values
-                                     where desc != null
-                                     orderby desc.Name
-                                     select desc);
-
-            foreach (ConfigDescriptor configDesc in configDescriptors)
-            {
-                string constraint = configDesc.Constraint.AsString();
-
-                if ((string.IsNullOrEmpty(constraint)) || (configDesc.Constraint is ConstrainBoolean))
-                { outString += string.Format("    {0}: \"{1}\"\n", configDesc.Name, configDesc.Value); }
-                else
-                {
-                    outString += string.Format("    {0}: \"{1}\" (constrained to {2})\n",
-                                               configDesc.Name,
-                                               configDesc.Value,
-                                               configDesc.Constraint.AsString());
-                }
-            }
-
-            return (outString);
-        }
+        #endregion
     }
 
 
@@ -461,570 +403,463 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
     // All classes below this point are support for getting the work done
     //
 
+    public class ChangeSet
+    {
+        public ChangeSet(Dictionary<string, object> changes)
+        {
+            var changeSet = new List<Tuple<SettingDescriptor, object>>();
+            var isProblemAttribute = false;
+
+            foreach (var change in changes)
+            {
+                try
+                {
+                    var name = change.Key;
+                    var value = change.Value;
+
+                    // Setting name cannot be null or empty...
+                    if (string.IsNullOrEmpty(name))
+                    {
+                        QBCLog.Error("Name may not be null or empty");
+                        isProblemAttribute = true;
+                        continue;
+                    }
+
+                    // Check that setting exists...
+                    var settingDescriptor = RecognizedSettings.FirstOrDefault(s => s.Name == name);
+                    if (settingDescriptor == null)
+                    {
+                        QBCLog.Error("Unable to locate setting for {0}", name);
+                        isProblemAttribute = true;
+                        continue;
+                    }
+
+                    // Check that setting doesn't already exist in the changeset...
+                    if (changeSet.Any(t => t.Item1.Name == name))
+                    {
+                        QBCLog.Error("Setting '{0}' already exists in the changeset.", name);
+                        isProblemAttribute = true;
+                        continue;
+                    }
+
+                    // If user specified 'original' value, go look it up and substitute it for 'value'...
+                    if ((value is string) && ((string)value == "original"))
+                    {
+                        object originalValue;
+
+                        if (!OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue))
+                        {
+                            // A missing 'original configuration' is a maintenance issue, not a user error...
+                            QBCLog.MaintenanceError("For setting '{0}', there is no original configuration value.",
+                                settingDescriptor.Name);
+                            isProblemAttribute = true;
+                            continue;
+                        }
+
+                        value = originalValue;
+                    }
+                    
+                    // Check that setting is an appropriate type...
+                    var newValue = settingDescriptor.ToCongruentObject(value);
+
+                    if (!settingDescriptor.ConstraintChecker.IsWithinConstraints(newValue))
+                    {
+                        QBCLog.Error("For setting '{0}', the provided value '{1}' is not within the required constraints of {2}.",
+                            name, value, settingDescriptor.ConstraintChecker.Description);
+                        isProblemAttribute = true;
+                        continue;
+                    }
+                    
+                    // Setting change is acceptable...
+                    changeSet.Add(Tuple.Create(settingDescriptor, value));
+                }
+
+                catch (Exception)
+                {
+                    isProblemAttribute = true;
+                }
+            }
+
+            // If problem encountered with any change, we're unable to build the ChangeSet...
+            if (isProblemAttribute)
+            {
+                _changeSet = null;
+                throw new ArgumentException("Problems encountered with provided argument");
+            }
+
+            Count = changeSet.Count;
+            _changeSet = new ReadOnlyCollection<Tuple<SettingDescriptor, object>>(changeSet);
+        }
+
+        private readonly ReadOnlyCollection<Tuple<SettingDescriptor, object>> _changeSet;
+        public int Count { get; private set; }
+
+
+        public static ReadOnlyCollection<SettingDescriptor> RecognizedSettings
+        {
+            get { return _recognizedSettings ?? (_recognizedSettings = BuildRecognizedSettings()); }
+
+            // Any attempts to set the value, will 'uninitialize' it...
+            set { _recognizedSettings = null; }
+        }
+        private static ReadOnlyCollection<SettingDescriptor> _recognizedSettings;
+
+
+        public static ChangeSet OriginalConfiguration
+        {
+            get { return _originalConfiguration ?? (_originalConfiguration = ChangeSet.FromCurrentConfiguration()); }
+
+            // Any attempts to set the value, will 'uninitialize' it...
+            set { _originalConfiguration = null; }
+        }
+        private static ChangeSet _originalConfiguration;
+
+
+        public string Apply(string linePrefix = "", bool onlyApplyChangesIfDifferent = false)
+        {
+            var changesApplied = new StringBuilder();
+
+            foreach (var change in _changeSet.OrderBy(t => t.Item1.Name))
+            {
+                var settingDescriptor = change.Item1;
+                var value = change.Item2;
+                var previousValue = settingDescriptor.GetValue();
+                object originalValue;
+
+                OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue);
+
+
+                if (!onlyApplyChangesIfDifferent || !value.Equals(previousValue))
+                {
+                    settingDescriptor.SetValue(value);
+
+                    changesApplied.AppendFormat("{0}{1}{2} = {3} (previous: {4};  original: {5})",
+                        Environment.NewLine, linePrefix, settingDescriptor.Name, value, previousValue, originalValue);
+                }
+            }
+
+            return changesApplied.ToString();
+        }
+
+
+        private bool TryGetValue(string name, out object outValue)
+        {
+            Contract.Requires(!string.IsNullOrEmpty(name), context => "Name cannot be null or empty");
+
+            var changeEntry = _changeSet.FirstOrDefault(v => v.Item1.Name == name);
+            if (changeEntry == null)
+            {
+                outValue = null;
+                return false;
+            }
+
+            outValue = changeEntry.Item2;
+            return true;
+        }
+
+
+        public string BuildDetails(string linePrefix)
+        {
+            var builder = new StringBuilder();
+
+            foreach (var change in _changeSet.OrderBy(t => t.Item1.Name))
+            {
+                object originalValue = null;
+                OriginalConfiguration.TryGetValue(change.Item1.Name, out originalValue);
+
+                var instanceName = change.Item1.SettingsInstance.GetType().Name;
+
+                if (change.Item2.Equals(originalValue))
+                {
+                    builder.AppendFormat("{0}{1}{2}.{3} = {4}",
+                        Environment.NewLine, linePrefix, instanceName, change.Item1.Name, change.Item2);
+                }
+                else
+                {
+                    builder.AppendFormat("{0}{1}{2}.{3} = {4} (original: {5})",
+                        Environment.NewLine, linePrefix, instanceName, change.Item1.Name, change.Item2, originalValue);
+                }
+            }
+
+            return builder.ToString();
+        }
+
+
+        public static string BuildDifferencesFromOriginalSettings(string linePrefix)
+        {
+            var builder = new StringBuilder();
+
+            foreach (var setting in OriginalConfiguration._changeSet.OrderBy(t => t.Item1.Name))
+            {
+                var currentValue = setting.Item1.GetValue();
+
+                if (currentValue.Equals(setting.Item2))
+                    { continue; }
+
+                builder.AppendFormat("{0}{1}{2} = {3} (originally: {4})",
+                    Environment.NewLine, linePrefix, setting.Item1.Name, currentValue, setting.Item2);
+            }
+
+            if (builder.Length <= 0)
+            {
+                builder.AppendFormat("{0}{1}No changes from original settings", 
+                    Environment.NewLine, linePrefix);
+            }
+
+            return builder.ToString();
+        }
+
+
+        // Note: The RecognizedAttribute's Dictionary value field was left open for user data, by design.
+        // We take advantage of that here by storing ConfigurationDescriptors to help us further process
+        // the data by moving it into and out of the appropriate properties.
+        // Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
+        // at runtime pointing you directly to the problem.
+        private static ReadOnlyCollection<SettingDescriptor> BuildRecognizedSettings()
+        {
+            // Attach constraints to particular elements --
+            var constraints = new Dictionary<string, ConstraintChecker>()
+            {
+                { "DrinkAmount",            new ConstrainInteger(0, 100) },
+                { "FoodAmount",             new ConstrainInteger(0, 100) },
+                { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
+                { "LootRadius",             new ConstrainInteger(0, 100) },
+                { "MountDIstance",          new ConstrainInteger(30, 200) },
+                { "TicksPerSecond",         new ConstrainInteger(5, 100) }
+            };
+
+            var ignoredPropertyNames =
+                new List<string>()
+                {
+                    "EnabledPlugins",
+                    "FindVendorsAutomatically",
+                    "FormLocationX",
+                    "FormLocationY",
+                    "LastUsedPath",
+                    "LogLevel",
+                    "LootChests",
+                    "MailRecipient",
+                    "MeshesFolderPath",
+                    "MountDistance",
+                    "Password",
+                    "PluginKey",
+					"RecentProfiles",
+                    "SelectedBotIndex",
+                    "UseFlightPaths",
+                    "Username",
+                };
+            var recognizedSettings = new List<SettingDescriptor>();
+            var settingsInstances = new Settings[]
+                {   // ordering is significant--earlier setting names mask later setting names in this list
+                    CharacterSettings.Instance,
+                    LevelbotSettings.Instance,
+                    GlobalSettings.Instance
+                };
+
+            // Allowed 'Configuration' attributes--
+            // A default value of 'null' means the item has no default value.
+            var noConstraintCheck = new NoConstraint();
+            foreach (var settingsInstance in settingsInstances)
+            {
+                foreach (var configItemName in from propertyName in settingsInstance.GetSettings().Keys
+                                               where
+                                                    !string.IsNullOrEmpty(propertyName)
+                                                    && !ignoredPropertyNames.Contains(propertyName)
+                                               select propertyName)
+                {
+                    if (recognizedSettings.All(setting => setting.Name != configItemName))
+                    {
+                        var constraintChecker =
+                            constraints.Keys.Contains(configItemName)
+                            ? constraints[configItemName]
+                            : noConstraintCheck;
+
+                        recognizedSettings.Add(new SettingDescriptor(settingsInstance, configItemName, constraintChecker));
+                    }
+                }
+            }
+
+            return (new ReadOnlyCollection<SettingDescriptor>(recognizedSettings));
+        }
+
+
+        // Factories...
+        public static ChangeSet FromCurrentConfiguration()
+        {
+            return new ChangeSet(RecognizedSettings.ToDictionary(
+                setting => setting.Name,
+                setting => setting.GetValue()
+                ));
+        }
+
+
+        // If 'null' return, then error was encountered, and offending messages already logged...
+        // Otherwise, a (possibly empty) ChangeSet is returned.
+        public static ChangeSet FromXmlAttributes(Dictionary<string, string> attributes, List<string> excludedAttributes)
+        {
+            var changes = new Dictionary<string, object>();
+
+            try
+            {
+                foreach (var attribute in attributes.Where(kvp => !excludedAttributes.Contains(kvp.Key)))
+                {
+                    changes.Add(attribute.Key, attribute.Value);
+                }
+
+                return new ChangeSet(changes);
+            }
+
+            catch (Exception)
+            {
+                // empty
+            }
+
+            return null;
+        }
+    }
+
+
+    #region ConstraintChecker classes
+    public abstract class ConstraintChecker
+    {
+        protected ConstraintChecker(string description = null)
+        {
+            Description = description ?? string.Empty;
+        }
+
+        public string Description { get; private set; }
+
+        public abstract bool IsWithinConstraints(object value);
+    }
+
+
+    public class ConstrainInteger : ConstraintChecker
+    {
+        public ConstrainInteger(int minValue, int maxValue)
+            : base(string.Format("[{0}..{1}]", minValue, maxValue))
+        {
+            _maxValue = maxValue;
+            _minValue = minValue;
+        }
+
+        private readonly int _maxValue;
+        private readonly int _minValue;
+
+
+        public override bool IsWithinConstraints(object value)
+        {
+            try
+            {
+                var newValue = (int)Convert.ChangeType(value, typeof(int));
+
+                return (newValue >= _minValue) && (newValue <= _maxValue);
+            }
+            catch (Exception)
+            {
+                // empty
+            }
+
+            return false;
+        }
+    }
+
+
+    public class NoConstraint : ConstraintChecker
+    {
+        public NoConstraint()
+            : base(string.Empty)
+        {
+        }
+
+        public override bool IsWithinConstraints(object value)
+        {
+            return true;
+        }
+    }
+    #endregion
+
+
     /// <summary>
     /// Captures the details of a property that the user may alter.
     /// It provides generic Get/Set mechanics without regard of 'type'.
     /// </summary>
-    class ConfigDescriptor
+    public class SettingDescriptor
     {
-        public ConfigDescriptor(string backingPropertyName,
-                                Styx.Helpers.Settings backingInstance,
-                                Constraint constraint)
+        public SettingDescriptor(Settings settingsInstance, 
+                                string name,
+                                ConstraintChecker constraintCheck)
         {
             // We are a bit aggressive in our error checking here--
             // The most likely source of errors will be people that maintain the code in the future,
             // and we want to weed out as many newbie mistakes as possible.
-            if (string.IsNullOrEmpty(backingPropertyName))
+            Contract.Requires(
+                !string.IsNullOrEmpty(name),
+                context => "name cannot be null or empty.");
+            Contract.Requires(
+                settingsInstance != null,
+                context => String.Format("Null settingsInstance now allowed for {0}", name));
+            Contract.Requires(settingsInstance.GetSettings().Any(kvp => kvp.Key == name),
+                context => string.Format("The settingsInstance does not contain a \"{0}\" property", name));
+
+            ConstraintChecker = constraintCheck;
+            Name = name;
+            SettingsInstance = settingsInstance;
+        }
+
+        public ConstraintChecker ConstraintChecker { get; private set; }
+        public string Name { get; private set; }
+        public Settings SettingsInstance { get; private set; }
+
+
+        public object GetValue()
+        {
+            var propertyInfo = SettingsInstance.GetType().GetProperty(Name);
+
+            return propertyInfo.GetValue(SettingsInstance, null);
+        }
+
+
+        public void SetValue(object newValueAsObject)
+        {
+            var propertyInfo = SettingsInstance.GetType().GetProperty(Name);
+            var newValue = ToCongruentObject(newValueAsObject);
+
+            if (!ConstraintChecker.IsWithinConstraints(newValue))
             {
-                throw (new ArgumentException(string.Format("For configurable '{0}',"
-                                                            + " Null or Empty backingPropertyName not permitted",
-                                                            "")));
+                var message = string.Format("For '{0}', provided value ('{1}') is not within required constraints {2}.",
+                                            Name, newValue, ConstraintChecker.Description);
+                QBCLog.Error(message);
+                throw new ArgumentException(message);
             }
 
-            _backingInstance = backingInstance;
-            if (_backingInstance == null)
-            {
-                throw (new ArgumentException(string.Format("For configurable '{0}',"
-                                                            + " Null backingInstance not permitted",
-                                                            backingPropertyName)));
-            }
-
-            _backingPropertyInfo = backingInstance.GetType().GetProperty(backingPropertyName);
-            if (_backingPropertyInfo == null)
-            {
-                throw (new ArgumentException(string.Format("For configurable '{0}',"
-                                                            + " unable to locate Property in instance '{1}'",
-                                                            backingPropertyName,
-                                                            backingInstance.GetType().FullName)));
-            }
-
-            Constraint = constraint;
+            propertyInfo.SetValue(SettingsInstance, newValue, null);
         }
 
 
-        public Constraint Constraint
+        // Largely used to convert 'string' representation of a value into the value's type...
+        public object ToCongruentObject(object value)
         {
-            get { return (_constraint); }
+            var propertyInfo = SettingsInstance.GetType().GetProperty(Name);
+            var backingType = propertyInfo.PropertyType;
+            var providedType = value.GetType();
 
-            set
+            try
             {
-                _constraint = value;
+                // Disallow int => bool conversions...
+                // These are almost _always_ mistakes on the profile writer's part.
+                if ((providedType == typeof(int) && (backingType == typeof(bool))))
+                    { throw new ArgumentException(); }
 
-                // If user-provided constraint was 'null', populate with an appropriate default...
-                if (_constraint == null)
-                {
-                    if (_backingPropertyInfo.PropertyType == typeof(bool))
-                    { _constraint = new ConstrainBoolean(); }
-
-                    else if (_backingPropertyInfo.PropertyType == typeof(int))
-                    { _constraint = new ConstrainInteger(int.MinValue, int.MaxValue); }
-
-                    else if (_backingPropertyInfo.PropertyType == typeof(string))
-                    { _constraint = new ConstrainString(); }
-					else if (_backingPropertyInfo.PropertyType == typeof(byte))
-					{
-						_constraint = new ConstrainByte(byte.MinValue, byte.MaxValue);
-					}
-                    else
-                    {
-                        throw (new ArgumentException(string.Format("For configurable '{0}',"
-                                                                    + " expected constraint type of '{1}'",
-                                                                    _backingPropertyInfo.Name,
-                                                                    _backingPropertyInfo.PropertyType)));
-                    }
-                }
-
-
-                // If we've a mismatch between the constraint type and our property-type, its a serious problem...
-                if (_constraint.ConstraintType != _backingPropertyInfo.PropertyType)
-                {
-                    throw (new ArgumentException(string.Format("For configurable '{0}',"
-                                                                + " mismatch between Property Type('{1}') and Contraint Type('{2}')",
-                                                                _backingPropertyInfo.Name,
-                                                                _backingPropertyInfo.PropertyType.Name,
-                                                                _constraint.ConstraintType.Name)));
-                }
+                return Convert.ChangeType(value, backingType);
+            }
+            catch (Exception)
+            {
+                var message = string.Format("For setting '{0}', the provided value '{1}' ({2})"
+                                            + " cannot be converted to the backing type ({3}).",
+                                            Name, value, providedType.Name, backingType.Name);
+                QBCLog.Error(message);
+                throw new ArgumentException(message);
             }
         }
-
-        public string Name { get { return (_backingPropertyInfo.Name); } }
-
-        public object Value
-        {
-            get { return (_backingPropertyInfo.GetValue(_backingInstance, null)); }
-            set { _backingPropertyInfo.SetValue(_backingInstance, value, null); }
-        }
-
-
-        // Data members
-        private Styx.Helpers.Settings _backingInstance;
-        private PropertyInfo _backingPropertyInfo;
-        private Constraint _constraint;
-    }
-
-
-    /// <summary>
-    /// Allows coherency checks to be placed on user-provided values to the properties
-    /// we will be modifying.  A Constraint class also knows how to fetch a value
-    /// from the behavior's Args list.
-    /// </summary>
-    abstract class Constraint
-    {
-        // The returned object may be null.
-        public abstract object AcquireUserInput(CustomForcedBehavior behavior,
-                                                string configName,
-                                                object originalValue);
-
-        public abstract string AsString();
-
-        public abstract Type ConstraintType { get; }
-    }
-
-
-    // Concrete constraint classes
-    class ConstrainBoolean : Constraint
-    {
-        public ConstrainBoolean()
-        {
-            // empty
-        }
-
-        public override object AcquireUserInput(CustomForcedBehavior behavior,
-                                                    string configName,
-                                                    object originalValue)
-        {
-            if (originalValue != null)
-            {
-                string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
-                if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
-                    { return originalValue; }
-            }
-            return (behavior.GetAttributeAsNullable<bool>(configName, false, null, null));
-        }
-
-        public override string AsString()
-        {
-            return ("[true, false]");
-        }
-
-        public override Type ConstraintType { get { return (typeof(bool)); } }
-    }
-
-
-    class ConstrainInteger : Constraint
-    {
-        public ConstrainInteger(int minValue, int maxValue)
-        {
-            MinValue = minValue;
-            MaxValue = maxValue;
-        }
-
-        public override object AcquireUserInput(CustomForcedBehavior behavior,
-                                                    string configName,
-                                                    object originalValue)
-        {
-            if (originalValue != null)
-            {
-                string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
-                if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
-                    { return originalValue; }
-            }
-            return (behavior.GetAttributeAsNullable<int>(configName, false, new CustomForcedBehavior.ConstrainTo.Domain<int>(MinValue, MaxValue), null));
-        }
-
-        public override string AsString()
-        {
-            return (string.Format("[{0}..{1}]",
-                                    ((MinValue == int.MinValue) ? "int.MinValue" : MinValue.ToString()),
-                                    ((MaxValue == int.MaxValue) ? "int.MaxValue" : MaxValue.ToString())));
-        }
-
-        public override Type ConstraintType { get { return (typeof(int)); } }
-        public int MaxValue { get; set; }
-        public int MinValue { get; set; }
-    }
-
-	class ConstrainByte : Constraint
-	{
-		public ConstrainByte(byte minValue, byte maxValue)
-		{
-			MinValue = minValue;
-			MaxValue = maxValue;
-		}
-
-		public override object AcquireUserInput(CustomForcedBehavior behavior,
-													string configName,
-													object originalValue)
-		{
-			if (originalValue != null)
-			{
-				string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
-				if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
-				{ return originalValue; }
-			}
-			return (behavior.GetAttributeAsNullable<byte>(configName, false, new CustomForcedBehavior.ConstrainTo.Domain<byte>(MinValue, MaxValue), null));
-		}
-
-		public override string AsString()
-		{
-			return (string.Format("[{0}..{1}]", MinValue, MaxValue));
-		}
-
-		public override Type ConstraintType { get { return (typeof(byte)); } }
-		public byte MaxValue { get; set; }
-		public byte MinValue { get; set; }
-	}
-
-    class ConstrainString : Constraint
-    {
-        public ConstrainString()
-        {
-            // empty
-        }
-
-        public override object AcquireUserInput(CustomForcedBehavior behavior,
-                                                    string configName,
-                                                    object originalValue)
-        {
-            string tmp = behavior.GetAttributeAs<string>(configName, false, null, null);
-            if (!string.IsNullOrEmpty(tmp) && (tmp.ToLower() == "original"))
-                { return originalValue; }
-            return (behavior.GetAttributeAs<string>(configName, false, null, null));
-        }
-
-        public override string AsString()
-        {
-            return ("");
-        }
-
-        public override Type ConstraintType { get { return (typeof(string)); } }
-    }
-
-
-    class ConfigurationChangeRequest
-    {
-        public ConfigurationChangeRequest(Dictionary<string, ConfigDescriptor> recognizedAttributes)
-        {
-            _recognizedAttributes = recognizedAttributes;
-        }
-
-
-        public ConfigurationChangeRequest Add(string configItemName,
-                                                object configItemValue)
-        {
-            if (!_recognizedAttributes.ContainsKey(configItemName))
-            {
-                throw (new ArgumentException(string.Format("Unable to locate configurable for '{0}' (spelling error?)",
-                                                            configItemName)));
-            }
-
-            // Note: it is a maintenance error if we try to change the same configurable twice
-            // in the same change request.  The dictionary will throw an exception if someone
-            // attempts to do that.
-            _changeRequests.Add(_recognizedAttributes[configItemName], configItemValue);
-
-            return (this);
-        }
-
-
-        public string Apply()
-        {
-            var changedDescriptors = (from desc in _changeRequests.Keys
-                                      orderby desc.Name
-                                      select desc);
-            string outString = "";
-
-            foreach (ConfigDescriptor configDesc in changedDescriptors)
-            {
-                configDesc.Value = _changeRequests[configDesc];
-
-                outString += string.Format("    Setting '{0}' to \"{1}\".\n",
-                                            configDesc.Name,
-                                            configDesc.Value);
-            }
-
-            return (outString);
-        }
-
-        public int Count { get { return (_changeRequests.Count); } }
-
-
-        public void GetChangesFromAttributes(CustomForcedBehavior behavior, ConfigSnapshot originalConfiguration)
-        {
-            var configDescriptors = (from attributeKvp in behavior.Args
-                                     from desc in _recognizedAttributes.Values
-                                     where (desc != null) && (attributeKvp.Key == desc.Name)
-                                     select desc);
-
-            foreach (ConfigDescriptor configDesc in configDescriptors)
-            {
-                object result = configDesc.Constraint.AcquireUserInput(behavior,
-                                                                    configDesc.Name,
-                                                                    originalConfiguration.GetSnapshotValue(configDesc.Name));
-
-                if (result != null)
-                { _changeRequests.Add(configDesc, result); }
-            }
-        }
-
-
-        private Dictionary<ConfigDescriptor, object> _changeRequests = new Dictionary<ConfigDescriptor, object>();
-        private Dictionary<string, ConfigDescriptor> _recognizedAttributes = null;
-    }
-
-
-    /// <summary>
-    /// Takes a snapshot of the current configuration.  The snapshot can be used
-    /// at a later point to restore the current configuration to the state contained
-    /// within the snapshot.  This class can also show what's different between the
-    /// current state and the configuration state that existed when the snapshot was taken.
-    /// </summary>
-    class ConfigSnapshot
-    {
-        public ConfigSnapshot(Dictionary<string, ConfigDescriptor> recognizedAttributes,
-                                Dictionary<string, object> persistedFlatData)
-        {
-            _recognizedAttributes = recognizedAttributes;
-
-            // If we're not rebuilding from persistent data, then capture the current configuration
-            if (persistedFlatData == null)
-            {
-                var configDescriptors = (from desc in recognizedAttributes.Values
-                                         where desc != null
-                                         select desc);
-
-                foreach (ConfigDescriptor configDesc in configDescriptors)
-                { _configSnapshot.Add(configDesc, configDesc.Value); }
-            }
-
-            else
-            {
-                var configDescriptors = (from desc in recognizedAttributes.Values
-                                         from configItemName in persistedFlatData.Keys
-                                         where (desc != null) && (desc.Name == configItemName)
-                                         select desc);
-
-                foreach (ConfigDescriptor configDesc in configDescriptors)
-                { _configSnapshot.Add(configDesc, persistedFlatData[configDesc.Name]); }
-            }
-        }
-
-
-        // Builds a string showing how the current configuration differs from this snapshot... 
-        public string GetChangesAsString()
-        {
-            var changedItems = (from item in _configSnapshot
-                                where !item.Key.Value.Equals(item.Value)
-                                orderby item.Key.Name
-                                select item);
-            string outString = "";
-
-            foreach (var kvp in changedItems)
-            { outString += string.Format("    {0}: \"{1}\" (was \"{2}\")\n", kvp.Key.Name, kvp.Key.Value, kvp.Value); }
-
-            if (string.IsNullOrEmpty(outString))
-            { outString = "    No changes from original settings\n"; }
-
-            return (outString);
-        }
-
-
-        public object GetSnapshotValue(string itemName)
-        {
-            return
-               (from item in _configSnapshot
-                where item.Key.Name == itemName
-                select item.Value)
-                .FirstOrDefault();
-        }
-
-
-        public Dictionary<string, object> PersistSaveData()
-        {
-            return (_configSnapshot.ToDictionary(kvp => kvp.Key.Name, kvp => kvp.Value));
-        }
-
-
-        // Sets the current configuration to the values captured by this snapshot...
-        public string Restore()
-        {
-            var changedItems = (from item in _configSnapshot
-                                where !item.Key.Value.Equals(item.Value)
-                                orderby item.Key.Name
-                                select item);
-            string outString = "";
-
-            foreach (KeyValuePair<ConfigDescriptor, object> kvp in changedItems)
-            {
-                outString += string.Format("    {0}: Restored to \"{1}\" (from change of \"{2}\")\n",
-                                            kvp.Key.Name,
-                                            kvp.Value,
-                                            kvp.Key.Value);
-                kvp.Key.Value = kvp.Value;
-            }
-
-            if (string.IsNullOrEmpty(outString))
-            { outString = "    No changes from original settings\n"; }
-
-            return (outString);
-        }
-
-
-        // Builds a change request from the settings captured by this snapshot...
-        // We only place entries that don't agree with the snapshot's value into the change request.
-        public ConfigurationChangeRequest MakeChangeRequest()
-        {
-            ConfigurationChangeRequest changeRequest = new ConfigurationChangeRequest(_recognizedAttributes);
-            var changedDescs = (from kvp in _configSnapshot
-                                where !kvp.Key.Value.Equals(kvp.Value)
-                                select kvp);
-
-            foreach (KeyValuePair<ConfigDescriptor, object> kvp in changedDescs)
-            { changeRequest.Add(kvp.Key.Name, kvp.Value); }
-
-            return (changeRequest);
-        }
-
-
-        private readonly Dictionary<ConfigDescriptor, object> _configSnapshot = new Dictionary<ConfigDescriptor, object>();
-        private Dictionary<string, ConfigDescriptor> _recognizedAttributes = null;
-    }
-
-
-    /// <summary>
-    // Data to be retained across consecutive calls of this custom behavior.
-    // This technique is the only one we've discovered that works with the way Honorbuddy invokes
-    // custom behaviors.  This technique uses reflection (ugh), thus it is a performance pig
-    // compared to normal variable access.
-    //
-    // NOTE: You can only store and retrieve data built with C# primitives or containers this way.
-    // You may not store user-defined objects, or containers with user-defined objects in them.
-    // This is a limitation in the way Honorbuddy handles the invoking of CustomForcedBehavior.
-    //
-    // We'd prefer to handle all the persistent items as properties.  However, due to the
-    // required 'flattening' to system-provided types, this is not always possible.  As such,
-    // you'll see us adopt a Java-like naming convention for the troublesome items.
-    //
-    // NOTE: Any PersistData items should be set to 'null' OnBotStop.  Obviously, checking
-    // for 'null' and populating with relevant data should be an early action for a behavior.
-    // Without this paradigm, a behavior can easily pick up and act on irrelevant data.
-    // 
-    /// </summary>
-    class PersistData
-    {
-        protected PersistData(string spaceName)
-        {
-            _spaceName = spaceName;
-        }
-
-
-        // Call this when you want to de-persist the data.  It will 'null out' the values for
-        // all items that have been placed into the persistent storage cache.
-        public void DePersistData()
-        {
-            foreach (string appPropertyName in _appPropertyNames.Keys)
-            { _currentDomain.SetData(appPropertyName, null); }
-        }
-
-
-        // If the persistent information is discovered to be 'null'...
-        // It will be initialized from the fnDefaultInitialValue method.  We recognized
-        // that it may be semi-expensive to create the 'default value', so we only
-        // invoke the function when absolutely needed.
-        // If we are forced to use fnDefaultInitialValue, the persistent storage will
-        // be populated with the generated value, in addition to returning the generated
-        // value to the caller.
-        protected object UtilAttributeGet(string attributeName,
-                                                System.Type attributeType,
-                                                Func<object> fnDefaultInitialValue)
-        {
-            object tmpData = _currentDomain.GetData(UtilBuildPersistName(attributeName));
-
-            // If data is uninitialized, or the wrong type, we need to (re)initialize it...
-            if ((tmpData == null) || (tmpData.GetType() != attributeType))
-            {
-                tmpData = fnDefaultInitialValue();
-                _currentDomain.SetData(UtilBuildPersistName(attributeName), tmpData);
-            }
-
-            return (tmpData);
-        }
-
-
-        // It is acceptable for value to be 'null'--
-        // Setting it to 'null' is equivalent to a 'depersist' operation.
-        // If you set it to 'null', it effectively causes a reinitialization of the value
-        // if UtilAttributeGet is subsequently called.
-        protected void UtilAttributeSet(string attributeName,
-                                                object value)
-        {
-            _currentDomain.SetData(UtilBuildPersistName(attributeName), value);
-        }
-
-
-        // For properties, use as UtilBuildPersistName(() => this.PROPERTY_NAME)
-        protected string UtilPropertyName<T>(Expression<Func<T>> propertyExpression)
-        {
-            return ((propertyExpression.Body as MemberExpression).Member.Name);
-        }
-
-
-        // Use as UtilBuildPersistName("DebugMumbleFoo")
-        private string UtilBuildPersistName(string propertyName)
-        {
-            string appPropertyName = _spaceName + ":" + propertyName;
-
-            _appPropertyNames[appPropertyName] = null;
-
-            return (appPropertyName);
-        }
-
-        private System.AppDomain _currentDomain = System.AppDomain.CurrentDomain;
-        private Dictionary<string, object> _appPropertyNames = new Dictionary<string, object>();
-        private string _spaceName;
-    }
-
-
-    class PersistedData : PersistData
-    {
-        public PersistedData(string spaceName,
-                                Dictionary<string, ConfigDescriptor> recognizedAttributes)
-            : base(spaceName)
-        {
-            _recognizedAttributes = recognizedAttributes;
-        }
-
-        public bool DebugShowChangesApplied
-        {
-            get { return ((bool)UtilAttributeGet(UtilPropertyName(() => this.DebugShowChangesApplied), typeof(bool), () => false)); }
-            set { UtilAttributeSet(UtilPropertyName(() => this.DebugShowChangesApplied), value); }
-        }
-
-        public bool IsBotStopHooked
-        {
-            get { return ((bool)UtilAttributeGet(UtilPropertyName(() => this.IsBotStopHooked), typeof(bool), () => false)); }
-            set { UtilAttributeSet(UtilPropertyName(() => this.IsBotStopHooked), value); }
-        }
-
-        public ConfigSnapshot OriginalConfiguration
-        {
-            get
-            {
-                Dictionary<string, object> tmpDict;
-
-                tmpDict = (Dictionary<string, object>)UtilAttributeGet(UtilPropertyName(() => this.OriginalConfiguration),
-                                                                        typeof(Dictionary<string, object>),
-                                                                        () => new ConfigSnapshot(_recognizedAttributes, null).PersistSaveData());
-                return (new ConfigSnapshot(_recognizedAttributes, tmpDict));
-            }
-
-            set
-            {
-                UtilAttributeSet(UtilPropertyName(() => this.OriginalConfiguration), value.PersistSaveData());
-            }
-        }
-
-
-        private Dictionary<string, ConfigDescriptor> _recognizedAttributes;
     }
 }

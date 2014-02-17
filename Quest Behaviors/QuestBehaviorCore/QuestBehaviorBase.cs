@@ -322,6 +322,18 @@ namespace Honorbuddy.QuestBehaviorCore
         #endregion
 
 
+        #region Concrete class overrides
+        // Most of the time, we want a ConfigMemento to be created...
+        // However, behaviors occasionally do not want this to happen (i.e., UserSettings).
+        // So, we allow concrete behaviors to override this factory.
+        // 17Feb2014-06:41UTC chinajade
+        protected virtual ConfigMemento CreateConfigMemento()
+        {
+            return new ConfigMemento();
+        }
+        #endregion
+
+
         #region Base class primitives
 
         /// <summary>
@@ -368,7 +380,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     AudibleNotifyOn(true);
                 }
 
-                _configMemento = new ConfigMemento();
+                _configMemento = CreateConfigMemento();
 
                 if (Targeting.Instance != null)
                 {
@@ -477,6 +489,7 @@ namespace Honorbuddy.QuestBehaviorCore
         //        context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
         //                      RangeMax, rangeEpsilon, RangeMin)); 
         //}
+
 
         #region TargetFilters
 
@@ -613,19 +626,27 @@ namespace Honorbuddy.QuestBehaviorCore
 
     public static class CustomForcedBehavior_Extensions
     {
-        public static void UpdateGoalText(this CustomForcedBehavior cfb, int QuestId, string extraGoalTextDescription = null)
+        public static void UpdateGoalText(this CustomForcedBehavior cfb, int questId, string extraGoalTextDescription = null)
         {
-            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
             TreeRoot.GoalText = string.Format(
-                "{1}: \"{2}\"{0}{3}{0}{0}{4}",
-                Environment.NewLine,
+                "{0}: {1}{2}    {3}",
                 QBCLog.VersionedBehaviorName,
-                ((quest != null)
-                    ? string.Format("\"{0}\" (http://wowhead.com/quest={1})", quest.Name, QuestId)
-                    : "In Progress (no associated quest)"),
-                (extraGoalTextDescription ?? string.Empty),
+                (GetQuestReference(questId) + Environment.NewLine),
+                ((extraGoalTextDescription != null) 
+                    ? (extraGoalTextDescription + Environment.NewLine)
+                    : string.Empty),
                 Utility.GetProfileReference(cfb.Element));
+        }
+
+        private static string GetQuestReference(int questId)
+        {
+            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)questId);
+
+            return
+                (quest != null)
+                ? string.Format("\"{0}\" (http://wowhead.com/quest={1})", quest.Name, questId)
+                : "In Progress (no associated quest)";
         }
     }
 }

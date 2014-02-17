@@ -65,15 +65,15 @@ namespace Honorbuddy.QuestBehaviorCore
                 if (deprecatedAttributeEncounteredPredicate)
                 {
                     QBCLog.Warning(QBCLog.BuildMessageWithContext(xElement,
-                        "DEPRECATED ATTRIBUTE ({1}):{0}{2}{0}",
+                        "DEPRECATED ATTRIBUTE ({1}):{0}{2}",
                         Environment.NewLine,
                         attributeName,
-                        messageDelegate(null)));
+                        UtilFormatMessage(messageDelegate(null))));
 
                     AudibleNotifyOn(QuestBehaviorCoreSettings.Instance.AudibleNotify_OnDeprecatedAttributeUse);
                 }
             }
-        }        
+        }
 
         
         // 19Apr2013-05:58UTC chinajade
@@ -82,9 +82,8 @@ namespace Honorbuddy.QuestBehaviorCore
             if (incoherencyPredicate)
             {
                 QBCLog.Error(QBCLog.BuildMessageWithContext(xElement,
-                    "PROFILE ERROR: {1}{0}",
-                    Environment.NewLine,
-                    messageDelegate(null)));
+                    "PROFILE ERROR: {0}",
+                    UtilFormatMessage(messageDelegate(null))));
                 IsAttributeProblem = true;
 
                 AudibleNotifyOn(QuestBehaviorCoreSettings.Instance.AudibleNotify_OnSemanticIncoherency);
@@ -211,6 +210,17 @@ namespace Honorbuddy.QuestBehaviorCore
                 replacementArgs.Add(Tuple.Create(destAttributeBaseName + "Y", sourceAttributeValue.Y.ToString()));
                 replacementArgs.Add(Tuple.Create(destAttributeBaseName + "Z", sourceAttributeValue.Z.ToString()));
             }
+        }
+
+
+        private string UtilFormatMessage(string message)
+        {
+            const string linePrefix = "    ";
+
+            return
+                string.IsNullOrEmpty(message)
+                ? string.Empty
+                : (linePrefix + message.Replace(Environment.NewLine, (Environment.NewLine + linePrefix)));
         }
     }
 }

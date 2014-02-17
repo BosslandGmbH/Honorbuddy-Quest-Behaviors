@@ -9,7 +9,7 @@ HasAura
 
 #region Private and Convenience variables
 #region Destructor, Dispose, and cleanup
-#region Overrides of CustomForcedBehavior
+#region Overrides of QuestBehaviorBase
 		// DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
@@ -23,10 +23,6 @@ HasAura
             // Defend against being called multiple times (just in case)...
             if (!IsOnFinishedRun)
             {
-                // Clear messages related to behavior operation...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
                 // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
                 base.OnFinished();
             }
