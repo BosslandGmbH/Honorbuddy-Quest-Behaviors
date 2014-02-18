@@ -166,6 +166,11 @@ namespace Honorbuddy.QuestBehaviorCore
                 var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
                 TerminateWhen = ConditionHelper.ParseConditionString(terminateWhenExpression);
                 TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
+
+                // Dummy attributes...
+                // These attributes are accepted, but not used.  They are here to help the profile writer document without
+                // causing "unknown attribute" warnings to be emitted.
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);
             }
 
             catch (Exception except)
