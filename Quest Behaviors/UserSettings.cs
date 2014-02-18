@@ -217,6 +217,8 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     {
                         QBCLog.Error("Unable to locate any preset named '{0}'", PresetName);
                         TreeRoot.Stop();
+                        BehaviorDone();
+                        return;
                     }
 
                     var appliedChanges = presetChangeSet.Apply("    ");
@@ -266,6 +268,8 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                         { QBCLog.DeveloperInfo(logDeveloperString); }
 
                     TreeRoot.Stop(message);
+                    BehaviorDone();
+                    return;
                 }
 
                 else
@@ -301,16 +305,16 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     { QBCLog.Info(this, logMessage); }
                 else
                     { QBCLog.DeveloperInfo(this, logMessage); }
-
-                // Remove our OnBotStop handler
-                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-
-                // Reset persistent data...
-                PersistedIsBotStopHooked = false;
-                PersistedDebugShowChangesApplied = false;
-                ChangeSet.OriginalConfiguration = null;
-                ChangeSet.RecognizedSettings = null;
             }
+
+            // Remove our OnBotStop handler
+            BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+
+            // Reset persistent data...
+            PersistedIsBotStopHooked = false;
+            PersistedDebugShowChangesApplied = false;
+            ChangeSet.OriginalConfiguration = null;
+            ChangeSet.RecognizedSettings = null;
         }
 
 
