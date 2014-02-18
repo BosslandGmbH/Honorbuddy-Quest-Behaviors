@@ -641,15 +641,12 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     "FormLocationY",
                     "LastUsedPath",
                     "LogLevel",
-                    "LootChests",
                     "MailRecipient",
                     "MeshesFolderPath",
-                    "MountDistance",
                     "Password",
                     "PluginKey",
 					"RecentProfiles",
                     "SelectedBotIndex",
-                    "UseFlightPaths",
                     "Username",
                 };
             var recognizedSettings = new List<SettingDescriptor>();
