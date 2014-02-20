@@ -844,12 +844,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			// If interact target no longer meets qualifications, try to find another...
 			if (!IsInteractNeeded(SelectedTarget, MobState))
 			{
-				CloseOpenFrames();
-				Me.ClearTarget();
 				SelectedTarget = FindViableTargets(MobState).FirstOrDefault();
 
 				if (SelectedTarget != null)
 				{
+					CloseOpenFrames();
+					Me.ClearTarget();
+
 					this.UpdateGoalText(QuestId, GetGoalText());
 					InteractAttemptCount = 0;
 					_watchdogTimerToReachDestination = null;
@@ -857,7 +858,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 				// If we're looking for 'dead' targets, and there are none...
 				// But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
-				if ((SelectedTarget == null) && (MobState == MobStateType.Dead))
+				if ( (SelectedTarget == null) && !Query.IsViable(SelectedAliveTarget) && (MobState == MobStateType.Dead))
 				{
 					SelectedAliveTarget = FindViableTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
 					if (SelectedAliveTarget != null)
