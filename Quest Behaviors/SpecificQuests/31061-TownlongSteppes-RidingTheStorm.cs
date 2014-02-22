@@ -302,6 +302,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
             }
         }
 
+        public override void OnFinished()
+        {
+            // get off the dragon
+            if (Query.IsInVehicle())
+            { Utility.ExitVehicle(); }
+        }
+
         #endregion
     }
 }
