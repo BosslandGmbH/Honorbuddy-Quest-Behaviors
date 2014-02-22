@@ -25,6 +25,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Xml.Linq;
 
@@ -67,27 +68,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     GetAttributeAs<object>(recognizedAttribute.Name, false, null, null);
                 }
 
-                _userChangeRequest = ChangeSet.FromXmlAttributes(args,
-                    new List<string>()
-                        {
-                            // Behavior-specific attributes...
-                            "DebugShowChangesApplied",
-                            "DebugShowDetails",
-                            "DebugShowDiff",
-                            "Preset",
-                            "StopBot",
-
-                            // QuestBehaviorBase attributes...
-                            "QuestId",
-                            "QuestCompleteRequirement",
-                            "QuestInLogRequirement",
-                            "QuestObjectiveIndex",
-                            "IgnoreMobsInBlackspots",
-                            "MovementBy",
-                            "NonCompeteDistance",
-                            "TerminateWhen",
-                            "TerminationChecksQuestProgress",
-                        });
+                _userChangeRequest = ChangeSet.FromXmlAttributes(args);
 
                 // If we were unable to create an (even empty) changeset, then we ran into a problem...
                 if (_userChangeRequest == null)
@@ -116,12 +97,15 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
+            var explicitlyHandled = new List<string>();
+
             UsageCheck_DeprecatedAttribute(xElement,
                 Args.Keys.Contains("LootMobs"),
                 "LootMobs",
                 context => string.Format("Please update profile to use <LootMobs Value=\"{1}\" />, instead.",
                     Environment.NewLine,
                     Args["LootMobs"]));
+            explicitlyHandled.Add("LootMobs");
 
             UsageCheck_DeprecatedAttribute(xElement,
                 Args.Keys.Contains("PullDistance"),
@@ -131,6 +115,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     + "  Please do not fiddle with TargetingDistance unless _absolutely_ necessary.",
                     Environment.NewLine,
                     Args["PullDistance"]));
+            explicitlyHandled.Add("PullDistance");
 
             UsageCheck_DeprecatedAttribute(xElement,
                 Args.Keys.Contains("UseMount"),
@@ -138,12 +123,52 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 context => string.Format("Please update profile to use <UseMount Value=\"{1}\" />, instead.",
                     Environment.NewLine,
                     Args["UseMount"]));
+            explicitlyHandled.Add("UseMount");
+
+
+            foreach (var attributeName in Args.Keys.Where(attrName => !explicitlyHandled.Contains(attrName)))
+            {
+                var recognizedSetting = ChangeSet.RecognizedSettings.FirstOrDefault(s => s.Name == attributeName);
+
+                // If setting not recognized, skip it...
+                if (recognizedSetting == null)
+                    { continue; }
+
+                if (recognizedSetting.IsObsolete)
+                {
+                    var message = string.Format("Honorbuddy has marked attribute '{1}' as 'Obsolete'.{0}"
+                        + "  The attribute may no longer work as expected.  The attribute will be removed in a future release."
+                        + "  Please update the profile to remove usage of the '{1}' attribute.",
+                        Environment.NewLine,
+                        attributeName);
+
+                    if (!string.IsNullOrEmpty(recognizedSetting.ObsoleteMessage))
+                    {
+                        message += string.Format("{0}  HB API Info: {1}", Environment.NewLine, recognizedSetting.ObsoleteMessage);
+                    }
+
+                    UsageCheck_DeprecatedAttribute(xElement, true, attributeName, context => message);
+                }
+            }
         }
+
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
-            // Empty, for now...
-            // See TEMPLATE_QB for an example.
+            foreach (var attributeName in Args.Keys)
+            {
+                var isAttributeAccessDisallowed = ChangeSet.RecognizedSettings.Any(s => (s.Name == attributeName) && s.IsAccessDisallowed);
+
+                if (isAttributeAccessDisallowed)
+                {
+                    var message = string.Format("UserSettings does not allow access to the '{1}' attribute.{0}"
+                        + "  Please modify the profile to refrain from accessing the '{1}' attribute.",
+                        Environment.NewLine,
+                        attributeName);
+
+                    UsageCheck_SemanticCoherency(xElement, true, context => message);
+                }
+            }
         }
         #endregion
 
@@ -433,7 +458,15 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     var settingDescriptor = RecognizedSettings.FirstOrDefault(s => s.Name == name);
                     if (settingDescriptor == null)
                     {
-                        QBCLog.Error("Unable to locate setting for {0}", name);
+                        QBCLog.Error("Unable to locate setting for '{0}'.", name);
+                        isProblemAttribute = true;
+                        continue;
+                    }
+
+                    // Is changing attribute allowed?
+                    if (settingDescriptor.IsAccessDisallowed)
+                    {
+                        QBCLog.Error("Accessing attribute '{0}' is not allowed.", name);
                         isProblemAttribute = true;
                         continue;
                     }
@@ -478,8 +511,9 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     changeSet.Add(Tuple.Create(settingDescriptor, value));
                 }
 
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    QBCLog.Exception(ex, "MAINTENANCE ERROR: Error processing attribute '{0}.'", change.Key);
                     isProblemAttribute = true;
                 }
             }
@@ -526,19 +560,29 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
             foreach (var change in _changeSet.OrderBy(t => t.Item1.Name))
             {
                 var settingDescriptor = change.Item1;
-                var value = change.Item2;
+                var valueWanted = change.Item2;
                 var previousValue = settingDescriptor.GetValue();
                 object originalValue;
 
                 OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue);
 
 
-                if (!onlyApplyChangesIfDifferent || !value.Equals(previousValue))
+                if (!onlyApplyChangesIfDifferent || !valueWanted.Equals(previousValue))
                 {
-                    settingDescriptor.SetValue(value);
-
+                    settingDescriptor.SetValue(valueWanted);
+                    
+                    // Note, we read back the value rather than just assumed the 'set' worked...
+                    // For instance, for Obsolete attributes, the value may be hard-coded and the set
+                    // did not take effect.  We should report the real value, so the user knows of the problem.
+                    var valueObtained = settingDescriptor.GetValue();
                     changesApplied.AppendFormat("{0}{1}{2} = {3} (previous: {4};  original: {5})",
-                        Environment.NewLine, linePrefix, settingDescriptor.Name, value, previousValue, originalValue);
+                        Environment.NewLine, linePrefix, settingDescriptor.Name, valueObtained, previousValue, originalValue);
+
+                    if (settingDescriptor.IsObsolete)
+                        { changesApplied.Append(" [OBSOLETE]"); }
+
+                    if (settingDescriptor.IsAccessDisallowed)
+                        { changesApplied.Append(" [ACCESS DISALLOWED]"); }
                 }
             }
 
@@ -566,23 +610,28 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         {
             var builder = new StringBuilder();
 
-            foreach (var change in _changeSet.OrderBy(t => t.Item1.Name))
+            foreach (var setting in _changeSet.OrderBy(t => t.Item1.Name))
             {
                 object originalValue = null;
-                OriginalConfiguration.TryGetValue(change.Item1.Name, out originalValue);
+                OriginalConfiguration.TryGetValue(setting.Item1.Name, out originalValue);
 
-                var instanceName = change.Item1.SettingsInstance.GetType().Name;
-
-                if (change.Item2.Equals(originalValue))
+                if (setting.Item2.Equals(originalValue))
                 {
                     builder.AppendFormat("{0}{1}{2}.{3} = {4}",
-                        Environment.NewLine, linePrefix, instanceName, change.Item1.Name, change.Item2);
+                        Environment.NewLine, linePrefix, setting.Item1.InstanceName, setting.Item1.Name, setting.Item2);
                 }
                 else
                 {
                     builder.AppendFormat("{0}{1}{2}.{3} = {4} (original: {5})",
-                        Environment.NewLine, linePrefix, instanceName, change.Item1.Name, change.Item2, originalValue);
+                        Environment.NewLine, linePrefix, setting.Item1.InstanceName, setting.Item1.Name, setting.Item2, originalValue);
                 }
+
+                if (setting.Item1.IsObsolete)
+                    { builder.Append(" [OBSOLETE]");  }
+
+                if (setting.Item1.IsAccessDisallowed)
+                    { builder.Append(" [ACCESS DISALLOWED]");  }
+
             }
 
             return builder.ToString();
@@ -602,6 +651,12 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 
                 builder.AppendFormat("{0}{1}{2} = {3} (originally: {4})",
                     Environment.NewLine, linePrefix, setting.Item1.Name, currentValue, setting.Item2);
+
+                if (setting.Item1.IsObsolete)
+                    { builder.Append(" [OBSOLETE]"); }
+
+                if (setting.Item1.IsAccessDisallowed)
+                    { builder.Append(" [ACCESS DISALLOWED]"); }
             }
 
             if (builder.Length <= 0)
@@ -631,24 +686,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 { "MountDIstance",          new ConstrainInteger(30, 200) },
                 { "TicksPerSecond",         new ConstrainInteger(5, 100) }
             };
-
-            var ignoredPropertyNames =
-                new List<string>()
-                {
-                    "EnabledPlugins",
-                    "FindVendorsAutomatically",
-                    "FormLocationX",
-                    "FormLocationY",
-                    "LastUsedPath",
-                    "LogLevel",
-                    "MailRecipient",
-                    "MeshesFolderPath",
-                    "Password",
-                    "PluginKey",
-					"RecentProfiles",
-                    "SelectedBotIndex",
-                    "Username",
-                };
+            var noConstraintCheck = new NoConstraint();
             var recognizedSettings = new List<SettingDescriptor>();
             var settingsInstances = new Settings[]
                 {   // ordering is significant--earlier setting names mask later setting names in this list
@@ -658,26 +696,19 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 };
 
             // Allowed 'Configuration' attributes--
-            // A default value of 'null' means the item has no default value.
-            var noConstraintCheck = new NoConstraint();
             foreach (var settingsInstance in settingsInstances)
             {
-                foreach (var configItemName in from propertyName in settingsInstance.GetSettings().Keys
-                                               where
-                                                    !string.IsNullOrEmpty(propertyName)
-                                                    && !ignoredPropertyNames.Contains(propertyName)
-                                               select propertyName)
-                {
-                    if (recognizedSettings.All(setting => setting.Name != configItemName))
-                    {
-                        var constraintChecker =
-                            constraints.Keys.Contains(configItemName)
-                            ? constraints[configItemName]
-                            : noConstraintCheck;
-
-                        recognizedSettings.Add(new SettingDescriptor(settingsInstance, configItemName, constraintChecker));
-                    }
-                }
+                recognizedSettings.AddRange(
+                    from propertyInfo in settingsInstance.GetType().GetProperties()
+                    let customAttributes = propertyInfo.GetCustomAttributes(false)
+                    let propertyName = propertyInfo.Name
+                    where
+                        (customAttributes.OfType<SettingAttribute>().Any()
+                         || customAttributes.OfType<ObsoleteAttribute>().Any())
+                        && propertyInfo.GetSetMethod().IsPublic
+                    let constraintChecker = constraints.Keys.Contains(propertyName) ? constraints[propertyName] : noConstraintCheck
+                    select new SettingDescriptor(settingsInstance, propertyName, constraintChecker)
+                );
             }
 
             return (new ReadOnlyCollection<SettingDescriptor>(recognizedSettings));
@@ -687,27 +718,28 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
         // Factories...
         public static ChangeSet FromCurrentConfiguration()
         {
-            return new ChangeSet(RecognizedSettings.ToDictionary(
-                setting => setting.Name,
-                setting => setting.GetValue()
-                ));
+            return new ChangeSet(
+                RecognizedSettings
+                .Where(setting => !setting.IsAccessDisallowed)
+                .ToDictionary(setting => setting.Name, setting => setting.GetValue())
+                );
         }
 
 
         // If 'null' return, then error was encountered, and offending messages already logged...
         // Otherwise, a (possibly empty) ChangeSet is returned.
-        public static ChangeSet FromXmlAttributes(Dictionary<string, string> attributes, List<string> excludedAttributes)
+        public static ChangeSet FromXmlAttributes(Dictionary<string, string> attributes)
         {
-            var changes = new Dictionary<string, object>();
-
             try
             {
-                foreach (var attribute in attributes.Where(kvp => !excludedAttributes.Contains(kvp.Key)))
-                {
-                    changes.Add(attribute.Key, attribute.Value);
-                }
+                var attributesToProcess =
+                   (from attribute in attributes
+                    where
+                        RecognizedSettings.Any(setting => (setting.Name == attribute.Key) && !setting.IsAccessDisallowed)
+                    select attribute)
+                    .ToDictionary(attribute => attribute.Key, attribute => (object)attribute.Value);
 
-                return new ChangeSet(changes);
+                return new ChangeSet(attributesToProcess);
             }
 
             catch (Exception)
@@ -793,36 +825,91 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
             // We are a bit aggressive in our error checking here--
             // The most likely source of errors will be people that maintain the code in the future,
             // and we want to weed out as many newbie mistakes as possible.
-            Contract.Requires(
-                !string.IsNullOrEmpty(name),
+            Contract.Requires(!string.IsNullOrEmpty(name),
                 context => "name cannot be null or empty.");
-            Contract.Requires(
-                settingsInstance != null,
+            Contract.Requires(settingsInstance != null,
                 context => String.Format("Null settingsInstance now allowed for {0}", name));
-            Contract.Requires(settingsInstance.GetSettings().Any(kvp => kvp.Key == name),
+            Contract.Requires(settingsInstance.GetType().GetProperties().Any(s => s.Name == name),
                 context => string.Format("The settingsInstance does not contain a \"{0}\" property", name));
 
             ConstraintChecker = constraintCheck;
             Name = name;
             SettingsInstance = settingsInstance;
+
+            InstanceName = settingsInstance.GetType().Name;
+            PropInfo = settingsInstance.GetType().GetProperty(name);
+
+            IsAccessDisallowed = DisallowedPropertyNames.Contains(name);
+
+            var obsoleteAttribute = PropInfo.GetCustomAttributes(true).OfType<ObsoleteAttribute>().FirstOrDefault();
+            IsObsolete = (obsoleteAttribute != null);
+
+            ObsoleteMessage = IsObsolete ? obsoleteAttribute.Message : string.Empty;
         }
 
         public ConstraintChecker ConstraintChecker { get; private set; }
+        public string InstanceName { get; private set; }
+        public bool IsAccessDisallowed { get; private set; }
+        public bool IsObsolete { get; private set; }
         public string Name { get; private set; }
+        public string ObsoleteMessage { get; private set; }
         public Settings SettingsInstance { get; private set; }
+
+        private PropertyInfo PropInfo { get; set; }
+
+        public static IEnumerable<string> DisallowedPropertyNames
+        {
+            get
+            {
+                return _disallowedPropertyNames ?? (_disallowedPropertyNames = new List<string>()
+                    {
+                        // Disallowed CharacterSettings...
+                        "EnabledPlugins",
+                        "LastUsedPath",
+                        "MailRecipient",
+                        "RecentProfiles",
+                        "SelectedBotIndex",
+
+                        // Disallowed GlobalSettings...
+                        "AdvancedSettingsMode",
+                        "BotsPath",
+                        "CharacterSettingsDirectory",
+                        "CombatRoutinesPath",
+                        "MeshesFolderPath",
+                        "PluginsPath",
+                        "ProfileDebuggingMode",
+                        "QuestBehaviorsPath",
+                        "ReloadBotsOnFileChange",
+                        "ReloadPluginsOnFileChange",
+                        "ReloadRoutinesOnFileChange",
+                        "SeperatedLogFolders",
+                        "SettingsDirectory",
+                        "TicksPerSecond",
+                        "UICulture",
+                        "UseFrameLock",
+
+                        // Disallowed LevelbotSettings...
+                        // None for now.
+                    });
+            }
+        }
+        private static IEnumerable<string> _disallowedPropertyNames;
 
 
         public object GetValue()
         {
-            var propertyInfo = SettingsInstance.GetType().GetProperty(Name);
-
-            return propertyInfo.GetValue(SettingsInstance, null);
+            return
+                IsAccessDisallowed
+                ? string.Format("<PROPERTY ACCESS OF '{0}' IS DISALLOWED>", Name)
+                : PropInfo.GetValue(SettingsInstance, null);
         }
 
 
         public void SetValue(object newValueAsObject)
         {
-            var propertyInfo = SettingsInstance.GetType().GetProperty(Name);
+            if (IsAccessDisallowed)
+                { return; }
+
             var newValue = ToCongruentObject(newValueAsObject);
 
             if (!ConstraintChecker.IsWithinConstraints(newValue))
@@ -833,15 +920,14 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 throw new ArgumentException(message);
             }
 
-            propertyInfo.SetValue(SettingsInstance, newValue, null);
+            PropInfo.SetValue(SettingsInstance, newValue, null);
         }
 
 
         // Largely used to convert 'string' representation of a value into the value's type...
         public object ToCongruentObject(object value)
         {
-            var propertyInfo = SettingsInstance.GetType().GetProperty(Name);
-            var backingType = propertyInfo.PropertyType;
+            var backingType = PropInfo.PropertyType;
             var providedType = value.GetType();
 
             try
