@@ -231,15 +231,15 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 if (!microwaveTime)
                     { format = "{4}m{2:D2}s"; }
-                else if (duration.Seconds > 0)
+                else if (duration.TotalSeconds >= 1)
                     { format = "{5}s"; }
                 else
                     { format = "0.{3:D3}s"; }
             }
-
-            return string.Format(format,
-                duration.Hours, duration.Minutes, duration.Seconds, duration.Milliseconds,
-                (int)duration.TotalMinutes, (int)duration.TotalSeconds);
+			
+			return string.Format(format,
+				(int)duration.TotalHours, duration.Minutes, duration.Seconds, duration.Milliseconds,
+				(int)duration.TotalMinutes, (int)duration.TotalSeconds);
         }
 
 
