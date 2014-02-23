@@ -139,6 +139,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 
         private IEnumerable<int> dragonIds = new[] { 62584, 62585, 62586, 62311 };
 
+        private readonly WoWPoint StartingSpot = new WoWPoint(3888.184, 5373.759, 311.3385);
 
         public WoWUnit ShanzeCloudrunner
         {
@@ -264,7 +265,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 
         protected Composite CreateBehavior_MainCombat()
         {
-            return _root ?? (_root = new Decorator(ret => !IsDone, new PrioritySelector(DoneYet, GetOnDragon, KillDragon, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !IsDone, new PrioritySelector(DoneYet, MoveToStart(), GetOnDragon, KillDragon, new ActionAlwaysSucceed())));
         }
 
 
@@ -309,6 +310,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
             { Utility.ExitVehicle(); }
         }
 
+        private Composite MoveToStart()
+        {
+            return new Decorator(r => !Query.IsInVehicle() && Me.Location.Distance(StartingSpot) > 10,
+                    new Action(r => Flightor.MoveTo(StartingSpot)));
+        }
         #endregion
     }
 }
