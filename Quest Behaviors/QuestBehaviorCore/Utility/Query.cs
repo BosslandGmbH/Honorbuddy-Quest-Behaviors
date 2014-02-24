@@ -34,11 +34,11 @@ namespace Honorbuddy.QuestBehaviorCore
         public static IEnumerable<Blackspot> FindCoveringBlackspots(WoWPoint location)
         {
             return
-               (from blackspot in ProfileManager.CurrentProfile.Blackspots
+                from blackspot in BlackspotManager.GetAllCurrentBlackspots()
                 where
                     (blackspot.Location.Distance2D(location) <= blackspot.Radius)
                     && (Math.Abs(blackspot.Location.Z - location.Z) <= blackspot.Height)
-                select blackspot);
+                select blackspot;
         }
     
     
@@ -563,7 +563,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return
                 !ignoreMobsInBlackspots
-                || !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, wowObject.Location);
+                || !BlackspotManager.IsBlackspotted(wowObject.Location);
         }
 
 
