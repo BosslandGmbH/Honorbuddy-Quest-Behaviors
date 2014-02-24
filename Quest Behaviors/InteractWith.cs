@@ -363,6 +363,7 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Windows.Controls.Primitives;
 using System.Xml.Linq;
+using Bots.DungeonBuddy.Helpers;
 using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
@@ -792,7 +793,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private IEnumerator MainCoroutine()
 		{
-			if (IsDone)
+			// return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
+			if (IsDone || Targeting.Instance.FirstUnit != null)
 			{
 				yield return false;
 				yield break;
@@ -1477,10 +1479,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			var selectedUnit = SelectedTarget as WoWUnit;
 			// If we expect to gossip, and mob in combat and offers no gossip, help mob...
 			// NB: Mobs frequently will not offer their gossip options while they are in combat.
-			if (InteractByGossipOptions.Length > 0 && selectedUnit != null && selectedUnit.Combat)
+			if (InteractByGossipOptions.Length > 0 && Query.IsViable(selectedUnit) && selectedUnit.Combat)
 			{
 				var selectetUnitTarget = selectedUnit.CurrentTarget;
-				outgoingUnits.Add(selectetUnitTarget);
+				if (selectetUnitTarget != null && selectedUnit.Attackable && selectedUnit.IsHostile)
+					outgoingUnits.Add(selectetUnitTarget);
 			}
 
 			// if we have a target that needs to be killed before interaction can take place then make it so.
@@ -1493,7 +1496,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 			foreach (var unit in incomingUnits.OfType<WoWUnit>())
 			{
-				if (!unit.IsHostile)
+				if (!unit.IsHostile || !unit.Attackable)
 					continue;
 
 				if (!unit.IsUntagged())

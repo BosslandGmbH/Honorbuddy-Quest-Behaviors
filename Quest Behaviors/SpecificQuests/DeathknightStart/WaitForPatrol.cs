@@ -156,6 +156,7 @@ using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
@@ -458,8 +459,12 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
                 // Dismount once we've arrived at mob or destination...
                 new Mount.ActionLandAndDismount(),
 
+				new Decorator(ctx => StyxWoW.Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
+
                 // Target and Face the AvoidNpc, as feedback to the user...
-                new ActionFail(context => { Utility.Target(Mob_ToAvoid, true); }),
+                new ActionFail(
+	                context =>
+					{Utility.Target(Mob_ToAvoid, true);}),
 
                 // If AvoidNpc is not around,
                 // or if AvoidNpc is prescribed distance away, and facing away from us,
