@@ -29,9 +29,9 @@ namespace Honorbuddy.QuestBehaviorCore
 					_moveToMessageThrottle = new WaitTimer(TimeSpan.FromMilliseconds(1000));
 
 				if (!_moveToMessageThrottle.IsFinished)
-					return false;
+					return true;
 				_moveToMessageThrottle.Reset();
-				return true;
+				return false;
 			}
 		}
 
