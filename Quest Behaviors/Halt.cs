@@ -20,6 +20,7 @@
 // [optional] QuestId: Id of the quest (default is 0)
 // [optional] Msg: text value to display (default says stopped by profile)
 // [optional] Color: color to use for message in log (default is red)
+// [optional] CloseWoW: closes WoW and exits Honorbuddy with an exit code of 12 which signals relogers to stop logging in (default is false)
 // 
 // Note:  QuestId behaves the same as on every other behavior.  If 0, then
 // halt always occurs.  Otherwise, for non-zero QuestId only halts if the
@@ -35,8 +36,10 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
-
+using System.Threading;
 using Honorbuddy.QuestBehaviorCore;
+using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -64,6 +67,7 @@ namespace Honorbuddy.Quest_Behaviors.Halt
 
                 Color = GetAttributeAsNullable<Color>("Color", false, null, null) ?? Color.Red;
                 Message = GetAttributeAs<string>("Message", false, ConstrainAs.StringNonEmpty, new[] { "Msg", "Text" }) ?? "Quest Profile HALT";
+				CloseWoW = GetAttributeAsNullable<bool>("CloseWoW", false, null, null) ?? false;
             }
 
             catch (Exception except)
@@ -82,6 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.Halt
         // Attributes provided by caller
         public Color Color { get; private set; }
         public string Message { get; private set; }
+		public bool CloseWoW { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -162,8 +167,33 @@ namespace Honorbuddy.Quest_Behaviors.Halt
                 QBCLog.DeveloperInfo("\n\n    " + Message + "\n");
 
                 this.UpdateGoalText(QuestId, Message);
-
-                TreeRoot.Stop("Bot stop requested by Halt quest behavior.");
+	            if (CloseWoW)
+	            {
+					QBCLog.Info("Bot shutdown requested by Halt quest behavior.");
+					var wowProc = StyxWoW.Memory.Process;
+					// try to close WoW nicely
+					wowProc.CloseMainWindow();
+					using (StyxWoW.Memory.ReleaseFrame())
+		            {
+						var killTimer = new Styx.Common.Helpers.WaitTimer(TimeSpan.FromSeconds(15));
+						killTimer.Reset();
+						// wait for wow to close. 
+						while (!wowProc.HasExited && !killTimer.IsFinished)
+			            {
+				            Thread.Sleep(200);
+			            }
+						// if WoW didn't close by this time then just kill it.
+			            if (killTimer.IsFinished && !wowProc.HasExited)
+			            {
+				            wowProc.Kill();
+			            }
+		            }
+					TreeRoot.Shutdown(12);
+	            }
+	            else
+	            {
+		            TreeRoot.Stop("Bot stop requested by Halt quest behavior.");
+	            }
             }
         }
 

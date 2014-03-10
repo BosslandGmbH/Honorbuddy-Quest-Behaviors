@@ -1482,7 +1482,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			if (InteractByGossipOptions.Length > 0 && Query.IsViable(selectedUnit) && selectedUnit.Combat)
 			{
 				var selectetUnitTarget = selectedUnit.CurrentTarget;
-				if (selectetUnitTarget != null && selectedUnit.Attackable && selectedUnit.IsHostile)
+				if (selectetUnitTarget != null && selectetUnitTarget.Attackable && selectetUnitTarget.IsHostile)
 					outgoingUnits.Add(selectetUnitTarget);
 			}
 
