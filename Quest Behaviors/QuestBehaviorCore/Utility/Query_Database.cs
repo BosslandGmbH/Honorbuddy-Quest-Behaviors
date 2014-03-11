@@ -40,7 +40,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         private static readonly SQLiteCommand SqlCmd_NearestVendor = 
             BuildSqLiteCommand("SELECT * FROM npcs"
-                                + "WHERE map = @MAP_ID AND flag & @FLAG"
+                                + "WHERE MapId = @MAP_ID AND flag & @FLAG"
                                 + " ORDER BY VECTORDISTANCE(x,y,z,@X,@Y,@Z) ASC");
      
         private static readonly SQLiteCommand SqlCmd_NearestMailbox =
@@ -84,7 +84,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 while (reader.Read())
                 {
                     Vendor result = GetVendor(reader, vendorType);
-                    var factionId = (uint)reader.GetInt32(reader.GetOrdinal("faction"));
+                    var factionId = (uint)reader.GetInt32(reader.GetOrdinal("FactionId"));
                     if (StyxWoW.Me.FactionTemplate.GetReactionTowards(FactionTemplate.FromId(factionId)) >= WoWUnitReaction.Neutral && !VendorBlacklist.Contains(result.Entry) &&
                         Navigator.CanNavigateFully(loc, result.Location))
                     {
