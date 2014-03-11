@@ -36,6 +36,7 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using System.Threading;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
@@ -43,6 +44,8 @@ using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
+using Styx.WoWInternals;
+
 #endregion
 
 
@@ -170,25 +173,7 @@ namespace Honorbuddy.Quest_Behaviors.Halt
 	            if (CloseWoW)
 	            {
 					QBCLog.Info("Bot shutdown requested by Halt quest behavior.");
-					var wowProc = StyxWoW.Memory.Process;
-					// try to close WoW nicely
-					wowProc.CloseMainWindow();
-					using (StyxWoW.Memory.ReleaseFrame())
-		            {
-						var killTimer = new Styx.Common.Helpers.WaitTimer(TimeSpan.FromSeconds(15));
-						killTimer.Reset();
-						// wait for wow to close. 
-						while (!wowProc.HasExited && !killTimer.IsFinished)
-			            {
-				            Thread.Sleep(200);
-			            }
-						// if WoW didn't close by this time then just kill it.
-			            if (killTimer.IsFinished && !wowProc.HasExited)
-			            {
-				            wowProc.Kill();
-			            }
-		            }
-					TreeRoot.Shutdown(12);
+					TreeRoot.Shutdown(12, true);
 	            }
 	            else
 	            {
