@@ -39,318 +39,318 @@ using Styx.Helpers;
 
 namespace Honorbuddy.Quest_Behaviors.UserSettings
 {
-    [CustomBehaviorFileName(@"UserSettings")]
-    class UserSettings : QuestBehaviorBase
-    {
-        #region Constructor and Argument Processing
-        public UserSettings(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"UserSettings")]
+	class UserSettings : QuestBehaviorBase
+	{
+		#region Constructor and Argument Processing
+		public UserSettings(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // Build the 'presets'...
-                // Note that the "UserOriginal" configuration will also be captured as a preset.
-                _presetChangeSets = BuildPresets();
+			try
+			{
+				// Build the 'presets'...
+				// Note that the "UserOriginal" configuration will also be captured as a preset.
+				_presetChangeSets = BuildPresets();
 
-                // Behavior-specific attributes...
-                PersistedDebugShowChangesApplied = GetAttributeAsNullable<bool>("DebugShowChangesApplied", false, null, null)
-                    ?? PersistedDebugShowChangesApplied;
-                DebugShowDetails = GetAttributeAsNullable<bool>("DebugShowDetails", false, null, null) ?? false;
-                DebugShowDiff = GetAttributeAsNullable<bool>("DebugShowDiff", false, null, null) ?? false;
-                PresetName = GetAttributeAs<string>("Preset", false, new ConstrainTo.SpecificValues<string>(_presetChangeSets.Keys.ToArray()), null) ?? "";
-                IsStopBot = GetAttributeAsNullable<bool>("StopBot", false, null, null) ?? false;
+				// Behavior-specific attributes...
+				PersistedDebugShowChangesApplied = GetAttributeAsNullable<bool>("DebugShowChangesApplied", false, null, null)
+					?? PersistedDebugShowChangesApplied;
+				DebugShowDetails = GetAttributeAsNullable<bool>("DebugShowDetails", false, null, null) ?? false;
+				DebugShowDiff = GetAttributeAsNullable<bool>("DebugShowDiff", false, null, null) ?? false;
+				PresetName = GetAttributeAs<string>("Preset", false, new ConstrainTo.SpecificValues<string>(_presetChangeSets.Keys.ToArray()), null) ?? "";
+				IsStopBot = GetAttributeAsNullable<bool>("StopBot", false, null, null) ?? false;
 
-                // Attempted to read the 'recognized attributes', so they won't be marked as "not recognized" by the argument processor...
-                foreach (var recognizedAttribute in ChangeSet.RecognizedSettings)
-                {
-                    GetAttributeAs<object>(recognizedAttribute.Name, false, null, null);
-                }
+				// Attempted to read the 'recognized attributes', so they won't be marked as "not recognized" by the argument processor...
+				foreach (var recognizedAttribute in ChangeSet.RecognizedSettings)
+				{
+					GetAttributeAs<object>(recognizedAttribute.Name, false, null, null);
+				}
 
-                _userChangeRequest = ChangeSet.FromXmlAttributes(args);
+				_userChangeRequest = ChangeSet.FromXmlAttributes(args);
 
-                // If we were unable to create an (even empty) changeset, then we ran into a problem...
-                if (_userChangeRequest == null)
-                    { IsAttributeProblem = true;  }
-            }
+				// If we were unable to create an (even empty) changeset, then we ran into a problem...
+				if (_userChangeRequest == null)
+				{ IsAttributeProblem = true; }
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        private bool DebugShowDetails { get; set; }
-        private bool DebugShowDiff { get; set; }
-        private bool IsStopBot { get; set; }
-        private string PresetName { get; set; }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-        {
-            var explicitlyHandled = new List<string>();
-
-            UsageCheck_DeprecatedAttribute(xElement,
-                Args.Keys.Contains("LootMobs"),
-                "LootMobs",
-                context => string.Format("Please update profile to use <LootMobs Value=\"{1}\" />, instead.",
-                    Environment.NewLine,
-                    Args["LootMobs"]));
-            explicitlyHandled.Add("LootMobs");
-
-            UsageCheck_DeprecatedAttribute(xElement,
-                Args.Keys.Contains("PullDistance"),
-                "PullDistance",
-                context => string.Format("Please update profile to use <TargetingDistance Value=\"{1}\" />, instead.{0}"
-                    + "  To restore the original value when done, <TargetingDistance Value=\"null\" />.{0}"
-                    + "  Please do not fiddle with TargetingDistance unless _absolutely_ necessary.",
-                    Environment.NewLine,
-                    Args["PullDistance"]));
-            explicitlyHandled.Add("PullDistance");
-
-            UsageCheck_DeprecatedAttribute(xElement,
-                Args.Keys.Contains("UseMount"),
-                "UseMount",
-                context => string.Format("Please update profile to use <UseMount Value=\"{1}\" />, instead.",
-                    Environment.NewLine,
-                    Args["UseMount"]));
-            explicitlyHandled.Add("UseMount");
+		// Attributes provided by caller
+		private bool DebugShowDetails { get; set; }
+		private bool DebugShowDiff { get; set; }
+		private bool IsStopBot { get; set; }
+		private string PresetName { get; set; }
 
 
-            foreach (var attributeName in Args.Keys.Where(attrName => !explicitlyHandled.Contains(attrName)))
-            {
-                var recognizedSetting = ChangeSet.RecognizedSettings.FirstOrDefault(s => s.Name == attributeName);
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+			var explicitlyHandled = new List<string>();
 
-                // If setting not recognized, skip it...
-                if (recognizedSetting == null)
-                    { continue; }
+			UsageCheck_DeprecatedAttribute(xElement,
+				Args.Keys.Contains("LootMobs"),
+				"LootMobs",
+				context => string.Format("Please update profile to use <LootMobs Value=\"{1}\" />, instead.",
+					Environment.NewLine,
+					Args["LootMobs"]));
+			explicitlyHandled.Add("LootMobs");
 
-                if (recognizedSetting.IsObsolete)
-                {
-                    var message = string.Format("Honorbuddy has marked attribute '{1}' as 'Obsolete'.{0}"
-                        + "  The attribute may no longer work as expected.  The attribute will be removed in a future release."
-                        + "  Please update the profile to remove usage of the '{1}' attribute.",
-                        Environment.NewLine,
-                        attributeName);
+			UsageCheck_DeprecatedAttribute(xElement,
+				Args.Keys.Contains("PullDistance"),
+				"PullDistance",
+				context => string.Format("Please update profile to use <TargetingDistance Value=\"{1}\" />, instead.{0}"
+					+ "  To restore the original value when done, <TargetingDistance Value=\"null\" />.{0}"
+					+ "  Please do not fiddle with TargetingDistance unless _absolutely_ necessary.",
+					Environment.NewLine,
+					Args["PullDistance"]));
+			explicitlyHandled.Add("PullDistance");
 
-                    if (!string.IsNullOrEmpty(recognizedSetting.ObsoleteMessage))
-                    {
-                        message += string.Format("{0}  HB API Info: {1}", Environment.NewLine, recognizedSetting.ObsoleteMessage);
-                    }
-
-                    UsageCheck_DeprecatedAttribute(xElement, true, attributeName, context => message);
-                }
-            }
-        }
-
-
-        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-        {
-            foreach (var attributeName in Args.Keys)
-            {
-                var isAttributeAccessDisallowed = ChangeSet.RecognizedSettings.Any(s => (s.Name == attributeName) && s.IsAccessDisallowed);
-
-                if (isAttributeAccessDisallowed)
-                {
-                    var message = string.Format("UserSettings does not allow access to the '{1}' attribute.{0}"
-                        + "  Please modify the profile to refrain from accessing the '{1}' attribute.",
-                        Environment.NewLine,
-                        attributeName);
-
-                    UsageCheck_SemanticCoherency(xElement, true, context => message);
-                }
-            }
-        }
-        #endregion
+			UsageCheck_DeprecatedAttribute(xElement,
+				Args.Keys.Contains("UseMount"),
+				"UseMount",
+				context => string.Format("Please update profile to use <UseMount Value=\"{1}\" />, instead.",
+					Environment.NewLine,
+					Args["UseMount"]));
+			explicitlyHandled.Add("UseMount");
 
 
-        #region Private and Convenience variables
-        private readonly Dictionary<string, ChangeSet> _presetChangeSets;
-        private readonly ChangeSet _userChangeRequest;
+			foreach (var attributeName in Args.Keys.Where(attrName => !explicitlyHandled.Contains(attrName)))
+			{
+				var recognizedSetting = ChangeSet.RecognizedSettings.FirstOrDefault(s => s.Name == attributeName);
 
-        // Persisted Data...
-        private static bool PersistedDebugShowChangesApplied = false;
-        private static bool PersistedIsBotStopHooked = false;
-        #endregion
+				// If setting not recognized, skip it...
+				if (recognizedSetting == null)
+				{ continue; }
 
+				if (recognizedSetting.IsObsolete)
+				{
+					var message = string.Format("Honorbuddy has marked attribute '{1}' as 'Obsolete'.{0}"
+						+ "  The attribute may no longer work as expected.  The attribute will be removed in a future release."
+						+ "  Please update the profile to remove usage of the '{1}' attribute.",
+						Environment.NewLine,
+						attributeName);
 
-        #region Overrides of QuestBehaviorBase
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+					if (!string.IsNullOrEmpty(recognizedSetting.ObsoleteMessage))
+					{
+						message += string.Format("{0}  HB API Info: {1}", Environment.NewLine, recognizedSetting.ObsoleteMessage);
+					}
 
-
-        protected override ConfigMemento CreateConfigMemento()
-        {
-            // Suppress the creation of a ConfigMemento...
-            // We do NOT want the user settings restored after we have altered them with this behavior.
-            return null;
-        }
-
-
-        public override void OnFinished()
-        {
-            // Defend against being called multiple times (just in case)...
-            if (!IsOnFinishedRun)
-            {
-                // Call parent Dispose() (if it exists) here ...
-                base.OnFinished();
-            }
-        }
+					UsageCheck_DeprecatedAttribute(xElement, true, attributeName, context => message);
+				}
+			}
+		}
 
 
-        public override void OnStart()
-        {
-            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
-            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			foreach (var attributeName in Args.Keys)
+			{
+				var isAttributeAccessDisallowed = ChangeSet.RecognizedSettings.Any(s => (s.Name == attributeName) && s.IsAccessDisallowed);
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (isBehaviorShouldRun)
-            {
-                var logInfo = new StringBuilder();
-                var logDeveloperInfo = new StringBuilder();
+				if (isAttributeAccessDisallowed)
+				{
+					var message = string.Format("UserSettings does not allow access to the '{1}' attribute.{0}"
+						+ "  Please modify the profile to refrain from accessing the '{1}' attribute.",
+						Environment.NewLine,
+						attributeName);
 
-                // The BotStop handler will put the original configuration settings back in place...
-                // Note, we only want to hook it once for this behavior.
-                if (!PersistedIsBotStopHooked)
-                {
-                    BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-                    PersistedIsBotStopHooked = true;
-                }
-
-                // First, process Preset request, if any...
-                if (!string.IsNullOrEmpty(PresetName))
-                {
-                    var presetChangeSet =
-                       (from preset in _presetChangeSets
-                        where preset.Key == PresetName
-                        select preset.Value)
-                        .FirstOrDefault();
-
-                    if (presetChangeSet == null)
-                    {
-                        QBCLog.Error("Unable to locate any preset named '{0}'", PresetName);
-                        TreeRoot.Stop();
-                        BehaviorDone();
-                        return;
-                    }
-
-                    var appliedChanges = presetChangeSet.Apply("    ");
-
-                    var appliedChangesBuilder = PersistedDebugShowChangesApplied ? logInfo : logDeveloperInfo;
-                    appliedChangesBuilder.AppendFormat("Using preset '{0}'...{1}", PresetName, appliedChanges);
-                    appliedChangesBuilder.Append(Environment.NewLine);
-                }
-
-                // Second, apply any change requests...
-                if (_userChangeRequest.Count > 0)
-                {
-                    string appliedChanges = _userChangeRequest.Apply("    ");
-
-                    var appliedChangesBuilder = PersistedDebugShowChangesApplied ? logInfo : logDeveloperInfo;
-                    appliedChangesBuilder.AppendFormat("Applied changes...{0}", appliedChanges);
-                    appliedChangesBuilder.Append(Environment.NewLine);
-                }
-
-                // Third, show state, if requested...                
-                if (DebugShowDetails)
-                {
-                    var currentConfiguration = ChangeSet.FromCurrentConfiguration();
-
-                    logInfo.AppendFormat("Details...{0}", currentConfiguration.BuildDetails("    "));
-                    logInfo.Append(Environment.NewLine);
-                }
-
-                var diffBuilder = DebugShowDiff ? logInfo : logDeveloperInfo;
-                diffBuilder.AppendFormat("Difference from user's original settings...{0}",
-                    ChangeSet.BuildDifferencesFromOriginalSettings("    "));
-                diffBuilder.Append(Environment.NewLine);
-
-                // Forth, stop the bot, if requested...
-                if (IsStopBot)
-                {
-                    const string message = "Stopping the bot per profile request.";
-                    logInfo.AppendFormat(message);
-                    logInfo.Append(Environment.NewLine);
-
-                    var logInfoString = logInfo.ToString();
-                    if (!string.IsNullOrEmpty(logInfoString))
-                        { QBCLog.Info(logInfoString); }
-
-                    var logDeveloperString = logDeveloperInfo.ToString();
-                    if (!string.IsNullOrEmpty(logDeveloperString))
-                        { QBCLog.DeveloperInfo(logDeveloperString); }
-
-                    TreeRoot.Stop(message);
-                    BehaviorDone();
-                    return;
-                }
-
-                else
-                {
-                    var logInfoString = logInfo.ToString();
-                    if (!string.IsNullOrEmpty(logInfoString))
-                        { QBCLog.Info(logInfoString); }
-
-                    var logDeveloperString = logDeveloperInfo.ToString();
-                    if (!string.IsNullOrEmpty(logDeveloperString))
-                        { QBCLog.DeveloperInfo(logDeveloperString); }
-                }
-
-                BehaviorDone();
-            }
-        }
-        #endregion
+					UsageCheck_SemanticCoherency(xElement, true, context => message);
+				}
+			}
+		}
+		#endregion
 
 
-        private void BotEvents_OnBotStopped(EventArgs args)
-        {
-            // Restore the user's original configuration, since the bot is stopping...
-            if (ChangeSet.OriginalConfiguration != null)
-            {
-                var changesApplied = ChangeSet.OriginalConfiguration.Apply("    ", true);
-                var logMessage =
-                    string.Format("Bot stopping.  Original user settings restored as follows...{0}",
-                        (!string.IsNullOrEmpty(changesApplied)
-                        ? changesApplied
-                        : (Environment.NewLine + "    Original Settings intact--no changes to restore.")));
+		#region Private and Convenience variables
+		private readonly Dictionary<string, ChangeSet> _presetChangeSets;
+		private readonly ChangeSet _userChangeRequest;
 
-                if (PersistedDebugShowChangesApplied)
-                    { QBCLog.Info(this, logMessage); }
-                else
-                    { QBCLog.DeveloperInfo(this, logMessage); }
-            }
-
-            // Remove our OnBotStop handler
-            BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-
-            // Reset persistent data...
-            PersistedIsBotStopHooked = false;
-            PersistedDebugShowChangesApplied = false;
-            ChangeSet.OriginalConfiguration = null;
-            ChangeSet.RecognizedSettings = null;
-        }
+		// Persisted Data...
+		private static bool PersistedDebugShowChangesApplied = false;
+		private static bool PersistedIsBotStopHooked = false;
+		#endregion
 
 
-        #region Preset ChangeSets
-        // To add, adjust, or remove presets, this is the only method that needs to be modified...
-        // All other code in this class uses the information contained in the returned presetChangeRequests.
-        // Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
-        // at runtime pointing you directly to the problem.
-        private Dictionary<string, ChangeSet> BuildPresets()
-        {
-            var presets = new Dictionary<string, ChangeSet>
+		#region Overrides of QuestBehaviorBase
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
+
+
+		protected override ConfigMemento CreateConfigMemento()
+		{
+			// Suppress the creation of a ConfigMemento...
+			// We do NOT want the user settings restored after we have altered them with this behavior.
+			return null;
+		}
+
+
+		public override void OnFinished()
+		{
+			// Defend against being called multiple times (just in case)...
+			if (!IsOnFinishedRun)
+			{
+				// Call parent Dispose() (if it exists) here ...
+				base.OnFinished();
+			}
+		}
+
+
+		public override void OnStart()
+		{
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (isBehaviorShouldRun)
+			{
+				var logInfo = new StringBuilder();
+				var logDeveloperInfo = new StringBuilder();
+
+				// The BotStop handler will put the original configuration settings back in place...
+				// Note, we only want to hook it once for this behavior.
+				if (!PersistedIsBotStopHooked)
+				{
+					BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+					PersistedIsBotStopHooked = true;
+				}
+
+				// First, process Preset request, if any...
+				if (!string.IsNullOrEmpty(PresetName))
+				{
+					var presetChangeSet =
+					   (from preset in _presetChangeSets
+						where preset.Key == PresetName
+						select preset.Value)
+						.FirstOrDefault();
+
+					if (presetChangeSet == null)
+					{
+						QBCLog.Error("Unable to locate any preset named '{0}'", PresetName);
+						TreeRoot.Stop();
+						BehaviorDone();
+						return;
+					}
+
+					var appliedChanges = presetChangeSet.Apply("    ");
+
+					var appliedChangesBuilder = PersistedDebugShowChangesApplied ? logInfo : logDeveloperInfo;
+					appliedChangesBuilder.AppendFormat("Using preset '{0}'...{1}", PresetName, appliedChanges);
+					appliedChangesBuilder.Append(Environment.NewLine);
+				}
+
+				// Second, apply any change requests...
+				if (_userChangeRequest.Count > 0)
+				{
+					string appliedChanges = _userChangeRequest.Apply("    ");
+
+					var appliedChangesBuilder = PersistedDebugShowChangesApplied ? logInfo : logDeveloperInfo;
+					appliedChangesBuilder.AppendFormat("Applied changes...{0}", appliedChanges);
+					appliedChangesBuilder.Append(Environment.NewLine);
+				}
+
+				// Third, show state, if requested...                
+				if (DebugShowDetails)
+				{
+					var currentConfiguration = ChangeSet.FromCurrentConfiguration();
+
+					logInfo.AppendFormat("Details...{0}", currentConfiguration.BuildDetails("    "));
+					logInfo.Append(Environment.NewLine);
+				}
+
+				var diffBuilder = DebugShowDiff ? logInfo : logDeveloperInfo;
+				diffBuilder.AppendFormat("Difference from user's original settings...{0}",
+					ChangeSet.BuildDifferencesFromOriginalSettings("    "));
+				diffBuilder.Append(Environment.NewLine);
+
+				// Forth, stop the bot, if requested...
+				if (IsStopBot)
+				{
+					const string message = "Stopping the bot per profile request.";
+					logInfo.AppendFormat(message);
+					logInfo.Append(Environment.NewLine);
+
+					var logInfoString = logInfo.ToString();
+					if (!string.IsNullOrEmpty(logInfoString))
+					{ QBCLog.Info(logInfoString); }
+
+					var logDeveloperString = logDeveloperInfo.ToString();
+					if (!string.IsNullOrEmpty(logDeveloperString))
+					{ QBCLog.DeveloperInfo(logDeveloperString); }
+
+					TreeRoot.Stop(message);
+					BehaviorDone();
+					return;
+				}
+
+				else
+				{
+					var logInfoString = logInfo.ToString();
+					if (!string.IsNullOrEmpty(logInfoString))
+					{ QBCLog.Info(logInfoString); }
+
+					var logDeveloperString = logDeveloperInfo.ToString();
+					if (!string.IsNullOrEmpty(logDeveloperString))
+					{ QBCLog.DeveloperInfo(logDeveloperString); }
+				}
+
+				BehaviorDone();
+			}
+		}
+		#endregion
+
+
+		private void BotEvents_OnBotStopped(EventArgs args)
+		{
+			// Restore the user's original configuration, since the bot is stopping...
+			if (ChangeSet.OriginalConfiguration != null)
+			{
+				var changesApplied = ChangeSet.OriginalConfiguration.Apply("    ", true);
+				var logMessage =
+					string.Format("Bot stopping.  Original user settings restored as follows...{0}",
+						(!string.IsNullOrEmpty(changesApplied)
+						? changesApplied
+						: (Environment.NewLine + "    Original Settings intact--no changes to restore.")));
+
+				if (PersistedDebugShowChangesApplied)
+				{ QBCLog.Info(this, logMessage); }
+				else
+				{ QBCLog.DeveloperInfo(this, logMessage); }
+			}
+
+			// Remove our OnBotStop handler
+			BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+
+			// Reset persistent data...
+			PersistedIsBotStopHooked = false;
+			PersistedDebugShowChangesApplied = false;
+			ChangeSet.OriginalConfiguration = null;
+			ChangeSet.RecognizedSettings = null;
+		}
+
+
+		#region Preset ChangeSets
+		// To add, adjust, or remove presets, this is the only method that needs to be modified...
+		// All other code in this class uses the information contained in the returned presetChangeRequests.
+		// Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
+		// at runtime pointing you directly to the problem.
+		private Dictionary<string, ChangeSet> BuildPresets()
+		{
+			var presets = new Dictionary<string, ChangeSet>
                 {
                     {
                         "Grind",
@@ -422,262 +422,262 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                     }
                 };
 
-            return (presets);
-        }
-        #endregion
-    }
+			return (presets);
+		}
+		#endregion
+	}
 
 
-    //==================================================
-    // All classes below this point are support for getting the work done
-    //
+	//==================================================
+	// All classes below this point are support for getting the work done
+	//
 
-    public class ChangeSet
-    {
-        public ChangeSet(Dictionary<string, object> changes)
-        {
-            var changeSet = new List<Tuple<SettingDescriptor, object>>();
-            var isProblemAttribute = false;
+	public class ChangeSet
+	{
+		public ChangeSet(Dictionary<string, object> changes)
+		{
+			var changeSet = new List<Tuple<SettingDescriptor, object>>();
+			var isProblemAttribute = false;
 
-            foreach (var change in changes)
-            {
-                try
-                {
-                    var name = change.Key;
-                    var value = change.Value;
+			foreach (var change in changes)
+			{
+				try
+				{
+					var name = change.Key;
+					var value = change.Value;
 
-                    // Setting name cannot be null or empty...
-                    if (string.IsNullOrEmpty(name))
-                    {
-                        QBCLog.Error("Name may not be null or empty");
-                        isProblemAttribute = true;
-                        continue;
-                    }
+					// Setting name cannot be null or empty...
+					if (string.IsNullOrEmpty(name))
+					{
+						QBCLog.Error("Name may not be null or empty");
+						isProblemAttribute = true;
+						continue;
+					}
 
-                    // Check that setting exists...
-                    var settingDescriptor = RecognizedSettings.FirstOrDefault(s => s.Name == name);
-                    if (settingDescriptor == null)
-                    {
-                        QBCLog.Error("Unable to locate setting for '{0}'.", name);
-                        isProblemAttribute = true;
-                        continue;
-                    }
+					// Check that setting exists...
+					var settingDescriptor = RecognizedSettings.FirstOrDefault(s => s.Name == name);
+					if (settingDescriptor == null)
+					{
+						QBCLog.Error("Unable to locate setting for '{0}'.", name);
+						isProblemAttribute = true;
+						continue;
+					}
 
-                    // Is changing attribute allowed?
-                    if (settingDescriptor.IsAccessDisallowed)
-                    {
-                        QBCLog.Error("Accessing attribute '{0}' is not allowed.", name);
-                        isProblemAttribute = true;
-                        continue;
-                    }
+					// Is changing attribute allowed?
+					if (settingDescriptor.IsAccessDisallowed)
+					{
+						QBCLog.Error("Accessing attribute '{0}' is not allowed.", name);
+						isProblemAttribute = true;
+						continue;
+					}
 
-                    // Check that setting doesn't already exist in the changeset...
-                    if (changeSet.Any(t => t.Item1.Name == name))
-                    {
-                        QBCLog.Error("Setting '{0}' already exists in the changeset.", name);
-                        isProblemAttribute = true;
-                        continue;
-                    }
+					// Check that setting doesn't already exist in the changeset...
+					if (changeSet.Any(t => t.Item1.Name == name))
+					{
+						QBCLog.Error("Setting '{0}' already exists in the changeset.", name);
+						isProblemAttribute = true;
+						continue;
+					}
 
-                    // If user specified 'original' value, go look it up and substitute it for 'value'...
-                    if ((value is string) && ((string)value == "original"))
-                    {
-                        object originalValue;
+					// If user specified 'original' value, go look it up and substitute it for 'value'...
+					if ((value is string) && ((string)value == "original"))
+					{
+						object originalValue;
 
-                        if (!OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue))
-                        {
-                            // A missing 'original configuration' is a maintenance issue, not a user error...
-                            QBCLog.MaintenanceError("For setting '{0}', there is no original configuration value.",
-                                settingDescriptor.Name);
-                            isProblemAttribute = true;
-                            continue;
-                        }
+						if (!OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue))
+						{
+							// A missing 'original configuration' is a maintenance issue, not a user error...
+							QBCLog.MaintenanceError("For setting '{0}', there is no original configuration value.",
+								settingDescriptor.Name);
+							isProblemAttribute = true;
+							continue;
+						}
 
-                        value = originalValue;
-                    }
-                    
-                    // Check that setting is an appropriate type...
-                    var newValue = settingDescriptor.ToCongruentObject(value);
+						value = originalValue;
+					}
 
-                    if (!settingDescriptor.ConstraintChecker.IsWithinConstraints(newValue))
-                    {
-                        QBCLog.Error("For setting '{0}', the provided value '{1}' is not within the required constraints of {2}.",
-                            name, value, settingDescriptor.ConstraintChecker.Description);
-                        isProblemAttribute = true;
-                        continue;
-                    }
-                    
-                    // Setting change is acceptable...
-                    changeSet.Add(Tuple.Create(settingDescriptor, value));
-                }
+					// Check that setting is an appropriate type...
+					var newValue = settingDescriptor.ToCongruentObject(value);
 
-                catch (Exception ex)
-                {
-                    QBCLog.Exception(ex, "MAINTENANCE ERROR: Error processing attribute '{0}.'", change.Key);
-                    isProblemAttribute = true;
-                }
-            }
+					if (!settingDescriptor.ConstraintChecker.IsWithinConstraints(newValue))
+					{
+						QBCLog.Error("For setting '{0}', the provided value '{1}' is not within the required constraints of {2}.",
+							name, value, settingDescriptor.ConstraintChecker.Description);
+						isProblemAttribute = true;
+						continue;
+					}
 
-            // If problem encountered with any change, we're unable to build the ChangeSet...
-            if (isProblemAttribute)
-            {
-                _changeSet = null;
-                throw new ArgumentException("Problems encountered with provided argument");
-            }
+					// Setting change is acceptable...
+					changeSet.Add(Tuple.Create(settingDescriptor, value));
+				}
 
-            Count = changeSet.Count;
-            _changeSet = new ReadOnlyCollection<Tuple<SettingDescriptor, object>>(changeSet);
-        }
+				catch (Exception ex)
+				{
+					QBCLog.Exception(ex, "MAINTENANCE ERROR: Error processing attribute '{0}.'", change.Key);
+					isProblemAttribute = true;
+				}
+			}
 
-        private readonly ReadOnlyCollection<Tuple<SettingDescriptor, object>> _changeSet;
-        public int Count { get; private set; }
+			// If problem encountered with any change, we're unable to build the ChangeSet...
+			if (isProblemAttribute)
+			{
+				_changeSet = null;
+				throw new ArgumentException("Problems encountered with provided argument");
+			}
 
+			Count = changeSet.Count;
+			_changeSet = new ReadOnlyCollection<Tuple<SettingDescriptor, object>>(changeSet);
+		}
 
-        public static ReadOnlyCollection<SettingDescriptor> RecognizedSettings
-        {
-            get { return _recognizedSettings ?? (_recognizedSettings = BuildRecognizedSettings()); }
-
-            // Any attempts to set the value, will 'uninitialize' it...
-            set { _recognizedSettings = null; }
-        }
-        private static ReadOnlyCollection<SettingDescriptor> _recognizedSettings;
+		private readonly ReadOnlyCollection<Tuple<SettingDescriptor, object>> _changeSet;
+		public int Count { get; private set; }
 
 
-        public static ChangeSet OriginalConfiguration
-        {
-            get { return _originalConfiguration ?? (_originalConfiguration = ChangeSet.FromCurrentConfiguration()); }
+		public static ReadOnlyCollection<SettingDescriptor> RecognizedSettings
+		{
+			get { return _recognizedSettings ?? (_recognizedSettings = BuildRecognizedSettings()); }
 
-            // Any attempts to set the value, will 'uninitialize' it...
-            set { _originalConfiguration = null; }
-        }
-        private static ChangeSet _originalConfiguration;
-
-
-        public string Apply(string linePrefix = "", bool onlyApplyChangesIfDifferent = false)
-        {
-            var changesApplied = new StringBuilder();
-
-            foreach (var change in _changeSet.OrderBy(t => t.Item1.Name))
-            {
-                var settingDescriptor = change.Item1;
-                var valueWanted = change.Item2;
-                var previousValue = settingDescriptor.GetValue();
-                object originalValue;
-
-                OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue);
+			// Any attempts to set the value, will 'uninitialize' it...
+			set { _recognizedSettings = null; }
+		}
+		private static ReadOnlyCollection<SettingDescriptor> _recognizedSettings;
 
 
-                if (!onlyApplyChangesIfDifferent || !valueWanted.Equals(previousValue))
-                {
-                    settingDescriptor.SetValue(valueWanted);
-                    
-                    // Note, we read back the value rather than just assumed the 'set' worked...
-                    // For instance, for Obsolete attributes, the value may be hard-coded and the set
-                    // did not take effect.  We should report the real value, so the user knows of the problem.
-                    var valueObtained = settingDescriptor.GetValue();
-                    changesApplied.AppendFormat("{0}{1}{2} = {3} (previous: {4};  original: {5})",
-                        Environment.NewLine, linePrefix, settingDescriptor.Name, valueObtained, previousValue, originalValue);
+		public static ChangeSet OriginalConfiguration
+		{
+			get { return _originalConfiguration ?? (_originalConfiguration = ChangeSet.FromCurrentConfiguration()); }
 
-                    if (settingDescriptor.IsObsolete)
-                        { changesApplied.Append(" [OBSOLETE]"); }
-
-                    if (settingDescriptor.IsAccessDisallowed)
-                        { changesApplied.Append(" [ACCESS DISALLOWED]"); }
-                }
-            }
-
-            return changesApplied.ToString();
-        }
+			// Any attempts to set the value, will 'uninitialize' it...
+			set { _originalConfiguration = null; }
+		}
+		private static ChangeSet _originalConfiguration;
 
 
-        private bool TryGetValue(string name, out object outValue)
-        {
-            Contract.Requires(!string.IsNullOrEmpty(name), context => "Name cannot be null or empty");
+		public string Apply(string linePrefix = "", bool onlyApplyChangesIfDifferent = false)
+		{
+			var changesApplied = new StringBuilder();
 
-            var changeEntry = _changeSet.FirstOrDefault(v => v.Item1.Name == name);
-            if (changeEntry == null)
-            {
-                outValue = null;
-                return false;
-            }
+			foreach (var change in _changeSet.OrderBy(t => t.Item1.Name))
+			{
+				var settingDescriptor = change.Item1;
+				var valueWanted = change.Item2;
+				var previousValue = settingDescriptor.GetValue();
+				object originalValue;
 
-            outValue = changeEntry.Item2;
-            return true;
-        }
+				OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue);
 
 
-        public string BuildDetails(string linePrefix)
-        {
-            var builder = new StringBuilder();
+				if (!onlyApplyChangesIfDifferent || !valueWanted.Equals(previousValue))
+				{
+					settingDescriptor.SetValue(valueWanted);
 
-            foreach (var setting in _changeSet.OrderBy(t => t.Item1.Name))
-            {
-                object originalValue = null;
-                OriginalConfiguration.TryGetValue(setting.Item1.Name, out originalValue);
+					// Note, we read back the value rather than just assumed the 'set' worked...
+					// For instance, for Obsolete attributes, the value may be hard-coded and the set
+					// did not take effect.  We should report the real value, so the user knows of the problem.
+					var valueObtained = settingDescriptor.GetValue();
+					changesApplied.AppendFormat("{0}{1}{2} = {3} (previous: {4};  original: {5})",
+						Environment.NewLine, linePrefix, settingDescriptor.Name, valueObtained, previousValue, originalValue);
 
-                if (setting.Item2.Equals(originalValue))
-                {
-                    builder.AppendFormat("{0}{1}{2}.{3} = {4}",
-                        Environment.NewLine, linePrefix, setting.Item1.InstanceName, setting.Item1.Name, setting.Item2);
-                }
-                else
-                {
-                    builder.AppendFormat("{0}{1}{2}.{3} = {4} (original: {5})",
-                        Environment.NewLine, linePrefix, setting.Item1.InstanceName, setting.Item1.Name, setting.Item2, originalValue);
-                }
+					if (settingDescriptor.IsObsolete)
+					{ changesApplied.Append(" [OBSOLETE]"); }
 
-                if (setting.Item1.IsObsolete)
-                    { builder.Append(" [OBSOLETE]");  }
+					if (settingDescriptor.IsAccessDisallowed)
+					{ changesApplied.Append(" [ACCESS DISALLOWED]"); }
+				}
+			}
 
-                if (setting.Item1.IsAccessDisallowed)
-                    { builder.Append(" [ACCESS DISALLOWED]");  }
-
-            }
-
-            return builder.ToString();
-        }
+			return changesApplied.ToString();
+		}
 
 
-        public static string BuildDifferencesFromOriginalSettings(string linePrefix)
-        {
-            var builder = new StringBuilder();
+		private bool TryGetValue(string name, out object outValue)
+		{
+			Contract.Requires(!string.IsNullOrEmpty(name), context => "Name cannot be null or empty");
 
-            foreach (var setting in OriginalConfiguration._changeSet.OrderBy(t => t.Item1.Name))
-            {
-                var currentValue = setting.Item1.GetValue();
+			var changeEntry = _changeSet.FirstOrDefault(v => v.Item1.Name == name);
+			if (changeEntry == null)
+			{
+				outValue = null;
+				return false;
+			}
 
-                if (currentValue.Equals(setting.Item2))
-                    { continue; }
-
-                builder.AppendFormat("{0}{1}{2} = {3} (originally: {4})",
-                    Environment.NewLine, linePrefix, setting.Item1.Name, currentValue, setting.Item2);
-
-                if (setting.Item1.IsObsolete)
-                    { builder.Append(" [OBSOLETE]"); }
-
-                if (setting.Item1.IsAccessDisallowed)
-                    { builder.Append(" [ACCESS DISALLOWED]"); }
-            }
-
-            if (builder.Length <= 0)
-            {
-                builder.AppendFormat("{0}{1}No changes from original settings", 
-                    Environment.NewLine, linePrefix);
-            }
-
-            return builder.ToString();
-        }
+			outValue = changeEntry.Item2;
+			return true;
+		}
 
 
-        // Note: The RecognizedAttribute's Dictionary value field was left open for user data, by design.
-        // We take advantage of that here by storing ConfigurationDescriptors to help us further process
-        // the data by moving it into and out of the appropriate properties.
-        // Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
-        // at runtime pointing you directly to the problem.
-        private static ReadOnlyCollection<SettingDescriptor> BuildRecognizedSettings()
-        {
-            // Attach constraints to particular elements --
-            var constraints = new Dictionary<string, ConstraintChecker>()
+		public string BuildDetails(string linePrefix)
+		{
+			var builder = new StringBuilder();
+
+			foreach (var setting in _changeSet.OrderBy(t => t.Item1.Name))
+			{
+				object originalValue = null;
+				OriginalConfiguration.TryGetValue(setting.Item1.Name, out originalValue);
+
+				if (setting.Item2.Equals(originalValue))
+				{
+					builder.AppendFormat("{0}{1}{2}.{3} = {4}",
+						Environment.NewLine, linePrefix, setting.Item1.InstanceName, setting.Item1.Name, setting.Item2);
+				}
+				else
+				{
+					builder.AppendFormat("{0}{1}{2}.{3} = {4} (original: {5})",
+						Environment.NewLine, linePrefix, setting.Item1.InstanceName, setting.Item1.Name, setting.Item2, originalValue);
+				}
+
+				if (setting.Item1.IsObsolete)
+				{ builder.Append(" [OBSOLETE]"); }
+
+				if (setting.Item1.IsAccessDisallowed)
+				{ builder.Append(" [ACCESS DISALLOWED]"); }
+
+			}
+
+			return builder.ToString();
+		}
+
+
+		public static string BuildDifferencesFromOriginalSettings(string linePrefix)
+		{
+			var builder = new StringBuilder();
+
+			foreach (var setting in OriginalConfiguration._changeSet.OrderBy(t => t.Item1.Name))
+			{
+				var currentValue = setting.Item1.GetValue();
+
+				if (currentValue.Equals(setting.Item2))
+				{ continue; }
+
+				builder.AppendFormat("{0}{1}{2} = {3} (originally: {4})",
+					Environment.NewLine, linePrefix, setting.Item1.Name, currentValue, setting.Item2);
+
+				if (setting.Item1.IsObsolete)
+				{ builder.Append(" [OBSOLETE]"); }
+
+				if (setting.Item1.IsAccessDisallowed)
+				{ builder.Append(" [ACCESS DISALLOWED]"); }
+			}
+
+			if (builder.Length <= 0)
+			{
+				builder.AppendFormat("{0}{1}No changes from original settings",
+					Environment.NewLine, linePrefix);
+			}
+
+			return builder.ToString();
+		}
+
+
+		// Note: The RecognizedAttribute's Dictionary value field was left open for user data, by design.
+		// We take advantage of that here by storing ConfigurationDescriptors to help us further process
+		// the data by moving it into and out of the appropriate properties.
+		// Note: If you make a spelling error while maintaining this code, by design an exception will be thrown
+		// at runtime pointing you directly to the problem.
+		private static ReadOnlyCollection<SettingDescriptor> BuildRecognizedSettings()
+		{
+			// Attach constraints to particular elements --
+			var constraints = new Dictionary<string, ConstraintChecker>()
             {
                 { "DrinkAmount",            new ConstrainInteger(0, 100) },
                 { "FoodAmount",             new ConstrainInteger(0, 100) },
@@ -686,182 +686,183 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 { "MountDIstance",          new ConstrainInteger(30, 200) },
                 { "TicksPerSecond",         new ConstrainInteger(5, 100) }
             };
-            var noConstraintCheck = new NoConstraint();
-            var recognizedSettings = new List<SettingDescriptor>();
-            var settingsInstances = new Settings[]
+			var noConstraintCheck = new NoConstraint();
+			var recognizedSettings = new List<SettingDescriptor>();
+			var settingsInstances = new Settings[]
                 {   // ordering is significant--earlier setting names mask later setting names in this list
                     CharacterSettings.Instance,
                     LevelbotSettings.Instance,
                     GlobalSettings.Instance
                 };
 
-            // Allowed 'Configuration' attributes--
-            foreach (var settingsInstance in settingsInstances)
-            {
-                recognizedSettings.AddRange(
-                    from propertyInfo in settingsInstance.GetType().GetProperties()
-                    let customAttributes = propertyInfo.GetCustomAttributes(false)
-                    let propertyName = propertyInfo.Name
-                    where
-                        (customAttributes.OfType<SettingAttribute>().Any()
-                         || customAttributes.OfType<ObsoleteAttribute>().Any())
-                        && propertyInfo.GetSetMethod().IsPublic
-                    let constraintChecker = constraints.Keys.Contains(propertyName) ? constraints[propertyName] : noConstraintCheck
-                    select new SettingDescriptor(settingsInstance, propertyName, constraintChecker)
-                );
-            }
+			// Allowed 'Configuration' attributes--
+			foreach (var settingsInstance in settingsInstances)
+			{
+				recognizedSettings.AddRange(
+					from propertyInfo in settingsInstance.GetType().GetProperties()
+					let customAttributes = propertyInfo.GetCustomAttributes(false)
+					let propertyName = propertyInfo.Name
+					let setter = propertyInfo.GetSetMethod()
+					where
+						(customAttributes.OfType<SettingAttribute>().Any()
+						 || customAttributes.OfType<ObsoleteAttribute>().Any())
+						&& setter != null && setter.IsPublic
+					let constraintChecker = constraints.Keys.Contains(propertyName) ? constraints[propertyName] : noConstraintCheck
+					select new SettingDescriptor(settingsInstance, propertyName, constraintChecker)
+				);
+			}
 
-            return (new ReadOnlyCollection<SettingDescriptor>(recognizedSettings));
-        }
-
-
-        // Factories...
-        public static ChangeSet FromCurrentConfiguration()
-        {
-            return new ChangeSet(
-                RecognizedSettings
-                .Where(setting => !setting.IsAccessDisallowed)
-                .ToDictionary(setting => setting.Name, setting => setting.GetValue())
-                );
-        }
+			return (new ReadOnlyCollection<SettingDescriptor>(recognizedSettings));
+		}
 
 
-        // If 'null' return, then error was encountered, and offending messages already logged...
-        // Otherwise, a (possibly empty) ChangeSet is returned.
-        public static ChangeSet FromXmlAttributes(Dictionary<string, string> attributes)
-        {
-            try
-            {
-                var attributesToProcess =
-                   (from attribute in attributes
-                    where
-                        RecognizedSettings.Any(setting => (setting.Name == attribute.Key) && !setting.IsAccessDisallowed)
-                    select attribute)
-                    .ToDictionary(attribute => attribute.Key, attribute => (object)attribute.Value);
-
-                return new ChangeSet(attributesToProcess);
-            }
-
-            catch (Exception)
-            {
-                // empty
-            }
-
-            return null;
-        }
-    }
+		// Factories...
+		public static ChangeSet FromCurrentConfiguration()
+		{
+			return new ChangeSet(
+				RecognizedSettings
+				.Where(setting => !setting.IsAccessDisallowed)
+				.ToDictionary(setting => setting.Name, setting => setting.GetValue())
+				);
+		}
 
 
-    #region ConstraintChecker classes
-    public abstract class ConstraintChecker
-    {
-        protected ConstraintChecker(string description = null)
-        {
-            Description = description ?? string.Empty;
-        }
+		// If 'null' return, then error was encountered, and offending messages already logged...
+		// Otherwise, a (possibly empty) ChangeSet is returned.
+		public static ChangeSet FromXmlAttributes(Dictionary<string, string> attributes)
+		{
+			try
+			{
+				var attributesToProcess =
+				   (from attribute in attributes
+					where
+						RecognizedSettings.Any(setting => (setting.Name == attribute.Key) && !setting.IsAccessDisallowed)
+					select attribute)
+					.ToDictionary(attribute => attribute.Key, attribute => (object)attribute.Value);
 
-        public string Description { get; private set; }
+				return new ChangeSet(attributesToProcess);
+			}
 
-        public abstract bool IsWithinConstraints(object value);
-    }
+			catch (Exception)
+			{
+				// empty
+			}
 
-
-    public class ConstrainInteger : ConstraintChecker
-    {
-        public ConstrainInteger(int minValue, int maxValue)
-            : base(string.Format("[{0}..{1}]", minValue, maxValue))
-        {
-            _maxValue = maxValue;
-            _minValue = minValue;
-        }
-
-        private readonly int _maxValue;
-        private readonly int _minValue;
-
-
-        public override bool IsWithinConstraints(object value)
-        {
-            try
-            {
-                var newValue = (int)Convert.ChangeType(value, typeof(int));
-
-                return (newValue >= _minValue) && (newValue <= _maxValue);
-            }
-            catch (Exception)
-            {
-                // empty
-            }
-
-            return false;
-        }
-    }
+			return null;
+		}
+	}
 
 
-    public class NoConstraint : ConstraintChecker
-    {
-        public NoConstraint()
-            : base(string.Empty)
-        {
-        }
+	#region ConstraintChecker classes
+	public abstract class ConstraintChecker
+	{
+		protected ConstraintChecker(string description = null)
+		{
+			Description = description ?? string.Empty;
+		}
 
-        public override bool IsWithinConstraints(object value)
-        {
-            return true;
-        }
-    }
-    #endregion
+		public string Description { get; private set; }
+
+		public abstract bool IsWithinConstraints(object value);
+	}
 
 
-    /// <summary>
-    /// Captures the details of a property that the user may alter.
-    /// It provides generic Get/Set mechanics without regard of 'type'.
-    /// </summary>
-    public class SettingDescriptor
-    {
-        public SettingDescriptor(Settings settingsInstance, 
-                                string name,
-                                ConstraintChecker constraintCheck)
-        {
-            // We are a bit aggressive in our error checking here--
-            // The most likely source of errors will be people that maintain the code in the future,
-            // and we want to weed out as many newbie mistakes as possible.
-            Contract.Requires(!string.IsNullOrEmpty(name),
-                context => "name cannot be null or empty.");
-            Contract.Requires(settingsInstance != null,
-                context => String.Format("Null settingsInstance now allowed for {0}", name));
-            Contract.Requires(settingsInstance.GetType().GetProperties().Any(s => s.Name == name),
-                context => string.Format("The settingsInstance does not contain a \"{0}\" property", name));
+	public class ConstrainInteger : ConstraintChecker
+	{
+		public ConstrainInteger(int minValue, int maxValue)
+			: base(string.Format("[{0}..{1}]", minValue, maxValue))
+		{
+			_maxValue = maxValue;
+			_minValue = minValue;
+		}
 
-            ConstraintChecker = constraintCheck;
-            Name = name;
-            SettingsInstance = settingsInstance;
+		private readonly int _maxValue;
+		private readonly int _minValue;
 
-            InstanceName = settingsInstance.GetType().Name;
-            PropInfo = settingsInstance.GetType().GetProperty(name);
 
-            IsAccessDisallowed = DisallowedPropertyNames.Contains(name);
+		public override bool IsWithinConstraints(object value)
+		{
+			try
+			{
+				var newValue = (int)Convert.ChangeType(value, typeof(int));
 
-            var obsoleteAttribute = PropInfo.GetCustomAttributes(true).OfType<ObsoleteAttribute>().FirstOrDefault();
-            IsObsolete = (obsoleteAttribute != null);
+				return (newValue >= _minValue) && (newValue <= _maxValue);
+			}
+			catch (Exception)
+			{
+				// empty
+			}
 
-            ObsoleteMessage = IsObsolete ? obsoleteAttribute.Message : string.Empty;
-        }
+			return false;
+		}
+	}
 
-        public ConstraintChecker ConstraintChecker { get; private set; }
-        public string InstanceName { get; private set; }
-        public bool IsAccessDisallowed { get; private set; }
-        public bool IsObsolete { get; private set; }
-        public string Name { get; private set; }
-        public string ObsoleteMessage { get; private set; }
-        public Settings SettingsInstance { get; private set; }
 
-        private PropertyInfo PropInfo { get; set; }
+	public class NoConstraint : ConstraintChecker
+	{
+		public NoConstraint()
+			: base(string.Empty)
+		{
+		}
 
-        public static IEnumerable<string> DisallowedPropertyNames
-        {
-            get
-            {
-                return _disallowedPropertyNames ?? (_disallowedPropertyNames = new List<string>()
+		public override bool IsWithinConstraints(object value)
+		{
+			return true;
+		}
+	}
+	#endregion
+
+
+	/// <summary>
+	/// Captures the details of a property that the user may alter.
+	/// It provides generic Get/Set mechanics without regard of 'type'.
+	/// </summary>
+	public class SettingDescriptor
+	{
+		public SettingDescriptor(Settings settingsInstance,
+								string name,
+								ConstraintChecker constraintCheck)
+		{
+			// We are a bit aggressive in our error checking here--
+			// The most likely source of errors will be people that maintain the code in the future,
+			// and we want to weed out as many newbie mistakes as possible.
+			Contract.Requires(!string.IsNullOrEmpty(name),
+				context => "name cannot be null or empty.");
+			Contract.Requires(settingsInstance != null,
+				context => String.Format("Null settingsInstance now allowed for {0}", name));
+			Contract.Requires(settingsInstance.GetType().GetProperties().Any(s => s.Name == name),
+				context => string.Format("The settingsInstance does not contain a \"{0}\" property", name));
+
+			ConstraintChecker = constraintCheck;
+			Name = name;
+			SettingsInstance = settingsInstance;
+
+			InstanceName = settingsInstance.GetType().Name;
+			PropInfo = settingsInstance.GetType().GetProperty(name);
+
+			IsAccessDisallowed = DisallowedPropertyNames.Contains(name);
+
+			var obsoleteAttribute = PropInfo.GetCustomAttributes(true).OfType<ObsoleteAttribute>().FirstOrDefault();
+			IsObsolete = (obsoleteAttribute != null);
+
+			ObsoleteMessage = IsObsolete ? obsoleteAttribute.Message : string.Empty;
+		}
+
+		public ConstraintChecker ConstraintChecker { get; private set; }
+		public string InstanceName { get; private set; }
+		public bool IsAccessDisallowed { get; private set; }
+		public bool IsObsolete { get; private set; }
+		public string Name { get; private set; }
+		public string ObsoleteMessage { get; private set; }
+		public Settings SettingsInstance { get; private set; }
+
+		private PropertyInfo PropInfo { get; set; }
+
+		public static IEnumerable<string> DisallowedPropertyNames
+		{
+			get
+			{
+				return _disallowedPropertyNames ?? (_disallowedPropertyNames = new List<string>()
                     {
                         // Disallowed CharacterSettings...
                         "EnabledPlugins",
@@ -891,62 +892,62 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                         // Disallowed LevelbotSettings...
                         // None for now.
                     });
-            }
-        }
-        private static IEnumerable<string> _disallowedPropertyNames;
+			}
+		}
+		private static IEnumerable<string> _disallowedPropertyNames;
 
 
-        public object GetValue()
-        {
-            return
-                IsAccessDisallowed
-                ? string.Format("<PROPERTY ACCESS OF '{0}' IS DISALLOWED>", Name)
-                : PropInfo.GetValue(SettingsInstance, null);
-        }
+		public object GetValue()
+		{
+			return
+				IsAccessDisallowed
+				? string.Format("<PROPERTY ACCESS OF '{0}' IS DISALLOWED>", Name)
+				: PropInfo.GetValue(SettingsInstance, null);
+		}
 
 
-        public void SetValue(object newValueAsObject)
-        {
-            if (IsAccessDisallowed)
-                { return; }
+		public void SetValue(object newValueAsObject)
+		{
+			if (IsAccessDisallowed)
+			{ return; }
 
-            var newValue = ToCongruentObject(newValueAsObject);
+			var newValue = ToCongruentObject(newValueAsObject);
 
-            if (!ConstraintChecker.IsWithinConstraints(newValue))
-            {
-                var message = string.Format("For '{0}', provided value ('{1}') is not within required constraints {2}.",
-                                            Name, newValue, ConstraintChecker.Description);
-                QBCLog.Error(message);
-                throw new ArgumentException(message);
-            }
+			if (!ConstraintChecker.IsWithinConstraints(newValue))
+			{
+				var message = string.Format("For '{0}', provided value ('{1}') is not within required constraints {2}.",
+											Name, newValue, ConstraintChecker.Description);
+				QBCLog.Error(message);
+				throw new ArgumentException(message);
+			}
 
-            PropInfo.SetValue(SettingsInstance, newValue, null);
-        }
+			PropInfo.SetValue(SettingsInstance, newValue, null);
+		}
 
 
-        // Largely used to convert 'string' representation of a value into the value's type...
-        public object ToCongruentObject(object value)
-        {
-            var backingType = PropInfo.PropertyType;
-            var providedType = value.GetType();
+		// Largely used to convert 'string' representation of a value into the value's type...
+		public object ToCongruentObject(object value)
+		{
+			var backingType = PropInfo.PropertyType;
+			var providedType = value.GetType();
 
-            try
-            {
-                // Disallow int => bool conversions...
-                // These are almost _always_ mistakes on the profile writer's part.
-                if ((providedType == typeof(int) && (backingType == typeof(bool))))
-                    { throw new ArgumentException(); }
+			try
+			{
+				// Disallow int => bool conversions...
+				// These are almost _always_ mistakes on the profile writer's part.
+				if ((providedType == typeof(int) && (backingType == typeof(bool))))
+				{ throw new ArgumentException(); }
 
-                return Convert.ChangeType(value, backingType);
-            }
-            catch (Exception)
-            {
-                var message = string.Format("For setting '{0}', the provided value '{1}' ({2})"
-                                            + " cannot be converted to the backing type ({3}).",
-                                            Name, value, providedType.Name, backingType.Name);
-                QBCLog.Error(message);
-                throw new ArgumentException(message);
-            }
-        }
-    }
+				return Convert.ChangeType(value, backingType);
+			}
+			catch (Exception)
+			{
+				var message = string.Format("For setting '{0}', the provided value '{1}' ({2})"
+											+ " cannot be converted to the backing type ({3}).",
+											Name, value, providedType.Name, backingType.Name);
+				QBCLog.Error(message);
+				throw new ArgumentException(message);
+			}
+		}
+	}
 }
