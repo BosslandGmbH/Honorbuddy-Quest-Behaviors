@@ -788,7 +788,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		protected override Composite CreateMainBehavior()
 		{
-			return new ActionRunCoroutine(() => MainCoroutine());
+			return new ActionRunCoroutine(ctx => MainCoroutine());
 		}
 
 		private IEnumerator MainCoroutine()
