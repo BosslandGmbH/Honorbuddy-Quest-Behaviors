@@ -19,13 +19,15 @@
 
 #region Usings
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Pathing;
@@ -42,11 +44,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
     [CustomBehaviorFileName(@"SpecificQuests\28758-TwilightHighlands-BattleofLifeandDeath")]
     public class LifeAndDeath : CustomForcedBehavior
     {
-        ~LifeAndDeath()
-        {
-            Dispose(false);
-        }
-
         public LifeAndDeath(Dictionary<string, string> args)
             : base(args)
         {
@@ -82,9 +79,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
         private Composite _root;
-
+		private const uint TwilightShadowdrakeId = 49873;
+		private const uint VermillionDefenderId = 49872;
+	    private const uint VermillionVanguardId = 49914;
+		static readonly WoWPoint QuestLocation = new WoWPoint(-3924.175, -3475.402, 640.4075);
 
         // Private properties
         private LocalPlayer Me
@@ -92,150 +91,86 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
             get { return (StyxWoW.Me); }
         }
 
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
         #region Overrides of CustomForcedBehavior
-
-        public Composite DoneYet
-        {
-            get
-            {
-                return new Decorator(ret => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-            }
-        }
-
-
-        public WoWUnit Dragon
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49873 && u.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
-            }
-        }
-
-        private readonly WoWPoint spot = new WoWPoint(-2739.832,-5000.674,-127.1305);
-
-        public WoWUnit Brain
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 47960 && u.IsAlive).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
-
-
-        public Composite LowMeter
-        {
-            get
-            {
-                return  new Decorator(r => Me.CurrentHealth < 50 || power > 200,MoveBack);
-            }
-        }
-
-        public Composite DoDps
-        {
-            get
-            {
-                return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
-            }
-        }
-
-        public Composite MoveBack
-        {
-            get
-            {
-                return new Decorator(r => Me.Location.Distance(spot) > 5, new Action(r=> Navigator.MoveTo(spot)));
-            }
-        }
-
-      
-
-
-        public Composite GetInRange
-        {
-            get
-            {
-                return new Decorator(r => Dragon != null && Me.Location.Distance(Dragon.Location) > 45 , new Action(r=> WoWMovement.ClickToMove(Dragon.Location)));
-            }
-        }
-
-        public Composite SlitThroats
-        {
-            get
-            {
-                return new Decorator(r => Dragon != null && Dragon.HealthPercent < 10, new Action(delegate
-                                                                                                      {
-                                                                                                          Dragon.Target();
-                                                                                                          Lua.DoString(
-                                                                                                              "CastPetAction(3);");
-                                                                                                      }));
-            }
-        }
-
-        public Composite ShootFire
-        {
-            get
-            {
-                return new Decorator(r => Dragon != null, new Action(delegate
-                {
-                    
-                    Dragon.Target();
-                    Navigator.PlayerMover.MoveStop();
-                    Lua.DoString(
-                        "CastPetAction(1);");
-                }));
-            }
-        }
 
         protected Composite CreateBehavior_QuestbotMain()
         {
-            //return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,GetInRange,SlitThroats,ShootFire)));
+			return new ActionRunCoroutine(ctx => MainCoroutine());
         }
 
+	    IEnumerator MainCoroutine()
+	    {
+		    var activeMover = WoWMovement.ActiveMover;
+			if (!IsDone && activeMover != null && activeMover.Entry == VermillionVanguardId)
+		    {
+			    bool shouldHeal = activeMover.HealthPercent < 50;
+				var target =
+					ObjectManager.GetObjectsOfType<WoWUnit>()
+						.Where(u => u.IsAlive && u.Entry == (shouldHeal ? VermillionDefenderId : TwilightShadowdrakeId))
+						.OrderBy(u => u.DistanceSqr).FirstOrDefault();
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+				// if there are no targets then move to quest area.
+			    if (target == null)
+			    {
+				    if (activeMover.Location.DistanceSqr(QuestLocation) > 10*10)
+				    {
+					    Flightor.MoveTo(QuestLocation);
+				    }
+				    yield return true;
+				    yield break;
+			    }
+				// target the NPC
+			    if (Me.CurrentTargetGuid != target.Guid)
+			    {
+				    target.Target();
+					yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+					yield return true;
+					yield break;
+			    }
 
+			    var targetDistSqr = activeMover.Location.DistanceSqr(target.Location);
+				// move to target
+			    if (targetDistSqr > 60 * 60 || !target.InLineOfSpellSight)
+			    {
+					Flightor.MoveTo(QuestLocation);
+					yield return true;
+					yield break;
+			    }
+				// face if necessary
+			    if (!activeMover.IsSafelyFacing(target))
+			    {
+				    target.Face();
+					yield return StyxCoroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+					yield return true;
+					yield break;
+			    }
+
+				// heal if needed
+				if (shouldHeal)
+				{
+					Lua.DoString("CastPetAction(2);");
+					yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+				}
+				else
+				{			
+					// fireblast: 60 yd range
+					if (targetDistSqr > 30*30 || target.HealthPercent > 30)
+					{
+						Lua.DoString("CastPetAction(1);");
+						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+					}
+					else
+					{
+						// Finishing Strike: 30 yd range
+						Lua.DoString("CastPetAction(3);");
+						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+					}
+				}
+			    yield return true;
+				yield break;
+		    }
+		    yield return false;
+	    }
 
         public override bool IsDone
         {
@@ -245,15 +180,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
-
-
-        public int power
-        {
-            get
-            {
-                return Lua.GetReturnVal<int>("return UnitPower(\"player\",ALTERNATE_POWER_INDEX)", 0);     }
-        }
-
 
         public override void OnStart()
         {
@@ -272,6 +198,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
             }
         }
 
-        #endregion
+	    public override void OnFinished()
+	    {
+			TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+			TreeRoot.GoalText = string.Empty;
+			TreeRoot.StatusText = string.Empty;
+		    base.OnFinished();
+	    }
+
+	    #endregion
     }
 }
