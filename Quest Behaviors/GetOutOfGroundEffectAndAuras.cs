@@ -195,6 +195,7 @@
 
 #region Usings
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -205,6 +206,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -543,49 +545,81 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
             // NB: We might be in combat with nothing to fight immediately after initiating the event.
             // Be aware of this when altering this behavior.
+	        
+			WoWPoint safeSpot = WoWPoint.Zero;
 
             return new PrioritySelector(targetUnitsContext => FindAllTargets(),
 
-                // Move away from mob with Aura...
-                new PrioritySelector(targetUnitsContext => NearestMobWithAura((IEnumerable<WoWUnit>)targetUnitsContext, MoveAwayFromMobWithAuraIds),
-                    new Decorator(nearestAvoidMobContext => (nearestAvoidMobContext != null)
-                                                            && (((WoWUnit)nearestAvoidMobContext).Distance < AvoidMobMinRange),
-                        UtilityBehavior_MoveWithinRange(nearestAvoidMobContext => PreferredSafespot((WoWUnit)nearestAvoidMobContext),
-                            nearestAvoidMobContext => string.Format("away from mob with '{0}' aura",
-                                UnitAuraFromAuraIds((WoWUnit)nearestAvoidMobContext, MoveAwayFromMobWithAuraIds).Name))
-                    )),
+				// Move away from mob with Aura...
+				new PrioritySelector(targetUnitsContext => NearestMobWithAura((IEnumerable<WoWUnit>)targetUnitsContext, MoveAwayFromMobWithAuraIds),
+					new Decorator(nearestAvoidMobContext => 
+						ShouldMoveToSafespot(
+							(WoWUnit)nearestAvoidMobContext, 
+							t => t.Distance < AvoidMobMinRange,
+							t => PreferredSafespot(t), 
+							out safeSpot),
+						new PrioritySelector(
+							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
+							new ActionRunCoroutine(nearestAvoidMobContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							// move to safespot.
+							UtilityBehavior_MoveWithinRange(nearestAvoidMobContext => safeSpot,
+								nearestAvoidMobContext => string.Format("away from mob with '{0}' aura",
+									UnitAuraFromAuraIds((WoWUnit)nearestAvoidMobContext, MoveAwayFromMobWithAuraIds).Name))
+						))),
 
-                // Move away from mob casting particular AoE spells...
-                new PrioritySelector(targetUnitsContext => NearestMobCastingSpell((IEnumerable<WoWUnit>)targetUnitsContext, MoveAwayFromMobCastingSpellIds),
-                    new Decorator(nearestAuraMobContext => (nearestAuraMobContext != null)
-                                                                && (((WoWUnit)nearestAuraMobContext).Distance < AvoidMobMinRange),
-                        UtilityBehavior_MoveWithinRange(nearestAuraMobContext => PreferredSafespot((WoWUnit)nearestAuraMobContext),
-                            nearestAuraMobContext => string.Format("away from mob casting '{0}'",
-                                UnitSpellFromCastingIds((WoWUnit)nearestAuraMobContext, MoveAwayFromMobCastingSpellIds).Name))
-                    )),
+				// Move away from mob casting particular AoE spells...
+				new PrioritySelector(targetUnitsContext => NearestMobCastingSpell((IEnumerable<WoWUnit>)targetUnitsContext, MoveAwayFromMobCastingSpellIds),
+					new Decorator(nearestAuraMobContext =>
+						ShouldMoveToSafespot(
+							(WoWUnit)nearestAuraMobContext,
+							t => t.Distance < AvoidMobMinRange,
+							t => PreferredSafespot(t),
+							out safeSpot),
+						new PrioritySelector(
+							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
+							new ActionRunCoroutine(nearestAuraMobContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							// move to safespot.
+							UtilityBehavior_MoveWithinRange(nearestAuraMobContext => safeSpot,
+								nearestAuraMobContext => string.Format("away from mob casting '{0}'",
+									UnitSpellFromCastingIds((WoWUnit)nearestAuraMobContext, MoveAwayFromMobCastingSpellIds).Name)))
+					)),
 
-                // Move behind mobs casting particular AoE spells...
-                new PrioritySelector(targetUnitsContext => NearestMobCastingSpell((IEnumerable<WoWUnit>)targetUnitsContext, MoveBehindMobCastingSpellIds),
-                    new Decorator(nearestBehindMobContext => (nearestBehindMobContext != null)
-                                                                && (!Me.IsSafelyBehind((WoWUnit)nearestBehindMobContext)
-                                                                    || !Me.IsSafelyFacing((WoWUnit)nearestBehindMobContext)),
-                        new PrioritySelector(
-                            // We add an additional +3 yards to move behind mob to deal with "large mob" considerations,
-                            // and the WoWclient lieing to HB in such situations.
-                            UtilityBehavior_MoveWithinRange(nearestBehindMobContext => SafespotBehindMob((WoWUnit)nearestBehindMobContext,
-                                                                                            ((WoWUnit)nearestBehindMobContext).CombatReach + 3.0),
-                                nearestBehindMobContext => string.Format("behind mob casting '{0}'",
-                                    UnitSpellFromCastingIds((WoWUnit)nearestBehindMobContext, MoveBehindMobCastingSpellIds).Name)),
-                            new Decorator(nearestBehindMobContext => !Me.IsSafelyFacing((WoWUnit)nearestBehindMobContext),
-                                new Action(nearestBehindMobContext => { ((WoWUnit)nearestBehindMobContext).Face(); }))
-                        ))),
+				// Move behind mobs casting particular AoE spells...
+				new PrioritySelector(targetUnitsContext => NearestMobCastingSpell((IEnumerable<WoWUnit>)targetUnitsContext, MoveBehindMobCastingSpellIds),
+					new Decorator(nearestBehindMobContext =>
+						ShouldMoveToSafespot(
+							(WoWUnit)nearestBehindMobContext,
+							t => !Me.IsSafelyBehind(t) || !Me.IsSafelyFacing(t),
+							// We add an additional +3 yards to move behind mob to deal with "large mob" considerations,
+							// and the WoWclient lieing to HB in such situations.
+							t => SafespotBehindMob(t, t.CombatReach + 3.0),
+							out safeSpot),
+						new PrioritySelector(
+							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
+							new ActionRunCoroutine(nearestBehindMobContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							// move to safespot.
+							UtilityBehavior_MoveWithinRange(nearestBehindMobContext => safeSpot,
+								nearestBehindMobContext => string.Format("behind mob casting '{0}'",
+									UnitSpellFromCastingIds((WoWUnit)nearestBehindMobContext, MoveBehindMobCastingSpellIds).Name)),
+							new Decorator(nearestBehindMobContext => !Me.IsSafelyFacing((WoWUnit)nearestBehindMobContext),
+								new Action(nearestBehindMobContext => { ((WoWUnit)nearestBehindMobContext).Face(); }))
+						))),
 
-                // Move out of ground effect...
-                new PrioritySelector(targetUnitsContext => ((IEnumerable<WoWUnit>)targetUnitsContext).FirstOrDefault(),
-                    new Decorator(targetUnitContext => (targetUnitContext != null) && (GroundEffectFromIds(MoveOutOfGroundEffectAuraIds) != null),
-                        UtilityBehavior_MoveWithinRange(targetUnitContext => PreferredSafespot((WoWUnit)targetUnitContext, true),
-                            targetUnitContext => string.Format("out of '{0}' ground effect", GroundEffectFromIds(MoveOutOfGroundEffectAuraIds).Name))
-                    )),
+				// Move out of ground effect...
+				new PrioritySelector(targetUnitsContext => ((IEnumerable<WoWUnit>)targetUnitsContext).FirstOrDefault(),
+					new Decorator(targetUnitContext =>
+						ShouldMoveToSafespot(
+							(WoWUnit)targetUnitContext,
+							t => GroundEffectFromIds(MoveOutOfGroundEffectAuraIds) != null,
+							t => PreferredSafespot(t, true),
+							out safeSpot),
+						new PrioritySelector(
+							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
+							new ActionRunCoroutine(targetUnitContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							// move to safespot.
+							UtilityBehavior_MoveWithinRange(targetUnitContext => safeSpot,
+								targetUnitContext => string.Format("out of '{0}' ground effect", GroundEffectFromIds(MoveOutOfGroundEffectAuraIds).Name)))
+					)),
 
                 // If a preferred target is available and not targeted, switch targets...
                 new PrioritySelector(preferredUnitContext => FindUnitsFromIds(PreferKillingMobIds).FirstOrDefault(),
@@ -600,7 +634,6 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                     )
                 );
         }
-
 
         protected Composite CreateDeathBehavior()
         {
@@ -882,12 +915,15 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
                 orderby // preference ordering equation:
                     // prefer spots that are close to me, but not mob
                     (myDistanceToSpot / mobDistanceToSpot)
-                    // If ground effect problem, avoid any nearby spots
-                    + ((isGroundEffectProblem && (myDistanceToSpot < AvoidMobMinRange)) ? 100 : 0)
+
+					// Note: the line below caused run back n forth behavior (#HB-580) and it's orginal intent is unknown
+					// [Original comment] If ground effect problem, avoid any nearby spots
+					//  + ((isGroundEffectProblem && (myDistanceToSpot < AvoidMobMinRange)) ? 100 : 0)
+
                     // prefer spots away from mob
                     + ((targetunit.Location.Distance(spot) < AvoidMobMinRange) ? 1000 : 0)
                     // prefer spots the toon doesn't have to run through the mob
-                    + (WoWMathHelper.IsInPath(targetunit, Me.Location, spot) ? 10000 : 0)
+					+ (WoWMathHelper.IsInPath(targetunit.Location, (float)AvoidMobMinRange, Me.Location, spot) ? 10000 : 0)
                 select spot;
 
             return preferredSafespotOrder.FirstOrDefault();
@@ -1038,6 +1074,92 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 
             return string.Join(", ", unitNames);
         }
+
+		bool ShouldMoveToSafespot<T>(
+			T target,
+			Func<T, bool> condition,
+			Func<T, WoWPoint> safeSpotSelector,
+			out WoWPoint safeSpot) where T : WoWObject
+		{
+			if (target == null || !condition(target))
+			{
+				safeSpot = WoWPoint.Zero;
+				return false;
+			}
+			safeSpot = safeSpotSelector(target);
+			return true;
+		}
+
+		private IEnumerator UseSpeedEnhancementsCoroutine(WoWPoint destination)
+		{
+			// Return if ActiveMover is not player
+			if (WoWMovement.ActiveMover != StyxWoW.Me)
+			{
+				yield return false;
+				yield break;
+			}
+
+			var myLoc = StyxWoW.Me.Location;
+			var distToDestSqr = destination.DistanceSqr(myLoc);
+			switch (StyxWoW.Me.Class)
+			{
+				case WoWClass.Druid:
+					if (Me.Shapeshift == ShapeshiftForm.Cat && distToDestSqr > 15 * 15 && SpellManager.CanCast("Dash"))
+					{
+						SpellManager.Cast("Dash");
+					}
+					break;
+				case WoWClass.Hunter:
+					// commented out since it's not always jumping in right direction
+					//if (distToDestSqr > 15 * 15 && SpellManager.CanCast("Disengage"))
+					//{
+					//	var destToMe = myLoc - destination;
+					//	var radiansToMe = (float)Math.Atan2(destToMe.Y, destToMe.X);
+					//	var rnd = new Random();
+					//	WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+					//	StyxWoW.Me.SetFacing(radiansToMe);
+					//	yield return StyxCoroutine.Sleep(rnd.Next(100, 250));
+					//	WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
+					//	SpellManager.Cast("Disengage");
+					//	yield return StyxCoroutine.Wait(4000, () => !SpellManager.CanCast("Disengage"));
+					//	StyxWoW.Me.SetFacing(WoWMathHelper.NormalizeRadian(radiansToMe + (float)Math.PI));
+					//	yield return StyxCoroutine.Sleep(rnd.Next(300, 500));
+					//}
+					break;
+				case WoWClass.Mage:
+					if (distToDestSqr > 15 * 15
+						&& WoWMathHelper.IsFacing(myLoc, Me.Rotation, destination, WoWMathHelper.DegreesToRadians(30)) 
+						&& SpellManager.CanCast("Blink"))
+					{
+						SpellManager.Cast("Blink");
+					}
+					break;
+				case WoWClass.Monk:
+					if (distToDestSqr > 15 * 15 
+						&& WoWMathHelper.IsFacing(Me.Location, Me.Rotation, destination, WoWMathHelper.DegreesToRadians(30))
+						&& SpellManager.CanCast("Roll"))
+					{
+						SpellManager.Cast("Roll");
+					}
+					break;
+				case WoWClass.Rogue:
+					if (distToDestSqr > 15 * 15 && SpellManager.CanCast("Sprint"))
+					{
+						SpellManager.Cast("Sprint");
+					}
+					break;
+				case WoWClass.Warrior:
+					if (distToDestSqr > 8 * 8 && distToDestSqr < 40 * 40 && SpellManager.CanCast("Heroic Leap"))
+					{
+						SpellManager.Cast("Heroic Leap");
+						yield return StyxCoroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+						SpellManager.ClickRemoteLocation(destination);
+						yield return StyxCoroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+					}
+					break;
+			}
+			yield return false;
+		}
 
         #endregion // Behavior helpers
 
