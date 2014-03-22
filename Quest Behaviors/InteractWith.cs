@@ -794,9 +794,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private IEnumerator MainCoroutine()
 		{
 			// return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
-			bool shouldFight = Targeting.Instance.FirstUnit != null &&
-								(LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat) && Me.Combat ||
-								LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Pull));
+			bool shouldFight = Targeting.Instance.FirstUnit != null 
+				&& LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat) 
+				&& (Me.Combat || LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Pull));
+
 			if (IsDone || shouldFight)
 			{
 				yield return false;
