@@ -120,10 +120,10 @@ namespace Honorbuddy.QuestBehaviorCore
 			yield return false;
 		}
 
-		private static IEnumerator SetMountState(WoWPoint destination, bool suppressMountUse, NavType navType = NavType.Fly)
+		private static IEnumerator SetMountState(WoWPoint destination, bool suppressMountUse, bool extraWantToMountQualifier, NavType navType = NavType.Fly)
 		{
 			var shouldBeMounted = Mount.UseMount && !suppressMountUse;
-			//	// Are we mounted, and not supposed to be?
+			// Are we mounted, and not supposed to be?
 			if (!shouldBeMounted && Me.IsMounted())
 			{
 				yield return ExecuteMountStrategy(MountStrategyType.Dismount);
@@ -134,7 +134,8 @@ namespace Honorbuddy.QuestBehaviorCore
 			// NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
 			// (based on NavType).
 			if (shouldBeMounted &&
-				destination.CollectionDistance(WoWMovement.ActiveMover.Location) > CharacterSettings.Instance.MountDistance)
+				(extraWantToMountQualifier ||
+				destination.CollectionDistance(WoWMovement.ActiveMover.Location) > CharacterSettings.Instance.MountDistance))
 			{
 				yield return ExecuteMountStrategy(MountStrategyType.Mount, navType);
 			}
@@ -148,7 +149,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			NavType navType = NavType.Fly)
 		{
 			// NB: Do not 'dismount' for CtM.  We may be using it for aerial navigation, also.
-			yield return SetMountState(destination, suppressMountUse, navType);
+			yield return SetMountState(destination, suppressMountUse, false, navType);
 			if ((bool)Coroutine.Current.SubRoutineResult)
 				yield break;
 
@@ -172,10 +173,11 @@ namespace Honorbuddy.QuestBehaviorCore
 			// we don't want to even try Flightor; otherwise, unexpected side-effects can ensue.
 			if (WoWMovement.ActiveMover.MovementInfo.CanFly || WoWMovement.ActiveMover.IsSwimming)
 			{
-				yield return
-					SetMountState(
-						destination,
-						suppressMountUse || Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, destination));
+				yield return SetMountState(
+								destination,
+								suppressMountUse,
+								// NB: On uneven terrain, we want to force Flightor to mount if it cannot get to the destination...
+								!Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, destination));
 				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
 				Flightor.MoveTo(destination, 15.0f, true);
@@ -198,7 +200,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			// If we can navigate to destination, use navigator...
 			if (Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, destination))
 			{
-				yield return SetMountState(destination, suppressMountUse, NavType.Run);
+				yield return SetMountState(destination, suppressMountUse, false, NavType.Run);
 				if ((bool)Coroutine.Current.SubRoutineResult)
 					yield break;
 
