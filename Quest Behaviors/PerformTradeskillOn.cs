@@ -151,6 +151,24 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 		    return Lua.GetReturnVal<int>(lua, 2);
 	    }
 
+	    WoWSpell GetSpellFromSkillLine(int skillLine)
+	    {
+			// Runeforging is not considered a 'Profession' so need to add a special case for it.
+		    if (skillLine == (int) SkillLine.Runeforging)
+			    return WoWSpell.FromId(53428);
+
+		    const string lua = 
+				@"for  key,value in pairs({{GetProfessions()}}) do
+				   local _,_,_,_,_,offset,skillLine = GetProfessionInfo(value);  
+				   if skillLine == {0} then return select(2, GetSpellBookItemInfo(offset+1, 'professions')) end
+				end
+				return -1;";
+
+		    var spellId = Lua.GetReturnVal<int>(string.Format(lua, skillLine), 0);
+
+		    return WoWSpell.FromId(spellId);
+	    }
+
         private int GetTradeSkillIndex()
         {
                 var count = Lua.GetReturnVal<int>("return GetNumTradeSkills()", 0);
@@ -224,10 +242,10 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 
         public override void OnStart()
         {
-	        _tradeskillSpell = WoWSpell.FromId(TradeSkillId);
-	        if (_tradeskillSpell == null)
+			_tradeskillSpell = GetSpellFromSkillLine(TradeSkillId);
+	        if (_tradeskillSpell == null || !_tradeskillSpell.IsValid)
 	        {
-				QBCLog.ProfileError("TradeSkillId {0} is not a valid spell Id.", TradeSkillId);
+				QBCLog.ProfileError("TradeSkillId {0} is not a valid tradeskill Id.", TradeSkillId);
 	        }
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
