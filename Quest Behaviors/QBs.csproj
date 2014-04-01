@@ -254,6 +254,7 @@
     <Compile Include="SpecificQuests\24958-LostIsles-Volcanoth.cs" />
     <Compile Include="SpecificQuests\26647-STV-Olblasty.cs" />
     <Compile Include="SpecificQuests\26755-Deepholm-KeepThemofftheFront.cs" />
+    <Compile Include="SpecificQuests\27232-SilverpineForest-WatersRunRed.cs" />
     <Compile Include="SpecificQuests\28113-Felwood-BreaktheUnbreakable.cs" />
     <Compile Include="SpecificQuests\24910-Tanaris-RocketRescue.cs" />
     <Compile Include="SpecificQuests\29890-JadeForest-FindingYourCenter.cs" />
