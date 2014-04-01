@@ -38,16 +38,11 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
-namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SpecificQuests.TheDefilersRitual
 {
     [CustomBehaviorFileName(@"SpecificQuests\28611-Uldum-TheDefilersRitual")]
     public class Zakahn : CustomForcedBehavior
     {
-        ~Zakahn()
-        {
-            Dispose(false);
-        }
-
         public Zakahn(Dictionary<string, string> args)
             : base(args)
         {
@@ -78,65 +73,62 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
 
 
         // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public WoWPoint Location { get; private set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
+        private WoWPoint Location { get; set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
+        private bool IsOnFinishedRun { get; set; }
         private Composite _root;
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
 
         private WoWUnit Zah
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 49148)); }
+            get
+            {
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(u => u.IsValid && (u.Entry == 49148));
+            }
         }
 
 
         private List<WoWUnit> Guards
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49156 && !u.IsDead).ToList()); }
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
+            get
             {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
-                TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior());
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 49156) 
+                        && !u.IsDead)
+                        .ToList();
             }
-
-            _isDisposed = true;
         }
 
 
-        #region Overrides of CustomForcedBehavior
+        private static WoWUnit Snake
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 49159)
+                        && !u.IsDead)
+                    .OrderBy(u => u.DistanceSqr)
+                    .FirstOrDefault();
+            }
+        }
 
-        public Composite DoneYet
+
+        private Composite DoneYet
         {
             get
             {
@@ -151,27 +143,29 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
         }
 
 
-        public Composite DoPull
+        private Composite DoPull
         {
             get
             {
                 return
                     new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.PullBehavior != null, RoutineManager.Current.PullBehavior),
+                        new Decorator(ret => RoutineManager.Current.PullBehavior != null,
+                            RoutineManager.Current.PullBehavior),
                         new Action(c => RoutineManager.Current.Pull()));
             }
         }
 
-        public Composite CheckSpot
+        private Composite CheckSpot
         {
             get
             {
-                return new Decorator(ret => !Me.Combat && Me.Location.Distance(Location) > 1, new Action(ret => Navigator.MoveTo(Location)));
+                return new Decorator(ret => !Me.Combat && (Me.Location.Distance(Location) > 1),
+                    new Action(ret => Navigator.MoveTo(Location)));
             }
         }
 
 
-        public void SetPetMode(string action)
+        private void SetPetMode(string action)
         {
 
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
@@ -183,7 +177,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
 
         }
 
-        public void PullMob()
+
+        private void PullMob()
         {
             string spell = "";
 
@@ -234,90 +229,135 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
                     if (SpellManager.CanCast("Throw"))
                         spell = "Throw";
                     break;
-
+                case WoWClass.Monk:
+                    spell = "Provoke";
+                    break;
             }
 
             if (!String.IsNullOrEmpty(spell))
             {
                 SpellManager.Cast(spell);
             }
-
-
         }
-        public Composite PullOne
+
+
+        private Composite PullOne
         {
             get
             {
-                return new Decorator(ret => !Me.Combat, new Action(delegate
-                {
-                    Navigator.PlayerMover.MoveStop();
-                    Guards[0].Target();
-                    Guards[0].Face();
-                    PullMob();
-                }));
+                return new Decorator(ret => !Me.Combat,
+                    new Action(delegate
+                    {
+                        Navigator.PlayerMover.MoveStop();
+                        Guards[0].Target();
+                        Guards[0].Face();
+                        PullMob();
+                    }));
             }
         }
 
 
-        public Composite KillIt
+        private Composite KillIt
         {
             get
             {
-                return new Decorator(ret => (Me.CurrentTarget != null && Me.CurrentTarget.IsWithinMeleeRange) || Me.Class == WoWClass.Hunter, Bots.Grind.LevelBot.CreateCombatBehavior());
+                return 
+                    new Decorator(ret => (Me.CurrentTarget != null
+                                            && Me.CurrentTarget.IsWithinMeleeRange)
+                                         || (Me.Class == WoWClass.Hunter),
+                        Bots.Grind.LevelBot.CreateCombatBehavior());
             }
         }
 
 
-        public Composite KillAdds
+        private Composite KillAdds
         {
             get
             {
-                return new Decorator(ret => Guards.Count > 0, new PrioritySelector(CheckSpot, PullOne, KillIt, new ActionAlwaysSucceed()));
+                return
+                    new Decorator(ret => Guards.Count > 0,
+                        new PrioritySelector(
+                            CheckSpot, 
+                            PullOne,
+                            KillIt,
+                            new ActionAlwaysSucceed()));
             }
         }
 
 
 
-        public Composite TargetHim
+        private Composite TargetHim
         {
             get
             {
-                return new Decorator(ret => Me.CurrentTarget == null || Me.CurrentTarget != Zah, new Action(delegate
-                {
-                    Zah.Target();
-                    Zah.Face();
-                    if (Me.GotAlivePet)
-                        SetPetMode("Assist");
+                return new Decorator(ret => (Me.CurrentTarget == null) || (Me.CurrentTarget != Zah),
+                    new Action(delegate
+                    {
+                        Zah.Target();
+                        Zah.Face();
+                        if (Me.GotAlivePet)
+                            SetPetMode("Assist");
 
-                }));
+                    }));
             }
         }
 
-        public Composite Pullhim
+        private Composite Pullhim
         {
             get { return new Decorator(ret => !Me.Combat, DoPull); }
         }
 
-        public Composite KillBoss
+
+        private Composite KillSnakes
         {
             get
             {
-                return new Decorator(ret => Zah != null && !Zah.IsDead, new PrioritySelector(TargetHim, Pullhim, Bots.Grind.LevelBot.CreateCombatBehavior()));
+                return new Decorator(r => Snake != null,
+                    new PrioritySelector(
+                        new Decorator(r => !Me.GotTarget || (Me.CurrentTarget != Snake),
+                            new Action(r => Snake.Target())),
+                        RoutineManager.Current.CombatBehavior
+                    ));
             }
         }
 
+        private Composite KillBoss
+        {
+            get
+            {
+                return new Decorator(ret => Zah != null && !Zah.IsDead,
+                    new PrioritySelector(
+                        TargetHim,
+                        Pullhim,
+                        new Decorator(ret => StyxWoW.Me.Combat,
+                            new PrioritySelector(
+                                RoutineManager.Current.HealBehavior,
+                                new Decorator(ret => Me.GotTarget
+                                                        && !Me.CurrentTarget.IsFriendly
+                                                        && !Me.CurrentTarget.IsDead,
+                                    new PrioritySelector(
+                                        RoutineManager.Current.CombatBuffBehavior,
+                                        RoutineManager.Current.CombatBehavior))))
+
+                    ));
+            }
+        }
+
+
         protected override Composite CreateBehavior()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, KillAdds, KillBoss, new ActionAlwaysSucceed())));
+            return _root ?? (_root =
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+                        DoneYet,
+                        KillAdds,
+                        KillSnakes,
+                        KillBoss,
+                        new ActionAlwaysSucceed())));
         }
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
+        #region Overrides of CustomForcedBehavior
 
         public override bool IsDone
         {
@@ -326,6 +366,25 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
                 return (_isBehaviorDone     // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
+        }
+
+
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (IsOnFinishedRun)
+                { return; }
+
+            // Clean up resources...
+            Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior());
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+
+            // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+            base.OnFinished();
+            IsOnFinishedRun = true;
         }
 
 
@@ -346,7 +405,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
                 this.UpdateGoalText(QuestId);
             }
         }
+        #endregion
 
+
+        #region Target Filters
         void Instance_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
         {
             var targetGuid = StyxWoW.Me.CurrentTargetGuid;
@@ -356,7 +418,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefilersRitual
                     outgoingUnits.Add(unit);
             }
         }
-
         #endregion
     }
 }

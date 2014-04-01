@@ -74,21 +74,19 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
 
 
         // Attributes provided by caller
-        public int MobIds { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private int MobIds { get; set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
+        private bool IsOnFinishedRun { get; set; }
+        private ulong _lastguid;
         private Composite _root;
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
 
         private List<WoWUnit> Stage1
         {
@@ -100,76 +98,44 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
             }
         }
 
+
         private WoWUnit CurrentStone
         {
             get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 45191 && u.GetAllAuras().FirstOrDefault(x => x.CreatorGuid == Me.Guid && x.Name == "Ride Vehicle") != null)); }
         }
 
 
-
         private List<WoWUnit> Good
         {
             get
-            {//40794 40803 31146
+            {   //40794 40803 31146
                 return
-                    /*(ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 45191 && u.WithinInteractRange && u != CurrentStone
-                        && u.Guid != lastguid && u.Location.Distance(dragon.Location) <= 5).OrderBy(u => u.Distance).ToList());*/
-                    (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 45191 && u.WithinInteractRange && u != CurrentStone
-                        && u.Guid != lastguid).OrderBy(u => u.Location.Distance(dragon.Location)).ToList());
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u => 
+                        u.IsValid
+                        && (u.Entry == 45191)
+                        && u.WithinInteractRange
+                        && u != CurrentStone
+                        && u.Guid != _lastguid)
+                    .OrderBy(u => u.Location.DistanceSqr(Dragon.Location))
+                    .ToList();
             }
         }
 
-        private List<WoWUnit> Bad
+
+        private WoWUnit Dragon
         {
             get
-            {//40794 40803 31146
-                return
-                    (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 45191 && u.WithinInteractRange && u != CurrentStone
-                        && u.Guid != lastguid).OrderByDescending(u => u.Distance).ToList());
-            }
-        }
-
-
-        private WoWUnit dragon
-        {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == MobIds)); }
-        }
-
-
-        ~Steping()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
             {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(u => u.IsValid 
+                                        && (u.Entry == MobIds));
             }
-
-            _isDisposed = true;
         }
 
 
-        #region Overrides of CustomForcedBehavior
-
-        public Composite DoneYet
+        private Composite DoneYet
         {
             get
             {
@@ -183,21 +149,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
             }
         }
 
-        public Composite DoDps
+
+        private Composite DoDps
         {
             get
             {
                 return
-                     new Sequence(new Action(ret => Navigator.PlayerMover.MoveStop()),
+                    new Sequence(new Action(ret => Navigator.PlayerMover.MoveStop()),
                     new PrioritySelector(
                         new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
                         new Action(c => RoutineManager.Current.Combat())));
             }
         }
 
-        private ulong lastguid;
 
-        public Composite MoveCloser
+        private Composite MoveCloser
         {
             get
             {
@@ -207,26 +173,23 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                     {
                         var target = Stage1[0];
 
-                        //target.Target();
                         target.Interact();
                         try
                         {
-                            lastguid = CurrentStone.Guid;
+                            _lastguid = CurrentStone.Guid;
                         }
                         catch (NullReferenceException e)
                         {
-                            lastguid = 0;
+                            _lastguid = 0;
                             QBCLog.Error(e.ToString());
                         }
-                        
-                        //Navigator.MoveTo(target.Location);
                     }
                 });
             }
         }
 
 
-        public Composite NewStone
+        private Composite NewStone
         {
             get
             {
@@ -236,28 +199,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                     if (Good.Count > 0)
                     {
                         Good[0].Interact();
-                        lastguid = CurrentStone.Guid;
+                        _lastguid = CurrentStone.Guid;
                     }
-                    /*else if (Bad.Count > 0)
-                    {
-                        Bad[0].Interact();
-                        lastguid = CurrentStone.Guid;
-                    }*/
-
                 });
             }
         }
 
-        public Composite DragonMethod
+
+        private Composite DragonMethod
         {
             get
             {
                 return new PrioritySelector(new Decorator(ret => !Me.HasAura("Searing Breath"), DoDps),
                                             new WaitContinue(4, ret => Me.HasAura("Searing Breath"), NewStone));
-                //new Decorator(ret => dragon.HealthPercent < 10.0f, DoDps));
             }
         }
-        public Composite Stepping
+
+
+        private Composite Stepping
         {
             get
             {
@@ -266,18 +225,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
         }
 
 
-        protected Composite CreateBehavior_QuestbotMain()
+        private Composite CreateBehavior_QuestbotMain()
         {
             return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, Stepping, DragonMethod)));
         }
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
+        #region Overrides of CustomForcedBehavior
 
         public override bool IsDone
         {
@@ -286,6 +240,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                 return (_isBehaviorDone     // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
+        }
+
+
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (IsOnFinishedRun)
+                { return; }
+
+            // Clean up resources...
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+
+            // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+            base.OnFinished();
+            IsOnFinishedRun = true;
         }
 
 
@@ -305,13 +277,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
                 this.UpdateGoalText(QuestId);
             }
         }
-
-
-
-
-
-
-
         #endregion
     }
 }

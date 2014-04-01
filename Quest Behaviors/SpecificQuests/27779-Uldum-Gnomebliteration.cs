@@ -20,6 +20,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using CommonBehaviors.Actions;
@@ -40,16 +41,12 @@ using Action = Styx.TreeSharp.Action;
 #endregion
 
 
+// ReSharper disable once CheckNamespace
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
 {
     [CustomBehaviorFileName(@"SpecificQuests\27779-Uldum-Gnomebliteration")]
     public class KillGnomes : CustomForcedBehavior
     {
-        ~KillGnomes()
-        {
-            Dispose(false);
-        }
-
         public KillGnomes(Dictionary<string, string> args)
             : base(args)
         {
@@ -79,62 +76,33 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
 
 
         // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
         // Private variables for internal state
+        private readonly WaitTimer _exitTimer = new WaitTimer(TimeSpan.FromSeconds(10));
         private bool _isBehaviorDone;
-        private bool _isDisposed;
         private Composite _root;
+        private readonly Stopwatch _doingQuestTimer = new Stopwatch();
+
+        private bool IsOnFinishedRun { get; set; }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        public Composite DoDps
+        private Composite DoDps
         {
             get
             {
                 return new PrioritySelector(
-                    new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
+                    new Decorator(ret => RoutineManager.Current.CombatBehavior != null,
+                        RoutineManager.Current.CombatBehavior),
                     new Action(c => RoutineManager.Current.Combat()));
             }
         }
 
 
-        #region Overrides of CustomForcedBehavior
-
-        public Composite DoneYet
+        private Composite DoneYet
         {
             get
             {
@@ -149,33 +117,41 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
             }
         }
 
-        public List<WoWUnit> Enemies
+
+        private List<WoWUnit> Enemies
         {
             get
             {
                 var myLoc = Me.Location;
-                return (from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
-                        where unit.Entry == 46384 && unit.IsAlive && unit.HealthPercent >= 100 && !Blacklist.Contains(unit, BlacklistFlags.Interact)
-                        let loc = unit.Location
-                        where unit.Location.DistanceSqr(BadBomb) > 60*60
-                        orderby loc.DistanceSqr(myLoc)
-                        select unit).ToList();
+                return
+                   (from unit in ObjectManager.GetObjectsOfType<WoWUnit>()
+                    where 
+                        unit.IsValid
+                        && (unit.Entry == 46384)
+                        && unit.IsAlive
+                        && (unit.HealthPercent >= 100)
+                        && !Blacklist.Contains(unit, BlacklistFlags.Interact)
+                    let loc = unit.Location
+                    where unit.Location.DistanceSqr(_badBomb) > 60*60
+                    orderby loc.DistanceSqr(myLoc)
+                    select unit)
+                    .ToList();
             }
         }
 
 
-
-        public Composite Combat
+        private Composite Combat
         {
             get
             {
-                return new Decorator(ret => Me.Combat,DoDps);
+                return
+                    new Decorator(ret => Me.Combat,
+                        DoDps);
             }
         }
 
 
-        private readonly WaitTimer _exitTimer = new WaitTimer(TimeSpan.FromSeconds(10));
-        public Composite RunEmOver
+        private Composite RunEmOver
         {
             get
             {
@@ -184,9 +160,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
                         new Decorator(
                             ret => WoWMovement.ActiveMover.MovementInfo.IsFalling,
                             new ActionAlwaysSucceed()),
-                        new Decorator(
-                            ret => _exitTimer.IsFinished && !((List<WoWUnit>)ret).Any(),
+                        new Decorator(ret => _exitTimer.IsFinished && !((List<WoWUnit>)ret).Any(),
                             new Action(ret => Lua.DoString("VehicleExit()"))),
+                        // Leave vehicle if time is pass.
+                        new Decorator(ret => _doingQuestTimer.ElapsedMilliseconds >= 180000,
+                            new Sequence(
+                                new Action(ret => _doingQuestTimer.Restart()),
+                                new Action(ret => Lua.DoString("VehicleExit()")),
+                                new Sleep(4000)
+                        )),
                         new ActionFail(ret =>
                             {
                                 var closeBys = ((List<WoWUnit>) ret).Where(u => u.DistanceSqr < 10f*10f);
@@ -203,26 +185,34 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
 
         //<Vendor Name="Fusion Core" Entry="46750" Type="Repair" X="" />
 
-        WoWPoint OrbLoc = new WoWPoint(-10641.33,-2344.599,144.8416);
+        readonly WoWPoint _orbLoc = new WoWPoint(-10641.33,-2344.599,144.8416);
         //<Vendor Name="Crazed Gnome" Entry="46384" Type="Repair" X="-10542.87" Y="-2411.554" Z="88.44117" />
-        WoWPoint BadBomb = new WoWPoint(-10561.68, -2429.371, 91.56037);
-        public WoWUnit Orb
+        readonly WoWPoint _badBomb = new WoWPoint(-10561.68, -2429.371, 91.56037);
+
+
+        private WoWUnit Orb
         {
             get
             {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => u.Entry == 46750);
-            }
-        }
-        public Composite FlyClose
-        {
-            get
-            {
-                return new Decorator(ret => !Me.IsOnTransport && (Orb == null || Orb.DistanceSqr > 5 * 5),
-                    new Action(r => Flightor.MoveTo(OrbLoc)));
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(u => u.IsValid && (u.Entry == 46750));
             }
         }
 
-        public Composite Interact
+
+        private Composite FlyClose
+        {
+            get
+            {
+                return
+                    new Decorator(ret => !Me.IsOnTransport && (Orb == null || Orb.DistanceSqr > 5 * 5),
+                        new Action(r => Flightor.MoveTo(_orbLoc)));
+            }
+        }
+
+
+        private Composite Interact
         {
             get
             {
@@ -247,21 +237,22 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
         }
 
   
-
-        protected Composite CreateBehavior_CombatMain()
+        private Composite CreateBehavior_CombatMain()
         {
 
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, Combat, FlyClose,Interact,RunEmOver)));
+            return _root ?? (_root =
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+                        DoneYet,
+                        Combat,
+                        FlyClose,
+                        Interact,
+                        RunEmOver)));
         }
 
         
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
+        #region Overrides of CustomForcedBehavior
 
         public override bool IsDone
         {
@@ -273,13 +264,31 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
         }
 
 
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (IsOnFinishedRun)
+                { return; }
+
+            // Clean up resources...
+            TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+
+            // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+            base.OnFinished();
+            IsOnFinishedRun = true;
+        }
+
+
         public override void OnStart()
         {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
-
+            _doingQuestTimer.Start();
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
             if (!IsDone)

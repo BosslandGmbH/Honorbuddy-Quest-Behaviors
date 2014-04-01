@@ -20,6 +20,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 using CommonBehaviors.Actions;
@@ -41,11 +42,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
     [CustomBehaviorFileName(@"SpecificQuests\28277-Uldum-SalhetTheTactician")]
     public class Lions : CustomForcedBehavior
     {
-        ~Lions()
-        {
-            Dispose(false);
-        }
-
         public Lions(Dictionary<string, string> args)
             : base(args)
         {
@@ -75,67 +71,77 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
 
 
         // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
+        private bool IsOnFinishedRun { get; set; }
         private Composite _root;
+        private readonly Stopwatch _doingQuestTimer = new Stopwatch();
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
 
         private List<WoWUnit> lions
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 48169 && !u.IsDead).ToList()); }
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 48169)
+                        && !u.IsDead)
+                    .ToList();
+            }
+        }
+
+
+        private static List<WoWUnit> MobSalhet
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 48237))
+                    .OrderBy(ret => ret.DistanceSqr)
+                    .ToList();
+            }
         }
 
 
         private List<WoWUnit> Enemies
         {
-            get { return (ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.Entry == 48199 || u.Entry == 48209) && !u.IsDead).OrderBy(u => u.Distance).ToList()); }
-        }
-
-
-        int MobCountAtLocation(WoWPoint point, float radius, params uint[] mobIds)
-        {
-            return ObjectManager.GetObjectsOfType<WoWUnit>(true, false).Count(u => u.IsAlive && mobIds.Contains(u.Entry) && u.DistanceSqr <= radius * radius);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
+            get
             {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
+                return 
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 48199 || u.Entry == 48209)
+                        && !u.IsDead)
+                    .OrderBy(u => u.DistanceSqr)
+                    .ToList();
             }
-
-            _isDisposed = true;
         }
 
 
-        #region Overrides of CustomForcedBehavior
+        private int MobCountAtLocation(WoWPoint point, float radius, params uint[] mobIds)
+        {
+            return ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+                .Count(u =>
+                    u.IsValid
+                    && u.IsAlive
+                    && mobIds.Contains(u.Entry)
+                    && (u.DistanceSqr <= (radius * radius)));
+        }
 
-        public Composite DoneYet
+
+        private Composite DoneYet
         {
             get
             {
@@ -150,7 +156,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
         }
 
 
-        public Composite MoveEm
+        private Composite MoveEm
         {
             get
             {
@@ -159,7 +165,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
         }
 
 
-        public void UsePetAbility(string action)
+        private void UsePetAbility(string action)
         {
 
             var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
@@ -173,43 +179,66 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
         }
 
 
-        public Composite KeepClose
+        private Composite KeepClose
         {
             get
             {
-                return new Decorator(ret => lions.Count > 0 && Enemies.Count > 0 && MobCountAtLocation(lions[0].Location, 15, 48199, 48209) < 1 && Me.PetSpells[0].Cooldown == false, MoveEm);
+                return
+                    new Decorator(ret => (lions.Count > 0)
+                                        && (Enemies.Count > 0)
+                                        && (MobCountAtLocation(lions[0].Location, 15, 48199, 48209) < 1)
+                                        && (Me.PetSpells[0].Cooldown == false),
+                        MoveEm);
             }
         }
 
 
-        public Composite Swipe
+        private Composite Swipe
         {
             get
             {
-                return new Decorator(ret => lions.Count > 0 && MobCountAtLocation(lions[0].Location, 20, 48199,48209) >= 4 && Me.PetSpells[2].Cooldown == false, new Action(ret => UsePetAbility("Claw Flurry")));
+                return
+                    new Decorator(ret => (lions.Count > 0)
+                                        && (MobCountAtLocation(lions[0].Location, 20, 48199,48209) >= 4)
+                                        && (Me.PetSpells[2].Cooldown == false),
+                        new Action(ret => UsePetAbility("Claw Flurry")));
             }
         }
 
-        public Composite Fear
+        private Composite Fear
         {
             get
             {
-                return new Decorator(ret => lions.Count > 0 && MobCountAtLocation(lions[0].Location, 20, 48199, 48209) >= 3 && Me.PetSpells[1].Cooldown == false, new Action(ret => UsePetAbility("Fierce Roar")));
+                return new Decorator(ret => (lions.Count > 0)
+                                            && (MobCountAtLocation(lions[0].Location, 20, 48199, 48209) >= 3)
+                                            && (Me.PetSpells[1].Cooldown == false),
+                        new Action(ret => UsePetAbility("Fierce Roar")));
             }
         }
 
-        protected Composite CreateBehavior_QuestbotMain()
+        private Composite CreateBehavior_QuestbotMain()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, KeepClose,Swipe,Fear, new ActionAlwaysSucceed())));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone,
+                new PrioritySelector(
+                    new Decorator(ret => _doingQuestTimer.ElapsedMilliseconds >= 180000,
+                        new Sequence(
+                            new Action(ret => _doingQuestTimer.Restart()),
+                            new Action(ret => Lua.DoString("VehicleExit()")),
+                            new Sleep(4000),
+                            new Action(ret => MobSalhet[0].Interact()),
+                            new Sleep(500),
+                            new Action(ret => Lua.DoString("SelectGossipOption(1)"))
+                    )),
+                    DoneYet,
+                    KeepClose,
+                    Swipe,
+                    Fear,
+                    new ActionAlwaysSucceed()
+            )));
         }
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
+        #region Overrides of CustomForcedBehavior
 
         public override bool IsDone
         {
@@ -221,12 +250,31 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SalhetTheTactician
         }
 
 
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (IsOnFinishedRun)
+                { return; }
+
+            // Clean up resources...
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+
+            // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+            base.OnFinished();
+            IsOnFinishedRun = true;
+        }
+        
+        
         public override void OnStart()
         {
             // This reports problems, and stops BT processing if there was a problem with attributes...
             // We had to defer this action, as the 'profile line number' is not available during the element's
             // constructor call.
             OnStart_HandleAttributeProblem();
+            _doingQuestTimer.Start();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.

@@ -42,11 +42,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
     [CustomBehaviorFileName(@"SpecificQuests\26501-Deepholm-SealingTheWay")]
     public class SealingTheWay : CustomForcedBehavior
     {
-        ~SealingTheWay()
-        {
-            Dispose(false);
-        }
-
         public SealingTheWay(Dictionary<string, string> args)
             : base(args)
         {
@@ -77,15 +72,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 
 
         // Attributes provided by caller
-        public uint[] MobIds { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private uint[] MobIds { get; set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
+        private bool IsOnFinishedRun { get; set; }
         private Composite _root;
 
 
@@ -96,38 +91,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         }
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-
-        #region Overrides of CustomForcedBehavior
-
-
-
-
-        public Composite DoneYet
+        private Composite DoneYet
         {
             get
             {
@@ -141,18 +105,35 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
             }
         }
 
-        public WoWUnit Geomancer(WoWPoint loc)
+
+        private WoWUnit Geomancer(WoWPoint loc)
         {
-            return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 43170 && u.IsAlive && u.Location.Distance(loc) <= 5).OrderBy(u => u.Distance).FirstOrDefault();
+            return
+                ObjectManager.GetObjectsOfType<WoWUnit>()
+                .Where(u =>
+                    (u.Entry == 43170)
+                    && u.IsAlive
+                    && (u.Location.Distance(loc) <= 5))
+                .OrderBy(u => u.DistanceSqr)
+                .FirstOrDefault();
         }
 
-        public WoWUnit Bad(WoWPoint loc)
+
+        private WoWUnit Bad(WoWPoint loc)
         {
-            return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.IsAlive && !u.IsPlayer && u.CurrentTarget != null && (u.CurrentTarget == Geomancer(loc) || u.CurrentTarget == Me)).OrderBy(u => u.Distance).FirstOrDefault();
+            return
+                ObjectManager.GetObjectsOfType<WoWUnit>()
+                .Where(u =>
+                    u.IsAlive
+                    && !u.IsPlayer
+                    && (u.CurrentTarget != null)
+                    && (u.CurrentTarget == Geomancer(loc) || u.CurrentTarget == Me))
+                .OrderBy(u => u.DistanceSqr)
+                .FirstOrDefault();
         }
 
 
-        public Composite DoDps
+        private Composite DoDps
         {
             get
             {
@@ -163,7 +144,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
             }
         }
 
-        public Composite DoPull
+        private Composite DoPull
         {
             get
             {
@@ -173,7 +154,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
                         new Action(c => RoutineManager.Current.Pull()));
             }
         }
-        public WoWPoint[] Spots = new WoWPoint[]
+
+
+        private WoWPoint[] Spots = new WoWPoint[]
         {
             new WoWPoint(411.33,1659.2,348.8838),
             new WoWPoint(420.792,1718.1,349.4922),
@@ -182,28 +165,89 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
         };
 
 
-        public Composite Part(int i)
+        private Composite Part1()
         {
-            return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, i),
-                new PrioritySelector(
-                    new Decorator(r => Geomancer(Spots[i - 1]) != null && Geomancer(Spots[i - 1]).Distance > 10,
-                        new Action(r => Flightor.MoveTo(Geomancer(Spots[i - 1]).Location))),
-                    new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[i - 1]) != null,
-                        new Action(r => Bad(Spots[i - 1]).Target())),
-                    new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[i - 1]).CurrentTarget != null),
-                        new Action(r => Geomancer(Spots[i - 1]).CurrentTarget.Target())),
-                    new Decorator(r => !Me.Combat && Bad(Spots[i - 1]) != null, DoPull),
-                        new Decorator(r => Bad(Spots[i - 1]) == null,
-                            UseItem(i - 1))));
-
+            return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 1),
+            new PrioritySelector(
+                new Decorator(r => Me.CurrentTarget != null && Me.CurrentTarget.IsDead,
+                    new Action(r => Me.ClearTarget())),
+                new Decorator(r => Geomancer(Spots[0]) != null && Geomancer(Spots[0]).Distance > 10,
+                    new Action(r => Flightor.MoveTo(Geomancer(Spots[0]).Location))),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[0]) != null,
+                    new Action(r => Bad(Spots[0]).Target())),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[0]).CurrentTarget != null),
+                    new Action(r => Geomancer(Spots[0]).CurrentTarget.Target())),
+                new Decorator(r => !Me.Combat && Bad(Spots[0]) != null, DoPull),
+                new Decorator(r => Me.Combat && Bad(Spots[0]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
+                    new Decorator(r => Bad(Spots[0]) == null,
+                        UseItem(0))));
         }
 
-        public WoWItem Rock
+
+        private Composite Part2()
+        {
+            return new Decorator(r => Me.IsQuestObjectiveComplete(QuestId, 1) && !Me.IsQuestObjectiveComplete(QuestId, 2),
+            new PrioritySelector(
+                new Decorator(r => Me.CurrentTarget != null && Me.CurrentTarget.IsDead,
+                    new Action(r => Me.ClearTarget())),
+                new Decorator(r => Geomancer(Spots[1]) != null && Geomancer(Spots[1]).Distance > 10,
+                    new Action(r => Flightor.MoveTo(Geomancer(Spots[1]).Location))),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[1]) != null,
+                    new Action(r => Bad(Spots[1]).Target())),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[1]).CurrentTarget != null),
+                    new Action(r => Geomancer(Spots[1]).CurrentTarget.Target())),
+                new Decorator(r => !Me.Combat && Bad(Spots[1]) != null, DoPull),
+                new Decorator(r => Me.Combat && Bad(Spots[1]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
+                    new Decorator(r => Bad(Spots[1]) == null,
+                        UseItem(1))));
+        }
+
+
+        private Composite Part3()
+        {
+            return new Decorator(r => Me.IsQuestObjectiveComplete(QuestId, 1) && Me.IsQuestObjectiveComplete(QuestId, 2) && !Me.IsQuestObjectiveComplete(QuestId, 3),
+            new PrioritySelector(
+                new Decorator(r => Me.CurrentTarget != null && Me.CurrentTarget.IsDead,
+                    new Action(r => Me.ClearTarget())),
+                new Decorator(r => Geomancer(Spots[2]) != null && Geomancer(Spots[2]).Distance > 10,
+                    new Action(r => Flightor.MoveTo(Geomancer(Spots[2]).Location))),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[2]) != null,
+                    new Action(r => Bad(Spots[2]).Target())),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[2]).CurrentTarget != null),
+                    new Action(r => Geomancer(Spots[2]).CurrentTarget.Target())),
+                new Decorator(r => !Me.Combat && Bad(Spots[2]) != null, DoPull),
+                new Decorator(r => Me.Combat && Bad(Spots[2]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
+                    new Decorator(r => Bad(Spots[2]) == null,
+                        UseItem(2))));
+        }
+
+
+        private Composite Part4()
+        {
+            return new Decorator(r => Me.IsQuestObjectiveComplete(QuestId, 1) && Me.IsQuestObjectiveComplete(QuestId, 2) && Me.IsQuestObjectiveComplete(QuestId, 3) && !Me.IsQuestObjectiveComplete(QuestId, 4),
+            new PrioritySelector(
+                new Decorator(r => Me.CurrentTarget != null && Me.CurrentTarget.IsDead,
+                    new Action(r => Me.ClearTarget())),
+                new Decorator(r => Geomancer(Spots[3]) != null && Geomancer(Spots[3]).Distance > 10,
+                    new Action(r => Flightor.MoveTo(Geomancer(Spots[3]).Location))),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && Bad(Spots[3]) != null,
+                    new Action(r => Bad(Spots[3]).Target())),
+                new Decorator(r => (Me.CurrentTarget == null || (Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly)) && (Geomancer(Spots[3]).CurrentTarget != null),
+                    new Action(r => Geomancer(Spots[3]).CurrentTarget.Target())),
+                new Decorator(r => !Me.Combat && Bad(Spots[3]) != null, DoPull),
+                new Decorator(r => Me.Combat && Bad(Spots[3]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
+                    new Decorator(r => Bad(Spots[3]) == null,
+                        UseItem(3))));
+        }
+
+
+        private WoWItem Rock
         {
             get { return Me.BagItems.FirstOrDefault(x => x.Entry == 58885); }
         }
 
-        public Composite UseItem(int x)
+
+        private Composite UseItem(int x)
         {
 
             return new Action(delegate
@@ -217,17 +261,22 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 
         }
 
-        protected Composite CreateBehavior_QuestbotMain()
+
+        private Composite CreateBehavior_QuestbotMain()
         {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, LevelBot.CreateCombatBehavior(), Part(1), Part(2), Part(3), Part(4))));
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone,
+                new PrioritySelector(
+                    DoneYet,
+                    LevelBot.CreateCombatBehavior(),
+                    Part1(),
+                    Part2(),
+                    Part3(),
+                    Part4()
+            )));
         }
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
 
+        #region Overrides of CustomForcedBehavior
 
         public override bool IsDone
         {
@@ -236,6 +285,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
                 return (_isBehaviorDone // normal completion
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
+        }
+
+
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (IsOnFinishedRun)
+                { return; }
+
+            // Clean up resources...
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+
+            // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+            base.OnFinished();
+            IsOnFinishedRun = true;
         }
 
 
@@ -255,7 +322,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
                 this.UpdateGoalText(QuestId);
             }
         }
-
         #endregion
     }
 }
