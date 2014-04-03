@@ -53,8 +53,12 @@ namespace Honorbuddy.QuestBehaviorCore
             Contract.Requires(questId >= 0, context => "questId >= 0");
             Contract.Requires(objectiveIndex >= 0, context => "objectiveIndex >= 0");
 
-            // For an questId or objectiveIndex are zero, we're just interested in quest completion...
-            if ((questId == 0) || (objectiveIndex == 0))
+			// 0 ID indicates it isn't related to one quest..
+	        if (questId == 0)
+		        return false;
+
+            // For an objectiveIndex that is zero, we're just interested in quest completion...
+            if (objectiveIndex == 0)
                 { return localPlayer.IsQuestComplete(questId); }
 
             // If quest is not in our log, obviously its not complete...

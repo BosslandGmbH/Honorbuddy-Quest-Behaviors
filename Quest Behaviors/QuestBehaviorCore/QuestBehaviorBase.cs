@@ -241,16 +241,27 @@ namespace Honorbuddy.QuestBehaviorCore
                 ?? (_behaviorTreeHook_Main = new ExceptionCatchingWrapper(this, CreateMainBehavior()));
         }
 
+	    private bool CheckTermination()
+	    {
+		    if (TerminationChecksQuestProgress)
+		    {
+				if (Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex))
+					return true;
+
+			    if (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete))
+				    return true;
+		    }
+
+		    return false;
+	    }
 
         public sealed override bool IsDone
         {
             get
-            { 
-                return _isBehaviorDone     // normal completion
-                        || TerminateWhen()
-                        || Me.IsQuestObjectiveComplete(QuestId, QuestObjectiveIndex)
-                        || (TerminationChecksQuestProgress
-                            && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            {
+	            return _isBehaviorDone // normal completion
+	                   || TerminateWhen() // Specified condition in profile
+	                   || CheckTermination(); // Quest/objective ID
             }
         }
 

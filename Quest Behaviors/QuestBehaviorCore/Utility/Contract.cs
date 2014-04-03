@@ -13,7 +13,7 @@ using System;
 using System.Diagnostics;
 using System.Windows.Media;
 using System.Xml.Linq;
-
+using JetBrains.Annotations;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
@@ -48,6 +48,7 @@ namespace Honorbuddy.QuestBehaviorCore
         ///  NB: We could provide a second interface to ContractRequires() that is slightly more convenient for static string use.
         ///  But *please* don't!  If helps maintainers to not make mistakes if they see the use of this interface consistently
         ///  throughout the code.
+        [ContractAnnotation("isContractOkay:false=>halt")]
         public static bool Requires(bool isContractOkay, ProvideStringDelegate provideStringProviderDelegate)
         {
             if (!isContractOkay)
@@ -63,7 +64,7 @@ namespace Honorbuddy.QuestBehaviorCore
             return isContractOkay;
         }
 
-
+		[ContractAnnotation("isContractOkay:false=>halt")]
         public static bool Provides(bool isContractOkay, ProvideStringDelegate provideStringProviderDelegate)
         {
             if (!isContractOkay)

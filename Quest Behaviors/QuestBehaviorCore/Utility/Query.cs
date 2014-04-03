@@ -13,7 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
-
+using JetBrains.Annotations;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
@@ -616,6 +616,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         
         // 24Feb2013-08:11UTC chinajade
+		[ContractAnnotation("null=>false")]
         public static bool IsViable(WoWObject wowObject)
         {
             return
@@ -625,6 +626,7 @@ namespace Honorbuddy.QuestBehaviorCore
         
         
         // 24Feb2013-08:11UTC chinajade
+		[ContractAnnotation("null=>false")]
         public static bool IsViableForFighting(WoWUnit wowUnit)
         {
             return
@@ -638,6 +640,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
+		[ContractAnnotation("wowObject:null=>false")]
         public static bool IsViableForInteracting(WoWObject wowObject,
                                                  bool ignoreMobsInBlackspots,
                                                  double nonCompeteDistance)
