@@ -948,7 +948,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				if (myTarget != SelectedTarget)
 				{
 					var wowUnit = SelectedTarget as WoWUnit;
-					if ((wowUnit != null) && (IsWithinInteractDistance(wowUnit) || Query.IsInLineOfSight(wowUnit)))
+					if ((Query.IsViable(wowUnit)) && (wowUnit.CanSelect) && (IsWithinInteractDistance(wowUnit) || Query.IsInLineOfSight(wowUnit)))
 					{
 						Utility.Target(wowUnit);
 					}

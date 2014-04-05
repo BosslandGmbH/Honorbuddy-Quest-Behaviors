@@ -17,12 +17,16 @@
 
 
 #region Usings
+
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -35,109 +39,125 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 {
-    [CustomBehaviorFileName(@"SpecificQuests\14122-Kezan-TheGreatBankHeist")]
-    public class _14122:CustomForcedBehavior
-    {
-        public _14122(Dictionary<string, string> args):base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"SpecificQuests\14122-Kezan-TheGreatBankHeist")]
+	public class _14122 : CustomForcedBehavior
+	{
+		public _14122(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-        }
-        public int QuestId { get; set; }
-        private bool IsAttached;
-        private bool IsBehaviorDone;
-        private WoWPoint wp = new WoWPoint(-8361.689, 1726.248, 39.94792);
-        public List<WoWGameObject> q14122bank
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 195449 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
-            }
-        }
-        private Composite _root;
+			QuestId = 14122;
+		}
 
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(
-                        ret => wp.Distance(StyxWoW.Me.Location) > 5,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Moving to location"),
-                                    new Action(ret => Navigator.MoveTo(wp)))),
-                    new Decorator(
-                        ret => !StyxWoW.Me.HasAura("Vault Cracking Toolset"),
-                                new Sequence(
-                                    new Action(ret => q14122bank[0].Interact()),
-                                    new Action(ret => StyxWoW.SleepForLagDuration())
-                                    )),
-                        
-                    new Decorator(
-                        ret => !IsAttached,
-                                new Sequence(
-                                    new Action(ret => Lua.Events.AttachEvent("CHAT_MSG_RAID_BOSS_WHISPER", q14122msg)),
-                                    new Action(ret => IsAttached = true))),
-                    new Decorator(
-                        ret => StyxWoW.Me.QuestLog.GetQuestById(14122).IsCompleted,
-                        new PrioritySelector(
-                            new Decorator(
-                                ret => IsAttached,
-                                new Sequence(
-                                    new Action(ret => QBCLog.Info("Detaching")),
-                                    new Action(ret => Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", q14122msg)),
-                                    new Action(ret => IsBehaviorDone = true)
-                                    )))),
-                    new Decorator(
-                        ret => StyxWoW.Me.QuestLog.GetQuestById(14122).IsCompleted && StyxWoW.Me.HasAura("Vault Cracking Toolset"),
-                        new Sequence(
-                            new Action(ret => Lua.DoString("VehicleExit()"))
-                            ))
-                    ));
+		private int QuestId { get; set; }
 
-        }
-        public override bool IsDone
-        {
-            get
-            {
-                return (IsBehaviorDone);
-            }
-        }
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-            }
-        }
-        public void q14122msg(object sender, LuaEventArgs arg)
-        {
-            if (arg.Args[0].ToString().Contains("Infinifold Lockpick"))
-            {
-                StyxWoW.Sleep(1000);
-                Lua.DoString("CastPetAction(4)");
-            }
-            if (arg.Args[0].ToString().Contains("Amazing G-Ray"))
-            {
-                StyxWoW.Sleep(1000);
-                Lua.DoString("CastPetAction(1)");
-            }
-            if (arg.Args[0].ToString().Contains("Kaja'mite Drill"))
-            {
-                StyxWoW.Sleep(1000);
-                Lua.DoString("CastPetAction(5)");
-            }
-            if (arg.Args[0].ToString().Contains("Ear-O-Scope"))
-            {
-                StyxWoW.Sleep(1000);
-                Lua.DoString("CastPetAction(3)");
-            }
-            if (arg.Args[0].ToString().Contains("Blastcrackers"))
-            {
-                StyxWoW.Sleep(1000);
-                Lua.DoString("CastPetAction(2)");
-            }
-        }
-    }
+		private bool IsBehaviorDone;
+		private WoWPoint wp = new WoWPoint(-8361.689, 1726.248, 39.94792);
+		private int _petAbilityIndex;
+
+		private readonly string[] _bossWhisperIcons =
+		{
+			// Amazing G-Ray
+			"INV_Misc_EngGizmos_20.blp",
+			// Blastcrackers
+			"INV_Misc_Bomb_07.blp",
+			// Ear-O-Scope!
+			"INV_Misc_Ear_NightElf_02.blp",
+			// Infinifold Lockpick
+			"INV_Misc_EngGizmos_swissArmy.blp",
+			// Kaja'mite Drill
+			"INV_Weapon_ShortBlade_21.blp"
+		};
+
+
+		public WoWGameObject Bank
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWGameObject>()
+					.Where(ctx => ctx.Entry == 195449)
+					.OrderBy(ctx => ctx.DistanceSqr).FirstOrDefault();
+			}
+		}
+		private Composite _root;
+
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+		}
+
+		IEnumerator MainCoroutine()
+		{
+			if (IsBehaviorDone)
+			{
+				yield return false;
+				yield break;
+			}
+
+			var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+			if (quest.IsCompleted)
+			{
+				if (StyxWoW.Me.HasAura("Vault Cracking Toolset"))
+					Lua.DoString("VehicleExit()");
+				IsBehaviorDone = true;
+				yield return true;
+				yield break;
+			}
+
+			if (StyxWoW.Me.Location.DistanceSqr(wp) > 5 * 5)
+			{
+				TreeRoot.StatusText = "Moving to location";
+				Navigator.MoveTo(wp);
+				yield return true;
+				yield break;
+			}
+
+			if (!StyxWoW.Me.HasAura("Vault Cracking Toolset"))
+			{
+				Bank.Interact();
+				yield return StyxCoroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+				yield break;
+			}
+
+			if (_petAbilityIndex > 0)
+			{
+				yield return StyxCoroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
+				Lua.DoString("CastPetAction({0})", _petAbilityIndex);
+				_petAbilityIndex = 0;
+				yield return true;
+				yield break;
+			}
+
+			yield return false;
+		}
+
+		public override bool IsDone
+		{
+			get { return (IsBehaviorDone); }
+		}
+
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			if (!IsDone)
+			{
+				Lua.Events.AttachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
+				this.UpdateGoalText(QuestId);
+			}
+		}
+
+		public override void OnFinished()
+		{
+			Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
+			base.OnFinished();
+		}
+
+		public void BossWhisperHandler(object sender, LuaEventArgs arg)
+		{
+			var msg = arg.Args[0].ToString();
+			var match = _bossWhisperIcons.FirstOrDefault(msg.Contains);
+			_petAbilityIndex = match != null ? (_bossWhisperIcons.IndexOf(match) + 1) : 0;
+		}
+	}
 }
