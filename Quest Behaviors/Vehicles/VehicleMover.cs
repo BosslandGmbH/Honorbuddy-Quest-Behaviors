@@ -405,8 +405,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
                                     new UtilityBehaviorPS.MoveTo(
                                         context => FinalDestination,
                                         context => FinalDestinationName,
-                                        context => MovementBy,
-                                        context => IsInVehicle()),
+                                        context => MovementBy),
+
                                     new Decorator(context => WoWMovement.ActiveMover.IsMoving,
                                         new Action(context => { WoWMovement.MoveStop(); })),
 
