@@ -683,7 +683,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
                 { "FoodAmount",             new ConstrainInteger(0, 100) },
                 { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
                 { "LootRadius",             new ConstrainInteger(0, 100) },
-                { "MountDistance",          new ConstrainInteger(30, 200) },
+                { "MountDistance",          new ConstrainInteger(0, 200) },
                 { "TicksPerSecond",         new ConstrainInteger(5, 100) }
             };
 			var noConstraintCheck = new NoConstraint();
