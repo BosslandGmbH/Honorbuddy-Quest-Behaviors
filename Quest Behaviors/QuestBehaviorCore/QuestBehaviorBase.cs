@@ -129,6 +129,7 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -164,7 +165,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
 
                 var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-                TerminateWhen = ConditionHelper.ParseConditionString(terminateWhenExpression);
+                TerminateWhen = CompileAttributePredicateExpression("TerminateWhen", terminateWhenExpression);
                 TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
 
                 // Dummy attributes...
@@ -351,6 +352,45 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Base class primitives
+
+        /// <summary>
+        /// Compiles the text form of PREDICATEEXPRESSION, and returns PREDICATEFUNC as a result.
+        /// If the PREDICATEEXPRESSION is vald, then ISEXPRESSIONVALID is set to 'true'; otherwise, it is set to false.
+        /// </summary>
+        /// <param name="attributeName"></param>
+        /// <param name="predicateExpression"></param>
+        /// <param name="isExpressionValid"></param>
+        /// <returns></returns>
+        protected Func<bool> CompileAttributePredicateExpression(string attributeName, string predicateExpression)
+        {
+            var originalProfileDebuggingMode = GlobalSettings.Instance.ProfileDebuggingMode;
+
+            try
+            {
+                // ParseConditionString() does not actually compile anything, unless
+                // ProfileDebuggingMode is enabled.
+                GlobalSettings.Instance.ProfileDebuggingMode = true;
+                var predicateFunc = ConditionHelper.ParseConditionString(predicateExpression);
+
+                // Force evaluation of the predicateFunc...
+                // We do this in case lazy evaluation is going on. This will force the lazy evaluator to go
+                // ahead and compile the expression to evaluate it.
+                predicateFunc();
+
+                GlobalSettings.Instance.ProfileDebuggingMode = originalProfileDebuggingMode;
+                return predicateFunc;
+            }
+            catch (Exception ex)
+            {
+                GlobalSettings.Instance.ProfileDebuggingMode = originalProfileDebuggingMode;
+
+                QBCLog.ProfileError("The \"{0}\" predicate expression ({1}) is not valid.",
+                    attributeName, predicateExpression);
+                IsAttributeProblem = true;
+                return null;
+            }
+        }
+
 
         /// <summary>
         /// <para>This reports problems, and stops BT processing if there was a problem with attributes...
