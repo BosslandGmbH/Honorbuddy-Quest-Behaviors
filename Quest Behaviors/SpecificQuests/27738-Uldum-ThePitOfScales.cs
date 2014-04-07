@@ -93,9 +93,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 PoolRadius = 13.0;
                 
                 // BattlefieldChillPoint is where we go sit while waiting for competition to clear...
-                BattlefieldWaitingArea = FanOutRandom(new WoWPoint(-11410.45, -1097.339, 5.171799), 15.0);
-
-                CombatMaxEngagementRangeDistance = 23.0;
+                BattlefieldWaitingArea = FanOutRandom(new WoWPoint(-11456.44, -1195.402, -2.641717), 10.0);
+                CombatMaxEngagementRangeDistance = 23.0;        
                 CrocEggAvoidanceDistance = 6.0;
 
                 // Semantic coherency / covariant dependency checks --
@@ -115,27 +114,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 
 
         // Variables for Attributes provided by caller
-        public WoWPoint BattlefieldCenterPoint { get; private set; }
-        public WoWPoint BattlefieldWaitingArea { get; private set; }
-        public double BattlefieldRadius { get; private set; }
-        public double CombatMaxEngagementRangeDistance { get; private set; }
-        public double CrocEggAvoidanceDistance { get; private set; }
-        public double PoolRadius { get; private set; }
+        private WoWPoint BattlefieldCenterPoint { get; set; }
+        private WoWPoint BattlefieldWaitingArea { get; set; }
+        private double BattlefieldRadius { get; set; }
+        private double CombatMaxEngagementRangeDistance { get; set; }
+        private double CrocEggAvoidanceDistance { get; set; }
+        private double PoolRadius { get; set; }
 
-        public int AuraId_TahetImprisoned { get; private set; }
-        public int AuraId_TinyTeeth { get; private set; }
-        public int MobId_CaimasThePitMaster { get; private set; }
-        public int MobId_Gorebite { get; private set; }
-        public int MobId_Khamen { get; private set; }
-        public int MobId_Tahet { get; private set; }
-        public int MobId_Thartep { get; private set; }
-        public int[] MobIds_YoungCrocolisk { get; private set; }
-        public int ObjectId_CrocEggs { get; private set; }
+        private int AuraId_TahetImprisoned { get; set; }
+        private int AuraId_TinyTeeth { get; set; }
+        private int MobId_CaimasThePitMaster { get; set; }
+        private int MobId_Gorebite { get; set; }
+        private int MobId_Khamen { get; set; }
+        private int MobId_Tahet { get; set; }
+        private int MobId_Thartep { get; set; }
+        private int[] MobIds_YoungCrocolisk { get; set; }
+        private int ObjectId_CrocEggs { get; set; }
 
-        public int QuestId { get; private set; }
-        public int QuestObjectiveIndex { get; set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        private int QuestId { get; set; }
+        private int QuestObjectiveIndex { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
 
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -148,6 +147,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
         public delegate string StringDelegate(object context);
         public delegate WoWUnit WoWUnitDelegate(object context);
 
+        private static List<WoWUnit> Boss_Caimas
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 46276)
+                        && u.IsAlive
+                        && u.HasAura(86595))
+                    .OrderBy(u => u.DistanceSqr)
+                    .ToList();
+            }
+        }
         private bool IsShakingYoungCrocolisksOff { get; set; }
         private LocalPlayer Me { get { return StyxWoW.Me; } }
         private WoWGameObject PreferredCrocEgg { get; set; }
@@ -164,6 +178,22 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                 });
             }
         }
+
+        private static List<WoWUnit> Ready_Tahet
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(u =>
+                        u.IsValid
+                        && (u.Entry == 46496)
+                        && !u.HasAura(101422))
+                    .OrderBy(u => u.DistanceSqr)
+                    .ToList();
+            }
+        }
+
         private WoWUnit SelectedTarget { get; set; }
 
         private Composite _behaviorTreeHook_CombatMain = null;
@@ -454,15 +484,70 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                         UtilityBehavior_SpankMob(context => SelectedTarget)),
 
                     // If we have competition, go to waiting area until other players clear area...
-                    new Decorator(context => FindCompetingPlayers().Count() > 0,
+                    new Decorator(context => (!Me.Combat && (Ready_Tahet == null)) || (!Me.Combat && FindCompetingPlayers().Count() > 0 && Ready_Tahet.Count > 0),
                         new PrioritySelector(
                             new Decorator(context => !Navigator.AtLocation(BattlefieldWaitingArea),
                                 new Action(context =>
                                 {
-                                    QBCLog.Info("Moving to waiting area while competing players on battlefield");
+                                    QBCLog.Info("Moving to waiting area while competing players are doing quest");
                                     MoveWithinDangerousArea(BattlefieldWaitingArea);
-                                })),
-                            new Wait(TimeSpan.FromSeconds(30), context => false, new ActionAlwaysSucceed()),
+                                }
+                            )),
+                            new Decorator(context => Boss_Caimas.Count > 0 && Boss_Caimas[0].Location.Distance(Me.Location) <= 25,
+                                new Action(context =>
+                                {
+                                    QBCLog.Info("Atacking Boss to get credit and complete quest");
+                                    var spell = "";
+                                    switch (Me.Class)
+                                    {
+                                        case WoWClass.Mage:
+                                            spell = "Ice Lance";
+                                            break;
+                                        case WoWClass.Druid:
+                                            spell = "Moonfire";
+                                            break;
+                                        case WoWClass.Paladin:
+                                            spell = "Judgment";
+                                            break;
+                                        case WoWClass.Priest:
+                                            spell = "Shadow Word: Pain";
+                                            break;
+                                        case WoWClass.Shaman:
+                                            spell = "Flame Shock";
+                                            break;
+                                        case WoWClass.Warlock:
+                                            spell = "Corruption";
+                                            break;
+                                        case WoWClass.DeathKnight:
+                                            spell = "Dark Command";
+                                            break;
+                                        case WoWClass.Hunter:
+                                            spell = "Arcane Shot";
+                                            break;
+                                        case WoWClass.Warrior:
+                                            if (SpellManager.CanCast("Shoot"))
+                                                spell = "Shoot";
+                                            if (SpellManager.CanCast("Throw"))
+                                                spell = "Throw";
+                                            break;
+                                        case WoWClass.Rogue:
+                                            if (SpellManager.CanCast("Shoot"))
+                                                spell = "Shoot";
+                                            if (SpellManager.CanCast("Throw"))
+                                                spell = "Throw";
+                                            break;
+                                        case WoWClass.Monk:
+                                            spell = "Provoke";
+                                            break;
+                                    }
+                                    WoWMovement.MoveStop();
+                                    Boss_Caimas[0].Target();
+                                    Boss_Caimas[0].Face();
+                                    SpellManager.Cast(spell);
+                                }
+                            )),
+                            //new Wait(TimeSpan.FromSeconds(30), context => false, new ActionAlwaysSucceed()),
+
                             new ActionAlwaysSucceed()
                         )),
                     
@@ -1321,6 +1406,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             { pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
 
             return (pathDistance);
+        }
+        private static int RandomNumber(int min, int max)
+        {
+            var random = new Random();
+            return random.Next(min, max);
         }
     }
     #endregion
