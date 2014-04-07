@@ -157,7 +157,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
             {
                 int waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
 
-                _timer = new WaitTimer(TimeSpan.FromMilliseconds(waitDuration));
+                _timer = new Styx.Common.Helpers.WaitTimer(TimeSpan.FromMilliseconds(waitDuration));
                 _waitTimeAsString = Utility.PrettyTime(_timer.WaitTime);
 
                 _timer.Reset();
