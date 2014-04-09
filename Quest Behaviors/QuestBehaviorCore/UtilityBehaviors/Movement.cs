@@ -106,7 +106,7 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 return new List<Composite>()
                 {
-                    new Decorator(context => MovementByDelegate(context) != MovementByType.None,
+                    new Decorator(context => MovementByDelegate(context) != MovementByType.None && WoWMovement.ActiveMover != null,
                         new PrioritySelector(
                             new ActionFail(context =>
                             {
@@ -163,7 +163,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                     ),
 
                                     new Decorator(context => CachedMovementBy != MovementByType.None,
-                                        new Action(context => QBCLog.Warning("Unable to reach destination({0})", CachedDestination)))
+                                        new Action(context => QBCLog.Warning("Unable to reach destination({0}) from {1}", CachedDestination, WoWMovement.ActiveMover.Location)))
                                 ))
                         ))
                     };
@@ -254,10 +254,6 @@ namespace Honorbuddy.QuestBehaviorCore
             private Composite TryNavigator()
             {
                 return new PrioritySelector(
-                    // If we are flying, land and set up for ground travel...
-                    new Decorator(context => WoWMovement.ActiveMover.IsFlying,
-                        new LandAndDismount("[QB] Preparing for ground travel")),
-
                     // If we can navigate to destination, use navigator...
                     new Decorator(context => Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, CachedDestination),
                         new PrioritySelector(
@@ -270,8 +266,8 @@ namespace Honorbuddy.QuestBehaviorCore
 
                     new ActionFail(context =>
                     {
-                       QBCLog.DeveloperInfo("Navigator unable to move to destination({0}, {1}) on ground--try MovementBy=\"FlightorPreferred\".",
-                           CachedDestinationName, CachedDestination.ToString());
+                       QBCLog.DeveloperInfo("Navigator unable to move from {0} to destination({1}, {2}) on ground--try MovementBy=\"FlightorPreferred\".",
+                           WoWMovement.ActiveMover.Location, CachedDestinationName, CachedDestination.ToString());
                     })
                 );
             }

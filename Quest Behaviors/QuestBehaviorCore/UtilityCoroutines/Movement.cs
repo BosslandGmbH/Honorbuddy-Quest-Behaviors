@@ -66,6 +66,13 @@ namespace Honorbuddy.QuestBehaviorCore
 				yield break;
 			}
 
+			var activeMover = WoWMovement.ActiveMover;
+			if (activeMover == null)
+			{
+				yield return false;
+				yield break;
+			}
+
 			if (!IsMoveToMessageThrottled)
 			{
 				if (destinationName == null)
@@ -105,7 +112,7 @@ namespace Honorbuddy.QuestBehaviorCore
 							yield break;
 						break;
 					case MovementByType.ClickToMoveOnly:
-						var navType = WoWMovement.ActiveMover.MovementInfo.CanFly ? NavType.Fly : NavType.Run;
+						var navType = activeMover.MovementInfo.CanFly ? NavType.Fly : NavType.Run;
 						yield return TryClickToMove(destination,  navType);
 						if ((bool)Coroutine.Current.SubRoutineResult)
 							yield break;
@@ -144,6 +151,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			WoWPoint destination,
 			NavType navType = NavType.Fly)
 		{
+			var activeMover = WoWMovement.ActiveMover;
 			// NB: Do not 'dismount' for CtM.  We may be using it for aerial navigation, also.
 			yield return SetMountState(destination,  navType);
 			if ((bool)Coroutine.Current.SubRoutineResult)
@@ -151,7 +159,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			// If Navigator can generate a parital path for us, take advantage of it...
 			var tempDestination =
-				Navigator.GeneratePath(WoWMovement.ActiveMover.Location, destination)
+				Navigator.GeneratePath(activeMover.Location, destination)
 					.Where(p => !Navigator.AtLocation(p))
 					.DefaultIfEmpty(destination)
 					.FirstOrDefault();
@@ -167,8 +175,9 @@ namespace Honorbuddy.QuestBehaviorCore
 			// NB: Although Flightor will fall back to Navigator, there are side-effects.
 			// Flightor will mount even if UseMount is disabled.  So, if we don't want to mount
 			// we don't want to even try Flightor; otherwise, unexpected side-effects can ensue.
-			if (Mount.UseMount || WoWMovement.ActiveMover.IsSwimming 
-				|| !Navigator.CanNavigateWithin(StyxWoW.Me.Location, destination, 5))
+			var activeMover = WoWMovement.ActiveMover;
+			if (Mount.UseMount || activeMover.IsSwimming
+				|| !Navigator.CanNavigateWithin(activeMover.Location, destination, 5))
 			{
 				Flightor.MoveTo(destination, 15.0f, true);
 				yield return true;
@@ -180,15 +189,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
 		private static IEnumerator TryNavigator(WoWPoint destination,  string destinationName = null)
 		{
-			// If we are flying, land and set up for ground travel...
-			if (WoWMovement.ActiveMover.IsFlying)
-			{
-				yield return LandAndDismount("[QB] Preparing for ground travel");
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
-			}
+			var activeMover = WoWMovement.ActiveMover;
 			// If we can navigate to destination, use navigator...
-			if (Navigator.CanNavigateFully(WoWMovement.ActiveMover.Location, destination))
+			if (Navigator.CanNavigateFully(activeMover.Location, destination))
 			{
 				var moveResult = Navigator.MoveTo(destination);
 				if (Navigator.GetRunStatusFromMoveResult(moveResult) == RunStatus.Success)
@@ -200,7 +203,8 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (destinationName == null)
 				destinationName = destination.ToString();
 			QBCLog.DeveloperInfo(
-				"Navigator unable to move to destination({0}, {1}) on ground--try MovementBy=\"FlightorPreferred\".",
+				"Navigator unable to move from {0} to destination({1}, {2}) on ground --try MovementBy=\"FlightorPreferred\".",
+				activeMover.Location,
 				destinationName,
 				destination.ToString());
 			yield return false;

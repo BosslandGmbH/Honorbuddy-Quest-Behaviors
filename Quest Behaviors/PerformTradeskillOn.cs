@@ -100,8 +100,7 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 
 		private Composite CreateTradeSkillCast()
 		{
-			return
-				new PrioritySelector(
+			return new PrioritySelector(
 					new Decorator(ctx => _numOfCasts >= NumOfTimes, new Action(ctx => _isBehaviorDone = true)),
 
 					new Decorator(ret => StyxWoW.Me.IsCasting,
@@ -118,14 +117,18 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 								})),
 
 						new Action(ctx => _recipeSpell.Cast()),
-						new WaitContinue(TimeSpan.FromMilliseconds(2000), ctx => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()),
 
+						// check if we're casting on an item.
 						new DecoratorContinue(ctx => CastOnItemId.HasValue,
 							new Sequence(ctx => StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == CastOnItemId.Value),
 								new DecoratorContinue(ctx => ctx == null,
 									new Action(ctx => QBCLog.Fatal("Could not find ItemId({0}).", CastOnItemId.Value))),
-								new Action(ctx => ((WoWItem)ctx).UseContainerItem()),
-								new WaitContinue(TimeSpan.FromMilliseconds(2000), ctx => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()))),
+								new Action(ctx => ((WoWItem)ctx).Use()),
+								new Sleep(Delay.BeforeButtonClick),
+								// click the enchant confirmation botton.
+								new Action(ctx => Lua.DoString("local _,frame = StaticPopup_Visible('REPLACE_ENCHANT') if frame then StaticPopup_OnClick(frame, 1) end")))),
+
+						new WaitContinue(TimeSpan.FromMilliseconds(2000), ctx => StyxWoW.Me.IsCasting, new ActionAlwaysSucceed()),
 						new Action(ctx => _numOfCasts++),
 				// wait for cast to finish.
 						new WaitContinue(TimeSpan.FromMilliseconds(6000), ctx => !StyxWoW.Me.IsCasting, new ActionAlwaysSucceed())));
@@ -135,7 +138,10 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 	    {
 		    int maxRepeat = int.MaxValue;
 			var spellReagents = recipe.InternalInfo.SpellReagents;
-		    for (int index=0; index< spellReagents.Reagent.Length; index++)
+			if (spellReagents.Reagent == null)
+				return maxRepeat;
+
+		    for (int index=0; index < spellReagents.Reagent.Length; index++)
 		    {
 			    var reagent = spellReagents.Reagent[index];
 			    if (reagent == 0)
@@ -192,7 +198,11 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 				QBCLog.ProfileError("TradeSkillId {0} is not a valid tradeskill Id.", TradeSkillId);
 			}
 
-			_recipeSpell = GetRecipeSpell(skillLine, TradeSkillItemId);
+			// special case for Runeforging since it's not considered a profession.
+			_recipeSpell = skillLine == SkillLine.Runeforging 
+				? WoWSpell.FromId(TradeSkillItemId) 
+				: GetRecipeSpell(skillLine, TradeSkillItemId);
+
 			if (_recipeSpell == null || !_recipeSpell.IsValid)
 			{
 				QBCLog.ProfileError("TradeSkillItemId {0} is not a valid Item or Spell Id.", TradeSkillId);
