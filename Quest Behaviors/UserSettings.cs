@@ -938,7 +938,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 				if ((providedType == typeof(int) && (backingType == typeof(bool))))
 				{ throw new ArgumentException(); }
 
-				return Convert.ChangeType(value, backingType);
+				return Convert.ChangeType(value, Nullable.GetUnderlyingType(backingType) ?? backingType);
 			}
 			catch (Exception)
 			{
