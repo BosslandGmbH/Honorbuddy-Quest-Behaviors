@@ -166,6 +166,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
                 TerminateWhen = CompileAttributePredicateExpression("TerminateWhen", terminateWhenExpression);
+                if (TerminateWhen == null)
+                    { IsAttributeProblem = true; }
+
                 TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
 
                 // Dummy attributes...
@@ -352,46 +355,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         #region Base class primitives
-
-        /// <summary>
-        /// Compiles the text form of PREDICATEEXPRESSION, and returns PREDICATEFUNC as a result.
-        /// If the PREDICATEEXPRESSION is vald, then ISEXPRESSIONVALID is set to 'true'; otherwise, it is set to false.
-        /// </summary>
-        /// <param name="attributeName"></param>
-        /// <param name="predicateExpression"></param>
-        /// <param name="isExpressionValid"></param>
-        /// <returns></returns>
-        protected Func<bool> CompileAttributePredicateExpression(string attributeName, string predicateExpression)
-        {
-            var originalProfileDebuggingMode = GlobalSettings.Instance.ProfileDebuggingMode;
-
-            try
-            {
-                // ParseConditionString() does not actually compile anything, unless
-                // ProfileDebuggingMode is enabled.
-                GlobalSettings.Instance.ProfileDebuggingMode = true;
-                var predicateFunc = ConditionHelper.ParseConditionString(predicateExpression);
-
-                // Force evaluation of the predicateFunc...
-                // We do this in case lazy evaluation is going on. This will force the lazy evaluator to go
-                // ahead and compile the expression to evaluate it.
-                predicateFunc();
-
-                GlobalSettings.Instance.ProfileDebuggingMode = originalProfileDebuggingMode;
-                return predicateFunc;
-            }
-            catch (Exception ex)
-            {
-                GlobalSettings.Instance.ProfileDebuggingMode = originalProfileDebuggingMode;
-
-                QBCLog.ProfileError("The \"{0}\" predicate expression ({1}) is not valid.",
-                    attributeName, predicateExpression);
-                IsAttributeProblem = true;
-                return null;
-            }
-        }
-
-
         /// <summary>
         /// <para>This reports problems, and stops BT processing if there was a problem with attributes...
         /// We had to defer this action, as the 'profile line number' is not available during the element's
@@ -486,7 +449,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // Only installs behaviors the concrete class has defined...
-        private Composite BehaviorHookInstall(string behaviorHookName, Composite behavior)
+        protected Composite BehaviorHookInstall(string behaviorHookName, Composite behavior)
         {
             if (behavior != null)
             {
@@ -500,7 +463,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         // Remove a specific installed behavior...
         // NB: it nulls the behavior, after it has been detached.
-        private void BehaviorHookRemove(string behaviorHookName, ref Composite behavior)
+        protected void BehaviorHookRemove(string behaviorHookName, ref Composite behavior)
         {
             if (behavior != null)
             {
@@ -675,6 +638,43 @@ namespace Honorbuddy.QuestBehaviorCore
             return new PrioritySelector(
                 // empty, for now...
                 );
+        }
+        #endregion
+
+
+        #region Helpers
+
+        /// <summary>
+        /// Compiles the text form of PREDICATEEXPRESSION, and returns PREDICATEFUNC as a result.
+        /// If the PREDICATEEXPRESSION is invald, then 'null' is returned.
+        /// </summary>
+        /// <param name="attributeName"></param>
+        /// <param name="predicateExpression"></param>
+        /// <returns></returns>
+        public static Func<bool> CompileAttributePredicateExpression(string attributeName, string predicateExpression)
+        {
+            var originalProfileDebuggingMode = GlobalSettings.Instance.ProfileDebuggingMode;
+
+            try
+            {
+                // ParseConditionString() does not actually compile anything, unless
+                // ProfileDebuggingMode is enabled.
+                GlobalSettings.Instance.ProfileDebuggingMode = true;
+                var predicateFunc = ConditionHelper.ParseConditionString(predicateExpression);
+
+                if (predicateFunc == null)
+                {
+                    QBCLog.ProfileError("The \"{0}\" predicate expression ({1}) is not valid.",
+                                        attributeName, predicateExpression);
+                }
+
+                return predicateFunc;
+            }
+
+            finally
+            {
+                GlobalSettings.Instance.ProfileDebuggingMode = originalProfileDebuggingMode;
+            }
         }
         #endregion
     }

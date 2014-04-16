@@ -137,6 +137,7 @@
     <Compile Include="Deprecated\CastSpellOn.cs" />
     <Compile Include="Deprecated\UseItemOn.cs" />
     <Compile Include="Development\TankVehicle.cs" />
+    <Compile Include="Hooks\DoWhen.cs" />
     <Compile Include="Hooks\BarrelHook.cs" />
     <Compile Include="Hooks\BlackrockMaskHook.cs" />
     <Compile Include="Hooks\MountHook.cs" />

@@ -10,11 +10,6 @@
 //
 
 #region Summary and Documentation
-
-// DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_InteractWith
-//
-//
 // QUICK DOX:
 // INTERACTWITH interacts with mobs or objects in various fashions, including:
 //  * Gossiping with the mob through a set of dialogs
@@ -360,20 +355,19 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
-using System.Windows.Controls.Primitives;
 using System.Xml.Linq;
-using Bots.DungeonBuddy.Helpers;
+
+using JetBrains.Annotations;
+
 using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
-using JetBrains.Annotations;
 using Styx;
-using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -382,9 +376,8 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Styx.CommonBot.Coroutines;
-using Action = Styx.TreeSharp.Action;
 
+using Action = Styx.TreeSharp.Action;
 #endregion
 
 namespace Honorbuddy.Quest_Behaviors.InteractWith
@@ -1003,7 +996,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				if (InteractByUsingItemId > 0)
 				{
 					yield return
-						UtilityCoroutine.UseItem(
+						UtilityCoroutine.UseItemOnTarget(
 							InteractByUsingItemId,
 							SelectedTarget,
 							() =>
@@ -1485,9 +1478,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			// NB: Mobs frequently will not offer their gossip options while they are in combat.
 			if (InteractByGossipOptions.Length > 0 && Query.IsViable(selectedUnit) && selectedUnit.Combat)
 			{
-				var selectetUnitTarget = selectedUnit.CurrentTarget;
-				if (selectetUnitTarget != null && selectetUnitTarget.Attackable && selectetUnitTarget.IsHostile)
-					outgoingUnits.Add(selectetUnitTarget);
+				var selectedTarget = selectedUnit.CurrentTarget;
+				if (selectedTarget != null && selectedTarget.Attackable && selectedTarget.IsHostile)
+					outgoingUnits.Add(selectedTarget);
 			}
 
 			// if we have a target that needs to be killed before interaction can take place then make it so.

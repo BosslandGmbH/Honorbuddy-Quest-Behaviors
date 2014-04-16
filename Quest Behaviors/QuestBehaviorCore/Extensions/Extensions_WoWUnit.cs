@@ -24,7 +24,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// Similar to WoWUnit.Mounted, but also tests for auras that provide a 'mounted' characteristic.
         /// <para>Notes:<list type="bullet">
         /// <item><description><para> * The following auras count as 'mounted' auras:
-        /// Druid(Flight Form), Druid(Swift Fight Form, Druid(Travel Form), Shaman(Ghost Wolf),
+        /// Druid(Flight Form), Druid(Swift Fight Form), Druid(Travel Form), Shaman(Ghost Wolf),
         /// Worgen(Running Wild).</para></description></item>
         /// </list></para>
         /// </summary>
