@@ -567,7 +567,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 				OriginalConfiguration.TryGetValue(settingDescriptor.Name, out originalValue);
 
 
-				if (!onlyApplyChangesIfDifferent || !valueWanted.Equals(previousValue))
+				if (!onlyApplyChangesIfDifferent || !object.Equals(valueWanted, previousValue))
 				{
 					settingDescriptor.SetValue(valueWanted);
 
@@ -646,7 +646,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 			{
 				var currentValue = setting.Item1.GetValue();
 
-				if (currentValue.Equals(setting.Item2))
+				if (object.Equals(currentValue, setting.Item2))
 				{ continue; }
 
 				builder.AppendFormat("{0}{1}{2} = {3} (originally: {4})",
@@ -929,7 +929,7 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 		public object ToCongruentObject(object value)
 		{
 			var backingType = PropInfo.PropertyType;
-			var providedType = value.GetType();
+			var providedType = value != null ?  value.GetType() : backingType;
 
 			try
 			{
@@ -938,13 +938,21 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 				if ((providedType == typeof(int) && (backingType == typeof(bool))))
 				{ throw new ArgumentException(); }
 
-				return Convert.ChangeType(value, Nullable.GetUnderlyingType(backingType) ?? backingType);
+				// if value is null then no conversion is needed.
+				if (value == null)
+				{
+					// if backing type can't be assigned a null value then throw an exception.
+					if (Nullable.GetUnderlyingType(backingType) == null)
+						{throw new ArgumentException();}
+					return null;
+				}
+				return Convert.ChangeType(value,  backingType);
 			}
 			catch (Exception)
 			{
 				var message = string.Format("For setting '{0}', the provided value '{1}' ({2})"
 											+ " cannot be converted to the backing type ({3}).",
-											Name, value, providedType.Name, backingType.Name);
+											Name, value ?? "(NULL)", providedType.Name, backingType.Name);
 				QBCLog.Error(message);
 				throw new ArgumentException(message);
 			}
