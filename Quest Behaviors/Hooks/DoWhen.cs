@@ -416,20 +416,34 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
             // Process each of the activites in play...
             var oldLoggingContext = QBCLog.BehaviorLoggingContext;
             QBCLog.BehaviorLoggingContext = this;
-            foreach (var activity in PersistedActivities)
-            {
-                yield return activity.Execute();
-
-                // If we have something in progress, don't look at rest..
-                if ((bool)Coroutine.Current.SubRoutineResult)
-                    { break; }
-            }
-            QBCLog.BehaviorLoggingContext = oldLoggingContext;
+			try
+			{ 
+				yield return ExecuteActivities();
+			}
+			finally
+			{
+				// ensure the QBCLog.BehaviorLoggingContext is reverted back to it's previous value in the event an exception was thown
+				QBCLog.BehaviorLoggingContext = oldLoggingContext;
+			}
+			if ((bool)Coroutine.Current.SubRoutineResult)
+				yield break;
 
             // Done for this visit...
             _persistedActivityThrottle.Reset();
-            yield return true;
+	        yield return false;
         }
+
+		IEnumerator ExecuteActivities()
+		{
+			foreach (var activity in PersistedActivities)
+			{
+				yield return activity.Execute();
+				if ((bool)Coroutine.Current.SubRoutineResult)
+					yield break;
+			}
+			yield return false;
+		}
+
         #endregion
 
 
