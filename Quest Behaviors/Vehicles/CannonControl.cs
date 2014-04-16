@@ -10,247 +10,278 @@
 //
 
 #region Summary and Documentation
+
 // Shoots a Cannon
 // ##Syntax##
-// VehicleId: ID of the vehicle
-// QuestId: Id of the quest to perform this behavior on
-// MaxAngle: Maximum Angle to aim, use /dump VehicleAimGetNormAngle() in game to get the angle
-// MinAngle: Minimum Angle to aim, use /dump VehicleAimGetNormAngle() in game to get the angle
-// Buttons:A series of numbers that represent the buttons to press in order of importance, separated by comma, for example Buttons ="2,1" 
-// ExitButton: (Optional)Button to press to exit the cannon. 1-12
-#endregion
+//		MobIdN: [optional; default: Kill everything that moves] Identifies the mobs to shoot at with cannon
+//		VehicleId: ID of the vehicle
+//		MaxAngle: Maximum Angle to aim, use /dump VehicleAimGetAngle() in game to get the angle
+//		MinAngle: Minimum Angle to aim, use /dump VehicleAimGetAngle() in game to get the angle
+//		Gravity: [optional; default: 30] The amount of gravity that effects projectile/s. 
+//		Velecity:[optional; default: 70] The velocity of the Projectile/s
+//		Buttons: A series of numbers that represent the buttons to press in order of importance, 
+//				separated by comma, for example Buttons ="2,1" 
+//		ExitButton: [optional] Button to press to exit the cannon such as the 'Skeletal Gryphon Escape'
+//				ability that can be used on the cannon for the quest 'Massacre At Light's Point'. 1-12
 
+#endregion
 
 #region Examples
+
 #endregion
 
-
 #region Usings
+
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using System.Xml.Linq;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
+using JetBrains.Annotations;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
+using Tripper.Tools.Math;
 using Action = Styx.TreeSharp.Action;
-#endregion
 
+#endregion
 
 namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 {
-    [CustomBehaviorFileName(@"Vehicles\CannonControl")]
-    public class CannonControl : CustomForcedBehavior
-    {
-        public CannonControl(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"Vehicles\CannonControl")]
+	public class CannonControl : QuestBehaviorBase
+	{
+		private Composite _root;
+		private WoWUnit _target;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(-1, 12), null, null);
-                ExitButton = GetAttributeAsNullable<int>("ExitButton", true, ConstrainAs.HotbarButton, null) ?? 0;
-                MaxAngle = GetAttributeAsNullable<double>("MaxAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
-                MinAngle = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(0.0, 1.5), null) ?? 0;
-                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+		public CannonControl(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				// Primary attributes...
+				MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
+				if (MobIds != null && !MobIds.Any())
+					MobIds = GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null);
 
-                //ExitButton += 120;
+				VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+				
+				Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(-1, 12), null, null);
 
-                //for (int i = 0; i < Buttons.Length; ++i)
-               // { Buttons[i] += 120; }
-            }
+				ExitButton = GetAttributeAsNullable<int>("ExitButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+				MaxAngle = GetAttributeAsNullable<double>("MaxAngle", true, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 0;
+				MinAngle = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 0;
+				Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
+				Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.0, 80), null) ?? 30;
+				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+				QuestRequirementComplete =
+					GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ??
+					QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ??
+										QuestInLogRequirement.InLog;
+				VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
+				WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
+				Weapons = Buttons.Select(b => new VehicleWeapon(b, WeaponArticulation, Velocity, Gravity)).ToArray();
+			}
 
-
-        // Attributes provided by caller
-        public int[] Buttons { get; private set; }
-        public int ExitButton { get; private set; }
-        public double MaxAngle { get; private set; }
-        public double MinAngle { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public int VehicleId { get; private set; }
-
-        // Private variables for internal state
-        //private bool                _aimed;
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-        readonly Stopwatch _thottleTimer = new Stopwatch();
-        Random rand = new Random();
-
-        // Private properties
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        ~CannonControl()
-        {
-            Dispose(false);
-        }
+		// Attributes provided by caller
+		private int[] Buttons { get; set; }
+		private int[] MobIds { get; set; }
+		private int ExitButton { get; set; }
+		private double MaxAngle { get; set; }
+		private double MinAngle { get; set; }
+		private double? Gravity { get; set; }
+		private double? Velocity { get; set; }
+		private int VehicleId { get; set; }
+		private WoWPoint VehicleSearchLocation { get; set; }
 
+		// Private variables for internal state
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+		// Private properties
+		private VehicleWeapon[] Weapons { get; set; }
+		private WeaponArticulation WeaponArticulation { get; set; }
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId
+		{
+			get { return ("$Id$"); }
+		}
 
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
+		public override string SubversionRevision
+		{
+			get { return ("$Revision$"); }
+		}
 
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
+		#region Overrides of QuestBehaviorBase
 
-            _isDisposed = true;
-        }
+		protected override Composite CreateMainBehavior()
+		{
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+		}
 
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-        public WoWObject Vehicle
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWObject>(true).Where(o => o.Entry == VehicleId).
-                    OrderBy(o => o.Distance).FirstOrDefault();
-            }
-        }
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				this.UpdateGoalText(QuestId);
+			}
+		}
 
+		public override void OnFinished()
+		{
+			if (IsDone && Query.IsInVehicle())
+			{
+				if (ExitButton > 0)
+					CastPetAction(ExitButton);
+				else
+					Lua.DoString("VehicleExit()");
+			}
+			base.OnFinished();
+		}
 
-        #region Overrides of CustomForcedBehavior
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//  
+		}
 
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(c => Vehicle == null,
-                            new Action(c => QBCLog.Fatal("No cannons found."))
-                        ),
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin));
+		}
 
-                    new Decorator(c => Vehicle != null && !Query.IsInVehicle(),
-                        new Action(c =>
-                        {
-                            if (!Vehicle.WithinInteractRange)
-                            {
-                                Navigator.MoveTo(Vehicle.Location);
-                                QBCLog.Info("Moving to Cannon");
-                            }
-                            else
-                                Vehicle.Interact();
-                        })
-                    ),
-                    new Decorator(c => Query.IsInVehicle() && Vehicle != null,
-                        new Action(c =>
-                        {
-                            // looping since current versions of HB seem to be unresponsive for periods of time
-                            while (true)
-                            {
-                                var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-                                if (quest.IsCompleted)
-                                {
-                                    if (ExitButton > 0)
-                                        Lua.DoString("CastPetAction({0})", ExitButton);
-                                        //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s)", ExitButton);
-                                    else
-                                        Lua.DoString("VehicleExit()");
-                                    _isBehaviorDone = true;
-                                    return RunStatus.Success;
-                                }
-                                else
-                                {
+		#endregion
 
+		#region Logic
 
-                                        Lua.DoString("VehicleAimRequestNormAngle({0})",
-                                            MinAngle + (rand.NextDouble() * (MaxAngle - MinAngle)));
-									    StyxWoW.Sleep(250);
-                                        foreach (int b in Buttons)
-                                        {
-                                            //Lua.DoString("local _,s,_ = GetActionInfo({0}) local c = GetSpellCooldown(s) if c == 0 then CastSpellByID(s) end ", b);
-                                            //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
-                                            //Lua.DoString("local _,s,_ = GetActionInfo({0}) CastSpellByID(s) ", b);
-											Lua.DoString("CastPetAction({0})", b);
-                                        }
-                                        //}
-                                    
-                                    StyxWoW.Sleep(1000);
-                                }
+		IEnumerator MainCoroutine()
+		{
+			// move to cannon.
+			if (!Query.IsInVehicle())
+			{
+				var cannon = Vehicle;
+				if (cannon == null)
+				{
+					if (Navigator.AtLocation(VehicleSearchLocation))
+					{
+						QBCLog.Fatal("No cannons found.");
+						yield return false;
+						yield break;
+					}
+					yield return UtilityCoroutine.MoveTo(VehicleSearchLocation, "Vehicle search area", MovementBy);
+				}
+				else if (!cannon.WithinInteractRange)
+				{
+					yield return UtilityCoroutine.MoveTo(cannon.Location, cannon.Name, MovementBy);
+				}
+				else
+				{
+					cannon.Interact();
+				}
+				yield return true;
+				yield break;
+			}
 
-                                _thottleTimer.Reset();
-                                _thottleTimer.Start();
-                            }
-                        }))
-                ));
-        }
+			while (!IsDone && Query.IsInVehicle())
+			{
+				// find the first weapon that is ready.
+				var weapon = Weapons.FirstOrDefault(w => w.IsWeaponReady());
+				if (weapon != null)
+				{
+					_target = StyxWoW.Me.CurrentTarget;
+					//if (!Query.IsViable(_target) || !weapon.WeaponAim(_target, false))
+					//{
+					//	// acquire a target that is within shooting range
+					//	_target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n, false));
+					//}
+					// fire away.
+					if (_target != null && weapon.WeaponAim(_target) )// && weapon.WeaponFire())
+					{
+						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+					}
+				}
+				yield return StyxCoroutine.EndTick;
+			}
+			yield return false;
+		}
 
+		public WoWUnit Vehicle
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == VehicleId).
+					OrderBy(o => o.Location.DistanceSqr(VehicleSearchLocation)).FirstOrDefault();
+			}
+		}
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		public IEnumerable<WoWUnit> Npcs
+		{
+			get
+			{
+				var killEverything = MobIds == null || !MobIds.Any();
+				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.IsAlive 
+					&& (killEverything && o.Attackable && o.CanSelect && o.IsHostile || MobIds.Contains((int)o.Entry))).
+					OrderBy(o => o.DistanceSqr);
+			}
+		}
 
+		/// <summary>
+		/// Casts the pet action.
+		/// </summary>
+		/// <param name="index">The index.</param>
+		/// <returns>Returns true if cast was successful; false otherwise</returns>
+		bool CastPetAction(int index)
+		{
+			return Lua.GetReturnVal<bool>(string.Format("if GetPetActionCooldown({0}) ~= 0 then return false end CastPetAction({0}) return true", index), 0);
+		}
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-            }
-        }
-
-        #endregion
-    }
+		#endregion
+	}
 }

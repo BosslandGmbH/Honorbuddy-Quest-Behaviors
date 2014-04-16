@@ -20,6 +20,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -318,7 +319,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private static readonly TimeSpan _inCompetitionMaxWaitTime = TimeSpan.FromSeconds(90);
         private static readonly TimeSpan _inCompetitionSweepTime = TimeSpan.FromSeconds(10/*mins*/ * 60 /*secs*/);
         private static WaitTimer _inCompetitionSweepTimer = null;
-
+	    private static PerFrameCachedValue<bool> _isInVehicle;
         
         // 23Mar2013-05:38UTC chinajade
         public static bool IsInLineOfSight(WoWObject wowObject)
@@ -337,8 +338,9 @@ namespace Honorbuddy.QuestBehaviorCore
         // 25Nov2013-09:30UTC chinajade
         public static bool IsInVehicle()
         {
-            return StyxWoW.Me.InVehicle
-                || Lua.GetReturnVal<bool>("return IsPossessBarVisible()", 0);
+			return _isInVehicle ?? (_isInVehicle = 
+				new PerFrameCachedValue<bool>(() => StyxWoW.Me.InVehicle
+					|| Lua.GetReturnVal<bool>("return IsPossessBarVisible()", 0)));
         }
 
 

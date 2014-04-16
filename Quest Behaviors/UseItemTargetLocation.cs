@@ -16,6 +16,7 @@
 // Allows you to use item on an object or at a location
 // ##Syntax##
 // [Optional] QuestId: Id of the quest. If specified the QB will run until the quest is completed
+// [Optional] NumOfTimes: The number of times to use item. (default: [UNTIL QUEST IS DONE] if QuestId specified; 1 otherwise)
 // [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
 // ItemId: Id of the item that will be used
 // [Optional]WaitTime: Time to wait after using the item 
@@ -102,7 +103,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                 MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "ObjectId" });
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
-                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+				// default value for NumOfTimes is null if a questId is provided, otherwise 1.
+				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? (QuestId !=0 ? null: (int?)1);
                 ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
@@ -133,7 +135,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         public double MobHpPercentLeft { get; private set; }
         public WoWPoint MoveToLocation { get; private set; }
         public NpcStateType NpcState { get; private set; }
-        public int NumOfTimes { get; private set; }
+        public int? NumOfTimes { get; private set; }
         public ObjectType ObjType { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -145,7 +147,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
         // Private variables for internal state
         private bool _isBehaviorDone;
-        private bool _isDisposed;
         private Composite _root;
 	    private WaitTimer _waitTimer;
 
@@ -208,37 +209,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        ~UseItemTargetLocation()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
@@ -247,6 +217,9 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                 new PrioritySelector(
 					// don't drop down while wait timer is running
 					new Decorator(ctx => !_waitTimer.IsFinished, new ActionAlwaysSucceed()),
+
+					new Decorator(ret => NumOfTimes.HasValue && Counter > NumOfTimes,
+						new Action(ret => _isBehaviorDone = true)),
 
                     // If item is not in our backpack, behavior is done...
                     new Decorator(context => Item == null,
@@ -262,9 +235,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                         new Action(context => QBCLog.Info("Waiting for {0} to leave cooldown (time remaining: {1})",
                                                          Item.Name, Item.CooldownTimeLeft))),
 
-                    new Decorator(ret => Counter > NumOfTimes && QuestId == 0,
-                        new Action(ret => _isBehaviorDone = true)),
-
 					new Decorator(
 						ret => UseType == QBType.PointToPoint,
 						new PrioritySelector(
@@ -272,7 +242,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 								ret => Me.Location.Distance(MoveToLocation) > 3,
 								new Action(ret => Navigator.MoveTo(MoveToLocation))),
 							new Sequence(
-								new Action(ret => TreeRoot.StatusText = "Using Quest Item: " + Counter + " Out of " + NumOfTimes + " Times"),
+								new Action(ret => TreeRoot.StatusText = string.Format("Using Quest Item: {0} Out of {1} Times",
+									Counter, NumOfTimes.HasValue ? NumOfTimes.ToString() : "unlimited")),
 								new Action(ret => Navigator.PlayerMover.MoveStop()),
 								new Action(ret => Me.SetFacing(ClickToLocation)),
 								new SleepForLagDuration(),
@@ -306,13 +277,14 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                             new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
                                             )),
                                     new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
+                                        new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times", 
+											UseObject.Name, Counter, NumOfTimes.HasValue ? NumOfTimes.ToString() : "unlimited")),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => Me.SetFacing(UseObject.Location)),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()),
+										new SleepForLagDuration(),
                                         new Action(ret => Item.UseContainerItem()),
                                         new Action(ret => Counter++),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()),
+										new SleepForLagDuration(),
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
 										new Action(ctx => _waitTimer.Reset())))),
@@ -337,13 +309,14 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                             new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
                                             )),
                                     new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Using Item: " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
+										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
+											UseObject.Name, Counter, NumOfTimes.HasValue ? NumOfTimes.ToString() : "unlimited")),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => Me.SetFacing(UseObject.Location)),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()),
+										new SleepForLagDuration(),
                                         new Action(ret => Item.UseContainerItem()),
                                         new Action(ret => Counter++),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()),
+										new SleepForLagDuration(),
                                         new Action(ret => SpellManager.ClickRemoteLocation(UseObject.Location)),
                                         new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
                                         new Action(ctx => _waitTimer.Reset())))),
@@ -355,14 +328,6 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                         ))
                     ));
         }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
 
         public override bool IsDone
         {
@@ -389,6 +354,13 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 				_waitTimer = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
             }
         }
+
+		public override void OnFinished()
+		{
+			TreeRoot.GoalText = string.Empty;
+			TreeRoot.StatusText = string.Empty;
+			base.OnFinished();
+		}
 
         #endregion
     }
