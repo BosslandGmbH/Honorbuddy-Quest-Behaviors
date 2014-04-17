@@ -929,24 +929,23 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 		public object ToCongruentObject(object value)
 		{
 			var backingType = PropInfo.PropertyType;
-			var providedType = value != null ?  value.GetType() : backingType;
+			var providedType = value != null ? value.GetType() : backingType;
 
 			try
 			{
+				Type underlyingType = Nullable.GetUnderlyingType(backingType);
+				if (underlyingType != null)
+				{
+					// Nullables are treated specially as they can be assigned from a null reference or just an underlying value
+					return value != null ? Convert.ChangeType(value, underlyingType) : null;
+				}
+				
 				// Disallow int => bool conversions...
 				// These are almost _always_ mistakes on the profile writer's part.
 				if ((providedType == typeof(int) && (backingType == typeof(bool))))
 				{ throw new ArgumentException(); }
 
-				// if value is null then no conversion is needed.
-				if (value == null)
-				{
-					// if backing type can't be assigned a null value then throw an exception.
-					if (Nullable.GetUnderlyingType(backingType) == null)
-						{throw new ArgumentException();}
-					return null;
-				}
-				return Convert.ChangeType(value,  backingType);
+				return Convert.ChangeType(value, backingType);
 			}
 			catch (Exception)
 			{
