@@ -40,6 +40,7 @@ using System.Linq;
 using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
+using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
 using JetBrains.Annotations;
 using Styx;
 using Styx.CommonBot;
@@ -85,12 +86,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 				MinAngle = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 0;
 				Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
 				Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.0, 80), null) ?? 30;
-				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete =
-					GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ??
-					QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ??
-										QuestInLogRequirement.InLog;
 				VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
 				WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
@@ -235,14 +230,16 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 				var weapon = Weapons.FirstOrDefault(w => w.IsWeaponReady());
 				if (weapon != null)
 				{
-					_target = StyxWoW.Me.CurrentTarget;
-					//if (!Query.IsViable(_target) || !weapon.WeaponAim(_target, false))
-					//{
-					//	// acquire a target that is within shooting range
-					//	_target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n, false));
-					//}
+					//_target = StyxWoW.Me.CurrentTarget;
+					if (!Query.IsViable(_target) || !weapon.WeaponAim(_target))
+					{
+						// acquire a target that is within shooting range
+						_target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n));
+						yield return StyxCoroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
+						yield break;
+					}
 					// fire away.
-					if (_target != null && weapon.WeaponAim(_target) )// && weapon.WeaponFire())
+					if (Query.IsViable(_target) && weapon.WeaponAim(_target) && weapon.WeaponFire())
 					{
 						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
 					}

@@ -104,7 +104,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                 MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
                 NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
 				// default value for NumOfTimes is null if a questId is provided, otherwise 1.
-				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? (QuestId !=0 ? null: (int?)1);
+				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
                 ObjType = GetAttributeAsNullable<ObjectType>("ObjectType", false, null, new[] { "MobType" }) ?? ObjectType.Npc;
                 Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 20.0;
                 MinRange = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null) ?? 4.0;
@@ -135,7 +135,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         public double MobHpPercentLeft { get; private set; }
         public WoWPoint MoveToLocation { get; private set; }
         public NpcStateType NpcState { get; private set; }
-        public int? NumOfTimes { get; private set; }
+        public int NumOfTimes { get; private set; }
         public ObjectType ObjType { get; private set; }
         public int QuestId { get; private set; }
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
@@ -218,7 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 					// don't drop down while wait timer is running
 					new Decorator(ctx => !_waitTimer.IsFinished, new ActionAlwaysSucceed()),
 
-					new Decorator(ret => NumOfTimes.HasValue && Counter > NumOfTimes,
+					new Decorator(ret => Counter > NumOfTimes,
 						new Action(ret => _isBehaviorDone = true)),
 
                     // If item is not in our backpack, behavior is done...
@@ -243,7 +243,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 								new Action(ret => Navigator.MoveTo(MoveToLocation))),
 							new Sequence(
 								new Action(ret => TreeRoot.StatusText = string.Format("Using Quest Item: {0} Out of {1} Times",
-									Counter, NumOfTimes.HasValue ? NumOfTimes.ToString() : "unlimited")),
+									Counter, NumOfTimes)),
 								new Action(ret => Navigator.PlayerMover.MoveStop()),
 								new Action(ret => Me.SetFacing(ClickToLocation)),
 								new SleepForLagDuration(),
@@ -278,7 +278,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                             )),
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times", 
-											UseObject.Name, Counter, NumOfTimes.HasValue ? NumOfTimes.ToString() : "unlimited")),
+											UseObject.Name, Counter, NumOfTimes)),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => Me.SetFacing(UseObject.Location)),
 										new SleepForLagDuration(),
@@ -310,7 +310,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                             )),
                                     new Sequence(
 										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
-											UseObject.Name, Counter, NumOfTimes.HasValue ? NumOfTimes.ToString() : "unlimited")),
+											UseObject.Name, Counter, NumOfTimes)),
                                         new Action(ret => Navigator.PlayerMover.MoveStop()),
                                         new Action(ret => Me.SetFacing(UseObject.Location)),
 										new SleepForLagDuration(),

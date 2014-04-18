@@ -31,16 +31,20 @@
 
 #region Usings
 using System;
+using System.Collections;
 using System.Collections.Generic;
-
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
+using Styx.WoWInternals.World;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
@@ -55,9 +59,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
         // Private variables for internal state
         private static readonly WaitTimer MaxAscendTimer = new WaitTimer(TimeSpan.FromSeconds(30));
 
-        private static readonly WaitTimer MinRunTimer = new WaitTimer(TimeSpan.FromSeconds(1));
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
+		private bool _isBehaviorDone;
         private Composite _root;
 
         #region Overrides of CustomForcedBehavior
@@ -66,13 +68,6 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
         {
             get { return _isBehaviorDone; }
         }
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
 
         public override void OnStart()
         {
@@ -131,53 +126,64 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 
         protected Composite CreateBehavior_CombatMain()
         {
-            return _root ??
-                   (_root =
-                       new Decorator(
-                           ctx => !IsDone,
-                           new PrioritySelector(
-                               new Decorator(
-                                   ctx => MaxAscendTimer.IsFinished || !Me.IsSwimming,
-                                   new Sequence(
-                                       // N.B. It appears that WoWMovement.Move calls are throttled so in order to stop ascending this behavior -
-                                       // uses the lua version.
-                                       new Action(ctx => Lua.DoString("AscendStop()")),
-                                       new Action(ctx => _isBehaviorDone = true))),
-                               new Decorator(
-                                   ctx => !Me.MovementInfo.IsAscending && Me.IsSwimming,
-                                   new Action(ctx => WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend))))));
+            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
         }
 
+	    IEnumerator MainCoroutine()
+	    {
+		    if (IsDone)
+		    {
+			    yield return false;
+				yield break;
+		    }
 
-        ~AscendInWater()
-        {
-            Dispose(false);
-        }
+			if (MaxAscendTimer.IsFinished || !IsConsideredUnderWater)
+		    {
+				// N.B. There were issues getting WoWMovement.MoveStop() calls to always register so using the lua version.
+			    Lua.DoString("AscendStop()");
+			    _isBehaviorDone = true;
+			    yield return true;
+			    yield break;
+		    }
+		    if (!Me.MovementInfo.IsAscending)
+		    {
+			    WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+			    yield break;
+		    }
+		    yield return false;
+	    }
 
+		bool IsConsideredUnderWater
+	    {
+		    get
+		    {
+			    if (Me.IsSwimming)
+				    return true;
+				// Note: In some areas the toon can be underwater and IsSwimming reports false. This is only known to happen
+				// when character is on some ocean floors. We try to detect this by performing a traceline upwards
+				// IsSwimming will correctly report 'true' once toon gets off the ocean floor 
+			    using (StyxWoW.Memory.AcquireFrame())
+			    {
+				    var start = Me.Location.Add(0, 0, 3.5);
+				    var end = Me.Location.Add(0, 0, 2000);
+				    var testWaterFlags = GameWorld.CGWorldFrameHitFlags.HitTestLiquid | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2;
+				    WoWPoint waterHitPoint, groundHitPoint;
+					// If we hit water and ground then require the ground elevation to be above the water surface (e.g. roof of an underwater cave)
+				    if (!GameWorld.TraceLine(start, end, testWaterFlags, out waterHitPoint))
+						return false;
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+					if (!GameWorld.TraceLine(start, end, GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures, out groundHitPoint))
+						return true;
+				    return groundHitPoint.Z > waterHitPoint.Z;
+			    }		
+			}
+	    }
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+	    public override void OnFinished()
+	    {
+			TreeRoot.GoalText = string.Empty;
+			TreeRoot.StatusText = string.Empty;
+		    base.OnFinished();
+	    }
     }
 }
