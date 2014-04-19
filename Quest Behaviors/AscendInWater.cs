@@ -137,7 +137,7 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 				yield break;
 		    }
 
-			if (MaxAscendTimer.IsFinished || !IsConsideredUnderWater)
+			if (MaxAscendTimer.IsFinished || !IsUnderWater)
 		    {
 				// N.B. There were issues getting WoWMovement.MoveStop() calls to always register so using the lua version.
 			    Lua.DoString("AscendStop()");
@@ -153,29 +153,14 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
 		    yield return false;
 	    }
 
-		bool IsConsideredUnderWater
+
+		// Note: In some areas the toon can be underwater and IsSwimming reports false. This is only known to happen
+		// when character is on some ocean floors and IsSwimming will correctly report 'true' once toon gets off the ocean floor 
+		bool IsUnderWater
 	    {
 		    get
 		    {
-			    if (Me.IsSwimming)
-				    return true;
-				// Note: In some areas the toon can be underwater and IsSwimming reports false. This is only known to happen
-				// when character is on some ocean floors. We try to detect this by performing a traceline upwards
-				// IsSwimming will correctly report 'true' once toon gets off the ocean floor 
-			    using (StyxWoW.Memory.AcquireFrame())
-			    {
-				    var start = Me.Location.Add(0, 0, 3.5);
-				    var end = Me.Location.Add(0, 0, 2000);
-				    var testWaterFlags = GameWorld.CGWorldFrameHitFlags.HitTestLiquid | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2;
-				    WoWPoint waterHitPoint, groundHitPoint;
-					// If we hit water and ground then require the ground elevation to be above the water surface (e.g. roof of an underwater cave)
-				    if (!GameWorld.TraceLine(start, end, testWaterFlags, out waterHitPoint))
-						return false;
-
-					if (!GameWorld.TraceLine(start, end, GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures, out groundHitPoint))
-						return true;
-				    return groundHitPoint.Z > waterHitPoint.Z;
-			    }		
+			    return Me.IsSwimming || Lua.GetReturnVal<bool>("return IsSubmerged()", 0);
 			}
 	    }
 
