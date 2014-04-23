@@ -145,6 +145,7 @@
     <Compile Include="Misc\DKEnchantWeapon.cs" />
     <Compile Include="Misc\InstanceTimer.cs" />
     <Compile Include="Misc\LoadProfileOn.cs" />
+    <Compile Include="Misc\BreakImmunityByKillingMobsInCloseProximity.cs" />
     <Compile Include="Misc\TargetAndMoveToMob.cs" />
     <Compile Include="Misc\ProfileCompatibilityInfo.cs" />
     <Compile Include="MountHook.cs" />

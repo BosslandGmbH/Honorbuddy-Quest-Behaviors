@@ -40,6 +40,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 {
     [CustomBehaviorFileName(@"SpecificQuests\30855-KunLai-TheFallofShaiHu")]
+	[Obsolete("DO NOT USE. THIS QB WILL BE REMOVED IN THE NEAR FUTURE")]
     class KunLaiTheFallofShaiHu : CustomForcedBehavior
     {
 

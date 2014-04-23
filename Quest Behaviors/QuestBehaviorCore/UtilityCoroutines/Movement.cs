@@ -43,20 +43,18 @@ namespace Honorbuddy.QuestBehaviorCore
 
 		public static IEnumerator MoveTo(
 			HuntingGroundsType huntingGrounds,
-			MovementByType movementBy = MovementByType.FlightorPreferred,
-			bool suppressMountUse = false)
+			MovementByType movementBy = MovementByType.FlightorPreferred)
 		{
 			Contract.Requires(huntingGrounds != null, context => "huntingGrounds may not be null");
 			var destination = huntingGrounds.CurrentWaypoint().Location;
 			var destinationName = String.Format("hunting ground waypoint '{0}'", huntingGrounds.CurrentWaypoint().Name);
-			yield return MoveTo(destination, destinationName, movementBy, suppressMountUse);
+			yield return MoveTo(destination, destinationName, movementBy);
 		}
 
 		public static IEnumerator MoveTo(
 			WoWPoint destination,
 			string destinationName,
-			MovementByType movementBy = MovementByType.FlightorPreferred,
-			bool suppressMountUse = false)
+			MovementByType movementBy = MovementByType.FlightorPreferred)
 		{
 			Contract.Requires(destinationName != null, context => "destinationName may not be null");
 
