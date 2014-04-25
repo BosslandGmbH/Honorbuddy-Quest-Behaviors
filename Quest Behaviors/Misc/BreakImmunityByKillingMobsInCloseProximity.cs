@@ -48,6 +48,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy.Helpers;
 using Buddy.Coroutines;
@@ -192,45 +193,38 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
 		}
 
-		private IEnumerator MainCoroutine()
+		private async Task<bool> MainCoroutine()
 		{
 			// break if we are done or we are not in combat and targting is not empty, we want the botbase to clear path for us.
 			if (IsDone || (!Me.Combat && Targeting.Instance.FirstUnit != null) || !Me.IsAlive)
-			{
-				yield return false;
-				yield break;
-			}
+				return false;
 
 			if (!Query.IsViable(SelectedNpc))
-			{
 				SelectedNpc = GetNpc();
-			}
 
 			if (!Query.IsViable(SelectedNpc) || !Me.IsActuallyInCombat && Targeting.Instance.FirstUnit == null)
 			{
 				// move to search area
 				if (SearchLocation != WoWPoint.Zero && !Navigator.AtLocation(SearchLocation))
 				{
-					yield return UtilityCoroutine.MoveTo(SearchLocation, "Search Area", MovementBy);
+					await UtilityCoroutine.MoveTo(SearchLocation, "Search Area", MovementBy);
 				}
 				// Dismount after reaching search location.
 				else if ((SearchLocation == WoWPoint.Zero || Navigator.AtLocation(SearchLocation)) && Me.Mounted)
 				{
-					yield return UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift);
+					await UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift);
 				}
 				else
 				{
 					TreeRoot.StatusText = "Waiting for NPC to spawn";
 				}
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			if (SelectedNpc.IsDead && SelectedNpc.TaggedByMe && QuestId == 0)
 			{
 				BehaviorDone();
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			if (SelectedNpc.HasAura(ImmunityAuraId))
@@ -250,8 +244,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 						{
 							TreeRoot.StatusText = string.Format("Moving closer to {0} before killing {1}", SelectedNpc.Name, targetedMob.Name);
 							Navigator.MoveTo(SelectedNpc.Location);
-							yield return true;
-							yield break;
+							return true;
 						}
 						// wait for exploding mob to get within range of shielded mob.
 						if (targetedMob.Location.DistanceSqr(SelectedNpc.Location) > MaxRange*MaxRange)
@@ -260,14 +253,12 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 								"Waiting for {0} to move withing range of {1}",
 								targetedMob.Name,
 								SelectedNpc.Name);
-							yield return true;
-							yield break;
+							return true;
 						}
 					}
 				}
 			}
-
-			yield return false;
+			return false;
 		}
 
 		protected override void TargetFilter_IncludeTargets(

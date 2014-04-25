@@ -3,11 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using Buddy.Coroutines;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -35,23 +37,23 @@ namespace Honorbuddy.QuestBehaviorCore
 			}
 		}
 
-		public static IEnumerator MoveStop()
+		public static async Task MoveStop()
 		{
 			Navigator.PlayerMover.MoveStop();
-			yield return StyxCoroutine.Wait((int) Delay.LagDuration.TotalMilliseconds, () => !WoWMovement.ActiveMover.IsMoving);
+			await Coroutine.Wait((int) Delay.LagDuration.TotalMilliseconds, () => !WoWMovement.ActiveMover.IsMoving);
 		}
 
-		public static IEnumerator MoveTo(
+		public static async Task<bool> MoveTo(
 			HuntingGroundsType huntingGrounds,
 			MovementByType movementBy = MovementByType.FlightorPreferred)
 		{
 			Contract.Requires(huntingGrounds != null, context => "huntingGrounds may not be null");
 			var destination = huntingGrounds.CurrentWaypoint().Location;
 			var destinationName = String.Format("hunting ground waypoint '{0}'", huntingGrounds.CurrentWaypoint().Name);
-			yield return MoveTo(destination, destinationName, movementBy);
+			return await MoveTo(destination, destinationName, movementBy);
 		}
 
-		public static IEnumerator MoveTo(
+		public static async Task<bool> MoveTo(
 			WoWPoint destination,
 			string destinationName,
 			MovementByType movementBy = MovementByType.FlightorPreferred)
@@ -60,20 +62,18 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			if (movementBy == MovementByType.None)
 			{
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			var activeMover = WoWMovement.ActiveMover;
 			if (activeMover == null)
 			{
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			if (!IsMoveToMessageThrottled)
 			{
-				if (destinationName == null)
+				if (string.IsNullOrEmpty(destinationName))
 					destinationName = destination.ToString();
 				TreeRoot.StatusText = "Moving to " + destinationName;
 			}
@@ -83,37 +83,30 @@ namespace Honorbuddy.QuestBehaviorCore
 				switch (movementBy)
 				{
 					case MovementByType.FlightorPreferred:
-						yield return TryFlightor(destination);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryFlightor(destination))	
+							return true;
 
-						yield return TryNavigator(destination, destinationName);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryNavigator(destination, destinationName))
+							return true;
 
-						yield return TryClickToMove(destination, NavType.Fly);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryClickToMove(destination, NavType.Fly))
+							return true;
 						break;
 					case MovementByType.NavigatorPreferred:
-						yield return TryNavigator(destination, destinationName);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryNavigator(destination, destinationName))
+							return true;
 
-						yield return TryClickToMove(destination, NavType.Run);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryClickToMove(destination, NavType.Run))
+							return true;
 						break;
 					case MovementByType.NavigatorOnly:
-						yield return TryNavigator(destination, destinationName);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryNavigator(destination, destinationName))
+							return true;
 						break;
 					case MovementByType.ClickToMoveOnly:
 						var navType = activeMover.MovementInfo.CanFly ? NavType.Fly : NavType.Run;
-						yield return TryClickToMove(destination,  navType);
-						if ((bool)Coroutine.Current.SubRoutineResult)
-							yield break;
+						if (await TryClickToMove(destination, navType))
+							return true;
 						break;
 					case MovementByType.None:
 						break;
@@ -122,38 +115,37 @@ namespace Honorbuddy.QuestBehaviorCore
 						break;
 				}
 			}
-			yield return false;
+			return false;
 		}
 
-		private static IEnumerator SetMountState(WoWPoint destination, NavType navType = NavType.Fly)
+		private static async Task<bool> SetMountState(WoWPoint destination, NavType navType = NavType.Fly)
 		{
 			// Are we mounted, and not supposed to be?
 			if (!Mount.UseMount && Me.IsMounted())
 			{
-				yield return ExecuteMountStrategy(MountStrategyType.Dismount);
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await ExecuteMountStrategy(MountStrategyType.Dismount))
+					return true;
 			}
 			// Are we unmounted, and mount use is permitted?
 			// NB: We don't check for IsMounted(), in case the ExecuteMountStrategy decides a mount switch is necessary
 			// (based on NavType).
 			if (Mount.UseMount && destination.CollectionDistance(WoWMovement.ActiveMover.Location) > CharacterSettings.Instance.MountDistance)
 			{
-				yield return ExecuteMountStrategy(MountStrategyType.Mount, navType);
+				if (await ExecuteMountStrategy(MountStrategyType.Mount, navType))
+					return true;
 			}
-			yield return false;
+			return false;
 		}
 
 
-		private static IEnumerator TryClickToMove(
+		private static async Task<bool> TryClickToMove(
 			WoWPoint destination,
 			NavType navType = NavType.Fly)
 		{
 			var activeMover = WoWMovement.ActiveMover;
 			// NB: Do not 'dismount' for CtM.  We may be using it for aerial navigation, also.
-			yield return SetMountState(destination,  navType);
-			if ((bool)Coroutine.Current.SubRoutineResult)
-				yield break;
+			if (await SetMountState(destination, navType))
+				return true;
 
 			// If Navigator can generate a parital path for us, take advantage of it...
 			var tempDestination =
@@ -163,11 +155,11 @@ namespace Honorbuddy.QuestBehaviorCore
 					.FirstOrDefault();
 
 			WoWMovement.ClickToMove(tempDestination);
-			yield return true;
+			return true;
 		}
 
 
-		private static IEnumerator TryFlightor(WoWPoint destination)
+		private static async Task<bool> TryFlightor(WoWPoint destination)
 		{
 			// If a toon can't fly, skip this...
 			// NB: Although Flightor will fall back to Navigator, there are side-effects.
@@ -178,14 +170,13 @@ namespace Honorbuddy.QuestBehaviorCore
 				|| !Navigator.CanNavigateWithin(activeMover.Location, destination, 5))
 			{
 				Flightor.MoveTo(destination, 15.0f, true);
-				yield return true;
-				yield break;
+				return true;
 			}
-			yield return false;
+			return false;
 		}
 
 
-		private static IEnumerator TryNavigator(WoWPoint destination,  string destinationName = null)
+		private static async Task<bool> TryNavigator(WoWPoint destination, string destinationName = null)
 		{
 			var activeMover = WoWMovement.ActiveMover;
 			// If we can navigate to destination, use navigator...
@@ -194,8 +185,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				var moveResult = Navigator.MoveTo(destination);
 				if (Navigator.GetRunStatusFromMoveResult(moveResult) == RunStatus.Success)
 				{
-					yield return true;
-					yield break;
+					return true;
 				}
 			}
 			if (destinationName == null)
@@ -205,11 +195,11 @@ namespace Honorbuddy.QuestBehaviorCore
 				activeMover.Location,
 				destinationName,
 				destination.ToString());
-			yield return false;
+			return false;
 		}
 
 
-		public class NoMobsAtCurrentWaypoint : CoroutineTask
+		public class NoMobsAtCurrentWaypoint : CoroutineTask<bool>
 		{
 			private ThrottleCoroutineTask _messageThrottle;
 
@@ -234,25 +224,24 @@ namespace Honorbuddy.QuestBehaviorCore
 			private Func<MovementByType> MovementByDelegate { get; set; }
 			private System.Action TerminateBehaviorIfNoTargetsProvider { get; set; }
 
-			protected override IEnumerator Run()
+			protected override async Task<bool> Run()
 			{
 				// Move to next hunting ground waypoint...
-				yield return MoveTo(HuntingGroundsProvider(), MovementByDelegate());
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await MoveTo(HuntingGroundsProvider(), MovementByDelegate()))
+					return true;
 
 				// Only one hunting ground waypoint to move to?
-				yield return _messageThrottle ?? (_messageThrottle = new ThrottleCoroutineTask(TimeSpan.FromSeconds(10), LogMessage));
+				await (_messageThrottle ?? (_messageThrottle = new ThrottleCoroutineTask(TimeSpan.FromSeconds(10), LogMessage)));
 
 				// Terminate of no targets available?
 				if (TerminateBehaviorIfNoTargetsProvider != null)
 					TerminateBehaviorIfNoTargetsProvider();
 
-				yield return false;
+				return false;
 			}
 
 
-			private IEnumerator LogMessage()
+			private async Task<bool> LogMessage()
 			{
 				string message = "No viable mobs in area.";
 				TreeRoot.StatusText = message;
@@ -264,7 +253,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					message += excludedUnitReasons;
 					QBCLog.DeveloperInfo("{0}", message);
 				}
-				yield return false;
+				return false;
 			}
 		}
 	}

@@ -37,7 +37,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
@@ -196,7 +198,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 
 		#region Logic
 
-		IEnumerator MainCoroutine()
+		async Task<bool> MainCoroutine()
 		{
 			// move to cannon.
 			if (!Query.IsInVehicle())
@@ -207,21 +209,19 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 					if (Navigator.AtLocation(VehicleSearchLocation))
 					{
 						QBCLog.Fatal("No cannons found.");
-						yield return false;
-						yield break;
+						return false;
 					}
-					yield return UtilityCoroutine.MoveTo(VehicleSearchLocation, "Vehicle search area", MovementBy);
+					await UtilityCoroutine.MoveTo(VehicleSearchLocation, "Vehicle search area", MovementBy);
 				}
 				else if (!cannon.WithinInteractRange)
 				{
-					yield return UtilityCoroutine.MoveTo(cannon.Location, cannon.Name, MovementBy);
+					await UtilityCoroutine.MoveTo(cannon.Location, cannon.Name, MovementBy);
 				}
 				else
 				{
 					cannon.Interact();
 				}
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			while (!IsDone && Query.IsInVehicle())
@@ -235,18 +235,18 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 					{
 						// acquire a target that is within shooting range
 						_target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n));
-						yield return StyxCoroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
-						yield break;
+						await Coroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
+						return true;
 					}
 					// fire away.
 					if (Query.IsViable(_target) && weapon.WeaponAim(_target) && weapon.WeaponFire())
 					{
-						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+						await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
 					}
 				}
-				yield return StyxCoroutine.EndTick;
+				await Coroutine.Yield();
 			}
-			yield return false;
+			return false;
 		}
 
 		public WoWUnit Vehicle

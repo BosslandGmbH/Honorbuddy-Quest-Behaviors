@@ -21,6 +21,8 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -87,12 +89,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
 		}
 
-		IEnumerator MainCoroutine()
+		async Task<bool> MainCoroutine()
 		{
 			if (IsBehaviorDone)
 			{
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
@@ -101,35 +102,32 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 				if (StyxWoW.Me.HasAura("Vault Cracking Toolset"))
 					Lua.DoString("VehicleExit()");
 				IsBehaviorDone = true;
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			if (StyxWoW.Me.Location.DistanceSqr(wp) > 5 * 5)
 			{
 				TreeRoot.StatusText = "Moving to location";
 				Navigator.MoveTo(wp);
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			if (!StyxWoW.Me.HasAura("Vault Cracking Toolset"))
 			{
 				Bank.Interact();
-				yield return StyxCoroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
-				yield break;
+				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+				return true;
 			}
 
 			if (_petAbilityIndex > 0)
 			{
-				yield return StyxCoroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
+				await Coroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
 				Lua.DoString("CastPetAction({0})", _petAbilityIndex);
 				_petAbilityIndex = 0;
-				yield return true;
-				yield break;
+				return true;
 			}
 
-			yield return false;
+			return false;
 		}
 
 		public override bool IsDone

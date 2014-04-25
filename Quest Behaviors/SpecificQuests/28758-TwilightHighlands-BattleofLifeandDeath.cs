@@ -22,6 +22,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -98,7 +100,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
 			return new ActionRunCoroutine(ctx => MainCoroutine());
         }
 
-	    IEnumerator MainCoroutine()
+	    async Task<bool> MainCoroutine()
 	    {
 		    var activeMover = WoWMovement.ActiveMover;
 			if (!IsDone && activeMover != null && activeMover.Entry == VermillionVanguardId)
@@ -116,16 +118,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
 				    {
 					    Flightor.MoveTo(QuestLocation);
 				    }
-				    yield return true;
-				    yield break;
+				    return true;
 			    }
 				// target the NPC
 			    if (Me.CurrentTargetGuid != target.Guid)
 			    {
 				    target.Target();
-					yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
-					yield return true;
-					yield break;
+					await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+				    return true;
 			    }
 
 			    var targetDistSqr = activeMover.Location.DistanceSqr(target.Location);
@@ -133,23 +133,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
 			    if (targetDistSqr > 60 * 60 || !target.InLineOfSpellSight)
 			    {
 					Flightor.MoveTo(QuestLocation);
-					yield return true;
-					yield break;
+				    return true;
 			    }
 				// face if necessary
 			    if (!activeMover.IsSafelyFacing(target))
 			    {
 				    target.Face();
-					yield return StyxCoroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
-					yield return true;
-					yield break;
+					await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+				    return true;
 			    }
 
 				// heal if needed
 				if (shouldHeal)
 				{
 					Lua.DoString("CastPetAction(2);");
-					yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+					await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
 				}
 				else
 				{			
@@ -157,19 +155,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleofLifeandDeath
 					if (targetDistSqr > 30*30 || target.HealthPercent > 30)
 					{
 						Lua.DoString("CastPetAction(1);");
-						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+						await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
 					}
 					else
 					{
 						// Finishing Strike: 30 yd range
 						Lua.DoString("CastPetAction(3);");
-						yield return StyxCoroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+						await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
 					}
 				}
-			    yield return true;
-				yield break;
+			    return true;
 		    }
-		    yield return false;
+		    return false;
 	    }
 
         public override bool IsDone

@@ -33,6 +33,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -129,28 +130,24 @@ namespace Honorbuddy.Quest_Behaviors.AscendInWater
             return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
         }
 
-	    IEnumerator MainCoroutine()
+	    async Task<bool> MainCoroutine()
 	    {
 		    if (IsDone)
-		    {
-			    yield return false;
-				yield break;
-		    }
+			    return false;
 
 			if (MaxAscendTimer.IsFinished || !IsUnderWater)
 		    {
 				// N.B. There were issues getting WoWMovement.MoveStop() calls to always register so using the lua version.
 			    Lua.DoString("AscendStop()");
 			    _isBehaviorDone = true;
-			    yield return true;
-			    yield break;
+			    return true;
 		    }
 		    if (!Me.MovementInfo.IsAscending)
 		    {
 			    WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-			    yield break;
+			    return true;
 		    }
-		    yield return false;
+		    return false;
 	    }
 
 

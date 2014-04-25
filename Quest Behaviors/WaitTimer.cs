@@ -42,7 +42,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Xml.Linq;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot;
@@ -169,20 +171,19 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 
 
         #region Main Behaviors
-        private IEnumerator MainCoroutine()
+        private async Task<bool> MainCoroutine()
         {
             // If timer is finished, we're done...
             if ((_timer == null) || _timer.IsFinished)
             {
                 BehaviorDone();
-                yield return false;
-                yield break;
+	            return false;
             }
 
             // Update the status text...
-            yield return StyxCoroutine.Sleep(250);  // throttle updates
+            await Coroutine.Sleep(250);  // throttle updates
             TreeRoot.StatusText = UtilSubstituteInMessage(StatusText);
-            yield return true;
+            return true;
         }
         #endregion
 

@@ -13,6 +13,8 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Styx;
 using Styx.CommonBot;
@@ -31,7 +33,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		// if it is a problem then we need to wrap CastSpell in a class instance
 		private static bool IsInterrupted { get; set; }
 
-		public static IEnumerator CastSpell(
+		public static async Task<bool> CastSpell(
 			int spellId,
 			WoWObject target = null,
 			System.Action actionOnSuccessfulSpellCastDelegate = null)
@@ -44,8 +46,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!Query.IsViable(selectedObject))
 			{
 				QBCLog.Warning("Target is not viable!");
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			var targetName = selectedObject.SafeName;
@@ -55,8 +56,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!Query.IsViable(selectedTarget))
 			{
 				QBCLog.Warning("Target {0} is not a WoWUnit--cannot cast spell on it.", targetName);
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			// Spell known?
@@ -64,8 +64,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (selectedSpell == null)
 			{
 				QBCLog.Warning("{0} is not known.", Utility.GetSpellNameFromId(spellId));
-				yield return false;
-				yield break;
+				return false;
 			}
 			var spellName = selectedSpell.Name;
 
@@ -80,8 +79,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					"{0} is not usable, yet.  (cooldown remaining: {1})",
 					spellName,
 					Utility.PrettyTime(selectedSpell.CooldownTimeLeft));
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			// Notify user of intent...
@@ -106,14 +104,14 @@ namespace Honorbuddy.QuestBehaviorCore
 			// an identical looking target with a different script.
 			// We must assume our target and spell is no longer available for use after this point.
 
-			yield return StyxCoroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+			await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
 
 			// If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
-			yield return CastPendingSpell(selectedTarget);
+			await CastPendingSpell(selectedTarget);
 
 			// Wait for any casting to complete...
 			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
-			yield return StyxCoroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
+			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
 			// Were we interrupted in spell casting?
 			InterruptDectection_Unhook();
 
@@ -122,9 +120,8 @@ namespace Honorbuddy.QuestBehaviorCore
 				QBCLog.Warning("Cast of {0} interrupted.", spellName);
 				// Give whatever issue encountered a chance to settle...
 				// NB: --we want the Sequence to fail when delay completes.
-				yield return StyxCoroutine.Sleep(1500);
-				yield return false;
-				yield break;
+				await Coroutine.Sleep(1500);
+				return false;
 			}
 
 			QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", spellName, targetName);
@@ -132,7 +129,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (actionOnSuccessfulSpellCastDelegate != null)
 				actionOnSuccessfulSpellCastDelegate();
 
-			yield return true;
+			return true;
 		}
 
 		private static void InterruptDetection_Hook()
@@ -167,7 +164,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			IsInterrupted = true;
 		}
 
-		public static IEnumerator CastPendingSpell(WoWObject selectedTarget)
+		public static async Task CastPendingSpell(WoWObject selectedTarget)
 		{
 			if (StyxWoW.Me.CurrentPendingCursorSpell != null)
 			{
@@ -180,7 +177,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				{
 					Lua.DoString("SpellStopTargeting()");
 				}
-				yield return StyxCoroutine.Wait(
+				await Coroutine.Wait(
 					(int) Delay.LagDuration.TotalMilliseconds,
 					() => StyxWoW.Me.CurrentPendingCursorSpell == null);
 

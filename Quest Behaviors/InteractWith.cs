@@ -355,6 +355,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 using JetBrains.Annotations;
@@ -784,7 +785,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			return new ActionRunCoroutine(ctx => MainCoroutine());
 		}
 
-		private IEnumerator MainCoroutine()
+		private async Task<bool> MainCoroutine()
 		{
 			// return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
 			bool shouldFight = Targeting.Instance.FirstUnit != null 
@@ -792,10 +793,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				&& (Me.Combat || LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Pull));
 
 			if (IsDone || shouldFight)
-			{
-				yield return false;
-				yield break;
-			}
+				return false;
 
 			// Delay, if necessary...
 			// NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
@@ -808,8 +806,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					"Completing {0} wait of {1}",
 					Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterInteracting.TimeLeft.TotalSeconds)),
 					Utility.PrettyTime(_waitTimerAfterInteracting.WaitTime));
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			// Counter is used to determine 'done'...
@@ -818,8 +815,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			if (QuestObjectiveIndex == 0 && Counter >= NumOfTimes)
 			{
 				BehaviorDone(string.Format("Reached our required count of {0}.", NumOfTimes));
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			// If WoWclient has not placed items in our bag, wait for it...
@@ -828,15 +824,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			// for the item to show up, if its going to.
 			if (InteractByUsingItemId > 0 && !Query.IsViable(ItemToUse))
 			{
-				yield return
-					_waitForInventoryItem ??
-					(_waitForInventoryItem = new UtilityCoroutine.WaitForInventoryItem(() => InteractByUsingItemId, () => BehaviorDone()));
-
+				if (_waitForInventoryItem == null)
+					_waitForInventoryItem = new UtilityCoroutine.WaitForInventoryItem(() => InteractByUsingItemId, () => BehaviorDone());
 				// return if waiting for item to show up in bags.
-				if ((bool)Coroutine.Current.SubRoutineResult)
-				{
-					yield break;
-				}
+				if (await _waitForInventoryItem)
+					return true; 
 				ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
 			}
 
@@ -861,28 +853,22 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				{
 					SelectedAliveTarget = FindViableTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
 					if (SelectedAliveTarget != null)
-					{
-						yield return true;
-						yield break;
-					}
+						return true;
 				}
 			}
 
 			// break if we have something else to do.
 			if (!Query.IsPoiIdle(BotPoi.Current))
-			{
-				yield return false;
-				yield break;
-			}
+				return false; 
 
 			// No mobs in immediate vicinity...
 			// NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
 			// this sub-behavior will terminate the overall behavior.
 			if (!Query.IsViable(SelectedTarget))
 			{
-				yield return
-					_noMobsAtCurrentWaypoint ??
-					(_noMobsAtCurrentWaypoint =
+				if (_noMobsAtCurrentWaypoint == null)
+				{
+					_noMobsAtCurrentWaypoint =
 						new UtilityCoroutine.NoMobsAtCurrentWaypoint(
 							() => HuntingGrounds,
 							() => MovementBy,
@@ -891,35 +877,31 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 								TargetExclusionAnalysis.Analyze(
 									Element,
 									() => Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds),
-									TargetExclusionChecks)));
+									TargetExclusionChecks));
+				}
 
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await _noMobsAtCurrentWaypoint)
+					return true;
 			}
 
 			#region Deal with mob we've selected for interaction...
 
 			if (Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance))
 			{
-				yield return SubCoroutine_HandleFrame_Loot();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await SubCoroutine_HandleFrame_Loot())
+					return true;
 
-				yield return SubCoroutine_HandleFrame_Gossip();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await SubCoroutine_HandleFrame_Gossip())
+					return true;
 
-				yield return SubCoroutine_HandleFrame_Merchant();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await SubCoroutine_HandleFrame_Merchant())
+					return true;
 
-				yield return SubCoroutine_HandleFrame_Quest();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await SubCoroutine_HandleFrame_Quest())
+					return true;
 
-				yield return SubCoroutine_HandleFramesComplete();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await SubCoroutine_HandleFramesComplete())
+					return true;
 
 				// If anything in the frame handling made the target no longer viable for interacting,
 				// go find a new target...
@@ -927,8 +909,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				// or despawn, or outright go 'non viable' after the chat.
 				if (!Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance))
 				{
-					yield return true;
-					yield break;
+					return true;
 				}
 
 				#region Interact with, or use item on, selected target...
@@ -951,9 +932,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					}
 				}
 
-				yield return SubCoroutine_DoMoveToTarget();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await SubCoroutine_DoMoveToTarget())
+					return true;
 
 				// NB: We do the move before waiting for the cooldown.  The hope is that for most items, the
 				// cooldown will have elapsed by the time we get within range of the next target.
@@ -963,8 +943,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						"Waiting for {0} cooldown ({1} remaining)",
 						ItemToUse.Name,
 						Utility.PrettyTime(TimeSpan.FromSeconds((int)ItemToUse.CooldownTimeLeft.TotalSeconds)));
-					yield return true;
-					yield break;
+					return true;
 				}
 
 				// If we've exceeded our maximum allowed attempts to interact, blacklist mob for a while...
@@ -977,26 +956,20 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						AttemptCountMax,
 						SelectedTarget.SafeName,
 						Utility.PrettyTime(blacklistTime));
-					yield return false;
-					yield break;
+					return false;
 				}
 
 				// Interact by casting spell...
 				if (InteractByCastingSpellId > 0)
 				{
-					yield return UtilityCoroutine.CastSpell(InteractByCastingSpellId, SelectedTarget);
-					if (!(bool) Coroutine.Current.SubRoutineResult )
-					{
-						yield return false;
-						yield break;
-					}
+					if (!await UtilityCoroutine.CastSpell(InteractByCastingSpellId, SelectedTarget))
+						return false;
 				}
 
 				// Interact by casting spell...
 				if (InteractByUsingItemId > 0)
 				{
-					yield return
-						UtilityCoroutine.UseItemOnTarget(
+					await UtilityCoroutine.UseItemOnTarget(
 							InteractByUsingItemId,
 							SelectedTarget,
 							() =>
@@ -1007,12 +980,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				// Interact by right-click..
 				if (InteractByRightClick)
 				{
-					yield return UtilityCoroutine.Interact(SelectedTarget);
-					if (!(bool)Coroutine.Current.SubRoutineResult)
-					{
-						yield return false;
-						yield break;
-					}
+					if (!await UtilityCoroutine.Interact(SelectedTarget))
+						return false;
 				}
 
 				// Peg tally, if follow-up actions not expected...
@@ -1038,24 +1007,22 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 			#endregion
 
-			yield return false;
+			return false;
 		}
 
 		#endregion
 
 		#region Sub-Behaviors
 
-		private IEnumerator SubCoroutine_DoMoveToTarget()
+		private async Task<bool> SubCoroutine_DoMoveToTarget()
 		{
-
 			var isViableTarget = Query.IsViable(SelectedTarget);
 
 			if (!isViableTarget)
 			{
 				_watchdogTimerToReachDestination = null;
 			}
-
-				// Watchdog only runs when not in combat...
+			// Watchdog only runs when not in combat...
 			else if (!Me.Combat)
 			{
 				// If watchdog timer isn't running, start it...
@@ -1084,10 +1051,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			}
 
 			if (!isViableTarget)
-			{
-				yield return false;
-				yield break;
-			}
+				return false;
 
 			if (IsDistanceGainNeeded(SelectedTarget) && RangeMin.HasValue)
 			{
@@ -1098,13 +1062,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					SelectedTarget.Distance,
 					RangeMin.Value);
 
-				yield return UtilityCoroutine.MoveTo(
+				if (await UtilityCoroutine.MoveTo(
 					Utility.GetPointToGainDistance(SelectedTarget, RangeMin.Value),
 					destinationName,
-					MovementBy);
-
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+					MovementBy))
+				{
+					return true;
+				}
 			}
 			if (IsDistanceCloseNeeded(SelectedTarget))
 			{
@@ -1118,8 +1082,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						GetName(SelectedTarget),
 						SelectedTarget.Distance,
 						blacklistDuration);
-					yield return true;
-					yield break;
+					return true;
 				}
 				if (MovementBy == MovementByType.None)
 				{
@@ -1129,8 +1092,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						GetName(SelectedTarget),
 						SelectedTarget.Distance,
 						blacklistDuration);
-					yield return true;
-					yield break;
+					return true;
 				}
 
 				var destinationName = string.Format(
@@ -1144,25 +1106,22 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						? Utility.PrettyTime(_watchdogTimerToReachDestination.TimeLeft)
 						: "\u8734"));
 
-				yield return UtilityCoroutine.MoveTo(SelectedTarget.Location, destinationName, MovementBy);
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await UtilityCoroutine.MoveTo(SelectedTarget.Location, destinationName, MovementBy))
+					return true;
 			}
 
 			// Prep to interact...
-			yield return UtilityCoroutine.MoveStop();
-			yield return UtilityCoroutine.ExecuteMountStrategy(PreInteractMountStrategy);
-			if ((bool)Coroutine.Current.SubRoutineResult)
-				yield break;
-
+			await UtilityCoroutine.MoveStop();
+			if (await UtilityCoroutine.ExecuteMountStrategy(PreInteractMountStrategy))
+				return true;
 			_watchdogTimerToReachDestination = null;
 			// Face target...
 			Utility.Target(SelectedTarget, true);
-			yield return false;
+			return false;
 		}
 
 
-		private IEnumerator SubCoroutine_HandleFramesComplete()
+		private async Task<bool> SubCoroutine_HandleFramesComplete()
 		{
 			if (IsGossipFrameVisible
 				|| IsMerchantFrameVisible
@@ -1185,8 +1144,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				}
 
 				SelectedTarget = null;
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			// Some mobs go non-viable immediately after interacting with them...
@@ -1195,14 +1153,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			if (!Query.IsViable(SelectedTarget))
 			{
 				SelectedTarget = null;
-				yield return true;
-				yield break;
+				return true;
 			}
-			yield return false;
+			return false;
 		}
 
 
-		private IEnumerator SubCoroutine_HandleFrame_Gossip()
+		private async Task<bool> SubCoroutine_HandleFrame_Gossip()
 		{
 			if (IsGossipFrameVisible)
 			{
@@ -1227,7 +1184,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 							CloseOpenFrames();
 							Me.ClearTarget();
 							BehaviorDone();
-							yield break;
+							return false;
 						}
 
 						// Log the gossip option we're about to take...
@@ -1264,7 +1221,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 								++Counter;
 							}
 						}
-						yield return StyxCoroutine.Wait((int)Delay.AfterInteraction.TotalMilliseconds, () => !IsGossipFrameVisible);
+						await Coroutine.Wait((int)Delay.AfterInteraction.TotalMilliseconds, () => !IsGossipFrameVisible);
 					}
 					// If the NPC pops down the dialog for us, or goes non-viable after gossip...
 					// Go ahead and blacklist it, so we don't try to interact again.
@@ -1287,20 +1244,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				{
 					QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring.");
 				}
-				yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+				await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
 			}
 
 			// Tell user if he is now bound to a new location...
 			if (BindingEventState != BindingEventStateType.BindingEventUnhooked)
 			{
-				yield return StyxCoroutine.Wait(10000, () => BindingEventState == BindingEventStateType.BindingEventFired);
-				if ((bool)Coroutine.Current.SubRoutineResult)
+				if (await Coroutine.Wait(10000, () => BindingEventState == BindingEventStateType.BindingEventFired))
 				{
-					yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+					await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
 					Lua.DoString("ConfirmBinder(); StaticPopup_Hide('CONFIRM_BINDER')");
 					// NB: We give the WoWclient a little time to register our new location
 					// before asking it "where is our hearthstone set?"
-					yield return StyxCoroutine.Sleep(1000);
+					await Coroutine.Sleep(1000);
 					var boundLocation = Lua.GetReturnVal<string>("return GetBindLocation()", 0);
 
 					QBCLog.Info(
@@ -1313,10 +1269,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					Lua.Events.DetachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
 				}
 			}
-			yield return false;
+			return false;
 		}
 
-		private IEnumerator SubCoroutine_HandleFrame_Loot()
+		private async Task<bool> SubCoroutine_HandleFrame_Loot()
 		{
 			// Nothing really special for us to do here.  HBcore will take care of 'normal' looting.
 			// And looting objects through "interaction" is usually nothing more than right-clicking
@@ -1326,19 +1282,16 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			{
 				TreeRoot.StatusText = string.Format("Looting {0}", GetName(SelectedTarget));
 				LootFrame.Instance.LootAll();
-				yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+				await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
 			}
 			// we want to 'fall through'
-			yield return false;
+			return false;
 		}
 
-		private IEnumerator SubCoroutine_HandleFrame_Merchant()
+		private async Task<bool> SubCoroutine_HandleFrame_Merchant()
 		{
 			if (!IsMerchantFrameVisible)
-			{
-				yield return false;
-				yield break;
-			}
+				return false;
 
 			if ((InteractByBuyingItemId > 0) || (InteractByBuyingItemInSlotNum >= 0))
 			{
@@ -1398,18 +1351,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				QBCLog.Warning("[PROFILE ERROR] Merchant frame not expected--ignoring.");
 			}
 
-			yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+			await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
 			// we want to 'fall through'
-			yield return false;
+			return false;
 		}
 
-		private IEnumerator SubCoroutine_HandleFrame_Quest()
+		private async Task<bool> SubCoroutine_HandleFrame_Quest()
 		{
 			if (!IsQuestFrameVisible)
-			{
-				yield return false;
-				yield break;
-			}
+				return false;
 
 			if (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
 				QuestFrame.Instance.AcceptQuest();
@@ -1457,9 +1407,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					BehaviorDone();
 				}
 			}
-			yield return StyxCoroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+			await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
 			// we want to 'fall through'
-			yield return false;
+			return false;
 		}
 
 		#endregion

@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Buddy.Coroutines;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -51,12 +52,11 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// </summary>
 		/// <returns></returns>
 		/// <remarks>17Apr2013-03:11UTC chinajade</remarks>
-		public static IEnumerator ExecuteMountStrategy(MountStrategyType mountStrategy, NavType navType = NavType.Fly)
+		public static async Task<bool> ExecuteMountStrategy(MountStrategyType mountStrategy, NavType navType = NavType.Fly)
 		{
 			if (mountStrategy == MountStrategyType.None)
 			{
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			// Cancel Shapeshift needed?
@@ -66,13 +66,11 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				if (WoWMovement.ActiveMover.IsFlying)
 				{
-					yield return LandAndDismount();
-					yield break;
+					return await LandAndDismount();
 				}
 				TreeRoot.StatusText = "Canceling shapeshift form.";
 				Lua.DoString("CancelShapeshiftForm()");
-				yield return true;
-				yield break;
+				return true;
 			}
 
 			// Dismount needed?
@@ -82,15 +80,13 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				if (WoWMovement.ActiveMover.IsFlying)
 				{
-					yield return LandAndDismount();
-					yield break;
+					return await LandAndDismount();
 				}
 				if (Me.IsShapeshifted())
 				{
 					TreeRoot.StatusText = "Canceling 'mounted' shapeshift form.";
 					Lua.DoString("CancelShapeshiftForm()");
-					yield return true;
-					yield break;
+					return true;
 				}
 				if (Me.IsMounted())
 				{
@@ -100,8 +96,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					// a yard or two above the landing zone...
 					// So, we opt to dismount via LUA since we've controlled the landing ourselves.
 					Lua.DoString("Dismount()");
-					yield return true;
-					yield break;
+					return true;
 				}
 			}
 
@@ -114,8 +109,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					if (navType == NavType.Fly && !Flightor.MountHelper.Mounted && Flightor.MountHelper.CanMount)
 					{
 						Flightor.MountHelper.MountUp();
-						yield return true;
-						yield break;
+						return true;
 					}
 					// Try ground mount...
 					// NB: Force mounting by specifying a large distance to destination...
@@ -123,27 +117,24 @@ namespace Honorbuddy.QuestBehaviorCore
 					{
 						if (Mount.MountUp(() => true, () => WoWMovement.ActiveMover.Location.Add(1000.0, 1000.0, 1000.0)))
 						{
-							yield return true;
-							yield break;
+							return true;
 						}
 					}
 				}
 				else
 				{
 					// Swimming mounts...
-					yield return false;
+					return false;
 				}
 			}
-
-			yield return false;
+			return false;
 		}
 
 		/// <summary> Finds a proper location to land and dismounts. </summary>
 		/// <remarks> raphus, 12/10/2013. </remarks>
-		public static IEnumerator LandAndDismount(string reason = "[QB] LandAndDismount")
+		public static async Task<bool> LandAndDismount(string reason = "[QB] LandAndDismount")
 		{
-			var landAndDismountAction = new Mount.ActionLandAndDismount(reason);
-			yield return StyxCoroutine.CompositeExecutor(landAndDismountAction);
+			return await new Mount.ActionLandAndDismount(reason).ExecuteCoroutine();			
 		}
 
 	}

@@ -14,6 +14,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Bots.Grind;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -34,21 +35,20 @@ namespace Honorbuddy.QuestBehaviorCore
 {
 	public partial class UtilityCoroutine
 	{
-		public class WarnIfBagsFull : CoroutineTask
+		public class WarnIfBagsFull : CoroutineTask<bool>
 		{
 			private ThrottleCoroutineTask _throttle;
 
-			protected override IEnumerator Run()
+			protected override async Task<bool> Run()
 			{
 				if (LootTargeting.LootMobs && Me.FreeBagSlots <= 0)
-					yield return _throttle ?? (_throttle = new ThrottleCoroutineTask(TimeSpan.FromMinutes(10), LogWarning));
-				yield return false;
+					await (_throttle ?? (_throttle = new ThrottleCoroutineTask(TimeSpan.FromMinutes(10), LogWarning)));
+				return false;
 			}
 
-			private IEnumerator LogWarning()
+			private async Task LogWarning()
 			{
 				QBCLog.Error("Honorbuddy may not be looting because your bags are full.");
-				yield return false;
 			}
 		}
 	}

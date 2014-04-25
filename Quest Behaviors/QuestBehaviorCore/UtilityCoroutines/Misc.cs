@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
+using System.Threading.Tasks;
 using Buddy.Coroutines;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -25,7 +26,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		///         If the item doesn't arrived within the specified time, the behavior is terminated.
 		///     </para>
 		/// </summary>
-		public class WaitForInventoryItem : CoroutineTask
+		public class WaitForInventoryItem : CoroutineTask<bool>
 		{
 			// BT contruction-time properties...
 			public WaitForInventoryItem(
@@ -49,7 +50,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			private WoWItem CachedWoWItem { get; set; }
 			private WaitTimer WatchdogTimer_WaitForItemArrival { get; set; }
 
-			protected override IEnumerator Run()
+			protected override async Task<bool> Run()
 			{
 				var itemId = ItemIdDelegate();
 				CachedWoWItem = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
@@ -58,8 +59,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				{
 					// Squelch the timer, so it will be available if the item disappears from our bags...
 					WatchdogTimer_WaitForItemArrival = null;
-					yield return false;
-					yield break;
+					return false;
 				}
 
 				// If timer is not spinning, create & start it...
@@ -86,7 +86,7 @@ namespace Honorbuddy.QuestBehaviorCore
 						Utility.GetItemNameFromId(itemId));
 				}
 
-				yield return true;
+				return true;
 			}
 		}
 	}

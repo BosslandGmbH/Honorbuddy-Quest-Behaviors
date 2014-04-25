@@ -16,6 +16,7 @@ using System.Diagnostics;
 using System.Media;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using Buddy.Coroutines;
 using Styx;
 using Styx.TreeSharp;
@@ -26,29 +27,55 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
+
 	public class ThrottleCoroutineTask : CoroutineTask
 	{
-		public ThrottleCoroutineTask(TimeSpan throttle, Func<IEnumerator> child)
+		public ThrottleCoroutineTask(TimeSpan throttle, Func<Task> childProducer)
 		{
 			Throttle = throttle;
-			Child = child;
+			ChildProducer = childProducer;
 		}
 
 		public TimeSpan Throttle { get; private set; }
-		public Func<IEnumerator> Child { get; private set; }
+		public Func<Task> ChildProducer { get; private set; }
 
 		private readonly Stopwatch _timer = new Stopwatch();
 
-		protected override IEnumerator Run()
+		protected override async Task Run()
 		{
 			if (_timer.IsRunning && _timer.Elapsed < Throttle)
 			{
-				yield return false;
-				yield break;
+				return;
 			}
 
-			yield return Child();
+			await ChildProducer();
+			_timer.Restart();			
+		}
+	}
+
+	public class ThrottleCoroutineTask<T> : CoroutineTask<T>
+	{
+		public ThrottleCoroutineTask(TimeSpan throttle, Func<Task<T>> childProducer)
+		{
+			Throttle = throttle;
+			ChildProducer = childProducer;
+		}
+
+		public TimeSpan Throttle { get; private set; }
+		public Func<Task<T>> ChildProducer { get; private set; }
+
+		private readonly Stopwatch _timer = new Stopwatch();
+
+		protected override async Task<T> Run()
+		{
+			if (_timer.IsRunning && _timer.Elapsed < Throttle)
+			{
+				return default(T);
+			}
+
+			var result = await ChildProducer();
 			_timer.Restart();
+			return result;
 		}
 	}
 

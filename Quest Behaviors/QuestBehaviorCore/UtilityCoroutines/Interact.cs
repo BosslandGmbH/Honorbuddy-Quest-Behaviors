@@ -8,7 +8,10 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+using System.Threading.Tasks;
+
 #region Usings
+
 using System.Collections;
 using Buddy.Coroutines;
 using Styx.CommonBot;
@@ -30,7 +33,7 @@ namespace Honorbuddy.QuestBehaviorCore
 {
 	public partial class UtilityCoroutine
 	{
-		public static IEnumerator Interact(WoWObject selectedTarget, System.Action actionOnSuccessfulItemUseDelegate = null)
+		public static async Task<bool> Interact(WoWObject selectedTarget, System.Action actionOnSuccessfulItemUseDelegate = null)
 		{
 			// Viable target?
 			// NB: Since target may go invalid immediately upon interacting with it,
@@ -38,8 +41,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!Query.IsViable(selectedTarget))
 			{
 				QBCLog.Warning("Target is not viable!");
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			var targetName = selectedTarget.SafeName;
@@ -63,7 +65,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			// Most of the time this happens, the target is immediately and invisibly replaced with
 			// an identical looking target with a different script.
 			// We must assume our target is no longer available for use after this point.
-			yield return StyxCoroutine.Sleep((int) Delay.AfterInteraction.TotalMilliseconds);
+			await Coroutine.Sleep((int) Delay.AfterInteraction.TotalMilliseconds);
 
 			// Wait for any casting to complete...
 			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
@@ -72,7 +74,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			//      but there is no valid spell being cast.  We want the behavior to move on immediately in these
 			//      conditions.  An example of such an interaction is removing 'tangler' vines in the Tillers
 			//      daily quest area.
-			yield return StyxCoroutine.Wait(15000, () => (Me.CastingSpell == null) && (Me.ChanneledSpell == null));
+			await Coroutine.Wait(15000, () => (Me.CastingSpell == null) && (Me.ChanneledSpell == null));
 
 			// Were we interrupted in item use?
 			InterruptDectection_Unhook();
@@ -81,16 +83,15 @@ namespace Honorbuddy.QuestBehaviorCore
 				QBCLog.DeveloperInfo("Interaction with {0} interrupted.", targetName);
 				// Give whatever issue encountered a chance to settle...
 				// NB: we want the Sequence to fail when delay completes.
-				yield return StyxCoroutine.Sleep(1500);
-				yield return false;
-				yield break;
+				await Coroutine.Sleep(1500);
+				return false;
 			}
 
 			QBCLog.DeveloperInfo("Interact with '{0}' succeeded.", targetName);
 			if (actionOnSuccessfulItemUseDelegate != null)
 				actionOnSuccessfulItemUseDelegate();
 
-			yield return true;
+			return true;
 		}
 
 	}

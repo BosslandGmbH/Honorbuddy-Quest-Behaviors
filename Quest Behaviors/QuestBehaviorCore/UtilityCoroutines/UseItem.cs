@@ -14,6 +14,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Styx;
@@ -66,14 +67,14 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// once the item has been used successfully.</param>
 		/// <returns></returns>
 		/// <remarks>20140305-19:01UTC, Highvoltz/chinajade</remarks>
-		public static IEnumerator UseItem(
+		public static async Task<bool> UseItem(
             int itemId,
             System.Action actionOnMissingItemDelegate,
             System.Action actionOnFailedItemUseDelegate = null,
             System.Action actionOnSuccessfulItemUseDelegate = null)
         {
             // Waits for global cooldown to end to successfully use the item
-            yield return StyxCoroutine.Wait(500, () => !SpellManager.GlobalCooldown);
+			await Coroutine.Wait(500, () => !SpellManager.GlobalCooldown);
 
             // Is item in our bags?
             var itemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
@@ -82,8 +83,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
                 if (actionOnMissingItemDelegate != null)
                     { actionOnMissingItemDelegate();  }
-                yield return false;
-                yield break;
+                return false;
             }
             var itemName = itemToUse.SafeName;
 
@@ -96,8 +96,7 @@ namespace Honorbuddy.QuestBehaviorCore
                         "{0} is not usable, yet. (cooldown remaining: {1})",
                         itemName,
                         Utility.PrettyTime(itemToUse.CooldownTimeLeft));
-                yield return false;
-                yield break;
+                return false;
             }
 
             // Notify user of intent...
@@ -117,11 +116,11 @@ namespace Honorbuddy.QuestBehaviorCore
             // an identical looking target with a different script.
             // Some items are consumed when used.
             // We must assume our target and item is no longer available for use after this point.
-            yield return StyxCoroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+			await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
 
             // Wait for any casting to complete...
             // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
-            yield return StyxCoroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
+			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
             InterruptDectection_Unhook();
 
             if (IsInterrupted)
@@ -129,17 +128,16 @@ namespace Honorbuddy.QuestBehaviorCore
                 QBCLog.Warning("Use of {0} interrupted.", itemName);
                 // Give whatever issue encountered a chance to settle...
                 // NB: --we want the Sequence to fail when delay completes.
-                yield return StyxCoroutine.Sleep(1500);
+                await Coroutine.Sleep(1500);
                 if (actionOnFailedItemUseDelegate != null)
                     { actionOnFailedItemUseDelegate(); }
-                yield return false;
-                yield break;
+                return false;
             }
             QBCLog.DeveloperInfo("Use of '{0}' succeeded.", itemName);
 
             if (actionOnSuccessfulItemUseDelegate != null)
                 { actionOnSuccessfulItemUseDelegate(); }
-            yield return true;
+            return true;
         }
 
 
@@ -189,7 +187,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// once the item has been used successfully.</param>
 		/// <returns></returns>
 		/// <remarks>20140305-19:01UTC, Highvoltz/chinajade</remarks>
-		public static IEnumerator UseItemOnTarget(
+		public static async Task<bool> UseItemOnTarget(
 			int itemId,
 			WoWObject selectedTarget,
 			System.Action actionOnMissingItemDelegate,
@@ -197,7 +195,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			System.Action actionOnSuccessfulItemUseDelegate = null)
 		{
 			// Waits for global cooldown to end to successfully use the item
-			yield return StyxCoroutine.Wait(500, () => !SpellManager.GlobalCooldown);
+			await Coroutine.Wait(500, () => !SpellManager.GlobalCooldown);
 
 			// qualify...
 			// Viable target?
@@ -208,8 +206,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 QBCLog.Warning("Target is not viable!");
                 if (actionOnFailedItemUseDelegate != null)
                     { actionOnFailedItemUseDelegate(); }
-				yield return false;
-				yield break;
+				return false;
 			}
 			var targetName = selectedTarget.SafeName;
 
@@ -220,8 +217,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
                 if (actionOnMissingItemDelegate != null)
                     { actionOnMissingItemDelegate(); }
-				yield return false;
-				yield break;
+				return false;
 			}
 			var itemName = itemToUse.SafeName;
 
@@ -238,8 +234,7 @@ namespace Honorbuddy.QuestBehaviorCore
 						"{0} is not usable, yet. (cooldown remaining: {1})",
 						itemName,
 						Utility.PrettyTime(itemToUse.CooldownTimeLeft));
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			// Notify user of intent...
@@ -273,13 +268,13 @@ namespace Honorbuddy.QuestBehaviorCore
 			// an identical looking target with a different script.
 			// Some items are consumed when used.
 			// We must assume our target and item is no longer available for use after this point.
-			yield return StyxCoroutine.Sleep((int) Delay.AfterItemUse.TotalMilliseconds);
+			await Coroutine.Sleep((int) Delay.AfterItemUse.TotalMilliseconds);
 
-			yield return CastPendingSpell(selectedTarget);
+			await CastPendingSpell(selectedTarget);
 
 			// Wait for any casting to complete...
 			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
-			yield return StyxCoroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
+			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
 			InterruptDectection_Unhook();
 
 			if (IsInterrupted)
@@ -287,17 +282,16 @@ namespace Honorbuddy.QuestBehaviorCore
 				QBCLog.Warning("Use of {0} interrupted.", itemName);
 				// Give whatever issue encountered a chance to settle...
 				// NB: --we want the Sequence to fail when delay completes.
-                yield return StyxCoroutine.Sleep(1500);
+                await Coroutine.Sleep(1500);
                 if (actionOnFailedItemUseDelegate != null)
                     { actionOnFailedItemUseDelegate(); }
-				yield return false;
-				yield break;
+				return false;
 			}
 
 			QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", itemName, targetName);
 			if (actionOnSuccessfulItemUseDelegate != null)
                 { actionOnSuccessfulItemUseDelegate(); }
-			yield return true;
+			return true;
 		}
 
 	}

@@ -199,8 +199,9 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
-
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -560,7 +561,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 							out safeSpot),
 						new PrioritySelector(
 							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
-							new ActionRunCoroutine(nearestAvoidMobContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							new ActionRunCoroutine(nearestAvoidMobContext => UseSpeedEnhancements(safeSpot)),
 							// move to safespot.
 							UtilityBehavior_MoveWithinRange(nearestAvoidMobContext => safeSpot,
 								nearestAvoidMobContext => string.Format("away from mob with '{0}' aura",
@@ -577,7 +578,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 							out safeSpot),
 						new PrioritySelector(
 							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
-							new ActionRunCoroutine(nearestAuraMobContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							new ActionRunCoroutine(nearestAuraMobContext => UseSpeedEnhancements(safeSpot)),
 							// move to safespot.
 							UtilityBehavior_MoveWithinRange(nearestAuraMobContext => safeSpot,
 								nearestAuraMobContext => string.Format("away from mob casting '{0}'",
@@ -596,7 +597,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 							out safeSpot),
 						new PrioritySelector(
 							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
-							new ActionRunCoroutine(nearestBehindMobContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							new ActionRunCoroutine(nearestBehindMobContext => UseSpeedEnhancements(safeSpot)),
 							// move to safespot.
 							UtilityBehavior_MoveWithinRange(nearestBehindMobContext => safeSpot,
 								nearestBehindMobContext => string.Format("behind mob casting '{0}'",
@@ -615,7 +616,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 							out safeSpot),
 						new PrioritySelector(
 							// use speed ehancement abilites to get out of dodge. This will always drop down to behavior below
-							new ActionRunCoroutine(targetUnitContext => UseSpeedEnhancementsCoroutine(safeSpot)),
+							new ActionRunCoroutine(targetUnitContext => UseSpeedEnhancements(safeSpot)),
 							// move to safespot.
 							UtilityBehavior_MoveWithinRange(targetUnitContext => safeSpot,
 								targetUnitContext => string.Format("out of '{0}' ground effect", GroundEffectFromIds(MoveOutOfGroundEffectAuraIds).Name)))
@@ -1090,14 +1091,11 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 			return true;
 		}
 
-		private IEnumerator UseSpeedEnhancementsCoroutine(WoWPoint destination)
+		private async Task<bool> UseSpeedEnhancements(WoWPoint destination)
 		{
 			// Return if ActiveMover is not player
 			if (WoWMovement.ActiveMover != StyxWoW.Me)
-			{
-				yield return false;
-				yield break;
-			}
+				return false;
 
 			var myLoc = StyxWoW.Me.Location;
 			var distToDestSqr = destination.DistanceSqr(myLoc);
@@ -1152,13 +1150,13 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 					if (distToDestSqr > 8 * 8 && distToDestSqr < 40 * 40 && SpellManager.CanCast("Heroic Leap"))
 					{
 						SpellManager.Cast("Heroic Leap");
-						yield return StyxCoroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+						await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
 						SpellManager.ClickRemoteLocation(destination);
-						yield return StyxCoroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+						await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
 					}
 					break;
 			}
-			yield return false;
+			return false;
 		}
 
         #endregion // Behavior helpers

@@ -124,6 +124,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 using Buddy.Coroutines;
@@ -383,20 +384,18 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
         }
 
 
-        private IEnumerator MainCoroutine(object context)
+        private async Task<bool> MainCoroutine(object context)
         {
             // Ignore, while in non-actionable condition...
             if (Me.IsDead)
             {
-                yield return false;
-                yield break;    
+                return false;  
             }
 
             // Ignore if eating or drinking...
             if (IsDrinkingOrEating())
             {
-                yield return false;
-                yield break;
+                return false;
             }
 
             // If throttle is not running, get it started...
@@ -409,39 +408,36 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
             // If throttling in progress, return immediately...
             if (!_persistedActivityThrottle.IsFinished)
             {
-                yield return false;
-                yield break;
+                return false;
             }
 
             // Process each of the activites in play...
             var oldLoggingContext = QBCLog.BehaviorLoggingContext;
             QBCLog.BehaviorLoggingContext = this;
 			try
-			{ 
-				yield return ExecuteActivities();
+			{
+				if (await ExecuteActivities())
+					return true;
 			}
 			finally
 			{
 				// ensure the QBCLog.BehaviorLoggingContext is reverted back to it's previous value in the event an exception was thown
 				QBCLog.BehaviorLoggingContext = oldLoggingContext;
 			}
-			if ((bool)Coroutine.Current.SubRoutineResult)
-				yield break;
 
             // Done for this visit...
             _persistedActivityThrottle.Reset();
-	        yield return false;
+	        return false;
         }
 
-		IEnumerator ExecuteActivities()
+		async Task<bool> ExecuteActivities()
 		{
 			foreach (var activity in PersistedActivities)
 			{
-				yield return activity.Execute();
-				if ((bool)Coroutine.Current.SubRoutineResult)
-					yield break;
+				if (await activity.Execute())
+					return true;
 			}
-			yield return false;
+			return false;
 		}
 
         #endregion
@@ -684,7 +680,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 
             // Methods requiring override...
-            public abstract IEnumerator Execute();
+            public abstract Task<bool> Execute();
 
 
             public bool IsExecutionNeeded()
@@ -751,12 +747,11 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
             }
 
 
-            public override IEnumerator Execute()
+            public override async Task<bool> Execute()
             {
                 if (!IsExecutionNeeded())
                 {
-                    yield return false;
-                    yield break;
+                    return false;
                 }
 
                 // If spell is not known at the moment, this is a problem...
@@ -769,14 +764,13 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                         + "  * (Preferred) Remove the corresponding DoWhen in the profile until the spell is learned.{0}"
                         + "  * Include a \"HasSpell({2})\" term as part of the UseWhen predicate expression.",
                         Environment.NewLine, Name, SpellId);
-                    yield return false;
-                    yield break;
+                    return false;
                 }
 
-                yield return UtilityCoroutine.CastSpell(SpellId);
+				await UtilityCoroutine.CastSpell(SpellId);
 
                 // If predicate did not clear, then predicate is bad...
-                yield return StyxCoroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
                 if (UseWhenPredicateFunc())
                 {
                     QBCLog.Error(
@@ -786,7 +780,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                         Environment.NewLine, Name, UseWhenExpression);
                 }
 
-                yield return true;
+                return true;
             }
         }
 
@@ -822,14 +816,12 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
             }
 
 
-            public override IEnumerator Execute()
+            public override async Task<bool> Execute()
             {
                 if (!IsExecutionNeeded())
                 {
-                    yield return false;
-                    yield break;
+                    return false;
                 }
-
 
                 // If item is not in inventory at the moment, we consider that a problem...
                 // TODO: Convert this to ProfileHelperFunctionBase.HasItem(ItemId), if that method ever becomes static.
@@ -842,14 +834,13 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                         + "  * (Preferred) Remove the corresponding DoWhen in the profile until the item is in our backpack.{0}"
                         + "  * Include a \"HasItem({2})\" term as part of the UseWhen predicate expression.",
                         Environment.NewLine, Name, ItemId);
-                    yield return false;
-                    yield break;
+	                return false;
                 }
 
-                yield return UtilityCoroutine.UseItem(ItemId, null /*missing item is non-fatal*/);
+                await UtilityCoroutine.UseItem(ItemId, null /*missing item is non-fatal*/);
 
                 // If predicate did not clear, then predicate is bad...
-                yield return StyxCoroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+                await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
                 if (UseWhenPredicateFunc())
                 {
                     QBCLog.Error(
@@ -859,7 +850,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                         Environment.NewLine, Name, UseWhenExpression);
                 }
 
-                yield return true;
+                return true;
             }
         }
         #endregion
