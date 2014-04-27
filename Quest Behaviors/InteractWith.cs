@@ -849,7 +849,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 				// If we're looking for 'dead' targets, and there are none...
 				// But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
-				if ( (SelectedTarget == null) && !Query.IsViable(SelectedAliveTarget) && (MobState == MobStateType.Dead))
+				if ( (SelectedTarget == null) && (!Query.IsViable(SelectedAliveTarget) || !SelectedAliveTarget.IsAlive) 
+					&& (MobState == MobStateType.Dead))
 				{
 					SelectedAliveTarget = FindViableTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
 					if (SelectedAliveTarget != null)
