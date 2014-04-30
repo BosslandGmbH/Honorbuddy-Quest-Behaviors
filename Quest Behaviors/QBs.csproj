@@ -232,7 +232,7 @@
     <Compile Include="Deprecated\IntotheRealmofShadows.cs" />
     <Compile Include="Deprecated\TheGiftThatKeepsOnGiving.cs" />
     <Compile Include="QuestBehaviorCore\Helpers_Math.cs" />
-    <Compile Include="TEMPLATE_QB.cs" />
+    <Compile Include="Development\TEMPLATE_QB.cs" />
     <Compile Include="DisablePlugin.cs" />
     <Compile Include="EjectVeh.cs" />
     <Compile Include="EnablePlugin.cs" />
