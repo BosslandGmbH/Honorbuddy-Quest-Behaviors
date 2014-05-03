@@ -1054,7 +1054,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			if (!isViableTarget)
 				return false;
 
-			if (IsDistanceGainNeeded(SelectedTarget) && RangeMin.HasValue)
+			if (IsDistanceGainNeeded(SelectedTarget))
 			{
 				var destinationName = string.Format(
 					"gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
@@ -1434,6 +1434,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					outgoingUnits.Add(selectedTarget);
 			}
 
+			// hard to gain distance on a mob that aggroed so kill it.
+			if (RangeMin.HasValue && Query.IsViable(selectedUnit) && selectedUnit.Aggro)
+				outgoingUnits.Add(selectedUnit);
+
 			// if we have a target that needs to be killed before interaction can take place then make it so.
 			if (Query.IsViable(SelectedAliveTarget) && SelectedAliveTarget.IsAlive)
 				outgoingUnits.Add(SelectedAliveTarget);
@@ -1734,6 +1738,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				return false;
 			}
 
+			var unit = wowObject as WoWUnit;
+			// can't easily gain distance on a mob that aggroed
+			if (unit != null && unit.Aggro)
+			{
+				return false;
+			}
+
 			double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
 			return targetDistance < RangeMin.Value;
@@ -1805,6 +1816,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				return false;
 
 			if (!Query.IsStateMatch_MeshNavigable(wowObject, MovementBy))
+				return false;
+
+			var unit = wowObject as WoWUnit;
+			if (RangeMin.HasValue && unit != null && unit.Aggro)
 				return false;
 
 			return wowObject.Location.CollectionDistance() <= CollectionDistance;
