@@ -137,6 +137,11 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
             // So we don't want to falsely inform the user of things that will be skipped.
             if (isBehaviorShouldRun)
             {
+				if (!Flightor.CanFly && !Navigator.CanNavigateFully(StyxWoW.Me.Location, Destination))
+				{
+					QBCLog.Fatal("Toon doesn't have flying capability in this area, and there is no ground path to the destination. Please learn the flying skill appropriate for this area.");
+					return;
+				}
                 // Disable any settings that may cause us to dismount --
                 // When we mount for travel via FlyTo, we don't want to be distracted by other things.
                 // NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
