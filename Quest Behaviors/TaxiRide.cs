@@ -74,6 +74,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Levelbot.Actions.General;
 using Styx.CommonBot;
+using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -191,19 +192,20 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
                     ),
 
 					// Getting ready to interact
-					new Sequence(
-						new DecoratorContinue(ret => WoWMovement.ActiveMover.IsMoving,
-							new Sequence(
-								new Action(ret => WoWMovement.MoveStop()),
-								new SleepForLagDuration())),
-						new DecoratorContinue(ret => Me.IsShapeshifted(),
-							new Sequence(
-								new Action(ret => Lua.DoString("CancelShapeshiftForm()")),
-								new SleepForLagDuration())),
-						new Action(ret => CurrentNpc.Interact()),
-						new Sleep(1000),
-						new SleepForLagDuration()
-						),
+					new Decorator(ctx => !TaxiFrame.Instance.IsVisible,
+						new Sequence(
+							new DecoratorContinue(ret => WoWMovement.ActiveMover.IsMoving,
+								new Sequence(
+									new Action(ret => WoWMovement.MoveStop()),
+									new SleepForLagDuration())),
+							new DecoratorContinue(ret => Me.IsShapeshifted(),
+								new Sequence(
+									new Action(ret => Lua.DoString("CancelShapeshiftForm()")),
+									new SleepForLagDuration())),
+							new Action(ret => CurrentNpc.Interact()),
+							new Sleep(1000),
+							new SleepForLagDuration()
+							)),
 								
                     new Decorator(ret => TaxiNumber == "0" && DestName == "ViewNodesOnly",
 						new Sequence(
