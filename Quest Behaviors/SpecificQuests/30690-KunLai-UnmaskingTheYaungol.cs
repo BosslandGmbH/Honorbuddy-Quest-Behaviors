@@ -44,7 +44,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using Bots.Grind;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -67,7 +70,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 {
     [CustomBehaviorFileName(@"SpecificQuests\30690-KunLai-UnmaskingTheYaungol")]
-    public class UnmaskingTheYaungol : CustomForcedBehavior
+	public class UnmaskingTheYaungol : QuestBehaviorBase
     {
         #region Consructor and Argument Processing
         public UnmaskingTheYaungol(Dictionary<string, string> args)
@@ -111,10 +114,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 
 
         // Variables for Attributes provided by caller
-
-        public int QuestId { get; set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; set; }
 
         public int AuraId_StealMask { get; private set; }
         public int GameObjectId_BlindingRageTrap { get; private set; }
@@ -168,96 +167,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
             }
         }
 
-        private LocalPlayer Me { get { return StyxWoW.Me; } }
-
-        private Composite _behaviorTreeHook_Combat = null;
-        private Composite _behaviorTreeHook_Main = null;
         private BattlefieldContext _combatContext = null;
-        private ConfigMemento _configMemento = null;
-        private bool _isBehaviorDone = false;
-        private bool _isDisposed = false;
         #endregion
-
-
-        #region Destructor, Dispose, and cleanup
-        ~UnmaskingTheYaungol()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                if (_behaviorTreeHook_Combat != null)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
-                    _behaviorTreeHook_Combat = null;
-                }
-
-                // NB: we don't unhook _behaviorTreeHook_Main
-                // This was installed when HB created the behavior, and its up to HB to unhook it
-
-                if (_configMemento != null)
-                {
-                    _configMemento.Dispose();
-                    _configMemento = null;
-                }
-
-                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-
-        public void BotEvents_OnBotStopped(EventArgs args)
-        {
-            Dispose();
-        }
-        #endregion
-
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
-        {
-            return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
-        }
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+		}
 
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return _isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
-            }
-        }
-
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+		}
 
         public override void OnStart()
         {
@@ -277,198 +198,175 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 IsAttributeProblem = true;
             }
 
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                _configMemento = new ConfigMemento();
-                
-                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
-                // Disable any settings that may interfere with the escort --
-                // When we escort, we don't want to be distracted by other things.
-                // NOTE: these settings are restored to their normal values when the behavior completes
-                // or the bot is stopped.
-                CharacterSettings.Instance.HarvestHerbs = false;
-                CharacterSettings.Instance.HarvestMinerals = false;
-                CharacterSettings.Instance.LootChests = false;
-                CharacterSettings.Instance.NinjaSkin = false;
-                CharacterSettings.Instance.SkinMobs = false;
-                CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (isBehaviorShouldRun)
+			{
+				// Disable any settings that may interfere with the escort --
+				// When we escort, we don't want to be distracted by other things.
+				// NOTE: these settings are restored to their normal values when the behavior completes
+				// or the bot is stopped.
+				CharacterSettings.Instance.HarvestHerbs = false;
+				CharacterSettings.Instance.HarvestMinerals = false;
+				CharacterSettings.Instance.LootChests = false;
+				CharacterSettings.Instance.NinjaSkin = false;
+				CharacterSettings.Instance.SkinMobs = false;
+				// don't pull anything unless we absolutely must
+				LevelBot.BehaviorFlags &= ~BehaviorFlags.Pull;    
 
-                _combatContext = new BattlefieldContext(ItemId_BlindingRageTrap, GameObjectId_BlindingRageTrap);
-
-                _behaviorTreeHook_Combat = CreateCombatBehavior();
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
-
-                this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while behavior in progress");
-            }
+				_combatContext = new BattlefieldContext(ItemId_BlindingRageTrap, GameObjectId_BlindingRageTrap);
+				this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while behavior in progress");
+			}
         }
-        #endregion
+
+	    #endregion
 
 
         #region Main Behavior
-        private Composite CreateCombatBehavior()
-        {
-            return new PrioritySelector(context => _combatContext.Update(MobId_Kobai, MobId_MalevolentFury),
-                new Decorator(context => Me.Combat,
-                    new PrioritySelector(
-                        // If a Malevolent Fury on battlefield, switch to kill it first...
-                        new Decorator(context => _combatContext.MalevolentFury != null,
-                            new PrioritySelector(
-                                new Action(context => { QBCLog.Info("Fighting Malevolent Fury"); return RunStatus.Failure; }),
-                                new Decorator(context => (Me.CurrentTarget != _combatContext.MalevolentFury),
-                                    new Action(context =>
-                                    {
-                                        BotPoi.Current = new BotPoi(_combatContext.MalevolentFury, PoiType.Kill);
-                                        _combatContext.MalevolentFury.Target();
-                                        return RunStatus.Failure;
-                                    })),
-                                new Decorator(context => _combatContext.MalevolentFury.Distance > Me.CombatReach,
-                                    new Action(context => { Navigator.MoveTo(_combatContext.MalevolentFury.Location); })),
-                                new Decorator(context => RoutineManager.Current.CombatBehavior != null,
-                                    RoutineManager.Current.CombatBehavior),
-                                new Action(preferredTargetContext =>
-                                {
-                                    RoutineManager.Current.Combat();
-                                    return RunStatus.Failure;
-                                })
-                            )),
 
-                        // If the Blind Rage Trap is not on cooldown, move right next to Kobai and use it...
-                        // NB: We don't want to drop the trap unless we're pounding on Kobai
-                        new Decorator(context => (_combatContext.Kobai != null)
-                                                    && (Me.CurrentTarget == _combatContext.Kobai)
-                                                    && (_combatContext.BlindingRageTrap != null)
-                                                    && (_combatContext.BlindingRageTrap.CooldownTimeLeft <= TimeSpan.Zero),
-                            new PrioritySelector(
-                                new Action(context => { QBCLog.Info("Using Blinding Rage Trap"); return RunStatus.Failure; }),
-                                new Decorator(context => _combatContext.Kobai.Distance > Me.CombatReach,
-                                    new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); })),
-                                new Decorator(context => Me.IsMoving,
-                                    new Action(context => { WoWMovement.MoveStop(); })),
-                                new Decorator(context => !Me.IsSafelyFacing(_combatContext.Kobai),
-                                    new Action(context => { _combatContext.Kobai.Face(); })),
-                                new Wait(TimeSpan.FromMilliseconds(250), context => false, new ActionAlwaysSucceed()),
-                                new Action(context => { _combatContext.BlindingRageTrap.Use(); }),
-                                new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
-                            )),
+	    protected override Composite CreateBehavior_CombatMain()
+	    {
+		    return new ActionRunCoroutine(ctx => CombatMainLogic());
+	    }
 
-                        // "Steal Mask" aura...
-                        // If Kobai is blinded by rage, and the Malevolent Fury is not on the battlefield,
-                        // move right next to Kobai, and steal the mask...
-                        // NB: We only want to cause one Malevolet Fury to spawn.  If we click multiple times
-                        // then we get more.  So, only click if Fury is not already up.
-                        new Decorator(context => (_combatContext.Kobai != null)
-                                                && Me.HasAura(AuraId_StealMask)
-                                                && (_combatContext.MalevolentFury == null),
-                            new PrioritySelector(
-                                new Action(context => { QBCLog.Info("Pilfering Mask"); return RunStatus.Failure; }),
-                                new Decorator(context => _combatContext.Kobai.Distance > Me.CombatReach,
-                                    new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); })),
-                                new Decorator(context => (Me.CurrentTarget != _combatContext.Kobai),
-                                    new Action(context => { _combatContext.Kobai.Target(); })),
-                                new Decorator(context => _combatContext.MalevolentFury == null,
-                                    new Action(context => { Lua.DoString("RunMacroText('/click ExtraActionButton1')"); })),
-                                new Wait(TimeSpan.FromMilliseconds(1000), context => false, new ActionAlwaysSucceed())
-                            )),
+	    protected async Task<bool> CombatMainLogic()
+	    {
+		    if (IsDone)
+			    return false;
+		    _combatContext.Update(MobId_Kobai, MobId_MalevolentFury);
+		    if (Me.Combat)
+		    {
+			    // If the Blind Rage Trap is not on cooldown, move right next to Kobai and use it...
+			    // NB: We don't want to drop the trap unless we're pounding on Kobai
+			    if ((_combatContext.Kobai != null)
+					&& (Me.CurrentTarget == _combatContext.Kobai)
+					&& (_combatContext.BlindingRageTrap != null)
+					&& (_combatContext.BlindingRageTrap.CooldownTimeLeft <= TimeSpan.Zero))
+			    {
+				    QBCLog.Info("Using Blinding Rage Trap");
 
-                        // Disallow combat until the trap Malevolent Fury shows up...
-                        // NB: We *must* disable combat while the trap is being placed, and the mask pilfered.
-                        // Otherwise, the attacks of certain classes will interfere with the trap placement
-                        // and pilfering of the mask. A Shaman's "Feral Spirit" is one such example.
-                        new Decorator(context => (_combatContext.MalevolentFury == null)
-                                                    && /*safety measure*/(Me.HealthPercent > ToonHealthPercentSafetyLevel),
-                            new ActionAlwaysSucceed())
-                    )),
+				    if (!_combatContext.Kobai.IsWithinMeleeRange)
+					    return await UtilityCoroutine.MoveTo(_combatContext.Kobai.Location, "Kobai", MovementByType.NavigatorOnly);
 
-                // If we're not in combat, but have found Kobai, move to engage him...
-                new Decorator(context => !Me.Combat && (_combatContext.Kobai != null),
-                    new PrioritySelector(
-                        // If Kobai is not in kill zone...
-                        new Decorator(context => _combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) > KobaiSafePullAreaRadius,
-                            new PrioritySelector(
-                                UtilityBehavior_MoveToStartPosition(),
+				    if (Me.IsMoving)
+					    await UtilityCoroutine.MoveStop();
 
-                                // Wait for Kobai to arrive...
-                                new Action(context =>
-                                {
-                                    QBCLog.Info("Waiting for Kobai to move into kill zone (dist: {0:F1})",
-                                        Math.Max(_combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) - KobaiSafePullAreaRadius, 0.0));
-                                    return RunStatus.Failure;
-                                }),
-                                new Wait(TimeSpan.FromSeconds(5), context => false, new ActionAlwaysSucceed())
-                            )),
+				    if (!Me.IsSafelyFacing(_combatContext.Kobai))
+				    {
+					    _combatContext.Kobai.Face();
+					    await Coroutine.Sleep(Delay.LagDuration.Milliseconds);
+				    }
+				    await Coroutine.Sleep(Delay.BeforeButtonClick.Milliseconds);
+				    _combatContext.BlindingRageTrap.Use();
+				    await Coroutine.Sleep(Delay.AfterItemUse.Milliseconds);
+				    return true;
+			    }
+			    // "Steal Mask" aura...
+			    // If Kobai is blinded by rage, and the Malevolent Fury is not on the battlefield,
+			    // move right next to Kobai, and steal the mask...
+			    // NB: We only want to cause one Malevolet Fury to spawn.  If we click multiple times
+			    // then we get more.  So, only click if Fury is not already up.
+			    if ((_combatContext.Kobai != null)
+					&& Me.HasAura(AuraId_StealMask)
+					&& (_combatContext.MalevolentFury == null))
+			    {
+				    QBCLog.Info("Pilfering Mask");
 
-                        // Kobai in kill zone, pull him...
-                        new Decorator(context => _combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) <= KobaiSafePullAreaRadius,
-                            new PrioritySelector(
-                                new Action(context => { QBCLog.Info("Engaging Kobai"); return RunStatus.Failure; }),
-                                new Mount.ActionLandAndDismount(),
-                                new Decorator(context => (Me.CurrentTarget != _combatContext.Kobai),
-                                    new Action(context =>
-                                    {
-                                        BotPoi.Current = new BotPoi(_combatContext.Kobai, PoiType.Kill);
-                                        _combatContext.Kobai.Target();
-                                        return RunStatus.Failure;
-                                    })),
-                                new Decorator(context => _combatContext.Kobai.Distance > CharacterSettings.Instance.PullDistance,
-                                    new Action(context => { Navigator.MoveTo(_combatContext.Kobai.Location); }))
-                            ))
-                    )),
+				    if (!_combatContext.Kobai.IsWithinMeleeRange)
+					    return await UtilityCoroutine.MoveTo(_combatContext.Kobai.Location, "Kobai", MovementByType.NavigatorOnly);
 
-                // Can't find Kobai--must've just been killed--wait for repop...
-                new Decorator(context => !Me.Combat && (_combatContext.Kobai == null) && Navigator.AtLocation(WaitPoint),
-                    new Sequence(
-                        new Action(context => { QBCLog.Info("Waiting for Kobai to respawn"); }),
-                        new Wait(TimeSpan.FromSeconds(5), context => false, new ActionAlwaysSucceed())
-                    ))
+				    if (Me.CurrentTargetGuid != _combatContext.Kobai.Guid)
+				    {
+					    _combatContext.Kobai.Target();
+					    if (!await Coroutine.Wait(
+						    2000,
+						    () => _combatContext.Kobai.IsValid
+								&& Me.CurrentTarget == _combatContext.Kobai))
+					    {
+						    return false;
+					    }
+				    }
+				    Lua.DoString("ExtraActionButton1:Click()");
+				    await Coroutine.Sleep(Delay.AfterItemUse.Milliseconds);
+				    return true;
+			    }
+		    }
+			// If we're not in combat, but have found Kobai, move to engage him...
+			else 
+			{
+				if (_combatContext.Kobai != null)
+				{
+					// If Kobai is not in kill zone...
+					if (_combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) > KobaiSafePullAreaRadius)
+					{
+						if (await UtilityCoroutine_MoveToStartPosition())
+							return true;
 
-            );
-        }
+						// Wait for Kobai to arrive...
+						QBCLog.Info("Waiting for Kobai to move into kill zone (dist: {0:F1})",
+								Math.Max(_combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) - KobaiSafePullAreaRadius, 0.0));
+						await Coroutine.Wait(5000, () => Me.Combat);
+						return true;
+					}
+				
+					// Kobai in kill zone, pull him...
+					if (_combatContext.Kobai.Location.Distance(KobaiSafePullAreaAnchor) <= KobaiSafePullAreaRadius)
+					{
+						if (BotPoi.Current.Type != PoiType.Kill)
+						{
+							QBCLog.Info("Engaging Kobai");
+							BotPoi.Current = new BotPoi(_combatContext.Kobai, PoiType.Kill);
+							if (Me.CurrentTarget != _combatContext.Kobai)
+							{
+								_combatContext.Kobai.Target();
+								await Coroutine.Sleep(Delay.LagDuration.Milliseconds);
+								return true;
+							}
+						}
+						return false;
+					}
 
+					// Can't find Kobai--must've just been killed--wait for repop...
+					if (_combatContext.Kobai == null && Navigator.AtLocation(WaitPoint))
+					{
+						QBCLog.Info("Waiting for Kobai to respawn");
+						await Coroutine.Wait(5000, () => Me.Combat);
+						return true;
+					}
+				}
 
-        private Composite CreateMainBehavior()
-        {
-            return new PrioritySelector(
-                // If quest is done, behavior is done...
-                new Decorator(context => !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete),
-                    new Action(context => { QBCLog.Info("Finished"); _isBehaviorDone = true; })),
+				if (!UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete))
+				{
+					BehaviorDone("Finished");
+					return true;
+				}
 
                 // Move to start position, if needed...
-                UtilityBehavior_MoveToStartPosition()
-            );
+				return await UtilityCoroutine_MoveToStartPosition();
+			}
 
-        }
+		    return false;
+	    }
+
         #endregion
 
 
         #region Helpers
-        private Composite UtilityBehavior_MoveToStartPosition()
-        {
-            // Move to start position, if needed...
-            return new PrioritySelector(
-                new Decorator(context => !Navigator.AtLocation(WaitPoint),
-                    new PrioritySelector(
-                        new Decorator(context => !Me.Mounted && Mount.CanMount(),
-                            new Action(context => { Mount.MountUp(() => WaitPoint); })),
-                        new Action(context =>
-                        {
-                            QBCLog.Info("Moving to start position");
-                            Navigator.MoveTo(WaitPoint);
-                        })
-                    )),
 
-                // We're at start position, dismount...
-                new Mount.ActionLandAndDismount()
-            );
-        }
-        #endregion // Behavior helpers
+	    async Task<bool> UtilityCoroutine_MoveToStartPosition()
+	    {
+		    if (Navigator.AtLocation(WaitPoint))
+			    return false;
+			
+			return await UtilityCoroutine.MoveTo(WaitPoint, "Moving to start position", MovementByType.NavigatorOnly);
+	    }
+
+        #endregion // Coroutine helpers
     }
 
 
