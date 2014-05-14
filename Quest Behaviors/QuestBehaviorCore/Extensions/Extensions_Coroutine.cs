@@ -9,75 +9,97 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
-using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Media;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
-using Buddy.Coroutines;
-using Styx;
-using Styx.TreeSharp;
-using Styx.CommonBot.Coroutines;
-using Action = Styx.TreeSharp.Action;
-#endregion
 
+using System;
+using System.Diagnostics;
+using System.Threading.Tasks;
+using Styx.CommonBot.Coroutines;
+
+#endregion
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-
-	public class ThrottleCoroutineTask : CoroutineTask
+	/// <summary>
+	///     Thottles a child coroutine by the provided time, returning <c>true</c> when not throttled; <c>false</c> otherwise.
+	///     Use <see cref="ThrottleCoroutineTask&lt;T&gt;" /> if the child needs to return a value.
+	/// </summary>
+	public class ThrottleCoroutineTask : CoroutineTask<bool>
 	{
-		public ThrottleCoroutineTask(TimeSpan throttle, Func<Task> childProducer)
+		private readonly Stopwatch _timer = new Stopwatch();
+
+		public ThrottleCoroutineTask(TimeSpan throttleTime, Func<Task> childProducer)
 		{
-			Throttle = throttle;
+			ThrottleTime = throttleTime;
 			ChildProducer = childProducer;
 		}
 
-		public TimeSpan Throttle { get; private set; }
+		public TimeSpan ThrottleTime { get; private set; }
 		public Func<Task> ChildProducer { get; private set; }
 
-		private readonly Stopwatch _timer = new Stopwatch();
-
-		protected override async Task Run()
+		protected override async Task<bool> Run()
 		{
-			if (_timer.IsRunning && _timer.Elapsed < Throttle)
+			if (_timer.IsRunning && _timer.Elapsed < ThrottleTime)
 			{
-				return;
+				return false;
 			}
 
 			await ChildProducer();
-			_timer.Restart();			
+			_timer.Restart();
+			return true;
 		}
 	}
 
-	public class ThrottleCoroutineTask<T> : CoroutineTask<T>
+	/// <summary>
+	///     Thottles a child coroutine by the provided time. A <see cref="ThrottleResult&lt;T&gt;" /> is returned with the
+	///     result. Use <see cref="ThrottleCoroutineTask" /> if the child doesn't needs to return a value.
+	/// </summary>
+	/// <typeparam name="T">The child coroutine return type</typeparam>
+	public class ThrottleCoroutineTask<T> : CoroutineTask<ThrottleResult<T>>
 	{
-		public ThrottleCoroutineTask(TimeSpan throttle, Func<Task<T>> childProducer)
+		private readonly Stopwatch _timer = new Stopwatch();
+
+		public ThrottleCoroutineTask(TimeSpan throttleTime, Func<Task<T>> childProducer)
 		{
-			Throttle = throttle;
+			ThrottleTime = throttleTime;
 			ChildProducer = childProducer;
 		}
 
-		public TimeSpan Throttle { get; private set; }
+		public TimeSpan ThrottleTime { get; private set; }
 		public Func<Task<T>> ChildProducer { get; private set; }
 
-		private readonly Stopwatch _timer = new Stopwatch();
-
-		protected override async Task<T> Run()
+		protected override async Task<ThrottleResult<T>> Run()
 		{
-			if (_timer.IsRunning && _timer.Elapsed < Throttle)
+			if (_timer.IsRunning && _timer.Elapsed < ThrottleTime)
 			{
-				return default(T);
+				return ThrottleResult<T>.Throttled;
 			}
 
 			var result = await ChildProducer();
 			_timer.Restart();
-			return result;
+			return new ThrottleResult<T>(true, result);
 		}
 	}
 
+	public struct ThrottleResult<T>
+	{
+		internal static readonly ThrottleResult<T> Throttled = new ThrottleResult<T> {RanChild = false};
 
+		internal ThrottleResult(bool ranChild, T childResult)
+			: this()
+		{
+			RanChild = ranChild;
+			ChildResult = childResult;
+		}
+
+		/// <summary>Gets a value indicating whether child was executed.</summary>
+		/// <value>
+		///     <c>true</c> if child was executed; otherwise, <c>false</c>.
+		/// </value>
+		public bool RanChild { get; private set; }
+
+		/// <summary>Gets the result of the child.</summary>
+		/// <value>The result of child.</value>
+		public T ChildResult { get; private set; }
+
+	}
 }
