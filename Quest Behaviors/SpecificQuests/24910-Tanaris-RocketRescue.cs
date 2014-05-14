@@ -36,9 +36,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 using Bots.Grind;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -222,247 +224,260 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 
         protected override Composite CreateMainBehavior()
         {
-            return new PrioritySelector(
-                new Switch<BehaviorStateType>(context => BehaviorState,
-                    new Action(context =>   // default case
-                    {
-                        var message = string.Format("BehaviorStateType({0}) is unhandled", BehaviorState);
+            return new ActionRunCoroutine(ctx => MainBehaviorCoroutine());
+        }
+
+		private async Task<bool> MainBehaviorCoroutine()
+	    {
+			switch (BehaviorState)
+			{
+				case BehaviorStateType.MountingVehicle:
+					return await StateCoroutine_MountingVehicle();
+				case BehaviorStateType.RidingOutToHuntingGrounds:
+					return await StateCoroutine_RidingOutToHuntingGrounds();
+				case BehaviorStateType.CompletingObjectives:
+					return await StateCoroutine_CompletingObjectives();
+				case BehaviorStateType.ReturningToBase:
+					return await StateCoroutine_ReturningToBase();
+				default:
+					    var message = string.Format("BehaviorStateType({0}) is unhandled", BehaviorState);
                         QBCLog.MaintenanceError(message);
                         TreeRoot.Stop();
                         BehaviorDone(message);
-                    }),
+					return false;
+			}
+	    }
 
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.MountingVehicle,
-                        StateBehaviorPS_MountingVehicle()),
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.RidingOutToHuntingGrounds,
-                        StateBehaviorPS_RidingOutToHuntingGrounds()),
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.CompletingObjectives,
-                        StateBehaviorPS_CompletingObjectives()),
-                    new SwitchArgument<BehaviorStateType>(BehaviorStateType.ReturningToBase,
-                        StateBehaviorPS_ReturningToBase())
-                ));
-        }
+
         #endregion
 
 
         #region Behavior States
-        private Composite StateBehaviorPS_MountingVehicle()
+
+		private ThrottleCoroutineTask _updateUser_MountingVehicle_waitingForSpawn;
+		private ThrottleCoroutineTask _updateUser_MountingVehicle_movingToVehicle; 
+
+		private async Task<bool> StateCoroutine_MountingVehicle()
         {
-            return new PrioritySelector(
-                new Decorator(context => Me.IsQuestComplete(QuestId),
-                    new Action(context => { BehaviorDone(); })),
+			if (Me.IsQuestComplete(QuestId))
+			{
+				BehaviorDone();
+				return true;
+			}
 
-                new Decorator(context => IsInBalloon(),
-                    new PrioritySelector(
-                        SubBehaviorPS_InitializeVehicleAbilities(), 
-                        new Action(context => { BehaviorState = BehaviorStateType.RidingOutToHuntingGrounds; })
-                    )),
-                    
-                // Locate a vehicle to mount...
-                new Decorator(context => !Query.IsViable(Vehicle),
-                    new PrioritySelector(
-                        new Action(context =>
-                        {
-                            Vehicle =
-                                Query.FindMobsAndFactions(Utility.ToEnumerable(MobId_SteamwheedleRescueBalloon))
-                                .FirstOrDefault()
-                                as WoWUnit;
+			if (IsInBalloon())
+			{
+				await SubCoroutine_InitializeVehicleAbilities();
+				BehaviorState = BehaviorStateType.RidingOutToHuntingGrounds;
+				return true;
+			}
 
-                            if (Query.IsViable(Vehicle))
-                            {
-                                Utility.Target(Vehicle);
-                                return RunStatus.Success;
-                            }
+			// Locate a vehicle to mount...
+			if (!Query.IsViable(Vehicle))
+			{
+				Vehicle = Query.FindMobsAndFactions(Utility.ToEnumerable(MobId_SteamwheedleRescueBalloon))
+					.FirstOrDefault() as WoWUnit;
 
-                            return RunStatus.Failure;   // fall through
-                        }),
+				if (Query.IsViable(Vehicle))
+				{
+					Utility.Target(Vehicle);
+					return true;
+				}
 
-                        // No vehicle found, move to staging area...
-                        new UtilityBehaviorPS.MoveTo(
-                            context => VehicleStagingArea,
-                            context => "Vehicle Staging Area",
-                            context => MovementBy),
+				// No vehicle found, move to staging area...
+				if (await UtilityCoroutine.MoveTo(VehicleStagingArea, "Vehicle Staging Area", MovementBy))
+				{return true;}
 
-                        // Wait for vehicle to respawn...
-                        new CompositeThrottle(Throttle.UserUpdate,
-                            new Action(context =>
-                            {
-                                TreeRoot.StatusText =
-                                    string.Format("Waiting for {0} to respawn.",
-                                        Utility.GetObjectNameFromId(MobId_SteamwheedleRescueBalloon));
-                            }))
-                    )),
+				await (_updateUser_MountingVehicle_waitingForSpawn ?? (_updateUser_MountingVehicle_waitingForSpawn =
+					new ThrottleCoroutineTask(
+						Throttle.UserUpdate, 
+						async () => TreeRoot.StatusText = string.Format("Waiting for {0} to respawn.",
+                                        Utility.GetObjectNameFromId(MobId_SteamwheedleRescueBalloon)))));
+				// Wait for vehicle to respawn...				
+				return true;
+			}
+			// Wait for vehicle to respawn...				
+			await (_updateUser_MountingVehicle_movingToVehicle ?? (_updateUser_MountingVehicle_movingToVehicle =
+				new ThrottleCoroutineTask(
+					Throttle.UserUpdate,
+					async () => TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.Name))));
 
-                // Move to vehicle and enter...
-                new CompositeThrottle(Throttle.UserUpdate,
-                    new Action(context => { TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.Name); })),
-                new Decorator(context => !Vehicle.WithinInteractRange,
-                    new UtilityBehaviorPS.MoveTo(
-                        context => Vehicle.Location,
-                        context => Vehicle.Name,
-                        context => MovementBy)),
-                new Decorator(context => Me.IsMoving,
-                    new Action(context => { Navigator.PlayerMover.MoveStop(); })),
-                new Decorator(context => Me.Mounted,
-                    new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)),
-                new ActionFail(context =>
-                {
-                    // If we got booted out of a vehicle for some reason, reset the weapons...
-                    WeaponLifeRocket = null;
-                    WeaponPirateDestroyingBomb = null;
-                    WeaponEmergencyRocketPack = null;
+			if (!Vehicle.WithinInteractRange)
+			{
+				return await UtilityCoroutine.MoveTo(Vehicle.Location, Vehicle.Name, MovementBy);
+			}
 
-                    Utility.Target(Vehicle);
-                    Vehicle.Interact();
-                }),
-                new Wait(TimeSpan.FromMilliseconds(10000), context => IsInBalloon(), new ActionAlwaysSucceed()),
-                new ActionAlwaysSucceed()
-            );
+			if (Me.IsMoving)
+				await UtilityCoroutine.MoveStop();
+
+			if (Me.Mounted && await UtilityCoroutine.ExecuteMountStrategy(
+				MountStrategyType.DismountOrCancelShapeshift))
+			{
+				return true;
+			}
+			// If we got booted out of a vehicle for some reason, reset the weapons...
+			WeaponLifeRocket = null;
+			WeaponPirateDestroyingBomb = null;
+			WeaponEmergencyRocketPack = null;
+
+			Utility.Target(Vehicle);
+			await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+			Vehicle.Interact();
+			await Coroutine.Wait(10000, IsInBalloon);
+			return true;
         }
 
 
-        private Composite StateBehaviorPS_RidingOutToHuntingGrounds()
+		private ThrottleCoroutineTask _updateUser_RidingOutToHuntingGrounds;
+		private async Task<bool> StateCoroutine_RidingOutToHuntingGrounds()
         {
-            return new PrioritySelector(
-                // If for some reason no longer in the vehicle, go fetch another...
-                new Decorator(context => !IsInBalloon(),
-                    new Action(context =>
-                    {
-                        QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
-                        BehaviorState = BehaviorStateType.MountingVehicle;
-                    })),
+			// If for some reason no longer in the vehicle, go fetch another...
+			if (!IsInBalloon())
+			{
+				QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
+				BehaviorState = BehaviorStateType.MountingVehicle;
+				return true;
+			}
+			// Ride to hunting grounds complete when spells are enabled...
+			if (WeaponLifeRocket.IsWeaponUsable())
+			{
+				BehaviorState = BehaviorStateType.CompletingObjectives;
+				return true;
+			}
 
-                // Ride to hunting grounds complete when spells are enabled...
-                new Decorator(context => WeaponLifeRocket.IsWeaponUsable(),
-                    new Action(context => { BehaviorState = BehaviorStateType.CompletingObjectives; })),
 
-                new CompositeThrottle(Throttle.UserUpdate,
-                    new Action(context => { TreeRoot.StatusText = "Riding out to hunting grounds"; }))
-            );            
+			await (_updateUser_RidingOutToHuntingGrounds ?? (_updateUser_RidingOutToHuntingGrounds =
+				new ThrottleCoroutineTask(
+					Throttle.UserUpdate,
+					async () => TreeRoot.StatusText = "Riding out to hunting grounds")));
+
+			return false;
+        }
+
+		private ThrottleCoroutineTask _updateUser_CompletingObjectives; 
+		private async Task<bool> StateCoroutine_CompletingObjectives()
+        {
+			// If for some reason no longer in the vehicle, go fetch another...
+			if (!IsInBalloon())
+			{
+				QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
+				BehaviorState = BehaviorStateType.MountingVehicle;
+				return true;
+			}
+			
+            // If quest is complete, then head back...
+			if (Me.IsQuestComplete(QuestId))
+			{
+				BehaviorState = BehaviorStateType.ReturningToBase;
+				return true;
+			}
+
+			await (_updateUser_CompletingObjectives ?? (_updateUser_CompletingObjectives =
+				new ThrottleCoroutineTask(
+					Throttle.UserUpdate, 
+					async () => TreeRoot.StatusText = "Completing Quest Objectives")));
+
+			// Select new best target, if our current one is no longer useful...
+			if (!IsViableForTargeting(SelectedTarget))
+			{
+				if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(QuestId, 1))
+				{
+					SelectedTarget = FindBestTarget(MobId_Objective1_SteamwheedleSurvivor);
+					WeaponChoice = WeaponLifeRocket;
+				}
+
+				if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(QuestId, 2))
+				{
+					SelectedTarget = FindBestTarget(MobId_Objective2_SouthseaBlockader);
+					WeaponChoice = WeaponPirateDestroyingBomb;
+				}
+			}
+			// Aim & Fire at the selected target...
+			else
+			{
+				// If weapon aim cannot address selected target, blacklist target for a few seconds...
+				if (!WeaponChoice.WeaponAim(SelectedTarget))
+				{
+					_targetBlacklist.Add(SelectedTarget, TimeSpan.FromSeconds(5));
+					return false;
+				}
+
+				// If weapon could not be fired, wait for it to become ready...
+				if (!WeaponChoice.WeaponFire())
+				{ return false; }
+
+				// Weapon was fired, blacklist target so we can choose another...
+				_targetBlacklist.Add(SelectedTarget, TimeSpan.FromSeconds(15));
+				await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+			}
+            return true;           
+        }
+
+		private ThrottleCoroutineTask _updateUser_ReturningToBase; 
+        private async Task<bool> StateCoroutine_ReturningToBase()
+        {
+	        if (!(Me.HasAura(AuraId_EmergencyRocketPack)
+				|| Me.HasAura(AuraId_Parachute)))
+	        {
+				// If still in vehicle, then use spell to start journey home...
+		        if (WeaponEmergencyRocketPack.IsAbilityReady() && WeaponEmergencyRocketPack.UseAbility())
+			        return true;
+
+				// If journey complete, behavior is done...
+		        if (!Me.IsMoving)
+		        {
+			        BehaviorDone();
+			        return true;
+		        }
+
+				await (_updateUser_ReturningToBase ?? (_updateUser_ReturningToBase = 
+					new ThrottleCoroutineTask(
+						Throttle.UserUpdate, 
+						async () => TreeRoot.StatusText = "Returning to base")));
+	        }
+	        return false;
         }
 
 
-        private Composite StateBehaviorPS_CompletingObjectives()
+		private async Task SubCoroutine_InitializeVehicleAbilities()
         {
-            return new PrioritySelector(
-                // If for some reason no longer in the vehicle, go fetch another...
-                new Decorator(context => !IsInBalloon(),
-                    new Action(context =>
-                    {
-                        QBCLog.Warning("We've been jettisoned from vehicle unexpectedly--will try again.");
-                        BehaviorState = BehaviorStateType.MountingVehicle;
-                    })),
+			if ((WeaponLifeRocket == null)
+				|| (WeaponPirateDestroyingBomb == null)
+				|| (WeaponEmergencyRocketPack == null))
+			{
+				// Give the WoWclient a few seconds to produce the vehicle action bar...
+				// NB: If we try to use the weapon too quickly after entering vehicle,
+				// then it will cause the WoWclient to d/c.
+				if (await Coroutine.Wait(10000, Query.IsVehicleActionBarShowing))
+				{
+					var weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
 
-                // If quest is complete, then head back...
-                new Decorator(context => Me.IsQuestComplete(QuestId),
-                    new Action(context => { BehaviorState = BehaviorStateType.ReturningToBase; })),
+					// (slot 1): http://wowhead.com/spell=75560
+					WeaponLifeRocket =
+						new VehicleWeapon(1, weaponArticulation, WeaponLifeRocket_MuzzleVelocity)
+						{
+							LogAbilityUse = true,
+							LogWeaponFiringDetails = false
+						};
 
-                new CompositeThrottle(Throttle.UserUpdate,
-                    new Action(context => { TreeRoot.StatusText = "Completing Quest Objectives"; })),
+					// (slot 2): http://wowhead.com/spell=73257
+					WeaponPirateDestroyingBomb =
+						new VehicleWeapon(2, weaponArticulation, WeaponPirateDestroyingBomb_MuzzleVelocity)
+						{
+							LogAbilityUse = true,
+							LogWeaponFiringDetails = false
+						};
 
-                // Select new best target, if our current one is no longer useful...
-                new Decorator(context => !IsViableForTargeting(SelectedTarget),
-                    new Action(context =>
-                    {
-                        if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(QuestId, 1))
-                        {
-                            SelectedTarget = FindBestTarget(MobId_Objective1_SteamwheedleSurvivor);
-                            WeaponChoice = WeaponLifeRocket;
-                        }
-
-                        if (!IsViableForTargeting(SelectedTarget) && !Me.IsQuestObjectiveComplete(QuestId, 2))
-                        {
-                            SelectedTarget = FindBestTarget(MobId_Objective2_SouthseaBlockader);
-                            WeaponChoice = WeaponPirateDestroyingBomb;
-                        }
-                    })),
-
-                // Aim & Fire at the selected target...
-                new Decorator(context => IsViableForTargeting(SelectedTarget),
-                    new Sequence(
-                        new Action(context =>
-                        {
-                            // If weapon aim cannot address selected target, blacklist target for a few seconds...
-                            if (!WeaponChoice.WeaponAim(SelectedTarget))
-                            {
-                                _targetBlacklist.Add(SelectedTarget, TimeSpan.FromSeconds(5));
-                                return RunStatus.Failure;
-                            }
-
-                            // If weapon could not be fired, wait for it to become ready...
-                            if (!WeaponChoice.WeaponFire())
-                                { return RunStatus.Failure; }
-
-                            // Weapon was fired, blacklist target so we can choose another...
-                            _targetBlacklist.Add(SelectedTarget, TimeSpan.FromSeconds(15));
-                            return RunStatus.Success;
-                        }),
-                        new WaitContinue(Delay.AfterWeaponFire, context => false, new ActionAlwaysSucceed())
-                    ))
-            );            
+					// (slot 6): http://wowhead.com/spell=40603
+					WeaponEmergencyRocketPack =
+						new VehicleAbility(6)
+						{
+							LogAbilityUse = true
+						};
+				}
+			}
         }
 
-
-        private Composite StateBehaviorPS_ReturningToBase()
-        {
-            // If we are not returning home...
-            return new Decorator(context => !(Me.HasAura(AuraId_EmergencyRocketPack)
-                                                || Me.HasAura(AuraId_Parachute)),
-                new PrioritySelector(
-                    // If still in vehicle, then use spell to start journey home...
-                    new Decorator(context => WeaponEmergencyRocketPack.IsAbilityReady(),
-                        new Action(context => { WeaponEmergencyRocketPack.UseAbility(); })),
-
-                    // If journey complete, behavior is done...
-                    new Decorator(context => !Me.IsMoving,
-                        new Action(context => { BehaviorDone(); })),
-
-                    new CompositeThrottle(Throttle.UserUpdate,
-                        new ActionFail(context => { TreeRoot.StatusText ="Returning to base"; }))
-                ));
-        }
-
-
-        private Composite SubBehaviorPS_InitializeVehicleAbilities()
-        {
-            return
-                new Decorator(context => (WeaponLifeRocket == null)
-                                            || (WeaponPirateDestroyingBomb == null)
-                                            || (WeaponEmergencyRocketPack == null),
-                    // Give the WoWclient a few seconds to produce the vehicle action bar...
-                    // NB: If we try to use the weapon too quickly after entering vehicle,
-                    // then it will cause the WoWclient to d/c.
-                    new WaitContinue(TimeSpan.FromSeconds(10),
-                        context => Query.IsVehicleActionBarShowing(),
-                        new Action(context =>
-                        {
-                            var weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
-
-                            // (slot 1): http://wowhead.com/spell=75560
-                            WeaponLifeRocket =
-                                new VehicleWeapon(1, weaponArticulation, WeaponLifeRocket_MuzzleVelocity)
-                                {
-                                    LogAbilityUse = true,
-                                    LogWeaponFiringDetails = false
-                                };
-
-                            // (slot 2): http://wowhead.com/spell=73257
-                            WeaponPirateDestroyingBomb =
-                                new VehicleWeapon(2, weaponArticulation, WeaponPirateDestroyingBomb_MuzzleVelocity)
-                                {
-                                    LogAbilityUse = true,
-                                    LogWeaponFiringDetails = false
-                                };
-
-                            // (slot 6): http://wowhead.com/spell=40603
-                            WeaponEmergencyRocketPack =
-                                new VehicleAbility(6)
-                                {
-                                    LogAbilityUse = true
-                                };
-                        })
-                    ));
-        }
         #endregion
 
 
