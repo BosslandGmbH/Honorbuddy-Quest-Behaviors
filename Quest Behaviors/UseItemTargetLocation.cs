@@ -41,6 +41,7 @@ using System.Collections.Generic;
 using System.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
+using Levelbot.Actions.General;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
@@ -234,6 +235,9 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                     new Decorator(context => Item.CooldownTimeLeft > TimeSpan.Zero,
                         new Action(context => QBCLog.Info("Waiting for {0} to leave cooldown (time remaining: {1})",
                                                          Item.Name, Item.CooldownTimeLeft))),
+
+					new Decorator(ctx => WoWMovement.ActiveMover != null && WoWMovement.ActiveMover.IsFlying,
+						new Mount.ActionLandAndDismount("Landing before starting behavior")),
 
 					new Decorator(
 						ret => UseType == QBType.PointToPoint,
