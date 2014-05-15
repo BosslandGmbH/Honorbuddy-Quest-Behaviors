@@ -66,7 +66,7 @@ namespace Styx.Bot.Quest_Behaviors {
                 // ...and also used for IsDone processing.
                 GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
                 Timer = GetAttributeAs("Timer", true, ConstrainAs.StringNonEmpty, null) ?? "Start";
-                WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 750000;
+                WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 370000;
             }
 
             catch (Exception except)
