@@ -39,6 +39,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Levelbot.Actions.General;
@@ -59,7 +60,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 {
     [CustomBehaviorFileName(@"UseItemTargetLocation")]
-    public class UseItemTargetLocation : CustomForcedBehavior
+    public class UseItemTargetLocation : QuestBehaviorBase
     {
         public enum QBType
         {
@@ -90,14 +91,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
             try
             {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-
-                ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+				ClickToLocation = GetAttributeAsNullable<WoWPoint>("ClickTo", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
                 ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
                 MoveToLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
@@ -138,16 +132,12 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
         public NpcStateType NpcState { get; private set; }
         public int NumOfTimes { get; private set; }
         public ObjectType ObjType { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public double Range { get; private set; }
         public double MinRange { get; private set; }
         public QBType UseType { get; private set; }
         public int WaitTime { get; private set; }
 
         // Private variables for internal state
-        private bool _isBehaviorDone;
         private Composite _root;
 	    private WaitTimer _waitTimer;
 
@@ -212,7 +202,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 
         #region Overrides of CustomForcedBehavior
 
-        protected override Composite CreateBehavior()
+        protected override Composite CreateMainBehavior()
         {
             return _root ?? (_root =
                 new PrioritySelector(
@@ -220,7 +210,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 					new Decorator(ctx => !_waitTimer.IsFinished, new ActionAlwaysSucceed()),
 
 					new Decorator(ret => Counter > NumOfTimes,
-						new Action(ret => _isBehaviorDone = true)),
+						new Action(ret => BehaviorDone(string.Format("Used the item {0} times",NumOfTimes)))),
 
                     // If item is not in our backpack, behavior is done...
                     new Decorator(context => Item == null,
@@ -228,7 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                         {
                             QBCLog.Error("ItemId({0}) is not in our backpack", ItemId);
                             TreeRoot.Stop();
-                            _isBehaviorDone = true;
+							BehaviorDone("Item is not in our backpack");
                         })),
 
                     // Wait for item to come off of cooldown...
@@ -236,15 +226,12 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                         new Action(context => QBCLog.Info("Waiting for {0} to leave cooldown (time remaining: {1})",
                                                          Item.Name, Item.CooldownTimeLeft))),
 
-					new Decorator(ctx => WoWMovement.ActiveMover != null && WoWMovement.ActiveMover.IsFlying,
-						new Mount.ActionLandAndDismount("Landing before starting behavior")),
-
 					new Decorator(
 						ret => UseType == QBType.PointToPoint,
 						new PrioritySelector(
 							new Decorator(
 								ret => Me.Location.Distance(MoveToLocation) > 3,
-								new Action(ret => Navigator.MoveTo(MoveToLocation))),
+								new UtilityBehaviorPS.MoveTo(context => MoveToLocation, context=> "Destination", context => MovementBy)),
 							new Sequence(
 								new Action(ret => TreeRoot.StatusText = string.Format("Using Quest Item: {0} Out of {1} Times",
 									Counter, NumOfTimes)),
@@ -265,7 +252,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                 ret => UseObject == null && Me.Location.DistanceSqr(MoveToLocation) >= 2 * 2,
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to location"),
-                                    new Action(ret => Navigator.MoveTo(MoveToLocation)))),
+									new UtilityBehaviorPS.MoveTo(context => MoveToLocation, context=> "Destination", context => MovementBy))),
                             new Decorator(
                                 ret => UseObject != null,
                                 new PrioritySelector(
@@ -273,12 +260,12 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         ret => UseObject.DistanceSqr >= Range * Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving closer to the object"),
-                                            new Action(ret => Navigator.MoveTo(UseObject.Location)))),
+											new UtilityBehaviorPS.MoveTo(context => UseObject.Location, context=> "UseObject location", context => MovementBy))),
                                     new Decorator(
                                         ret => UseObject.DistanceSqr < MinRange * MinRange,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-                                            new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
+											new UtilityBehaviorPS.MoveTo(context => WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f), context=> "Backing up", context => MovementBy)
                                             )),
                                     new Sequence(
                                         new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times", 
@@ -305,12 +292,12 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
                                         ret => UseObject.DistanceSqr >= Range * Range,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Moving to object's range"),
-                                            new Action(ret => Navigator.MoveTo(UseObject.Location)))),
+											new UtilityBehaviorPS.MoveTo(context => UseObject.Location, context=> "UseObject location", context => MovementBy))),
                                     new Decorator(
                                         ret => UseObject.DistanceSqr < MinRange * MinRange,
                                         new Sequence(
                                             new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-                                            new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
+											new UtilityBehaviorPS.MoveTo(context => WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f), context=> "Backing up", context => MovementBy)
                                             )),
                                     new Sequence(
 										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
@@ -328,43 +315,32 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 								ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
 								new Sequence(
 									new Action(ret => TreeRoot.StatusText = "Moving to location"),
-									new Action(ret => Navigator.MoveTo(MoveToLocation))))
+									new UtilityBehaviorPS.MoveTo(context => MoveToLocation, context=> "Destination", context => MovementBy)))
                         ))
                     ));
         }
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-
         public override void OnStart()
         {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
             // If the quest is complete, this behavior is already done...
             // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
+	        if (isBehaviorShouldRun)
+	        {
 				_waitTimer = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
-            }
+	        }
         }
 
-		public override void OnFinished()
-		{
-			TreeRoot.GoalText = string.Empty;
-			TreeRoot.StatusText = string.Empty;
-			base.OnFinished();
-		}
+	    protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+	    {
+	    }
+
+	    protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+	    {
+	    }
 
         #endregion
     }
