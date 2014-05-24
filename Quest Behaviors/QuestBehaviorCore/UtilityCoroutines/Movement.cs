@@ -224,7 +224,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			private Func<MovementByType> MovementByDelegate { get; set; }
 			private System.Action TerminateBehaviorIfNoTargetsProvider { get; set; }
 
-			protected override async Task<bool> Run()
+			public override async Task<bool> Run()
 			{
 				// Move to next hunting ground waypoint...
 				if (await MoveTo(HuntingGroundsProvider(), MovementByDelegate()))

@@ -39,7 +39,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			private ThrottleCoroutineTask _throttle;
 
-			protected override async Task<bool> Run()
+			public override async Task<bool> Run()
 			{
 				if (LootTargeting.LootMobs && Me.FreeBagSlots <= 0)
 					await (_throttle ?? (_throttle = new ThrottleCoroutineTask(TimeSpan.FromMinutes(10), LogWarning)));

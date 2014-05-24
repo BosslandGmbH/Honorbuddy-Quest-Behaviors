@@ -36,7 +36,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		public TimeSpan ThrottleTime { get; private set; }
 		public Func<Task> ChildProducer { get; private set; }
 
-		protected override async Task<bool> Run()
+		public override async Task<bool> Run()
 		{
 			if (_timer.IsRunning && _timer.Elapsed < ThrottleTime)
 			{
@@ -67,7 +67,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		public TimeSpan ThrottleTime { get; private set; }
 		public Func<Task<T>> ChildProducer { get; private set; }
 
-		protected override async Task<ThrottleResult<T>> Run()
+		public override async Task<ThrottleResult<T>> Run()
 		{
 			if (_timer.IsRunning && _timer.Elapsed < ThrottleTime)
 			{

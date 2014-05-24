@@ -50,7 +50,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			private WoWItem CachedWoWItem { get; set; }
 			private WaitTimer WatchdogTimer_WaitForItemArrival { get; set; }
 
-			protected override async Task<bool> Run()
+			public override async Task<bool> Run()
 			{
 				var itemId = ItemIdDelegate();
 				CachedWoWItem = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
