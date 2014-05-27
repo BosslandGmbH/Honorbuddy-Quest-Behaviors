@@ -160,7 +160,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
             get
             {
                 return new PrioritySelector(ctx => Enemey,
-                    new Decorator(ctx => ctx != null && ((WoWUnit)ctx).HealthPercent > 26, new ActionAlwaysSucceed()));
+                    new Decorator(ctx => ctx != null && ((WoWUnit)ctx).HealthPercent > 50, new ActionAlwaysSucceed()));
             }
         }
 
@@ -246,7 +246,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
         {
             foreach (var unit in incomingUnits.OfType<WoWUnit>())
             {
-                if (unit.Entry == ObsidianColossusId && unit.HealthPercent <= 26)
+                if (unit.Entry == ObsidianColossusId && unit.HealthPercent <= 50)
                     outgoingUnits.Add(unit);
             }
         }
