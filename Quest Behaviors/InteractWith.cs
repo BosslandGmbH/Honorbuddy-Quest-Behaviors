@@ -1124,11 +1124,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private async Task<bool> SubCoroutine_HandleFramesComplete()
 		{
-			if (IsGossipFrameVisible
+			if (IsFrameExpectedFromInteraction()
+				&& (IsGossipFrameVisible
 				|| IsMerchantFrameVisible
 				|| IsQuestFrameVisible
 				|| IsTaxiFrameVisible
-				|| IsTrainerFrameVisible)
+				|| IsTrainerFrameVisible))
 			{
 				TreeRoot.StatusText = string.Format("Interaction with {0} complete.", GetName(SelectedTarget));
 				CloseOpenFrames();
