@@ -423,8 +423,10 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                                     else
                                     {
                                         WoWMovement.MoveStop();
-                                        Styx.StyxWoW.SleepForLagDuration();
-                                        Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end ", DropPassengerButton);
+                                        StyxWoW.SleepForLagDuration();
+                                        Lua.DoString("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) end", DropPassengerButton);
+                                        StyxWoW.SleepForLagDuration();
+                                        StyxWoW.Sleep(2000);
                                         _state = State.start;
                                         _pathIndex = 0;
                                     }
