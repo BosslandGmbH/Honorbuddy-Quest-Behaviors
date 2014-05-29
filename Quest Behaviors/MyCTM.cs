@@ -10,14 +10,34 @@
 //
 
 #region Summary and Documentation
-// DOCUMENTATION:
-//     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_MyCTM
+// QUICK DOX:
+// The MYCTM behavior is used in those situations for which mesh navigation is not possible, or
+// you are flying and need to cross certain world boundaries that the flying navigator (Flightor)
+// needs to honor.
 //
-//     Allows you to physically click on the screen so that your bot can get around non meshed locations or off objects.
-//     *** There is no navigation with this ****
-//     ##Syntax##
-//     QuestId: Id of the quest.
-//     X,Y,Z: Where you wish to move.
+// BEHAVIOR ATTRIBUTES:
+// Basic Attributes:
+//      X/Y/Z [REQUIRED;  Default: none]
+//          This specifies the destination to which the behavior should move.
+//
+// Tunables:
+//      DestName [optional;  Default: coordinates of destination]
+//          Specifies the name of the destination being obtained.
+//          Profile writers should provide this value whenever possible.  It is much easier for
+//          a user to understand "Cosmowrench" rather than "<2988.93, 1836.109, 275.2884>".
+//      UpperLimitOnMovementTime [optional;  Default: 300000 (five mins)]
+//          Places an upper limit on the amount of time tat can elapse before the MyCTM action is considered
+//          problematical and the profile should be stopped.  Since toons travel at various speeds (foot,
+//          ground mount, flying mount, swimming, etc), it may become necessary to allow additional time
+//          in some environments.
+//      UseRelative [optional;  Default: false]
+//          Relative coordinates are used, rather than absolute coordinates.
+//          Relative coordinates must be used for 'transport' type platorms, such as the 'flying boats'
+//          found in Icecrown and Deepholm.  Such platforms are disconnected from the main mesh,
+//          and their absolute coordinates constantly change even when the toon is not moving
+//          while standing on the platform.  Thus, the need for relative coordinates which are
+//          based relative to the platform origin, not the zone's origin.
+//
 #endregion
 
 
@@ -39,7 +59,6 @@ using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 using Vector3 = Tripper.Tools.Math.Vector3;
@@ -61,6 +80,10 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                 DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] {"Name"}) ?? "";
                 Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
                 UseRelativeLocation = GetAttributeAsNullable<bool>("UseRelative", false, null, new[] {"useRelative"}) ?? false;
+
+                var upperLimitOnMovementTime = GetAttributeAsNullable<int>("UpperLimitOnMovementTime", false, ConstrainAs.Milliseconds, null)
+                    ?? (5 * 60 * 1000); // five mins
+                UpperLimitOnMovementTime = TimeSpan.FromMilliseconds(upperLimitOnMovementTime);
 
                 OrigDestination = Destination;
 
@@ -114,6 +137,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
         private string DestinationName { get; set; }
         private WoWPoint OrigDestination { get; set; }
         private bool UseRelativeLocation { get; set; }
+        private TimeSpan UpperLimitOnMovementTime { get; set; }
         #endregion
 
 
@@ -182,7 +206,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
                         new Decorator(context => _runTimer == null,
                             new Action(context =>
                             {
-                                _runTimer = new WaitTimer(Destination.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
+                                _runTimer = new WaitTimer(Destination.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), UpperLimitOnMovementTime));
                                 QBCLog.DeveloperInfo("Maximum allowed time to reach destination: {0} seconds",
                                     _runTimer.WaitTime.TotalSeconds);
                                 _runTimer.Reset();
