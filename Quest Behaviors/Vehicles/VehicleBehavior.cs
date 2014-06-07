@@ -9,7 +9,6 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
-
 #region Summary and Documentation
 // DOCUMENTATION:
 //     http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_VehicleBehavior
@@ -29,10 +28,8 @@
 // 
 #endregion
 
-
 #region Examples
 #endregion
-
 
 #region Usings
 using System;
@@ -52,7 +49,6 @@ using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
 #endregion
-
 
 namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 {
@@ -107,7 +103,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
         // Attributes provided by caller
         public int AttackButton { get; set; }
-
         public int FireHeight { get; private set; }
         public WoWPoint FirePoint { get; private set; }
         public bool FireUntilFinished { get; set; }
@@ -119,10 +114,8 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
         public int VehicleId { get; set; }
         public int[] NPCIds { get; set; }
         public int VehicleMountId { get; private set; }
-
         public WoWPoint StartObjectivePoint { get; private set; }
         public int VehicleType { get; set; }
-
 
         // Private variables for internal state
         private bool _isBehaviorDone;
@@ -146,7 +139,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             }
         }
 
-
         private List<WoWUnit> NpcVehicleList
         {
             get
@@ -157,12 +149,13 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                      .ToList();
             }
         }
+		
         private WoWPoint[] Path { get; set; }
         private CircularQueue<WoWPoint> PathCircle { get; set; }
         private WoWPoint StartPoint { get; set; }    // Start point Where Mount Is
         private WoWPoint EndPoint { get; set; }
-
         private WoWUnit _vehicle;
+		
         private List<WoWUnit> VehicleList
         {
             get
@@ -183,17 +176,14 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
         // Styx.Logic.Profiles.Quest.ProfileHelperFunctionsBase
 
-
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return ("$Id$"); } }
         public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         ~VehicleBehavior()
         {
             Dispose(false);
         }
-
 
         public void Dispose(bool isExplicitlyInitiatedDispose)
         {
@@ -219,7 +209,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             _isDisposed = true;
         }
 
-
         WoWPoint MoveToLocation
         {
             get
@@ -235,7 +224,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             }
         }
 
-
         #region Overrides of CustomForcedBehavior
 
         protected override Composite CreateBehavior()
@@ -243,7 +231,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             return _root ?? (_root =
                 new PrioritySelector(
 
-                           new Decorator(ret => (Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
+							new Decorator(ret => (Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
                                 new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Finished!"),
                                     new WaitContinue(120,
@@ -254,7 +242,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                         }))
                                     )),
 
-                           new Decorator(ret => !_isInitialized && VehicleType == 2,
+							new Decorator(ret => !_isInitialized && VehicleType == 2,
                             new Action(ret => ParsePaths())),
 
                         new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count == 0,
@@ -329,11 +317,21 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
                                 if (NpcAttackList.Count > 1)
                                 {
-                                    TreeRoot.StatusText = "Moving to Assult - " + NpcAttackList[0].Name + " Using Spell Index: " + AttackButton;
+                                    TreeRoot.StatusText = "Moving to Assault - " + NpcAttackList[0].Name + " Using Spell Index: " + AttackButton;
 
                                     if (_vehicle.Location.Distance(NpcAttackList[0].Location) > 20)
                                     {
-                                        WoWMovement.ClickToMove(NpcAttackList[0].Location);
+										var testfly = Flightor.CanFly;
+									
+										if(testfly)
+										{
+											Flightor.MoveTo(NpcAttackList[0].Location);
+										}
+										else
+										{
+											TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+											WoWMovement.ClickToMove(NpcAttackList[0].Location);
+										}
 
                                         if (Me.CurrentTarget != NpcAttackList[0])
                                             NpcAttackList[0].Target();
@@ -341,13 +339,10 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                         return RunStatus.Success;
                                     }
 
-
                                     Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
                                     Lua.DoString("CastPetAction({0})", AttackButton);
                                     Counter++;
                                     StyxWoW.Sleep(1000);
-
-
 
                                     return RunStatus.Success;
                                 }
@@ -355,14 +350,19 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                 {
                                     TreeRoot.StatusText = "Moving To Start Location - Yards Away: " + StartObjectivePoint.Distance(Me.Location);
 
-                                    var testfly = StyxWoW.Me.MovementInfo.CanFly;
+                                    var testfly = Flightor.CanFly;
 
                                     //QBCLog.Info("" + testfly);
-
-
-                                    Flightor.MoveTo(StartObjectivePoint);
-
-                                    // WoWMovement.ClickToMove(StartObjectivePoint);
+									
+									if(testfly)
+									{
+										Flightor.MoveTo(StartObjectivePoint);
+									}
+									else
+									{
+										TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+										WoWMovement.ClickToMove(StartObjectivePoint);
+									}
 
                                     if (StyxWoW.Me.CurrentTarget != _vehicle)
                                         _vehicle.Target();
@@ -382,12 +382,23 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                                 {
                                     if (EndPoint.Distance(Me.Location) > 20)
                                     {
-                                        Flightor.MoveTo(EndPoint);
-                                        return RunStatus.Running;
-                                    }
+										var testfly = Flightor.CanFly;
+									
+										if(testfly)
+										{
+											Flightor.MoveTo(EndPoint);
+										}
+										else
+										{
+											TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+											WoWMovement.ClickToMove(EndPoint);
+										}
+										
+										return RunStatus.Running;
+									}
+										
                                     return RunStatus.Success;
                                 }
-
 
                                 if (PathCircle.Count == 0)
                                 {
@@ -398,24 +409,47 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
                                 if (PathCircle.Peek().Distance(Me.Location) > 5)
                                 {
-                                    Flightor.MoveTo(PathCircle.Peek());
+                                    var testfly = Flightor.CanFly;
+									
+									if(testfly)
+									{
+										Flightor.MoveTo(PathCircle.Peek());
+									}
+									else
+									{
+										TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+										WoWMovement.ClickToMove(PathCircle.Peek());
+									}
+
                                     return RunStatus.Running;
                                 }
                                 WoWMovement.MoveStop();
                                 StyxWoW.Sleep(400);
 
                                 if (NpcAttackList[0] != null)
-                                    WoWMovement.ClickToMove(NpcAttackList[0].Location);
+								{
+									var testfly = Flightor.CanFly;
+								
+									if(testfly)
+									{
+										Flightor.MoveTo(NpcAttackList[0].Location);
+									}
+									else
+									{
+										TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+										WoWMovement.ClickToMove(NpcAttackList[0].Location);
+									}
+								}
+										
+									WoWMovement.MoveStop();
+									StyxWoW.Sleep(400);
+									Lua.DoString("CastPetAction({0})", AttackButton);
+									WoWMovement.MoveStop();
 
-                                WoWMovement.MoveStop();
-                                StyxWoW.Sleep(400);
-                                Lua.DoString("CastPetAction({0})", AttackButton);
-                                WoWMovement.MoveStop();
+									PathCircle.Dequeue();
 
-                                PathCircle.Dequeue();
-
-                                return RunStatus.Running;
-                            }))
+									return RunStatus.Running;
+								}))
 
                     ));
         }
@@ -456,13 +490,11 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             _isInitialized = true;
         }
 
-
         public override void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-
 
         public override bool IsDone
         {
@@ -472,7 +504,6 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
                         || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
             }
         }
-
 
         public override void OnStart()
         {

@@ -318,11 +318,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
                                             _liftoffStopwatch.Reset();
                                             _liftoffStopwatch.Start();
                                             TreeRoot.StatusText = "Liftoff!";
-                                            WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-                                        }
+											WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(3000));
+                                      }
                                     }
                                     else if (_liftoffStopwatch.ElapsedMilliseconds > 2000)
                                     {
+										WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend, TimeSpan.FromMilliseconds(2000));
                                         TreeRoot.StatusText = "Moving to quest Area";
                                         WoWMovement.MoveStop(WoWMovement.MovementDirection.JumpAscend);
                                         _state = !quest.IsCompleted ? State.start : State.landing;
