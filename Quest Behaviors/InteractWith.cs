@@ -352,7 +352,6 @@
 #region Usings
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -368,7 +367,6 @@ using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
-using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -1400,11 +1398,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 				if (InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile)
 				{
+
 					QBCLog.ProfileError(
 						"{0} provided an unexpected Quest frame--terminating profile."
 						+ "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
-						+ " the behavior how to handle this situation.",
-						GetName(SelectedTarget));
+						+ " the behavior how to handle this situation. \n\n{1}",
+						GetName(SelectedTarget), GetOpenQuestFrameInfo());
+
 					CloseOpenFrames(true);
 					BehaviorDone();
 				}
@@ -1894,6 +1894,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				return false;
 			}
 			return true;
+		}
+
+		string GetOpenQuestFrameInfo()
+		{
+			if (!IsQuestFrameVisible)
+				return string.Empty;
+			
+			var shownQuestId = QuestFrame.Instance.CurrentShownQuestId;
+			if (shownQuestId == 0)
+				return "No quest is shown in quest frame";
+			
+			var quest = Quest.FromId(shownQuestId);
+			return string.Format("The quest: {0} (Id: {1}) is shown in quest frame", quest.Name, quest.Id);
 		}
 
 		#endregion
