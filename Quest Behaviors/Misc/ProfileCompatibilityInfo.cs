@@ -118,7 +118,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 "AutoEquip2",
                 "BuddyMonitor",
                 "DrinkPotions",
-                "LeaderPlugin",
+                "PartyBot Leader",
                 "Questhelper - ItemForAura",
                 "Refreshment Detection",
                 "Talented2",
