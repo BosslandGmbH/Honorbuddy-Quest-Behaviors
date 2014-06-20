@@ -26,13 +26,13 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             try
             {
-                Height = GetAttributeAsNullable<double>("Height", false, new ConstrainTo.Domain<double>(0.0, 10000.0), null) ?? 1.0;
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-                Radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
+                var height = GetAttributeAsNullable<double>("Height", false, new ConstrainTo.Domain<double>(0.0, 10000.0), null) ?? 1.0;
+                var location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                var name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                var radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
 
-                if (string.IsNullOrEmpty(Name))
-                    { Name = GetDefaultName(Location); }
+                name = string.IsNullOrEmpty(name) ? GetDefaultName(location) : name;
+                _blackspot = new Blackspot(location, (float)radius, (float)height, name);
 
                 HandleAttributeProblem();
             }
@@ -47,30 +47,24 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public BlackspotType(WoWPoint location, string name = "", double radius = 10.0, double height = 1.0)
         {
-            Height = height;
-            Location = location;
-            Name = name ?? GetDefaultName(location);
-            Radius = radius;
+            name = string.IsNullOrEmpty(name) ? GetDefaultName(location) : name;
+            _blackspot = new Blackspot(location, (float) radius, (float) height, name);
         }
-
-        public double Height { get; set; }
-        public WoWPoint Location { get; set; }
-        public string Name { get; set; }
-        public double Radius { get; set; }
         #endregion
 
 
         #region Private and Convenience variables
-
         // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
+
+        private readonly Blackspot _blackspot;
         #endregion
 
 
         public Blackspot AsBlackspot()
         {
-            return new Blackspot(Location, (float)Radius, (float)Height);
+            return _blackspot;
         }
 
 
@@ -88,12 +82,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
             tmp.AppendFormat("<BlackspotType");
-            tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
-            tmp.AppendFormat("{0}X=\"{1}\"", fieldSeparator, Location.X);
-            tmp.AppendFormat("{0}Y=\"{1}\"", fieldSeparator, Location.Y);
-            tmp.AppendFormat("{0}Z=\"{1}\"", fieldSeparator, Location.Z);
-            tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, Radius);
-            tmp.AppendFormat("{0}Height=\"{1}\"", fieldSeparator, Height);
+            tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, _blackspot.Name);
+            tmp.AppendFormat("{0}X=\"{1}\"", fieldSeparator, _blackspot.Location.X);
+            tmp.AppendFormat("{0}Y=\"{1}\"", fieldSeparator, _blackspot.Location.Y);
+            tmp.AppendFormat("{0}Z=\"{1}\"", fieldSeparator, _blackspot.Location.Z);
+            tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, _blackspot.Radius);
+            tmp.AppendFormat("{0}Height=\"{1}\"", fieldSeparator, _blackspot.Height);
             tmp.AppendFormat("{0}/>", fieldSeparator);
 
             return tmp.ToString();
