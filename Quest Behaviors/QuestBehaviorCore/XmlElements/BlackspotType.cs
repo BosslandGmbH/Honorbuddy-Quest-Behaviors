@@ -31,8 +31,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 var name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
                 var radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
 
-                name = string.IsNullOrEmpty(name) ? GetDefaultName(location) : name;
-                _blackspot = new Blackspot(location, (float)radius, (float)height, name);
+                _blackspot = new Blackspot(location, (float)radius, (float)height, CreateBlackspotName(name, location));
 
                 HandleAttributeProblem();
             }
@@ -47,8 +46,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public BlackspotType(WoWPoint location, string name = "", double radius = 10.0, double height = 1.0)
         {
-            name = string.IsNullOrEmpty(name) ? GetDefaultName(location) : name;
-            _blackspot = new Blackspot(location, (float) radius, (float) height, name);
+            _blackspot = new Blackspot(location, (float) radius, (float) height, CreateBlackspotName(name, location));
         }
         #endregion
 
@@ -58,6 +56,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
 
+        private const string QbcoreNamePrefix = "QBcore: ";
+
         private readonly Blackspot _blackspot;
         #endregion
 
@@ -65,6 +65,20 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public Blackspot AsBlackspot()
         {
             return _blackspot;
+        }
+
+
+        /// <summary>
+        /// <p>Returns 'true', if BLACKSPOT was defined as part of a QBcore-based behavior; otherwise, 'false'.</p>
+        /// 
+        /// <p>Not all blackspots are created equal.  Please see the comments in Query.IsTargetInBlackspot() for
+        /// a better understanding.</p>
+        /// </summary>
+        /// <param name="blackspot"></param>
+        /// <returns></returns>
+        public static bool IsQbcoreDefined(Blackspot blackspot)
+        {
+            return blackspot.Name.StartsWith(QbcoreNamePrefix);
         }
 
 
@@ -94,9 +108,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        private string GetDefaultName(WoWPoint wowPoint)
+        private string CreateBlackspotName(string preferredName, WoWPoint wowPoint)
         {
-            return string.Format("Blackspot({0})", wowPoint.ToString());   
+            if (string.IsNullOrEmpty(preferredName))
+                { preferredName = string.Format("Blackspot({0})", wowPoint.ToString()); }
+
+            return QbcoreNamePrefix + preferredName;
         }
     }
 }
