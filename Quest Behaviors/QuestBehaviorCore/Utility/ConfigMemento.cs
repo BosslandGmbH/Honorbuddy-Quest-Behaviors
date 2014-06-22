@@ -51,7 +51,6 @@ namespace Honorbuddy.QuestBehaviorCore
                     new ProfileSettingsSubMemento(),
                     new RoutineManagerSubMemento()
                 };
-            QBCLog.Debug(ToString());
         }
 
 
