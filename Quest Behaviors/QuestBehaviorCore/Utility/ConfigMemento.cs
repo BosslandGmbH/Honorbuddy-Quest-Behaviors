@@ -51,6 +51,7 @@ namespace Honorbuddy.QuestBehaviorCore
                     new ProfileSettingsSubMemento(),
                     new RoutineManagerSubMemento()
                 };
+            QBCLog.Debug(ToString());
         }
 
 
@@ -152,7 +153,8 @@ namespace Honorbuddy.QuestBehaviorCore
                     from child in element.Elements()
                     where
                         // Do not emit any children that may cause security concerns...
-                        !(child.Name == "MailRecipient")
+                        !((child.Name == "MailRecipient")
+                          || (child.Name == "Username"))
                     orderby child.Name.ToString()
                     select SortedChildren(child)
                     );
