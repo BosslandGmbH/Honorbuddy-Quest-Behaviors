@@ -12,6 +12,8 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Xml;
 using System.Xml.Linq;
 using Bots.Grind;
 using Styx;
@@ -19,6 +21,7 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest;
+using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
 
@@ -27,7 +30,7 @@ using Styx.Pathing;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public class ConfigMemento
+    public class ConfigMemento : IDisposable
     {
         /// <summary>
         /// The ConfigMemento() class captures the user's existing configuration.
@@ -39,34 +42,22 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </summary>
         public ConfigMemento()
         {
-            // Settings...
-            _settingsCharacter = CharacterSettings.Instance.GetXML();
-            _settingsLevelBot = LevelbotSettings.Instance.GetXML();
-            _settingsStyx = GlobalSettings.Instance.GetXML();
-
-            // Sub-Mementos...
-            _subMementoLevelBot = new LevelBotMemento();
-            _subMementoNavigator = new NavigatorMemento();
-            _subMementoProfileSettings = new ProfileSettingsMemento();
+            _subMementos = new List<ISubMemento>()
+                {
+                    new CharacterSettingsSubMemento(),
+                    new GlobalSettingsSubMemento(),
+                    new LevelBotSubMemento(),
+                    new NavigatorSubMemento(),
+                    new ProfileSettingsSubMemento(),
+                    new RoutineManagerSubMemento()
+                };
         }
 
 
         #region Private and Convenience variables
         private bool _isDisposed = false;
-        private XElement _settingsCharacter;
-        private XElement _settingsLevelBot;
-        private XElement _settingsStyx;
-        private LevelBotMemento _subMementoLevelBot;
-        private NavigatorMemento _subMementoNavigator;
-        private ProfileSettingsMemento _subMementoProfileSettings;
+        private readonly List<ISubMemento> _subMementos;
         #endregion
-
-
-        /// <summary>   Finaliser. </summary>
-        ~ConfigMemento()
-        {
-            Dispose(false);
-        }
 
 
         /// <summary>
@@ -87,7 +78,7 @@ namespace Honorbuddy.QuestBehaviorCore
         ///
         /// <param name="isExplicitlyInitiatedDispose"> true if this object is explicitly initiated
         ///                                             dispose. </param>
-        public void Dispose(bool isExplicitlyInitiatedDispose)
+        private void Dispose(bool isExplicitlyInitiatedDispose)
         {
             if (!_isDisposed)
             {
@@ -102,47 +93,12 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 // Clean up unmanaged resources (if any) here...
 
-                // Sub-mementos...
-                if (_subMementoLevelBot != null)
+                // Clean up sub-mementos
+                foreach (var memento in _subMementos)
                 {
-                    _subMementoLevelBot.Restore();
-                    _subMementoLevelBot = null;
+                    memento.Restore();
                 }
-
-                if (_subMementoNavigator != null)
-                {
-                    _subMementoNavigator.Restore();
-                    _subMementoNavigator = null;
-                }
-
-                if (_subMementoProfileSettings != null)
-                {
-                    _subMementoProfileSettings.Restore();
-                    _subMementoProfileSettings = null;
-                }
-
-                // Settings...
-                if (_settingsCharacter != null)
-                {
-                    CharacterSettings.Instance.LoadFromXML(_settingsCharacter);
-                    CharacterSettings.Instance.Save();
-                    _settingsCharacter = null;
-                }
-
-                if (_settingsLevelBot != null)
-                {
-                    LevelbotSettings.Instance.LoadFromXML(_settingsLevelBot);
-                    LevelbotSettings.Instance.Save();
-                    _settingsLevelBot = null;
-                }
-
-                if (_settingsStyx != null)
-                {
-                    GlobalSettings.Instance.LoadFromXML(_settingsStyx);
-                    GlobalSettings.Instance.Save();
-                    _settingsStyx = null;
-                }
-
+                _subMementos.Clear();
 
                 // Call parent Dispose() (if it exists) here ...
                 // base.Dispose();
@@ -164,54 +120,159 @@ namespace Honorbuddy.QuestBehaviorCore
         /// </returns>
         public override string ToString()
         {
-            string outString = "";
-
             if (_isDisposed)
                 { throw (new ObjectDisposedException(this.GetType().Name)); }
 
-            if (_settingsCharacter != null)
-                { outString += (_settingsCharacter.ToString() + "\n"); }
-            if (_settingsLevelBot != null)
-                { outString += (_settingsLevelBot.ToString() + "\n"); }
-            if (_settingsStyx != null)
-                { outString += (_settingsStyx.ToString() + "\n"); }
+            var root = new XElement("ConfigMemento");
+            foreach (var memento in _subMementos)
+            {
+                memento.AddXml(root);
+            }
 
-            return (outString);
+            return (SortedChildren(root).ToString());
         }
 
 
-        // NB: Not all LevelBot settings are in LevelBotSettings--some are in the
-        // LevelBot itself.  This memento captures the settings embedded in the LevelBot
-        // proper.
-        private class LevelBotMemento
+        // Sorts the child elements, and eliminates comments...
+        private static XElement SortedChildren(XElement element)
         {
-            private readonly BehaviorFlags _behaviorFlags;
-            private readonly bool _shouldUseSpiritHealer;
+            return
+                new XElement(element.Name,
+                    // include attributes of current node...
+                    element.Attributes(),
+
+                    // include all the non-Element children that are not comments...
+                    from child in element.Nodes()
+                    where
+                        !((child.NodeType == XmlNodeType.Element)
+                          || (child.NodeType == XmlNodeType.Comment))
+                    select child,
+
+                    // include child XElements in a sorted fashion...
+                    from child in element.Elements()
+                    where
+                        // Do not emit any children that may cause security concerns...
+                        !(child.Name == "MailRecipient")
+                    orderby child.Name.ToString()
+                    select SortedChildren(child)
+                    );
+        }
 
 
-            public LevelBotMemento()
+        // Sub-mementos don't have to handle 'dispose' considerations.  We leave this for
+        // the parent (ConfigMemento).  This keeps sub-momentos focused on their immediate
+        // task without cluttering up code with unnecessary distractions.  The interface
+        // is designed accordingly.
+        private interface ISubMemento
+        {
+            void AddXml(XElement parent);
+            void Restore();
+        }
+
+
+        private class CharacterSettingsSubMemento : ISubMemento
+        {
+            private readonly XElement _settings;
+
+            public CharacterSettingsSubMemento()
             {
-                _behaviorFlags = LevelBot.BehaviorFlags;
-                _shouldUseSpiritHealer = LevelBot.ShouldUseSpiritHealer;
+                _settings = CharacterSettings.Instance.GetXML();
             }
 
 
             public void Restore()
             {
+                CharacterSettings.Instance.LoadFromXML(_settings);
+                CharacterSettings.Instance.Save();
+            }
+
+
+            public void AddXml(XElement parent)
+            {
+                parent.Add(_settings);
+            }
+        }
+
+
+        private class GlobalSettingsSubMemento : ISubMemento
+        {
+            private readonly XElement _settings;
+
+            public GlobalSettingsSubMemento()
+            {
+                _settings = GlobalSettings.Instance.GetXML();
+            }
+
+
+            public void Restore()
+            {
+                GlobalSettings.Instance.LoadFromXML(_settings);
+                GlobalSettings.Instance.Save();
+            }
+
+
+            public void AddXml(XElement parent)
+            {
+                parent.Add(_settings);
+            }
+        }
+
+
+        // This memento captures both the settings embedded in the LevelBot proper,
+        // and the settings in LevelbotSettings.
+        private class LevelBotSubMemento : ISubMemento
+        {
+            private readonly BehaviorFlags _behaviorFlags;
+            private readonly XElement _settings;
+            private readonly bool _shouldUseSpiritHealer;
+
+            public LevelBotSubMemento()
+            {
+                // NB: Not all LevelBot settings are in LevelBotSettings--some are in the
+                // LevelBot itself.  
+                _behaviorFlags = LevelBot.BehaviorFlags;
+                _shouldUseSpiritHealer = LevelBot.ShouldUseSpiritHealer;
+
+                // Settings associated with Levelbot...
+                _settings = LevelbotSettings.Instance.GetXML();
+            }
+
+
+            public void Restore()
+            {
+                // Settings from Levelbot proper...
                 LevelBot.BehaviorFlags = _behaviorFlags;
                 LevelBot.ShouldUseSpiritHealer = _shouldUseSpiritHealer;
+
+                // Settings associated with Levelbot...
+                LevelbotSettings.Instance.LoadFromXML(_settings);
+                LevelbotSettings.Instance.Save();
+            }
+
+
+            public void AddXml(XElement parent)
+            {
+                // Levelbot proper...
+                parent.Add(
+                    new XElement("LevelBot",
+                        new XElement("BehaviorFlags", _behaviorFlags),
+                        new XElement("ShouldUseSpiritHealer", _shouldUseSpiritHealer)
+                        )
+                    );
+
+                // LevelbotSettings...
+                parent.Add(_settings);
             }
         }
 
 
         // This memento captures the settings embedded in the Navigator
         // that a quest behavior is interested in altering.
-        private class NavigatorMemento
+        private class NavigatorSubMemento : ISubMemento
         {
             private readonly float _pathPrecision;
 
-
-            public NavigatorMemento()
+            public NavigatorSubMemento()
             {
                 _pathPrecision = Navigator.PathPrecision;
             }
@@ -221,13 +282,23 @@ namespace Honorbuddy.QuestBehaviorCore
             {
                 Navigator.PathPrecision = _pathPrecision;
             }
+
+
+            public void AddXml(XElement parent)
+            {
+                parent.Add(
+                    new XElement("Navigator",
+                        new XElement("PathPrecision", _pathPrecision)
+                        )
+                    );
+            }
         }
         
         
         // This class captures any profile settings that can be directly modified (i.e.,
         // that have a 'setter' operation defined for them), or indirectly modified
         // (i.e., they directly expose their internal representation).
-        private class ProfileSettingsMemento
+        private class ProfileSettingsSubMemento : ISubMemento
         {
             private readonly Dictionary<Tuple<uint, WoWFactionGroup>, List<Vector2[]>> _aerialBlackspots;
             private readonly DualHashSet<uint, string> _avoidMobs;
@@ -275,7 +346,7 @@ namespace Honorbuddy.QuestBehaviorCore
             // NON-CONFIGURATION: private readonly XmlElement _xmlElement;
 
 
-            public ProfileSettingsMemento()
+            public ProfileSettingsSubMemento()
             {
                 var currentProfile = ProfileManager.CurrentProfile;
 
@@ -336,6 +407,86 @@ namespace Honorbuddy.QuestBehaviorCore
                     currentProfile.TargetingDistance = _targetingDistance;
                     currentProfile.UseMount = _useMount;
                 }
+            }
+
+
+            public void AddXml(XElement parent)
+            {
+                // The 'vector' sub-elements are largely uninteresting and 'noise', so we do not
+                // emit them.
+                parent.Add(
+                    new XElement("ProfileSettings",
+                            // currentProfile.AerialBlackspots.CopyFrom(_aerialBlackspots);
+                            // currentProfile.AvoidMobs.CopyFrom(_avoidMobs);
+                            // currentProfile.Blacklist.CopyFrom(_blacklist);
+                            // currentProfile.BlacklistedQuestgivers.CopyFrom(_blacklistQuestgivers);
+                            // currentProfile.BlacklistedQuests.CopyFrom(_blacklistedQuests);
+                            // currentProfile.Blackspots.CopyFrom(_blackspots);
+                            // currentProfile.Factions.CopyFrom(_factions);
+                            // currentProfile.ForceMail.CopyFrom(_forceMail);
+                            new XElement("LootMobs",
+                                new XAttribute("Value", (object)_lootMobs ?? "null")
+                                ),
+                            new XElement("LootRadius",
+                                new XAttribute("Value", (object)_lootRadius ?? "null")
+                                ),
+                            // currentProfile.MailQualities.CopyFrom(_mailQualities);
+                            // currentProfile.MobIDs.CopyFrom(_mobIds);
+                            // currentProfile.ProtectedItems.CopyFrom(_protectedItems);
+                            // currentProfile.Quests.CopyFrom(_quests);
+                            // currentProfile.SubProfiles.CopyFrom(_subProfiles);
+                            new XElement("TargetingDistance",
+                                new XAttribute("Value", (object)_targetingDistance ?? "null")
+                                ),
+                            new XElement("UseMount",
+                                new XAttribute("Value", (object)_useMount ?? "null")
+                                )
+                        )
+                    );
+            }
+        }
+
+
+        private class RoutineManagerSubMemento : ISubMemento
+        {
+            private readonly Dictionary<CapabilityFlags, CapabilityState> _capabilityStates = new Dictionary<CapabilityFlags, CapabilityState>();
+
+            public RoutineManagerSubMemento()
+            {
+                // We explicitly enumerate the CapabilityFlags...
+                // This eliminates the possiblity of wrongly snagging "composite flags" (like .All).
+                for (var i = 0; i < 32; i++)
+                {
+                    var capabilityFlag = (CapabilityFlags)(1u << i);
+                    if (!Enum.IsDefined(typeof(CapabilityFlags), capabilityFlag))
+                        continue;
+
+                    _capabilityStates.Add(capabilityFlag, RoutineManager.GetCapabilityState(capabilityFlag));
+                }
+            }
+
+
+            public void Restore()
+            {
+                foreach (var capabilityState in _capabilityStates)
+                {
+                    RoutineManager.SetCapabilityState(capabilityState.Key, capabilityState.Value);
+                }
+            }
+
+
+            public void AddXml(XElement parent)
+            {
+                var routineManager = new XElement("RoutineManager");
+                var capabilities = new XElement("Capabilities");
+
+                foreach (var capabilityState in _capabilityStates.OrderBy(kvp => kvp.Key.ToString()))
+                {
+                    capabilities.Add(new XElement(capabilityState.Key.ToString(), capabilityState.Value));
+                }
+
+                routineManager.Add(capabilities);
+                parent.Add(routineManager);
             }
         }
     }
