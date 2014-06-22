@@ -215,10 +215,17 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
 
                 this.UpdateGoalText(QuestId, "Scheduled run for " + string.Join(", ", reasons.ToArray()));
 
-                _isBehaviorDone = true;
+				// When IsDone returns true after OnStart call, the bot won't be ticked and ForcedBehaviorExecutor will advance to the next node.
+				// Therefore we are not setting _isBehaviorDone here to let the bot tick at least once, so VendorBehavior can pick up our changes.
+                //_isBehaviorDone = true;
             }
         }
 
-        #endregion
+	    public override void OnTick()
+	    {
+		    _isBehaviorDone = true;
+	    }
+
+	    #endregion
     }
 }
