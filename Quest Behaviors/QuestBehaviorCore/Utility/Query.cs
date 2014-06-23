@@ -630,7 +630,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 {
                     return
                         (blackspot.Location.DistanceSqr(location) <= (blackspot.Radius*blackspot.Radius))
-                        && (location.Z >= blackspot.Location.Z)
+                        && (location.Z >= (blackspot.Location.Z - blackspot.Height))
                         && (location.Z <= (blackspot.Location.Z + blackspot.Height));
                 };
             var wowObjectLocation = wowObject.Location;
