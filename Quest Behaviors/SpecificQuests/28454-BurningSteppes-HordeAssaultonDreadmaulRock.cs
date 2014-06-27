@@ -34,47 +34,47 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HordeAssaultonDreadmaulRock
 {
-    [CustomBehaviorFileName(@"SpecificQuests\28454-BurningSteppes-HordeAssaultonDreadmaulRock")]
-    public class q28454 : CustomForcedBehavior
+	[CustomBehaviorFileName(@"SpecificQuests\28454-BurningSteppes-HordeAssaultonDreadmaulRock")]
+	public class q28454 : CustomForcedBehavior
 	{
 		public q28454(Dictionary<string, string> args)
-            : base(args)
+			: base(args)
 		{
-            QBCLog.BehaviorLoggingContext = this;
+			QBCLog.BehaviorLoggingContext = this;
 		}
-    
-        
-        public static LocalPlayer me = StyxWoW.Me;
+	
+		
+		public static LocalPlayer me = StyxWoW.Me;
 		static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26649));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		public double angle = 0;
 		public double CurentAngle = 0;
-        public List<WoWUnit> mob1List
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 48432 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
+		public List<WoWUnit> mob1List
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>()
+									.Where(u => (u.Entry == 48432 && !u.IsDead))
+									.OrderBy(u => u.Distance).ToList();
+			}
+		}
+		private Composite _root;
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root =
+				new PrioritySelector(
 					
 					
-                    new Decorator(ret => me.QuestLog.GetQuestById(28454) !=null && me.QuestLog.GetQuestById(28454).IsCompleted,
-                        new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Finished!"),
+					new Decorator(ret => me.QuestLog.GetQuestById(28454) !=null && me.QuestLog.GetQuestById(28454).IsCompleted,
+						new Sequence(
+							new Action(ret => TreeRoot.StatusText = "Finished!"),
 							new Action(ret => Lua.DoString("CastPetAction({0})", 5)),
-                            new WaitContinue(120,
-                            new Action(delegate
-                            {
-                                _isDone = true;
-                                return RunStatus.Success;
-                                }))
-                            )),
+							new WaitContinue(120,
+							new Action(delegate
+							{
+								_isDone = true;
+								return RunStatus.Success;
+								}))
+							)),
 					new Decorator(ret => !Obj1Done && mob1List.Count > 0,
 					new Action(ret =>
 					{
@@ -99,26 +99,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HordeAssaultonDreadmaulRock
 						}
 					}
 					))
-                )
+				)
 			);
-        }
+		}
 
 
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get { return _isDone; }
-        }
+		private bool _isDone;
+		public override bool IsDone
+		{
+			get { return _isDone; }
+		}
 
 
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                this.UpdateGoalText(0);
-            }
-        }
-    }
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			if (!IsDone)
+			{
+				this.UpdateGoalText(0);
+			}
+		}
+	}
 }
 

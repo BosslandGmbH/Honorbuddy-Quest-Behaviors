@@ -26,16 +26,16 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class UtilityBehaviorPS
-    {
-        // Convenience properties...
-        private static LocalPlayer Me { get { return StyxWoW.Me; } }
-    }
+	public partial class UtilityBehaviorPS
+	{
+		// Convenience properties...
+		private static LocalPlayer Me { get { return StyxWoW.Me; } }
+	}
 
 
-    public partial class UtilityBehaviorSeq
-    {
-        // Convenience properties...
-        private static LocalPlayer Me { get { return StyxWoW.Me; } }
-    }
+	public partial class UtilityBehaviorSeq
+	{
+		// Convenience properties...
+		private static LocalPlayer Me { get { return StyxWoW.Me; } }
+	}
 }

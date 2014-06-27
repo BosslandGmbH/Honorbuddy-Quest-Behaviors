@@ -57,88 +57,88 @@ namespace Honorbuddy.QuestBehaviorCore
 		///     </para>
 		/// </summary>
 		/// <param name="itemId">The item provided should be viable, and ready for use.</param>
-        /// <param name="actionOnMissingItemDelegate">This delegate will be called if the item
-        /// is missing from our backpack.  This delegate may not be null.</param>
-        /// <param name="actionOnFailedItemUseDelegate">If non-null, this delegate will be called
-        /// if we attempted to use the item, and it was unsuccessful.  Examples include attemtping
-        /// to use the item on an invalid target, or being interrupted or generally unable to use
-        /// the item at this time.</param>
+		/// <param name="actionOnMissingItemDelegate">This delegate will be called if the item
+		/// is missing from our backpack.  This delegate may not be null.</param>
+		/// <param name="actionOnFailedItemUseDelegate">If non-null, this delegate will be called
+		/// if we attempted to use the item, and it was unsuccessful.  Examples include attemtping
+		/// to use the item on an invalid target, or being interrupted or generally unable to use
+		/// the item at this time.</param>
 		/// <param name="actionOnSuccessfulItemUseDelegate">If non-null, this delegate will be called
 		/// once the item has been used successfully.</param>
 		/// <returns></returns>
 		/// <remarks>20140305-19:01UTC, Highvoltz/chinajade</remarks>
 		public static async Task<bool> UseItem(
-            int itemId,
-            System.Action actionOnMissingItemDelegate,
-            System.Action actionOnFailedItemUseDelegate = null,
-            System.Action actionOnSuccessfulItemUseDelegate = null)
-        {
-            // Waits for global cooldown to end to successfully use the item
+			int itemId,
+			System.Action actionOnMissingItemDelegate,
+			System.Action actionOnFailedItemUseDelegate = null,
+			System.Action actionOnSuccessfulItemUseDelegate = null)
+		{
+			// Waits for global cooldown to end to successfully use the item
 			await Coroutine.Wait(500, () => !SpellManager.GlobalCooldown);
 
-            // Is item in our bags?
-            var itemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
-            if (!Query.IsViable(itemToUse))
-            {
-                QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
-                if (actionOnMissingItemDelegate != null)
-                    { actionOnMissingItemDelegate();  }
-                return false;
-            }
-            var itemName = itemToUse.SafeName;
+			// Is item in our bags?
+			var itemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
+			if (!Query.IsViable(itemToUse))
+			{
+				QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
+				if (actionOnMissingItemDelegate != null)
+					{ actionOnMissingItemDelegate();  }
+				return false;
+			}
+			var itemName = itemToUse.SafeName;
 
-            // Wait for Item to be usable...
-            // NB: WoWItem.Usable does not account for cooldowns.
-            if (!itemToUse.Usable || (itemToUse.Cooldown > 0))
-            {
-                TreeRoot.StatusText =
-                    string.Format(
-                        "{0} is not usable, yet. (cooldown remaining: {1})",
-                        itemName,
-                        Utility.PrettyTime(itemToUse.CooldownTimeLeft));
-                return false;
-            }
+			// Wait for Item to be usable...
+			// NB: WoWItem.Usable does not account for cooldowns.
+			if (!itemToUse.Usable || (itemToUse.Cooldown > 0))
+			{
+				TreeRoot.StatusText =
+					string.Format(
+						"{0} is not usable, yet. (cooldown remaining: {1})",
+						itemName,
+						Utility.PrettyTime(itemToUse.CooldownTimeLeft));
+				return false;
+			}
 
-            // Notify user of intent...
-            QBCLog.DeveloperInfo("Attempting use of '{0}'", itemName);
+			// Notify user of intent...
+			QBCLog.DeveloperInfo("Attempting use of '{0}'", itemName);
 
-            // Set up 'interrupted use' detection, and use item...
-            // MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
-            // Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
-            // UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
-            InterruptDetection_Hook();
-            IsInterrupted = false;
-            itemToUse.Use();
+			// Set up 'interrupted use' detection, and use item...
+			// MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
+			// Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
+			// UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
+			InterruptDetection_Hook();
+			IsInterrupted = false;
+			itemToUse.Use();
 
-            // NB: The target or the item may not be valid after this point...
-            // Some targets will go 'invalid' immediately afer interacting with them.
-            // Most of the time this happens, the target is immediately and invisibly replaced with
-            // an identical looking target with a different script.
-            // Some items are consumed when used.
-            // We must assume our target and item is no longer available for use after this point.
+			// NB: The target or the item may not be valid after this point...
+			// Some targets will go 'invalid' immediately afer interacting with them.
+			// Most of the time this happens, the target is immediately and invisibly replaced with
+			// an identical looking target with a different script.
+			// Some items are consumed when used.
+			// We must assume our target and item is no longer available for use after this point.
 			await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
 
-            // Wait for any casting to complete...
-            // NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+			// Wait for any casting to complete...
+			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
 			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
-            InterruptDectection_Unhook();
+			InterruptDectection_Unhook();
 
-            if (IsInterrupted)
-            {
-                QBCLog.Warning("Use of {0} interrupted.", itemName);
-                // Give whatever issue encountered a chance to settle...
-                // NB: --we want the Sequence to fail when delay completes.
-                await Coroutine.Sleep(1500);
-                if (actionOnFailedItemUseDelegate != null)
-                    { actionOnFailedItemUseDelegate(); }
-                return false;
-            }
-            QBCLog.DeveloperInfo("Use of '{0}' succeeded.", itemName);
+			if (IsInterrupted)
+			{
+				QBCLog.Warning("Use of {0} interrupted.", itemName);
+				// Give whatever issue encountered a chance to settle...
+				// NB: --we want the Sequence to fail when delay completes.
+				await Coroutine.Sleep(1500);
+				if (actionOnFailedItemUseDelegate != null)
+					{ actionOnFailedItemUseDelegate(); }
+				return false;
+			}
+			QBCLog.DeveloperInfo("Use of '{0}' succeeded.", itemName);
 
-            if (actionOnSuccessfulItemUseDelegate != null)
-                { actionOnSuccessfulItemUseDelegate(); }
-            return true;
-        }
+			if (actionOnSuccessfulItemUseDelegate != null)
+				{ actionOnSuccessfulItemUseDelegate(); }
+			return true;
+		}
 
 
 		/// <summary>
@@ -167,8 +167,8 @@ namespace Honorbuddy.QuestBehaviorCore
 		///                 <description>
 		///                     <para>
 		///                         * It is up to the caller to blacklist the target, or select a new target
-        ///                         after successful item use.  The actionOnFailedItemUseDelegate argument
-        ///                         can facilitate these activities.
+		///                         after successful item use.  The actionOnFailedItemUseDelegate argument
+		///                         can facilitate these activities.
 		///                     </para>
 		///                 </description>
 		///             </item>
@@ -177,12 +177,12 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// </summary>
 		/// <param name="selectedTarget">The target provided should be viable.</param>
 		/// <param name="itemId">The item provided should be viable, and ready for use.</param>
-        /// <param name="actionOnMissingItemDelegate">This delegate will be called if the item
-        /// is missing from our backpack.  This delegate may not be null.</param>
-        /// <param name="actionOnFailedItemUseDelegate">If non-null, this delegate will be called
-        /// if we attempted to use the item, and it was unsuccessful.  Examples include attemtping
-        /// to use the item on an invalid target, or being interrupted or generally unable to use
-        /// the item at this time.</param>
+		/// <param name="actionOnMissingItemDelegate">This delegate will be called if the item
+		/// is missing from our backpack.  This delegate may not be null.</param>
+		/// <param name="actionOnFailedItemUseDelegate">If non-null, this delegate will be called
+		/// if we attempted to use the item, and it was unsuccessful.  Examples include attemtping
+		/// to use the item on an invalid target, or being interrupted or generally unable to use
+		/// the item at this time.</param>
 		/// <param name="actionOnSuccessfulItemUseDelegate">If non-null, this delegate will be called
 		/// once the item has been used successfully.</param>
 		/// <returns></returns>
@@ -203,9 +203,9 @@ namespace Honorbuddy.QuestBehaviorCore
 			// we cache its name for use in subsequent log entries.;
 			if (!Query.IsViable(selectedTarget))
 			{
-                QBCLog.Warning("Target is not viable!");
-                if (actionOnFailedItemUseDelegate != null)
-                    { actionOnFailedItemUseDelegate(); }
+				QBCLog.Warning("Target is not viable!");
+				if (actionOnFailedItemUseDelegate != null)
+					{ actionOnFailedItemUseDelegate(); }
 				return false;
 			}
 			var targetName = selectedTarget.SafeName;
@@ -215,8 +215,8 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!Query.IsViable(itemToUse))
 			{
 				QBCLog.Error("{0} is not in our bags.", Utility.GetItemNameFromId(itemId));
-                if (actionOnMissingItemDelegate != null)
-                    { actionOnMissingItemDelegate(); }
+				if (actionOnMissingItemDelegate != null)
+					{ actionOnMissingItemDelegate(); }
 				return false;
 			}
 			var itemName = itemToUse.SafeName;
@@ -282,15 +282,15 @@ namespace Honorbuddy.QuestBehaviorCore
 				QBCLog.Warning("Use of {0} interrupted.", itemName);
 				// Give whatever issue encountered a chance to settle...
 				// NB: --we want the Sequence to fail when delay completes.
-                await Coroutine.Sleep(1500);
-                if (actionOnFailedItemUseDelegate != null)
-                    { actionOnFailedItemUseDelegate(); }
+				await Coroutine.Sleep(1500);
+				if (actionOnFailedItemUseDelegate != null)
+					{ actionOnFailedItemUseDelegate(); }
 				return false;
 			}
 
 			QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", itemName, targetName);
 			if (actionOnSuccessfulItemUseDelegate != null)
-                { actionOnSuccessfulItemUseDelegate(); }
+				{ actionOnSuccessfulItemUseDelegate(); }
 			return true;
 		}
 

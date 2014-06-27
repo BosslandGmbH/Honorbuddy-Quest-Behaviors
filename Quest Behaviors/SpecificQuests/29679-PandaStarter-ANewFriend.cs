@@ -38,127 +38,127 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ANewFriend
 {
-    [CustomBehaviorFileName(@"SpecificQuests\29679-PandaStarter-ANewFriend")]
-    public class aNewFriend : CustomForcedBehavior
-    {
-        public aNewFriend(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"SpecificQuests\29679-PandaStarter-ANewFriend")]
+	public class aNewFriend : CustomForcedBehavior
+	{
+		public aNewFriend(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            QuestId = 29679;
-        }
-        public int QuestId { get; set; }
-        private bool _isBehaviorDone;
-        private Composite _root;
-        
-        public override bool IsDone
-        {
-            get
-            {
-                return _isBehaviorDone;
-            }
-        }
-
-
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+			QuestId = 29679;
+		}
+		public int QuestId { get; set; }
+		private bool _isBehaviorDone;
+		private Composite _root;
+		
+		public override bool IsDone
+		{
+			get
+			{
+				return _isBehaviorDone;
+			}
+		}
 
 
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-
-                this.UpdateGoalText(QuestId);
-            }
-        }
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
 
-        public WoWUnit Spout
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(u => u.Entry == 60488).OrderBy(u => u.Distance).FirstOrDefault();
-            }
-        }
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			if (!IsDone)
+			{
+				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-        public Composite DoneYet
-        {
-            get
-            {
-                return new Decorator(ret => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-            }
-        }
+				this.UpdateGoalText(QuestId);
+			}
+		}
 
 
-        public Composite SpoutWalk
-        {
-            get
-            {
-                return new Decorator(r => Spout != null, new Action(r =>
-                                                                        {
-                                                                            Navigator.MoveTo(Spout.Location);
-                                                                        }));
-            }
-        }
+		public WoWUnit Spout
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(u => u.Entry == 60488).OrderBy(u => u.Distance).FirstOrDefault();
+			}
+		}
+
+		public Composite DoneYet
+		{
+			get
+			{
+				return new Decorator(ret => Me.IsQuestComplete(QuestId),
+					new Action(delegate
+					{
+						TreeRoot.StatusText = "Finished!";
+						_isBehaviorDone = true;
+						return RunStatus.Success;
+					}));
+			}
+		}
+
+
+		public Composite SpoutWalk
+		{
+			get
+			{
+				return new Decorator(r => Spout != null, new Action(r =>
+																		{
+																			Navigator.MoveTo(Spout.Location);
+																		}));
+			}
+		}
 
 
 
-        protected Composite CreateBehavior_QuestbotMain()
-        {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, SpoutWalk, new ActionAlwaysSucceed())));
-        }
+		protected Composite CreateBehavior_QuestbotMain()
+		{
+			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, SpoutWalk, new ActionAlwaysSucceed())));
+		}
 
-        #region Cleanup
+		#region Cleanup
 
-        ~aNewFriend()
-        {
-            Dispose(false);
-        }
+		~aNewFriend()
+		{
+			Dispose(false);
+		}
 
-        private bool _isDisposed;
+		private bool _isDisposed;
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+				}
 
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
 
-            _isDisposed = true;
-        }
+			_isDisposed = true;
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }

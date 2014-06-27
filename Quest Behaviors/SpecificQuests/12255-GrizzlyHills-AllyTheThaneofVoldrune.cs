@@ -38,12 +38,12 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 {
-    [CustomBehaviorFileName(@"SpecificQuests\12255-GrizzlyHills-AllyTheThaneofVoldrune")]
-    public class q12255 : CustomForcedBehavior
-    {
+	[CustomBehaviorFileName(@"SpecificQuests\12255-GrizzlyHills-AllyTheThaneofVoldrune")]
+	public class q12255 : CustomForcedBehavior
+	{
 		public q12255(Dictionary<string, string> args) : base(args)
 		{
-            QBCLog.BehaviorLoggingContext = this;
+			QBCLog.BehaviorLoggingContext = this;
 
 			QuestId =  12255;
 			Location = WoWPoint.Empty;
@@ -53,77 +53,77 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 		}
 			
 
-        public WoWPoint Location { get; private set; }
+		public WoWPoint Location { get; private set; }
 		public WoWPoint Endloc { get; private set; }
-        public int QuestId { get; set; }
+		public int QuestId { get; set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public static LocalPlayer Me = StyxWoW.Me;
+		public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+		public static LocalPlayer Me = StyxWoW.Me;
 		WoWPoint endloc = new WoWPoint(2798.203, -2510.08, 99.77123);
 		WoWPoint startloc = new WoWPoint(2939.488, -2525.839, 127.3586);
 		WoWPoint flyloc = new WoWPoint(2788.155, -2508.851, 56.05595);
 		
-        #region Overrides of CustomForcedBehavior
+		#region Overrides of CustomForcedBehavior
 		public List<WoWUnit> objmob
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 27377 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>()
+									.Where(u => (u.Entry == 27377 && !u.IsDead))
+									.OrderBy(u => u.Distance).ToList();
+			}
+		}
 		public List<WoWUnit> flylist
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 27292 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>()
+									.Where(u => (u.Entry == 27292 && !u.IsDead))
+									.OrderBy(u => u.Distance).ToList();
+			}
+		}
+		private Composite _root;
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root =
+				new PrioritySelector(
 
 
-                    new Decorator(ret => Me.QuestLog.GetQuestById(12255) != null && Me.QuestLog.GetQuestById(12255).IsCompleted,
+					new Decorator(ret => Me.QuestLog.GetQuestById(12255) != null && Me.QuestLog.GetQuestById(12255).IsCompleted,
 						new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Finished!"),
-                            new WaitContinue(120,
-                            new Action(delegate
-                            {
-                                _isDone = true;
-                                return RunStatus.Success;
-                            })))),
+							new Action(ret => TreeRoot.StatusText = "Finished!"),
+							new WaitContinue(120,
+							new Action(delegate
+							{
+								_isDone = true;
+								return RunStatus.Success;
+							})))),
 
-                    new Decorator(ret => !Query.IsInVehicle(),
-                        new Sequence(
-                            new DecoratorContinue(ret => flylist.Count == 0,
-                                new Sequence(
-                                    new Action(ret => Navigator.MoveTo(flyloc)),
-                                    new Sleep(1000))),
-                            new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) > 5,
-                                new Sequence(
-                                    new Action(ret => Navigator.MoveTo(flylist[0].Location)),
-                                    new Sleep(1000))),
-                            new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) <= 5,
-                                new Sequence(
-                                    new Action(ret => WoWMovement.MoveStop()),
-                                    new Action(ret => flylist[0].Interact()),
-                                    new Sleep(1000),
-                                    new Action(ret => Lua.DoString("SelectGossipOption(1)")),
-                                    new Sleep(1000)))
+					new Decorator(ret => !Query.IsInVehicle(),
+						new Sequence(
+							new DecoratorContinue(ret => flylist.Count == 0,
+								new Sequence(
+									new Action(ret => Navigator.MoveTo(flyloc)),
+									new Sleep(1000))),
+							new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) > 5,
+								new Sequence(
+									new Action(ret => Navigator.MoveTo(flylist[0].Location)),
+									new Sleep(1000))),
+							new DecoratorContinue(ret => flylist.Count > 0 && flylist[0].Location.Distance(Me.Location) <= 5,
+								new Sequence(
+									new Action(ret => WoWMovement.MoveStop()),
+									new Action(ret => flylist[0].Interact()),
+									new Sleep(1000),
+									new Action(ret => Lua.DoString("SelectGossipOption(1)")),
+									new Sleep(1000)))
 
-                            )),
-                    new Decorator(ret => Query.IsInVehicle(),
+							)),
+					new Decorator(ret => Query.IsInVehicle(),
 						new Action(ret =>
 						{
-                            if (Me.QuestLog.GetQuestById(12255).IsCompleted)
+							if (Me.QuestLog.GetQuestById(12255).IsCompleted)
 							{
-                                if (Me.Location.Distance(endloc) > 15)
+								if (Me.Location.Distance(endloc) > 15)
 								{
 									WoWMovement.ClickToMove(endloc);
 									StyxWoW.Sleep(5000);
@@ -148,7 +148,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 						}
 					)),
 
-                    new DecoratorContinue(ret => !Me.IsQuestObjectiveComplete(QuestId, 1) && objmob[0].Location.Distance(Me.Location) <= 20,
+					new DecoratorContinue(ret => !Me.IsQuestObjectiveComplete(QuestId, 1) && objmob[0].Location.Distance(Me.Location) <= 20,
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "PWNing " +objmob[0].Name),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton2:Click()")),
@@ -163,27 +163,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 							new Action(ret => StyxWoW.Sleep(500))
 						)
 					)
-                )
+				)
 			);
-        }
-        
+		}
+		
 
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get { return _isDone; }
-        }
+		private bool _isDone;
+		public override bool IsDone
+		{
+			get { return _isDone; }
+		}
 
 
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-            }
-        }
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			if (!IsDone)
+			{
+				this.UpdateGoalText(QuestId);
+			}
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }

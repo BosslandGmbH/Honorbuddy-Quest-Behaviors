@@ -35,82 +35,82 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 {
-    [CustomBehaviorFileName(@"SpecificQuests\26028-Stonetalons-MrDsWildRide")]
-    public class q26028 : CustomForcedBehavior
-    {      
-        public q26028(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"SpecificQuests\26028-Stonetalons-MrDsWildRide")]
+	public class q26028 : CustomForcedBehavior
+	{      
+		public q26028(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-            Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-            Location = GetAttributeAsNullable<WoWPoint>("end", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-            QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-            QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-        }
+			QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+			Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+			Location = GetAttributeAsNullable<WoWPoint>("end", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+			QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+			QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+		}
 
-        public WoWPoint Location { get; private set; }
+		public WoWPoint Location { get; private set; }
 		public WoWPoint Endloc { get; private set; }
-        public int QuestId { get; set; }
+		public int QuestId { get; set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
-        public static LocalPlayer Me = StyxWoW.Me;
+		public QuestInLogRequirement    QuestRequirementInLog { get; private set; }
+		public static LocalPlayer Me = StyxWoW.Me;
 		static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26028));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		static public bool Obj2Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(2,GetQuestLogIndexByID(26028));if c==1 then return 1 else return 0 end", 0) == 1; } }
 		
-        #region Overrides of CustomForcedBehavior
+		#region Overrides of CustomForcedBehavior
 		public List<WoWUnit> mob1List
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 35203 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
-        public List<WoWUnit> mob2List
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>()
-                                    .Where(u => (u.Entry == 35334 && !u.IsDead))
-                                    .OrderBy(u => u.Distance).ToList();
-            }
-        }
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>()
+									.Where(u => (u.Entry == 35203 && !u.IsDead))
+									.OrderBy(u => u.Distance).ToList();
+			}
+		}
+		public List<WoWUnit> mob2List
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>()
+									.Where(u => (u.Entry == 35334 && !u.IsDead))
+									.OrderBy(u => u.Distance).ToList();
+			}
+		}
 		
-        private Composite _root;
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
+		private Composite _root;
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root =
+				new PrioritySelector(
 					
-                    new Decorator(ret => !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete) && Endloc.Distance(Me.Location) <= 3,
-                        new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Finished!"),
+					new Decorator(ret => !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete) && Endloc.Distance(Me.Location) <= 3,
+						new Sequence(
+							new Action(ret => TreeRoot.StatusText = "Finished!"),
 							new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarLeaveButton','0')")),
 							new Action(ret => StyxWoW.SleepForLagDuration()),
-                            new WaitContinue(120,
-                            new Action(delegate
-                            {
-                                _isDone = true;
-                                return RunStatus.Success;
-                                }))
-                    )),
+							new WaitContinue(120,
+							new Action(delegate
+							{
+								_isDone = true;
+								return RunStatus.Success;
+								}))
+					)),
 					new Decorator(ret => (!Me.IsMoving && !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)) && Endloc.Distance(Me.Location) > 3,
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "Moving To Camp"),
 							new Action(ret => Navigator.MoveTo(Endloc)),
 							new Action(ret => StyxWoW.SleepForLagDuration())
-                        )
-                    ),
+						)
+					),
 					new Decorator(ret => (!Me.IsMoving && (mob1List.Count == 0 || mob2List.Count == 0)),
 						new Sequence(
-                            new Action(ret => TreeRoot.StatusText = "Moving To Location"),
-                            new Action(ret => Navigator.MoveTo(Location)),
+							new Action(ret => TreeRoot.StatusText = "Moving To Location"),
+							new Action(ret => Navigator.MoveTo(Location)),
 							new Action(ret => StyxWoW.SleepForLagDuration())
-                        )
-                    ),
+						)
+					),
 					new Decorator(ret => mob1List.Count > 0 || mob2List.Count > 0,
 						new Sequence(
 							new DecoratorContinue(ret => !Me.IsMoving && !Obj1Done && mob1List[0].Location.Distance(Me.Location) > 30,
@@ -158,28 +158,28 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 				)	
 							
 						
-                
+				
 			);
-        }
+		}
 
 
-        private bool _isDone;
-        public override bool IsDone
-        {
-            get { return _isDone; }
-        }
+		private bool _isDone;
+		public override bool IsDone
+		{
+			get { return _isDone; }
+		}
 
 
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-            }
-        }
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			if (!IsDone)
+			{
+				this.UpdateGoalText(QuestId);
+			}
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }
 

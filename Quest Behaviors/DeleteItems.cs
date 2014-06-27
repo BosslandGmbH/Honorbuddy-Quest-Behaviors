@@ -32,120 +32,120 @@ using Styx.WoWInternals;
 
 namespace Honorbuddy.Quest_Behaviors.DeleteItems
 {
-    [CustomBehaviorFileName(@"DeleteItems")]
-    public class DeleteItems : CustomForcedBehavior
-    {
-        public DeleteItems(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"DeleteItems")]
+	public class DeleteItems : CustomForcedBehavior
+	{
+		public DeleteItems(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                Names = GetAttributeAsArray<string>("Ids", true, null, null, ",".ToCharArray());
-            }
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				Names = GetAttributeAsArray<string>("Ids", true, null, null, ",".ToCharArray());
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-
-        private string[] Names;
-
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        ~DeleteItems()
-        {
-            Dispose(false);
-        }
+
+		private string[] Names;
+
+		// Private variables for internal state
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		~DeleteItems()
+		{
+			Dispose(false);
+		}
 
 
-        #region Overrides of CustomForcedBehavior
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					// empty, for now
+				}
+
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
+
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone);
-            }
-        }
+		#region Overrides of CustomForcedBehavior
+
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone);
+			}
+		}
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                this.UpdateGoalText(0);
 
-                foreach(var name in Names)
-                {
-                    QBCLog.Info("Searching for " + name + "...");
-                    
-                    foreach(var item in StyxWoW.Me.BagItems.FindAll(x => x.Entry == name.ToUInt32()))
-                    {
-                        item.PickUp();
-                        Lua.DoString("DeleteCursorItem();");
-                    }
-                }
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-                _isBehaviorDone = true;
-            }
-        }
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				this.UpdateGoalText(0);
 
-        #endregion
-    }
+				foreach(var name in Names)
+				{
+					QBCLog.Info("Searching for " + name + "...");
+					
+					foreach(var item in StyxWoW.Me.BagItems.FindAll(x => x.Entry == name.ToUInt32()))
+					{
+						item.PickUp();
+						Lua.DoString("DeleteCursorItem();");
+					}
+				}
+
+				_isBehaviorDone = true;
+			}
+		}
+
+		#endregion
+	}
 }

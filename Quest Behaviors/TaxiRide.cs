@@ -88,92 +88,92 @@ using Action = Styx.TreeSharp.Action;
 // ReSharper disable once CheckNamespace
 namespace Styx.Bot.Quest_Behaviors.TaxiRide
 {
-    [CustomBehaviorFileName(@"TaxiRide")]
-    public class TaxiRide : CustomForcedBehavior
-    {
-	    #region Constructor and argument processing  
+	[CustomBehaviorFileName(@"TaxiRide")]
+	public class TaxiRide : CustomForcedBehavior
+	{
+		#region Constructor and argument processing  
 
-	    private enum NpcStateType
-        {
-            Alive,
-            DontCare,
-        }
+		private enum NpcStateType
+		{
+			Alive,
+			DontCare,
+		}
 
-        public TaxiRide(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public TaxiRide(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-                DestName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "ViewNodesOnly";
-                MobId = GetAttributeAsNullable("MobId", true, ConstrainAs.MobId, null) ?? 0;
-                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.Alive;
-                TaxiNumber = GetAttributeAs("TaxiNumber", false, ConstrainAs.StringNonEmpty, null) ?? "0";
-                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
-                WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-                NpcLocation = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+				DestName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "ViewNodesOnly";
+				MobId = GetAttributeAsNullable("MobId", true, ConstrainAs.MobId, null) ?? 0;
+				NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.Alive;
+				TaxiNumber = GetAttributeAs("TaxiNumber", false, ConstrainAs.StringNonEmpty, null) ?? "0";
+				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
+				WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+				NpcLocation = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
-            }
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
-	    // Attributes provided by caller
-        private string DestName { get; set; }
-        private int MobId { get; set; }
-        private WoWPoint NpcLocation { get; set; }
-        private NpcStateType NpcState { get; set; }
-        private int QuestId { get; set; }
-        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
-        private QuestInLogRequirement QuestRequirementInLog { get; set; }
-        private string TaxiNumber { get; set; }
-        private bool WaitForNpcs { get; set; }
-        private int WaitTime { get; set; }
+		// Attributes provided by caller
+		private string DestName { get; set; }
+		private int MobId { get; set; }
+		private WoWPoint NpcLocation { get; set; }
+		private NpcStateType NpcState { get; set; }
+		private int QuestId { get; set; }
+		private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+		private QuestInLogRequirement QuestRequirementInLog { get; set; }
+		private string TaxiNumber { get; set; }
+		private bool WaitForNpcs { get; set; }
+		private int WaitTime { get; set; }
 
-        #endregion
-
-
-        #region Private and Convenience variables
-
-        private bool _isBehaviorDone;
-        private bool _isOnFinishedRun;
-        private Composite _root;
-        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-        private int _tryNumber;
-        private Stopwatch _doingQuestTimer;
-
-    	#endregion
+		#endregion
 
 
-        #region Overrides of CustomForcedBehavior
+		#region Private and Convenience variables
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+		private bool _isBehaviorDone;
+		private bool _isOnFinishedRun;
+		private Composite _root;
+		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
+		private int _tryNumber;
+		private Stopwatch _doingQuestTimer;
 
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
-                    new Decorator(ret => Me.OnTaxi || _tryNumber >= 5 || (_doingQuestTimer.ElapsedMilliseconds >= 180000 && !WaitForNpcs),
-                        new Action(ret => _isBehaviorDone = true)),
+		#endregion
+
+
+		#region Overrides of CustomForcedBehavior
+
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
+
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root =
+				new PrioritySelector(
+					new Decorator(ret => Me.OnTaxi || _tryNumber >= 5 || (_doingQuestTimer.ElapsedMilliseconds >= 180000 && !WaitForNpcs),
+						new Action(ret => _isBehaviorDone = true)),
 
 					new Decorator(ret => CurrentNpc == null,
 						new PrioritySelector(
@@ -187,9 +187,9 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 
 					new Mount.ActionLandAndDismount("Interact flight master"),
 
-                    new Decorator(ret => !CurrentNpc.WithinInteractRange,
-                        new Action(ret => Navigator.MoveTo(CurrentNpc.Location))
-                    ),
+					new Decorator(ret => !CurrentNpc.WithinInteractRange,
+						new Action(ret => Navigator.MoveTo(CurrentNpc.Location))
+					),
 
 					// Getting ready to interact
 					new Decorator(ctx => !TaxiFrame.Instance.IsVisible,
@@ -207,7 +207,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 							new SleepForLagDuration()
 							)),
 								
-                    new Decorator(ret => TaxiNumber == "0" && DestName == "ViewNodesOnly",
+					new Decorator(ret => TaxiNumber == "0" && DestName == "ViewNodesOnly",
 						new Sequence(
 							new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.Name + " Distance: " +
 												CurrentNpc.Location.Distance(Me.Location) + " to listing known TaxiNodes")),
@@ -215,7 +215,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 							new Sleep(WaitTime),
 							new Action(ret => _isBehaviorDone = true))),
 
-                    new Decorator(ret => TaxiNumber != "0",
+					new Decorator(ret => TaxiNumber != "0",
 						new Sequence(
 							new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.Name + " Distance: " +
 												CurrentNpc.Location.Distance(Me.Location))),
@@ -223,65 +223,65 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 							new Action(ret => _tryNumber++),
 							new Sleep(WaitTime))),
 
-                    new Decorator(ret => DestName != "ViewNodesOnly",
+					new Decorator(ret => DestName != "ViewNodesOnly",
 						new Sequence(
 							new Action(ret => QBCLog.Info("Taking a ride to: " + DestName)),
 							new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); if strmatch(a,'" + DestName + "')then b=i; TakeTaxiNode(b); end end"))),
 							new Action(ret => _tryNumber++),
 							new Sleep(WaitTime)))
-            ));
-        }
+			));
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone     // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
 
 
-        public override void OnFinished()
-        {
-            // Defend against being called multiple times (just in case)...
-            if (!_isOnFinishedRun)
-            {
-                // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
-                base.OnFinished();
-                _isOnFinishedRun = true;
-            }
-        }
+		public override void OnFinished()
+		{
+			// Defend against being called multiple times (just in case)...
+			if (!_isOnFinishedRun)
+			{
+				// QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+				base.OnFinished();
+				_isOnFinishedRun = true;
+			}
+		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 			
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
 			{
 				_doingQuestTimer = Stopwatch.StartNew();
-                this.UpdateGoalText(QuestId, "TaxiRide started");
-            }
-        }
+				this.UpdateGoalText(QuestId, "TaxiRide started");
+			}
+		}
 
-        #endregion
+		#endregion
 
 
-        #region Helpers
+		#region Helpers
 
-        private WoWUnit CurrentNpc
-        {
-            get
-            {
-	            var npc =
-		            ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
+		private WoWUnit CurrentNpc
+		{
+			get
+			{
+				var npc =
+					ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
 								 .Where(u => u.Entry == MobId && !FlightPaths.IsIgnored((uint)MobId) &&
 											(NpcState == NpcStateType.DontCare || u.IsAlive))
 								 .OrderBy(u => u.DistanceSqr)
@@ -291,10 +291,10 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 					QBCLog.DeveloperInfo(npc.Name);
 
 				return npc;
-            }
-        }
+			}
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }
 

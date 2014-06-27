@@ -38,222 +38,222 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AcidRain
 {
-    [CustomBehaviorFileName(@"SpecificQuests\29827-HordeJadeForest-AcidRain")]
-    public class AcidRain : CustomForcedBehavior
-    {
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
+	[CustomBehaviorFileName(@"SpecificQuests\29827-HordeJadeForest-AcidRain")]
+	public class AcidRain : CustomForcedBehavior
+	{
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
 
-        public AcidRain(Dictionary<string, string> args) : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public AcidRain(Dictionary<string, string> args) : base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = 29827;
-                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
-            }
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = 29827;
+				QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = QuestInLogRequirement.InLog;
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-        // Private variables for internal state
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		// Attributes provided by caller
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-        ~AcidRain()
-        {
-            Dispose(false);
-        }
+		// Private variables for internal state
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+		// Private properties
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-
-        #region Overrides of CustomForcedBehavior
-
-        public Composite DoneYet
-        {
-            get
-            {
-                return new Decorator(ret => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-            }
-        }
+		~AcidRain()
+		{
+			Dispose(false);
+		}
 
 
-        public int Underneath
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>()
-                        .Count(
-                            r => (r.Entry == 55707 || r.Entry == 55701) && StyxWoW.Me.CharmedUnit != null && r.Location.Distance(ModifiedLocation(StyxWoW.Me.CharmedUnit)) < 20);
-            }
-        }
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-        public WoWUnit Gutripper
-        {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 55707).OrderBy(x => x.Distance).FirstOrDefault(); }
-        }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+				}
 
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
-        public WoWUnit Nibstabber
-        {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 55701).OrderBy(x => x.Distance).FirstOrDefault(); }
-        }
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
 
+			_isDisposed = true;
+		}
 
-        public Composite Obj2
-        {
-            get
-            {
-                return new Decorator(r => Nibstabber != null && !Me.IsQuestObjectiveComplete(QuestId, 2),
-                    new Action(r =>
-                    {
-                        CastSpell("Throw Star");
-                        SpellManager.ClickRemoteLocation(Nibstabber.Location);
-                    }));
-            }
-        }
+		#region Overrides of CustomForcedBehavior
 
-
-        public Composite Obj1
-        {
-            get
-            {
-                return new Decorator( r => Gutripper != null && !Me.IsQuestObjectiveComplete(QuestId, 1),
-                    new Action(r =>
-                    {
-                        CastSpell("Throw Star");
-                        SpellManager.ClickRemoteLocation(Gutripper.Location);
-                    }));
-            }
-        }
+		public Composite DoneYet
+		{
+			get
+			{
+				return new Decorator(ret => Me.IsQuestComplete(QuestId),
+					new Action(delegate
+					{
+						TreeRoot.StatusText = "Finished!";
+						_isBehaviorDone = true;
+						return RunStatus.Success;
+					}));
+			}
+		}
 
 
-        public Composite Aoe
-        {
-            get { return new Decorator(r => Underneath > 5 && CanCast("Poison Blossom"), new Action(r => CastSpell("Poison Blossom"))); }
-        }
+		public int Underneath
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>()
+						.Count(
+							r => (r.Entry == 55707 || r.Entry == 55701) && StyxWoW.Me.CharmedUnit != null && r.Location.Distance(ModifiedLocation(StyxWoW.Me.CharmedUnit)) < 20);
+			}
+		}
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-        public static WoWPoint ModifiedLocation(WoWUnit u)
-        {
-            return u.Location.Add(0f, 0f, -15f);
-        }
-
-        public bool CanCast(string spells)
-        {
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == spells);
-            if (spell == null || spell.Cooldown)
-                return false;
-
-            return true;
-        }
+		public WoWUnit Gutripper
+		{
+			get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 55707).OrderBy(x => x.Distance).FirstOrDefault(); }
+		}
 
 
-        public void CastSpell(string action)
-        {
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            QBCLog.Info("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-        }
+		public WoWUnit Nibstabber
+		{
+			get { return ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 55701).OrderBy(x => x.Distance).FirstOrDefault(); }
+		}
 
 
-        protected Composite CreateBehavior_MainCombat()
-        {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, Aoe, Obj1, Obj2, new ActionAlwaysSucceed())));
-        }
+		public Composite Obj2
+		{
+			get
+			{
+				return new Decorator(r => Nibstabber != null && !Me.IsQuestObjectiveComplete(QuestId, 2),
+					new Action(r =>
+					{
+						CastSpell("Throw Star");
+						SpellManager.ClickRemoteLocation(Nibstabber.Location);
+					}));
+			}
+		}
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		public Composite Obj1
+		{
+			get
+			{
+				return new Decorator( r => Gutripper != null && !Me.IsQuestObjectiveComplete(QuestId, 1),
+					new Action(r =>
+					{
+						CastSpell("Throw Star");
+						SpellManager.ClickRemoteLocation(Gutripper.Location);
+					}));
+			}
+		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public Composite Aoe
+		{
+			get { return new Decorator(r => Underneath > 5 && CanCast("Poison Blossom"), new Action(r => CastSpell("Poison Blossom"))); }
+		}
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
 
-                this.UpdateGoalText(QuestId);
-            }
-        }
+		public static WoWPoint ModifiedLocation(WoWUnit u)
+		{
+			return u.Location.Add(0f, 0f, -15f);
+		}
 
-        #endregion
-    }
+		public bool CanCast(string spells)
+		{
+			var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == spells);
+			if (spell == null || spell.Cooldown)
+				return false;
+
+			return true;
+		}
+
+
+		public void CastSpell(string action)
+		{
+			var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+			if (spell == null)
+				return;
+
+			QBCLog.Info("[Pet] Casting {0}", action);
+			Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+		}
+
+
+		protected Composite CreateBehavior_MainCombat()
+		{
+			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, Aoe, Obj1, Obj2, new ActionAlwaysSucceed())));
+		}
+
+
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+
+				this.UpdateGoalText(QuestId);
+			}
+		}
+
+		#endregion
+	}
 }

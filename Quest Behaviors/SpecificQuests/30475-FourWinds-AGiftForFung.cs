@@ -42,7 +42,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 		public AGiftForFung(Dictionary<string, string> args)
 			: base(args)
 		{
-            QBCLog.BehaviorLoggingContext = this;
+			QBCLog.BehaviorLoggingContext = this;
 
 			try
 			{
@@ -53,13 +53,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 
 			catch (Exception except)
 			{
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
 			}
 		}
 		public int QuestId { get; set; }
@@ -86,7 +86,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 			OnStart_HandleAttributeProblem();
 			if (!IsDone)
 			{
-                this.UpdateGoalText(QuestId);
+				this.UpdateGoalText(QuestId);
 			}
 		}
 
@@ -95,10 +95,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 			get
 			{
 				return
-                    ObjectManager.GetObjectsOfType<WoWUnit>()
-                    .Where(u => u.Entry == MobIdHawk && !u.IsDead && u.Distance < 10000)
-                    .OrderBy(u => u.Distance)
-                    .ToList();
+					ObjectManager.GetObjectsOfType<WoWUnit>()
+					.Where(u => u.Entry == MobIdHawk && !u.IsDead && u.Distance < 10000)
+					.OrderBy(u => u.Distance)
+					.ToList();
 			}
 		}
 
@@ -108,7 +108,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 			get
 			{
 				return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 1),
-                    new Action(delegate
+					new Action(delegate
 					{
 						TreeRoot.StatusText = "Finished!";
 						_isBehaviorDone = true;
@@ -123,17 +123,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 			get
 			{
 				return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
-                    new Action(c =>
+					new Action(c =>
 					{
-			            if (Hawk[0].Location.Distance(Me.Location) < 30)
-			            {
-				            TreeRoot.StatusText = "Pulling Monstrous Plainshawk";
-				            Hawk[0].Target();
-					        Hawk[0].Face();
+						if (Hawk[0].Location.Distance(Me.Location) < 30)
+						{
+							TreeRoot.StatusText = "Pulling Monstrous Plainshawk";
+							Hawk[0].Target();
+							Hawk[0].Face();
 							StyxWoW.Sleep(1000);
 							SpellManager.Cast(SpellId);
 							StyxWoW.Sleep(1000);
-			            }
+						}
 						TreeRoot.StatusText = "Finished Pulling!";
 						_isBehaviorDone = true;
 						return RunStatus.Success;
@@ -145,8 +145,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 		protected override Composite CreateBehavior()
 		{
 			return _root ?? (_root =
-                new Decorator(ret => !_isBehaviorDone,
-                    new PrioritySelector(DoneYet, HawkFlyTo, new ActionAlwaysSucceed())));
+				new Decorator(ret => !_isBehaviorDone,
+					new PrioritySelector(DoneYet, HawkFlyTo, new ActionAlwaysSucceed())));
 		}
 	}
 }

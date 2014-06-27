@@ -38,194 +38,194 @@ using Action = Styx.TreeSharp.Action;
 namespace Styx.Bot.Quest_Behaviors
 {
 [CustomBehaviorFileName(@"ArgentTournament\GetKraken")]
-    public class GetKraken : CustomForcedBehavior
-    {
-        ~GetKraken()
-        {
-            Dispose(false);
-        }
+	public class GetKraken : CustomForcedBehavior
+	{
+		~GetKraken()
+		{
+			Dispose(false);
+		}
 
-        public GetKraken(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public GetKraken(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = 14108;//GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
-            }
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = 14108;//GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+				QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = QuestInLogRequirement.InLog;
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-
-        WoWItem Spear()
-        {
-            return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46954);
-        }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
+		WoWItem Spear()
+		{
+			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46954);
+		}
 
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		// Attributes provided by caller
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+
+		// Private variables for internal state
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		// Private properties
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
 
-        #region Overrides of CustomForcedBehavior
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-        public Composite DoneYet
-        {
-            get
-            {
-                return new Decorator(r => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-            }
-        }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+				}
 
-        WoWUnit Deepcaller
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 35092 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
-            }
-        }
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
-        WoWUnit Kraken
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 34925 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
-            }
-        }
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
 
 
-        public Composite Part1
-        {
-            get
-            {
-                return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2) && Deepcaller != null, new Action(r =>
-                                                                                             {
-                                                                                                 Deepcaller.Target();
-                                                                                                 Spear().Use();
-                                                                                             }));
-            }
-        }
+		#region Overrides of CustomForcedBehavior
 
-        public Composite Part2
-        {
-            get
-            {
-                return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 1) && Kraken != null, new Action(r =>
-                                                                                                 {
-                                                                                                     Kraken.Target();
-                                                                                                     Spear().Use();
-                                                                                                 }));
-            }
-        }
+		public Composite DoneYet
+		{
+			get
+			{
+				return new Decorator(r => Me.IsQuestComplete(QuestId),
+					new Action(delegate
+					{
+						TreeRoot.StatusText = "Finished!";
+						_isBehaviorDone = true;
+						return RunStatus.Success;
+					}));
+			}
+		}
 
-        protected Composite CreateBehavior_QuestbotMain()
-        {
-            return _root ??
-                   (_root =
-                    new Decorator(ret => !_isBehaviorDone,
-                                  new PrioritySelector(DoneYet, Part1, Part2, new ActionAlwaysSucceed())));
-        }
+		WoWUnit Deepcaller
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 35092 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
+			}
+		}
 
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		WoWUnit Kraken
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 34925 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
+			}
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+		public Composite Part1
+		{
+			get
+			{
+				return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2) && Deepcaller != null, new Action(r =>
+																							 {
+																								 Deepcaller.Target();
+																								 Spear().Use();
+																							 }));
+			}
+		}
 
-        public override void OnStart()
-        {
+		public Composite Part2
+		{
+			get
+			{
+				return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 1) && Kraken != null, new Action(r =>
+																								 {
+																									 Kraken.Target();
+																									 Spear().Use();
+																								 }));
+			}
+		}
 
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		protected Composite CreateBehavior_QuestbotMain()
+		{
+			return _root ??
+				   (_root =
+					new Decorator(ret => !_isBehaviorDone,
+								  new PrioritySelector(DoneYet, Part1, Part2, new ActionAlwaysSucceed())));
+		}
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
 
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
-                _isBehaviorDone = true;
-            }
-        }
-        #endregion
-    }
+
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone     // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
+
+		public override void OnStart()
+		{
+
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				this.UpdateGoalText(QuestId);
+
+				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+
+				_isBehaviorDone = true;
+			}
+		}
+		#endregion
+	}
 }

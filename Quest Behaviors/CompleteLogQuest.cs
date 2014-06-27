@@ -48,124 +48,124 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 {
-    [CustomBehaviorFileName(@"CompleteLogQuest")]
-    public class CompleteLogQuest : CustomForcedBehavior
-    {
-        public CompleteLogQuest(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"CompleteLogQuest")]
+	public class CompleteLogQuest : CustomForcedBehavior
+	{
+		public CompleteLogQuest(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new[] { "QuestID" }) ?? 0;
-
-
-                // Final initialization...
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-                QuestName = (quest != null) ? quest.Name : string.Format("QuestId({0})", QuestId);
-            }
-
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
+			try
+			{
+				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new[] { "QuestID" }) ?? 0;
 
 
-        // Attributes provided by caller
-        public static int QuestId { get; private set; }
+				// Final initialization...
+				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-        // Private variables for internal state
-        private bool _isDisposed;
-        private Composite _root;
+				QuestName = (quest != null) ? quest.Name : string.Format("QuestId({0})", QuestId);
+			}
 
-	    private bool _forcedDone;
-
-        // Private properties
-        private string QuestName { get; set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-        ~CompleteLogQuest()
-        {
-            Dispose(false);
-        }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+		// Attributes provided by caller
+		public static int QuestId { get; private set; }
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
+		// Private variables for internal state
+		private bool _isDisposed;
+		private Composite _root;
 
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
+		private bool _forcedDone;
 
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
+		// Private properties
+		private string QuestName { get; set; }
 
-            _isDisposed = true;
-        }
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-        #region Overrides of CustomForcedBehavior
 
-	    protected override Composite CreateBehavior()
-	    {
-		    return (_root ?? (_root =
-		                      new PrioritySelector(
-			                      // If we don't have the quest in our logs, we have already turned it in
-			                      new Decorator(ctx => !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId),
-			                                    new ActionAlwaysSucceed()),
+		~CompleteLogQuest()
+		{
+			Dispose(false);
+		}
 
-			                      // Make sure we've the quest frame opened with the correct quest
-			                      new Decorator(
-				                      ctx => !QuestFrame.Instance.IsVisible || QuestFrame.Instance.CurrentShownQuestId != QuestId,
-				                      new Sequence(
-					                      new Action(ctx => Lua.DoString("ShowQuestComplete(GetQuestLogIndexByID({0}))", QuestId)),
-					                      new Wait(3,
-					                               ctx =>
-					                               QuestFrame.Instance.IsVisible && QuestFrame.Instance.CurrentShownQuestId == QuestId,
-					                               new ActionAlwaysSucceed()))),
 
-			                      // Complete the quest, and accept the next quest if there is one. This is needed to make this compatible with the CompleteQuestLog quest behavior
-			                      // which automatically accepted new quests.
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
+
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					// empty, for now
+				}
+
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
+
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
+
+		#region Overrides of CustomForcedBehavior
+
+		protected override Composite CreateBehavior()
+		{
+			return (_root ?? (_root =
+							  new PrioritySelector(
+								  // If we don't have the quest in our logs, we have already turned it in
+								  new Decorator(ctx => !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId),
+												new ActionAlwaysSucceed()),
+
+								  // Make sure we've the quest frame opened with the correct quest
+								  new Decorator(
+									  ctx => !QuestFrame.Instance.IsVisible || QuestFrame.Instance.CurrentShownQuestId != QuestId,
+									  new Sequence(
+										  new Action(ctx => Lua.DoString("ShowQuestComplete(GetQuestLogIndexByID({0}))", QuestId)),
+										  new Wait(3,
+												   ctx =>
+												   QuestFrame.Instance.IsVisible && QuestFrame.Instance.CurrentShownQuestId == QuestId,
+												   new ActionAlwaysSucceed()))),
+
+								  // Complete the quest, and accept the next quest if there is one. This is needed to make this compatible with the CompleteQuestLog quest behavior
+								  // which automatically accepted new quests.
 								  new Sequence(
 									  new DecoratorContinue(QuestContinueButtonShown,
 										new Action(ctx => PressContinueButton(ctx))),
 
-				                      new DecoratorContinue(QuestHasRewards,
+									  new DecoratorContinue(QuestHasRewards,
 										  new ActionSelectReward()),
-				                      // Just wait for a bit before we turn in, so it's easier to see what's going on
-				                      new Sleep(1000),
-				                      new Action(ctx => QuestFrame.Instance.CompleteQuest()),
-				                      new SleepForLagDuration(),
-				                      new Action(ctx => QuestFrame.Instance.AcceptQuest()),
-				                      new Sleep(500),
-				                      new Action(ctx => Lua.DoString("CloseQuest()"))
-				                      ))));
-	    }
+									  // Just wait for a bit before we turn in, so it's easier to see what's going on
+									  new Sleep(1000),
+									  new Action(ctx => QuestFrame.Instance.CompleteQuest()),
+									  new SleepForLagDuration(),
+									  new Action(ctx => QuestFrame.Instance.AcceptQuest()),
+									  new Sleep(500),
+									  new Action(ctx => Lua.DoString("CloseQuest()"))
+									  ))));
+		}
 
-	    private bool QuestHasRewards(object context)
+		private bool QuestHasRewards(object context)
 		{
 			uint id = QuestFrame.Instance.CurrentShownQuestId;
 			Quest quest = Quest.FromId(id);
@@ -189,11 +189,11 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 			return RunStatus.Success;
 		}
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
 		public override bool IsDone
 		{
@@ -206,39 +206,39 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-                this.UpdateGoalText(QuestId);
+				this.UpdateGoalText(QuestId);
 
-                if (quest != null)
-                {
-                    if (!quest.IsCompleted)
-                    {
-                        QBCLog.Fatal("Quest({0}, \"{1}\") is not complete.", QuestId, QuestName);
-                        _forcedDone = true;
-                    }
-                }
+				if (quest != null)
+				{
+					if (!quest.IsCompleted)
+					{
+						QBCLog.Fatal("Quest({0}, \"{1}\") is not complete.", QuestId, QuestName);
+						_forcedDone = true;
+					}
+				}
 
-                else
-                {
-                    QBCLog.Warning("Quest({0}) is not in our log--skipping turn in.", QuestId);
-                    _forcedDone = true;
-                }
-            }
-        }
+				else
+				{
+					QBCLog.Warning("Quest({0}) is not in our log--skipping turn in.", QuestId);
+					_forcedDone = true;
+				}
+			}
+		}
 
-        #endregion
-    }
+		#endregion
+	}
 }
 

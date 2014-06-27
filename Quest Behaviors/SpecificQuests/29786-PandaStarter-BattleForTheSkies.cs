@@ -38,150 +38,150 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BattleForTheSkies
 {
-    [CustomBehaviorFileName(@"SpecificQuests\29786-PandaStarter-BattleForTheSkies")]
-    public class BattlefortheSkies : CustomForcedBehavior
-    {
-        public BattlefortheSkies(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"SpecificQuests\29786-PandaStarter-BattleForTheSkies")]
+	public class BattlefortheSkies : CustomForcedBehavior
+	{
+		public BattlefortheSkies(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            QuestId = 29786;
-        }
-        public int QuestId { get; set; }
-        private bool _isBehaviorDone;
-        
+			QuestId = 29786;
+		}
+		public int QuestId { get; set; }
+		private bool _isBehaviorDone;
+		
 
-        private Composite _root;
-        
-        public override bool IsDone
-        {
-            get
-            {
-                return _isBehaviorDone;
-            }
-        }
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		private Composite _root;
+		
+		public override bool IsDone
+		{
+			get
+			{
+				return _isBehaviorDone;
+			}
+		}
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            if (!IsDone)
-            {
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			if (!IsDone)
+			{
+				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                this.UpdateGoalText(QuestId);
-            }
-        }
-
-
-        public WoWUnit Dargon
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true).FirstOrDefault(u => u.Entry == 55786);
-            }
-        }
+				this.UpdateGoalText(QuestId);
+			}
+		}
 
 
-        public WoWUnit Launcher
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(u => u.Entry == 64507 && u.Flags == 295680).OrderBy(r=>r.Location.Distance(Dargon.Location.RayCast(Dargon.MovementInfo.Heading,20f))).FirstOrDefault();
-            }
-        }
+		public WoWUnit Dargon
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>(true).FirstOrDefault(u => u.Entry == 55786);
+			}
+		}
 
 
-        public Composite DoneYet
-        {
-            get
-            {
-                return new Decorator(ret => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-            }
-        }
-
-        
-        public Composite DpsHim
-        {
-            get
-            {
-                return new PrioritySelector(
-                    new Decorator(r=> Me.CurrentTarget == null && Dargon != null && Me.CurrentTarget != Dargon, new Action(r=>Dargon.Target())),
-                    new Decorator(r => Dargon != null && Dargon.HasAura(125992), RoutineManager.Current.CombatBehavior)
-                    
-                    );
-            }
-        }
+		public WoWUnit Launcher
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(u => u.Entry == 64507 && u.Flags == 295680).OrderBy(r=>r.Location.Distance(Dargon.Location.RayCast(Dargon.MovementInfo.Heading,20f))).FirstOrDefault();
+			}
+		}
 
 
-        public Composite Boom
-        {
-            get
-            {
-                return new Decorator(r => Dargon != null && Launcher != null, new Action(r =>
-                                                                        {
-                                                                            //Navigator.MoveTo(Launcher.Location);
-                                                                            Launcher.Interact(true);
-                                                                        }));
-            }
-        }
+		public Composite DoneYet
+		{
+			get
+			{
+				return new Decorator(ret => Me.IsQuestComplete(QuestId),
+					new Action(delegate
+					{
+						TreeRoot.StatusText = "Finished!";
+						_isBehaviorDone = true;
+						return RunStatus.Success;
+					}));
+			}
+		}
+
+		
+		public Composite DpsHim
+		{
+			get
+			{
+				return new PrioritySelector(
+					new Decorator(r=> Me.CurrentTarget == null && Dargon != null && Me.CurrentTarget != Dargon, new Action(r=>Dargon.Target())),
+					new Decorator(r => Dargon != null && Dargon.HasAura(125992), RoutineManager.Current.CombatBehavior)
+					
+					);
+			}
+		}
 
 
-        protected Composite CreateBehavior_QuestbotMain()
-        {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, DpsHim, Boom, new ActionAlwaysSucceed())));
-        }
+		public Composite Boom
+		{
+			get
+			{
+				return new Decorator(r => Dargon != null && Launcher != null, new Action(r =>
+																		{
+																			//Navigator.MoveTo(Launcher.Location);
+																			Launcher.Interact(true);
+																		}));
+			}
+		}
 
 
-        #region Cleanup
+		protected Composite CreateBehavior_QuestbotMain()
+		{
+			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, DpsHim, Boom, new ActionAlwaysSucceed())));
+		}
 
-        ~BattlefortheSkies()
-        {
-            Dispose(false);
-        }
 
-        private bool _isDisposed;
+		#region Cleanup
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		~BattlefortheSkies()
+		{
+			Dispose(false);
+		}
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
+		private bool _isDisposed;
 
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+				}
 
-            _isDisposed = true;
-        }
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
-        #endregion
-    }
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
+
+		#endregion
+	}
 }

@@ -40,230 +40,230 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Nightmare
 {
-    [CustomBehaviorFileName(@"SpecificQuests\27380-TwilightHighlands-Nightmare")]
-    public class Nightmare : CustomForcedBehavior
-    {
-        ~Nightmare()
-        {
-            Dispose(false);
-        }
+	[CustomBehaviorFileName(@"SpecificQuests\27380-TwilightHighlands-Nightmare")]
+	public class Nightmare : CustomForcedBehavior
+	{
+		~Nightmare()
+		{
+			Dispose(false);
+		}
 
-        public Nightmare(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public Nightmare(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = 27380;
-                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
-            }
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = 27380;
+				QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = QuestInLogRequirement.InLog;
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		// Attributes provided by caller
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+
+		// Private variables for internal state
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		// Private properties
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
 
-        #region Overrides of CustomForcedBehavior
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
+
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+				}
+
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
+
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
+
+
+		#region Overrides of CustomForcedBehavior
 
 
 
 
-        public Composite DoneYet
-        {
-            get
-            {
-                return
-                    new Decorator(ret => Me.IsQuestComplete(QuestId),
-                        new Action(delegate
-                        {
-                            TreeRoot.StatusText = "Finished!";
-                            _isBehaviorDone = true;
-                            return RunStatus.Success;
-                        }));
-            }
-        }
+		public Composite DoneYet
+		{
+			get
+			{
+				return
+					new Decorator(ret => Me.IsQuestComplete(QuestId),
+						new Action(delegate
+						{
+							TreeRoot.StatusText = "Finished!";
+							_isBehaviorDone = true;
+							return RunStatus.Success;
+						}));
+			}
+		}
 
 
-        public WoWUnit Blobs
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 48816 && u.IsAlive && (u.CurrentTarget == Me || (u.CurrentTarget != null && u.CurrentTarget.ControllingPlayer == Me))).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
+		public WoWUnit Blobs
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 48816 && u.IsAlive && (u.CurrentTarget == Me || (u.CurrentTarget != null && u.CurrentTarget.ControllingPlayer == Me))).OrderBy(
+						u => u.Distance).FirstOrDefault();
+			}
+		}
 
-        private readonly WoWPoint spot = new WoWPoint(-2739.832,-5000.674,-127.1305);
+		private readonly WoWPoint spot = new WoWPoint(-2739.832,-5000.674,-127.1305);
 
-        public WoWUnit Brain
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 47960 && u.IsAlive).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
-
-
-        public Composite LowMeter
-        {
-            get
-            {
-                return  new Decorator(r => Me.CurrentHealth < 50 || power > 200,MoveBack);
-            }
-        }
-
-        public Composite DoDps
-        {
-            get
-            {
-                return
-                    new PrioritySelector(
-                        new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
-                        new Action(c => RoutineManager.Current.Combat()));
-            }
-        }
-
-        public Composite MoveBack
-        {
-            get
-            {
-                return new Decorator(r => Me.Location.Distance(spot) > 5, new Action(r=> Navigator.MoveTo(spot)));
-            }
-        }
-
-        public Composite KillBlobs
-        {
-            get
-            {
-                return new Decorator(r => Blobs != null, new Sequence(new Action(z => Blobs.Target()), DoDps));
-            }
-        }
-
-        public Composite KillBrain
-        {
-            get
-            {
-                return new Decorator(r => Brain != null, new Sequence(new Action(z => Brain.Target()), DoDps));
-            }
-        }
-
-        public Composite EmptyMeter
-        {
-            get
-            {
-                return new Decorator(r => Me.Location.Distance(spot) <= 5 && power > 0, new ActionAlwaysSucceed());
-            }
-        }
+		public WoWUnit Brain
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 47960 && u.IsAlive).OrderBy(
+						u => u.Distance).FirstOrDefault();
+			}
+		}
 
 
-        protected Composite CreateBehavior_QuestbotMain()
-        {
-            //return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,EmptyMeter,LowMeter,KillBlobs,KillBrain)));
-        }
+		public Composite LowMeter
+		{
+			get
+			{
+				return  new Decorator(r => Me.CurrentHealth < 50 || power > 200,MoveBack);
+			}
+		}
+
+		public Composite DoDps
+		{
+			get
+			{
+				return
+					new PrioritySelector(
+						new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),
+						new Action(c => RoutineManager.Current.Combat()));
+			}
+		}
+
+		public Composite MoveBack
+		{
+			get
+			{
+				return new Decorator(r => Me.Location.Distance(spot) > 5, new Action(r=> Navigator.MoveTo(spot)));
+			}
+		}
+
+		public Composite KillBlobs
+		{
+			get
+			{
+				return new Decorator(r => Blobs != null, new Sequence(new Action(z => Blobs.Target()), DoDps));
+			}
+		}
+
+		public Composite KillBrain
+		{
+			get
+			{
+				return new Decorator(r => Brain != null, new Sequence(new Action(z => Brain.Target()), DoDps));
+			}
+		}
+
+		public Composite EmptyMeter
+		{
+			get
+			{
+				return new Decorator(r => Me.Location.Distance(spot) <= 5 && power > 0, new ActionAlwaysSucceed());
+			}
+		}
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		protected Composite CreateBehavior_QuestbotMain()
+		{
+			//return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
+			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,EmptyMeter,LowMeter,KillBlobs,KillBrain)));
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
 
-        public int power
-        {
-            get
-            {
-                return Lua.GetReturnVal<int>("return UnitPower(\"player\",ALTERNATE_POWER_INDEX)", 0);     }
-        }
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public int power
+		{
+			get
+			{
+				return Lua.GetReturnVal<int>("return UnitPower(\"player\",ALTERNATE_POWER_INDEX)", 0);     }
+		}
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-                this.UpdateGoalText(QuestId);
-            }
-        }
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-        #endregion
-    }
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+
+				this.UpdateGoalText(QuestId);
+			}
+		}
+
+		#endregion
+	}
 }

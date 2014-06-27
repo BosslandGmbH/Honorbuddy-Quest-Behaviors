@@ -44,7 +44,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 		public Volcanoth(Dictionary<string, string> args)
 			: base(args)
 		{
-            QBCLog.BehaviorLoggingContext = this;
+			QBCLog.BehaviorLoggingContext = this;
 
 			try
 			{
@@ -53,13 +53,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 
 			catch (Exception except)
 			{
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
 			}
 		}
 		private Composite _behaviorTreeHook_CombatMain;
@@ -89,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 				_behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
 				TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
 
-                this.UpdateGoalText(QuestId);
+				this.UpdateGoalText(QuestId);
 			}
 		}
 		
@@ -116,7 +116,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 			get
 			{
 				return new Decorator(ret => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
+					new Action(delegate
 					{
 						TreeRoot.StatusText = "Finished!";
 						_isBehaviorDone = true;

@@ -37,250 +37,250 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 {
-    [CustomBehaviorFileName(@"SpecificQuests\28591-HordeTwilightHighlands-OffTheWall")]
-    public class OffTheWall : CustomForcedBehavior
-    {
-        ~OffTheWall()
-        {
-            Dispose(false);
-        }
+	[CustomBehaviorFileName(@"SpecificQuests\28591-HordeTwilightHighlands-OffTheWall")]
+	public class OffTheWall : CustomForcedBehavior
+	{
+		~OffTheWall()
+		{
+			Dispose(false);
+		}
 
-        public OffTheWall(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public OffTheWall(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = 28591;
-                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
-            }
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = 28591;
+				QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = QuestInLogRequirement.InLog;
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		// Attributes provided by caller
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+
+		// Private variables for internal state
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		// Private properties
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
 
-        #region Overrides of CustomForcedBehavior
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-        public WoWUnit Marksmen
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49124 && u.IsAlive).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+				}
 
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
 
-        public WoWUnit Cannoner
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49025 && u.IsAlive).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
-
-        public WoWUnit Cannon
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49060 && u.IsAlive).OrderBy(
-                        u => u.Distance).FirstOrDefault();
-            }
-        }
+			_isDisposed = true;
+		}
 
 
-        WoWUnit GetTurret()
-        {
-            return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.CharmedByUnitGuid == 0 || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 49135)
-                .OrderBy(u => u.DistanceSqr).
-                FirstOrDefault();
-        }
+		#region Overrides of CustomForcedBehavior
 
-        protected Composite CreateBehavior_QuestbotMain()
-        {
-            //return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(new Action(ret => Loopstuff()))));
-        }
-
-
-        public void Loopstuff()
-        {
-            while (true)
-            {
-                ObjectManager.Update();
-                if (Me.IsQuestComplete(QuestId))
-                {
-                    _isBehaviorDone = true;
-                    break;
-                }
-
-                try
-                {
-
-                    if (!Query.IsInVehicle())
-                    {
-                        var turret = GetTurret();
-                        if (turret != null)
-                        {
-                            if (turret.DistanceSqr > 5 * 5)
-                            {
-                                //Navigator.MoveTo(turret.Location);
-                            }
-                            else
-                                turret.Interact();
-                        }
-                        else
-                        {
-                            QBCLog.Info("Unable to find turret");
-                        }
-                    }
-                    else
-                    {
-
-                        if (Me.CurrentTarget != null &&
-                            (Me.CurrentTarget.Distance < 60 || Me.CurrentTarget.InLineOfSight))
-                        {
+		public WoWUnit Marksmen
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49124 && u.IsAlive).OrderBy(
+						u => u.Distance).FirstOrDefault();
+			}
+		}
 
 
 
-                            WoWMovement.ClickToMove(Me.CurrentTarget.Location);
-                            //WoWMovement.ClickToMove(Me.CurrentTarget.Location.RayCast(Me.CurrentTarget.Rotation, 20));
-                            var x = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(z => z.CharmedByUnit == Me);
+		public WoWUnit Cannoner
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49025 && u.IsAlive).OrderBy(
+						u => u.Distance).FirstOrDefault();
+			}
+		}
 
-                            Tripper.Tools.Math.Vector3 v = Me.CurrentTarget.Location - Me.Location;
-                            v.Normalize();
-                            Lua.DoString(
-                                string.Format(
-                                    "VehicleAimIncrement(({0} - VehicleAimGetAngle())); CastPetAction(1);CastPetAction(2);",
-                                    Math.Asin(v.Z).ToString()));
-
-
-                        }
-                        else
-                        {
-                            if (!Me.IsQuestObjectiveComplete(QuestId, 1))
-                            {
-                                if (Marksmen != null)
-                                    Marksmen.Target();
-                            }
-                            else if (!Me.IsQuestObjectiveComplete(QuestId, 2))
-                            {
-                                if (Cannoner != null)
-                                    Cannoner.Target();
-                            }
-                            else if (!Me.IsQuestObjectiveComplete(QuestId, 3))
-                            {
-                                if (Cannon != null)
-                                    Cannon.Target();
-                            }
-                        }
-                    }
-
-                }
-                catch (Exception except)
-                {
-                    QBCLog.Exception(except);
-                }
-            }
-        }
+		public WoWUnit Cannon
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 49060 && u.IsAlive).OrderBy(
+						u => u.Distance).FirstOrDefault();
+			}
+		}
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		WoWUnit GetTurret()
+		{
+			return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.CharmedByUnitGuid == 0 || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 49135)
+				.OrderBy(u => u.DistanceSqr).
+				FirstOrDefault();
+		}
+
+		protected Composite CreateBehavior_QuestbotMain()
+		{
+			//return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(ShootArrows,Lazor, BunchUp, new ActionAlwaysSucceed())));
+			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(new Action(ret => Loopstuff()))));
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+		public void Loopstuff()
+		{
+			while (true)
+			{
+				ObjectManager.Update();
+				if (Me.IsQuestComplete(QuestId))
+				{
+					_isBehaviorDone = true;
+					break;
+				}
+
+				try
+				{
+
+					if (!Query.IsInVehicle())
+					{
+						var turret = GetTurret();
+						if (turret != null)
+						{
+							if (turret.DistanceSqr > 5 * 5)
+							{
+								//Navigator.MoveTo(turret.Location);
+							}
+							else
+								turret.Interact();
+						}
+						else
+						{
+							QBCLog.Info("Unable to find turret");
+						}
+					}
+					else
+					{
+
+						if (Me.CurrentTarget != null &&
+							(Me.CurrentTarget.Distance < 60 || Me.CurrentTarget.InLineOfSight))
+						{
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+							WoWMovement.ClickToMove(Me.CurrentTarget.Location);
+							//WoWMovement.ClickToMove(Me.CurrentTarget.Location.RayCast(Me.CurrentTarget.Rotation, 20));
+							var x = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(z => z.CharmedByUnit == Me);
 
-                this.UpdateGoalText(QuestId);
-            }
-        }
+							Tripper.Tools.Math.Vector3 v = Me.CurrentTarget.Location - Me.Location;
+							v.Normalize();
+							Lua.DoString(
+								string.Format(
+									"VehicleAimIncrement(({0} - VehicleAimGetAngle())); CastPetAction(1);CastPetAction(2);",
+									Math.Asin(v.Z).ToString()));
 
-        #endregion
-    }
+
+						}
+						else
+						{
+							if (!Me.IsQuestObjectiveComplete(QuestId, 1))
+							{
+								if (Marksmen != null)
+									Marksmen.Target();
+							}
+							else if (!Me.IsQuestObjectiveComplete(QuestId, 2))
+							{
+								if (Cannoner != null)
+									Cannoner.Target();
+							}
+							else if (!Me.IsQuestObjectiveComplete(QuestId, 3))
+							{
+								if (Cannon != null)
+									Cannon.Target();
+							}
+						}
+					}
+
+				}
+				catch (Exception except)
+				{
+					QBCLog.Exception(except);
+				}
+			}
+		}
+
+
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
+
+
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+
+				this.UpdateGoalText(QuestId);
+			}
+		}
+
+		#endregion
+	}
 }

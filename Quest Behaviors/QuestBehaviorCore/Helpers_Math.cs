@@ -28,20 +28,20 @@ using System.Text;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public abstract partial class QuestBehaviorBase
-    {
-        public const double TAU = (2 * Math.PI);
+	public abstract partial class QuestBehaviorBase
+	{
+		public const double TAU = (2 * Math.PI);
 
-        /// <summary>
-        /// Returns the normalized ANGLEINRADIANS to the closed interval [-PI..+PI]
-        /// </summary>
-        /// <param name="angleInRadians"></param>
-        /// <returns></returns>
-        public static double NormalizeAngleToPi(double angleInRadians)
-        {
-            while (angleInRadians > Math.PI)  { angleInRadians -= (2 * Math.PI); }
-            while (angleInRadians < -Math.PI) { angleInRadians += (2 * Math.PI); }
-            return (angleInRadians);
-        }
-    }
+		/// <summary>
+		/// Returns the normalized ANGLEINRADIANS to the closed interval [-PI..+PI]
+		/// </summary>
+		/// <param name="angleInRadians"></param>
+		/// <returns></returns>
+		public static double NormalizeAngleToPi(double angleInRadians)
+		{
+			while (angleInRadians > Math.PI)  { angleInRadians -= (2 * Math.PI); }
+			while (angleInRadians < -Math.PI) { angleInRadians += (2 * Math.PI); }
+			return (angleInRadians);
+		}
+	}
 }

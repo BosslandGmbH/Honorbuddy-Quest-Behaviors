@@ -39,254 +39,254 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 {
-    [CustomBehaviorFileName(@"SpecificQuests\10838-Hellfire-TheDemoniacScryer")]
-    public class _10838 : CustomForcedBehavior
-    {
-        public _10838(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"SpecificQuests\10838-Hellfire-TheDemoniacScryer")]
+	public class _10838 : CustomForcedBehavior
+	{
+		public _10838(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ??0;
-            }
+			try
+			{
+				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ??0;
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-        public int QuestId { get; set; }
-        public WoWPoint Location = new WoWPoint(-145.9611, 3192.408, -65.09953);
-        public int ItemId = 31606;
-        public int MobId = 22258;
-        public Stopwatch TimeOut = new Stopwatch();
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
+		public int QuestId { get; set; }
+		public WoWPoint Location = new WoWPoint(-145.9611, 3192.408, -65.09953);
+		public int ItemId = 31606;
+		public int MobId = 22258;
+		public Stopwatch TimeOut = new Stopwatch();
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-        private ConfigMemento _configMemento;
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
-        private List<WoWUnit> MobList
-        {
-            get
-            {
-                return (ObjectManager.GetObjectsOfType<WoWUnit>()
-                                        .Where(u => u.Entry == MobId && !u.IsDead)
-                                        .OrderBy(u => u.Distance).ToList());
-            }
-        }
-        private List<WoWUnit> Mobs
-        {
-            get
-            {
-                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != MobId && !u.IsDead && u.IsHostile && u.Distance < 15).OrderBy(u => u.Distance).ToList();
-            }
-        }
+		private ConfigMemento _configMemento;
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
+		private LocalPlayer Me { get { return (StyxWoW.Me); } }
+		private List<WoWUnit> MobList
+		{
+			get
+			{
+				return (ObjectManager.GetObjectsOfType<WoWUnit>()
+										.Where(u => u.Entry == MobId && !u.IsDead)
+										.OrderBy(u => u.Distance).ToList());
+			}
+		}
+		private List<WoWUnit> Mobs
+		{
+			get
+			{
+				return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != MobId && !u.IsDead && u.IsHostile && u.Distance < 15).OrderBy(u => u.Distance).ToList();
+			}
+		}
 
-         ~_10838()
-        {
-            Dispose(false);
-        }
-
-
-        public void     Dispose(bool    isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                if (_configMemento != null)
-                {
-                    _configMemento.Dispose();
-                    _configMemento = null;
-                }
-
-                BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		 ~_10838()
+		{
+			Dispose(false);
+		}
 
 
-        public void    BotEvents_OnBotStopped(EventArgs args)
-        {
-             Dispose();
-        }
+		public void     Dispose(bool    isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
+
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+				}
+
+				// Clean up unmanaged resources (if any) here...
+				if (_configMemento != null)
+				{
+					_configMemento.Dispose();
+					_configMemento = null;
+				}
+
+				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
+
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
 
 
-        WoWSpell RangeSpell
-        {
-            get
-            {
-                switch (Me.Class)
-                {
-                    case Styx.WoWClass.Druid:
-                        return SpellManager.Spells["Starfire"];
-                    case Styx.WoWClass.Hunter:
-                        return SpellManager.Spells["Arcane Shot"];
-                    case Styx.WoWClass.Mage:
-                        return SpellManager.Spells["Frost Bolt"];
-                    case Styx.WoWClass.Priest:
-                        return SpellManager.Spells["Shoot"];
-                    case Styx.WoWClass.Shaman:
-                        return SpellManager.Spells["Lightning Bolt"];
-                    case Styx.WoWClass.Warlock:
-                        return SpellManager.Spells["Curse of Agony"];
-                    default: // should never get to here but adding this since the compiler complains
-                        return SpellManager.Spells["Auto Attack"]; ;
-                }
-            }
-        }
-
-        public override void   Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		public void    BotEvents_OnBotStopped(EventArgs args)
+		{
+			 Dispose();
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone);
-            }
-        }
+		WoWSpell RangeSpell
+		{
+			get
+			{
+				switch (Me.Class)
+				{
+					case Styx.WoWClass.Druid:
+						return SpellManager.Spells["Starfire"];
+					case Styx.WoWClass.Hunter:
+						return SpellManager.Spells["Arcane Shot"];
+					case Styx.WoWClass.Mage:
+						return SpellManager.Spells["Frost Bolt"];
+					case Styx.WoWClass.Priest:
+						return SpellManager.Spells["Shoot"];
+					case Styx.WoWClass.Shaman:
+						return SpellManager.Spells["Lightning Bolt"];
+					case Styx.WoWClass.Warlock:
+						return SpellManager.Spells["Curse of Agony"];
+					default: // should never get to here but adding this since the compiler complains
+						return SpellManager.Spells["Auto Attack"]; ;
+				}
+			}
+		}
+
+		public override void   Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone);
+			}
+		}
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                _configMemento = new ConfigMemento();
 
-                BotEvents.OnBotStopped  += BotEvents_OnBotStopped;
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-                // Disable any settings that may interfere with the escort --
-                // When we escort, we don't want to be distracted by other things.
-                // NOTE: these settings are restored to their normal values when the behavior completes
-                // or the bot is stopped.
-                CharacterSettings.Instance.HarvestHerbs = false;
-                CharacterSettings.Instance.HarvestMinerals = false;
-                CharacterSettings.Instance.LootChests = false;
-                ProfileManager.CurrentProfile.LootMobs = false;
-                CharacterSettings.Instance.NinjaSkin = false;
-                CharacterSettings.Instance.SkinMobs = false;
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				_configMemento = new ConfigMemento();
 
-                var mob = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                      .FirstOrDefault(unit => unit.Entry == MobId);
+				BotEvents.OnBotStopped  += BotEvents_OnBotStopped;
 
-                this.UpdateGoalText(QuestId, "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")")));
-            }
-        }
+				// Disable any settings that may interfere with the escort --
+				// When we escort, we don't want to be distracted by other things.
+				// NOTE: these settings are restored to their normal values when the behavior completes
+				// or the bot is stopped.
+				CharacterSettings.Instance.HarvestHerbs = false;
+				CharacterSettings.Instance.HarvestMinerals = false;
+				CharacterSettings.Instance.LootChests = false;
+				ProfileManager.CurrentProfile.LootMobs = false;
+				CharacterSettings.Instance.NinjaSkin = false;
+				CharacterSettings.Instance.SkinMobs = false;
 
-        #region Overrides of CustomForcedBehavior
+				var mob = ObjectManager.GetObjectsOfType<WoWUnit>()
+									  .FirstOrDefault(unit => unit.Entry == MobId);
 
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-                new PrioritySelector(
+				this.UpdateGoalText(QuestId, "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")")));
+			}
+		}
 
-                            new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
-                                new Sequence(
-                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
-                                    new WaitContinue(120,
-                                        new Action(delegate
-                                        {
-                                            _isBehaviorDone = true;
-                                            return RunStatus.Success;
-                                        }))
-                                    )),
+		#region Overrides of CustomForcedBehavior
 
-                           new Decorator(ret => MobList.Count == 0 && Me.Location.Distance(Location) > 5,
-                                new Sequence(
-                                        new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
-                                        new Action(ret => Flightor.MoveTo(Location)),
-                                        new Sleep(300)
-                                    )
-                                ),
-                           new Decorator(ret => MobList.Count == 0 && Me.Location.Distance(Location) <= 5,
-                               new Sequence(
-                                        new Action(ret => Lua.DoString("UseItemByName({0})", ItemId)),
-                                        new Action(ret => TimeOut.Start())
-                                        )
-                               ),
-                           new Decorator(ret => TimeOut.ElapsedMilliseconds >= 300000,
-                               new Sequence(
-                                   new Action(ret => MobList[0].Interact()),
-                                   new Sleep(500),
-                                   new Action(ret => Lua.DoString("SelectGossipOption(1)"))
-                                   )
-                              ),
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root =
+				new PrioritySelector(
 
-                           new Decorator(ret => Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly,
-                               new Action(ret => Me.ClearTarget())),
+							new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
+								new Sequence(
+									new Action(ret => TreeRoot.StatusText = "Finished!"),
+									new WaitContinue(120,
+										new Action(delegate
+										{
+											_isBehaviorDone = true;
+											return RunStatus.Success;
+										}))
+									)),
 
-                           new Decorator(
-                               ret => Mobs.Count > 0 && Mobs[0].IsHostile,
-                               new PrioritySelector(
-                                   new Decorator(
-                                       ret => Me.CurrentTarget != Mobs[0],
-                                       new Action(ret =>
-                                       {
-                                           Mobs[0].Target();
-                                           StyxWoW.SleepForLagDuration();
-                                       })),
-                                   new Decorator(
-                                       ret => !Me.Combat,
-                                       new PrioritySelector(
-                                            new Decorator(
-                                                ret => RoutineManager.Current.PullBehavior != null,
-                                                RoutineManager.Current.PullBehavior),
-                                            new Action(ret => RoutineManager.Current.Pull()))))),
+						   new Decorator(ret => MobList.Count == 0 && Me.Location.Distance(Location) > 5,
+								new Sequence(
+										new Action(ret => TreeRoot.StatusText = "Moving To Location - X: " + Location.X + " Y: " + Location.Y),
+										new Action(ret => Flightor.MoveTo(Location)),
+										new Sleep(300)
+									)
+								),
+						   new Decorator(ret => MobList.Count == 0 && Me.Location.Distance(Location) <= 5,
+							   new Sequence(
+										new Action(ret => Lua.DoString("UseItemByName({0})", ItemId)),
+										new Action(ret => TimeOut.Start())
+										)
+							   ),
+						   new Decorator(ret => TimeOut.ElapsedMilliseconds >= 300000,
+							   new Sequence(
+								   new Action(ret => MobList[0].Interact()),
+								   new Sleep(500),
+								   new Action(ret => Lua.DoString("SelectGossipOption(1)"))
+								   )
+							  ),
 
-                           new Decorator(ret => Mobs.Count > 0 && (Me.Combat || Mobs[0].Combat),
-                                new PrioritySelector(
-                                    new Decorator(
-                                        ret => Me.CurrentTarget == null && Mobs[0].CurrentTarget != null,
-                                        new Sequence(
-                                        new Action(ret => MobList[0].Target()),
-                                        new Action(ret => StyxWoW.SleepForLagDuration()))),
-                                    new Decorator(
-                                        ret => !Me.Combat,
-                                        new PrioritySelector(
-                                            new Decorator(
-                                                ret => RoutineManager.Current.PullBehavior != null,
-                                                RoutineManager.Current.PullBehavior),
-                                            new Action(ret => RoutineManager.Current.Pull())))))
+						   new Decorator(ret => Me.CurrentTarget != null && Me.CurrentTarget.IsFriendly,
+							   new Action(ret => Me.ClearTarget())),
 
-                        )
-                    );
-        }
-        #endregion
-    }
+						   new Decorator(
+							   ret => Mobs.Count > 0 && Mobs[0].IsHostile,
+							   new PrioritySelector(
+								   new Decorator(
+									   ret => Me.CurrentTarget != Mobs[0],
+									   new Action(ret =>
+									   {
+										   Mobs[0].Target();
+										   StyxWoW.SleepForLagDuration();
+									   })),
+								   new Decorator(
+									   ret => !Me.Combat,
+									   new PrioritySelector(
+											new Decorator(
+												ret => RoutineManager.Current.PullBehavior != null,
+												RoutineManager.Current.PullBehavior),
+											new Action(ret => RoutineManager.Current.Pull()))))),
+
+						   new Decorator(ret => Mobs.Count > 0 && (Me.Combat || Mobs[0].Combat),
+								new PrioritySelector(
+									new Decorator(
+										ret => Me.CurrentTarget == null && Mobs[0].CurrentTarget != null,
+										new Sequence(
+										new Action(ret => MobList[0].Target()),
+										new Action(ret => StyxWoW.SleepForLagDuration()))),
+									new Decorator(
+										ret => !Me.Combat,
+										new PrioritySelector(
+											new Decorator(
+												ret => RoutineManager.Current.PullBehavior != null,
+												RoutineManager.Current.PullBehavior),
+											new Action(ret => RoutineManager.Current.Pull())))))
+
+						)
+					);
+		}
+		#endregion
+	}
 }

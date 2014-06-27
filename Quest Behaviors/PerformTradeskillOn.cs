@@ -135,27 +135,27 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 		}
 
 		int GetMaxRepeat(WoWSpell recipe)
-	    {
-		    int maxRepeat = int.MaxValue;
+		{
+			int maxRepeat = int.MaxValue;
 			var spellReagents = recipe.InternalInfo.SpellReagents;
 			if (spellReagents.Reagent == null)
 				return maxRepeat;
 
-		    for (int index=0; index < spellReagents.Reagent.Length; index++)
-		    {
-			    var reagent = spellReagents.Reagent[index];
-			    if (reagent == 0)
-				    continue;
-			    var required = spellReagents.ReagentCount[index];
+			for (int index=0; index < spellReagents.Reagent.Length; index++)
+			{
+				var reagent = spellReagents.Reagent[index];
+				if (reagent == 0)
+					continue;
+				var required = spellReagents.ReagentCount[index];
 				if (required <=0 )
 					continue;
-			    var numInBags = StyxWoW.Me.BagItems.Sum(i => i != null && i.IsValid && i.Entry == reagent ? i.StackCount : 0);
+				var numInBags = StyxWoW.Me.BagItems.Sum(i => i != null && i.IsValid && i.Entry == reagent ? i.StackCount : 0);
 				var repeatNum = (int)(numInBags / required);
-			    if (repeatNum < maxRepeat)
-				    maxRepeat = repeatNum;
-		    }
-		    return maxRepeat;
-	    }
+				if (repeatNum < maxRepeat)
+					maxRepeat = repeatNum;
+			}
+			return maxRepeat;
+		}
 
 		WoWSpell GetRecipeSpell(SkillLine skillLine, int itemOrSpellId)
 		{

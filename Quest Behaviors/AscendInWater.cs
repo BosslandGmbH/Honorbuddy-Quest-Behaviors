@@ -54,118 +54,118 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.AscendInWater
 {
-    [CustomBehaviorFileName(@"AscendInWater")]
-    public class AscendInWater : CustomForcedBehavior
-    {
-        // Private variables for internal state
-        private static readonly WaitTimer MaxAscendTimer = new WaitTimer(TimeSpan.FromSeconds(30));
+	[CustomBehaviorFileName(@"AscendInWater")]
+	public class AscendInWater : CustomForcedBehavior
+	{
+		// Private variables for internal state
+		private static readonly WaitTimer MaxAscendTimer = new WaitTimer(TimeSpan.FromSeconds(30));
 
 		private bool _isBehaviorDone;
-        private Composite _root;
+		private Composite _root;
 
-        #region Overrides of CustomForcedBehavior
+		#region Overrides of CustomForcedBehavior
 
-        public override bool IsDone
-        {
-            get { return _isBehaviorDone; }
-        }
+		public override bool IsDone
+		{
+			get { return _isBehaviorDone; }
+		}
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-            MaxAscendTimer.Reset();
+			MaxAscendTimer.Reset();
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
-                this.UpdateGoalText(0);
-            }
-        }
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+				this.UpdateGoalText(0);
+			}
+		}
 
-        #endregion
+		#endregion
 
-        public AscendInWater(Dictionary<string, string> args) : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public AscendInWater(Dictionary<string, string> args) : base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try {}
+			try {}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		// Private properties
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId
-        {
-            get { return ("$Id$"); }
-        }
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId
+		{
+			get { return ("$Id$"); }
+		}
 
-        public override string SubversionRevision
-        {
-            get { return ("$Revision$"); }
-        }
+		public override string SubversionRevision
+		{
+			get { return ("$Revision$"); }
+		}
 
-        protected Composite CreateBehavior_CombatMain()
-        {
-            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
-        }
+		protected Composite CreateBehavior_CombatMain()
+		{
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+		}
 
-	    async Task<bool> MainCoroutine()
-	    {
-		    if (IsDone)
-			    return false;
+		async Task<bool> MainCoroutine()
+		{
+			if (IsDone)
+				return false;
 
 			if (MaxAscendTimer.IsFinished || !IsUnderWater)
-		    {
+			{
 				// N.B. There were issues getting WoWMovement.MoveStop() calls to always register so using the lua version.
-			    Lua.DoString("AscendStop()");
-			    _isBehaviorDone = true;
-			    return true;
-		    }
-		    if (!Me.MovementInfo.IsAscending)
-		    {
-			    WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
-			    return true;
-		    }
-		    return false;
-	    }
+				Lua.DoString("AscendStop()");
+				_isBehaviorDone = true;
+				return true;
+			}
+			if (!Me.MovementInfo.IsAscending)
+			{
+				WoWMovement.Move(WoWMovement.MovementDirection.JumpAscend);
+				return true;
+			}
+			return false;
+		}
 
 
 		// Note: In some areas the toon can be underwater and IsSwimming reports false. This is only known to happen
 		// when character is on some ocean floors and IsSwimming will correctly report 'true' once toon gets off the ocean floor 
 		bool IsUnderWater
-	    {
-		    get
-		    {
-			    return Me.IsSwimming || Lua.GetReturnVal<bool>("return IsSubmerged()", 0);
+		{
+			get
+			{
+				return Me.IsSwimming || Lua.GetReturnVal<bool>("return IsSubmerged()", 0);
 			}
-	    }
+		}
 
-	    public override void OnFinished()
-	    {
+		public override void OnFinished()
+		{
 			TreeRoot.GoalText = string.Empty;
 			TreeRoot.StatusText = string.Empty;
-		    base.OnFinished();
-	    }
-    }
+			base.OnFinished();
+		}
+	}
 }

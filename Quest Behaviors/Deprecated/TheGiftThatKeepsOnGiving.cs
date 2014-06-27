@@ -53,274 +53,274 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
 {
-    [CustomBehaviorFileName(@"Deprecated\TheGiftThatKeepsOnGiving")]
-    [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving")]  // Deprecated location--do not use
-    public class TheGiftThatKeepsOnGiving : CustomForcedBehavior
-    {
-        public TheGiftThatKeepsOnGiving(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"Deprecated\TheGiftThatKeepsOnGiving")]
+	[CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\TheGiftThatKeepsOnGiving")]  // Deprecated location--do not use
+	public class TheGiftThatKeepsOnGiving : CustomForcedBehavior
+	{
+		public TheGiftThatKeepsOnGiving(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                int? tmpHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" });
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				int? tmpHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" });
 
-                AuraName = string.Empty;       // populated below
-                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-                HasGroundTarget = GetAttributeAsNullable<bool>("HasGroundTarget", false, null, null) ?? false;
-                InteractRange = GetAttributeAsNullable<double>("InteractRange", false, ConstrainAs.Range, null) ?? 4.5;
-                IsDead = GetAttributeAsNullable<bool>("IsDead", false, null, null) ?? false;
-                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                MinionCount = GetAttributeAsNullable<int>("MinionCount", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? 0;
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
-                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-                StopMovingOnUse = GetAttributeAsNullable<bool>("StopMovingOnUse", false, null, null) ?? true;
+				AuraName = string.Empty;       // populated below
+				CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
+				HasGroundTarget = GetAttributeAsNullable<bool>("HasGroundTarget", false, null, null) ?? false;
+				InteractRange = GetAttributeAsNullable<double>("InteractRange", false, ConstrainAs.Range, null) ?? 4.5;
+				IsDead = GetAttributeAsNullable<bool>("IsDead", false, null, null) ?? false;
+				ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+				Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+				MinionCount = GetAttributeAsNullable<int>("MinionCount", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? 0;
+				MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+				StopMovingOnUse = GetAttributeAsNullable<bool>("StopMovingOnUse", false, null, null) ?? true;
 
-                if (tmpHasAuraId.HasValue)
-                {
-                    WoWSpell spell = WoWSpell.FromId(tmpHasAuraId.Value);
+				if (tmpHasAuraId.HasValue)
+				{
+					WoWSpell spell = WoWSpell.FromId(tmpHasAuraId.Value);
 
-                    if (spell != null)
-                    { AuraName = spell.Name; }
-                }
-            }
+					if (spell != null)
+					{ AuraName = spell.Name; }
+				}
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        public string AuraName { get; private set; }
-        public double CollectionDistance { get; private set; }
-        public bool HasGroundTarget { get; private set; }
-        public double InteractRange { get; private set; }
-        public bool IsDead { get; private set; }
-        public int ItemId { get; private set; }
-        public WoWPoint Location { get; private set; }
-        public int MinionCount { get; private set; }
-        public int[] MobIds { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public bool StopMovingOnUse { get; private set; }
-
-        // Private variables for internal state
-        private bool _isDisposed;
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
-        private Composite _root;
-        private readonly Stopwatch _waitTimer = new Stopwatch();
-
-        // Private properties
-        private int Counter { get; set; }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        ~TheGiftThatKeepsOnGiving()
-        {
-            Dispose(false);
-        }
+		// Attributes provided by caller
+		public string AuraName { get; private set; }
+		public double CollectionDistance { get; private set; }
+		public bool HasGroundTarget { get; private set; }
+		public double InteractRange { get; private set; }
+		public bool IsDead { get; private set; }
+		public int ItemId { get; private set; }
+		public WoWPoint Location { get; private set; }
+		public int MinionCount { get; private set; }
+		public int[] MobIds { get; private set; }
+		public int NumOfTimes { get; private set; }
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+		public bool StopMovingOnUse { get; private set; }
+
+		// Private variables for internal state
+		private bool _isDisposed;
+		private readonly List<ulong> _npcBlacklist = new List<ulong>();
+		private Composite _root;
+		private readonly Stopwatch _waitTimer = new Stopwatch();
+
+		// Private properties
+		private int Counter { get; set; }
+		private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		~TheGiftThatKeepsOnGiving()
+		{
+			Dispose(false);
+		}
 
 
-        public WoWObject Object
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWObject>(true)
-                                .Where(o => ObjCheck(o, MobIds))
-                                .OrderBy(o => o.Distance)
-                                .FirstOrDefault();
-            }
-        }
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
+
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					// empty, for now
+				}
+
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
+
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
 
 
-        bool ObjCheck(WoWObject obj, int[] ids)
-        {
-            bool ret = false;
-            if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSight &&
-                !_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
-            {
-                ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit)obj).IsDead) &&
-                      (IsDead || !(obj is WoWUnit) || !((WoWUnit)obj).IsDead);
-            }
-            // temp fix to HB killing targets without letting us using item...
-            if (ret && obj is WoWUnit)
-                Blacklist.Add(obj, BlacklistFlags.Combat, new System.TimeSpan(0, 10, 0));
-            return ret;
-        }
+		public WoWObject Object
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWObject>(true)
+								.Where(o => ObjCheck(o, MobIds))
+								.OrderBy(o => o.Distance)
+								.FirstOrDefault();
+			}
+		}
 
 
-        bool AuraCheck(WoWObject obj)
-        {
-            if (string.IsNullOrEmpty(AuraName) || !(obj is WoWUnit))
-                return true;
-            if (((WoWUnit)obj).HasAura(AuraName))
-                return true;
-            return false;
-        }
+		bool ObjCheck(WoWObject obj, int[] ids)
+		{
+			bool ret = false;
+			if (ids.Contains((int)obj.Entry) && obj.Distance <= CollectionDistance && obj.InLineOfSight &&
+				!_npcBlacklist.Contains(obj.Guid) && AuraCheck(obj))
+			{
+				ret = (!IsDead || !(obj is WoWUnit) || ((WoWUnit)obj).IsDead) &&
+					  (IsDead || !(obj is WoWUnit) || !((WoWUnit)obj).IsDead);
+			}
+			// temp fix to HB killing targets without letting us using item...
+			if (ret && obj is WoWUnit)
+				Blacklist.Add(obj, BlacklistFlags.Combat, new System.TimeSpan(0, 10, 0));
+			return ret;
+		}
 
 
-        #region Overrides of CustomForcedBehavior
-
-        protected override Composite CreateBehavior()
-        {
-            return _root ?? (_root =
-
-                new PrioritySelector(ctx => Object,
-
-                    new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSight),
-                        new Sequence(
-                            new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).Name),
-                            new Action(ctx => Navigator.MoveTo(((WoWObject)ctx).Location)))),
-
-                    new Decorator(ctx => ctx != null && ((WoWObject)ctx).Distance <= InteractRange,
-                        new Sequence(
-                            new DecoratorContinue(c => StopMovingOnUse && Me.IsMoving,
-                                new Sequence(
-                                    new Action(ctx => WoWMovement.MoveStop()),
-                                    new WaitContinue(5, ctx => !Me.IsMoving,
-                                        new Action(ctx => StyxWoW.SleepForLagDuration()))
-                                    )),
-
-                            new Sequence(ctx => StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId),
-                // Set the status text.
-                                new Action(ctx => TreeRoot.StatusText = "Using item on " + Object.Name),
-
-                                // If we don't have the item stop!
-                                new DecoratorContinue(ctx => ctx == null,
-                                    new Action(ctx => QBCLog.Fatal("Could not find ItemId({0}) in inventory.", ItemId))),
-
-                                new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
-                                    new Action(ctx => Object.ToUnit().Target())),
-
-                                // Face the object.
-                                new Action(ctx => WoWMovement.Face(Object.Guid)),
-
-                                // Use the item.
-                                new Action(ctx => ((WoWItem)ctx).UseContainerItem()),
-
-                                new DecoratorContinue(ctx => HasGroundTarget,
-                                    new Action(ctx => SpellManager.ClickRemoteLocation(Object.Location))),
-
-                                new WaitContinue(6, ctx => false,
-                                    new Sequence(
-                                        new Action(ctx => StyxWoW.SleepForLagDuration()),
-                                        new Action(ctx => _npcBlacklist.Add(Object.Guid)),
-                                        new Action(ctx => _waitTimer.Reset()),
-
-                                        new DecoratorContinue(ctx => !_waitTimer.IsRunning,
-                                            new Action(ctx => _waitTimer.Start())),
-
-                                        new Action(ctx => Counter++)
-                                        )
-                                    )
-                                )
-                        )),
-
-                    new Sequence(
-                        new Action(ctx => QBCLog.Info("Moving to {0}", Location)),
-                        new Action(ctx => Navigator.MoveTo(Location))
-                        )
-                 ));
-        }
+		bool AuraCheck(WoWObject obj)
+		{
+			if (string.IsNullOrEmpty(AuraName) || !(obj is WoWUnit))
+				return true;
+			if (((WoWUnit)obj).HasAura(AuraName))
+				return true;
+			return false;
+		}
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		#region Overrides of CustomForcedBehavior
+
+		protected override Composite CreateBehavior()
+		{
+			return _root ?? (_root =
+
+				new PrioritySelector(ctx => Object,
+
+					new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSight),
+						new Sequence(
+							new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).Name),
+							new Action(ctx => Navigator.MoveTo(((WoWObject)ctx).Location)))),
+
+					new Decorator(ctx => ctx != null && ((WoWObject)ctx).Distance <= InteractRange,
+						new Sequence(
+							new DecoratorContinue(c => StopMovingOnUse && Me.IsMoving,
+								new Sequence(
+									new Action(ctx => WoWMovement.MoveStop()),
+									new WaitContinue(5, ctx => !Me.IsMoving,
+										new Action(ctx => StyxWoW.SleepForLagDuration()))
+									)),
+
+							new Sequence(ctx => StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId),
+				// Set the status text.
+								new Action(ctx => TreeRoot.StatusText = "Using item on " + Object.Name),
+
+								// If we don't have the item stop!
+								new DecoratorContinue(ctx => ctx == null,
+									new Action(ctx => QBCLog.Fatal("Could not find ItemId({0}) in inventory.", ItemId))),
+
+								new DecoratorContinue(ctx => Object.Type == WoWObjectType.Unit,
+									new Action(ctx => Object.ToUnit().Target())),
+
+								// Face the object.
+								new Action(ctx => WoWMovement.Face(Object.Guid)),
+
+								// Use the item.
+								new Action(ctx => ((WoWItem)ctx).UseContainerItem()),
+
+								new DecoratorContinue(ctx => HasGroundTarget,
+									new Action(ctx => SpellManager.ClickRemoteLocation(Object.Location))),
+
+								new WaitContinue(6, ctx => false,
+									new Sequence(
+										new Action(ctx => StyxWoW.SleepForLagDuration()),
+										new Action(ctx => _npcBlacklist.Add(Object.Guid)),
+										new Action(ctx => _waitTimer.Reset()),
+
+										new DecoratorContinue(ctx => !_waitTimer.IsRunning,
+											new Action(ctx => _waitTimer.Start())),
+
+										new Action(ctx => Counter++)
+										)
+									)
+								)
+						)),
+
+					new Sequence(
+						new Action(ctx => QBCLog.Info("Moving to {0}", Location)),
+						new Action(ctx => Navigator.MoveTo(Location))
+						)
+				 ));
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return ((Counter >= NumOfTimes)     // normal completion
-                        || (MinionCount > 0 && (MinionCount <= Me.Minions.Count))
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-            }
-        }
-
-        #endregion
-    }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
 
-    static class WoWUnitExtentions
-    {
-        public static bool IsTargetingMinion(this WoWUnit unit)
-        {
-            if (unit.GotTarget)
-            {
-                foreach (var minion in StyxWoW.Me.Minions)
-                {
-                    if (unit.CurrentTarget == minion)
-                        return true;
-                }
-            }
-            return false;
-        }
-    }
+		public override bool IsDone
+		{
+			get
+			{
+				return ((Counter >= NumOfTimes)     // normal completion
+						|| (MinionCount > 0 && (MinionCount <= Me.Minions.Count))
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
+
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				this.UpdateGoalText(QuestId);
+			}
+		}
+
+		#endregion
+	}
+
+
+	static class WoWUnitExtentions
+	{
+		public static bool IsTargetingMinion(this WoWUnit unit)
+		{
+			if (unit.GotTarget)
+			{
+				foreach (var minion in StyxWoW.Me.Minions)
+				{
+					if (unit.CurrentTarget == minion)
+						return true;
+				}
+			}
+			return false;
+		}
+	}
 }

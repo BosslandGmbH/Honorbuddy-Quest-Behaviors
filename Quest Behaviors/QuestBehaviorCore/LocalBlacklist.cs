@@ -21,72 +21,72 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    // NB: The HBcore's blacklist will preserve 'blacklist state' between profile calls to this behavior.
-    // The 'blacklist state' will also be preserved if Honorbuddy is stop/startedby the user.
-    // We don't want either of these to happen--we want the blacklist state to be pristine between profile
-    // calls to this behavior, or if Honorbuddy is stop/started.  Thus, we roll our own blacklist
-    // which will be disposed along with the behavior.
-    public class LocalBlacklist
-    {
-        public LocalBlacklist()
-            : this(TimeSpan.FromSeconds(30))
-        {
-        }
+	// NB: The HBcore's blacklist will preserve 'blacklist state' between profile calls to this behavior.
+	// The 'blacklist state' will also be preserved if Honorbuddy is stop/startedby the user.
+	// We don't want either of these to happen--we want the blacklist state to be pristine between profile
+	// calls to this behavior, or if Honorbuddy is stop/started.  Thus, we roll our own blacklist
+	// which will be disposed along with the behavior.
+	public class LocalBlacklist
+	{
+		public LocalBlacklist()
+			: this(TimeSpan.FromSeconds(30))
+		{
+		}
 
-        public LocalBlacklist(TimeSpan maxSweepTime)
-        {
-            _sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
-        }
+		public LocalBlacklist(TimeSpan maxSweepTime)
+		{
+			_sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
+		}
 
-        private readonly Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
-        private readonly WaitTimer _sweepTimer = null;
-
-
-        public void Add(ulong guid, TimeSpan timeSpan)
-        {
-            RemoveExpired();
-            _blackList[guid] = DateTime.Now.Add(timeSpan);
-        }
+		private readonly Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+		private readonly WaitTimer _sweepTimer = null;
 
 
-        public void Add(WoWObject wowObject, TimeSpan timeSpan)
-        {
-            if (wowObject != null)
-                { Add(wowObject.Guid, timeSpan); }
-        }
+		public void Add(ulong guid, TimeSpan timeSpan)
+		{
+			RemoveExpired();
+			_blackList[guid] = DateTime.Now.Add(timeSpan);
+		}
 
 
-        public bool Contains(ulong guid)
-        {
-            DateTime expiry;
-            if (_blackList.TryGetValue(guid, out expiry))
-                { return (expiry > DateTime.Now); }
-
-            return false;
-        }
+		public void Add(WoWObject wowObject, TimeSpan timeSpan)
+		{
+			if (wowObject != null)
+				{ Add(wowObject.Guid, timeSpan); }
+		}
 
 
-        public bool Contains(WoWObject wowObject)
-        {
-            return (wowObject != null) && Contains(wowObject.Guid);
-        }
+		public bool Contains(ulong guid)
+		{
+			DateTime expiry;
+			if (_blackList.TryGetValue(guid, out expiry))
+				{ return (expiry > DateTime.Now); }
+
+			return false;
+		}
 
 
-        public void RemoveExpired()
-        {
-            if (_sweepTimer.IsFinished)
-            {
-                DateTime now = DateTime.Now;
+		public bool Contains(WoWObject wowObject)
+		{
+			return (wowObject != null) && Contains(wowObject.Guid);
+		}
 
-                List<ulong> expiredEntries = (from key in _blackList.Keys
-                                                where (_blackList[key] < now)
-                                                select key).ToList();
 
-                foreach (ulong entry in expiredEntries)
-                    { _blackList.Remove(entry); }
+		public void RemoveExpired()
+		{
+			if (_sweepTimer.IsFinished)
+			{
+				DateTime now = DateTime.Now;
 
-                _sweepTimer.Reset();
-            }
-        }
-    }
+				List<ulong> expiredEntries = (from key in _blackList.Keys
+												where (_blackList[key] < now)
+												select key).ToList();
+
+				foreach (ulong entry in expiredEntries)
+					{ _blackList.Remove(entry); }
+
+				_sweepTimer.Reset();
+			}
+		}
+	}
 }

@@ -21,151 +21,151 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public class WeaponArticulation
-    {
-        public WeaponArticulation(double? azimuthMin = null, double? azimuthMax = null)
-        {
-            AzimuthMin = azimuthMin ?? double.NaN;
-            AzimuthMax = azimuthMax ?? double.NaN;
+	public class WeaponArticulation
+	{
+		public WeaponArticulation(double? azimuthMin = null, double? azimuthMax = null)
+		{
+			AzimuthMin = azimuthMin ?? double.NaN;
+			AzimuthMax = azimuthMax ?? double.NaN;
 
-            if (!double.IsNaN(AzimuthMin))
-                { QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2} (given)", AzimuthMin); }
-            if (!double.IsNaN(AzimuthMax))
-                { QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2} (given)", AzimuthMax); }
+			if (!double.IsNaN(AzimuthMin))
+				{ QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2} (given)", AzimuthMin); }
+			if (!double.IsNaN(AzimuthMax))
+				{ QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2} (given)", AzimuthMax); }
 
-            AzimuthReference = double.NaN;
-            ReferenceHeading = double.NaN;
-        }
-
-
-        public double AzimuthMin { get; private set; }
-        public double AzimuthMax { get; private set; }
+			AzimuthReference = double.NaN;
+			ReferenceHeading = double.NaN;
+		}
 
 
-        #region Private and Convenience variables
-        private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
-
-        private double AzimuthReference { get; set; }
-        private double ReferenceHeading { get; set; }
-        #endregion
+		public double AzimuthMin { get; private set; }
+		public double AzimuthMax { get; private set; }
 
 
-        // 11Mar2013-04:41UTC chinajade
-        // NB: method instead of a property, because significant time may be involved in execution
-        public double AzimuthGet()
-        {
-            return
-                Query.IsInVehicle()
-                ? UtilAzimuthCurrentAbsolute()
-                : double.NaN;
-        }
+		#region Private and Convenience variables
+		private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
+
+		private double AzimuthReference { get; set; }
+		private double ReferenceHeading { get; set; }
+		#endregion
 
 
-        // 11Mar2013-04:41UTC chinajade
-        // NB: method instead of a property, because significant time may be involved in execution
-        public bool AzimuthSet(double azimuth)
-        {
-            if (!IsWithinAzimuthLimits(azimuth))
-                { return false; }
-
-            UtilAzimuthRequestAbsolute(azimuth);
-            return true;
-        }
-
-
-        // 11Mar2013-04:41UTC chinajade
-        // NB: method instead of a property, because significant time may be involved in execution
-        public double HeadingGet()
-        {
-            return
-                Query.IsInVehicle()
-                ? WoWMovement.ActiveMover.Rotation
-                : double.NaN;
-        }
+		// 11Mar2013-04:41UTC chinajade
+		// NB: method instead of a property, because significant time may be involved in execution
+		public double AzimuthGet()
+		{
+			return
+				Query.IsInVehicle()
+				? UtilAzimuthCurrentAbsolute()
+				: double.NaN;
+		}
 
 
-        // 11Mar2013-04:41UTC chinajade
-        // NB: method instead of a property, because significant time may be involved in execution
-        public bool HeadingSet(WoWPoint location)
-        {
-            if (Query.IsInVehicle())
-            {
-                Me.SetFacing(location);
-                return true;
-            }
+		// 11Mar2013-04:41UTC chinajade
+		// NB: method instead of a property, because significant time may be involved in execution
+		public bool AzimuthSet(double azimuth)
+		{
+			if (!IsWithinAzimuthLimits(azimuth))
+				{ return false; }
 
-            return false;
-        }
-
-        public bool HeadingSet(WoWObject wowObject)
-        {
-            if (Query.IsInVehicle() && Query.IsViable(wowObject))
-            {
-                WoWMovement.ConstantFace(wowObject.Guid);
-                return true;
-            }
-
-            WoWMovement.StopFace();
-            return false;
-        }
+			UtilAzimuthRequestAbsolute(azimuth);
+			return true;
+		}
 
 
-        // 11Mar2013-04:41UTC chinajade
-        public bool IsWithinAzimuthLimits(double azimuth)
-        {
-            if (!UtilAzimuthArticulationAcquire())
-                { return false; }
-
-            return (AzimuthMin < azimuth) && (azimuth < AzimuthMax);
-        }
-
-
-        private bool UtilAzimuthArticulationAcquire()
-        {
-            if (!Query.IsVehicleActionBarShowing())
-                { return false; }
-
-            if (double.IsNaN(AzimuthReference))
-            {
-                AzimuthReference = AzimuthGet();
-                QBCLog.DeveloperInfo("Weapon AzimuthReference: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
-                    AzimuthReference);
-            }
-
-            if (double.IsNaN(AzimuthMin))
-            {
-                UtilAzimuthRequestAbsolute(-QuestBehaviorBase.TAU / 4);
-                AzimuthMin = UtilAzimuthCurrentAbsolute();
-                QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
-                    AzimuthMin);
-            }
-
-            if (double.IsNaN(AzimuthMax))
-            {
-                UtilAzimuthRequestAbsolute(QuestBehaviorBase.TAU / 4);
-                AzimuthMax = UtilAzimuthCurrentAbsolute();
-                QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
-                    AzimuthMax);
-            }
-
-            return true;
-        }
+		// 11Mar2013-04:41UTC chinajade
+		// NB: method instead of a property, because significant time may be involved in execution
+		public double HeadingGet()
+		{
+			return
+				Query.IsInVehicle()
+				? WoWMovement.ActiveMover.Rotation
+				: double.NaN;
+		}
 
 
-        private double UtilAzimuthCurrentAbsolute()
-        {
-            return QuestBehaviorBase.NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
-        }
+		// 11Mar2013-04:41UTC chinajade
+		// NB: method instead of a property, because significant time may be involved in execution
+		public bool HeadingSet(WoWPoint location)
+		{
+			if (Query.IsInVehicle())
+			{
+				Me.SetFacing(location);
+				return true;
+			}
+
+			return false;
+		}
+
+		public bool HeadingSet(WoWObject wowObject)
+		{
+			if (Query.IsInVehicle() && Query.IsViable(wowObject))
+			{
+				WoWMovement.ConstantFace(wowObject.Guid);
+				return true;
+			}
+
+			WoWMovement.StopFace();
+			return false;
+		}
 
 
-        private void UtilAzimuthRequestAbsolute(double azimuth)
-        {
-            // NB: VehicleAimRequestAngle() doesn't appear to work on all vehicles, but
-            // VehicleAimIncrement() does.  VehicleAimIncrement handles both postive and
-            // negative increments correctly.
-            Lua.DoString(string.Format(
-                        "local azimuthDesired = {0}; local delta = azimuthDesired - VehicleAimGetAngle(); VehicleAimIncrement(delta);",
-                        azimuth.ToString(CultureInfo.InvariantCulture)));
-        }
-    }
+		// 11Mar2013-04:41UTC chinajade
+		public bool IsWithinAzimuthLimits(double azimuth)
+		{
+			if (!UtilAzimuthArticulationAcquire())
+				{ return false; }
+
+			return (AzimuthMin < azimuth) && (azimuth < AzimuthMax);
+		}
+
+
+		private bool UtilAzimuthArticulationAcquire()
+		{
+			if (!Query.IsVehicleActionBarShowing())
+				{ return false; }
+
+			if (double.IsNaN(AzimuthReference))
+			{
+				AzimuthReference = AzimuthGet();
+				QBCLog.DeveloperInfo("Weapon AzimuthReference: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
+					AzimuthReference);
+			}
+
+			if (double.IsNaN(AzimuthMin))
+			{
+				UtilAzimuthRequestAbsolute(-QuestBehaviorBase.TAU / 4);
+				AzimuthMin = UtilAzimuthCurrentAbsolute();
+				QBCLog.DeveloperInfo("Weapon AzimuthMin: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
+					AzimuthMin);
+			}
+
+			if (double.IsNaN(AzimuthMax))
+			{
+				UtilAzimuthRequestAbsolute(QuestBehaviorBase.TAU / 4);
+				AzimuthMax = UtilAzimuthCurrentAbsolute();
+				QBCLog.DeveloperInfo("Weapon AzimuthMax: {0:F2} (measured--use '/script print(VehicleAimGetAngle())' to double check)",
+					AzimuthMax);
+			}
+
+			return true;
+		}
+
+
+		private double UtilAzimuthCurrentAbsolute()
+		{
+			return QuestBehaviorBase.NormalizeAngleToPi(Lua.GetReturnVal<double>("return VehicleAimGetAngle();", 0));
+		}
+
+
+		private void UtilAzimuthRequestAbsolute(double azimuth)
+		{
+			// NB: VehicleAimRequestAngle() doesn't appear to work on all vehicles, but
+			// VehicleAimIncrement() does.  VehicleAimIncrement handles both postive and
+			// negative increments correctly.
+			Lua.DoString(string.Format(
+						"local azimuthDesired = {0}; local delta = azimuthDesired - VehicleAimGetAngle(); VehicleAimIncrement(delta);",
+						azimuth.ToString(CultureInfo.InvariantCulture)));
+		}
+	}
 }

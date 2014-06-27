@@ -40,31 +40,31 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.Hooks
 {
 	[CustomBehaviorFileName(@"Hooks\TheEndlessFlowHook")]
-    public class TheEndlessFlowHook : CustomForcedBehavior
-    {
-        public TheEndlessFlowHook(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
-        }
+	public class TheEndlessFlowHook : CustomForcedBehavior
+	{
+		public TheEndlessFlowHook(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
+		}
 
 		public override bool IsDone { get { return true; } }
 
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
-        private Composite _myHook;
-        public override void OnStart()
-        {
-            OnStart_HandleAttributeProblem();
-            
-            if (_myHook == null)
-	            InstallHook();
-            else
-	            RemoveHook();
-        }
+		private Composite _myHook;
+		public override void OnStart()
+		{
+			OnStart_HandleAttributeProblem();
+			
+			if (_myHook == null)
+				InstallHook();
+			else
+				RemoveHook();
+		}
 
 		void InstallHook()
 		{
@@ -128,7 +128,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 					return await UtilityCoroutine.MoveTo(bunny.Location, "Bunny", MovementByType.NavigatorOnly);
 				}
 			}
-			                    
+								
 			var stickbone = ObjectManager.GetObjectsOfType<WoWUnit>()
 				.Where(r => r.Entry == 44329 && r.IsAlive)
 				.OrderBy(r => r.Distance2D)
@@ -142,5 +142,5 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			}
 			return false;
 		}
-    }
+	}
 }

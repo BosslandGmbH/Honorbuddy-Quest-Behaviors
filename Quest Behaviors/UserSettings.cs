@@ -351,76 +351,76 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 		private Dictionary<string, ChangeSet> BuildPresets()
 		{
 			var presets = new Dictionary<string, ChangeSet>
-                {
-                    {
-                        "Grind",
-                        new ChangeSet(new Dictionary<string, object>()
-                        {
-                            { "GroundMountFarmingMode", false },
-                            { "KillBetweenHotspots", true },
-                        })
-                    },
-                    {
-                        "HarvestsOff",
-                        new ChangeSet(new Dictionary<string, object>()
-                        {
-                            { "HarvestHerbs", false },
-                            { "HarvestMinerals", false },
-                            { "LootMobs", false },
-                            { "NinjaSkin", false },
-                            { "SkinMobs", false },
-                        })
-                    },
-                    {
-                        "HarvestsOn",
-                        new ChangeSet(new Dictionary<string, object>()
-                        {
-                            { "HarvestHerbs", (Me.GetSkill(SkillLine.Herbalism).MaxValue > 0) },
-                            { "HarvestMinerals", (Me.GetSkill(SkillLine.Mining).MaxValue > 0) },
-                            { "LootMobs", true },
-                            { "LootRadius", 45 },
-                            { "NinjaSkin", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
-                            { "SkinMobs", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
-                        })
-                    },
-                    {
-                        "NoDistractions",
-                        new ChangeSet(new Dictionary<string, object>()
-                        {
-                            { "GroundMountFarmingMode", true },
-                            { "HarvestHerbs", false },
-                            { "HarvestMinerals", false },
-                            { "KillBetweenHotspots", false },
-                            { "LootMobs", false },
-                            { "NinjaSkin", false },
-                            { "SkinMobs", false },
-                        })
-                    },
-                    {
-                        "NoTrain",
-                        new ChangeSet(new Dictionary<string, object>())
-                    },
-                    {
-                        "NormalQuesting",
-                        new ChangeSet(new Dictionary<string, object>()
-                        {
-                            { "GroundMountFarmingMode", false },
-                            { "HarvestHerbs", (Me.GetSkill(SkillLine.Herbalism).MaxValue > 0) },
-                            { "HarvestMinerals", (Me.GetSkill(SkillLine.Mining).MaxValue > 0) },
-                            { "KillBetweenHotspots", false },
-                            { "LootMobs", true },
-                            { "LootRadius", 45 },
-                            { "NinjaSkin", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
-                            { "RessAtSpiritHealers", false },
-                            { "SkinMobs", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
-                            { "UseRandomMount", true },
-                        })
-                    },
-                    {
-                        "UserOriginal",
-                        ChangeSet.OriginalConfiguration
-                    }
-                };
+				{
+					{
+						"Grind",
+						new ChangeSet(new Dictionary<string, object>()
+						{
+							{ "GroundMountFarmingMode", false },
+							{ "KillBetweenHotspots", true },
+						})
+					},
+					{
+						"HarvestsOff",
+						new ChangeSet(new Dictionary<string, object>()
+						{
+							{ "HarvestHerbs", false },
+							{ "HarvestMinerals", false },
+							{ "LootMobs", false },
+							{ "NinjaSkin", false },
+							{ "SkinMobs", false },
+						})
+					},
+					{
+						"HarvestsOn",
+						new ChangeSet(new Dictionary<string, object>()
+						{
+							{ "HarvestHerbs", (Me.GetSkill(SkillLine.Herbalism).MaxValue > 0) },
+							{ "HarvestMinerals", (Me.GetSkill(SkillLine.Mining).MaxValue > 0) },
+							{ "LootMobs", true },
+							{ "LootRadius", 45 },
+							{ "NinjaSkin", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+							{ "SkinMobs", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+						})
+					},
+					{
+						"NoDistractions",
+						new ChangeSet(new Dictionary<string, object>()
+						{
+							{ "GroundMountFarmingMode", true },
+							{ "HarvestHerbs", false },
+							{ "HarvestMinerals", false },
+							{ "KillBetweenHotspots", false },
+							{ "LootMobs", false },
+							{ "NinjaSkin", false },
+							{ "SkinMobs", false },
+						})
+					},
+					{
+						"NoTrain",
+						new ChangeSet(new Dictionary<string, object>())
+					},
+					{
+						"NormalQuesting",
+						new ChangeSet(new Dictionary<string, object>()
+						{
+							{ "GroundMountFarmingMode", false },
+							{ "HarvestHerbs", (Me.GetSkill(SkillLine.Herbalism).MaxValue > 0) },
+							{ "HarvestMinerals", (Me.GetSkill(SkillLine.Mining).MaxValue > 0) },
+							{ "KillBetweenHotspots", false },
+							{ "LootMobs", true },
+							{ "LootRadius", 45 },
+							{ "NinjaSkin", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+							{ "RessAtSpiritHealers", false },
+							{ "SkinMobs", (Me.GetSkill(SkillLine.Skinning).MaxValue > 0) },
+							{ "UseRandomMount", true },
+						})
+					},
+					{
+						"UserOriginal",
+						ChangeSet.OriginalConfiguration
+					}
+				};
 
 			return (presets);
 		}
@@ -678,22 +678,22 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 		{
 			// Attach constraints to particular elements --
 			var constraints = new Dictionary<string, ConstraintChecker>()
-            {
-                { "DrinkAmount",            new ConstrainInteger(0, 100) },
-                { "FoodAmount",             new ConstrainInteger(0, 100) },
-                { "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
-                { "LootRadius",             new ConstrainInteger(0, 100) },
-                { "MountDistance",          new ConstrainInteger(0, 200) },
-                { "TicksPerSecond",         new ConstrainInteger(5, 100) }
-            };
+			{
+				{ "DrinkAmount",            new ConstrainInteger(0, 100) },
+				{ "FoodAmount",             new ConstrainInteger(0, 100) },
+				{ "LogoutInactivityTimer",  new ConstrainInteger(1, int.MaxValue) },
+				{ "LootRadius",             new ConstrainInteger(0, 100) },
+				{ "MountDistance",          new ConstrainInteger(0, 200) },
+				{ "TicksPerSecond",         new ConstrainInteger(5, 100) }
+			};
 			var noConstraintCheck = new NoConstraint();
 			var recognizedSettings = new List<SettingDescriptor>();
 			var settingsInstances = new Settings[]
-                {   // ordering is significant--earlier setting names mask later setting names in this list
-                    CharacterSettings.Instance,
-                    LevelbotSettings.Instance,
-                    GlobalSettings.Instance
-                };
+				{   // ordering is significant--earlier setting names mask later setting names in this list
+					CharacterSettings.Instance,
+					LevelbotSettings.Instance,
+					GlobalSettings.Instance
+				};
 
 			// Allowed 'Configuration' attributes--
 			foreach (var settingsInstance in settingsInstances)
@@ -863,35 +863,35 @@ namespace Honorbuddy.Quest_Behaviors.UserSettings
 			get
 			{
 				return _disallowedPropertyNames ?? (_disallowedPropertyNames = new List<string>()
-                    {
-                        // Disallowed CharacterSettings...
-                        "EnabledPlugins",
-                        "LastUsedPath",
-                        "MailRecipient",
-                        "RecentProfiles",
-                        "SelectedBotIndex",
+					{
+						// Disallowed CharacterSettings...
+						"EnabledPlugins",
+						"LastUsedPath",
+						"MailRecipient",
+						"RecentProfiles",
+						"SelectedBotIndex",
 
-                        // Disallowed GlobalSettings...
-                        "AdvancedSettingsMode",
-                        "BotsPath",
-                        "CharacterSettingsDirectory",
-                        "CombatRoutinesPath",
-                        "MeshesFolderPath",
-                        "PluginsPath",
-                        "ProfileDebuggingMode",
-                        "QuestBehaviorsPath",
-                        "ReloadBotsOnFileChange",
-                        "ReloadPluginsOnFileChange",
-                        "ReloadRoutinesOnFileChange",
-                        "SeperatedLogFolders",
-                        "SettingsDirectory",
-                        "TicksPerSecond",
-                        "UICulture",
-                        "UseFrameLock",
+						// Disallowed GlobalSettings...
+						"AdvancedSettingsMode",
+						"BotsPath",
+						"CharacterSettingsDirectory",
+						"CombatRoutinesPath",
+						"MeshesFolderPath",
+						"PluginsPath",
+						"ProfileDebuggingMode",
+						"QuestBehaviorsPath",
+						"ReloadBotsOnFileChange",
+						"ReloadPluginsOnFileChange",
+						"ReloadRoutinesOnFileChange",
+						"SeperatedLogFolders",
+						"SettingsDirectory",
+						"TicksPerSecond",
+						"UICulture",
+						"UseFrameLock",
 
-                        // Disallowed LevelbotSettings...
-                        // None for now.
-                    });
+						// Disallowed LevelbotSettings...
+						// None for now.
+					});
 			}
 		}
 		private static IEnumerable<string> _disallowedPropertyNames;

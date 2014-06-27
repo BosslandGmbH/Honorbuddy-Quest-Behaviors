@@ -61,167 +61,167 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.AbandonQuest
 {
-    [CustomBehaviorFileName(@"AbandonQuest")]
-    public class AbandonQuest : CustomForcedBehavior
-    {
-        public enum AbandonType
-        {
-            All,
-            Failed,
-            Incomplete
-        };
+	[CustomBehaviorFileName(@"AbandonQuest")]
+	public class AbandonQuest : CustomForcedBehavior
+	{
+		public enum AbandonType
+		{
+			All,
+			Failed,
+			Incomplete
+		};
 
 
-        public AbandonQuest(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public AbandonQuest(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-                Type = GetAttributeAsNullable<AbandonType>("Type", false, null, null) ?? AbandonType.Incomplete;
-                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;   
-            }
+			try
+			{
+				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+				Type = GetAttributeAsNullable<AbandonType>("Type", false, null, null) ?? AbandonType.Incomplete;
+				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;   
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        private int QuestId { get; set; }
-        private AbandonType Type { get; set; }
-        private int WaitTime { get; set; }
-
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
-        private readonly WaitTimer _waitTimerAfterAbandon = new WaitTimer(TimeSpan.Zero);
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        ~AbandonQuest()
-        {
-            Dispose(false);
-        }
+		// Attributes provided by caller
+		private int QuestId { get; set; }
+		private AbandonType Type { get; set; }
+		private int WaitTime { get; set; }
+
+		// Private variables for internal state
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
+		private readonly WaitTimer _waitTimerAfterAbandon = new WaitTimer(TimeSpan.Zero);
+
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    // empty, for now
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		~AbandonQuest()
+		{
+			Dispose(false);
+		}
 
 
-        #region Overrides of CustomForcedBehavior
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-        protected override Composite CreateBehavior()
-        {
-            return (_root ?? (_root = new PrioritySelector(
-                // Delay, if necessary...
-                new Decorator(context => !_waitTimerAfterAbandon.IsFinished,
-                    new Action(context =>
-                    {
-                        TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
-                            Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterAbandon.TimeLeft.TotalSeconds)),
-                            Utility.PrettyTime(_waitTimerAfterAbandon.WaitTime));
-                    })),
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					// empty, for now
+				}
 
-                new Action(context => { _isBehaviorDone = true; })
-            )));
-        }
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone);
-            }
-        }
+			_isDisposed = true;
+		}
 
 
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
+		#region Overrides of CustomForcedBehavior
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+		protected override Composite CreateBehavior()
+		{
+			return (_root ?? (_root = new PrioritySelector(
+				// Delay, if necessary...
+				new Decorator(context => !_waitTimerAfterAbandon.IsFinished,
+					new Action(context =>
+					{
+						TreeRoot.StatusText = string.Format("Completing {0} wait of {1}",
+							Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterAbandon.TimeLeft.TotalSeconds)),
+							Utility.PrettyTime(_waitTimerAfterAbandon.WaitTime));
+					})),
 
-                if (quest == null)
-                {
-                    QBCLog.Warning("Cannot find quest with QuestId({0}).", QuestId);
-                    _isBehaviorDone = true;
-                }
+				new Action(context => { _isBehaviorDone = true; })
+			)));
+		}
 
-                else if (quest.IsCompleted && (Type != AbandonType.All))
-                {
-                    QBCLog.Warning("Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name);
-                    _isBehaviorDone = true;
-                }
 
-                else if (!quest.IsFailed && (Type == AbandonType.Failed))
-                {
-                    QBCLog.Warning("Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name);
-                    _isBehaviorDone = true;
-                }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
-                else
-                {
-                    TreeRoot.GoalText = string.Format("Abandoning QuestId({0}): \"{1}\"", QuestId, quest.Name);
-                    StyxWoW.Me.QuestLog.AbandonQuestById((uint)QuestId);
-                    QBCLog.Info("Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
 
-                    _waitTimerAfterAbandon.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
-                    _waitTimerAfterAbandon.Reset();
-                }
-            }
-        }
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone);
+			}
+		}
 
-        #endregion
-    }
+
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+
+				if (quest == null)
+				{
+					QBCLog.Warning("Cannot find quest with QuestId({0}).", QuestId);
+					_isBehaviorDone = true;
+				}
+
+				else if (quest.IsCompleted && (Type != AbandonType.All))
+				{
+					QBCLog.Warning("Quest({0}, \"{1}\") is Complete--skipping abandon.", QuestId, quest.Name);
+					_isBehaviorDone = true;
+				}
+
+				else if (!quest.IsFailed && (Type == AbandonType.Failed))
+				{
+					QBCLog.Warning("Quest({0}, \"{1}\") has not Failed--skipping abandon.", QuestId, quest.Name);
+					_isBehaviorDone = true;
+				}
+
+				else
+				{
+					TreeRoot.GoalText = string.Format("Abandoning QuestId({0}): \"{1}\"", QuestId, quest.Name);
+					StyxWoW.Me.QuestLog.AbandonQuestById((uint)QuestId);
+					QBCLog.Info("Quest({0}, \"{1}\") successfully abandoned", QuestId, quest.Name);
+
+					_waitTimerAfterAbandon.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
+					_waitTimerAfterAbandon.Reset();
+				}
+			}
+		}
+
+		#endregion
+	}
 }

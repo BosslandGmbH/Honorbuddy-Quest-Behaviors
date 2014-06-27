@@ -27,14 +27,14 @@ using Styx.CommonBot.Profiles;
 
 namespace Honorbuddy.Quest_Behaviors.TheEndlessFlowHook
 {
-    [CustomBehaviorFileName(@"TheEndlessFlowHook")]
-    [Obsolete(@"Use Hooks\TheEndlessFlowHook instead")]
-    public class TheEndlessFlowHook : Hooks.TheEndlessFlowHook
-    {
-        public TheEndlessFlowHook(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
-        }
-    }
+	[CustomBehaviorFileName(@"TheEndlessFlowHook")]
+	[Obsolete(@"Use Hooks\TheEndlessFlowHook instead")]
+	public class TheEndlessFlowHook : Hooks.TheEndlessFlowHook
+	{
+		public TheEndlessFlowHook(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
+		}
+	}
 }

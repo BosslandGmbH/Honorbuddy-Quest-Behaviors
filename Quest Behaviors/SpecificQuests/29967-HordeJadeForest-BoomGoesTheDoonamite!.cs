@@ -41,222 +41,222 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
 {
-    [CustomBehaviorFileName(@"SpecificQuests\29967-HordeJadeForest-BoomGoesTheDoonamite!")]
-    public class BoomGoestheDoonamite : CustomForcedBehavior
-    {
-        ~BoomGoestheDoonamite()
-        {
-            Dispose(false);
-        }
+	[CustomBehaviorFileName(@"SpecificQuests\29967-HordeJadeForest-BoomGoesTheDoonamite!")]
+	public class BoomGoestheDoonamite : CustomForcedBehavior
+	{
+		~BoomGoestheDoonamite()
+		{
+			Dispose(false);
+		}
 
-        public BoomGoestheDoonamite(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+		public BoomGoestheDoonamite(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = 29967;
-                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = QuestInLogRequirement.InLog;
-            }
+			try
+			{
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = 29967;
+				QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = QuestInLogRequirement.InLog;
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        // Attributes provided by caller
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-        // Private variables for internal state
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private Composite _root;
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        // Private properties
-        private LocalPlayer Me
-        {
-            get { return (StyxWoW.Me); }
-        }
+		// Attributes provided by caller
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+
+		// Private variables for internal state
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private Composite _root;
 
 
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    CharacterSettings.Instance.UseMount = _mount;
-                    TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
+		// Private properties
+		private LocalPlayer Me
+		{
+			get { return (StyxWoW.Me); }
+		}
 
 
-        #region Overrides of CustomForcedBehavior
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
 
-        public Composite DoneYet
-        {
-            get
-            {
-                return new Decorator(ret => Me.IsQuestComplete(QuestId),
-                    new Action(delegate
-                    {
-                        TreeRoot.StatusText = "Finished!";
-                        CharacterSettings.Instance.UseMount = true;
-                        _isBehaviorDone = true;
-                        return RunStatus.Success;
-                    }));
-            }
-        }
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					CharacterSettings.Instance.UseMount = _mount;
+					TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+				}
 
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
 
-        public void CastSpell(string action)
-        {
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
 
-            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-            if (spell == null)
-                return;
-
-            QBCLog.Info("[Pet] Casting {0}", action);
-            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-
-        }
+			_isDisposed = true;
+		}
 
 
-        //<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
-        //<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
+		#region Overrides of CustomForcedBehavior
 
-        //209691 - sniper rifle
-
-
-        public WoWUnit Clutchpop
-        {
-            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 56525); }
-        }
-
-
-        public WoWUnit Enemy
-        {
-            get
-            {
-                return
-                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Entry == 56603).OrderBy(r=>r.Distance).FirstOrDefault();
-            }
-        }
+		public Composite DoneYet
+		{
+			get
+			{
+				return new Decorator(ret => Me.IsQuestComplete(QuestId),
+					new Action(delegate
+					{
+						TreeRoot.StatusText = "Finished!";
+						CharacterSettings.Instance.UseMount = true;
+						_isBehaviorDone = true;
+						return RunStatus.Success;
+					}));
+			}
+		}
 
 
-        WoWPoint spot = new WoWPoint(1368.113,-571.8212,339.3784);
+		public void CastSpell(string action)
+		{
+
+			var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+			if (spell == null)
+				return;
+
+			QBCLog.Info("[Pet] Casting {0}", action);
+			Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+
+		}
 
 
-        //<Vendor Name="Rivett Clutchpop" Entry="56525" Type="Repair" X="1368.113" Y="-571.8212" Z="339.3784" />
-        public Composite PhaseOne
-        {
-            get
-            {
-                return new Decorator(r => !Query.IsInVehicle(),
-                    new PrioritySelector(
-                        new Decorator(r => Clutchpop == null || !Clutchpop.WithinInteractRange,
-                            new Action(r => Navigator.MoveTo(spot))),
-                        new Decorator(r => !GossipFrame.Instance.IsVisible,
-                            new Action(r => Clutchpop.Interact())),
-                        new Decorator(r => GossipFrame.Instance.IsVisible,
-                            new Action(r =>GossipFrame.Instance.SelectGossipOption(0)))
-                    ));
-            }
-        }
+		//<Vendor Name="Pearlfin Poolwatcher" Entry="55709" Type="Repair" X="-100.9809" Y="-2631.66" Z="2.150823" />
+		//<Vendor Name="Pearlfin Poolwatcher" Entry="55711" Type="Repair" X="-130.8297" Y="-2636.422" Z="1.639656" />
+
+		//209691 - sniper rifle
+
+
+		public WoWUnit Clutchpop
+		{
+			get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(r => r.Entry == 56525); }
+		}
+
+
+		public WoWUnit Enemy
+		{
+			get
+			{
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(r => r.Entry == 56603).OrderBy(r=>r.Distance).FirstOrDefault();
+			}
+		}
+
+
+		WoWPoint spot = new WoWPoint(1368.113,-571.8212,339.3784);
+
+
+		//<Vendor Name="Rivett Clutchpop" Entry="56525" Type="Repair" X="1368.113" Y="-571.8212" Z="339.3784" />
+		public Composite PhaseOne
+		{
+			get
+			{
+				return new Decorator(r => !Query.IsInVehicle(),
+					new PrioritySelector(
+						new Decorator(r => Clutchpop == null || !Clutchpop.WithinInteractRange,
+							new Action(r => Navigator.MoveTo(spot))),
+						new Decorator(r => !GossipFrame.Instance.IsVisible,
+							new Action(r => Clutchpop.Interact())),
+						new Decorator(r => GossipFrame.Instance.IsVisible,
+							new Action(r =>GossipFrame.Instance.SelectGossipOption(0)))
+					));
+			}
+		}
 
 
 
-        public Composite PhaseTwo
-        {
-            get
-            {               
-                    return new Decorator(r => Enemy != null, new Action(r =>
-                                                                      {
+		public Composite PhaseTwo
+		{
+			get
+			{               
+					return new Decorator(r => Enemy != null, new Action(r =>
+																	  {
 
-                                                                          CastSpell("Throw Methane Bomb");
-                                                                          SpellManager.ClickRemoteLocation(
-                                                                              Enemy.Location.RayCast(Enemy.MovementInfo.Heading,10));
-                                                                          //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
-                                                                          //StyxWoW.Sleep(100);
-                                                                      }
-                                                           ));
-            }
+																		  CastSpell("Throw Methane Bomb");
+																		  SpellManager.ClickRemoteLocation(
+																			  Enemy.Location.RayCast(Enemy.MovementInfo.Heading,10));
+																		  //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
+																		  //StyxWoW.Sleep(100);
+																	  }
+														   ));
+			}
 
-        }
-
-
-        protected Composite CreateBehavior_MainCombat()
-        {
-            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne,PhaseTwo, new ActionAlwaysSucceed())));
-        }
+		}
 
 
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
+		protected Composite CreateBehavior_MainCombat()
+		{
+			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PhaseOne,PhaseTwo, new ActionAlwaysSucceed())));
+		}
 
 
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
 
-        private bool _mount;
-        public override void OnStart()
-        {
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                _mount = CharacterSettings.Instance.UseMount;
-                CharacterSettings.Instance.UseMount = false;
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone     // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
 
-                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+		private bool _mount;
+		public override void OnStart()
+		{
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
 
-                this.UpdateGoalText(QuestId);
-            }
-        }
-       #endregion
-    }
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				_mount = CharacterSettings.Instance.UseMount;
+				CharacterSettings.Instance.UseMount = false;
+
+				TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+
+				this.UpdateGoalText(QuestId);
+			}
+		}
+	   #endregion
+	}
 }

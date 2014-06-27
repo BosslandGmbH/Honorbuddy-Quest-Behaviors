@@ -179,776 +179,776 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.UseItemOn
 {
-    [CustomBehaviorFileName(@"UseItemOn")]
-    public class UseItemOn : CustomForcedBehavior
-    {
-        public enum ObjectType
-        {
-            Npc,
-            GameObject,
-        }
-
-        public enum NpcStateType
-        {
-            Alive,
-            BelowHp,
-            Dead,
-            DontCare,
-        }
-
-        public enum NavigationType
-        {
-            Mesh,
-            CTM,
-            None,
-        }
-
-
-        #region Constructor and argument processing
-        public UseItemOn(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
-
-            try
-            {
-                int tmpMobHasAuraId;
-                int tmpMobHasAuraMissingId;
-
-                DefaultHuntingGroundCenter = Me.Location;
-
-                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;
-                tmpMobHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
-                tmpMobHasAuraMissingId = GetAttributeAsNullable<int>("IsMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
-                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? DefaultHuntingGroundCenter;
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
-                MobType = GetAttributeAsNullable<ObjectType>("MobType", false, null, new[] { "ObjectType" }) ?? ObjectType.Npc;
-                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
-                NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
-                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
-                Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
-                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-                IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
-                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
-
-                MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId) : null;
-                MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId) : null;
-
-                // QuestRequirement* attributes are explained here...
-                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-                // ...and also used for IsDone processing.
-                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-
-
-                QuestBehaviorBase.DeprecationWarning_Behavior(this, "InteractWith", BuildReplacementArguments());
-            }
-
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        private List<Tuple<string, string>> BuildReplacementArguments()
-        {
-            var replacementArgs = new List<Tuple<string, string>>();
-
-            QuestBehaviorBase.BuildReplacementArgs_QuestSpec(replacementArgs, QuestId, QuestRequirementComplete, QuestRequirementInLog);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, ItemId, "InteractByUsingItemId", 0);
-            QuestBehaviorBase.BuildReplacementArgs_Ids(replacementArgs, "MobId", MobIds, true);
-
-            var tmpMobHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, tmpMobHasAuraId, "AuraIdOnMob", 0);
-
-            var tmpMobHasAuraMissingId = GetAttributeAsNullable<int>("IsMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, tmpMobHasAuraMissingId, "AuraIdMissingFromMob", 0);
-
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, CollectionDistance, "CollectionDistance", 100.0);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, IgnoreCombat, "IgnoreCombat", false);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, IgnoreMobsInBlackspots, "IgnoreMobsInBlackspots", true);
-
-            var mobState =
-                (NpcState == NpcStateType.Alive) ? MobStateType.Alive
-                : (NpcState == NpcStateType.BelowHp) ? MobStateType.BelowHp
-                : (NpcState == NpcStateType.Dead) ? MobStateType.Dead
-                : MobStateType.DontCare;
-            QuestBehaviorBase.BuildReplacementArgs_MobState(replacementArgs, mobState, MobHpPercentLeft, MobStateType.DontCare);
-
-            var navState =
-                (NavigationState == NavigationType.Mesh) ? MovementByType.FlightorPreferred
-                : (NavigationState == NavigationType.CTM) ? MovementByType.ClickToMoveOnly
-                : MovementByType.None;
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, navState, "MovementBy", MovementByType.FlightorPreferred);
-
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimes", 1);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, Range, "Range", 4.0);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitForNpcs, "WaitForNpcs", true);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTime", 0);
-            QuestBehaviorBase.BuildReplacementArg(replacementArgs, HuntingGroundCenter, "", Me.Location);
-
-            return replacementArgs;
-        }
-
-
-        // Attributes provided by caller
-        public double CollectionDistance { get; private set; }
-        public WoWPoint DefaultHuntingGroundCenter { get; private set; }
-        public int ItemId { get; private set; }
-        public WoWPoint HuntingGroundCenter { get; private set; }
-        public string MobAuraName { get; private set; }
-        public string MobAuraMissingName { get; private set; }
-        public double MobHpPercentLeft { get; private set; }
-        public int[] MobIds { get; private set; }
-        public ObjectType MobType { get; private set; }
-        public NpcStateType NpcState { get; private set; }
-        public NavigationType NavigationState { get; private set; }
-        public int NumOfTimes { get; private set; }
-        public int QuestId { get; private set; }
-        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-        public double Range { get; private set; }
-        public bool WaitForNpcs { get; private set; }
-        public int WaitTime { get; private set; }
-        public bool IgnoreMobsInBlackspots { get; private set; }
-        public bool IgnoreCombat { get; private set; }
-        #endregion
-
-
-        #region Private and Convenience variables
-        private int Counter { get; set; }
-        private WaypointType CurrentHuntingGroundWaypoint { get; set; }
-        private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
-        public HuntingGroundType HuntingGrounds { get; set; }
-        private LocalPlayer Me { get { return (StyxWoW.Me); } }  
-        
-        private bool _isBehaviorDone;
-        private bool _isDisposed;
-        private readonly List<ulong> _npcAuraWait = new List<ulong>();
-        private readonly List<ulong> _npcBlacklist = new List<ulong>();
-        public static Random _random = new Random((int)DateTime.Now.Ticks);
-        private Composite _root;  
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-        #endregion
-
-
-        #region Destructor, Dispose, and cleanup
-        ~UseItemOn()
-        {
-            Dispose(false);
-        }
-
-
-        public void Dispose(bool isExplicitlyInitiatedDispose)
-        {
-            if (!_isDisposed)
-            {
-                // NOTE: we should call any Dispose() method for any managed or unmanaged
-                // resource, if that resource provides a Dispose() method.
-
-                // Clean up managed resources, if explicit disposal...
-                if (isExplicitlyInitiatedDispose)
-                {
-                    TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-                }
-
-                // Clean up unmanaged resources (if any) here...
-                TreeRoot.GoalText = string.Empty;
-                TreeRoot.StatusText = string.Empty;
-
-                // Call parent Dispose() (if it exists) here ...
-                base.Dispose();
-            }
-
-            _isDisposed = true;
-        }
-        #endregion
-
-
-        // May return 'null' if auraId is not valid.
-        private string AuraNameFromId(string attributeName,
-                                           int auraId)
-        {
-            string tmpString = null;
-
-            try
-            {
-                tmpString = WoWSpell.FromId(auraId).Name;
-            }
-            catch (Exception except)
-            {
-                QBCLog.Fatal("Could not find {0}({0}).", attributeName, auraId);
-                IsAttributeProblem = true;
-            }
-
-            return (tmpString);
-        }
-
-
-        /// <summary> Current object we should interact with.</summary>
-        /// <value> The object.</value>
-        private WoWObject CurrentObject
-        {
-            get
-            {
-                WoWObject @object = null;
-
-                switch (MobType)
-                {
-                    case ObjectType.GameObject:
-                        @object = ObjectManager.GetObjectsOfType<WoWGameObject>()
-                                                .OrderBy(ret => ret.Distance)
-                                                .FirstOrDefault(obj => !_npcBlacklist.Contains(obj.Guid)
-                                                                        && obj.Distance < CollectionDistance
-                                                                        && MobIds.Contains((int)obj.Entry));
-                        break;
-
-                    case ObjectType.Npc:
-                        var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
-                                                               .OrderBy(target => target.Distance)
-                                                               .Where(target => !_npcBlacklist.Contains(target.Guid) && !BehaviorBlacklist.Contains(target.Guid)
-                                                                                && (target.Distance < CollectionDistance)
-                                                                                && MobIds.Contains((int)target.Entry) && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, target.Location))));
-
-                        var auraQualifiedTargets = baseTargets
-                                                            .Where(target => (((MobAuraName == null) && (MobAuraMissingName == null))
-                                                                              || ((MobAuraName != null) && target.HasAura(MobAuraName))
-                                                                              || ((MobAuraMissingName != null) && !target.HasAura(MobAuraMissingName))));
-
-                        var npcStateQualifiedTargets = auraQualifiedTargets
-                                                            .Where(target => ((NpcState == NpcStateType.DontCare)
-                                                                              || ((NpcState == NpcStateType.Dead) && target.IsDead)
-                                                                              || ((NpcState == NpcStateType.Alive) && target.IsAlive)
-                                                                              || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
-
-                        @object = npcStateQualifiedTargets.FirstOrDefault();
-                        break;
-                }
-
-                if (@object != null)
-                    { QBCLog.DeveloperInfo(@object.Name); }
-
-                return @object;
-            }
-        }
-
-        private bool BlacklistIfPlayerNearby(WoWObject target)
-        {
-            WoWUnit nearestCompetingPlayer = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
-                                                    .OrderBy(player => player.Location.Distance(target.Location))
-                                                    .FirstOrDefault(player => player.IsPlayer
-                                                                                && player.IsAlive
-                                                                                && !player.IsInOurParty());
-
-            // If player is too close to the target, ignore target for a bit...
-            if ((nearestCompetingPlayer != null)
-                && (nearestCompetingPlayer.Location.Distance(target.Location) <= 25))
-            {
-                BehaviorBlacklist.Add(target.Guid, TimeSpan.FromSeconds(90));
-                return (true);
-            }
-
-            return (false);
-        }
-
-        private bool CanNavigateFully(WoWObject target)
-        {
-            if (Navigator.CanNavigateFully(Me.Location, target.Location))
-            {
-                return (true);
-            }
-
-            return (false);
-        }
-
-        
-
-        public WoWItem Item
-        {
-            get
-            {
-                return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
-            }
-        }
-
-
-        #region Overrides of CustomForcedBehavior
-
-        protected Composite CreateBehavior_QuestbotMain()
-        {
-            return _root ?? (_root =
-                new Decorator(ctx => !_isBehaviorDone,
-                    new PrioritySelector(
-                        new Decorator(ret => Counter >= NumOfTimes,
-                            new Action(ret => _isBehaviorDone = true)),
-
-                        new Decorator(context => (IgnoreCombat || !Me.IsActuallyInCombat) && CurrentObject != null,
-                            new PrioritySelector(
-                                new Decorator(ret => CurrentObject.DistanceSqr > Range * Range,
-                                    new Switch<NavigationType>(ret => NavigationState,
-                                        new SwitchArgument<NavigationType>(
-                                            NavigationType.CTM,
-                                            new Sequence(
-                                                new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
-                                                new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
-                                            )),
-                                        new SwitchArgument<NavigationType>(
-                                            NavigationType.Mesh,
-                                            new Sequence(
-                                                new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
-                                                new Action(ret => Navigator.MoveTo(CurrentObject.Location))
-                                                )),
-                                        new SwitchArgument<NavigationType>(
-                                            NavigationType.None,
-                                            new Sequence(
-                                                new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
-                                                new Action(ret => _isBehaviorDone = true)
-                                            )))),
-
-                                new Decorator(ret => CurrentObject.DistanceSqr <= Range * Range && Item != null && Item.Cooldown == 0,
-                                    new Sequence(
-                                        new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-                                            new Action(ret =>
-                                            {
-                                                WoWMovement.MoveStop();
-                                                StyxWoW.SleepForLagDuration();
-                                            })),
-
-                                        new Action(ret =>
-                                        {
-                                            bool targeted = false;
-                                            TreeRoot.StatusText = "Using item on \"" + CurrentObject.Name + "\"";
-                                            if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
-                                            {
-                                                (CurrentObject as WoWUnit).Target();
-                                                targeted = true;
-                                                StyxWoW.SleepForLagDuration();
-                                            }
-
-                                            WoWMovement.Face(CurrentObject.Guid);
-
-                                            Item.UseContainerItem();
-                                            _npcBlacklist.Add(CurrentObject.Guid);
-
-                                            StyxWoW.SleepForLagDuration();
-                                            Counter++;
-
-                                            if (WaitTime < 100)
-                                                WaitTime = 100;
-
-                                            if (WaitTime > 100)
-                                            {
-                                                if (targeted)
-                                                    StyxWoW.Me.ClearTarget();
-                                            }
-
-                                            StyxWoW.Sleep(WaitTime);
-                                        })
-                                    ))
-                                )),
-
-                        // If we couldn't find a mob, move to next hunting grounds waypoint...
-                        new Decorator(context => CurrentObject == null,
-                            new PrioritySelector(
-                                new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
-                                    new Action(context =>
-                                    {
-                                        if (!WaitForNpcs)
-                                            { _isBehaviorDone = true; }
-
-                                        else if (HuntingGrounds.Waypoints.Count() > 1)
-                                            { CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }
-
-                                        else
-                                        {
-                                            string message = "Waiting for mobs or objects to respawn.";
-                                            QBCLog.Info(message);
-                                            TreeRoot.StatusText = message;
-                                        }
-                                    })),
-
-                                new Sequence(
-                                    new Action(context =>
-                                    {
-                                        string destinationName =
-                                            string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name)
-                                            ? "Moving to next hunting ground waypoint"
-                                            : string.Format("Moving to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name);
-
-                                        TreeRoot.StatusText = destinationName;
-                                        Navigator.MoveTo(CurrentHuntingGroundWaypoint.Location);
-                                    }),
-                                    new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
-                                )
-                            ))
-                        )));
-        }
-
-
-        public override void Dispose()
-        {
-            Dispose(true);
-            GC.SuppressFinalize(this);
-        }
-
-
-        public override bool IsDone
-        {
-            get
-            {
-                return (_isBehaviorDone     // normal completion
-                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-            }
-        }
-
-        public override void OnStart()
-        {
-            QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
-
-            // Hunting ground processing...
-            IList<HuntingGroundType> tmpHuntingGrounds;
-            IsAttributeProblem |= XmlUtil_ParseSubelements<HuntingGroundType>(this, HuntingGroundType.Create, Element, "HuntingGrounds", out tmpHuntingGrounds);
-
-            if (!IsAttributeProblem)
-            {
-                HuntingGrounds = (tmpHuntingGrounds != null) ? tmpHuntingGrounds.FirstOrDefault() : null;
-                HuntingGrounds = HuntingGrounds ?? HuntingGroundType.Create(this, new XElement("HuntingGrounds"));
-
-                // If user didn't provide a HuntingGrounds, or he provided a non-default center point, add it...
-                if ((HuntingGrounds.Waypoints.Count() <= 0) || (HuntingGroundCenter != DefaultHuntingGroundCenter))
-                    { HuntingGrounds.AppendWaypoint(HuntingGroundCenter, "hunting ground center"); }
-
-                if (HuntingGrounds.Waypoints.Count() <= 0)
-                {
-                    QBCLog.Error("Neither the X/Y/Z attributes nor the <HuntingGrounds> sub-element has been specified.");
-                    IsAttributeProblem = true;
-                }
-            }
-            
-            // This reports problems, and stops BT processing if there was a problem with attributes...
-            // We had to defer this action, as the 'profile line number' is not available during the element's
-            // constructor call.
-            OnStart_HandleAttributeProblem();
-
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (!IsDone)
-            {
-                this.UpdateGoalText(QuestId);
-
-                CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
-                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
-            }
-        }
-
-        #endregion
-
-
-        #region XML parsing
-
-        public class WaypointType : XmlUtilClass_ElementParser
-        {
-            // Factory required by XmlUtil_ParseSubelements<T>()
-            public static WaypointType Create(CustomForcedBehavior parentBehavior, XElement element)
-            {
-                return new WaypointType(parentBehavior, element);
-            }
-            
-            private WaypointType(CustomForcedBehavior parentBehavior, XElement xElement)
-                : base(parentBehavior, xElement)
-            {
-                try
-                {
-                    Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-                    Radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
-                    Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                }
-
-                catch (Exception except)
-                {
-                    QBCLog.Exception(except);
-                    IsAttributeProblem = true;
-                }
-            }
-
-            public WaypointType(WoWPoint wowPoint, string name, double radius)
-            {
-                Location = wowPoint;
-                Name = name;
-                Radius = radius;
-            }
-
-            public WoWPoint Location { get; private set; }
-            public string Name { get; private set; }
-            public double Radius { get; private set; }
-
-
-            public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
-            {
-                var tmp = new StringBuilder();
-
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                tmp.AppendFormat("<WaypointType");
-                tmp.AppendFormat("{0}Location=\"{1}\"", fieldSeparator, Location);
-                tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
-                tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, Radius);
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-
-                return tmp.ToString();
-            }
-        }
-
-
-        public class HuntingGroundType : XmlUtilClass_ElementParser
-        {
-            public enum WaypointVisitStrategyType
-            {
-                InOrder,
-                Random,
-            }
-
-            // Factory required by XmlUtil_ParseSubelements<T>()
-            public static HuntingGroundType Create(CustomForcedBehavior parentBehavior, XElement xElement)
-            {
-                return new HuntingGroundType(parentBehavior, xElement);
-            }
-
-            private HuntingGroundType(CustomForcedBehavior parentBehavior, XElement xElement)
-                : base(parentBehavior, xElement)
-            {
-                try
-                {
-                    WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null) ?? WaypointVisitStrategyType.Random;
-
-                    IList<WaypointType> tmpList_Hotspot;
-                    IsAttributeProblem |= XmlUtil_ParseSubelements<WaypointType>(parentBehavior, WaypointType.Create, xElement, "Hotspot", out tmpList_Hotspot);
-                    if (!IsAttributeProblem)
-                        { Waypoints = tmpList_Hotspot; }
-                }
-
-                catch (Exception except)
-                {
-                    QBCLog.Exception(except);
-                    IsAttributeProblem = true;
-                }
-            }
-
-            public WaypointVisitStrategyType WaypointVisitStrategy { get; private set; }
-            public IList<WaypointType> Waypoints { get; private set; }
-
-            public void AppendWaypoint(WoWPoint newWaypoint, string name = "", double radius = 7.0)
-            {
-                Waypoints.Add(new WaypointType(newWaypoint, name, radius));
-            }
-
-
-            public WaypointType FindFirstWaypoint(WoWPoint currentLocation)
-            {
-                return (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
-                    ? FindNextWaypoint(currentLocation)
-                    : FindNearestWaypoint(currentLocation);
-            }
-
-
-            public WaypointType FindNearestWaypoint(WoWPoint currentLocation)
-            {
-                return
-                    (from waypoint in Waypoints
-                    orderby waypoint.Location.Distance(currentLocation)
-                    select waypoint)
-                    .FirstOrDefault();
-            }
-
-
-            public WaypointType FindNextWaypoint(WoWPoint currentLocation)
-            {
-                if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
-                {
-                    return
-                        (from waypoint in Waypoints
-                        orderby _random.Next()
-                        select waypoint)
-                        .FirstOrDefault();
-                }
-
-                // If we haven't reached the nearest waypoint yet, use it...
-                WaypointType nearestWaypoint = FindNearestWaypoint(currentLocation);
-                if (nearestWaypoint.Location.Distance(currentLocation) > nearestWaypoint.Radius)
-                    { return nearestWaypoint; }
-
-                var queue = new Queue<WaypointType>(Waypoints);
-                WaypointType tmpWaypoint;
-
-                // Rotate the queue so the nearest waypoint is on the front...
-                while (nearestWaypoint != queue.Peek())
-                {
-                    tmpWaypoint = queue.Dequeue();
-                    queue.Enqueue(tmpWaypoint);
-                }
-
-                // Rotate one more time to get the 'next' waypoint...
-                // NB: We can't simply Dequeue to access the 'next' waypoint,
-                // because we must take into consideration that the queue may only
-                // contain one point.
-                tmpWaypoint = queue.Dequeue();
-                queue.Enqueue(tmpWaypoint);
-
-                return (queue.Peek());
-            }
-
-
-            public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
-            {
-                var tmp = new StringBuilder();
-
-                var indent = string.Empty.PadLeft(indentLevel);
-                var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-                tmp.AppendFormat("<HuntingGroundType");
-                tmp.AppendFormat("{0}WaypointVisitStrategy=\"{1}\"", fieldSeparator, WaypointVisitStrategy);
-                foreach (var waypoint in Waypoints)
-                    { tmp.AppendFormat("{0}  {1}", waypoint.ToString_FullInfo()); }
-                tmp.AppendFormat("{0}/>", fieldSeparator);
-
-                return tmp.ToString();
-            }
-        }
-
-
-        private static bool XmlUtil_ParseSubelements<T>(
-            CustomForcedBehavior parentBehavior,
-            Func<CustomForcedBehavior, XElement, T> factory,
-            XElement xElement,
-            string subElementsName,
-            out IList<T> returnValue)
-            where T: XmlUtilClass_ElementParser
-        {
-            bool isAttributeProblem = false;
-            var tmpList = new List<T>();
-
-            foreach (var element in xElement.Descendants(subElementsName))
-            {
-                try
-                {
-                    T parser = factory(parentBehavior, element);
-
-                    isAttributeProblem |= parser.IsAttributeProblem;
-                    tmpList.Add(parser);
-                }
-
-                catch(Exception except)
-                {
-                    QBCLog.Exception(except);
-                    isAttributeProblem = true;
-                }
-            }
-
-            returnValue = isAttributeProblem ? null : tmpList;
-
-            return isAttributeProblem;
-        }
-
-
-        public class XmlUtilClass_ElementParser : CustomForcedBehavior
-        {
-            protected XmlUtilClass_ElementParser(CustomForcedBehavior parentBehavior, XElement xElement)
-                : base(ParseElementAttributes(xElement))
-            {
-                Element = xElement;
-                _parent = parentBehavior;
-            }
-
-            protected XmlUtilClass_ElementParser()
-                : base(new Dictionary<string, string>())
-            {
-                // empty
-            }
-
-            private static Dictionary<string, string> ParseElementAttributes(XElement element)
-            {
-                var arguments = new Dictionary<string, string>();
-
-                foreach (var attribute in element.Attributes())
-                    { arguments.Add(attribute.Name.ToString(), attribute.Value); }
-
-                return arguments;
-            }
-
-            #region (No-op) Overrides for CustomForcedBehavior
-            protected override Composite CreateBehavior() { return new PrioritySelector(); }
-
-            public override bool IsDone { get { return false; } }
-
-            public override void OnStart() { /*empty*/ }
-            #endregion
-
-            CustomForcedBehavior _parent;
-        }
-        #endregion
-    }
-
-    public static class WoWUnitExtensions
-    {
-        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        public static bool IsInOurParty(this WoWUnit wowUnit)
-        {
-            return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
-        }
-    }
-
-    class BehaviorBlacklist
-    {
-        static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
-        private BehaviorBlacklist()
-        {
-        }
-
-        class BlacklistTime
-        {
-            public BlacklistTime(DateTime time, TimeSpan span)
-            {
-                TimeStamp = time;
-                Duration = span;
-            }
-            public DateTime TimeStamp { get; private set; }
-            public TimeSpan Duration { get; private set; }
-        }
-
-        static public bool Contains(ulong id)
-        {
-            RemoveIfExpired(id);
-            return SpellBlacklistDict.ContainsKey(id);
-        }
-
-        static public void Add(ulong id, TimeSpan duration)
-        {
-            SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
-        }
-
-        static void RemoveIfExpired(ulong id)
-        {
-            if (SpellBlacklistDict.ContainsKey(id) &&
-                SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)
-            {
-                SpellBlacklistDict.Remove(id);
-            }
-        }
-    }
+	[CustomBehaviorFileName(@"UseItemOn")]
+	public class UseItemOn : CustomForcedBehavior
+	{
+		public enum ObjectType
+		{
+			Npc,
+			GameObject,
+		}
+
+		public enum NpcStateType
+		{
+			Alive,
+			BelowHp,
+			Dead,
+			DontCare,
+		}
+
+		public enum NavigationType
+		{
+			Mesh,
+			CTM,
+			None,
+		}
+
+
+		#region Constructor and argument processing
+		public UseItemOn(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
+
+			try
+			{
+				int tmpMobHasAuraId;
+				int tmpMobHasAuraMissingId;
+
+				DefaultHuntingGroundCenter = Me.Location;
+
+				CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100.0;
+				tmpMobHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
+				tmpMobHasAuraMissingId = GetAttributeAsNullable<int>("IsMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
+				MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
+				ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+				HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? DefaultHuntingGroundCenter;
+				MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+				MobType = GetAttributeAsNullable<ObjectType>("MobType", false, null, new[] { "ObjectType" }) ?? ObjectType.Npc;
+				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+				NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.DontCare;
+				NavigationState = GetAttributeAsNullable<NavigationType>("Nav", false, null, new[] { "Navigation" }) ?? NavigationType.Mesh;
+				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
+				Range = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null) ?? 4;
+				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+				IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
+				IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
+
+				MobAuraName = (tmpMobHasAuraId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraId) : null;
+				MobAuraMissingName = (tmpMobHasAuraMissingId != 0) ? AuraNameFromId("HasAuraId", tmpMobHasAuraMissingId) : null;
+
+				// QuestRequirement* attributes are explained here...
+				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+				// ...and also used for IsDone processing.
+				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+
+
+				QuestBehaviorBase.DeprecationWarning_Behavior(this, "InteractWith", BuildReplacementArguments());
+			}
+
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
+
+
+		private List<Tuple<string, string>> BuildReplacementArguments()
+		{
+			var replacementArgs = new List<Tuple<string, string>>();
+
+			QuestBehaviorBase.BuildReplacementArgs_QuestSpec(replacementArgs, QuestId, QuestRequirementComplete, QuestRequirementInLog);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, ItemId, "InteractByUsingItemId", 0);
+			QuestBehaviorBase.BuildReplacementArgs_Ids(replacementArgs, "MobId", MobIds, true);
+
+			var tmpMobHasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, tmpMobHasAuraId, "AuraIdOnMob", 0);
+
+			var tmpMobHasAuraMissingId = GetAttributeAsNullable<int>("IsMissingAuraId", false, ConstrainAs.AuraId, null) ?? 0;
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, tmpMobHasAuraMissingId, "AuraIdMissingFromMob", 0);
+
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, CollectionDistance, "CollectionDistance", 100.0);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, IgnoreCombat, "IgnoreCombat", false);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, IgnoreMobsInBlackspots, "IgnoreMobsInBlackspots", true);
+
+			var mobState =
+				(NpcState == NpcStateType.Alive) ? MobStateType.Alive
+				: (NpcState == NpcStateType.BelowHp) ? MobStateType.BelowHp
+				: (NpcState == NpcStateType.Dead) ? MobStateType.Dead
+				: MobStateType.DontCare;
+			QuestBehaviorBase.BuildReplacementArgs_MobState(replacementArgs, mobState, MobHpPercentLeft, MobStateType.DontCare);
+
+			var navState =
+				(NavigationState == NavigationType.Mesh) ? MovementByType.FlightorPreferred
+				: (NavigationState == NavigationType.CTM) ? MovementByType.ClickToMoveOnly
+				: MovementByType.None;
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, navState, "MovementBy", MovementByType.FlightorPreferred);
+
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimes", 1);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, Range, "Range", 4.0);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitForNpcs, "WaitForNpcs", true);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTime", 0);
+			QuestBehaviorBase.BuildReplacementArg(replacementArgs, HuntingGroundCenter, "", Me.Location);
+
+			return replacementArgs;
+		}
+
+
+		// Attributes provided by caller
+		public double CollectionDistance { get; private set; }
+		public WoWPoint DefaultHuntingGroundCenter { get; private set; }
+		public int ItemId { get; private set; }
+		public WoWPoint HuntingGroundCenter { get; private set; }
+		public string MobAuraName { get; private set; }
+		public string MobAuraMissingName { get; private set; }
+		public double MobHpPercentLeft { get; private set; }
+		public int[] MobIds { get; private set; }
+		public ObjectType MobType { get; private set; }
+		public NpcStateType NpcState { get; private set; }
+		public NavigationType NavigationState { get; private set; }
+		public int NumOfTimes { get; private set; }
+		public int QuestId { get; private set; }
+		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+		public double Range { get; private set; }
+		public bool WaitForNpcs { get; private set; }
+		public int WaitTime { get; private set; }
+		public bool IgnoreMobsInBlackspots { get; private set; }
+		public bool IgnoreCombat { get; private set; }
+		#endregion
+
+
+		#region Private and Convenience variables
+		private int Counter { get; set; }
+		private WaypointType CurrentHuntingGroundWaypoint { get; set; }
+		private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
+		public HuntingGroundType HuntingGrounds { get; set; }
+		private LocalPlayer Me { get { return (StyxWoW.Me); } }  
+		
+		private bool _isBehaviorDone;
+		private bool _isDisposed;
+		private readonly List<ulong> _npcAuraWait = new List<ulong>();
+		private readonly List<ulong> _npcBlacklist = new List<ulong>();
+		public static Random _random = new Random((int)DateTime.Now.Ticks);
+		private Composite _root;  
+
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
+		#endregion
+
+
+		#region Destructor, Dispose, and cleanup
+		~UseItemOn()
+		{
+			Dispose(false);
+		}
+
+
+		public void Dispose(bool isExplicitlyInitiatedDispose)
+		{
+			if (!_isDisposed)
+			{
+				// NOTE: we should call any Dispose() method for any managed or unmanaged
+				// resource, if that resource provides a Dispose() method.
+
+				// Clean up managed resources, if explicit disposal...
+				if (isExplicitlyInitiatedDispose)
+				{
+					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+				}
+
+				// Clean up unmanaged resources (if any) here...
+				TreeRoot.GoalText = string.Empty;
+				TreeRoot.StatusText = string.Empty;
+
+				// Call parent Dispose() (if it exists) here ...
+				base.Dispose();
+			}
+
+			_isDisposed = true;
+		}
+		#endregion
+
+
+		// May return 'null' if auraId is not valid.
+		private string AuraNameFromId(string attributeName,
+										   int auraId)
+		{
+			string tmpString = null;
+
+			try
+			{
+				tmpString = WoWSpell.FromId(auraId).Name;
+			}
+			catch (Exception except)
+			{
+				QBCLog.Fatal("Could not find {0}({0}).", attributeName, auraId);
+				IsAttributeProblem = true;
+			}
+
+			return (tmpString);
+		}
+
+
+		/// <summary> Current object we should interact with.</summary>
+		/// <value> The object.</value>
+		private WoWObject CurrentObject
+		{
+			get
+			{
+				WoWObject @object = null;
+
+				switch (MobType)
+				{
+					case ObjectType.GameObject:
+						@object = ObjectManager.GetObjectsOfType<WoWGameObject>()
+												.OrderBy(ret => ret.Distance)
+												.FirstOrDefault(obj => !_npcBlacklist.Contains(obj.Guid)
+																		&& obj.Distance < CollectionDistance
+																		&& MobIds.Contains((int)obj.Entry));
+						break;
+
+					case ObjectType.Npc:
+						var baseTargets = ObjectManager.GetObjectsOfType<WoWUnit>()
+															   .OrderBy(target => target.Distance)
+															   .Where(target => !_npcBlacklist.Contains(target.Guid) && !BehaviorBlacklist.Contains(target.Guid)
+																				&& (target.Distance < CollectionDistance)
+																				&& MobIds.Contains((int)target.Entry) && (!IgnoreMobsInBlackspots || (IgnoreMobsInBlackspots && !Targeting.IsTooNearBlackspot(ProfileManager.CurrentProfile.Blackspots, target.Location))));
+
+						var auraQualifiedTargets = baseTargets
+															.Where(target => (((MobAuraName == null) && (MobAuraMissingName == null))
+																			  || ((MobAuraName != null) && target.HasAura(MobAuraName))
+																			  || ((MobAuraMissingName != null) && !target.HasAura(MobAuraMissingName))));
+
+						var npcStateQualifiedTargets = auraQualifiedTargets
+															.Where(target => ((NpcState == NpcStateType.DontCare)
+																			  || ((NpcState == NpcStateType.Dead) && target.IsDead)
+																			  || ((NpcState == NpcStateType.Alive) && target.IsAlive)
+																			  || ((NpcState == NpcStateType.BelowHp) && target.IsAlive && (target.HealthPercent < MobHpPercentLeft))));
+
+						@object = npcStateQualifiedTargets.FirstOrDefault();
+						break;
+				}
+
+				if (@object != null)
+					{ QBCLog.DeveloperInfo(@object.Name); }
+
+				return @object;
+			}
+		}
+
+		private bool BlacklistIfPlayerNearby(WoWObject target)
+		{
+			WoWUnit nearestCompetingPlayer = ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
+													.OrderBy(player => player.Location.Distance(target.Location))
+													.FirstOrDefault(player => player.IsPlayer
+																				&& player.IsAlive
+																				&& !player.IsInOurParty());
+
+			// If player is too close to the target, ignore target for a bit...
+			if ((nearestCompetingPlayer != null)
+				&& (nearestCompetingPlayer.Location.Distance(target.Location) <= 25))
+			{
+				BehaviorBlacklist.Add(target.Guid, TimeSpan.FromSeconds(90));
+				return (true);
+			}
+
+			return (false);
+		}
+
+		private bool CanNavigateFully(WoWObject target)
+		{
+			if (Navigator.CanNavigateFully(Me.Location, target.Location))
+			{
+				return (true);
+			}
+
+			return (false);
+		}
+
+		
+
+		public WoWItem Item
+		{
+			get
+			{
+				return StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId);
+			}
+		}
+
+
+		#region Overrides of CustomForcedBehavior
+
+		protected Composite CreateBehavior_QuestbotMain()
+		{
+			return _root ?? (_root =
+				new Decorator(ctx => !_isBehaviorDone,
+					new PrioritySelector(
+						new Decorator(ret => Counter >= NumOfTimes,
+							new Action(ret => _isBehaviorDone = true)),
+
+						new Decorator(context => (IgnoreCombat || !Me.IsActuallyInCombat) && CurrentObject != null,
+							new PrioritySelector(
+								new Decorator(ret => CurrentObject.DistanceSqr > Range * Range,
+									new Switch<NavigationType>(ret => NavigationState,
+										new SwitchArgument<NavigationType>(
+											NavigationType.CTM,
+											new Sequence(
+												new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
+												new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
+											)),
+										new SwitchArgument<NavigationType>(
+											NavigationType.Mesh,
+											new Sequence(
+												new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
+												new Action(ret => Navigator.MoveTo(CurrentObject.Location))
+												)),
+										new SwitchArgument<NavigationType>(
+											NavigationType.None,
+											new Sequence(
+												new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
+												new Action(ret => _isBehaviorDone = true)
+											)))),
+
+								new Decorator(ret => CurrentObject.DistanceSqr <= Range * Range && Item != null && Item.Cooldown == 0,
+									new Sequence(
+										new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
+											new Action(ret =>
+											{
+												WoWMovement.MoveStop();
+												StyxWoW.SleepForLagDuration();
+											})),
+
+										new Action(ret =>
+										{
+											bool targeted = false;
+											TreeRoot.StatusText = "Using item on \"" + CurrentObject.Name + "\"";
+											if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
+											{
+												(CurrentObject as WoWUnit).Target();
+												targeted = true;
+												StyxWoW.SleepForLagDuration();
+											}
+
+											WoWMovement.Face(CurrentObject.Guid);
+
+											Item.UseContainerItem();
+											_npcBlacklist.Add(CurrentObject.Guid);
+
+											StyxWoW.SleepForLagDuration();
+											Counter++;
+
+											if (WaitTime < 100)
+												WaitTime = 100;
+
+											if (WaitTime > 100)
+											{
+												if (targeted)
+													StyxWoW.Me.ClearTarget();
+											}
+
+											StyxWoW.Sleep(WaitTime);
+										})
+									))
+								)),
+
+						// If we couldn't find a mob, move to next hunting grounds waypoint...
+						new Decorator(context => CurrentObject == null,
+							new PrioritySelector(
+								new Decorator(context => Me.Location.Distance(CurrentHuntingGroundWaypoint.Location) <= CurrentHuntingGroundWaypoint.Radius,
+									new Action(context =>
+									{
+										if (!WaitForNpcs)
+											{ _isBehaviorDone = true; }
+
+										else if (HuntingGrounds.Waypoints.Count() > 1)
+											{ CurrentHuntingGroundWaypoint = HuntingGrounds.FindNextWaypoint(CurrentHuntingGroundWaypoint.Location); }
+
+										else
+										{
+											string message = "Waiting for mobs or objects to respawn.";
+											QBCLog.Info(message);
+											TreeRoot.StatusText = message;
+										}
+									})),
+
+								new Sequence(
+									new Action(context =>
+									{
+										string destinationName =
+											string.IsNullOrEmpty(CurrentHuntingGroundWaypoint.Name)
+											? "Moving to next hunting ground waypoint"
+											: string.Format("Moving to hunting ground waypoint '{0}'", CurrentHuntingGroundWaypoint.Name);
+
+										TreeRoot.StatusText = destinationName;
+										Navigator.MoveTo(CurrentHuntingGroundWaypoint.Location);
+									}),
+									new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
+								)
+							))
+						)));
+		}
+
+
+		public override void Dispose()
+		{
+			Dispose(true);
+			GC.SuppressFinalize(this);
+		}
+
+
+		public override bool IsDone
+		{
+			get
+			{
+				return (_isBehaviorDone     // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+			}
+		}
+
+		public override void OnStart()
+		{
+			QuestBehaviorBase.UsageCheck_ScheduledForDeprecation(this, "InteractWith");
+
+			// Hunting ground processing...
+			IList<HuntingGroundType> tmpHuntingGrounds;
+			IsAttributeProblem |= XmlUtil_ParseSubelements<HuntingGroundType>(this, HuntingGroundType.Create, Element, "HuntingGrounds", out tmpHuntingGrounds);
+
+			if (!IsAttributeProblem)
+			{
+				HuntingGrounds = (tmpHuntingGrounds != null) ? tmpHuntingGrounds.FirstOrDefault() : null;
+				HuntingGrounds = HuntingGrounds ?? HuntingGroundType.Create(this, new XElement("HuntingGrounds"));
+
+				// If user didn't provide a HuntingGrounds, or he provided a non-default center point, add it...
+				if ((HuntingGrounds.Waypoints.Count() <= 0) || (HuntingGroundCenter != DefaultHuntingGroundCenter))
+					{ HuntingGrounds.AppendWaypoint(HuntingGroundCenter, "hunting ground center"); }
+
+				if (HuntingGrounds.Waypoints.Count() <= 0)
+				{
+					QBCLog.Error("Neither the X/Y/Z attributes nor the <HuntingGrounds> sub-element has been specified.");
+					IsAttributeProblem = true;
+				}
+			}
+			
+			// This reports problems, and stops BT processing if there was a problem with attributes...
+			// We had to defer this action, as the 'profile line number' is not available during the element's
+			// constructor call.
+			OnStart_HandleAttributeProblem();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (!IsDone)
+			{
+				this.UpdateGoalText(QuestId);
+
+				CurrentHuntingGroundWaypoint = HuntingGrounds.FindFirstWaypoint(Me.Location);
+				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+			}
+		}
+
+		#endregion
+
+
+		#region XML parsing
+
+		public class WaypointType : XmlUtilClass_ElementParser
+		{
+			// Factory required by XmlUtil_ParseSubelements<T>()
+			public static WaypointType Create(CustomForcedBehavior parentBehavior, XElement element)
+			{
+				return new WaypointType(parentBehavior, element);
+			}
+			
+			private WaypointType(CustomForcedBehavior parentBehavior, XElement xElement)
+				: base(parentBehavior, xElement)
+			{
+				try
+				{
+					Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+					Radius = GetAttributeAsNullable<double>("Radius", false, ConstrainAs.Range, null) ?? 10.0;
+					Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+				}
+
+				catch (Exception except)
+				{
+					QBCLog.Exception(except);
+					IsAttributeProblem = true;
+				}
+			}
+
+			public WaypointType(WoWPoint wowPoint, string name, double radius)
+			{
+				Location = wowPoint;
+				Name = name;
+				Radius = radius;
+			}
+
+			public WoWPoint Location { get; private set; }
+			public string Name { get; private set; }
+			public double Radius { get; private set; }
+
+
+			public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
+			{
+				var tmp = new StringBuilder();
+
+				var indent = string.Empty.PadLeft(indentLevel);
+				var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
+
+				tmp.AppendFormat("<WaypointType");
+				tmp.AppendFormat("{0}Location=\"{1}\"", fieldSeparator, Location);
+				tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
+				tmp.AppendFormat("{0}Radius=\"{1}\"", fieldSeparator, Radius);
+				tmp.AppendFormat("{0}/>", fieldSeparator);
+
+				return tmp.ToString();
+			}
+		}
+
+
+		public class HuntingGroundType : XmlUtilClass_ElementParser
+		{
+			public enum WaypointVisitStrategyType
+			{
+				InOrder,
+				Random,
+			}
+
+			// Factory required by XmlUtil_ParseSubelements<T>()
+			public static HuntingGroundType Create(CustomForcedBehavior parentBehavior, XElement xElement)
+			{
+				return new HuntingGroundType(parentBehavior, xElement);
+			}
+
+			private HuntingGroundType(CustomForcedBehavior parentBehavior, XElement xElement)
+				: base(parentBehavior, xElement)
+			{
+				try
+				{
+					WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null) ?? WaypointVisitStrategyType.Random;
+
+					IList<WaypointType> tmpList_Hotspot;
+					IsAttributeProblem |= XmlUtil_ParseSubelements<WaypointType>(parentBehavior, WaypointType.Create, xElement, "Hotspot", out tmpList_Hotspot);
+					if (!IsAttributeProblem)
+						{ Waypoints = tmpList_Hotspot; }
+				}
+
+				catch (Exception except)
+				{
+					QBCLog.Exception(except);
+					IsAttributeProblem = true;
+				}
+			}
+
+			public WaypointVisitStrategyType WaypointVisitStrategy { get; private set; }
+			public IList<WaypointType> Waypoints { get; private set; }
+
+			public void AppendWaypoint(WoWPoint newWaypoint, string name = "", double radius = 7.0)
+			{
+				Waypoints.Add(new WaypointType(newWaypoint, name, radius));
+			}
+
+
+			public WaypointType FindFirstWaypoint(WoWPoint currentLocation)
+			{
+				return (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
+					? FindNextWaypoint(currentLocation)
+					: FindNearestWaypoint(currentLocation);
+			}
+
+
+			public WaypointType FindNearestWaypoint(WoWPoint currentLocation)
+			{
+				return
+					(from waypoint in Waypoints
+					orderby waypoint.Location.Distance(currentLocation)
+					select waypoint)
+					.FirstOrDefault();
+			}
+
+
+			public WaypointType FindNextWaypoint(WoWPoint currentLocation)
+			{
+				if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
+				{
+					return
+						(from waypoint in Waypoints
+						orderby _random.Next()
+						select waypoint)
+						.FirstOrDefault();
+				}
+
+				// If we haven't reached the nearest waypoint yet, use it...
+				WaypointType nearestWaypoint = FindNearestWaypoint(currentLocation);
+				if (nearestWaypoint.Location.Distance(currentLocation) > nearestWaypoint.Radius)
+					{ return nearestWaypoint; }
+
+				var queue = new Queue<WaypointType>(Waypoints);
+				WaypointType tmpWaypoint;
+
+				// Rotate the queue so the nearest waypoint is on the front...
+				while (nearestWaypoint != queue.Peek())
+				{
+					tmpWaypoint = queue.Dequeue();
+					queue.Enqueue(tmpWaypoint);
+				}
+
+				// Rotate one more time to get the 'next' waypoint...
+				// NB: We can't simply Dequeue to access the 'next' waypoint,
+				// because we must take into consideration that the queue may only
+				// contain one point.
+				tmpWaypoint = queue.Dequeue();
+				queue.Enqueue(tmpWaypoint);
+
+				return (queue.Peek());
+			}
+
+
+			public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
+			{
+				var tmp = new StringBuilder();
+
+				var indent = string.Empty.PadLeft(indentLevel);
+				var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
+
+				tmp.AppendFormat("<HuntingGroundType");
+				tmp.AppendFormat("{0}WaypointVisitStrategy=\"{1}\"", fieldSeparator, WaypointVisitStrategy);
+				foreach (var waypoint in Waypoints)
+					{ tmp.AppendFormat("{0}  {1}", waypoint.ToString_FullInfo()); }
+				tmp.AppendFormat("{0}/>", fieldSeparator);
+
+				return tmp.ToString();
+			}
+		}
+
+
+		private static bool XmlUtil_ParseSubelements<T>(
+			CustomForcedBehavior parentBehavior,
+			Func<CustomForcedBehavior, XElement, T> factory,
+			XElement xElement,
+			string subElementsName,
+			out IList<T> returnValue)
+			where T: XmlUtilClass_ElementParser
+		{
+			bool isAttributeProblem = false;
+			var tmpList = new List<T>();
+
+			foreach (var element in xElement.Descendants(subElementsName))
+			{
+				try
+				{
+					T parser = factory(parentBehavior, element);
+
+					isAttributeProblem |= parser.IsAttributeProblem;
+					tmpList.Add(parser);
+				}
+
+				catch(Exception except)
+				{
+					QBCLog.Exception(except);
+					isAttributeProblem = true;
+				}
+			}
+
+			returnValue = isAttributeProblem ? null : tmpList;
+
+			return isAttributeProblem;
+		}
+
+
+		public class XmlUtilClass_ElementParser : CustomForcedBehavior
+		{
+			protected XmlUtilClass_ElementParser(CustomForcedBehavior parentBehavior, XElement xElement)
+				: base(ParseElementAttributes(xElement))
+			{
+				Element = xElement;
+				_parent = parentBehavior;
+			}
+
+			protected XmlUtilClass_ElementParser()
+				: base(new Dictionary<string, string>())
+			{
+				// empty
+			}
+
+			private static Dictionary<string, string> ParseElementAttributes(XElement element)
+			{
+				var arguments = new Dictionary<string, string>();
+
+				foreach (var attribute in element.Attributes())
+					{ arguments.Add(attribute.Name.ToString(), attribute.Value); }
+
+				return arguments;
+			}
+
+			#region (No-op) Overrides for CustomForcedBehavior
+			protected override Composite CreateBehavior() { return new PrioritySelector(); }
+
+			public override bool IsDone { get { return false; } }
+
+			public override void OnStart() { /*empty*/ }
+			#endregion
+
+			CustomForcedBehavior _parent;
+		}
+		#endregion
+	}
+
+	public static class WoWUnitExtensions
+	{
+		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+		public static bool IsInOurParty(this WoWUnit wowUnit)
+		{
+			return ((Me.PartyMembers.FirstOrDefault(partyMember => (partyMember.Guid == wowUnit.Guid))) != null);
+		}
+	}
+
+	class BehaviorBlacklist
+	{
+		static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
+		private BehaviorBlacklist()
+		{
+		}
+
+		class BlacklistTime
+		{
+			public BlacklistTime(DateTime time, TimeSpan span)
+			{
+				TimeStamp = time;
+				Duration = span;
+			}
+			public DateTime TimeStamp { get; private set; }
+			public TimeSpan Duration { get; private set; }
+		}
+
+		static public bool Contains(ulong id)
+		{
+			RemoveIfExpired(id);
+			return SpellBlacklistDict.ContainsKey(id);
+		}
+
+		static public void Add(ulong id, TimeSpan duration)
+		{
+			SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
+		}
+
+		static void RemoveIfExpired(ulong id)
+		{
+			if (SpellBlacklistDict.ContainsKey(id) &&
+				SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)
+			{
+				SpellBlacklistDict.Remove(id);
+			}
+		}
+	}
 }

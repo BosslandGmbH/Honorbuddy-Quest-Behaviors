@@ -467,13 +467,13 @@ namespace Honorbuddy.QuestBehaviorCore
 			/// <returns><c>true</c> if a cache was found, <c>false</c> otherwise.</returns>
 			internal static bool TryGet(WoWPoint start, WoWPoint destination, out float distance)
 			{
-                SurfacePathDistanceCache match = null;
-                var now = DateTime.Now;
+				SurfacePathDistanceCache match = null;
+				var now = DateTime.Now;
 
-                // do we need to cleanup old caches?
+				// do we need to cleanup old caches?
 				var doCleanup = now - _lastCleanupTime > MaxCacheTimeSpan;
 
-                // iterate the path cache in revere so we can remove entries safely
+				// iterate the path cache in revere so we can remove entries safely
 				for (int idx = PathDistanceCache.Count - 1; idx >= 0; idx--)
 				{
 					var entry = PathDistanceCache[idx];

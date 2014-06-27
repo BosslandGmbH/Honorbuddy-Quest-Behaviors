@@ -27,14 +27,14 @@ using Styx.CommonBot.Profiles;
 
 namespace Honorbuddy.Quest_Behaviors.MountHook
 {
-    [CustomBehaviorFileName(@"MountHook")]
-    [Obsolete(@"Use Hooks\MountHook instead")]
-    public class MountHook : Hooks.MountHook
-    {
-        public MountHook(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
-        }
-    }
+	[CustomBehaviorFileName(@"MountHook")]
+	[Obsolete(@"Use Hooks\MountHook instead")]
+	public class MountHook : Hooks.MountHook
+	{
+		public MountHook(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
+		}
+	}
 }

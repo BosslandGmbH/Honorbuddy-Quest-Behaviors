@@ -38,153 +38,153 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.FlyTo
 {
-    [CustomBehaviorFileName(@"FlyTo")]
-    class FlyTo : QuestBehaviorBase
-    {
-        #region Constructor and Argument Processing
-        public FlyTo(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
+	[CustomBehaviorFileName(@"FlyTo")]
+	class FlyTo : QuestBehaviorBase
+	{
+		#region Constructor and Argument Processing
+		public FlyTo(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
 
-            try
-            {
-                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? string.Empty;
-                Distance = GetAttributeAsNullable<double>("Distance", false, new ConstrainTo.Domain<double>(0.25, double.MaxValue), null) ?? 10.0;
-                Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
-                IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
+			try
+			{
+				Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+				DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" }) ?? string.Empty;
+				Distance = GetAttributeAsNullable<double>("Distance", false, new ConstrainTo.Domain<double>(0.25, double.MaxValue), null) ?? 10.0;
+				Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
+				IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
 
-                if (string.IsNullOrEmpty(DestinationName))
-                    { DestinationName = Destination.ToString(); }
-            }
+				if (string.IsNullOrEmpty(DestinationName))
+					{ DestinationName = Destination.ToString(); }
+			}
 
-            catch (Exception except)
-            {
-                // Maintenance problems occur for a number of reasons.  The primary two are...
-                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
-                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-                // In any case, we pinpoint the source of the problem area here, and hopefully it
-                // can be quickly resolved.
-                QBCLog.Exception(except);
-                IsAttributeProblem = true;
-            }
-        }
-
-
-        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-        {
-            //// EXAMPLE: 
-            //UsageCheck_DeprecatedAttribute(xElement,
-            //    Args.Keys.Contains("Nav"),
-            //    "Nav",
-            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-            //                              + "  Please update profile to use MovementBy, instead.",
-            //                              Args["Nav"], MovementBy));
-        }
+			catch (Exception except)
+			{
+				// Maintenance problems occur for a number of reasons.  The primary two are...
+				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
+				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+				// In any case, we pinpoint the source of the problem area here, and hopefully it
+				// can be quickly resolved.
+				QBCLog.Exception(except);
+				IsAttributeProblem = true;
+			}
+		}
 
 
-        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-        {
-            //// EXAMPLE:
-            //UsageCheck_SemanticCoherency(xElement,
-            //    (!MobIds.Any() && !FactionIds.Any()),
-            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-            //
-            //const double rangeEpsilon = 3.0;
-            //UsageCheck_SemanticCoherency(xElement,
-            //    ((RangeMax - RangeMin) < rangeEpsilon),
-            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
-        }
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//                              Args["Nav"], MovementBy));
+		}
 
 
-        // Attributes provided by caller
-        private WoWPoint Destination { get; set; }
-        private string DestinationName { get; set; }
-        private double Distance { get; set; }
-        private bool Land { get; set; }
-        private bool IgnoreIndoors { get; set; }
-        #endregion
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin)); 
+		}
 
 
-        #region Private and Convenience variables
-        #endregion
+		// Attributes provided by caller
+		private WoWPoint Destination { get; set; }
+		private string DestinationName { get; set; }
+		private double Distance { get; set; }
+		private bool Land { get; set; }
+		private bool IgnoreIndoors { get; set; }
+		#endregion
 
 
-        #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+		#region Private and Convenience variables
+		#endregion
 
-        // CreateBehavior supplied by QuestBehaviorBase.
-        // Instead, provide CreateMainBehavior definition.
 
-        // Dispose provided by QuestBehaviorBase.
+		#region Overrides of CustomForcedBehavior
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return ("$Id$"); } }
+		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-        // IsDone provided by QuestBehaviorBase.
-        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+		// CreateBehavior supplied by QuestBehaviorBase.
+		// Instead, provide CreateMainBehavior definition.
 
-        // OnFinished provided by QuestBehaviorBase.
+		// Dispose provided by QuestBehaviorBase.
 
-        public override void OnStart()
-        {
-            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-            var isBehaviorShouldRun = OnStart_QuestBehaviorCore(string.Format("Flying to Destination: {0} ({1})", DestinationName, Destination));
+		// IsDone provided by QuestBehaviorBase.
+		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
-            // If the quest is complete, this behavior is already done...
-            // So we don't want to falsely inform the user of things that will be skipped.
-            if (isBehaviorShouldRun)
-            {
+		// OnFinished provided by QuestBehaviorBase.
+
+		public override void OnStart()
+		{
+			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore(string.Format("Flying to Destination: {0} ({1})", DestinationName, Destination));
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (isBehaviorShouldRun)
+			{
 				if (!Flightor.CanFly && !Navigator.CanNavigateFully(StyxWoW.Me.Location, Destination))
 				{
 					QBCLog.Fatal("Toon doesn't have flying capability in this area, and there is no ground path to the destination. Please learn the flying skill appropriate for this area.");
 					return;
 				}
-                // Disable any settings that may cause us to dismount --
-                // When we mount for travel via FlyTo, we don't want to be distracted by other things.
-                // NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
-                // normal values when OnFinished() is called.
-                LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
+				// Disable any settings that may cause us to dismount --
+				// When we mount for travel via FlyTo, we don't want to be distracted by other things.
+				// NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
+				// normal values when OnFinished() is called.
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
 
-                // Clear any existing POI (after we've disabled Pull/Loot behaviors)...
-                // Otherwise, FlyTo can get stuck trying to pursue the previous POI, if one was
-                // set immediately before the behavior was launched.  This is a boundary condition,
-                // and it happens frequently enough to be really annoying.
-                BotPoi.Clear();
-            }
-        }
-        #endregion
+				// Clear any existing POI (after we've disabled Pull/Loot behaviors)...
+				// Otherwise, FlyTo can get stuck trying to pursue the previous POI, if one was
+				// set immediately before the behavior was launched.  This is a boundary condition,
+				// and it happens frequently enough to be really annoying.
+				BotPoi.Clear();
+			}
+		}
+		#endregion
 
 
-        #region Main Behaviors
-        protected override Composite CreateMainBehavior()
-        {
-            return new PrioritySelector(
-                // Arrived at destination...
-                new Decorator(context => Destination.DistanceSqr(StyxWoW.Me.Location) < (Distance * Distance),
-                    new Sequence(
-                        // Land if we need to...
-                        // NB: The act of landing may cause us to exceed the Distance specified.
-                        new DecoratorContinue(context => Land && Me.Mounted,
-                            new Mount.ActionLandAndDismount()),
-                        // Done...
-                        new Action(context => BehaviorDone("Arrived at destination"))
-                    )),
+		#region Main Behaviors
+		protected override Composite CreateMainBehavior()
+		{
+			return new PrioritySelector(
+				// Arrived at destination...
+				new Decorator(context => Destination.DistanceSqr(StyxWoW.Me.Location) < (Distance * Distance),
+					new Sequence(
+						// Land if we need to...
+						// NB: The act of landing may cause us to exceed the Distance specified.
+						new DecoratorContinue(context => Land && Me.Mounted,
+							new Mount.ActionLandAndDismount()),
+						// Done...
+						new Action(context => BehaviorDone("Arrived at destination"))
+					)),
 
-                // Don't run FlyTo when there is a poi set
-                new DecoratorIsPoiType(PoiType.None,
-                    new Action(context => Flightor.MoveTo(Destination, !IgnoreIndoors))),
+				// Don't run FlyTo when there is a poi set
+				new DecoratorIsPoiType(PoiType.None,
+					new Action(context => Flightor.MoveTo(Destination, !IgnoreIndoors))),
 
-                // Tell user why we've suspended FlyTo...
-                new CompositeThrottle(TimeSpan.FromSeconds(10),
-                    new Action(context =>
-                        {
-                            QBCLog.DeveloperInfo("FlyTo temporarily suspended due to {0}", BotPoi.Current);
-                        }))
-            );
-        }
-        #endregion
-    }
+				// Tell user why we've suspended FlyTo...
+				new CompositeThrottle(TimeSpan.FromSeconds(10),
+					new Action(context =>
+						{
+							QBCLog.DeveloperInfo("FlyTo temporarily suspended due to {0}", BotPoi.Current);
+						}))
+			);
+		}
+		#endregion
+	}
 }

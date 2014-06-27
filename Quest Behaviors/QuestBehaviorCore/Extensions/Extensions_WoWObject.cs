@@ -20,82 +20,82 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public static class Extensions_WoWObject
-    {
-        public static WoWPoint AnticipatedLocation(this WoWObject wowObject, TimeSpan atTime)
-        {
-            var wowUnit = wowObject as WoWUnit;
+	public static class Extensions_WoWObject
+	{
+		public static WoWPoint AnticipatedLocation(this WoWObject wowObject, TimeSpan atTime)
+		{
+			var wowUnit = wowObject as WoWUnit;
 
-            if (wowUnit == null)
-                { return wowObject.Location; }
+			if (wowUnit == null)
+				{ return wowObject.Location; }
 
-            var anticipatedLocation =
-                wowUnit.Location.RayCast(
-                    wowUnit.RenderFacing, 
-                    (float)(wowUnit.MovementInfo.CurrentSpeed * atTime.TotalSeconds));
+			var anticipatedLocation =
+				wowUnit.Location.RayCast(
+					wowUnit.RenderFacing, 
+					(float)(wowUnit.MovementInfo.CurrentSpeed * atTime.TotalSeconds));
 
-            return (anticipatedLocation);
-        }
-
-
-        // 30May2013-03:56UTC chinajade
-        public static void BlacklistForCombat(this WoWObject wowObject, TimeSpan duration)
-        {
-            Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull | BlacklistFlags.Combat, duration);
-        }
+			return (anticipatedLocation);
+		}
 
 
-        // 11Apr2013-03:56UTC chinajade
-        public static void BlacklistForInteracting(this WoWObject wowObject, TimeSpan duration)
-        {
-            Blacklist.Add(wowObject.Guid, BlacklistFlags.Interact, duration);
-        }
+		// 30May2013-03:56UTC chinajade
+		public static void BlacklistForCombat(this WoWObject wowObject, TimeSpan duration)
+		{
+			Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull | BlacklistFlags.Combat, duration);
+		}
 
 
-        public static void BlacklistForPulling(this WoWObject wowObject, TimeSpan duration)
-        {
-            Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull, duration);
-        }
+		// 11Apr2013-03:56UTC chinajade
+		public static void BlacklistForInteracting(this WoWObject wowObject, TimeSpan duration)
+		{
+			Blacklist.Add(wowObject.Guid, BlacklistFlags.Interact, duration);
+		}
 
 
-        // 11Apr2013-04:41UTC chinajade
-        public static bool IsBlacklistedForCombat(this WoWObject wowObject)
-        {
-            return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat);
-        }
+		public static void BlacklistForPulling(this WoWObject wowObject, TimeSpan duration)
+		{
+			Blacklist.Add(wowObject.Guid, BlacklistFlags.Pull, duration);
+		}
 
 
-        // 11Apr2013-04:41UTC chinajade
-        public static bool IsBlacklistedForInteraction(this WoWObject wowObject)
-        {
-            return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Interact);
-        }
+		// 11Apr2013-04:41UTC chinajade
+		public static bool IsBlacklistedForCombat(this WoWObject wowObject)
+		{
+			return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Combat);
+		}
 
 
-        // 4Jun2013-04:41UTC chinajade
-        public static bool IsBlacklistedForPulling(this WoWObject wowObject)
-        {
-            return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull);
-        }
+		// 11Apr2013-04:41UTC chinajade
+		public static bool IsBlacklistedForInteraction(this WoWObject wowObject)
+		{
+			return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Interact);
+		}
 
 
-        // 2Sep2013 chinajade
-        public static int SafeGuid(this WoWObject wowObject)
-        {
-            return (int)(wowObject.Guid & 0x0ffffff);
-        }
+		// 4Jun2013-04:41UTC chinajade
+		public static bool IsBlacklistedForPulling(this WoWObject wowObject)
+		{
+			return Blacklist.Contains(wowObject.Guid, BlacklistFlags.Pull);
+		}
 
 
-        public static double SurfacePathDistance(this WoWObject objectTo)
-        {
-            return StyxWoW.Me.SurfacePathDistance(objectTo);
-        }
+		// 2Sep2013 chinajade
+		public static int SafeGuid(this WoWObject wowObject)
+		{
+			return (int)(wowObject.Guid & 0x0ffffff);
+		}
 
 
-        public static double SurfacePathDistance(this WoWObject objectFrom, WoWObject objectTo)
-        {
-            return objectFrom.Location.SurfacePathDistance(objectTo.Location);
-        }
+		public static double SurfacePathDistance(this WoWObject objectTo)
+		{
+			return StyxWoW.Me.SurfacePathDistance(objectTo);
+		}
+
+
+		public static double SurfacePathDistance(this WoWObject objectFrom, WoWObject objectTo)
+		{
+			return objectFrom.Location.SurfacePathDistance(objectTo.Location);
+		}
 
 		public static double PathTraversalCost(this WoWObject objectTo)
 		{
@@ -107,5 +107,5 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			return objectFrom.Location.PathTraversalCost(objectTo.Location);
 		}
-    }
+	}
 }

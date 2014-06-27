@@ -30,78 +30,78 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-    public partial class UtilityBehaviorPS
-    {
-        public class Looting : PrioritySelector
-        {
-            public Looting(ProvideMovementByDelegate movementByDelegate)
-            {
-                Contract.Requires(movementByDelegate != null, context => "movementByDelegate != null");
+	public partial class UtilityBehaviorPS
+	{
+		public class Looting : PrioritySelector
+		{
+			public Looting(ProvideMovementByDelegate movementByDelegate)
+			{
+				Contract.Requires(movementByDelegate != null, context => "movementByDelegate != null");
 
-                MovementByDelegate = movementByDelegate;
+				MovementByDelegate = movementByDelegate;
 
-                Children = CreateChildren();
-            }
-
-
-            // BT contruction-time properties...
-            private ProvideMovementByDelegate MovementByDelegate { get; set; }
-
-            // BT visit-time properties...
-            private WoWObject CachedLootObject { get; set; }
-
-            // Convenience properties...
+				Children = CreateChildren();
+			}
 
 
-            private List<Composite> CreateChildren()
-            {
-                return new List<Composite>()
-                {
-                    new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Loot) && LootTargeting.LootMobs,
-                        new PrioritySelector(context => CachedLootObject = Utility.LootableObject(),
-                            new Decorator(context => (CachedLootObject != null) && (CachedLootObject.Distance > CachedLootObject.InteractRange),
-                                new UtilityBehaviorPS.MoveTo(
-                                    context => CachedLootObject.Location,
-                                    context => CachedLootObject.Name,
-                                    MovementByDelegate)),
-                            new Decorator(context => CachedLootObject != null,
-                                new UtilityBehaviorPS.MoveStop())
-                        )),
-                    LevelBot.CreateLootBehavior()
-                };
-            }
-        }
-    }
+			// BT contruction-time properties...
+			private ProvideMovementByDelegate MovementByDelegate { get; set; }
+
+			// BT visit-time properties...
+			private WoWObject CachedLootObject { get; set; }
+
+			// Convenience properties...
 
 
-    public partial class UtilityBehaviorPS
-    {
-        public class WarnIfBagsFull : PrioritySelector
-        {
-            public WarnIfBagsFull()
-            {
-                Children = CreateChildren();
-            }
+			private List<Composite> CreateChildren()
+			{
+				return new List<Composite>()
+				{
+					new Decorator(context => LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Loot) && LootTargeting.LootMobs,
+						new PrioritySelector(context => CachedLootObject = Utility.LootableObject(),
+							new Decorator(context => (CachedLootObject != null) && (CachedLootObject.Distance > CachedLootObject.InteractRange),
+								new UtilityBehaviorPS.MoveTo(
+									context => CachedLootObject.Location,
+									context => CachedLootObject.Name,
+									MovementByDelegate)),
+							new Decorator(context => CachedLootObject != null,
+								new UtilityBehaviorPS.MoveStop())
+						)),
+					LevelBot.CreateLootBehavior()
+				};
+			}
+		}
+	}
 
 
-            // BT contruction-time properties...
+	public partial class UtilityBehaviorPS
+	{
+		public class WarnIfBagsFull : PrioritySelector
+		{
+			public WarnIfBagsFull()
+			{
+				Children = CreateChildren();
+			}
 
-            // BT visit-time properties...
+
+			// BT contruction-time properties...
+
+			// BT visit-time properties...
 
 
-            private List<Composite> CreateChildren()
-            {
-                return new List<Composite>()
-                {
-                    new CompositeThrottle(context => LootTargeting.LootMobs && (Me.FreeBagSlots <= 0),
-                        TimeSpan.FromSeconds(10),
-                        new ActionFail(context =>
-                        {
-                            QBCLog.Error("Honorbuddy may not be looting because your bags are full.");
-                        }))
-                };
-            }
-        }
-    }
+			private List<Composite> CreateChildren()
+			{
+				return new List<Composite>()
+				{
+					new CompositeThrottle(context => LootTargeting.LootMobs && (Me.FreeBagSlots <= 0),
+						TimeSpan.FromSeconds(10),
+						new ActionFail(context =>
+						{
+							QBCLog.Error("Honorbuddy may not be looting because your bags are full.");
+						}))
+				};
+			}
+		}
+	}
 
 }

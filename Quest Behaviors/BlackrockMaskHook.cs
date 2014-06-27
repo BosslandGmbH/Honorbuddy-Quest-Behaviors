@@ -27,14 +27,14 @@ using Styx.CommonBot.Profiles;
 
 namespace Honorbuddy.Quest_Behaviors.BlackrockMaskHook
 {
-    [CustomBehaviorFileName(@"BlackrockMaskHook")]
-    [Obsolete(@"Use Hooks\BlackrockMaskHook instead")]
-    public class BlackrockMaskHook : Hooks.BlackrockMaskHook
-    {
-        public BlackrockMaskHook(Dictionary<string, string> args)
-            : base(args)
-        {
-            QBCLog.BehaviorLoggingContext = this;
-        }
-    }
+	[CustomBehaviorFileName(@"BlackrockMaskHook")]
+	[Obsolete(@"Use Hooks\BlackrockMaskHook instead")]
+	public class BlackrockMaskHook : Hooks.BlackrockMaskHook
+	{
+		public BlackrockMaskHook(Dictionary<string, string> args)
+			: base(args)
+		{
+			QBCLog.BehaviorLoggingContext = this;
+		}
+	}
 }
