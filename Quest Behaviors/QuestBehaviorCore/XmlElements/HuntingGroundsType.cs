@@ -40,16 +40,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
 
 using Styx;
+using Styx.WoWInternals;
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
 	public class HuntingGroundsType : QuestBehaviorXmlBase
-	{        
+	{
 		#region Constructor and Argument Processing
 		public enum WaypointVisitStrategyType
 		{
@@ -57,7 +57,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			PickOneAtRandom,
 			Random,
 		}
-		
+
+
 		// 22Mar2013-11:49UTC chinajade
 		public HuntingGroundsType(XElement xElement)
 			: base(xElement)
@@ -65,17 +66,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			try
 			{
 				// Acquire the visit strategy...
-				WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null) ?? WaypointVisitStrategyType.Random;
-				if (WaypointVisitStrategy == WaypointVisitStrategyType.InOrder)
-					{ _visitStrategy = new VisitStrategy_InOrder(this); }
-				else if (WaypointVisitStrategy == WaypointVisitStrategyType.PickOneAtRandom)
-					{ _visitStrategy = new VisitStrategy_PickOneAtRandom(this); }
-				else if (WaypointVisitStrategy == WaypointVisitStrategyType.Random)
-					{ _visitStrategy = new VisitStrategy_Random(this); }
-				else
-				{
-					QBCLog.MaintenanceError("Unhandled WaypointVisitStrategy({0})", WaypointVisitStrategy);
-				}
+				WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null)
+				                        ?? WaypointVisitStrategyType.Random;
 
 				// Acquire the waypoints...
 				Waypoints = new List<WaypointType>();
@@ -94,7 +86,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 						var waypoint = new WaypointType(childElement);
 
 						if (!waypoint.IsAttributeProblem)
-						{ Waypoints.Add(waypoint); }
+							Waypoints.Add(waypoint);
 
 						IsAttributeProblem |= waypoint.IsAttributeProblem;
 					}
@@ -106,13 +98,65 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			catch (Exception except)
 			{
 				if (Query.IsExceptionReportingNeeded(except))
-					{ QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+					QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString());
 				IsAttributeProblem = true;
 			}
 		}
 
-		public WaypointVisitStrategyType WaypointVisitStrategy { get; set; }
+		public WaypointVisitStrategyType WaypointVisitStrategy
+		{
+			get
+			{
+				Contract.Requires(_visitStrategy != null, context => "WaypointVisitStrategy must first be set.");
+				return _visitStrategy.VisitStrategyType;
+			} 
+			set
+			{
+				if ((_visitStrategy == null) || (value != _visitStrategy.VisitStrategyType))
+				{
+					if (value == WaypointVisitStrategyType.InOrder)
+						_visitStrategy = new VisitStrategy_InOrder();
+					else if (value == WaypointVisitStrategyType.PickOneAtRandom)
+						_visitStrategy = new VisitStrategy_PickOneAtRandom();
+					else if (value == WaypointVisitStrategyType.Random)
+						_visitStrategy = new VisitStrategy_Random();
+					else
+					{
+						QBCLog.MaintenanceError("Unhandled WaypointVisitStrategy({0})", value);
+						_visitStrategy = null;
+					}
+
+					if (_visitStrategy != null)
+						QBCLog.DeveloperInfo("WaypointVisitStrategy set to {0}", _visitStrategy.VisitStrategyType);
+
+					// Strategy change requires current waypoint re-evaluation...
+					_indexOfCurrentWaypoint = IVisitStrategy.InvalidWaypointIndex;
+				}
+			}
+		}
+
 		public List<WaypointType> Waypoints { get; set; }
+		#endregion
+
+
+		#region Concrete class required implementations...
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return "$Id$"; } }
+		public override string SubversionRevision { get { return "$Rev$"; } }
+
+		public override XElement ToXml(string elementName = null)
+		{
+			if (string.IsNullOrEmpty(elementName))
+				elementName = "HuntingGrounds";
+
+			var root = new XElement(elementName,
+			                        new XAttribute("WaypointVisitStrategy", WaypointVisitStrategy));
+
+			foreach (var waypoint in Waypoints)
+				root.Add(waypoint.ToXml());
+
+			return root;
+		}
 		#endregion
 
 
@@ -120,39 +164,29 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 		// NB: The "initial position waypoint" is special.
 		// It is only used if no other waypoints have been defined.
-		private readonly WaypointType _initialPositionWaypoint = new WaypointType(StyxWoW.Me.Location, "my initial position");
+		private readonly WaypointType _initialPositionWaypoint = new WaypointType(WoWMovement.ActiveMover.Location, "my initial position");
 		private int _indexOfCurrentWaypoint = IVisitStrategy.InvalidWaypointIndex;
-		private readonly IVisitStrategy _visitStrategy;
+		private IVisitStrategy _visitStrategy;
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
 		#endregion
-
-
-		// 22Mar2013-11:49UTC chinajade
-		public void AppendWaypoint(WoWPoint wowPoint, string name = "", double radius = WaypointType.DefaultRadius)
-		{
-			Waypoints.Add(new WaypointType(wowPoint, name, radius));
-		}
 
 
 		// 22Apr2013-12:50UTC chinajade
 		public WaypointType CurrentWaypoint(WoWPoint? currentLocation = null)
 		{
-			currentLocation = currentLocation ?? StyxWoW.Me.Location;
+			currentLocation = currentLocation ?? WoWMovement.ActiveMover.Location;
 
 			// If we haven't initialized current waypoint yet, find first waypoint...
 			if (_indexOfCurrentWaypoint == IVisitStrategy.InvalidWaypointIndex)
-				{ _indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(); }
+				_indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(this);
 
 			// If we haven't arrived at the current waypoint, still use it...
 			var currentWaypoint = FindWaypointAtIndex(_indexOfCurrentWaypoint);
-			if (currentLocation.Value.Distance(currentWaypoint.Location) >= currentWaypoint.Radius)
-				{ return currentWaypoint; }
+			if (currentLocation.Value.Distance(currentWaypoint.Location) >= currentWaypoint.ArrivalTolerance)
+				return currentWaypoint;
 
 			// Otherwise, find next waypoint index, and return new waypoint...
-			_indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(_indexOfCurrentWaypoint);
+			_indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(this, _indexOfCurrentWaypoint);
 			return FindWaypointAtIndex(_indexOfCurrentWaypoint);
 		}
 
@@ -165,7 +199,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 		}
 
 
-	   // 22Mar2013-11:49UTC chinajade
+		// 22Mar2013-11:49UTC chinajade
 		private int FindIndexOfNearestWaypoint(WoWPoint location)
 		{
 			var indexOfNearestWaypoint = IVisitStrategy.InvalidWaypointIndex;
@@ -187,18 +221,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
 		// 11Apr2013-04:42UTC chinajade
-		public static HuntingGroundsType GetOrCreate(XElement parentElement, string elementName, WoWPoint? defaultHuntingGroundCenter = null)
+		public static HuntingGroundsType GetOrCreate(XElement parentElement, string elementName, WaypointType defaultHuntingGroundCenter = null)
 		{
 			var huntingGrounds = new HuntingGroundsType(parentElement
-													.Elements()
-													.DefaultIfEmpty(new XElement(elementName))
-													.FirstOrDefault(elem => (elem.Name == elementName)));
+				                                            .Elements()
+				                                            .DefaultIfEmpty(new XElement(elementName))
+				                                            .FirstOrDefault(elem => (elem.Name == elementName)));
 
 			if (!huntingGrounds.IsAttributeProblem)
 			{
 				// If user didn't provide a HuntingGrounds, and he provided a default center point, add it...
-				if (!huntingGrounds.Waypoints.Any() && defaultHuntingGroundCenter.HasValue)
-					{ huntingGrounds.AppendWaypoint(defaultHuntingGroundCenter.Value, "hunting ground center"); }
+				if (!huntingGrounds.Waypoints.Any() && (defaultHuntingGroundCenter != null))
+					huntingGrounds.Waypoints.Add(defaultHuntingGroundCenter);
 
 				if (!huntingGrounds.Waypoints.Any())
 				{
@@ -216,13 +250,13 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 		// This method will first look for the 'new style' (with container), and if that fails, looks for just a list of hotspots with
 		// which we can construct the object.
 		// 22Apr2013-10:29UTC chinajade
-		public static HuntingGroundsType GetOrCreate_ImpliedContainer(XElement parentElement, string elementName, WoWPoint? defaultHuntingGroundCenter = null)
+		public static HuntingGroundsType GetOrCreate_ImpliedContainer(XElement parentElement, string elementName, WaypointType defaultHuntingGroundCenter = null)
 		{
 			var huntingGrounds = GetOrCreate(parentElement, elementName, defaultHuntingGroundCenter);
 
 			// If 'new form' succeeded, we're done...
 			if (!huntingGrounds.IsAttributeProblem)
-				{ return huntingGrounds; }
+				return huntingGrounds;
 
 			// 'Old form' we have to dig out the Hotspots manually...
 			huntingGrounds = new HuntingGroundsType(new XElement(elementName));
@@ -238,39 +272,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 					if (!waypoint.IsAttributeProblem)
 					{
 						if (string.IsNullOrEmpty(waypoint.Name))
-							{  waypoint.Name = string.Format("UnnamedWaypoint{0}", ++unnamedWaypointNumber); }
+							waypoint.Name = string.Format("UnnamedWaypoint{0}", ++unnamedWaypointNumber);
 						waypoints.Add(waypoint);
 					}
 
 					huntingGrounds.IsAttributeProblem |= waypoint.IsAttributeProblem;
-				}                
+				}
 			}
 
 			return huntingGrounds;
-		}
-		
-		
-		public override string ToString()
-		{
-			return ToString_FullInfo(true);
-		}
-
-
-		// 22Mar2013-11:49UTC chinajade
-		public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
-		{
-			var tmp = new StringBuilder();
-
-			var indent = string.Empty.PadLeft(indentLevel);
-			var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-			tmp.AppendFormat("<HuntingGroundType");
-			tmp.AppendFormat("{0}WaypointVisitStrategy=\"{1}\"", fieldSeparator, WaypointVisitStrategy);
-			foreach (var waypoint in Waypoints)
-				{ tmp.AppendFormat("{0}  {1}", fieldSeparator, waypoint.ToString_FullInfo()); }
-			tmp.AppendFormat("{0}/>", fieldSeparator);
-
-			return tmp.ToString();
 		}
 
 
@@ -279,44 +289,43 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 		{
 			public const int InvalidWaypointIndex = -1;
 
-			public abstract int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex);
+			public abstract int FindIndexOfNextWaypoint(HuntingGroundsType huntingGrounds, int currentWaypointIndex = InvalidWaypointIndex);
 
-
-			protected IVisitStrategy(HuntingGroundsType huntingGrounds)
+			protected IVisitStrategy(WaypointVisitStrategyType visitStrategyType)
 			{
-				HuntingGrounds = huntingGrounds;
+				VisitStrategyType = visitStrategyType;
 			}
 
-			protected HuntingGroundsType HuntingGrounds { get; private set; }
+			public WaypointVisitStrategyType VisitStrategyType { get; private set; }
 		}
 
 
 		private class VisitStrategy_InOrder : IVisitStrategy
 		{
-			public VisitStrategy_InOrder(HuntingGroundsType huntingGrounds)
-				: base(huntingGrounds)
+			public VisitStrategy_InOrder()
+				: base(WaypointVisitStrategyType.InOrder)
 			{
 				// empty
 			}
 
 
-			public override int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex)
+			public override int FindIndexOfNextWaypoint(HuntingGroundsType huntingGrounds, int currentWaypointIndex = InvalidWaypointIndex)
 			{
 				// Current waypoint index is invalid?
 				if (currentWaypointIndex == InvalidWaypointIndex)
 				{
 					// If no waypoints defined, then nothing to choose from...
-					if (HuntingGrounds.Waypoints.Count <= 0)
-						{ return InvalidWaypointIndex; }
+					if (huntingGrounds.Waypoints.Count <= 0)
+						return InvalidWaypointIndex;
 
 					// Pick initial waypoint--the nearest one from the list of available waypoints...
-					return HuntingGrounds.FindIndexOfNearestWaypoint(StyxWoW.Me.Location);
+					return huntingGrounds.FindIndexOfNearestWaypoint(WoWMovement.ActiveMover.Location);
 				}
 
 				// Waypoint is simply next one in the list, and wrap around if we've reached the end...
 				++currentWaypointIndex;
-				if (currentWaypointIndex >= HuntingGrounds.Waypoints.Count)
-					{ currentWaypointIndex = 0; }
+				if (currentWaypointIndex >= huntingGrounds.Waypoints.Count)
+					currentWaypointIndex = 0;
 
 				return currentWaypointIndex;
 			}
@@ -325,23 +334,23 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 		private class VisitStrategy_PickOneAtRandom : IVisitStrategy
 		{
-			public VisitStrategy_PickOneAtRandom(HuntingGroundsType huntingGrounds)
-				: base(huntingGrounds)
+			public VisitStrategy_PickOneAtRandom()
+				: base(WaypointVisitStrategyType.PickOneAtRandom)
 			{
 				// empty
 			}
 
-			public override int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex)
+			public override int FindIndexOfNextWaypoint(HuntingGroundsType huntingGrounds, int currentWaypointIndex = InvalidWaypointIndex)
 			{
 				// Current waypoint index is invalid?
 				if (currentWaypointIndex == InvalidWaypointIndex)
 				{
 					// If no waypoints defined, then nothing to choose from...
-					if (HuntingGrounds.Waypoints.Count <= 0)
-						{ return InvalidWaypointIndex; }
+					if (huntingGrounds.Waypoints.Count <= 0)
+						return InvalidWaypointIndex;
 
 					// Pick initial waypoint--a random waypoint from those available on the list...
-					return QuestBehaviorBase._random.Next(0, HuntingGrounds.Waypoints.Count);
+					return QuestBehaviorBase._random.Next(0, huntingGrounds.Waypoints.Count);
 				}
 
 				// Once waypoint is selected, we continue to use it...
@@ -352,21 +361,21 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 		private class VisitStrategy_Random : IVisitStrategy
 		{
-			public VisitStrategy_Random(HuntingGroundsType huntingGrounds)
-				: base(huntingGrounds)
+			public VisitStrategy_Random()
+				: base(WaypointVisitStrategyType.Random)
 			{
 				// empty
 			}
 
 
-			public override int FindIndexOfNextWaypoint(int currentWaypointIndex = InvalidWaypointIndex)
+			public override int FindIndexOfNextWaypoint(HuntingGroundsType huntingGrounds, int currentWaypointIndex = InvalidWaypointIndex)
 			{
 				// Current waypoint index is invalid?
 				if (currentWaypointIndex == InvalidWaypointIndex)
 				{
 					// If no waypoints defined, then nothing to choose from...
-					if (HuntingGrounds.Waypoints.Count <= 0)
-						{ return InvalidWaypointIndex; }
+					if (huntingGrounds.Waypoints.Count <= 0)
+						return InvalidWaypointIndex;
 
 					// Pick initial waypoint--fall through to pick initial waypoint...
 				}
@@ -377,14 +386,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 				int newWaypointIndex;
 				do
 				{
-					newWaypointIndex = QuestBehaviorBase._random.Next(0, HuntingGrounds.Waypoints.Count);
-				} while ((HuntingGrounds.Waypoints.Count > 1) && (currentWaypointIndex == newWaypointIndex));
+					newWaypointIndex = QuestBehaviorBase._random.Next(0, huntingGrounds.Waypoints.Count);
+				} while ((huntingGrounds.Waypoints.Count > 1) && (currentWaypointIndex == newWaypointIndex));
 
 				return newWaypointIndex;
 			}
 		}
-
-
 		#endregion
 	}
 }

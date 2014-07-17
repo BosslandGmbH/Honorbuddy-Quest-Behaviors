@@ -8,77 +8,69 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Usings
 using System;
-using System.Text;
 using System.Xml.Linq;
-
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
-	public class SpellType : QuestBehaviorXmlBase
-	{        
-		public SpellType(XElement xElement)
-			: base(xElement)
-		{
-			try
-			{
-				Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-				SpellId = GetAttributeAsNullable<int>("SpellId", true, ConstrainAs.SpellId, null) ?? 0;
+    public class SpellType : QuestBehaviorXmlBase
+    {        
+        public SpellType(XElement xElement)
+            : base(xElement)
+        {
+            try
+            {
+                Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                SpellId = GetAttributeAsNullable<int>("SpellId", true, ConstrainAs.SpellId, null) ?? 0;
 
-				if (string.IsNullOrEmpty(Name))
-					{ Name = GetDefaultName(SpellId); }
+                if (string.IsNullOrEmpty(Name))
+                    { Name = GetDefaultName(SpellId); }
 
-				HandleAttributeProblem();
-			}
+                HandleAttributeProblem();
+            }
 
-			catch (Exception except)
-			{
-				if (Query.IsExceptionReportingNeeded(except))
-					{ QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                if (Query.IsExceptionReportingNeeded(except))
+                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+                IsAttributeProblem = true;
+            }
+        }
 
-		public SpellType(int spellId, string name = null)
-		{
-			Name = name ?? GetDefaultName(SpellId);
-			SpellId = spellId;
-		}
+        public SpellType(int spellId, string name = null)
+        {
+            Name = name ?? GetDefaultName(SpellId);
+            SpellId = spellId;
+        }
 
-		public string Name { get; set; }
-		public int SpellId { get; set; }
+        public string Name { get; set; }
+        public int SpellId { get; set; }
 
+
+		#region Concrete class required implementations...
 		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
-
-		public override string ToString()
+		public override XElement ToXml(string elementName = null)
 		{
-			return ToString_FullInfo(true);
+			if (string.IsNullOrEmpty(elementName))
+				elementName = "Spell";
+
+			return
+				new XElement(elementName,
+				             new XAttribute("Name", Name),
+				             new XAttribute("SpellId", SpellId));
 		}
-
-
-		public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
-		{
-			var tmp = new StringBuilder();
-
-			var indent = string.Empty.PadLeft(indentLevel);
-			var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-			tmp.AppendFormat("<Spell");
-			tmp.AppendFormat("{0}SpellId=\"{1}\"", fieldSeparator, SpellId);
-			tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
-			tmp.AppendFormat("{0}/>", fieldSeparator);
-
-			return tmp.ToString();
-		}
+		#endregion
 
 
 		private string GetDefaultName(int spellId)
-		{
-			return string.Format("SpellId({0})", spellId);
-		}
-	}
+        {
+            return string.Format("SpellId({0})", spellId);
+        }
+    }
 }

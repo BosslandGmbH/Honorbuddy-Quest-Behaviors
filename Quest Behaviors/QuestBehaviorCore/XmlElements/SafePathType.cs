@@ -8,15 +8,15 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Xml.Linq;
 
 using Styx;
-using Styx.Pathing;
 using Styx.WoWInternals.WoWObjects;
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
@@ -46,7 +46,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 					var waypoint = new WaypointType(childElement);
 
 					if (!waypoint.IsAttributeProblem)
-						{ Waypoints.Add(waypoint); }
+						Waypoints.Add(waypoint);
 
 					IsAttributeProblem |= waypoint.IsAttributeProblem;
 				}
@@ -57,34 +57,47 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			catch (Exception except)
 			{
 				if (Query.IsExceptionReportingNeeded(except))
-					{ QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+					QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString());
 				IsAttributeProblem = true;
 			}
 		}
-
 
 		public bool DismissPet { get; private set; }
 		public double EgressDistance { get; private set; }
 		public StrategyType Strategy { get; private set; }
 		public IList<WaypointType> Waypoints { get; private set; }
 
+
+		#region Concrete class required implementations...
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return "$Id$"; } }
 		public override string SubversionRevision { get { return "$Rev$"; } }
 
-
-		public void AppendWaypoint(WoWPoint wowPoint, string name = "", double radius = 7.0)
+		public override XElement ToXml(string elementName = null)
 		{
-			Waypoints.Add(new WaypointType(wowPoint, name, radius));
+			if (string.IsNullOrEmpty(elementName))
+				elementName = "SafePath";
+
+			var root = new XElement(elementName,
+			                        new XAttribute("DismissPet", DismissPet),
+			                        new XAttribute("EgressDistance", EgressDistance),
+			                        new XAttribute("Strategy", Strategy));
+
+			foreach (var waypoint in Waypoints)
+				root.Add(waypoint.ToXml("Hotspot"));
+
+			return root;
 		}
-		
-		
+		#endregion
+
+
 		public void DismissPetIfNeeded()
 		{
 			if (DismissPet && StyxWoW.Me.GotAlivePet)
-				{ PetControl.PetDismiss(); }
+				PetControl.PetDismiss();
 		}
-		
+
+
 		/// <summary>
 		/// <para>Returns an egress path, which is simply a reversal of the path we used to ingress.
 		/// If MOBTOAVOID is provided, we use the mob's location to determine our starting point
@@ -100,21 +113,21 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 			theWayOut.Reverse();
 
-			WaypointType egressStartPoint =
+			var egressStartPoint =
 				(from waypoint in theWayOut
 				 let mobDistanceToPoint = (mobToAvoid != null)
 											  ? waypoint.Location.Distance(mobToAvoid.Location)
 											  : float.MaxValue
-				let myDistanceToPoint = waypoint.Location.Distance(StyxWoW.Me.Location)
-				where
-					myDistanceToPoint < mobDistanceToPoint
-				orderby
-					myDistanceToPoint
-				select waypoint)
+				 let myDistanceToPoint = waypoint.Location.Distance(StyxWoW.Me.Location)
+				 where
+					 myDistanceToPoint < mobDistanceToPoint
+				 orderby
+					 myDistanceToPoint
+				 select waypoint)
 				.FirstOrDefault();
 
 			while (theWayOut[0] != egressStartPoint)
-				{ theWayOut.RemoveAt(0); }
+				theWayOut.RemoveAt(0);
 
 			return new Queue<WaypointType>(theWayOut);
 		}
@@ -130,7 +143,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 		{
 			var theWayIn = new List<WaypointType>(Waypoints);
 
-			WaypointType ingressStartPoint =
+			var ingressStartPoint =
 			   (from waypoint in theWayIn
 				let myDistanceToPoint = waypoint.Location.Distance(StyxWoW.Me.Location)
 				orderby
@@ -139,7 +152,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 				.FirstOrDefault();
 
 			while (theWayIn[0] != ingressStartPoint)
-				{ theWayIn.RemoveAt(0); }
+				theWayIn.RemoveAt(0);
 
 			return new Queue<WaypointType>(theWayIn);
 		}
@@ -164,7 +177,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			{
 				// If user didn't provide a HuntingGrounds, and he provided a default center point, add it...
 				if (!safePath.Waypoints.Any() && safespotLocation.HasValue)
-					{ safePath.AppendWaypoint(safespotLocation.Value, "safe spot"); }
+					safePath.Waypoints.Add(new WaypointType(safespotLocation.Value, "safe spot", 7.0));
 
 				if (!safePath.Waypoints.Any())
 				{
@@ -175,30 +188,6 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			}
 
 			return safePath;
-		}
-
-		
-		public override string ToString()
-		{
-			return ToString_FullInfo(true);
-		}
-
-
-		public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
-		{
-			var tmp = new StringBuilder();
-
-			var indent = string.Empty.PadLeft(indentLevel);
-			var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-			tmp.AppendFormat("{0}DismissPet=\"{1}\"", fieldSeparator, DismissPet);
-			tmp.AppendFormat("{0}EgressDistance=\"{1}\"", fieldSeparator, EgressDistance);
-			tmp.AppendFormat("{0}Strategy=\"{1}\"", fieldSeparator, Strategy);
-			foreach (var waypoint in Waypoints)
-				{ tmp.AppendFormat("{0}  {1}", fieldSeparator, waypoint.ToString_FullInfo(useCompactForm, indentLevel+4)); }
-			tmp.AppendFormat("{0}/>", fieldSeparator);
-
-			return tmp.ToString();
 		}
 	}
 }

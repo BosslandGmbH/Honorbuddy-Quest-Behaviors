@@ -12,10 +12,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Windows.Media;
 
 using Styx;
-using Styx.Common;
 using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.World;
@@ -105,6 +103,10 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			Contract.Requires(maxRadius >= 0.0, context => "maxRadius >= 0.0");
 
+			// Optimize situations where we want the exact point...
+			if (maxRadius <= 0.0)
+				return location;
+
 			const int CYLINDER_LINE_COUNT = 12;
 			const int MAX_TRIES = 50;
 			const double SAFE_DISTANCE_BUFFER = 1.75;
@@ -118,21 +120,42 @@ namespace Honorbuddy.QuestBehaviorCore
 			// random number generator.
 			for (tryCount = MAX_TRIES; tryCount > 0; --tryCount)
 			{
-				WoWPoint circlePoint;
 				bool[] hitResults;
 				WoWPoint[] hitPoints;
-				int index;
-				WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
+				Func<double, double> weightedRandomRadius =
+					(radiusMaximum) =>
+						{
+							return
+								(_random.Next(101) < 80)
+									// We want a large number of the candidate magnitudes to be near the max range.
+									// This encourages toons to 'spread out'.
+									? ((radiusMaximum * 0.70) + (radiusMaximum * 0.30 * _random.NextDouble()))
+									: (radiusMaximum*_random.NextDouble());
+						};
+				var traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
+				candidateDestination = location.AddPolarXY((TAU*_random.NextDouble()), weightedRandomRadius(maxRadius), 0.0);
 
+				// If destination is in the air...
+				if (!IsOverGround(candidateDestination, 3.0))
+				{
+					// If we don't have clear LoS between the specified and candidate destinations, the candidate is unsuitable...
+					if (GameWorld.TraceLine(location, candidateDestination, GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures))
+						continue;
+
+					// Otherwise, we have our candidate destination...
+					break;
+				}
+
+
+				// Ground-based destinations...
 				// Build set of tracelines that can evaluate the candidate destination --
 				// We build a cone of lines with the cone's base at the destination's 'feet',
 				// and the cone's point at maxRadius over the destination's 'head'.  We also
 				// include the cone 'normal' as the first entry.
 
 				// 'Normal' vector
-				index = 0;
+				var index = 0;
 				traceLines[index].Start = candidateDestination.Add(0.0, 0.0, maxRadius);
 				traceLines[index].End = candidateDestination.Add(0.0, 0.0, -maxRadius);
 
@@ -140,7 +163,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				for (double turnFraction = 0.0; turnFraction < TAU; turnFraction += (TAU / CYLINDER_LINE_COUNT))
 				{
 					++index;
-					circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
+					var circlePoint = candidateDestination.AddPolarXY(turnFraction, SAFE_DISTANCE_BUFFER, 0.0);
 					traceLines[index].Start = circlePoint.Add(0.0, 0.0, maxRadius);
 					traceLines[index].End = circlePoint.Add(0.0, 0.0, -maxRadius);
 				}
@@ -163,23 +186,23 @@ namespace Honorbuddy.QuestBehaviorCore
 				// a plaform or pier).  If there is not solid ground all around us, we reject
 				// the candidate.  Our test for validity is that the walking distance must
 				// not be more than 20% greater than the straight-line distance to the point.
-				int viableVectorCount = hitPoints.Sum(point => ((Me.Location.PathTraversalCost(point) < (Me.Location.Distance(point) * 1.20))
-																	  ? 1
-																	  : 0));
+				int viableVectorCount = hitPoints.Sum(point => ((location.PathTraversalCost(point) < (location.Distance(point) * 1.20))
+																? 1
+																: 0));
 
-				if (viableVectorCount < (CYLINDER_LINE_COUNT + 1))
-				{ continue; }
+				if (viableVectorCount < (CYLINDER_LINE_COUNT * 0.8))
+					continue;
 
 				// If new destination is 'too close' to our current position, try again...
-				if (Me.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
-				{ continue; }
+				if (WoWMovement.ActiveMover.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
+					continue;
 
 				break;
 			}
 
 			// If we exhausted our tries, just go with simple destination --
 			if (tryCount <= 0)
-			{ candidateDestination = location; }
+				candidateDestination = location;
 
 			return (candidateDestination);
 		}
@@ -301,9 +324,9 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			var pathDistance = Me.Location.SurfacePathDistance(destination);
 
-			float distanceToCover = 
-				!float.IsNaN(pathDistance) 
-				? pathDistance 
+			float distanceToCover =
+				!float.IsNaN(pathDistance)
+				? pathDistance
 				: WoWMovement.ActiveMover.Location.Distance(destination);
 
 			// these speeds have been verified.
@@ -324,7 +347,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			// was unable to calculate a path to the target.  This puts an upper limit on such
 			// bogus values.
 			if (upperLimitOnMaxTime.HasValue)
-			{ timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime.Value.TotalSeconds); }
+				timeToDestination = Math.Min(timeToDestination, upperLimitOnMaxTime.Value.TotalSeconds);
 
 			return (TimeSpan.FromSeconds(timeToDestination));
 		}
@@ -368,7 +391,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (SurfacePathDistanceCache.TryGet(start, destination, out pathDistance))
 				return pathDistance;
 
-			var groundPath = new WoWPoint[] {};
+			var groundPath = new WoWPoint[] { };
 
 			bool canFullyNavigate;
 
@@ -403,7 +426,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			// Include distance for each point in path...
 			for (int i = 0; i < (groundPath.Length - 1); ++i)
-			{ pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
+				pathDistance += groundPath[i].Distance(groundPath[i + 1]);
 
 			// Sanity check...
 			Contract.Provides(
@@ -418,11 +441,10 @@ namespace Honorbuddy.QuestBehaviorCore
 		public static WoWPoint WaterSurface(this WoWPoint location)
 		{
 			WoWPoint hitLocation;
-			bool hitResult;
 			WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
 			WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
-			hitResult = (GameWorld.TraceLine(locationUpper,
+			var hitResult = (GameWorld.TraceLine(locationUpper,
 											 locationLower,
 											 (GameWorld.CGWorldFrameHitFlags.HitTestLiquid
 											  | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2),
@@ -521,6 +543,5 @@ namespace Honorbuddy.QuestBehaviorCore
 		}
 
 		#endregion
-
 	}
 }

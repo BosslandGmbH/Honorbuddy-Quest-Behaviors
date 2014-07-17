@@ -8,81 +8,71 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Usings
 using System;
-using System.Text;
 using System.Xml.Linq;
-
-using Styx;
-using Styx.CommonBot.Profiles;
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
-	public class MobType : QuestBehaviorXmlBase
-	{
-		#region Constructor and Argument Processing
-		public MobType(XElement xElement)
-			: base(xElement)
+    public class MobType : QuestBehaviorXmlBase
+    {
+        #region Constructor and Argument Processing
+        public MobType(XElement xElement)
+            : base(xElement)
+        {
+            try
+            {
+                Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                Entry = GetAttributeAsNullable<int>("Entry", false, ConstrainAs.MobId, null)
+                    ?? GetAttributeAsNullable<int>("Id", false, ConstrainAs.MobId, null)
+                    ?? 0;
+
+                if (Entry == 0)
+                {
+                    QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
+                        "Attribute '{1}' is required, but was not provided.",
+                        Environment.NewLine,
+                        "Entry"));
+                    IsAttributeProblem = true;
+                }
+
+                HandleAttributeProblem();
+            }
+
+            catch (Exception except)
+            {
+                if (Query.IsExceptionReportingNeeded(except))
+                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+                IsAttributeProblem = true;
+            }
+        }
+
+        public string Name { get; set; }
+        public int Entry { get; set; }
+        #endregion
+
+
+		#region Concrete class required implementations...
+		// DON'T EDIT THESE--they are auto-populated by Subversion
+		public override string SubversionId { get { return "$Id$"; } }
+		public override string SubversionRevision { get { return "$Rev$"; } }
+
+		public override XElement ToXml(string elementName = null)
 		{
-			try
-			{
-				Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-				Entry = GetAttributeAsNullable<int>("Entry", false, ConstrainAs.MobId, null)
-					?? GetAttributeAsNullable<int>("Id", false, ConstrainAs.MobId, null)
-					?? 0;
+			if (string.IsNullOrEmpty(elementName))
+				elementName = "Mob";
 
-				if (Entry == 0)
-				{
-					QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
-						"Attribute '{1}' is required, but was not provided.",
-						Environment.NewLine,
-						"Entry"));
-					IsAttributeProblem = true;
-				}
-
-				HandleAttributeProblem();
-			}
-
-			catch (Exception except)
-			{
-				if (Query.IsExceptionReportingNeeded(except))
-					{ QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
-				IsAttributeProblem = true;
-			}
+			return
+				new XElement(elementName,
+					new XAttribute("Name", Name),
+					new XAttribute("Id", Entry));
 		}
-
-		public string Name { get; set; }
-		public int Entry { get; set; }
 		#endregion
 
 
 		#region Private and Convenience variables
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
-		#endregion
-
-
-		public override string ToString()
-		{
-			return ToString_FullInfo(true);
-		}
-
-
-		public string ToString_FullInfo(bool useCompactForm = false, int indentLevel = 0)
-		{
-			var tmp = new StringBuilder();
-
-			var indent = string.Empty.PadLeft(indentLevel);
-			var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
-
-			tmp.AppendFormat("<MobType");
-			tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, Name);
-			tmp.AppendFormat("{0}Id=\"{1}\"", fieldSeparator, Entry);
-			tmp.AppendFormat("{0}/>", fieldSeparator);
-
-			return tmp.ToString();
-		}
-	}
+        #endregion
+    }
 }

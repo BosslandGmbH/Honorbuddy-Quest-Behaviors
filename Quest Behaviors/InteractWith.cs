@@ -221,8 +221,8 @@
 //                  (you know which waypoint to be fiddling with).
 //              X/Y/Z [REQUIRED; Default: none]
 //                  The world coordinates of the waypoint.
-//              Radius [optional; Default: 10.0]
-//                  Once the toon gets within Radius of the waypoint, the next waypoint
+//              ArrivalTolerance [optional; Default: 1.5]
+//                  Once the toon gets within ArrivalTolerance of the waypoint, the next waypoint
 //                  will be sought.
 //
 // THiNGS TO KNOW:
@@ -687,7 +687,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			// Hunting ground processing...
 			// NB: We had to defer this processing from the constructor, because XElement isn't available
 			// to parse child XML nodes until OnStart() is called.
-			HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+			HuntingGrounds = HuntingGroundsType.GetOrCreate(Element,
+															"HuntingGrounds",
+															new WaypointType(HuntingGroundCenter, "hunting ground center"));
 			IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
 			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
@@ -786,8 +788,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private async Task<bool> MainCoroutine()
 		{
 			// return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
-			bool shouldFight = Targeting.Instance.FirstUnit != null 
-				&& LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat) 
+			bool shouldFight = Targeting.Instance.FirstUnit != null
+				&& LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat)
 				&& (Me.Combat || LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Pull));
 
 			if (IsDone || shouldFight)
@@ -826,7 +828,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					_waitForInventoryItem = new UtilityCoroutine.WaitForInventoryItem(() => InteractByUsingItemId, () => BehaviorDone());
 				// return if waiting for item to show up in bags.
 				if (await _waitForInventoryItem)
-					return true; 
+					return true;
 				ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
 			}
 
@@ -847,7 +849,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 				// If we're looking for 'dead' targets, and there are none...
 				// But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
-				if ( (SelectedTarget == null) && (!Query.IsViable(SelectedAliveTarget) || !SelectedAliveTarget.IsAlive) 
+				if ((SelectedTarget == null) && (!Query.IsViable(SelectedAliveTarget) || !SelectedAliveTarget.IsAlive)
 					&& (MobState == MobStateType.Dead))
 				{
 					SelectedAliveTarget = FindViableTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
@@ -858,7 +860,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 			// break if we have something else to do.
 			if (!Query.IsPoiIdle(BotPoi.Current))
-				return false; 
+				return false;
 
 			// No mobs in immediate vicinity...
 			// NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
@@ -1900,11 +1902,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			if (!IsQuestFrameVisible)
 				return string.Empty;
-			
+
 			var shownQuestId = QuestFrame.Instance.CurrentShownQuestId;
 			if (shownQuestId == 0)
 				return "No quest is shown in quest frame";
-			
+
 			var quest = Quest.FromId(shownQuestId);
 			return string.Format("The quest: {0} (Id: {1}) is shown in quest frame", quest.Name, quest.Id);
 		}

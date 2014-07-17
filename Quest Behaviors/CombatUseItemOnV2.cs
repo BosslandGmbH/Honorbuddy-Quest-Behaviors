@@ -262,9 +262,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 				string itemUseAlwaysSucceeds = GetAttributeAs<string>("ItemAppliesAuraId", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 				if (itemUseAlwaysSucceeds == "AssumeItemUseAlwaysSucceeds")
-					{ ItemAppliesAuraId = 0; }
+				{ ItemAppliesAuraId = 0; }
 				else
-					{ ItemAppliesAuraId = GetAttributeAsNullable<int>("ItemAppliesAuraId", false, ConstrainAs.AuraId, null) ?? 0; }
+				{ ItemAppliesAuraId = GetAttributeAsNullable<int>("ItemAppliesAuraId", false, ConstrainAs.AuraId, null) ?? 0; }
 
 				MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
 				UseWhenMeHasAuraId = GetAttributeAsNullable<int>("UseWhenMeHasAuraId", false, ConstrainAs.AuraId, null) ?? 0;
@@ -281,7 +281,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 				// Tunables...
 				CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-				InteractBlacklistTimeInSeconds = GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null) ?? 180; 
+				InteractBlacklistTimeInSeconds = GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null) ?? 180;
 				MaxRangeToUseItem = GetAttributeAsNullable<double>("MaxRangeToUseItem", false, ConstrainAs.Range, null) ?? 25.0;
 				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimesToUseItem", false, ConstrainAs.RepeatCount, null) ?? 1;
 				RecallPetAtMobPercentHealth = GetAttributeAsNullable<double>("RecallPetAtMobPercentHealth", false, ConstrainAs.Percent, null) ?? UseWhenMobHasHealthPercent;
@@ -378,7 +378,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 			// Hunting ground processing...
 			// NB: We had to defer this processing from the constructor, because XElement isn't available
 			// to parse child XML nodes until OnStart() is called.
-			HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+			HuntingGrounds =
+				HuntingGroundsType.GetOrCreate(Element,
+											   "HuntingGrounds",
+											   (HuntingGroundCenter.HasValue
+													? new WaypointType(HuntingGroundCenter.Value, "hunting ground center")
+													: null));
 			IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
 			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
@@ -486,16 +491,16 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 				// Go after viable target...
 				new Decorator(context => Query.IsViable(SelectedTarget),
-					// HV: there's no range restriction on POI.Kill so this isn't needed anymore.
-					//new PrioritySelector(
-					//    new Decorator(context => SelectedTarget.Distance >= CharacterSettings.Instance.PullDistance,
-					//        new UtilityBehaviorPS.MoveTo(
-					//            context => SelectedTarget.Location,
-					//            context => SelectedTarget.Name,
-					//            context => MovementBy)),
-						// Set Kill POI, if Honorbuddy doesn't think there is anything to do...
-						// NB: We don't want to do this blindly (i.e., we check for PoiType.None), to allow HB
-						// the decision to loot/sell/repair/etc as needed.
+				// HV: there's no range restriction on POI.Kill so this isn't needed anymore.
+				//new PrioritySelector(
+				//    new Decorator(context => SelectedTarget.Distance >= CharacterSettings.Instance.PullDistance,
+				//        new UtilityBehaviorPS.MoveTo(
+				//            context => SelectedTarget.Location,
+				//            context => SelectedTarget.Name,
+				//            context => MovementBy)),
+				// Set Kill POI, if Honorbuddy doesn't think there is anything to do...
+				// NB: We don't want to do this blindly (i.e., we check for PoiType.None), to allow HB
+				// the decision to loot/sell/repair/etc as needed.
 						new DecoratorIsPoiType(PoiType.None,
 							new ActionFail(context => Utility.Target(SelectedTarget, false, PoiType.Kill)))
 					),
@@ -556,10 +561,10 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 							{
 								// We use LUA to stop casting, since SpellManager.StopCasting() doesn't seem to work...
 								if (Me.IsCasting)
-									{ Lua.DoString("SpellStopCasting()"); }
+								{ Lua.DoString("SpellStopCasting()"); }
 
 								if (Me.IsAutoAttacking)
-									{ Lua.DoString("StopAttack()"); }
+								{ Lua.DoString("StopAttack()"); }
 
 								TreeRoot.StatusText = string.Format("Combat halted--waiting for {0} to become usable.",
 									Utility.GetItemNameFromId(ItemId));
@@ -574,7 +579,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 									BehaviorDone(string.Format("Terminating behavior due to missing {0}",
 										Utility.GetItemNameFromId(ItemId)));
 								}),
-							// Allow a brief time for WoWclient to apply aura to mob...
+				// Allow a brief time for WoWclient to apply aura to mob...
 							new WaitContinue(TimeSpan.FromMilliseconds(5000),
 								context => ItemUseAlwaysSucceeds || SelectedTarget.HasAura(ItemAppliesAuraId),
 								new ActionAlwaysSucceed()),
@@ -586,7 +591,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 								{
 									// Count our success if no associated quest...
 									if (QuestId == 0)
-										{ ++Counter; }
+									{ ++Counter; }
 
 									// If we can only use the item once per target, blacklist this target from subsequent selection...
 									if ((UseItemStrategy == UseItemStrategyType.UseItemOncePerTarget)
@@ -636,7 +641,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 		private double HealthPercentToStopCombat(WoWUnit target)
 		{
 			if (!Query.IsViable(target))
-				{ return 0.0; }
+			{ return 0.0; }
 
 			var harmfulAuraCount = target.Debuffs.Values.Sum(a => Math.Max(1, a.StackCount));
 
