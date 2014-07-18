@@ -986,7 +986,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				}
 
 				// Peg tally, if follow-up actions not expected...
-				if (!IsFrameExpectedFromInteraction())
+				if (!IsFrameExpectedFromInteraction)
 				{
 					// NB: Some targets go invalid immediately after interacting with them.
 					// So we must make certain that we don't intend to use such invalid targets
@@ -1124,12 +1124,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private async Task<bool> SubCoroutine_HandleFramesComplete()
 		{
-			if (IsFrameExpectedFromInteraction()
-				&& (IsGossipFrameVisible
-				|| IsMerchantFrameVisible
-				|| IsQuestFrameVisible
-				|| IsTaxiFrameVisible
-				|| IsTrainerFrameVisible))
+			if (IsExpectedFrameOpen)
 			{
 				TreeRoot.StatusText = string.Format("Interaction with {0} complete.", GetName(SelectedTarget));
 				CloseOpenFrames();
@@ -1754,17 +1749,38 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		}
 
 
-		private bool IsFrameExpectedFromInteraction()
+		private bool IsFrameExpectedFromInteraction 
 		{
-			// NB: InteractByLoot is nothing more than a normal "right click" activity
-			// on something. If something is normally 'lootable', HBcore will deal with it.
-			return
-				(InteractByBuyingItemId > 0)
-				|| (InteractByBuyingItemInSlotNum > -1)
-				|| (InteractByGossipOptions.Length > 0)
-				|| (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
-				|| (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
-				|| (InteractByQuestFrameAction == QuestFrameDisposition.Continue);
+			get
+			{
+				// NB: InteractByLoot is nothing more than a normal "right click" activity
+				// on something. If something is normally 'lootable', HBcore will deal with it.
+				return
+					(InteractByBuyingItemId > 0)
+					|| (InteractByBuyingItemInSlotNum > -1)
+					|| (InteractByGossipOptions.Length > 0)
+					|| (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
+					|| (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
+					|| (InteractByQuestFrameAction == QuestFrameDisposition.Continue);
+			}
+		}
+
+
+		private bool IsExpectedFrameOpen
+		{
+			get 
+			{
+				if (InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > -1)
+					return IsGossipFrameVisible || IsMerchantFrameVisible;
+
+				if (InteractByGossipOptions.Length > 0)
+					return IsGossipFrameVisible;
+
+				if (InteractByQuestFrameAction != QuestFrameDisposition.Ignore)
+					return IsGossipFrameVisible || IsQuestFrameVisible;
+
+				return false;
+			}
 		}
 
 

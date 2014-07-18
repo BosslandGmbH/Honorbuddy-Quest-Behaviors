@@ -100,6 +100,9 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 		private async Task<bool> MainLogic()
 		{
+			if (!Me.IsAlive)
+				return false;
+
 			var bomb = Me.BagItems.FirstOrDefault(i => Query.IsViable(i) && i.Entry == 60849 || i.Entry == 60678);
 			var bunny = ObjectManager.GetObjectsOfType<WoWUnit>()
 				.Where(r => r.Entry == 44360)

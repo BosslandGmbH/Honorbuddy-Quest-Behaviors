@@ -227,7 +227,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
-
+using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -574,6 +574,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 				CharacterSettings.Instance.NinjaSkin = false;
 				CharacterSettings.Instance.SkinMobs = false;
 				CharacterSettings.Instance.PullDistance = 5;    // don't pull anything we don't have to
+				LevelBot.BehaviorFlags &= ~BehaviorFlags.Vendor;
 
 				// If search path not provided, use our current location...
 				if (_searchPath.Count() <= 0)
