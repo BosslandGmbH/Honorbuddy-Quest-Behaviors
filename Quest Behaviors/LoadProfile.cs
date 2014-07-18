@@ -87,6 +87,7 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 
 		// Private properties
 		private String CurrentProfile { get { return (ProfileManager.XmlLocation); } }
+		private bool IsStoreProfile { get { return CurrentProfile.StartsWith("store://"); } }
 		private String NewProfilePath { get; set; }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
@@ -134,7 +135,8 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 					new Action(delegate { QBCLog.Info("Behavior complete"); })),
 
 				// If file does not exist, notify of problem...
-				new Decorator(ret => !File.Exists(NewProfilePath),
+				// Support for store profiles. They are handled by HB when there is no profile with given path
+				new Decorator(ret => !IsStoreProfile && !File.Exists(NewProfilePath),
 					new Action(delegate
 					{
 						QBCLog.Fatal("Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
@@ -184,6 +186,13 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 			if (!IsDone)
 			{
 				this.UpdateGoalText(0);
+
+				// Support for store profiles
+				if (IsStoreProfile)
+				{
+					NewProfilePath = CurrentProfile + "/../" + ProfileName;
+					return;
+				}
 
 				// Convert path name to absolute, and canonicalize it...
 				var absolutePath = Path.Combine(Path.GetDirectoryName(CurrentProfile), ProfileName);

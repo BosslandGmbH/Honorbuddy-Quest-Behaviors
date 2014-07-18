@@ -119,7 +119,20 @@ namespace Styx.Bot.Quest_Behaviors
 		// Disabled until I can find out a safer way to to it.
 		// private static PartyMembers[] _partyMembers;
 		private String CurrentProfile { get { return (ProfileManager.XmlLocation); } }
-		private String NewLocalProfilePath { get { return (Path.Combine(Path.GetDirectoryName(CurrentProfile), ProfileName)); } }
+
+		private bool IsStoreProfile { get { return CurrentProfile.StartsWith("store://"); } }
+
+		private String NewLocalProfilePath
+		{
+			get
+			{
+				if (IsStoreProfile)
+					return CurrentProfile + "/../" + ProfileName;
+
+				return (Path.Combine(Path.GetDirectoryName(CurrentProfile), ProfileName));
+			}
+		}
+
 		private String NewRemoteProfilePath { get { return (Path.Combine(RemotePath, ProfileName)); } }
 		public WoWPoint MyHotSpot = WoWPoint.Empty;
 		#endregion
@@ -424,23 +437,21 @@ namespace Styx.Bot.Quest_Behaviors
 			#region ProfileName
 				// Load the local profile...
 					new Decorator(context => (ProfileName != "" && RemotePath == ""),
-						new Sequence(
+						new PrioritySelector(
 				// Local Profile doesn't exist.
-							new DecoratorContinue(context => !File.Exists(NewLocalProfilePath),
+							new Decorator(context => !IsStoreProfile && !File.Exists(NewLocalProfilePath),
 								new Sequence(
 									new Action(context => QBCLog.Error("Profile '{0}' does not exist.", ProfileName)),
 									new Action(context => _isBehaviorDone = true)
 								)
 							),
 				// Everything is ok, Load the local Profile.
-							new DecoratorContinue(context => File.Exists(NewLocalProfilePath),
-								new Sequence(
-									new Action(context => TreeRoot.StatusText = "Loading profile '" + ProfileName + "'"),
-									new Action(context => QBCLog.Error("Loading profile '{0}'", ProfileName)),
-									new Action(context => ProfileManager.LoadNew(NewLocalProfilePath, false)),
-									new WaitContinue(TimeSpan.FromMilliseconds(300), context => false, new ActionAlwaysSucceed()),
-									new Action(context => _isBehaviorDone = true)
-								)
+							new Sequence(
+								new Action(context => TreeRoot.StatusText = "Loading profile '" + ProfileName + "'"),
+								new Action(context => QBCLog.Error("Loading profile '{0}'", ProfileName)),
+								new Action(context => ProfileManager.LoadNew(NewLocalProfilePath, false)),
+								new WaitContinue(TimeSpan.FromMilliseconds(300), context => false, new ActionAlwaysSucceed()),
+								new Action(context => _isBehaviorDone = true)
 							)
 						)
 					),
