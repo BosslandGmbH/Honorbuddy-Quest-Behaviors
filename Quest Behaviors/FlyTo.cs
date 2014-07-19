@@ -332,6 +332,10 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
 		private async Task<bool> MainCoroutine()
 		{
+			var activeMover = WoWMovement.ActiveMover;
+			if (activeMover == null)
+				return false;
+
 			var immediateDestination = FindImmediateDestination();
 
 			// If we've no way to reach destination, inform user and quit...
@@ -344,7 +348,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 			}
 
 			// Arrived at destination?
-			if (Me.Location.DistanceSqr(immediateDestination) < (RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance))
+			if (AtLocation(activeMover.Location, immediateDestination))
 			{
 				var completionMessage = string.Format("Arrived at destination '{0}'", RoughDestination.Name);
 
@@ -404,6 +408,18 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
 			// Otherwise, maintain our pursuit of rough destination...
 			return RoughDestination.Location;
+		}
+
+		/// <summary>Determines if <paramref name="myPos"/> is at <paramref name="otherPos"/></summary>
+		private bool AtLocation(WoWPoint myPos, WoWPoint otherPos)
+		{
+			// We are using cylinder distance comparison because often times we want faily high precision 
+			// but need an increased tolerance in the z coord due to 'otherPos' sometimes being below terrain.
+			if (myPos.Distance2DSqr(otherPos) > RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance)
+				return false;
+
+			var zTolerance = Math.Max(4.5f, RoughDestination.ArrivalTolerance);
+			return Math.Abs(otherPos.Z - otherPos.Z) < zTolerance;
 		}
 		#endregion
 	}
