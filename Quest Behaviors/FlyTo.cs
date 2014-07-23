@@ -209,6 +209,16 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 										 ?? ((DefaultDestination != null) ? DefaultDestination.ToString() : string.Empty);
 				IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
 				Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
+
+				// Make certain ArrivalTolerance is coherent with Navigator.PathPrecision...
+				if (DefaultArrivalTolerance < Navigator.PathPrecision)
+				{
+					QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than PathPrecision({1:F1})."
+										 + "  Setting ArrivalTolerance to be PathPrecision to prevent navigational issues.",
+										 DefaultArrivalTolerance,
+										 Navigator.PathPrecision);
+					DefaultArrivalTolerance = Navigator.PathPrecision;
+				}
 			}
 
 			catch (Exception except)
@@ -226,23 +236,13 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
 		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
 		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
+			// For examples, see Development/TEMPLATE_QB.cs
 		}
 
 
 		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
 		{
-			UsageCheck_SemanticCoherency(
-				xElement,
-				DefaultArrivalTolerance < Navigator.PathPrecision,
-				context => string.Format("ArrivalTolerance must be great than or equal to the current Navigator.PathPrecision({0}).",
-				                         Navigator.PathPrecision));
+			// For examples, see Development/TEMPLATE_QB.cs
 		}
 
 
