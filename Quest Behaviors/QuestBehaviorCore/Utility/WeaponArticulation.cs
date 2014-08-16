@@ -101,7 +101,10 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			if (Query.IsInVehicle() && Query.IsViable(wowObject))
 			{
-				WoWMovement.ConstantFace(wowObject.Guid);
+				// ClickToMoveInfo.InteractGuid contains the GUID of the wowObject that player is auto-facing
+				// We don't want to spam ConstantFace since that causes issues.
+				if (WoWMovement.ClickToMoveInfo.InteractGuid != wowObject.Guid)
+					WoWMovement.ConstantFace(wowObject.Guid);
 				return true;
 			}
 

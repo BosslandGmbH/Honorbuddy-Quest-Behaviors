@@ -11,7 +11,7 @@
 
 #region Usings
 using System.Linq;
-
+using Styx;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 #endregion
@@ -41,7 +41,6 @@ namespace Honorbuddy.QuestBehaviorCore
 		public int AbilityIndex { get; private set; }
 		public int AbilityUseCount { get; private set; }
 		public bool LogAbilityUse { get; set; }
-
 
 		#region Private and Convenience variables
 		private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }

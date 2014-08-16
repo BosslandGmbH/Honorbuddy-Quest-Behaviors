@@ -163,6 +163,7 @@
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Generics.cs" />
     <Compile Include="QuestBehaviorCore\QBCLog.cs" />
     <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityCoroutines\Vehicle.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\CastSpell.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Common.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Interact.cs" />
@@ -203,6 +204,8 @@
     <Compile Include="QuestBehaviorCore\Utility\VehicleWeapon.cs" />
     <Compile Include="QuestBehaviorCore\Utility\TargetAnalysis.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\BlackspotsType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\VehicleAbilityType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\VehicleAbilitiesType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\BlackspotType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\AvoidMobsType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\MobType.cs" />

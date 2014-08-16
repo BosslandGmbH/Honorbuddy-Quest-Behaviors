@@ -15,14 +15,41 @@
 // ##Syntax##
 //		MobIdN: [optional; default: Kill everything that moves] Identifies the mobs to shoot at with cannon
 //		VehicleId: ID of the vehicle
-//		MaxAngle: Maximum Angle to aim, use /dump VehicleAimGetAngle() in game to get the angle
-//		MinAngle: Minimum Angle to aim, use /dump VehicleAimGetAngle() in game to get the angle
+//		MaxAngle: [optional; default: 1.5] Maximum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
+//		MinAngle: [optional; default: -1.5] Minimum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
 //		Gravity: [optional; default: 30] The amount of gravity that effects projectile/s. 
 //		Velecity:[optional; default: 70] The velocity of the Projectile/s
 //		Buttons: A series of numbers that represent the buttons to press in order of importance, 
 //				separated by comma, for example Buttons ="2,1" 
 //		ExitButton: [optional] Button to press to exit the cannon such as the 'Skeletal Gryphon Escape'
 //				ability that can be used on the cannon for the quest 'Massacre At Light's Point'. 1-12
+
+
+// CANNONCONTROL will get inside a stationary cannon type vehicle, aim and fire away at targets.
+// 
+// BEHAVIOR ATTRIBUTES:
+// *** ALSO see the documentation in QuestBehaviorBase.cs.  All of the attributes it provides
+// *** are available here, also.  The documentation on the attributes QuestBehaviorBase provides
+// *** is _not_ repeated here, to prevent documentation inconsistencies.
+//
+//		Buttons: 
+//			A series of numbers that represent the buttons to press in order of importance, 
+//			separated by comma, for example Buttons ="2,1" 
+//		ExitButton: [optional] 
+//			Button to press to exit the cannon such as the 'Skeletal Gryphon Escape'
+//			ability that can be used on the cannon for the quest 'Massacre At Light's Point'. 1-12
+//		Gravity: [optional; default: 30] 
+//			The amount of gravity that effects projectile/s. 
+//		MinAngle: [optional; default: -1.5]
+//			Minimum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
+//		MobIdN: [optional; default: Kill everything that moves] 
+//			Identifies the mobs to shoot at with cannon
+//		VehicleId: 
+//			ID of the vehicle
+//		Velecity:[optional; default: 70] 
+//			The velocity of the Projectile/s
+//      X/Y/Z [optional; Default: toon's current location when behavior is started]
+//          The location that bot will go to search for a vehicle
 
 #endregion
 
@@ -33,27 +60,19 @@
 #region Usings
 
 using System;
-using System.Collections;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
-using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
-using JetBrains.Annotations;
+using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
-using Styx.CommonBot;
-using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
-using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Tripper.Tools.Math;
-using Action = Styx.TreeSharp.Action;
 
 #endregion
 
@@ -78,18 +97,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 				MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
 				if (MobIds != null && !MobIds.Any())
 					MobIds = GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null);
-
-				VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-				
-				Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(-1, 12), null, null);
-
+				Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(1, 12), null, null);
 				ExitButton = GetAttributeAsNullable<int>("ExitButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-				MaxAngle = GetAttributeAsNullable<double>("MaxAngle", true, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 0;
-				MinAngle = GetAttributeAsNullable<double>("MinAngle", true, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 0;
+				MaxAngle = GetAttributeAsNullable<double>("MaxAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 1.5;
+				MinAngle = GetAttributeAsNullable<double>("MinAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? -1.5;
 				Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
-				Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.0, 80), null) ?? 30;
+				Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.01, 80), null) ?? 30;
 				VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
-
+				VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 				WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
 				Weapons = Buttons.Select(b => new VehicleWeapon(b, WeaponArticulation, Velocity, Gravity)).ToArray();
 			}
@@ -144,6 +159,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 
 		public override void OnStart()
 		{
+			var b = VehicleAbilitiesType.GetOrCreate(Element, "VehicleAbilities");
+
 			// This reports problems, and stops BT processing if there was a problem with attributes...
 			// We had to defer this action, as the 'profile line number' is not available during the element's
 			// constructor call.
@@ -203,25 +220,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 			// move to cannon.
 			if (!Query.IsInVehicle())
 			{
-				var cannon = Vehicle;
-				if (cannon == null)
-				{
-					if (Navigator.AtLocation(VehicleSearchLocation))
-					{
-						QBCLog.Fatal("No cannons found.");
-						return false;
-					}
-					await UtilityCoroutine.MoveTo(VehicleSearchLocation, "Vehicle search area", MovementBy);
-				}
-				else if (!cannon.WithinInteractRange)
-				{
-					await UtilityCoroutine.MoveTo(cannon.Location, cannon.Name, MovementBy);
-				}
-				else
-				{
-					cannon.Interact();
-				}
-				return true;
+				return await UtilityCoroutine.MountVehicle(
+					VehicleSearchLocation,
+					MovementBy,
+					u => !Query.IsInCompetition(u, NonCompeteDistance),
+					VehicleId);
 			}
 
 			while (!IsDone && Query.IsInVehicle())
@@ -231,7 +234,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 				if (weapon != null)
 				{
 					//_target = StyxWoW.Me.CurrentTarget;
-					if (!Query.IsViable(_target) || !weapon.WeaponAim(_target))
+					if (!Query.IsViable(_target) || _target.IsDead
+						|| !weapon.WeaponAim(_target))
 					{
 						// acquire a target that is within shooting range
 						_target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n));
@@ -249,21 +253,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 			return false;
 		}
 
-		public WoWUnit Vehicle
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.Entry == VehicleId).
-					OrderBy(o => o.Location.DistanceSqr(VehicleSearchLocation)).FirstOrDefault();
-			}
-		}
-
 		public IEnumerable<WoWUnit> Npcs
 		{
 			get
 			{
 				var killEverything = MobIds == null || !MobIds.Any();
-				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.IsAlive 
+				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.IsAlive
 					&& (killEverything && o.Attackable && o.CanSelect && o.IsHostile || MobIds.Contains((int)o.Entry))).
 					OrderBy(o => o.DistanceSqr);
 			}

@@ -102,6 +102,32 @@ namespace Honorbuddy.QuestBehaviorCore
 		ClearAll
 	}
 
+	public enum AbilityTargetingType
+	{
+		/// <summary>Uses the caster's currently selected target.</summary>
+		CurrentTarget,
+
+		/// <summary>Uses a targeting system used mostly by vehicles that shoot projectiles</summary>
+		Vehicle,
+
+		/// <summary>
+		///     The ability is an area of effect that is centered on the caster and radiates out in every direction (360 degrees) 
+		///		e.g. Thunder Clap
+		/// </summary>
+		PointBlankAreaOfEffect,
+
+		/// <summary>
+		///     The ability's effect is centered at a ground location that is selected by the caster e.g. 'Party
+		///     G.R.E.N.A.D.E.' http://www.wowhead.com/item=38577
+		/// </summary>
+		Ground,
+
+		/// <summary>
+		///     The ability is an area of effect that affects targets in a cone-shaped area in front of the caster
+		///		e.g. Shockwave
+		/// </summary>
+		Cone
+	}
 
 	// Delegates
 	public delegate bool ProvideBoolDelegate(object context);
