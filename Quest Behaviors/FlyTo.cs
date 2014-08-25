@@ -26,7 +26,9 @@
 //          This value is automatically converted to a <DestinationChoices> waypoint.
 //
 // Tunables:
-//      AllowedVariance [optional; Default: 7.0]
+//      AllowedVariance [optional; Default: 0.0; RECOMMENDED: 7.0]
+//          ***It is HIGHLY recommended you make this value somewhere around 7.0 - 10.0.  The default value
+//          of zero is to maintain backward compatibility for existing profiles.***
 //			This value is used to:
 //			* Prevent toons running the same profile from 'stacking up' on each other once they arrive
 //			* Defeat WoWserver-side LCP detection
@@ -35,9 +37,10 @@
 //			The effect is that X/Y/Z no longer defines a 'landing point', but instead, a 'landing zone'.
 //			The final destination is always selected in a sane fashion, so boundary cases like boat
 //			docks and blimp towers should not be a concern.
-//			We recommend you allow this value to default.  However, there may be the occasion that you need to
-//			land on an exact point to prevent drawing aggro from a particular mob.  In this case, it is
-//			appropriated to set the AllowedVariance to zero.
+//          By default, this value will move to the exact X/Y/Z specified.  It is HIGHLY recommended you
+//          allow a more 'fuzzy' destination by setting this value from 7.0 - 10.0.  This will help
+//          abate automated WoWserver-side detection, and make the toons look more 'human like' when
+//          they are waiting for boats and whatnot.
 //      ArrivalTolerance [optional;  Default: 1.5]
 //			The distance to X/Y/Z at which we can declare we have 'arrived'.  Once we are within ArrivalTolerance
 //			of the destination, landing procedures will be conducted if the caller has specified.  Otherwise,
@@ -95,7 +98,8 @@
 
 #region Examples
 // SIMPLE FLYTO:
-//		<CustomBehavior File="FlyTo" DestName="Cathedral Square mailbox" X="-8657.595" Y="775.6388" Z="96.99747" />
+//		<CustomBehavior File="FlyTo" DestName="Cathedral Square mailbox"
+//                      X="-8657.595" Y="775.6388" Z="96.99747" AllowedVariance="5.0" />
 //
 // PRECISE LANDING DESTINATION:
 // When stealing the Thunderbluff Flame for "A Thief's Reward", it is important to land in a precise location
@@ -109,7 +113,7 @@
 // This problem is *especially* problematical for seasonal-type profiles where large chunks of the Community are
 // all running the same profile through heavily-congested areas.  This technique allows the Community members
 // running such profiles to 'scatter' upon arrival to congested areas, such that we do not draw attention.
-//		<CustomBehavior File="FlyTo" Land="true">
+//		<CustomBehavior File="FlyTo" Land="true" AllowedVariance="7.0" >
 //			<DestinationChoices>
 //				<Hotspot DestName="Stormwind: Backgate Bank" X="-8360.063" Y="620.2231" Z="95.35557" />
 //				<Hotspot DestName="Stormwind: Canal mailbox" X="-8752.236" Y="561.497" Z="97.43406" /> 
@@ -123,7 +127,7 @@
 // Here we want to enter a grind area from several possible starting points.  Once we arrive, we choose to remain
 // on foot while we grind.  By picking one of several possible starting points, we are less obvious to bot watchers
 // and other players that may be in the same area.
-//		<CustomBehavior File="FlyTo" Land="true">
+//		<CustomBehavior File="FlyTo" Land="true" AllowedVariance="7.0" >
 //			<DestinationChoices>
 //				<Hotspot Name="Warmaul Hill: main path up" X="-1076.62" Y="8726.684" Z="78.98088" />
 //				<Hotspot Name="Warmaul Hill: cauldren on lower plateau" X="-1002.597" Y="8981.075" Z="94.9998" /> 
@@ -201,7 +205,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 			try
 			{
 				DefaultAllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null)
-					?? 7.0;
+					?? 0.0;
                 DefaultArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, new ConstrainTo.Domain<double>(1.5, 30.0), new string[] { "Distance" })
 					?? 1.5;
 				DefaultDestination = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
