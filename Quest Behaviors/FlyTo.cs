@@ -41,10 +41,16 @@
 //          allow a more 'fuzzy' destination by setting this value from 7.0 - 10.0.  This will help
 //          abate automated WoWserver-side detection, and make the toons look more 'human like' when
 //          they are waiting for boats and whatnot.
+//          N.B.: This AllowedVariance is only associated with the X/Y/Z specified in the FlyTo proper.
+//          If you use the <DestinationChoices> sub-element-form of FlyTo, you specify an AllowedVariance
+//          with each <Hotspot> in the destination choices.
 //      ArrivalTolerance [optional;  Default: 1.5]
 //			The distance to X/Y/Z at which we can declare we have 'arrived'.  Once we are within ArrivalTolerance
 //			of the destination, landing procedures will be conducted if the caller has specified.  Otherwise,
 //			the behavior simply terminates.
+//          N.B.: This ArrivalTolerance is only associated with the X/Y/Z specified in the FlyTo proper.
+//          If you use the <DestinationChoices> sub-element-form of FlyTo, you specify an ArrivalTolerance
+//          with each <Hotspot> in the destination choices.
 //		DestName [optional; Default:  X/Y/Z location of the waypoint]
 //			A human-readable name that should be associated with the provided X/Y/Z.
 //      IgnoreIndoors [optional; Default: false]
@@ -113,13 +119,13 @@
 // This problem is *especially* problematical for seasonal-type profiles where large chunks of the Community are
 // all running the same profile through heavily-congested areas.  This technique allows the Community members
 // running such profiles to 'scatter' upon arrival to congested areas, such that we do not draw attention.
-//		<CustomBehavior File="FlyTo" Land="true" AllowedVariance="7.0" >
+//		<CustomBehavior File="FlyTo" Land="true" >
 //			<DestinationChoices>
-//				<Hotspot DestName="Stormwind: Backgate Bank" X="-8360.063" Y="620.2231" Z="95.35557" />
-//				<Hotspot DestName="Stormwind: Canal mailbox" X="-8752.236" Y="561.497" Z="97.43406" /> 
-//				<Hotspot DestName="Stormwind: Cathedral Square mailbox" X="-8657.595" Y="775.6388" Z="96.99747" />
-//				<Hotspot DestName="Stormwind: Elder's mailbox" X="-8859.798" Y="640.8622" Z="96.28608" />
-//				<Hotspot DestName="Stormwind: Fishing pier mailbox"  X="-8826.954" Y="729.8922" Z="98.42244" />
+//				<Hotspot DestName="Stormwind: Backgate Bank" X="-8360.063" Y="620.2231" Z="95.35557" AllowedVariance="7.0" />
+//				<Hotspot DestName="Stormwind: Canal mailbox" X="-8752.236" Y="561.497" Z="97.43406" AllowedVariance="7.0" /> 
+//				<Hotspot DestName="Stormwind: Cathedral Square mailbox" X="-8657.595" Y="775.6388" Z="96.99747" AllowedVariance="3.0" />
+//				<Hotspot DestName="Stormwind: Elder's mailbox" X="-8859.798" Y="640.8622" Z="96.28608" AllowedVariance="5.0" />
+//				<Hotspot DestName="Stormwind: Fishing pier mailbox"  X="-8826.954" Y="729.8922" Z="98.42244" AllowedVariance="7.0" />
 //			</DestinationChoices>
 //		</CustomBehavior>
 //
@@ -129,10 +135,10 @@
 // and other players that may be in the same area.
 //		<CustomBehavior File="FlyTo" Land="true" AllowedVariance="7.0" >
 //			<DestinationChoices>
-//				<Hotspot Name="Warmaul Hill: main path up" X="-1076.62" Y="8726.684" Z="78.98088" />
-//				<Hotspot Name="Warmaul Hill: cauldren on lower plateau" X="-1002.597" Y="8981.075" Z="94.9998" /> 
-//				<Hotspot Name="Warmaul Hill: mid-plateau fire banner" X="-753.0932" Y="8774.961" Z="183.0739" />
-//				<Hotspot Name="Warmaul Hill: mid-plateau path down" X="-769.6554" Y="8864.765" Z="182.0117" />
+//				<Hotspot Name="Warmaul Hill: main path up" X="-1076.62" Y="8726.684" Z="78.98088" AllowedVariance="7.0" />
+//				<Hotspot Name="Warmaul Hill: cauldren on lower plateau" X="-1002.597" Y="8981.075" Z="94.9998" AllowedVariance="7.0" /> 
+//				<Hotspot Name="Warmaul Hill: mid-plateau fire banner" X="-753.0932" Y="8774.961" Z="183.0739" AllowedVariance="7.0" />
+//				<Hotspot Name="Warmaul Hill: mid-plateau path down" X="-769.6554" Y="8864.765" Z="182.0117" AllowedVariance="7.0" />
 //			</DestinationChoices>
 //		</CustomBehavior>
 //

@@ -20,7 +20,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class WaypointType : QuestBehaviorXmlBase
     {
-		public const double DefaultAllowedVariance = 7.0;
+		public const double DefaultAllowedVariance = 0.0;
 		public const double DefaultArrivalTolerance = 1.5;
 
         public WaypointType(XElement xElement)
