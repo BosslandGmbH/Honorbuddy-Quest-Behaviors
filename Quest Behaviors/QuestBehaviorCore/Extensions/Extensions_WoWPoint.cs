@@ -114,6 +114,13 @@ namespace Honorbuddy.QuestBehaviorCore
 			WoWPoint candidateDestination = location;
 			int tryCount;
 
+			// ActiveMover is null in some cases where player is not in control of movement,
+			// such as when on a taxi like the one for the 
+			// 'Mission: The Murketh and Shaadraz Gateways' quest (http://www.wowhead.com/quest=10146)
+			var me = WoWMovement.ActiveMover ?? StyxWoW.Me;
+			Contract.Requires(me != null, context => "me != null");
+			var myLoc = me.Location;
+
 			// Most of the time we'll find a viable spot in less than 2 tries...
 			// However, if you're standing on a pier, or small platform a
 			// viable alternative may take 10-15 tries--its all up to the
@@ -140,7 +147,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				if (!IsOverGround(candidateDestination, 3.0))
 				{
 					// If we don't have clear LoS between the specified and candidate destinations, the candidate is unsuitable...
-					if (GameWorld.TraceLine(location, candidateDestination, GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures))
+					if (GameWorld.TraceLine(location, candidateDestination, TraceLineHitFlags.Collision))
 						continue;
 
 					// Otherwise, we have our candidate destination...
@@ -173,10 +180,10 @@ namespace Honorbuddy.QuestBehaviorCore
 				// The result for the 'normal' vector (first one) will be the location where the
 				// destination meets the ground.  Before this MassTrace, only the candidateDestination's
 				// X/Y values were valid.
-				GameWorld.MassTraceLine(traceLines.ToArray(),
-										GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
-										out hitResults,
-										out hitPoints);
+				GameWorld.MassTraceLine(traceLines.ToArray(), 
+									TraceLineHitFlags.Collision,
+									out hitResults,
+									out hitPoints);
 
 				candidateDestination = hitPoints[0];    // From 'normal', Destination with valid Z coordinate
 
@@ -194,7 +201,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					continue;
 
 				// If new destination is 'too close' to our current position, try again...
-				if (WoWMovement.ActiveMover.Location.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
+				if (myLoc.Distance(candidateDestination) <= SAFE_DISTANCE_BUFFER)
 					continue;
 
 				break;
