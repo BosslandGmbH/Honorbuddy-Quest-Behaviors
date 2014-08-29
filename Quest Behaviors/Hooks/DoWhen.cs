@@ -16,14 +16,19 @@
 // once the criteria for performing a 'use item' or 'cast spell' activity have been established.
 //
 // Basic Attributes:
-//      ItemId  [at least one is REQUIRED if Command is "Update": ItemId, SpellId]
+//      ItemId  [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
 //          Identifies the item to be used when the trigger condition defined in USEWHEN
 //          has been met.
 //          The ItemId attribute is mutually exclusive with SpellId attribute.
-//      SpellId [at least one is REQUIRED if Command is "Update": ItemId, SpellId]
+//      SpellId [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
 //          Identifies the spell to be cast when the trigger condition defined in USEWHEN
 //          has been met.
-//          The SpellId attribute is mutually exclusive with ItemId attribute.
+//          The SpellId attribute is mutually exclusive with ItemId and ActivityName attributes.
+//      ActivityName [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
+//          Identifies a custom activity that will be executed when the trigger condition defined in USEWHEN
+//          has been met.
+//			A custom activity allows the profile writer to define what happens when activity is executed.
+//          The ActivityName attribute is mutually exclusive with ItemId and SpellId attributes.
 //      UseWhen [REQUIRED if Command is"Update"]
 //          Defines a predicate that must return a boolean value.  When the predicate
 //          evaluates to 'true', the item is used, or spell is cast.  Once the activity
@@ -40,7 +45,7 @@
 //      AllowUseWhileMounted [optional; Default: false]
 //          If true, then using the item or casting the spell is acceptable to try while mounted.
 //      Command [optional; ONE OF: Disable, Enable, Remove, ShowActivities, Update; Default: Update]
-//          Determines the disposition of the activity that evaluates the item use or spell cast.
+//          Determines the disposition of the activity that evaluates the item use, spell cast or a custom activity
 //          Please see the examples below, and the purpose will become clear.
 //
 // THINGS TO KNOW:
@@ -93,6 +98,18 @@
 // Note that our predicate did not check for the existence of the Lashtail Raptor Egg in the backpack.
 // Instead, we chose the better solution of configuring the DoWhen only when the profile already knows the egg
 // must already be in our backpack.  This helps a profile writer to locate hard-to-find errors.
+// 
+// If there's a need to perform a custom tailored activity then you can do so by placing 
+// any valid quest profile elements inside the <DoWhen> element like so. 
+//		<CustomBehavior File="Hooks\DoWhen" UseWhen="HasItem(1234)" ActivityName="UseSomeItem" AllowUseWhileFlying="True" AllowUseWhileMounted="True">
+//			<If Condition="Me.Mounted">
+//				<CustomBehavior File="ForcedDismount" />
+//			</If>
+//			<If Condition="Me.Shapeshift != ShapeshiftForm.Normal">
+//				<CustomBehavior File="Misc\RunLua" Lua="CancelShapeshiftForm()" /> 
+//			</If>
+//			<CustomBehavior File="Misc\RunLua" Lua="UseItemByName(1234)" WaitTime="1500" />          
+//		</CustomBehavior>
 //
 // At any time, to see the list of current DoWhen activities, use the "ShowActivities" Command:
 //      <CustomBehavior File="Hooks\DoWhen" Command="ShowActivities" />
@@ -126,7 +143,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-
+using Bots.Quest.Actions;
+using Bots.Quest.QuestOrder;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -134,6 +152,7 @@ using Styx.Common.Helpers;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 #endregion
@@ -166,17 +185,18 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				// NB: We must parse the Command first, as this helps determine whether certain attributes are
 				// mandator or optional.
 				Command = GetAttributeAsNullable<CommandType>("Command", false, null, null) ?? CommandType.Update;
-				
+
 				// Primary attributes...
 				ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
 				SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
+				ActivityName = GetAttributeAs<string>("ActivityName", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
 				// We test compile the "UseWhen" expression to look for problems.
 				// If there is a problem, an exception will be thrown (and handled here).
 				Func<bool> isUseWhenRequired = () => { return Command == CommandType.Update; };
 				UseWhenExpression = GetAttributeAs<string>("UseWhen", isUseWhenRequired(), ConstrainAs.StringNonEmpty, null) ?? "false";
 				if (CompileAttributePredicateExpression("UseWhen", UseWhenExpression) == null)
-					{ IsAttributeProblem = true; }
+				{ IsAttributeProblem = true; }
 
 				// Tunables...
 				AllowUseDuringCombat = GetAttributeAsNullable<bool>("AllowUseDuringCombat", false, null, null) ?? false;
@@ -208,6 +228,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private CommandType Command { get; set; }
 		private int ItemId { get; set; }
 		private int SpellId { get; set; }
+		private string ActivityName { get; set; }
 		private string UseWhenExpression { get; set; }
 
 		private static CustomForcedBehavior CfbContextForHook { get; set; }
@@ -220,22 +241,27 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
 		{
+			var primaryAttributeUsage = (Args.ContainsKey("ItemId") ? 1 : 0)
+				+ (Args.ContainsKey("SpellId") ? 1 : 0)
+				+ (Args.ContainsKey("ActivityName") ? 1 : 0);
+
 			// If Id is required, then ItemId or SpellId must have been specified...
 			var isIdRequired = (Command != CommandType.ShowActivities);
 			UsageCheck_SemanticCoherency(xElement,
-				isIdRequired && !(Args.ContainsKey("ItemId") || Args.ContainsKey("SpellId")),
-				context => "ItemId or SpellId attribute is required.");
+				isIdRequired && primaryAttributeUsage == 0,
+				context => "ItemId, SpellId or ActivityName attribute is required.");
 
-			// If Id is not allowed, then neither ItemId nor SpellId can be specified...
+			// If Id is not allowed, then neither ItemId, SpellId nor ActivityName can be specified...
 			var isIdAllowed = (Command != CommandType.ShowActivities);
 			UsageCheck_SemanticCoherency(xElement,
-				!isIdAllowed && (Args.ContainsKey("ItemId") || Args.ContainsKey("SpellId")),
-				context => "ItemId and SpellId attributes are not allowed when Command is CommandType.ShowActivities.");
+				!isIdAllowed && (Args.ContainsKey("ItemId") || Args.ContainsKey("SpellId") || Args.ContainsKey("ActivityName")),
+				context => "ItemId, SpellId and ActivityName attributes are not allowed when Command is CommandType.ShowActivities.");
 
-			// ItemId and SpellId attributes are mutually exclusive...
+
+			// ItemId, SpellId and ActivityName attributes are mutually exclusive...
 			UsageCheck_SemanticCoherency(xElement,
-				Args.ContainsKey("ItemId") && Args.ContainsKey("SpellId"),
-				context => "ItemId and SpellId attributes are mutually exclusive.");
+				primaryAttributeUsage > 1,
+				context => "ItemId, SpellId and ActivityName attributes are mutually exclusive.");
 
 			// Is UseWhen allowed?
 			var isUseWhenAllowed = (Command == CommandType.Update);
@@ -305,7 +331,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			// A common example:
 			//     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
 			//     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-			
+
 			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
 			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
 			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
@@ -366,10 +392,10 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				// QuestBehaviorBase-provide facilities (e.g., override the methods), then the hooks would be
 				// cleaned up (e.g., removed) when this behavior exits.
 				if (PersistedActivities.Count > 0)
-					{ DoWhenHookInstall(); }
+				{ DoWhenHookInstall(); }
 
 				if (PersistedActivities.Count <= 0)
-					{ DoWhenHookRemove(); }
+				{ DoWhenHookRemove(); }
 
 				BehaviorDone();
 			}
@@ -389,7 +415,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			// Ignore, while in non-actionable condition...
 			if (Me.IsDead)
 			{
-				return false;  
+				return false;
 			}
 
 			// Ignore if eating or drinking...
@@ -489,7 +515,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			var builder = new StringBuilder();
 
 			if (PersistedActivities.Count <= 0)
-				{ builder.AppendFormat("No DoWhenActivities in use."); }
+			{ builder.AppendFormat("No DoWhenActivities in use."); }
 
 			else
 			{
@@ -516,7 +542,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 			// If activity already exists, remove it...
 			if (existingActivity != null)
-				{ PersistedActivities.Remove(existingActivity); }
+			{ PersistedActivities.Remove(existingActivity); }
 
 			// Install new activity...
 			DoWhenActivity doWhenActivity = null;
@@ -537,7 +563,18 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 								allowUseDuringCombat,
 								allowUseInVehicle,
 								allowUseWhileFlying,
-								allowUseWhileMounted);                
+								allowUseWhileMounted);
+			}
+
+			if (!string.IsNullOrEmpty(ActivityName))
+			{
+				doWhenActivity = new DoWhenCustomActivity(ActivityName,
+								Element,
+								useWhenExpression,
+								allowUseDuringCombat,
+								allowUseInVehicle,
+								allowUseWhileFlying,
+								allowUseWhileMounted);
 			}
 
 			if (doWhenActivity != null)
@@ -591,7 +628,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				var builder = new StringBuilder();
 
 				if (PersistedActivities.Count <= 0)
-					{ builder.AppendFormat("DoWhen hook removed--no DoWhenActivities to clean up."); }
+				{ builder.AppendFormat("DoWhen hook removed--no DoWhenActivities to clean up."); }
 
 				else
 				{
@@ -623,10 +660,10 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private string FindActivityName()
 		{
 			if (ItemId > 0)
-				{ return DoWhenUseItemActivity.CreateActivityName(ItemId); }
+			{ return DoWhenUseItemActivity.CreateActivityName(ItemId); }
 
 			if (SpellId > 0)
-				{ return DoWhenCastSpellActivity.CreateActivityName(SpellId); }
+			{ return DoWhenCastSpellActivity.CreateActivityName(SpellId); }
 
 			return string.Empty;
 		}
@@ -675,7 +712,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			public bool AllowUseWhileMounted { get; private set; }
 			public string Name { get; private set; }
 			public bool IsEnabled { get; set; }
-			public Func<bool> UseWhenPredicateFunc { get; private set; } 
+			public Func<bool> UseWhenPredicateFunc { get; private set; }
 			public string UseWhenExpression { get; private set; }
 
 
@@ -693,7 +730,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 					&& (AllowUseWhileMounted || !Me.IsMounted())
 					&& UseWhenPredicateFunc();
 			}
-			
+
 
 			// Utility methods...
 			public string BuildDebugInfo(string linePrefix)
@@ -812,7 +849,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			{
 				// Note: we can't use Utility.FindItemNameFromId() for this, because its value
 				// will change based on whether or not the item is in our inventory currently.
-				return string.Format("ItemId({0})", itemId);                
+				return string.Format("ItemId({0})", itemId);
 			}
 
 
@@ -853,6 +890,74 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				return true;
 			}
 		}
+
+		/// <summary>
+		/// Subclass of DoWhenActivity that knows how to use items...
+		/// </summary>
+		private class DoWhenCustomActivity : DoWhenActivity
+		{
+			public DoWhenCustomActivity(string activityName,
+									XElement element,
+									string useWhenExpression,
+									bool allowUseDuringCombat,
+									bool allowUseInVehicle,
+									bool allowUseWhileFlying,
+									bool allowUseWhileMounted)
+				: base(activityName,
+						useWhenExpression,
+						allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
+			{
+				Contract.Requires(!string.IsNullOrEmpty(activityName), context => "!string.IsNullOrEmpty(activityName)");
+				Contract.Requires(element != null, context => "element != null");
+				ActivityName = activityName;
+				Element = element;
+			}
+
+			public XElement Element { get; private set; }
+			public ForcedBehaviorExecutor BehaviorExecutor { get; private set; }
+			public string ActivityName { get; private set; }
+			public override async Task<bool> Execute()
+			{
+				// IsExecutionNeeded() might return 'false' after we started executing this activity.
+				// If this happens we want to continue executing until this activity is complete.
+				// BehaviorExecutor will not be null when activty is executing
+				if (!IsExecutionNeeded() && BehaviorExecutor == null)
+				{
+					return false;
+				}
+
+				if (BehaviorExecutor == null)
+				{
+					var questOrder = new QuestOrder(OrderNodeCollection.FromXml(Element));
+					questOrder.UpdateNodes();
+					BehaviorExecutor = new ForcedBehaviorExecutor(questOrder);
+				}
+
+				if (BehaviorExecutor.Order.Nodes.Any())
+				{
+					await BehaviorExecutor.ExecuteCoroutine();
+					// return now if we have any nodes left to execute
+					if (BehaviorExecutor.Order.Nodes.Any())
+						return true;
+				}
+
+				BehaviorExecutor = null;
+
+				// If predicate did not clear, then predicate is bad...
+				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
+				if (UseWhenPredicateFunc())
+				{
+					QBCLog.Error(
+						"For DoWhenActivity {1}, predicate ({2}) was not reset by execution.{0}"
+						+ "  This is a profile problem, and can result in erratic Honorbuddy behavior.{0}"
+						+ "  The predicate must return to 'false' after the action has been successfully executed.",
+						Environment.NewLine, Name, UseWhenExpression);
+				}
+
+				return true;
+			}
+		}
+
 		#endregion
 	}
 }
