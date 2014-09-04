@@ -622,7 +622,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
 		private WaitTimer _waitTimerAfterInteracting = null;
 		private WaitTimer _watchdogTimerToReachDestination = null;
-
+		private readonly WaitTimer _moveCloserTimerAfterSpellLosFailed = new WaitTimer(TimeSpan.FromSeconds(1));
 		private BindingEventStateType BindingEventState { get; set; }
 		private int Counter { get; set; }
 		private int GossipPageIndex { get; set; }
@@ -963,8 +963,17 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				// Interact by casting spell...
 				if (InteractByCastingSpellId > 0)
 				{
-					if (!await UtilityCoroutine.CastSpell(InteractByCastingSpellId, SelectedTarget))
+					var castResult = await UtilityCoroutine.CastSpell(InteractByCastingSpellId, SelectedTarget);
+					if (castResult != SpellCastResult.Succeeded)
+					{
+						// The WoWUnit.InLineOfSpellSight is not always correct so if we get a LOS error we need
+						// to move closer while the _moveCloserTimerAfterSpellLosFailed timer is running.
+						if (castResult == SpellCastResult.LineOfSight)
+						{
+							_moveCloserTimerAfterSpellLosFailed.Reset();
+						}
 						return false;
+					}
 				}
 
 				// Interact by casting spell...
@@ -1719,10 +1728,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			bool canInteract = IsWithinInteractDistance(wowObject);
 
-			// Item usage must be additionally qualified by LoS constraints...
-			if (ItemToUse != null)
+			// Item usage and spell casts must be additionally qualified by LoS constraints...
+			if (ItemToUse != null || InteractByCastingSpellId > 0)
 			{
-				canInteract &= (IgnoreLoSToTarget || Query.IsInLineOfSight(wowObject));
+				canInteract &= (IgnoreLoSToTarget 
+					|| (_moveCloserTimerAfterSpellLosFailed.IsFinished && Query.IsInLineOfSight(wowObject)));
 			}
 
 			return !canInteract;

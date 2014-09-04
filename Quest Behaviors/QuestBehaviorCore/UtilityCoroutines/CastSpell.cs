@@ -13,9 +13,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Threading.Tasks;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
+using QBs.QuestBehaviorCore.Utility;
 using Styx;
 using Styx.CommonBot;
 using Styx.TreeSharp;
@@ -29,11 +31,7 @@ namespace Honorbuddy.QuestBehaviorCore
 {
 	public static partial class UtilityCoroutine
 	{
-		// I realize this isn't thread safe but should not be a problem since behaviors are generally run on same thread..
-		// if it is a problem then we need to wrap CastSpell in a class instance
-		private static bool IsInterrupted { get; set; }
-
-		public static async Task<bool> CastSpell(
+		public static async Task<SpellCastResult> CastSpell(
 			int spellId,
 			WoWObject target = null,
 			System.Action actionOnSuccessfulSpellCastDelegate = null)
@@ -46,7 +44,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!Query.IsViable(selectedObject))
 			{
 				QBCLog.Warning("Target is not viable!");
-				return false;
+				return SpellCastResult.InvalidTarget;
 			}
 
 			var targetName = selectedObject.SafeName;
@@ -56,7 +54,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!Query.IsViable(selectedTarget))
 			{
 				QBCLog.Warning("Target {0} is not a WoWUnit--cannot cast spell on it.", targetName);
-				return false;
+				return SpellCastResult.InvalidTarget;
 			}
 
 			// Spell known?
@@ -64,7 +62,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (selectedSpell == null)
 			{
 				QBCLog.Warning("{0} is not known.", Utility.GetSpellNameFromId(spellId));
-				return false;
+				return SpellCastResult.SpellNotKnown;
 			}
 			var spellName = selectedSpell.Name;
 
@@ -79,7 +77,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					"{0} is not usable, yet.  (cooldown remaining: {1})",
 					spellName,
 					Utility.PrettyTime(selectedSpell.CooldownTimeLeft));
-				return false;
+				return SpellCastResult.NotReady;
 			}
 
 			// Notify user of intent...
@@ -91,46 +89,58 @@ namespace Honorbuddy.QuestBehaviorCore
 			QBCLog.DeveloperInfo(message);
 
 			// Set up 'interrupted use' detection, and cast spell...
-			// MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
-			// Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
-			// UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
-			InterruptDetection_Hook();
-			IsInterrupted = false;
-			SpellManager.Cast(selectedSpell, selectedTarget);
-
-			// NB: The target or the spell may not be valid after this point...
-			// Some targets will go 'invalid' immediately afer interacting with them.
-			// Most of the time this happens, the target is immediately and invisibly replaced with
-			// an identical looking target with a different script.
-			// We must assume our target and spell is no longer available for use after this point.
-
-			await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
-
-			// If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
-			await CastPendingSpell(selectedTarget);
-
-			// Wait for any casting to complete...
-			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
-			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
-			// Were we interrupted in spell casting?
-			InterruptDectection_Unhook();
-
-			if (IsInterrupted)
+			using (var validateCast = new ValidateSpellCast(spellId))
 			{
-				QBCLog.Warning("Cast of {0} interrupted.", spellName);
-				// Give whatever issue encountered a chance to settle...
-				// NB: --we want the Sequence to fail when delay completes.
-				await Coroutine.Sleep(1500);
-				return false;
+				SpellManager.Cast(selectedSpell, selectedTarget);
+
+				// NB: The target or the spell may not be valid after this point...
+				// Some targets will go 'invalid' immediately afer interacting with them.
+				// Most of the time this happens, the target is immediately and invisibly replaced with
+				// an identical looking target with a different script.
+				// We must assume our target and spell is no longer available for use after this point.
+
+				await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+
+				// If item use requires a second click on the target (e.g., item has a 'ground target' mechanic)...
+				await CastPendingSpell(selectedTarget);
+
+				// Wait for any casting to complete...
+				// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+
+				var castResult = await validateCast.GetResult();
+
+				if (castResult != SpellCastResult.Succeeded)
+				{
+					string reason = castResult == SpellCastResult.UnknownFail 
+						? validateCast.FailReason
+						: castResult.ToString();
+
+					QBCLog.Warning("Cast of {0} failed. Reason: {1}", spellName, reason);
+					// Give whatever issue encountered a chance to settle...
+					// NB: --we want the Sequence to fail when delay completes.
+					if (castResult != SpellCastResult.LineOfSight
+						&& castResult != SpellCastResult.OutOfRange
+						&& castResult != SpellCastResult.TooClose)
+					{
+						await Coroutine.Sleep(1500);
+					}
+					return castResult;
+				}
+
+				QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", spellName, targetName);
+
+				if (actionOnSuccessfulSpellCastDelegate != null)
+					actionOnSuccessfulSpellCastDelegate();
+
+				return SpellCastResult.Succeeded;
 			}
-
-			QBCLog.DeveloperInfo("Cast of '{0}' on '{1}' succeeded.", spellName, targetName);
-
-			if (actionOnSuccessfulSpellCastDelegate != null)
-				actionOnSuccessfulSpellCastDelegate();
-
-			return true;
 		}
+
+		#region Legacy interruption detection. Remove once nothing uses this anymore.
+
+		// I realize this isn't thread safe but should not be a problem since behaviors are generally run on same thread..
+		// if it is a problem then we need to wrap CastSpell in a class instance
+		private static bool IsInterrupted { get; set; }
 
 		private static void InterruptDetection_Hook()
 		{
@@ -164,6 +174,8 @@ namespace Honorbuddy.QuestBehaviorCore
 			IsInterrupted = true;
 		}
 
+		#endregion
+
 		public static async Task CastPendingSpell(WoWObject selectedTarget)
 		{
 			if (StyxWoW.Me.CurrentPendingCursorSpell != null)
@@ -189,7 +201,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					Lua.DoString("SpellStopTargeting()");
 				}
 			}
-		}
+		}		
 
 	}
 }
