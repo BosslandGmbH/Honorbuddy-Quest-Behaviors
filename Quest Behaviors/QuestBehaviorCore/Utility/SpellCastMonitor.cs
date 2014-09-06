@@ -11,15 +11,16 @@ using Styx.WoWInternals;
 
 namespace QBs.QuestBehaviorCore.Utility
 {
-	internal class ValidateSpellCast : IDisposable
+	/// <summary>Monitors a spell cast</summary>
+	internal class SpellCastMonitor : IDisposable
 	{
 		#region Constructor and argument processing
 
 		/// <summary>
-		/// Initializes a new instance of the <see cref="ValidateSpellCast" /> class.
+		/// Initializes a new instance of the <see cref="SpellCastMonitor" /> class.
 		/// </summary>
 		/// <param name="spellId">The spell identifier.</param>
-		public ValidateSpellCast(int? spellId = null)
+		private SpellCastMonitor(int? spellId = null)
 		{
 			SpellId = spellId;
 			Result = SpellCastResult.Indeterminate;
@@ -37,6 +38,17 @@ namespace QBs.QuestBehaviorCore.Utility
 				QBCLog.Warning("Unable to apply event filter for COMBAT_LOG_EVENT_UNFILTERED");
 		}
 
+		/// <summary>
+		/// Starts monitoring a spell cast 
+		/// The spell being monitord should be casted after this call.
+		/// </summary>
+		/// <param name="spellId">The spell identifier.</param>
+		/// <returns></returns>
+		public static SpellCastMonitor Start(int? spellId)
+		{
+			return new SpellCastMonitor(spellId);
+		}
+
 		#endregion
 
 		#region Fields
@@ -49,7 +61,7 @@ namespace QBs.QuestBehaviorCore.Utility
 
 		#region Properties
 
-		/// <summary>Gets the spell identifier. If <c>null</c> then the first spell cast by toon is validated</summary>
+		/// <summary>Gets the spell identifier. If <c>null</c> then the first spell cast by toon is monitored</summary>
 		public int? SpellId { get; private set; }
 		public string FailReason { get; private set; }
 		public bool HasResult { get; private set; }
@@ -114,8 +126,35 @@ namespace QBs.QuestBehaviorCore.Utility
 
 		#endregion
 
+
+		#region Behavior
+
+		/// <summary>Waits until a result is available for a spell cast and then retrurn it.</summary>
+		/// <param name="maxTimeoutMs">The maximum timeout in milliseconds.</param>
+		public async Task<SpellCastResult> GetResult(int maxTimeoutMs = 15000)
+		{			
+			await Coroutine.Wait(maxTimeoutMs, () => HasResult);
+			return Result;
+		}
+
+		#endregion
+
+		#region IDisposable
+
+		public void Dispose()
+		{
+			Lua.Events.DetachEvent("COMBAT_LOG_EVENT_UNFILTERED", CombatLogEventUnfilteredHandler);
+			Lua.Events.DetachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
+
+			if (_appliedCombatLogEventUnfilteredFilter)
+				Lua.Events.RemoveFilter("COMBAT_LOG_EVENT_UNFILTERED");
+		}
+
+		#endregion
+
 		#region Helpers
 
+		// Stolen from Singluar.
 		private static ulong ArgToGuid(object o)
 		{
 			string svalue = o.ToString().Replace("0x", string.Empty);
@@ -166,32 +205,6 @@ namespace QBs.QuestBehaviorCore.Utility
 			ret = Lua.GetReturnVal<string>("return " + symbol, 0);
 			_localizedSymbols.Add(symbol, ret);
 			return ret;
-		}
-
-		#endregion
-
-		#region Behavior
-
-		/// <summary>Waits until a result is available and then retrurn it.</summary>
-		/// <param name="maxTimeoutMs">The maximum timeout in milliseconds.</param>
-		public async Task<SpellCastResult> GetResult(int maxTimeoutMs = 15000 )
-		{
-			await Coroutine.Wait(maxTimeoutMs, () => HasResult );
-			return Result;
-		}
-
-		#endregion
-
-
-		#region IDisposable
-
-		public void Dispose()
-		{
-			Lua.Events.DetachEvent("COMBAT_LOG_EVENT_UNFILTERED", CombatLogEventUnfilteredHandler);
-			Lua.Events.DetachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
-
-			if (_appliedCombatLogEventUnfilteredFilter)
-				Lua.Events.RemoveFilter("COMBAT_LOG_EVENT_UNFILTERED");
 		}
 
 		#endregion

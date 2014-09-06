@@ -89,7 +89,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			QBCLog.DeveloperInfo(message);
 
 			// Set up 'interrupted use' detection, and cast spell...
-			using (var validateCast = new ValidateSpellCast(spellId))
+			using (var castMonitor = SpellCastMonitor.Start(spellId))
 			{
 				SpellManager.Cast(selectedSpell, selectedTarget);
 
@@ -107,12 +107,12 @@ namespace Honorbuddy.QuestBehaviorCore
 				// Wait for any casting to complete...
 				// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
 
-				var castResult = await validateCast.GetResult();
+				var castResult = await castMonitor.GetResult();
 
 				if (castResult != SpellCastResult.Succeeded)
 				{
 					string reason = castResult == SpellCastResult.UnknownFail 
-						? validateCast.FailReason
+						? castMonitor.FailReason
 						: castResult.ToString();
 
 					QBCLog.Warning("Cast of {0} failed. Reason: {1}", spellName, reason);

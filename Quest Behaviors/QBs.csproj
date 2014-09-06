@@ -199,7 +199,7 @@
     <Compile Include="QuestBehaviorCore\UtilitiesDeprecation.cs" />
     <Compile Include="QuestBehaviorCore\Types.cs" />
     <Compile Include="QuestBehaviorCore\QuestBehaviorBase.cs" />
-    <Compile Include="QuestBehaviorCore\Utility\ValidateSpellCast.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\SpellCastMonitor.cs" />
     <Compile Include="QuestBehaviorCore\Utility\WeaponArticulation.cs" />
     <Compile Include="QuestBehaviorCore\Utility\VehicleAbility.cs" />
     <Compile Include="QuestBehaviorCore\Utility\VehicleWeapon.cs" />
