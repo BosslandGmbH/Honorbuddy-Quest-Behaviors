@@ -202,7 +202,7 @@ namespace QBs.QuestBehaviorCore.Utility
 			if (_localizedSymbols.TryGetValue(symbol, out ret))
 				return ret;
 
-			ret = Lua.GetReturnVal<string>("return " + symbol, 0);
+			ret = Lua.State.Globals.GetField(symbol).Value.String.Value;
 			_localizedSymbols.Add(symbol, ret);
 			return ret;
 		}
