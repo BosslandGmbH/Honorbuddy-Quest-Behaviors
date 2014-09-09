@@ -264,6 +264,7 @@ using Buddy.Coroutines;
             var taskProducer = (Func<RunCode, Task>)codeInstance.FunctionDelegates[index.Value];
 
             await taskProducer(this);
+            _isBehaviorDone = true;
             return true;
         }
 
