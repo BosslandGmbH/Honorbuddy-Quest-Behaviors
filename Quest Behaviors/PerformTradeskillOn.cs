@@ -27,6 +27,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.Patchables;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -157,10 +158,18 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 			return maxRepeat;
 		}
 
-		WoWSpell GetRecipeSpell(SkillLine skillLine, int itemOrSpellId)
+		WoWSpell GetRecipeSpell(int itemOrSpellId)
 		{
+            var skillLineId = TradeSkillId;
+
+            var skillLineIds = StyxWoW.Db[ClientDb.SkillLine]
+                .Select(r => r.GetStruct<SkillLineInfo.SkillLineEntry>())
+                .Where(s => s.ID == skillLineId || s.ParentSkillLineId == skillLineId)
+                .Select(s => (SkillLine) s.ID)
+                .ToList();
+
 			var recipes = SkillLineAbility.GetAbilities()
-				.Where(a => a.SkillLine == skillLine && a.NextSpellId == 0)
+                .Where(a => skillLineIds.Contains(a.SkillLine) && a.NextSpellId == 0 && a.GreySkillLevel > 0 && a.TradeSkillCategoryId > 0)
 				.Select(a => WoWSpell.FromId(a.SpellId))
 				.Where(s => s.IsValid)
 				.ToList();
@@ -201,7 +210,7 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 			// special case for Runeforging since it's not considered a profession.
 			_recipeSpell = skillLine == SkillLine.Runeforging 
 				? WoWSpell.FromId(TradeSkillItemId) 
-				: GetRecipeSpell(skillLine, TradeSkillItemId);
+				: GetRecipeSpell(TradeSkillItemId);
 
 			if (_recipeSpell == null || !_recipeSpell.IsValid)
 			{
