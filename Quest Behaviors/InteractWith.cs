@@ -118,6 +118,8 @@
 //          the MobIdN's location.
 //
 // Tunables:
+//      AttemptCountMax [optional; Default: 7]
+//          Specifies the maximum number of attempts at interacting with a target before moving on.
 //      CollectionDistance [optional; Default: 100.0]
 //          Measured from the toon's current location, this value specifies
 //          the maximum distance that should be searched when looking for
@@ -356,7 +358,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
-
+using Bots.DungeonBuddy.Helpers;
 using JetBrains.Annotations;
 
 using Bots.Grind;
@@ -440,6 +442,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				InteractByUsingItemId = GetAttributeAsNullable<int>("InteractByUsingItemId", false, ConstrainAs.ItemId, null) ?? 0;
 
 				// Tunables...
+                AttemptCountMax = GetAttributeAsNullable<int>("AttemptCountMax", false, new ConstrainTo.Domain<int>(1,100), null) ?? 7;
 				BuyItemCount = GetAttributeAsNullable<int>("BuyItemCount", false, ConstrainAs.CollectionCount, null) ?? 1;
 				CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
 				HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
@@ -503,6 +506,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 
 		// Attributes provided by caller
+		private int AttemptCountMax  { get; set; }
 		private int[] AuraIdsOnMob { get; set; }
 		private int[] AuraIdsMissingFromMob { get; set; }
 		private int BuyItemCount { get; set; }
@@ -592,6 +596,21 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				MobIdIncludesSelf && !((InteractByCastingSpellId > 0) || (InteractByUsingItemId > 0)),
 				context => "When \"MobIdIncludesSelf\" is specified, one of the following attributes must also be specified:"
 							+ "InteractByCastingSpellId, InteractByUsingItemId");
+
+		    var interactSpell = GetInteractSpell();
+
+            UsageCheck_SemanticCoherency(
+                xElement,
+                interactSpell != null && interactSpell.HasRange && RangeMin.HasValue && RangeMin.Value < interactSpell.MinRange,
+                context => string.Format("RangeMin({0}) must be equal to or greater than the spell's minimum cast range({1})", 
+                    RangeMin.Value, interactSpell.MinRange));
+
+            UsageCheck_SemanticCoherency(
+                xElement,
+                interactSpell != null && interactSpell.HasRange && RangeMax.HasValue && RangeMax.Value > interactSpell.MaxRange,
+                context => string.Format("RangeMax({0}) must be equal to or less than the spell's maximum cast range({1})",
+                    RangeMax.Value, interactSpell.MaxRange));
+
 		}
 
 		private enum NavigationModeType
@@ -616,7 +635,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		#region Private and Convenience variables
 
-		private const int AttemptCountMax = 7;
 		private const double RangeMinMaxEpsilon = 3.0;
 		private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 		private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
@@ -1063,17 +1081,18 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			if (!isViableTarget)
 				return false;
 
-			if (IsDistanceGainNeeded(SelectedTarget))
+		    double rangeMin;
+            if (IsDistanceGainNeeded(SelectedTarget, out rangeMin))
 			{
 				var destinationName = string.Format(
 					"gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
 					GetName(SelectedTarget),
 					SelectedTarget.Entry,
 					SelectedTarget.Distance,
-					RangeMin.Value);
+                    rangeMin);
 
 				if (await UtilityCoroutine.MoveTo(
-					Utility.GetPointToGainDistance(SelectedTarget, RangeMin.Value),
+                    Utility.GetPointToGainDistance(SelectedTarget, rangeMin),
 					destinationName,
 					MovementBy))
 				{
@@ -1739,23 +1758,29 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		}
 
 
-		private bool IsDistanceGainNeeded(WoWObject wowObject)
+		private bool IsDistanceGainNeeded(WoWObject wowObject, out double rangeMin)
 		{
-			if (!RangeMin.HasValue)
-			{
-				return false;
-			}
+            rangeMin = GetMinRange(wowObject);
+            var rangeMax = GetMaxRange(wowObject);
 
-			var unit = wowObject as WoWUnit;
-			// can't easily gain distance on a mob that aggroed
-			if (unit != null && unit.Aggro)
-			{
-				return false;
-			}
+            var unit = wowObject as WoWUnit;
+            // can't easily gain distance on a mob that aggroed
+            if (unit != null && unit.Aggro)
+            {
+                return false;
+            }
 
-			double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
+            var distToMob = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
-			return targetDistance < RangeMin.Value;
+            // Ignore minRange if its > maxRange
+            if (rangeMin > rangeMax)
+            {
+                QBCLog.Error("RangeMin ({0}) is higher than MaxRange ({1}) of {2}",
+                    rangeMin, rangeMax, wowObject.SafeName);
+                return  false;
+            }
+
+            return distToMob < rangeMin;
 		}
 
 
@@ -1857,15 +1882,59 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private bool IsWithinInteractDistance(WoWObject wowObject)
 		{
-			return
-				Query.IsViable(wowObject)
-				&& (RangeMax.HasValue
-				// If user specified MaxRange, honor its value...
-					? (WoWMovement.ActiveMover.Location.Distance(wowObject.Location) <= RangeMax.Value)
-				// Otherwise, prefer target's definition of its interact distance...
-					: wowObject.WithinInteractRange);
+		    if (!Query.IsViable(wowObject))
+		        return false;
+		    var maxRange = GetMaxRange(wowObject);
+
+		    var distToMob = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
+
+            return distToMob <= maxRange;
 		}
 
+        private double GetMaxRange(WoWObject wowObject)
+	    {
+            if (!Query.IsViable(wowObject))
+                return double.MaxValue;
+
+            if (RangeMax.HasValue)
+                return RangeMax.Value;
+
+            var spell = GetInteractSpell();
+
+            if (spell != null && spell.HasRange)
+            {
+                var wowUnit = wowObject as WoWUnit;
+                return wowUnit != null ? spell.MaxRange + wowUnit.CombatReach + 4/3f : spell.MaxRange;
+            }
+
+            return wowObject.InteractRange;
+	    }
+
+        private double GetMinRange(WoWObject wowObject)
+        {
+            if (!Query.IsViable(wowObject))
+                return 0;
+
+            if (RangeMin.HasValue)
+                return RangeMin.Value;
+
+            var spell = GetInteractSpell();
+
+            if (spell != null && spell.HasRange)
+            {
+                var wowUnit = wowObject as WoWUnit;
+                return wowUnit != null ? spell.MinRange + wowUnit.CombatReach + 4 / 3f : spell.MinRange;
+            }
+
+            return 0;
+        }
+
+	    private WoWSpell GetInteractSpell()
+	    {
+            return Query.IsViable(ItemToUse)
+                ? ItemToUse.ItemSpells.Select(i => i.ActualSpell).FirstOrDefault()
+                : (InteractByCastingSpellId > 0 ? WoWSpell.FromId(InteractByCastingSpellId) : null);
+	    }
 
 		// 4JUn2013-08:11UTC chinajade
 		private List<string> TargetExclusionChecks(WoWObject wowObject)
