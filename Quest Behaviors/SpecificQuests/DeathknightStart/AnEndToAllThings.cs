@@ -290,7 +290,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 					{
 						TreeRoot.StatusText =
 							string.Format("Waiting for {0} cooldown ({1} remaining)",
-								ItemToSummonVehicle.Name,
+                                ItemToSummonVehicle.SafeName,
 								Utility.PrettyTime(ItemToSummonVehicle.CooldownTimeLeft));
 						return RunStatus.Success;
 					})),

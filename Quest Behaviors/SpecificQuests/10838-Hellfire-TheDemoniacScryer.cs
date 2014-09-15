@@ -205,7 +205,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 				var mob = ObjectManager.GetObjectsOfType<WoWUnit>()
 									  .FirstOrDefault(unit => unit.Entry == MobId);
 
-				this.UpdateGoalText(QuestId, "Escorting " + ((mob != null) ? mob.Name : ("Mob(" + MobId + ")")));
+                this.UpdateGoalText(QuestId, "Escorting " + ((mob != null) ? mob.SafeName : ("Mob(" + MobId + ")")));
 			}
 		}
 

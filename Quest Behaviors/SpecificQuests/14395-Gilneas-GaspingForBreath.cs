@@ -695,7 +695,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 						new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
 							new UtilityBehaviorPS.MoveTo(
 								interactUnitContext => ((WoWUnit)interactUnitContext).Location,
-								interactUnitContext => "to interact with " + ((WoWUnit)interactUnitContext).Name)),
+                                interactUnitContext => "to interact with " + ((WoWUnit)interactUnitContext).SafeName)),
 
 						new Decorator(interactUnitContext => Me.IsMoving,
 							new Action(interactUnitContext => { WoWMovement.MoveStop(); })),
@@ -707,7 +707,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 						// provides no CanInteract() method (or equivalent) to make this determination.
 						new Action(interactUnitContext =>
 						{
-							QBCLog.DeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
+                            QBCLog.DeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).SafeName);
 							((WoWUnit)interactUnitContext).Interact();
 							return RunStatus.Failure;
 						}),

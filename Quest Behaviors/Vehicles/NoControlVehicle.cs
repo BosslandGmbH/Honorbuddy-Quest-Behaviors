@@ -243,7 +243,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 							if (!NpcVehicleList[0].WithinInteractRange)
 							{
 								Navigator.MoveTo(NpcVehicleList[0].Location);
-								TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].Name + " Yards Away: " + NpcVehicleList[0].Location.Distance(Me.Location);
+                                TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].SafeName + " Yards Away: " + NpcVehicleList[0].Location.Distance(Me.Location);
 							}
 							else
 							{
@@ -267,7 +267,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 							}
 							if (vehicle != null && target.Location.Distance(vehicle.Location) <= 15)
 							{
-								TreeRoot.StatusText = "Attacking: " + target.Name + ", AttackButton: " + AttackButton;
+                                TreeRoot.StatusText = "Attacking: " + target.SafeName + ", AttackButton: " + AttackButton;
 								if (Me.CurrentTargetGuid != target.Guid)
 									target.Target();
 								Lua.DoString("CastPetAction({0})", AttackButton);
@@ -295,7 +295,7 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 							{
 								StyxWoW.Sleep(OftenToUse);
 
-								TreeRoot.StatusText = "Attacking: " + target.Name + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
+                                TreeRoot.StatusText = "Attacking: " + target.SafeName + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
 
 								target.Target();
 								Lua.DoString("CastPetAction({0})", AttackButton);

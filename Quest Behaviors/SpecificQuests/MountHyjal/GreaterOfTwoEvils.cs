@@ -211,7 +211,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 									TreeRoot.Stop();
 								}
 
-								Log("Use: {0}", item.Name);
+                                Log("Use: {0}", item.SafeName);
 								item.Use(true);
 								StyxWoW.SleepForLagDuration();
 								return RunStatus.Success;

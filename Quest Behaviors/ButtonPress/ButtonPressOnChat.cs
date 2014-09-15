@@ -519,7 +519,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 								new Action(delegate
 								{
 									TreeRoot.StatusText = string.Format("Waiting for {0} cooldown in {1:0} seconds.",
-																		Item.Name, Item.Cooldown);
+                                                                        Item.SafeName, Item.Cooldown);
 								})),
 
 
@@ -529,7 +529,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 								new WaitContinue(Delay_WowClientLagTime, ret => false, new ActionAlwaysSucceed()),
 								new Action(delegate
 								{
-									TreeRoot.StatusText = string.Format("Using Item '{0}' to initiate interaction", Item.Name);
+                                    TreeRoot.StatusText = string.Format("Using Item '{0}' to initiate interaction", Item.SafeName);
 									Item.UseContainerItem();
 									_isInteracting = true;
 								})
@@ -745,7 +745,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 										&& (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
 					new Action(delegate
 					{
-						QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                        QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.SafeName);
 						CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
 						CurrentTarget = null;
 					})),
@@ -871,7 +871,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 							new Action(wowObject =>
 							{
 								TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-																	((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).SafeName,
 																	((WoWObject)wowObject).Distance);
 							})),
 
@@ -889,7 +889,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 						// Start backing up...
 						new Action(wowObject =>
 						{
-							TreeRoot.StatusText = "Too close to \"" + ((WoWObject)wowObject).Name + "\"--backing up";
+                            TreeRoot.StatusText = "Too close to \"" + ((WoWObject)wowObject).SafeName + "\"--backing up";
 							WoWMovement.MoveStop();
 							WoWMovement.Face(((WoWObject)wowObject).Guid);
 							WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
@@ -941,7 +941,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 							new Action(wowObject =>
 							{
 								TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-																	((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).SafeName,
 																	((WoWObject)wowObject).Distance);
 							})),
 						CreateBehavior_InternalMoveTo(() => target().Location)

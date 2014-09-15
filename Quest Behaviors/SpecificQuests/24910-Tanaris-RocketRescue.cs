@@ -300,11 +300,11 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 			await (_updateUser_MountingVehicle_movingToVehicle ?? (_updateUser_MountingVehicle_movingToVehicle =
 				new ThrottleCoroutineTask(
 					Throttle.UserUpdate,
-					async () => TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.Name))));
+                    async () => TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.SafeName))));
 
 			if (!Vehicle.WithinInteractRange)
 			{
-				return await UtilityCoroutine.MoveTo(Vehicle.Location, Vehicle.Name, MovementBy);
+                return await UtilityCoroutine.MoveTo(Vehicle.Location, Vehicle.SafeName, MovementBy);
 			}
 
 			if (Me.IsMoving)

@@ -467,9 +467,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
 
 		private bool IsQuestObjectiveComplete(int questId, int objectiveId)
 		{
-			var a = StyxWoW.Me.Name.Substring(0,(int)Math.Ceiling(StyxWoW.Me.Name.Length / 2d)) + new string('*', (int)Math.Floor(StyxWoW.Me.Name.Length / 2d));
-
-			if (Me.QuestLog.GetQuestById((uint)questId) == null)
+		    if (Me.QuestLog.GetQuestById((uint)questId) == null)
 				{ return false; }
 
 			int questLogIndex = Lua.GetReturnVal<int>(string.Format("return GetQuestLogIndexByID({0})", questId), 0);

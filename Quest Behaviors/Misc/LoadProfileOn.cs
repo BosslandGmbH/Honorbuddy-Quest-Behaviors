@@ -236,7 +236,7 @@ namespace Styx.Bot.Quest_Behaviors
 					QBCLog.Info("Can't scan party member, assuming member is too far away");
 					return false;
 				}
-				if (p.Name != Me.Name && WoWMovement.CalculatePointFrom(p.Location, 0).DistanceSqr(Me.Location) > p.InteractRange)
+                if (p.Guid != Me.Guid && WoWMovement.CalculatePointFrom(p.Location, 0).DistanceSqr(Me.Location) > p.InteractRange)
 				{
 					return false;
 				}

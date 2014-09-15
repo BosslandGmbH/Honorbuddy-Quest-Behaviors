@@ -718,7 +718,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 										&& (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
 					new Action(delegate
 					{
-						QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                        QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.SafeName);
 						CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
 						CurrentTarget = null;
 					})),
@@ -809,7 +809,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 							new Action(wowObject =>
 							{
 								TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-																	((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).SafeName,
 																	((WoWObject)wowObject).Distance);
 							})),
 
@@ -827,7 +827,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 						// Start backing up...
 						new Action(wowObject =>
 						{
-							TreeRoot.StatusText = "Too close to \"" + ((WoWObject)wowObject).Name + "\"--backing up";
+                            TreeRoot.StatusText = "Too close to \"" + ((WoWObject)wowObject).SafeName + "\"--backing up";
 							WoWMovement.MoveStop();
 							WoWMovement.Face(((WoWObject)wowObject).Guid);
 							WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
@@ -877,7 +877,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 							new Action(wowObject =>
 							{
 								TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-																	((WoWObject)wowObject).Name,
+                                                                    ((WoWObject)wowObject).SafeName,
 																	((WoWObject)wowObject).Distance);
 							})),
 
@@ -889,7 +889,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 				new Action(wowObject =>
 					{
 						TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-															((WoWObject)wowObject).Name,
+                                                            ((WoWObject)wowObject).SafeName,
 															((WoWObject)wowObject).Distance);
 						return (RunStatus.Failure);
 					})
@@ -1213,7 +1213,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 				&& (Me.Location.Distance(underwaterAirSource.Location) <= nearestAirSource.Distance))
 			{
 				nearestAirSource.Location = underwaterAirSource.Location;
-				nearestAirSource.Name = underwaterAirSource.Name;
+                nearestAirSource.Name = underwaterAirSource.SafeName;
 			}
 
 			return (nearestAirSource);
@@ -1327,7 +1327,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 									new Action(delegate
 									{
 										TreeRoot.StatusText = string.Format("Moving to loot target '{0}' (distance {1})...",
-																			_currentTarget.Name,
+                                                                            _currentTarget.SafeName,
 																			_currentTarget.Distance);
 										UnderwaterMoveTo(_currentTarget.Location);
 									})),

@@ -62,7 +62,7 @@ namespace Honorbuddy.QuestBehaviorCore
 							new Decorator(context => (CachedLootObject != null) && (CachedLootObject.Distance > CachedLootObject.InteractRange),
 								new UtilityBehaviorPS.MoveTo(
 									context => CachedLootObject.Location,
-									context => CachedLootObject.Name,
+									context => CachedLootObject.SafeName,
 									MovementByDelegate)),
 							new Decorator(context => CachedLootObject != null,
 								new UtilityBehaviorPS.MoveStop())

@@ -216,14 +216,14 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 								new Sequence(
 									new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) > Range || !MobList[0].InLineOfSight,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + MobList[0].SafeName + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
 											new Action(ret => Navigator.MoveTo(MobList[0].Location)),
 											new Sleep(300)
 											)
 									),
 									new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) <= Range && MobList[0].InLineOfSight,
 										new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + MobList[0].Name + " With Spell: " + RangeSpell.Name),
+                                        new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + MobList[0].SafeName + " With Spell: " + RangeSpell.Name),
 										new Action(ret => WoWMovement.MoveStop()),
 										new Action(ret => MobList[0].Target()),
 										new Action(ret => MobList[0].Face()),

@@ -190,7 +190,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
 								Npc.Target();
 							if (!Npc.WithinInteractRange)
 							{
-								TreeRoot.GoalText = string.Format("Moving to {0}", Npc.Name);
+                                TreeRoot.GoalText = string.Format("Moving to {0}", Npc.SafeName);
 								Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, Npc.Location, 3));
 							}
 							else
@@ -199,7 +199,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.FindAndBeatNpcs
 									WoWMovement.MoveStop();
 								if (!Me.IsAutoAttacking || !Me.IsSafelyFacing(StyxWoW.Me.CurrentTarget))
 								{
-									TreeRoot.GoalText = string.Format("Bullying {0}", Npc.Name);
+                                    TreeRoot.GoalText = string.Format("Bullying {0}", Npc.SafeName);
 									Npc.Interact();
 								}
 							}

@@ -437,7 +437,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 								// Move to mob...
 								new UtilityBehaviorPS.MoveTo(
 									context => Mob_ToMoveNear.Location,
-									context => Mob_ToMoveNear.Name,
+                                    context => Mob_ToMoveNear.SafeName,
 									context => MovementBy)
 							)),
 
@@ -484,7 +484,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 					{
 						TreeRoot.StatusText =
 							string.Format("Waiting for '{0}' to move {1:F1}/{2:F1} yards away, and pathing away from us.",
-								Mob_ToAvoid.Name,
+                                Mob_ToAvoid.SafeName,
 								Mob_ToAvoid.Distance,
 								AvoidDistance);
 					}))
@@ -555,7 +555,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 					new Sequence(
 						new Action(context =>
 						{
-							TreeRoot.StatusText = string.Format("Holding position to evaluate {0}'s actions.", Mob_ToAvoid.Name);
+                            TreeRoot.StatusText = string.Format("Holding position to evaluate {0}'s actions.", Mob_ToAvoid.SafeName);
 						}),
 						new UtilityBehaviorPS.MoveStop()
 					))
@@ -574,7 +574,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 						QBCLog.Info("Retreating back to safespot due to {0}.",
 							Me.Combat
 							? "combat"
-							: string.Format("{0} too close (dist: {1:F1})", Mob_ToAvoid.Name, Mob_ToAvoid.Distance));
+                            : string.Format("{0} too close (dist: {1:F1})", Mob_ToAvoid.SafeName, Mob_ToAvoid.Distance));
 					})),
 
 				// If we've come to the end of our egress path, move back to safe spot...

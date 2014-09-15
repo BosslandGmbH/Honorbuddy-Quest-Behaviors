@@ -165,7 +165,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
 					new Sequence(
 						new Action(ret =>
 						{
-							TreeRoot.StatusText = string.Format("Using {0} (count: {1}/{2})", Item.Name, Counter, NumOfTimes);
+                            TreeRoot.StatusText = string.Format("Using {0} (count: {1}/{2})", Item.SafeName, Counter, NumOfTimes);
 							Item.UseContainerItem();
 							Counter++;
 						}),

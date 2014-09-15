@@ -209,7 +209,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 								
 					new Decorator(ret => TaxiNumber == "0" && DestName == "ViewNodesOnly",
 						new Sequence(
-							new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.Name + " Distance: " +
+                            new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.SafeName + " Distance: " +
 												CurrentNpc.Location.Distance(Me.Location) + " to listing known TaxiNodes")),
 							new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); print(i,a);end;"))),
 							new Sleep(WaitTime),
@@ -217,7 +217,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 
 					new Decorator(ret => TaxiNumber != "0",
 						new Sequence(
-							new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.Name + " Distance: " +
+                            new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.SafeName + " Distance: " +
 												CurrentNpc.Location.Distance(Me.Location))),
 							new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/click TaxiButton" + TaxiNumber))),
 							new Action(ret => _tryNumber++),
@@ -288,7 +288,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 								 .FirstOrDefault();
 
 				if (npc != null)
-					QBCLog.DeveloperInfo(npc.Name);
+                    QBCLog.DeveloperInfo(npc.SafeName);
 
 				return npc;
 			}

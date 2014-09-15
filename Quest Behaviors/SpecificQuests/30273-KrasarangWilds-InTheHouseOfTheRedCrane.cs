@@ -99,7 +99,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.InTheHouseOfTheRedCrane
 		{
 			get
 			{
-				return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => (MobIds.Contains((int)u.Entry) || u.Name.Contains("Echo")) && u.CanSelect && !u.IsDead));
+				return (ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(u => (MobIds.Contains((int)u.Entry) || u.SafeName.Contains("Echo")) && u.CanSelect && !u.IsDead));
 			}
 		}
 

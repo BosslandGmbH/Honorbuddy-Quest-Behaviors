@@ -182,7 +182,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					&& (Me.Location.Distance(underwaterAirSource.Location) <= nearestAirSource.Distance))
 				{
 					nearestAirSource.Location = underwaterAirSource.Location;
-					nearestAirSource.Name = underwaterAirSource.Name;
+                    nearestAirSource.Name = underwaterAirSource.SafeName;
 				}
 
 				return (nearestAirSource);

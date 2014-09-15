@@ -240,7 +240,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
 					tmpBuilder.AppendFormat("{0}    {1} [{2}.  {3} free / {4} slots] (http://wowhead.com/item={5})",
 						linePrefix,
-						wowContainer.Name,
+                        wowContainer.SafeName,
 						wowContainer.BagType,
 						wowContainer.FreeSlots,
 						wowContainer.Slots,
@@ -291,7 +291,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 					if ((wowItem != null) && wowItem.IsValid)
 					{
 						return string.Format("{0} (http://wowhead.com/item={1}){2}",
-							wowItem.Name,
+                            wowItem.SafeName,
 							wowItem.Entry,
 							(Query.IsQuestItem(wowItem) ? " ***QUEST ITEM***" : ""));
 					}
@@ -637,7 +637,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 			}
 			else
 			{
-				foreach (var questItem in questItems.OrderBy(item => item.ItemInfo.InternalInfo.QuestId).ThenBy(item => item.Name))
+                foreach (var questItem in questItems.OrderBy(item => item.ItemInfo.InternalInfo.QuestId).ThenBy(item => item.SafeName))
 				{
 					var questId = questItem.ItemInfo.InternalInfo.QuestId;
 					var quest = Quest.FromId((uint)questId);
@@ -648,7 +648,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
 					builder.AppendFormat("{0}    {1}{2} (http://wowhead.com/item={3})",
 						linePrefix,
-						questItem.Name,
+                        questItem.SafeName,
 						((stackCount <= 1) ? "" : string.Format(" x{0}", stackCount)),
 						questItem.Entry);
 					builder.Append(Environment.NewLine);

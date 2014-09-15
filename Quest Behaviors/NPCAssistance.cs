@@ -173,7 +173,7 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
 						obj = npcStateQualifiedTargets.FirstOrDefault();
 
 				if (obj != null)
-					{ QBCLog.DeveloperInfo(obj.Name); }
+                { QBCLog.DeveloperInfo(obj.SafeName); }
 
 				return obj;
 			}
@@ -228,7 +228,7 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
 
 					 new Decorator(ret => CurrentCommand == NpcCommand.Target && CurrentNPC != null,
 								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Targeting Npc: " + CurrentNPC.Name + " Distance: " + CurrentNPC.Location.Distance(Me.Location)),
+                                    new Action(ret => TreeRoot.StatusText = "Targeting Npc: " + CurrentNPC.SafeName + " Distance: " + CurrentNPC.Location.Distance(Me.Location)),
 										new Action(ret => CurrentNPC.Target()),
 										new Sleep(WaitTime),
 										new Action(ret => _isBehaviorDone = true)

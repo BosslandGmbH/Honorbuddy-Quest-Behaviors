@@ -756,7 +756,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
 							new PrioritySelector(
 								new Action(targetContext =>
 								{
-									QBCLog.Info("Getting attention of {0}", ((WoWUnit)targetContext).Name);
+                                    QBCLog.Info("Getting attention of {0}", ((WoWUnit)targetContext).SafeName);
 									return RunStatus.Failure;
 								}),
 								UtilityBehavior_SpankMob(selectedTargetDelegate)))
@@ -777,7 +777,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
 						new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
 							new Action(interactUnitContext =>
 							{
-								QBCLog.DeveloperInfo("Moving to interact with {0}", ((WoWUnit)interactUnitContext).Name);
+                                QBCLog.DeveloperInfo("Moving to interact with {0}", ((WoWUnit)interactUnitContext).SafeName);
 								Navigator.MoveTo(((WoWUnit)interactUnitContext).Location);
 							})),
 
@@ -791,7 +791,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
 						// provides no CanInteract() method (or equivalent) to make this determination.
 						new Action(interactUnitContext =>
 						{
-							QBCLog.DeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).Name);
+                            QBCLog.DeveloperInfo("Interacting with {0}", ((WoWUnit)interactUnitContext).SafeName);
 							((WoWUnit)interactUnitContext).Interact();
 							return RunStatus.Failure;
 						}),

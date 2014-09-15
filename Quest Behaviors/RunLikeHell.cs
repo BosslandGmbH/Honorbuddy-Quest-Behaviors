@@ -260,7 +260,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLikeHell
 								new Decorator(ret => MobId != 0 && Mob.Distance > Range,
 									new Action(delegate
 									{
-										TreeRoot.GoalText = "RunLikeHell wait for " + Mob.Name + " within " + Range + " yds";
+                                        TreeRoot.GoalText = "RunLikeHell wait for " + Mob.SafeName + " within " + Range + " yds";
 									})),
 								new Action(delegate
 								{

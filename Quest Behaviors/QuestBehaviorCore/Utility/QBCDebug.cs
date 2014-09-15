@@ -49,13 +49,13 @@ namespace Honorbuddy.QuestBehaviorCore
 				var indent = string.Empty.PadLeft(indentLevel);
 				var fieldSeparator = string.Format("\n  {0}", indent);
 
-				tmp.Append(wowUnit.Name);
+                tmp.Append(wowUnit.SafeName);
 
 				var worldMatrix = wowUnit.GetWorldMatrix();
 				var pitch = StyxWoW.Memory.Read<float>(wowUnit.BaseAddress + 0x820 + 0x24);
 				tmp.AppendFormat("{0}{1} (pitch: {2}): {3}",
 					fieldSeparator,
-					wowUnit.Name,
+                    wowUnit.SafeName,
 					pitch,
 					worldMatrix.ToString_FullInfo(false, indentLevel));
 

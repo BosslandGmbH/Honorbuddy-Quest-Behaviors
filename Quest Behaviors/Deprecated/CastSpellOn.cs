@@ -301,7 +301,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
 							new Sequence(
 								   new DecoratorContinue(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSpellSight,
 									new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].Name + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].SafeName + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
 										new Action(ret => Navigator.MoveTo(MobList[0].Location))
 										)
 								),
@@ -309,7 +309,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
 									new Sequence(
 										   new DecoratorContinue(ret => MobList[0].Location.Distance(Me.Location) >= maxSpellRange || !MobList[0].InLineOfSpellSight,
 											new Sequence(
-												new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].Name + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
+                                                new Action(ret => TreeRoot.StatusText = "Moving To Mob - " + MobList[0].SafeName + " Yards Away: " + MobList[0].Location.Distance(Me.Location)),
 												new Action(ret => Navigator.MoveTo(MobList[0].Location))
 												)
 										))),
@@ -324,7 +324,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
 										)),
 								new DecoratorContinue(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) >= CurrentBehaviorSpell.MinRange && MobList[0].Location.Distance(Me.Location) <= maxSpellRange && MobList[0].InLineOfSpellSight,
 									new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => TreeRoot.StatusText = "Casting Spell - " + SpellId + " On Mob: " + MobList[0].SafeName + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
 										new Action(ret => WoWMovement.MoveStop()),
 										new Action(ret => StyxWoW.Sleep(300)),
 										CreateSpellBehavior
@@ -334,7 +334,7 @@ namespace Honorbuddy.Quest_Behaviors.CastSpellOn
 						//Fix for Charge and other Spells which needs a target
 						new Decorator(ret => MobList.Count > 0 && MobList[0].Location.Distance(Me.Location) <= 40 && MobList[0].InLineOfSpellSight,
 							new Sequence(
-								new Action(ret => TreeRoot.StatusText = "Targetting On Mob: " + MobList[0].Name + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
+                                new Action(ret => TreeRoot.StatusText = "Targetting On Mob: " + MobList[0].SafeName + " Yards Away " + MobList[0].Location.Distance(Me.Location)),
 								new Action(ret => WoWMovement.MoveStop()),
 								new Action(ret => MobList[0].Target()),
 								new Action(ret => StyxWoW.Sleep(300)),

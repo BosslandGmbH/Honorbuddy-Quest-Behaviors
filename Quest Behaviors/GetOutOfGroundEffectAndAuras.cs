@@ -629,7 +629,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 											&&  !Query.IsPoiMatch( (WoWUnit)preferredUnitContext, PoiType.Kill),
 						new Action(preferredUnitContext =>
 						{
-							QBCLog.Info("Reprioritizing target to '{0}'", ((WoWUnit)preferredUnitContext).Name);
+                            QBCLog.Info("Reprioritizing target to '{0}'", ((WoWUnit)preferredUnitContext).SafeName);
 							BotPoi.Current = new BotPoi((WoWUnit)preferredUnitContext, PoiType.Kill);
 						}))
 					)
@@ -679,7 +679,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 									new Decorator(startUnitsContext => ((IEnumerable<WoWUnit>)startUnitsContext).Count() > 0,
 										new PrioritySelector(nearestStartUnitContext => ((IEnumerable<WoWUnit>)nearestStartUnitContext).OrderBy(u => u.Distance).FirstOrDefault(),
 											UtilityBehavior_MoveWithinRange(nearestStartUnitContext => ((WoWUnit)nearestStartUnitContext).Location,
-																			nearestStartUnitContext => string.Format("to {0}", ((WoWUnit)nearestStartUnitContext).Name)),
+                                                                            nearestStartUnitContext => string.Format("to {0}", ((WoWUnit)nearestStartUnitContext).SafeName)),
 											new Action(startUnitsContext => _behaviorState = BehaviorStateType.InteractingToStart)
 										))),
 
@@ -833,7 +833,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 						.FirstOrDefault(u => EventCompleteDeadMobIds.Contains((int)u.Entry) && u.IsDead && u.TaggedByMe);
 
 					if (ourDeadTarget != null)
-						{ QBCLog.Info("Event done due to killing '{0}'({1})", ourDeadTarget.Name, ourDeadTarget.Entry); }
+                    { QBCLog.Info("Event done due to killing '{0}'({1})", ourDeadTarget.SafeName, ourDeadTarget.Entry); }
 					return (ourDeadTarget != null);
 				}
 			}
@@ -962,13 +962,13 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 					new PrioritySelector(
 						// Move to closest unit...
 						UtilityBehavior_MoveWithinRange(gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
-												gossipUnitContext => ((WoWUnit)gossipUnitContext).Name),
+                                                gossipUnitContext => ((WoWUnit)gossipUnitContext).SafeName),
 
 						// Interact with unit to open the Gossip dialog...
 						new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
 							new Sequence(
 								new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Target()),
-								new Action(gossipUnitContext => QBCLog.Info("Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
+                                new Action(gossipUnitContext => QBCLog.Info("Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).SafeName)),
 								new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Interact()),
 								new WaitContinue(LagDuration, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
 								new WaitContinue(Delay_GossipDialogThrottle, ret => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
@@ -1069,7 +1069,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 				WoWUnit unit = ObjectManager.GetObjectsOfType<WoWUnit>(true, false).FirstOrDefault(u => u.Entry == unitId);
 
 				unitNames.Add((unit != null)
-							? unit.Name
+                            ? unit.SafeName
 							: string.Format("NpcId({0})", unitId));                    
 			}
 

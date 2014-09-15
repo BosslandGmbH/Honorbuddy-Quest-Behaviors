@@ -337,7 +337,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 						new Decorator(auraShowing => (auraShowing == null),
 							new Action(delegate
 							{
-								TreeRoot.StatusText = string.Format("Done with '{0}'... moving on", CurrentTarget.Name);
+								TreeRoot.StatusText = string.Format("Done with '{0}'... moving on", CurrentTarget.SafeName);
 								CurrentTarget.LocallyBlacklist(Delay_MobConsumedExpiry);
 							})),
 
@@ -357,7 +357,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 								WoWAura aura = (WoWAura)auraShowing;
 								TreeRoot.StatusText = string.Format("Pressing Button {0} on {1} for Aura({2}).",
 																	TargetAuraToButtonMap[aura.SpellId],
-																	CurrentTarget.Name,
+                                                                    CurrentTarget.SafeName,
 																	aura.Name);
 								Lua.DoString("RunMacroText(\"/click OverrideActionBarButton{0}\")", TargetAuraToButtonMap[aura.SpellId]);
 							}),
@@ -506,7 +506,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 										&& (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
 					new Action(delegate
 					{
-						QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.Name);
+                        QBCLog.Warning("Taking too long to engage '{0}'--blacklisting", CurrentTarget.SafeName);
 						CurrentTarget.LocallyBlacklist(Delay_AutoBlacklist);
 						CurrentTarget = null;
 					})),
@@ -598,7 +598,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 						new Action(wowObject =>
 						{
 							TreeRoot.StatusText = string.Format("Moving to {0} (distance: {1:0.0}) ",
-																((WoWObject)wowObject).Name,
+                                                                ((WoWObject)wowObject).SafeName,
 																((WoWObject)wowObject).Distance);
 						}),
 

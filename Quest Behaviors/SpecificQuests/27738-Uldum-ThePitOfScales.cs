@@ -771,7 +771,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 							new PrioritySelector(
 								new Action(targetContext =>
 								{
-									QBCLog.Info("Getting attention of {0}", ((WoWUnit)targetContext).Name);
+                                    QBCLog.Info("Getting attention of {0}", ((WoWUnit)targetContext).SafeName);
 									return RunStatus.Failure;
 								}),
 								UtilityBehavior_SpankMob(selectedTargetDelegate)))
@@ -1180,7 +1180,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 			if (petAction == null)
 				return;
 
-			QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
+            QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.SafeName);
 			StyxWoW.Me.SetFocus(wowUnit);
 			Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
 			StyxWoW.Me.SetFocus(0);

@@ -97,7 +97,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				.FirstOrDefault(o => Query.IsViable(o) && (o.Entry == wowObjectId));
 
 			return (wowObject != null)
-				? wowObject.Name
+                ? wowObject.SafeName
 				: string.Format("MobId({0})", wowObjectId);
 		}
 

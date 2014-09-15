@@ -345,7 +345,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 								Utility.Target(nearestMob);
 
 								FinalDestination = nearestMob.Location;
-								FinalDestinationName = nearestMob.Name;
+                                FinalDestinationName = nearestMob.SafeName;
 							}
 						}
 
@@ -371,14 +371,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 										new Action(context =>
 										{
 											TreeRoot.StatusText = string.Format("Moving to {0} {1}",
-																				VehicleUnoccupied.Name,
+                                                                                VehicleUnoccupied.SafeName,
 																				Me.Combat ? "(ignoring combat)" : "");
 										})),
 									new DecoratorContinue(context => VehicleUnoccupied.WithinInteractRange,
 										new Action(context => { VehicleUnoccupied.Interact(); })),
 									new UtilityBehaviorPS.MoveTo(
 										context => VehicleUnoccupied.Location,
-										context => VehicleUnoccupied.Name,
+                                        context => VehicleUnoccupied.SafeName,
 										context => MovementBy)
 								)),
 

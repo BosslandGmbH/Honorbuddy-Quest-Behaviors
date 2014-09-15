@@ -270,7 +270,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
 			// If target has strayed, reset to what we want...
 			if ((_targetPoiUnit != null) && (Me.CurrentTarget != _targetPoiUnit))
 			{
-				Utility_NotifyUser("Selecting new target: {0}", _targetPoiUnit.Name);
+                Utility_NotifyUser("Selecting new target: {0}", _targetPoiUnit.SafeName);
 				BotPoi.Current = new BotPoi(_targetPoiUnit, PoiType.Kill);
 				_targetPoiUnit.Target();
 			}

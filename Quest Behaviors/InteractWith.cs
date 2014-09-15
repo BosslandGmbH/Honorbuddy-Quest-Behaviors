@@ -960,7 +960,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				{
 					TreeRoot.StatusText = string.Format(
 						"Waiting for {0} cooldown ({1} remaining)",
-						ItemToUse.Name,
+                        ItemToUse.SafeName,
 						Utility.PrettyTime(TimeSpan.FromSeconds((int)ItemToUse.CooldownTimeLeft.TotalSeconds)));
 					return true;
 				}
@@ -1712,7 +1712,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private string GetName(WoWObject target)
 		{
 			return Query.IsViable(target)
-				? target.Name
+                ? target.SafeName
 				: (target == SelectedTarget)
 					? "selected target"
 					: (target.ToUnit() != null)

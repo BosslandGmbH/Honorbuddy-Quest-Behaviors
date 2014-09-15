@@ -78,8 +78,8 @@ namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
 
 				WoWUnit mob = ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => unit.Entry == MobId);
 
-				MobName = ((mob != null) && !string.IsNullOrEmpty(mob.Name))
-								? mob.Name
+                MobName = ((mob != null) && !string.IsNullOrEmpty(mob.SafeName))
+                                ? mob.SafeName
 								: ("Mob(" + MobId + ")");
 
 				QuestBehaviorBase.DeprecationWarning_Behavior(this, "InteractWith", BuildReplacementArguments());
@@ -217,13 +217,13 @@ namespace Honorbuddy.Quest_Behaviors.BasicInteractWith
 								new Sequence(
 									new DecoratorContinue(ret => IsMoveToMob,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + MobList[0].Name + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
+                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + MobList[0].SafeName + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
 											new Action(ret => WoWMovement.ClickToMove(MobList[0].Location))
 											)),
 
 									  new DecoratorContinue(ret => !IsMoveToMob,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + MobList[0].Name + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
+                                            new Action(ret => TreeRoot.StatusText = "Moving To Mob MyCTM - " + MobList[0].SafeName + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
 											new Action(ret => Navigator.MoveTo(MobList[0].Location))
 											))
 

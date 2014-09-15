@@ -180,7 +180,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 
 
 				if (obj != null)
-					{ QBCLog.DeveloperInfo(obj.Name); }
+                { QBCLog.DeveloperInfo(obj.SafeName); }
 
 				return obj;
 			}
@@ -287,7 +287,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 											new Action(ret => Navigator.MoveTo(WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f)))
 											)),
 									new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Using Pet Ability On Target : " + UseObject.Name + " " + Counter + " Out of " + NumOfTimes + " Times"),
+                                        new Action(ret => TreeRoot.StatusText = "Using Pet Ability On Target : " + UseObject.SafeName + " " + Counter + " Out of " + NumOfTimes + " Times"),
 										new Action(ret => UseObject.Target()),
 										new Action(ret => Navigator.PlayerMover.MoveStop()),
 										new Action(ret => UseObject.Face()),

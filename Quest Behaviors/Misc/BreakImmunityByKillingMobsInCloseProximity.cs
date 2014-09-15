@@ -242,7 +242,7 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 						var myMinDistance = Math.Max(2, MaxRange - targetedMob.MeleeRange());
 						if (SelectedNpc.DistanceSqr > myMinDistance*myMinDistance)
 						{
-							TreeRoot.StatusText = string.Format("Moving closer to {0} before killing {1}", SelectedNpc.Name, targetedMob.Name);
+                            TreeRoot.StatusText = string.Format("Moving closer to {0} before killing {1}", SelectedNpc.SafeName, targetedMob.SafeName);
 							Navigator.MoveTo(SelectedNpc.Location);
 							return true;
 						}
@@ -251,8 +251,8 @@ namespace Honorbuddy.Quest_Behaviors.BreakImmunityByKillingMobsInCloseProximity
 						{
 							TreeRoot.StatusText = string.Format(
 								"Waiting for {0} to move withing range of {1}",
-								targetedMob.Name,
-								SelectedNpc.Name);
+                                targetedMob.SafeName,
+                                SelectedNpc.SafeName);
 							return true;
 						}
 					}

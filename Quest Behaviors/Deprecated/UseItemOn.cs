@@ -440,7 +440,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 				}
 
 				if (@object != null)
-					{ QBCLog.DeveloperInfo(@object.Name); }
+                { QBCLog.DeveloperInfo(@object.SafeName); }
 
 				return @object;
 			}
@@ -503,19 +503,19 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 										new SwitchArgument<NavigationType>(
 											NavigationType.CTM,
 											new Sequence(
-												new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.Name; }),
+                                                new Action(ret => { TreeRoot.StatusText = "Moving to use item on - " + CurrentObject.SafeName; }),
 												new Action(ret => WoWMovement.ClickToMove(CurrentObject.Location))
 											)),
 										new SwitchArgument<NavigationType>(
 											NavigationType.Mesh,
 											new Sequence(
-												new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.Name + "\""; }),
+                                                new Action(delegate { TreeRoot.StatusText = "Moving to use item on \"" + CurrentObject.SafeName + "\""; }),
 												new Action(ret => Navigator.MoveTo(CurrentObject.Location))
 												)),
 										new SwitchArgument<NavigationType>(
 											NavigationType.None,
 											new Sequence(
-												new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.Name + " Distance: " + CurrentObject.Distance; }),
+                                                new Action(ret => { TreeRoot.StatusText = "Object is out of range, Skipping - " + CurrentObject.SafeName + " Distance: " + CurrentObject.Distance; }),
 												new Action(ret => _isBehaviorDone = true)
 											)))),
 
@@ -531,7 +531,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemOn
 										new Action(ret =>
 										{
 											bool targeted = false;
-											TreeRoot.StatusText = "Using item on \"" + CurrentObject.Name + "\"";
+                                            TreeRoot.StatusText = "Using item on \"" + CurrentObject.SafeName + "\"";
 											if (CurrentObject is WoWUnit && (StyxWoW.Me.CurrentTarget == null || StyxWoW.Me.CurrentTarget != CurrentObject))
 											{
 												(CurrentObject as WoWUnit).Target();

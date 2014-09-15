@@ -945,9 +945,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 						new Action(context =>
 						{
 							if (SelectedTarget.HasAura(AuraId_Timberhusk))
-								{ QBCLog.Info("Getting {0}'s attention", SelectedTarget.Name); }
+                            { QBCLog.Info("Getting {0}'s attention", SelectedTarget.SafeName); }
 							else
-								{ QBCLog.Info("Killing unbuffed {0}", SelectedTarget.Name); }
+                            { QBCLog.Info("Killing unbuffed {0}", SelectedTarget.SafeName); }
 							return RunStatus.Failure; // fall through
 						}),
 						new Decorator(context => (Me.CurrentTarget != SelectedTarget),
@@ -1157,7 +1157,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 			if (petAction == null)
 				return;
 
-			QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.Name);
+            QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.SafeName);
 			StyxWoW.Me.SetFocus(wowUnit);
 			Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
 			StyxWoW.Me.SetFocus(0);

@@ -115,14 +115,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 						new Sequence(
 							new DecoratorContinue(ret => !Me.IsMoving && !Obj1Done && mob1List[0].Location.Distance(Me.Location) > 30,
 								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Moving to " +mob1List[0].Name),
+                                    new Action(ret => TreeRoot.StatusText = "Moving to " + mob1List[0].SafeName),
 									new Action(ret => Navigator.MoveTo(mob1List[0].Location)),
 									new Action(ret => StyxWoW.SleepForLagDuration())
 								)
 							),
 							new DecoratorContinue(ret => !Obj1Done && mob1List[0].Location.Distance(Me.Location) <= 30,
 								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "PWNing " +mob1List[0].Name),
+                                    new Action(ret => TreeRoot.StatusText = "PWNing " + mob1List[0].SafeName),
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton3','0')")),
 									new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
@@ -135,14 +135,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 							),
 							new DecoratorContinue(ret => !Me.IsMoving && !Obj2Done && Obj1Done && mob2List[0].Location.Distance(Me.Location) > 30,
 								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Moving to " +mob2List[0].Name),
+                                    new Action(ret => TreeRoot.StatusText = "Moving to " + mob2List[0].SafeName),
 									new Action(ret => Navigator.MoveTo(mob2List[0].Location)),
 									new Action(ret => StyxWoW.SleepForLagDuration())
 								)
 							),
 							new DecoratorContinue(ret => !Obj2Done && Obj1Done && mob2List[0].Location.Distance(Me.Location) <= 30,
 								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "PWNing " +mob2List[0].Name),
+                                    new Action(ret => TreeRoot.StatusText = "PWNing " + mob2List[0].SafeName),
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton3','0')")),
 									new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),

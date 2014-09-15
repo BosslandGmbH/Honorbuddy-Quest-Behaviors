@@ -201,7 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.EquipItem
 
 				if (item != null)
 				{
-					this.UpdateGoalText(QuestId, string.Format("Equipping [{0}] Into Slot: {1}", item.Name, Slot));
+                    this.UpdateGoalText(QuestId, string.Format("Equipping [{0}] Into Slot: {1}", item.SafeName, Slot));
 				}
 			}
 		}

@@ -306,11 +306,11 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 
 				// Move to vehicle and enter...
 				new CompositeThrottle(Throttle.UserUpdate,
-					new Action(context => { TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.Name); })),
+                    new Action(context => { TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.SafeName); })),
 				new Decorator(context => !Vehicle.WithinInteractRange,
 					new UtilityBehaviorPS.MoveTo(
 						context => Vehicle.Location,
-						context => Vehicle.Name,
+                        context => Vehicle.SafeName,
 						context => MovementBy)),
 				new Decorator(context => Me.IsMoving,
 					new Action(context => { Navigator.PlayerMover.MoveStop(); })),

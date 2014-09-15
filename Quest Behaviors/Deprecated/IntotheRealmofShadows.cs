@@ -129,7 +129,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.IntotheRealmofShadows
 						if (Me.HealthPercent < 60 && !Me.IsActuallyInCombat)
 						{
 							WoWItem food = Consumable.GetBestFood(true);
-							CharacterSettings.Instance.FoodName = food != null ? food.Name : string.Empty;
+                            CharacterSettings.Instance.FoodName = food != null ? food.SafeName : string.Empty;
 							Rest.Feed();
 							return RunStatus.Running;
 						}

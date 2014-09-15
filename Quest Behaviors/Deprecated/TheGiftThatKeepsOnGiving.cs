@@ -217,7 +217,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
 
 					new Decorator(ctx => ctx != null && (((WoWObject)ctx).Distance > InteractRange || !((WoWObject)ctx).InLineOfSight),
 						new Sequence(
-							new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).Name),
+                            new Action(ctx => TreeRoot.StatusText = "Moving to use item on - " + ((WoWObject)ctx).SafeName),
 							new Action(ctx => Navigator.MoveTo(((WoWObject)ctx).Location)))),
 
 					new Decorator(ctx => ctx != null && ((WoWObject)ctx).Distance <= InteractRange,
@@ -231,7 +231,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheGiftThatKeepsOnGiving
 
 							new Sequence(ctx => StyxWoW.Me.CarriedItems.FirstOrDefault(ret => ret.Entry == ItemId),
 				// Set the status text.
-								new Action(ctx => TreeRoot.StatusText = "Using item on " + Object.Name),
+                                new Action(ctx => TreeRoot.StatusText = "Using item on " + Object.SafeName),
 
 								// If we don't have the item stop!
 								new DecoratorContinue(ctx => ctx == null,

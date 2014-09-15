@@ -180,7 +180,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					((wowMissile.Spell == null) ? "UNKNOWN" : wowMissile.Spell.Name),
 					(wowMissile.BaseAddress));
 				tmp.AppendFormat("{0}Caster=\"{1}\"", fieldSeparator,
-					(wowMissile.Caster == null) ? "UNKNOWN" : wowMissile.Caster.Name);
+                    (wowMissile.Caster == null) ? "UNKNOWN" : wowMissile.Caster.SafeName);
 				tmp.AppendFormat("{0}CasterGuid=\"0x{1:x}\" <!--Me=\"0x{2:x}\" MyVehicle=\"0x{3:x}\" -->",
 					fieldSeparator, wowMissile.Caster.Guid, StyxWoW.Me.Guid, StyxWoW.Me.TransportGuid);
 				tmp.AppendFormat("{0}FirePosition=\"{1}\"", fieldSeparator, wowMissile.FirePosition);
@@ -195,7 +195,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				tmp.AppendFormat("{0}SpellId=\"{1}\"", fieldSeparator, wowMissile.SpellId);
 				tmp.AppendFormat("{0}SpellVisualId=\"{1}\"", fieldSeparator, wowMissile.SpellVisualId);
 				tmp.AppendFormat("{0}Target=\"{1}\"", fieldSeparator,
-					(wowMissile.Target == null) ? "NONE" : wowMissile.Target.Name);
+                    (wowMissile.Target == null) ? "NONE" : wowMissile.Target.SafeName);
 				tmp.AppendFormat("{0}TargetGuid=\"0x{1:x}\"", fieldSeparator, wowMissile.TargetGuid);
 				tmp.AppendFormat("{0}/>", fieldSeparator);
 			}

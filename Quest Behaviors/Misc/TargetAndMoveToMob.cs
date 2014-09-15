@@ -360,7 +360,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 						new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
 							new UtilityBehaviorPS.MoveTo(
 								context => SelectedTarget.Location,
-								context => SelectedTarget.Name,
+                                context => SelectedTarget.SafeName,
 								context => MovementBy)),
 						new UtilityBehaviorPS.MoveStop(),
 						new Action(context =>

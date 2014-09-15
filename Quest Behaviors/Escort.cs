@@ -178,7 +178,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 				}
 
 				if (obj != null)
-				{ QBCLog.DeveloperInfo(obj.Name); }
+                { QBCLog.DeveloperInfo(obj.SafeName); }
 
 				return obj;
 			}
@@ -310,7 +310,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 					new Decorator(
 						ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.IsDead) && DefendObject.DistanceSqr > 5f * 5f,
 						new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
+                                    new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.SafeName + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
 									new Action(ret => Navigator.MoveTo(DefendObject.Location)),
 									new Sleep(100)
 								)
@@ -417,7 +417,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 					new Decorator(
 						ret => DefendObject != null && (!Me.Combat || Me.CurrentTarget == null || Me.CurrentTarget.IsDead) && DefendObject.DistanceSqr > 5f * 5f,
 						new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.Name + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
+                                    new Action(ret => TreeRoot.StatusText = "Following Mob - " + DefendObject.SafeName + " At X: " + DefendObject.X + " Y: " + DefendObject.Y + " Z: " + DefendObject.Z),
 									new Action(ret => Navigator.MoveTo(DefendObject.Location)),
 									new Sleep(100)
 								)

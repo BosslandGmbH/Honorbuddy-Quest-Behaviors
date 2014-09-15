@@ -263,7 +263,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 								if (!NpcVehicleList[0].WithinInteractRange)
 								{
 									Navigator.MoveTo(NpcVehicleList[0].Location);
-									TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].Name + " Yards Away: " + NpcVehicleList[0].Location.Distance(Me.Location);
+                                    TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].SafeName + " Yards Away: " + NpcVehicleList[0].Location.Distance(Me.Location);
 								}
 								else
 								{
@@ -288,7 +288,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
 								if (_vehicle.Location.Distance(FirePoint) <= 5)
 								{
-									TreeRoot.StatusText = "Firing Vehicle - " + _vehicle.Name + " Using Spell Index: " + AttackButton + " Height: " + FireHeight;
+                                    TreeRoot.StatusText = "Firing Vehicle - " + _vehicle.SafeName + " Using Spell Index: " + AttackButton + " Height: " + FireHeight;
 									WoWMovement.ClickToMove(TargetPoint);
 									StyxWoW.Sleep(500);
 									WoWMovement.MoveStop();
@@ -317,7 +317,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
 								if (NpcAttackList.Count > 1)
 								{
-									TreeRoot.StatusText = "Moving to Assault - " + NpcAttackList[0].Name + " Using Spell Index: " + AttackButton;
+                                    TreeRoot.StatusText = "Moving to Assault - " + NpcAttackList[0].SafeName + " Using Spell Index: " + AttackButton;
 
 									if (_vehicle.Location.Distance(NpcAttackList[0].Location) > 20)
 									{

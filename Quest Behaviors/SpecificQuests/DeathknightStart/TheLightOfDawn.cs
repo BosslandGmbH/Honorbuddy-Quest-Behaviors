@@ -353,7 +353,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 								new Decorator(context => !HighWarlordDarion.WithinInteractRange,
 									new Action(context =>
 									{
-										TreeRoot.StatusText = "Moving to " + HighWarlordDarion.Name;
+                                        TreeRoot.StatusText = "Moving to " + HighWarlordDarion.SafeName;
 										Navigator.MoveTo(HighWarlordDarion.Location);
 									})),
 
@@ -408,7 +408,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 								new Decorator(context => HighWarlordDarion.Distance > DistanceToFollowWarlord,
 									new Action(context =>
 									{
-										TreeRoot.StatusText = string.Format("Following {0}", HighWarlordDarion.Name);
+                                        TreeRoot.StatusText = string.Format("Following {0}", HighWarlordDarion.SafeName);
 										Navigator.MoveTo(HighWarlordDarion.Location);
 									})),
 

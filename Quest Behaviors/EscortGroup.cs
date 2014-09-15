@@ -637,7 +637,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							{
 								SelectedTarget = (WoWUnit)priorityUnitContext;
 
-								QBCLog.Info("Switching to priority target {0}", SelectedTarget.Name);
+                                QBCLog.Info("Switching to priority target {0}", SelectedTarget.SafeName);
 								BotPoi.Current = new BotPoi(SelectedTarget, PoiType.Kill);
 								SelectedTarget.Target();
 								return RunStatus.Failure; // fall through
@@ -677,7 +677,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 								{
 									QBCLog.Warning("Some units exceed the EscortMaxFightDistance range ({0} yard): {1}",
 										EscortMaxFightDistance,
-										string.Join(", ", outOfRangeUnits.Select(u => string.Format("{0}({1:F1})", u.Item1.Name, u.Item2))));
+                                        string.Join(", ", outOfRangeUnits.Select(u => string.Format("{0}({1:F1})", u.Item1.SafeName, u.Item2))));
 								}
 							}
 
@@ -853,7 +853,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 								EscortedGroup = new List<WoWUnit>(FindEscortedUnits(EscortNpcIds, SearchForNpcsRadius));
 								QBCLog.Info("Escorting {0} units: {1}",
 									EscortedGroup.Count(),
-									string.Join(", ", EscortedGroup.Select(u => string.Format("{0} (dist: {1:F1})", u.Name, u.Distance))));
+                                    string.Join(", ", EscortedGroup.Select(u => string.Format("{0} (dist: {1:F1})", u.SafeName, u.Distance))));
 								BehaviorState = BehaviorStateType.Escorting;
 							})
 						)),
@@ -1374,7 +1374,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							gossipUnitContext => true,
 							gossipUnitContext => false,
 							gossipUnitContext => ((WoWUnit)gossipUnitContext).Location,
-							gossipUnitContext => ((WoWUnit)gossipUnitContext).Name),
+                            gossipUnitContext => ((WoWUnit)gossipUnitContext).SafeName),
 
 						new Mount.ActionLandAndDismount(),
 
@@ -1382,7 +1382,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 						new Decorator(gossipUnitContext => (GossipFrame.Instance == null) || !GossipFrame.Instance.IsVisible,
 							new Sequence(
 								new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Target()),
-								new Action(gossipUnitContext => QBCLog.Info("Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).Name)),
+                                new Action(gossipUnitContext => QBCLog.Info("Interacting with \"{0}\" to start event.", ((WoWUnit)gossipUnitContext).SafeName)),
 								new Action(gossipUnitContext => ((WoWUnit)gossipUnitContext).Interact()),
 								new WaitContinue(LagDuration, gossipUnitContext => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),
 								new WaitContinue(Delay_GossipDialogThrottle, gossipUnitContext => false, new ActionAlwaysSucceed()),

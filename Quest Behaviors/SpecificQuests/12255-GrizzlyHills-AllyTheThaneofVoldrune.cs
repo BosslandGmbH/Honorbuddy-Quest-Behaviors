@@ -150,7 +150,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 
 					new DecoratorContinue(ret => !Me.IsQuestObjectiveComplete(QuestId, 1) && objmob[0].Location.Distance(Me.Location) <= 20,
 						new Sequence(
-							new Action(ret => TreeRoot.StatusText = "PWNing " +objmob[0].Name),
+                            new Action(ret => TreeRoot.StatusText = "PWNing " + objmob[0].SafeName),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton2:Click()")),
 							//new Action(ret => StyxWoW.Sleep(1500)),
 							//new Action(ret => Lua.DoString("VehicleMenuBarActionButton3:Click()")),

@@ -163,7 +163,7 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
 					// Move to the gameobject if it isn't null and we aren't withing interact range.
 					new Decorator(ret => GameObject != null && !GameObject.WithinInteractRange,
 						new Sequence(
-							new Action(ret => TreeRoot.StatusText = "Moving to \"" + GameObject.Name + "\" at location " + GameObject.Location),
+                            new Action(ret => TreeRoot.StatusText = "Moving to \"" + GameObject.SafeName + "\" at location " + GameObject.Location),
 							new Action(ret => Navigator.MoveTo(GameObject.Location))
 							)
 						),
@@ -181,7 +181,7 @@ namespace Honorbuddy.Quest_Behaviors.UseGameObject
 									)),
 
 							new Action(ret => QBCLog.Info("Using Object \"{0}\" {1}/{2} times",
-															((WoWGameObject)ret).Name, _counter + 1, NumOfTimes)),
+                                                            ((WoWGameObject)ret).SafeName, _counter + 1, NumOfTimes)),
 							new Action(ret => ((WoWGameObject)ret).Interact()),
 							new Action(ret => StyxWoW.SleepForLagDuration()),
 							new Action(ret => StyxWoW.Sleep(WaitTime)),

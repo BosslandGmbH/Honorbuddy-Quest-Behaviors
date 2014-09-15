@@ -189,7 +189,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 				}
 
 				if (obj != null)
-				{ QBCLog.DeveloperInfo(obj.Name); }
+                { QBCLog.DeveloperInfo(obj.SafeName); }
 
 				return obj;
 			}
@@ -224,7 +224,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 					// Wait for item to come off of cooldown...
 					new Decorator(context => Item.CooldownTimeLeft > TimeSpan.Zero,
 						new Action(context => QBCLog.Info("Waiting for {0} to leave cooldown (time remaining: {1})",
-														 Item.Name, Item.CooldownTimeLeft))),
+                                                         Item.SafeName, Item.CooldownTimeLeft))),
 
 					new Decorator(
 						ret => UseType == QBType.PointToPoint,
@@ -268,8 +268,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 											new UtilityBehaviorPS.MoveTo(context => WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f), context=> "Backing up", context => MovementBy)
 											)),
 									new Sequence(
-										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times", 
-											UseObject.Name, Counter, NumOfTimes)),
+										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
+                                            UseObject.SafeName, Counter, NumOfTimes)),
 										new Action(ret => Navigator.PlayerMover.MoveStop()),
 										new Action(ret => Me.SetFacing(UseObject.Location)),
 										new SleepForLagDuration(),
@@ -301,7 +301,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 											)),
 									new Sequence(
 										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
-											UseObject.Name, Counter, NumOfTimes)),
+                                            UseObject.SafeName, Counter, NumOfTimes)),
 										new Action(ret => Navigator.PlayerMover.MoveStop()),
 										new Action(ret => Me.SetFacing(UseObject.Location)),
 										new SleepForLagDuration(),

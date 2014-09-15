@@ -169,7 +169,7 @@ namespace Honorbuddy.Quest_Behaviors.ItemWhileMoving
 										_isBehaviorDone = true;
 										return RunStatus.Success;
 									}
-									TreeRoot.StatusText = "Moving To Location: Using Item - " + wowItem.Name;
+                                    TreeRoot.StatusText = "Moving To Location: Using Item - " + wowItem.SafeName;
 
 									WoWPoint[] pathtoDest1 = Navigator.GeneratePath(Me.Location, Location);
 

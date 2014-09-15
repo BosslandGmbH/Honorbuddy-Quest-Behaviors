@@ -257,14 +257,14 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
 								new Sequence(
 									new DecoratorContinue(ret => !LootList[0].WithinInteractRange,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Moving to Loot - " + LootList[0].Name + " Yards Away " + LootList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Loot - " + LootList[0].SafeName + " Yards Away " + LootList[0].Location.Distance(Me.Location)),
 											new Action(ret => WoWMovement.ClickToMove(LootList[0].Location)),
 											new Sleep(300)
 											)
 									),
 									new DecoratorContinue(ret => LootList[0].WithinInteractRange,
 										new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Looting - " + LootList[0].Name),
+                                        new Action(ret => TreeRoot.StatusText = "Looting - " + LootList[0].SafeName),
 										new Action(ret => WoWMovement.MoveStop()),
 										new Action(ret => LootList[0].Interact()),
 										new Sleep(1000)
@@ -283,14 +283,14 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
 								new Sequence(
 									new DecoratorContinue(ret => NpcList[0].Location.Distance(Me.Location) > range,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + NpcList[0].Name + " Yards Away " + NpcList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Mob - " + NpcList[0].SafeName + " Yards Away " + NpcList[0].Location.Distance(Me.Location)),
 											new Action(ret => WoWMovement.ClickToMove(NpcList[0].Location)),
 											new Sleep(300)
 											)
 									),
 									new DecoratorContinue(ret => NpcList[0].Location.Distance(Me.Location) <= range,
 										new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + NpcList[0].Name + " With Spell: " + RangeSpell.Name),
+                                        new Action(ret => TreeRoot.StatusText = "Attacking Mob - " + NpcList[0].SafeName + " With Spell: " + RangeSpell.Name),
 										new Action(ret => WoWMovement.MoveStop()),
 										new Action(ret => NpcList[0].Target()),
 										new Action(ret => NpcList[0].Face()),
@@ -304,14 +304,14 @@ namespace Honorbuddy.Quest_Behaviors.WaterBehavior
 								new Sequence(
 									new DecoratorContinue(ret => !ObjectList[0].WithinInteractRange,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Moving to Object - " + ObjectList[0].Name + " Yards Away " + ObjectList[0].Location.Distance(Me.Location)),
+                                            new Action(ret => TreeRoot.StatusText = "Moving to Object - " + ObjectList[0].SafeName + " Yards Away " + ObjectList[0].Location.Distance(Me.Location)),
 											new Action(ret => WoWMovement.ClickToMove(ObjectList[0].Location)),
 											new Sleep(300)
 											)
 									),
 									new DecoratorContinue(ret => ObjectList[0].WithinInteractRange,
 										new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Opening Object - " + ObjectList[0].Name),
+                                        new Action(ret => TreeRoot.StatusText = "Opening Object - " + ObjectList[0].SafeName),
 										new Action(ret => WoWMovement.MoveStop()),
 										new Action(ret => ObjectList[0].Interact()),
 										new Sleep(1000),

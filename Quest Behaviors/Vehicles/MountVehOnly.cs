@@ -179,14 +179,14 @@ namespace Honorbuddy.Quest_Behaviors.MountVehOnly
 								new Sequence(
 									new DecoratorContinue(ret => VehicleList[0].WithinInteractRange,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Mounting Vehicle - " + VehicleList[0].Name),
+                                            new Action(ret => TreeRoot.StatusText = "Mounting Vehicle - " + VehicleList[0].SafeName),
 											new Action(ret => WoWMovement.MoveStop()),
 											new Action(ret => VehicleList[0].Interact())
 											)
 									),
 									new DecoratorContinue(ret => !VehicleList[0].WithinInteractRange,
 										new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Moving To Vehicle - " + VehicleList[0].Name + " X: " + VehicleList[0].X + " Y: " + VehicleList[0].Y + " Z: " + VehicleList[0].Z + " Yards Away: " + VehicleList[0].Location.Distance(Me.Location)),
+                                        new Action(ret => TreeRoot.StatusText = "Moving To Vehicle - " + VehicleList[0].SafeName + " X: " + VehicleList[0].X + " Y: " + VehicleList[0].Y + " Z: " + VehicleList[0].Z + " Yards Away: " + VehicleList[0].Location.Distance(Me.Location)),
 										new Action(ret => Navigator.MoveTo(VehicleList[0].Location)),
 										new Sleep(300)
 											))

@@ -173,7 +173,7 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
 											WoWMovement.MoveStop();
 											StyxWoW.SleepForLagDuration();
 										})),
-									new Action(ret => TreeRoot.StatusText = "Opening Trainer - " + MobList[0].Name + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
+                                    new Action(ret => TreeRoot.StatusText = "Opening Trainer - " + MobList[0].SafeName + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
 									new Action(ret => MobList[0].Interact()),
 									new WaitContinue(5,
 										ret => TrainerFrame.Instance.IsVisible,
