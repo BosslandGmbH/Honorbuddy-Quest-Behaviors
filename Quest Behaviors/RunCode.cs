@@ -164,7 +164,7 @@ namespace Honorbuddy.Quest_Behaviors
             get
             {
                 return _profileIdentifier ??
-                       (_profileIdentifier = "_" + ProfileManager.XmlLocation.GetHashCode().ToString(CultureInfo.InvariantCulture));
+                       (_profileIdentifier = "_" + unchecked((uint)ProfileManager.XmlLocation.GetHashCode()).ToString(CultureInfo.InvariantCulture));
             }
         }
 
@@ -259,7 +259,6 @@ using Buddy.Coroutines;
                 QBCLog.ProfileError("Unable to locate function delegate for running instance.");
                 return true;
             }
-
             var codeInstance = GeneratedClasses[ProfileIdentifier];
             var taskProducer = (Func<RunCode, Task>)codeInstance.FunctionDelegates[index.Value];
 
