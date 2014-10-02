@@ -37,22 +37,22 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-using System.Windows.Media;
-
+using System.Diagnostics;
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.Patchables;
 using Styx.TreeSharp;
-using Styx.WoWInternals;
 
-using Action = Styx.TreeSharp.Action;
 #endregion
 
 
 namespace Styx.Bot.Quest_Behaviors {
 	[CustomBehaviorFileName(@"Misc\InstanceTimer")]
-	public class InstanceTimer : CustomForcedBehavior
+	public class InstanceTimer : QuestBehaviorBase
 	{
 		public InstanceTimer(Dictionary<string, string> args)
 		: base(args)
@@ -65,8 +65,8 @@ namespace Styx.Bot.Quest_Behaviors {
 				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 				// ...and also used for IsDone processing.
 				GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
-				Timer = GetAttributeAs("Timer", true, ConstrainAs.StringNonEmpty, null) ?? "Start";
-				WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 370000;
+			    Timer = GetAttributeAsNullable<TimerCommand>("Timer", true, null, null) ?? TimerCommand.Start;
+                WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 750000;
 			}
 
 			catch (Exception except)
@@ -82,134 +82,107 @@ namespace Styx.Bot.Quest_Behaviors {
 		}
 
 		// Attributes provided by caller
-		public string GoalText { get; private set; }
-		public int WaitTime { get; private set; }
-		public string Timer { get; private set; }
+        private string GoalText { get; set; }
+        private int WaitTime { get; set; }
+		private TimerCommand Timer { get;  set; }
 
 		// Private variables for internal state
-		private bool _isDisposed;
 		private Composite _root;
-		private Common.Helpers.WaitTimer _timer;
-		private Common.Helpers.WaitTimer _timeInInstance;
+		private Common.Helpers.WaitTimer _waitTimer;
 		private string _waitTimeAsString;
-
-		~InstanceTimer()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed) {
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose) { }  // empty, for now
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
+	    private readonly static Stopwatch InInstanceTimer = new Stopwatch();
 
 		private string UtilSubstituteInMessage(string message)
 		{
-			message = message.Replace("{TimeRemaining}", UtilBuildTimeAsString(_timer.TimeLeft));
+		    message = message.Replace("{TimeRemaining}", Utility.PrettyTime(_waitTimer.TimeLeft));
 			message = message.Replace("{TimeDuration}", _waitTimeAsString);
 
 			return (message);
 		}
 
-		private static string UtilBuildTimeAsString(TimeSpan timeSpan)
-		{
-			var formatString = "";
-			if (timeSpan.Hours > 0) { formatString = "{0:D2}h:{1:D2}m:{2:D2}s"; }
-			else if (timeSpan.Minutes > 0) { formatString = "{1:D2}m:{2:D2}s"; }
-			else { formatString = "{2:D2}s"; }
-			return (string.Format(formatString, timeSpan.Hours, timeSpan.Minutes, timeSpan.Seconds));
-		}
-
-
 		#region Overrides of CustomForcedBehavior
 
-		protected override Composite CreateBehavior() {
-			return _root ?? (_root =
-				new Decorator(ret => !_timer.IsFinished,
-					new Sequence(
-						new Action(ret => TreeRoot.GoalText = (!string.IsNullOrEmpty(GoalText)
-															? UtilSubstituteInMessage(GoalText)
-															: "Waiting for timer expiration")),
-						new Action(ret => TreeRoot.StatusText = "Wait time remaining... "
-												+ UtilBuildTimeAsString(_timer.TimeLeft)
-												+ "... of "
-												+ _waitTimeAsString),
-						new Action(delegate { return RunStatus.Success; })
-					)
-				)
-			);
+		protected override Composite CreateMainBehavior() 
+        {
+            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
 		}
 
-		public override void Dispose() {
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        protected async Task<bool> MainCoroutine()
+        {
+            if (_waitTimer == null || _waitTimer.IsFinished)
+            {
+                BehaviorDone();
+                return false;
+            }
 
-		public override bool IsDone { get { return ((_timer != null) && _timer.IsFinished); } }
+            TreeRoot.GoalText = (!string.IsNullOrEmpty(GoalText)
+                ? UtilSubstituteInMessage(GoalText)
+                : "Waiting for timer expiration");
+
+            TreeRoot.StatusText = "Wait time remaining... "
+                                  + Utility.PrettyTime(_waitTimer.TimeLeft)
+                                  + "... of "
+                                  + _waitTimeAsString;
+            return true;
+        }
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            UsageCheck_SemanticCoherency(xElement, Timer == TimerCommand.Check && !InInstanceTimer.IsRunning,
+                context => "You must start the timer (by setting Timer=\"Start\") first before checking the timer.");
+        }
 
 		public override void OnStart() 
 		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
-			if (!IsDone)
+            if (isBehaviorShouldRun)
 			{
-				if (Timer == "Start") 
+				if (Timer == TimerCommand.Start)
 				{
-					WaitTime = 0;
-					Lua.DoString("StartInstanceTimerMin = date(\"%M\")");
-					Lua.DoString("StartInstanceTimerSec = date(\"%S\")");
+				    _waitTimer = null;
+                    InInstanceTimer.Restart();
 					QBCLog.Info("Started.");
+                    BehaviorDone();
 				}
-				if (Timer == "Check")
+                else if (Timer == TimerCommand.Check)
 				{
-					var startInstanceVar1 = Lua.GetReturnVal<int>("return StartInstanceTimerMin", 0);
-					var startInstanceVar2 = Lua.GetReturnVal<int>("return StartInstanceTimerSec", 0);
-					Lua.DoString("EndInstanceTimerMin = date(\"%M\")");
-					Lua.DoString("EndInstanceTimerSec = date(\"%S\")");
-					var endInstanceVar1 = Lua.GetReturnVal<int>("return EndInstanceTimerMin", 0);
-					var endInstanceVar2 = Lua.GetReturnVal<int>("return EndInstanceTimerSec", 0);
-					if (endInstanceVar1 < startInstanceVar1) { endInstanceVar1 = endInstanceVar1 + 60; }
-					if (endInstanceVar2 < startInstanceVar2) {
-						endInstanceVar2 = endInstanceVar2 + 60;
-						endInstanceVar1 = endInstanceVar1 - 1;
-					}
-					var calcInstanceVar = ((((endInstanceVar1 - startInstanceVar1) * 60) + (endInstanceVar2 - startInstanceVar2)) * 1000);
-					_timeInInstance = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, calcInstanceVar));
-					var timeInInstanceAsString = UtilBuildTimeAsString(_timeInInstance.WaitTime);
-					QBCLog.Info("Your instance run took " + timeInInstanceAsString);
-					if (calcInstanceVar >= WaitTime) { WaitTime = 0; }
-					if (calcInstanceVar < WaitTime)
+                    InInstanceTimer.Stop();
+                    QBCLog.Info("Your instance run took " + Utility.PrettyTime(InInstanceTimer.Elapsed));
+				    if (InInstanceTimer.ElapsedMilliseconds >= WaitTime)
+				    {
+				        _waitTimer = null;
+                        BehaviorDone();
+				    }
+                    else
 					{
-						WaitTime = WaitTime - calcInstanceVar;
-						_timeInInstance = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, WaitTime));
-						timeInInstanceAsString = UtilBuildTimeAsString(_timeInInstance.WaitTime);
-						QBCLog.Info("Waiting for " + timeInInstanceAsString);
-					}
+					    var waitTimeSpan = TimeSpan.FromMilliseconds(WaitTime) - InInstanceTimer.Elapsed;
+                        _waitTimer = new Common.Helpers.WaitTimer(waitTimeSpan);
+                        _waitTimeAsString = Utility.PrettyTime(_waitTimer.WaitTime);
+                        _waitTimer.Reset();
+                        QBCLog.Info("Waiting for " + _waitTimeAsString);
+					}                    
 				}
-				_timer = new Common.Helpers.WaitTimer(new TimeSpan(0, 0, 0, 0, WaitTime));
-				_waitTimeAsString = UtilBuildTimeAsString(_timer.WaitTime);
-				_timer.Reset();
 			}
 		}
-		#endregion
+
+	    #endregion
+
+	    enum TimerCommand
+	    {
+	        Start,
+            Check
+	    }
 	}
 }
