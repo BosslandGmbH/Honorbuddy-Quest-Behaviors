@@ -62,11 +62,23 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 				// QuestRequirement* attributes are explained here...
 				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
 				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
 				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
 				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 				/* */
 				GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
+
+                // Make certain quest is one of the ones we know how to do...
+			    if (QuestId == QuestId_BearsUpThere)
+			        _mobId_bearTargets = MobId_Bear;
+                else if (QuestId == QuestId_ThoseBearsUpThere)
+                    _mobId_bearTargets = MobId_DailyBear;
+                else
+                {
+                    QBCLog.Fatal("This behavior can only do QuestId({0}) or QuestId({1}).  (QuestId({2}) was seen.)",
+                        QuestId_BearsUpThere, QuestId_ThoseBearsUpThere, QuestId);
+                    IsAttributeProblem = true;
+                }
 			}
 
 			catch (Exception except)
@@ -89,8 +101,10 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 		public bool RunningBehavior = true;
 
 		// Private variables for internal state
+
+
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
+	    private readonly int _mobId_bearTargets;
 		private Composite _root;
 
 		// Private properties
@@ -114,6 +128,11 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 		const int CLIMB_DOWN = 74974;
 		const int CHUCK_A_BEAR = 75139;
 
+        private const int MobId_Bear = 40240;                   // Bear mobs for main-line quest
+        private const int MobId_DailyBear = 52688;              // Bear mobs for daily quest
+        private const int QuestId_BearsUpThere = 25462;         // Main-line quest
+        private const int QuestId_ThoseBearsUpThere = 29161;    // Daily
+
 		/*
 			RIGHT SIDE:  isontransport:True, rotation:1.356836,  degrees:77.741
 			LEFT SIDE:  isontransport:True, rotation:1.612091,  degrees:92.366
@@ -127,37 +146,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 		const double AIM_ANGLE = -0.97389394044876;
 		const double TRAMP_RIGHT_SIDE = 77.741;
 		const double TRAMP_LEFT_SIDE = 92.366;
-
-
-		~BearsUpThere()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
 
 
 		private void WaitForCurrentSpell()
@@ -344,8 +332,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 					where o is WoWUnit
 					let unit = o.ToUnit()
 					where
-						unit.Entry == 40240
-						&& 15 < unit.WorldLocation.Distance(Me.Transport.WorldLocation)
+                        unit.Entry == _mobId_bearTargets
+						&& (15 < unit.WorldLocation.Distance(Me.Transport.WorldLocation))
 					orderby
 						unit.WorldLocation.Distance(Me.Transport.WorldLocation) ascending
 					select unit
@@ -468,13 +456,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-
 		public override bool IsDone
 		{
 			get
@@ -483,6 +464,14 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)));
 			}
 		}
+
+
+        public override void OnFinished()
+        {
+            // Clean up unmanaged resources (if any) here...
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+        }
 
 
 		public override void OnStart()
