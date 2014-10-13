@@ -38,7 +38,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -253,83 +255,36 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 
 						})
 					),
-					new Decorator(c => SpellType == 1,
-						new Action(c =>
-						{
-							if (!Query.IsInVehicle())
-								return RunStatus.Failure;
-							var target = NpcList.FirstOrDefault();
-							var vehicle = VehicleList.FirstOrDefault();
-							if (target == null || vehicle != null && target.Location.Distance(vehicle.Location) > 15)
-							{
-								TreeRoot.StatusText = "Waiting for Mob to Come Into Range or Appear.";
-								return RunStatus.Running;
-							}
-							if (vehicle != null && target.Location.Distance(vehicle.Location) <= 15)
-							{
-                                TreeRoot.StatusText = "Attacking: " + target.SafeName + ", AttackButton: " + AttackButton;
-								if (Me.CurrentTargetGuid != target.Guid)
-									target.Target();
-								Lua.DoString("CastPetAction({0})", AttackButton);
-								StyxWoW.Sleep(WaitTime);
-								Counter++;
-								return RunStatus.Success;
-							}
-							return RunStatus.Running;
-						})),
+					new Decorator(c => SpellType == 1, new ActionRunCoroutine(ctx => TypeOneVehicleBehavior())),
 
-					new Decorator(c => SpellType == 2,
-						new Action(c =>
-						{
-							if (!Query.IsInVehicle())
-								return RunStatus.Failure;
-
-							if (Counter > NumOfTimes && QuestId == 0 || Me.IsQuestComplete(QuestId))
-							{
-								Lua.DoString("VehicleExit()");
-								_isBehaviorDone = true;
-								return RunStatus.Success;
-							}
-							var target = NpcList.FirstOrDefault();
-							if (target != null)
-							{
-								StyxWoW.Sleep(OftenToUse);
-
-                                TreeRoot.StatusText = "Attacking: " + target.SafeName + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
-
-								target.Target();
-								Lua.DoString("CastPetAction({0})", AttackButton);
-								SpellManager.ClickRemoteLocation(target.Location);
-								StyxWoW.Sleep(WaitTime);
-								Counter++;
-							}
-							return RunStatus.Running;
-						})),
-
-				   new Decorator(c => Query.IsInVehicle() && SpellType == 3,
-					   new PrioritySelector(
-						   ret => NpcList.OrderBy(u => u.DistanceSqr).FirstOrDefault(u => Me.Transport.IsSafelyFacing(u)),
-							new Decorator(
-								ret => ret != null,
-								new PrioritySelector(
-									new Decorator(
-										ret => Me.CurrentTarget == null || Me.CurrentTarget != (WoWUnit)ret,
-										new Action(ret => ((WoWUnit)ret).Target())),
-									new Decorator(
-										ret => !Me.Transport.IsSafelyFacing(((WoWUnit)ret), 10),
-										new Action(ret => Me.CurrentTarget.Face())),
-									new Action(ret =>
-										{
-											Vector3 v = Me.CurrentTarget.Location - StyxWoW.Me.Location;
-											v.Normalize();
-											Lua.DoString(string.Format(
-												"local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta); CastPetAction({1});",
-												Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture), AttackButton));
-
-											StyxWoW.Sleep(WaitTime);
-											Counter++;
-											return RunStatus.Success;
-										}))))),
+					new Decorator(c => SpellType == 2, new ActionRunCoroutine(ctx => TypeTwoVehicleBehavior())),
+					
+                    new Decorator(c => Query.IsInVehicle() && SpellType == 3,
+					    new PrioritySelector(
+					        ret => NpcList.OrderBy(u => u.DistanceSqr).FirstOrDefault(u => Me.Transport.IsSafelyFacing(u)),
+					        new Decorator(
+					            ret => ret != null,
+					            new PrioritySelector(
+					                new Decorator(
+					                    ret => Me.CurrentTarget == null || Me.CurrentTarget != (WoWUnit) ret,
+					                    new Action(ret => ((WoWUnit) ret).Target())),
+					                new Decorator(
+					                    ret => !Me.Transport.IsSafelyFacing(((WoWUnit) ret), 10),
+					                    new Action(ret => Me.CurrentTarget.Face())),
+					                new Sequence(
+					                    new Action(
+					                        ctx =>
+					                        {
+					                            Vector3 v = Me.CurrentTarget.Location - StyxWoW.Me.Location;
+					                            v.Normalize();
+					                            Lua.DoString(
+					                                string.Format(
+					                                    "local pitch = {0}; local delta = pitch - VehicleAimGetAngle(); VehicleAimIncrement(delta); CastPetAction({1});",
+					                                    Math.Asin(v.Z).ToString(CultureInfo.InvariantCulture),
+					                                    AttackButton));
+					                        }),
+					                    new Sleep(WaitTime),
+					                    new Action(ctx => Counter++)))))),
 
 					new Decorator(c => SpellType == 4,
 						new Action(c =>
@@ -400,6 +355,64 @@ namespace Honorbuddy.Quest_Behaviors.NoControlVehicle
 				));
 		}
 
+	    private async Task<bool> TypeOneVehicleBehavior()
+	    {
+            if (!Query.IsInVehicle())
+                return false;
+
+            while (Me.IsAlive)
+            {
+	            var target = NpcList.FirstOrDefault();
+	            var vehicle = VehicleList.FirstOrDefault();
+	            if (target == null || vehicle != null && target.Location.Distance(vehicle.Location) > 15)
+	            {
+	                TreeRoot.StatusText = "Waiting for Mob to Come Into Range or Appear.";
+	                await Coroutine.Yield();
+                    continue;
+	            }
+	            if (vehicle != null && target.Location.Distance(vehicle.Location) <= 15)
+	            {
+	                TreeRoot.StatusText = "Attacking: " + target.SafeName + ", AttackButton: " + AttackButton;
+	                if (Me.CurrentTargetGuid != target.Guid)
+	                    target.Target();
+	                Lua.DoString("CastPetAction({0})", AttackButton);
+	                await Coroutine.Sleep(WaitTime);
+	                Counter++;
+	                return true;
+	            }
+                await Coroutine.Yield();
+	        }
+            return false;
+	    }
+
+        private async Task<bool> TypeTwoVehicleBehavior()
+        {
+            if (!Query.IsInVehicle())
+                return false;
+
+            while (Me.IsAlive)
+            {
+                if (Counter > NumOfTimes && QuestId == 0 || Me.IsQuestComplete(QuestId))
+                {
+                    Lua.DoString("VehicleExit()");
+                    _isBehaviorDone = true;
+                    return true;
+                }
+                var target = NpcList.FirstOrDefault();
+                if (target != null)
+                {
+                    await Coroutine.Sleep(OftenToUse);
+                    TreeRoot.StatusText = "Attacking: " + target.SafeName + ", AttackButton: " + AttackButton + ", Times Used: " + Counter;
+                    target.Target();
+                    Lua.DoString("CastPetAction({0})", AttackButton);
+                    SpellManager.ClickRemoteLocation(target.Location);
+                    await Coroutine.Sleep(WaitTime);
+                    Counter++;
+                }
+                await Coroutine.Yield();
+            }
+            return false;
+        }
 
 		public override void Dispose()
 		{

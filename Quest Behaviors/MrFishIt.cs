@@ -26,8 +26,9 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Windows.Media;
-
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -279,15 +280,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 						PoolFishingBuddy.CreateMoveToPoolBehavior()                            
 					)));
 		}
-		
-		/// <summary>
-		/// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
-		/// </summary>
-		/// <returns></returns>
-		public static Composite CreateWaitForLagDuration()
-		{
-			return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
-		}
 
 		private bool LootOpen { get; set; }
 		private void HandleLootOpened(object sender, LuaEventArgs args)
@@ -336,20 +328,28 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 						new Wait(5, ret => LootFrame.Instance.IsVisible,
 							new Sequence(
 								new Action(ret => TreeRoot.StatusText = "[MrFishIt] Looting ..."),
-								//new Action(ret => StyxWoW.SleepForLagDuration())
-								//CreateWaitForLagDuration()
 								new ActionAlwaysSucceed()
 								))
 							)),
 
 				// Do we need to recast?
-				new Decorator(ret => Fishing.FishingBobber == null || !Fishing.IsFishing || (Fishing.IsFishing && PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole),
-					new Sequence(
+                new Decorator(ret => Fishing.FishingBobber == null || !Fishing.IsFishing || (Fishing.IsFishing && PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole),
+                    new Sequence(
 						new Action(ret => { if (Fishing.FishingBobber == null) QBCLog.DeveloperInfo("no FishingBobber found!?"); }),
 						new Action(ret => QBCLog.Info("Casting...")),
-						new Action(ret => { if (WaterPoint != WoWPoint.Empty) { StyxWoW.Me.SetFacing(WaterPoint); StyxWoW.Sleep(200); } }),
-						new Action(ret => { if (PoolId != 0) { StyxWoW.Me.SetFacing(_PoolGUID.asWoWGameObject()); StyxWoW.Sleep(200); } }),
+
+                        new Decorator(ctx =>WaterPoint != WoWPoint.Empty,
+                            new Sequence(
+                                new Action(ctx => StyxWoW.Me.SetFacing(WaterPoint)),
+                                new Sleep(200))),
+
+                        new Decorator(ctx => PoolId != 0,
+                            new Sequence(
+                                new Action(ctx => StyxWoW.Me.SetFacing(_PoolGUID.asWoWGameObject())),
+                                new Sleep(200))),
+
 						new Action(ret => SpellManager.Cast("Fishing")),
+                        new DecoratorContinue(ctx =>PoolId != 0, new Sleep(300)),
 						new Wait(2, ret => Fishing.IsFishing, new ActionAlwaysSucceed())
 						//CreateWaitForLagDuration()
 						)),
@@ -703,13 +703,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 											new Sequence(
 												new Action(ret => StyxWoW.Me.SetFacing(Pool.Location)),
 												//new Action(ret => Helpers.WaterWalk()),
-												//new Action(ret => StyxWoW.Sleep((Ping * 2) + 500)),
+												//new SleepForLagDuration(),
 												new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Descend)),
 												new Action(ret => Flightor.MountHelper.Dismount()),
 												new Action(ret => WoWMovement.MoveStop()),
 												new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {0}, PoolPoint: {1}, Distance: {2}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
 												new Wait(3, ret => Flightor.MountHelper.Mounted, new ActionIdle()),
-												MrFishIt.CreateWaitForLagDuration()
+												new SleepForLagDuration()
 
 										//new Decorator(ret => !Helpers.CanWaterWalk || (Helpers.CanWaterWalk && Helpers.hasWaterWalking),
 										//    new Sequence(
@@ -719,7 +719,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 										//        new Action(ret => WoWMovement.MoveStop()),
 										//        new Action(ret => QBCLog.DeveloperInfo("Navigation: Dismount. Current Location {1}, PoolPoint: {2}, Distance: {3}", StyxWoW.Me.Location, new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2), StyxWoW.Me.Location.Distance(new WoWPoint(saveLocation[0].X, saveLocation[0].Y, saveLocation[0].Z + 2)))),
 										//        new Wait(3, ret => Flightor.MountHelper.Mounted, new ActionIdle()),
-										//        new Action(ret => StyxWoW.Sleep((Ping * 2) + 500))))
+                                        //        new SleepForLagDuration()))
 										
 								)),
 
@@ -776,19 +776,17 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		/// </summary>
 		static public bool BobberIsInTheHole
 		{
-			get
-			{
-				//StyxWoW.Sleep(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150));
-				StyxWoW.Sleep(300);
-				if (Fishing.FishingBobber != null && Pool != null)
-				{
-					if (Fishing.FishingBobber.Location.Distance2D(Pool.Location) <= 3.6f)
-					{
-						return true;
-					}
-				}
-				return false;
-			}
+	        get
+            {
+	            if (Fishing.FishingBobber != null && Pool != null)
+	            {
+	                if (Fishing.FishingBobber.Location.Distance2D(Pool.Location) <= 3.6f)
+	                {
+	                    return true;
+	                }
+	            }
+	            return false;
+	        }
 		}
 	}
 }

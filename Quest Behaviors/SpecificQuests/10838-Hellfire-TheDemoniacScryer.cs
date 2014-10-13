@@ -21,7 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -256,11 +256,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 							   new PrioritySelector(
 								   new Decorator(
 									   ret => Me.CurrentTarget != Mobs[0],
-									   new Action(ret =>
-									   {
-										   Mobs[0].Target();
-										   StyxWoW.SleepForLagDuration();
-									   })),
+                                       new Sequence(
+                                           new Action(ctx => Mobs[0].Target()),
+                                           new SleepForLagDuration())),
 								   new Decorator(
 									   ret => !Me.Combat,
 									   new PrioritySelector(
@@ -275,7 +273,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 										ret => Me.CurrentTarget == null && Mobs[0].CurrentTarget != null,
 										new Sequence(
 										new Action(ret => MobList[0].Target()),
-										new Action(ret => StyxWoW.SleepForLagDuration()))),
+										new SleepForLagDuration())),
 									new Decorator(
 										ret => !Me.Combat,
 										new PrioritySelector(

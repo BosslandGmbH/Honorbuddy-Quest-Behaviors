@@ -24,7 +24,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -32,8 +34,6 @@ using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
-using Styx.WoWInternals.WoWObjects;
-
 using Action = Styx.TreeSharp.Action;
 #endregion
 
@@ -95,40 +95,11 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-
-		~ForcedMount()
+		private async Task<bool> MountForFlying()
 		{
-			Dispose(false);
-		}
+		    if (!Flightor.CanFly)
+		        return false;
 
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		private void MountForFlying()
-		{
 			if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || SpellManager.HasSpell("Swift Flight Form")))
 			{
 				if (SpellManager.CanCast("Swift Flight Form"))
@@ -141,32 +112,38 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 			else
 			{
 				Mount.FlyingMounts.First().CreatureSpell.Cast();
-			 while (StyxWoW.Me.IsCasting)
-				{ StyxWoW.Sleep(200); }
+			    await Coroutine.Wait(3000, () => StyxWoW.Me.Mounted);
 			}
 
 			// Hop off the ground. Kthx
-			StyxWoW.Sleep(2500);
-			Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
-			StyxWoW.Sleep(250);
-			Navigator.PlayerMover.MoveStop();
+			await Coroutine.Sleep(2500);
+		    try
+		    {
+		        Navigator.PlayerMover.Move(WoWMovement.MovementDirection.JumpAscend);
+		        await Coroutine.Sleep(250);
+		    }
+		    finally
+		    {
+                Navigator.PlayerMover.MoveStop();
+		    }
+		    return true;
 		}
 
 
 		private Composite CreateActualBehavior()
 		{
-			return new PrioritySelector(
-				new Decorator(
-					ret => MountType == ForcedMountType.Ground,
-					new Action(ret => Mount.MountUp(() => WoWPoint.Zero))),
+		    return new PrioritySelector(
+		        new Decorator(
+		            ret => MountType == ForcedMountType.Ground,
+		            new Action(ret => Mount.MountUp(() => WoWPoint.Zero))),
 
-				new Decorator(
-					ret => MountType == ForcedMountType.Water && Mount.UnderwaterMounts.Count != 0 && StyxWoW.Me.IsSwimming,
-					new Action(ret => Mount.UnderwaterMounts.First().CreatureSpell.Cast())),
+		        new Decorator(
+		            ret => MountType == ForcedMountType.Water && Mount.UnderwaterMounts.Count != 0 && StyxWoW.Me.IsSwimming,
+		            new Action(ret => Mount.UnderwaterMounts.First().CreatureSpell.Cast())),
 
-				new Decorator(
-					ret => MountType == ForcedMountType.Flying,
-					new Action(ret => MountForFlying()))
+		        new Decorator(
+		            ret => MountType == ForcedMountType.Flying,
+                    new ActionRunCoroutine(ctx => MountForFlying()))
 				);
 		}
 
@@ -183,14 +160,6 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 			}
 			return _root;
 		}
-
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 
 		public override bool IsDone
 		{
@@ -217,6 +186,13 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 			}
 		}
 
-		#endregion
+	    public override void OnFinished()
+	    {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+	        base.OnFinished();
+	    }
+
+	    #endregion
 	}
 }

@@ -20,7 +20,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -115,26 +116,28 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MantidUnderFire
 		}
 
 
-		public Composite KillOne
+		public async Task<bool> KillOne()
 		{
-			get
-			{
-				return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 1),
-					new Action(r =>
-					{
-						Lua.DoString("CastPetAction(1)");
-						SpellManager.ClickRemoteLocation(Mantid[10].Location);
-						Lua.DoString("CastPetAction(2)");
-						SpellManager.ClickRemoteLocation(Mantid[10].Location);
-						StyxWoW.Sleep(8500);
-					}));
-			}
+		    if (!Me.IsQuestObjectiveComplete(QuestId, 1))
+		    {
+                Lua.DoString("CastPetAction(1)");
+                // Uhm.. Mantid[10] ??? why the 11th? Leaving as is since no reports of there being any problems - hv.
+                SpellManager.ClickRemoteLocation(Mantid[10].Location);
+                Lua.DoString("CastPetAction(2)");
+                SpellManager.ClickRemoteLocation(Mantid[10].Location);
+                await Coroutine.Sleep(8500);
+		    }
+		    return false;
 		}
 
-		
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, KillOne, new ActionAlwaysSucceed())));
-		}
+
+	    protected override Composite CreateBehavior()
+	    {
+	        return _root ??
+	               (_root =
+	                   new Decorator(
+	                       ret => !_isBehaviorDone,
+	                       new PrioritySelector(DoneYet, new ActionRunCoroutine(ctx => KillOne()), new ActionAlwaysSucceed())));
+	    }
 	}
 }

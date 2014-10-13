@@ -19,7 +19,7 @@
 #region Usings
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -89,7 +89,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "Finished!"),
 							new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarLeaveButton','0')")),
-							new Action(ret => StyxWoW.SleepForLagDuration()),
+                            new SleepForLagDuration(),
 							new WaitContinue(120,
 							new Action(delegate
 							{
@@ -101,14 +101,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "Moving To Camp"),
 							new Action(ret => Navigator.MoveTo(Endloc)),
-							new Action(ret => StyxWoW.SleepForLagDuration())
+                            new SleepForLagDuration()
 						)
 					),
 					new Decorator(ret => (!Me.IsMoving && (mob1List.Count == 0 || mob2List.Count == 0)),
 						new Sequence(
 							new Action(ret => TreeRoot.StatusText = "Moving To Location"),
 							new Action(ret => Navigator.MoveTo(Location)),
-							new Action(ret => StyxWoW.SleepForLagDuration())
+                            new SleepForLagDuration()
 						)
 					),
 					new Decorator(ret => mob1List.Count > 0 || mob2List.Count > 0,
@@ -117,7 +117,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 								new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to " + mob1List[0].SafeName),
 									new Action(ret => Navigator.MoveTo(mob1List[0].Location)),
-									new Action(ret => StyxWoW.SleepForLagDuration())
+                                    new SleepForLagDuration()
 								)
 							),
 							new DecoratorContinue(ret => !Obj1Done && mob1List[0].Location.Distance(Me.Location) <= 30,
@@ -126,9 +126,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton3','0')")),
 									new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
-									new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new SleepForLagDuration(),
 									new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
-									new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new SleepForLagDuration(),
 									new Action(ret => mob1List[0].Face()),
 									new Sleep(2000)
 								)
@@ -137,7 +137,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 								new Sequence(
                                     new Action(ret => TreeRoot.StatusText = "Moving to " + mob2List[0].SafeName),
 									new Action(ret => Navigator.MoveTo(mob2List[0].Location)),
-									new Action(ret => StyxWoW.SleepForLagDuration())
+                                    new SleepForLagDuration()
 								)
 							),
 							new DecoratorContinue(ret => !Obj2Done && Obj1Done && mob2List[0].Location.Distance(Me.Location) <= 30,
@@ -146,9 +146,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton1','0')")),
 									new Action(ret => Lua.DoString("RunMacroText('/click VehicleMenuBarActionButton3','0')")),
 									new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
-									new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new SleepForLagDuration(),
 									new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
-									new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new SleepForLagDuration(),
 									new Action(ret => mob2List[0].Face()),
 									new Sleep(2000)
 								)

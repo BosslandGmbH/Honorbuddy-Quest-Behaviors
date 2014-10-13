@@ -54,7 +54,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 
 using Styx;
@@ -259,7 +259,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 
 											new Sequence(
 												new Action(ret => Navigator.PlayerMover.MoveStop()),
-												new Action(ret => StyxWoW.SleepForLagDuration()),
+												new SleepForLagDuration(),
 												new Action(ret => TreeRoot.StatusText = "Using item"),
 												new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
 												new Action(ret => Item.UseContainerItem()),

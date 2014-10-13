@@ -19,9 +19,12 @@
 #region Usings
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -93,29 +96,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
 						new PrioritySelector(
 							new Decorator(
 								ret => StyxWoW.Me.CurrentTarget != q24817_hammer[0],
-								new Sequence(
-									new Action(ret => 
-									{
-										if (q24817_hammer.Count > 0 && q24817_hammer[0].Location.Distance(StyxWoW.Me.Location) > 45)
-										{
-											Navigator.MoveTo(q24817_hammer[0].Location);
-											StyxWoW.Sleep(100);
-										}
-										if (q24817_hammer.Count > 0 && (q24817_hammer[0].Location.Distance(StyxWoW.Me.Location) <= 45))
-										{
-											while (!StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted)
-											{
-												q24817_hammer[0].Face();
-												q24817_hammer[0].Target();
-												WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
-												StyxWoW.Sleep(200);
-												WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards);
-												Lua.DoString("CastPetAction(3)");
-												Lua.DoString("CastPetAction(2)");
-												Lua.DoString("CastPetAction(1)");
-											}
-										}
-									}))))),
+								new ActionRunCoroutine(ctx => DoQuest())))),
 					 new Decorator(
 						 ret => StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted,
 						 new Sequence(
@@ -124,5 +105,49 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
 					));
 
 		}
+
+	    private async Task DoQuest()
+	    {
+	        var target = q24817_hammer.FirstOrDefault();
+	        if (target == null) 
+                return;
+
+            if (target.Distance  > 45)
+            {
+                Navigator.MoveTo(target.Location);
+                await Coroutine.Sleep(100);
+            }
+            else
+            {
+                while (!StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted && StyxWoW.Me.IsAlive && Query.IsViable(target))
+                {
+                    if (StyxWoW.Me.CurrentTargetGuid != target.Guid)
+                    {
+                        target.Target();
+                        await CommonCoroutines.SleepForLagDuration();
+                        continue;
+                    }
+
+                    if (!StyxWoW.Me.IsSafelyFacing(target))
+                    {
+                        target.Face();
+                    } 
+
+                    try
+                    {
+                        WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
+                        await Coroutine.Sleep(200);
+                    }
+                    finally
+                    {
+                        WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards);
+                    }
+                    Lua.DoString("CastPetAction(3)");
+                    Lua.DoString("CastPetAction(2)");
+                    Lua.DoString("CastPetAction(1)");
+                    await Coroutine.Yield();
+                }
+            }
+	    }
 	}
 }

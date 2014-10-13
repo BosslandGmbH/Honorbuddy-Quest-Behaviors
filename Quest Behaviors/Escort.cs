@@ -45,7 +45,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -293,11 +293,9 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 						new PrioritySelector(
 							new Decorator(
 								ret => Me.CurrentTarget != EnemyList[0],
-								new Action(ret =>
-									{
-										EnemyList[0].Target();
-										StyxWoW.SleepForLagDuration();
-									})),
+                                new Sequence(
+                                    new Action(ctx => EnemyList[0].Target()),
+                                    new SleepForLagDuration())),
 							new Decorator(
 								ret => !Me.Combat,
 								new PrioritySelector(
@@ -321,8 +319,8 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 							new Decorator(
 								ret => Me.CurrentTarget == null,
 								new Sequence(
-								new Action(ret => EnemyList[0].CurrentTarget.Target()),
-								new Action(ret => StyxWoW.SleepForLagDuration()))),
+								    new Action(ret => EnemyList[0].CurrentTarget.Target()),
+								    new SleepForLagDuration())),
 							new Decorator(
 								ret => !Me.Combat,
 								new PrioritySelector(
@@ -400,11 +398,9 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 						new PrioritySelector(
 							new Decorator(
 								ret => Me.CurrentTarget != EnemyList[0],
-								new Action(ret =>
-									{
-										EnemyList[0].Target();
-										StyxWoW.SleepForLagDuration();
-									})),
+                                new Sequence(
+                                    new Action(ret =>EnemyList[0].Target()),
+                                    new SleepForLagDuration())),
 							new Decorator(
 								ret => !Me.Combat,
 								new PrioritySelector(
@@ -429,7 +425,7 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 								ret => Me.CurrentTarget == null,
 								new Sequence(
 								new Action(ret => EnemyList[0].CurrentTarget.Target()),
-								new Action(ret => StyxWoW.SleepForLagDuration()))),
+								new SleepForLagDuration())),
 							new Decorator(
 								ret => !Me.Combat,
 								new PrioritySelector(

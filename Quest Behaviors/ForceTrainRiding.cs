@@ -26,10 +26,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Database;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -168,11 +169,7 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
 							new Decorator(ret => MobList.Count > 0 && MobList[0].WithinInteractRange,
 								new Sequence(
 									new DecoratorContinue(ret => StyxWoW.Me.IsMoving,
-										new Action(ret =>
-										{
-											WoWMovement.MoveStop();
-											StyxWoW.SleepForLagDuration();
-										})),
+                                        new ActionRunCoroutine(ctx => CommonCoroutines.StopMoving())),					
                                     new Action(ret => TreeRoot.StatusText = "Opening Trainer - " + MobList[0].SafeName + " X: " + MobList[0].X + " Y: " + MobList[0].Y + " Z: " + MobList[0].Z),
 									new Action(ret => MobList[0].Interact()),
 									new WaitContinue(5,

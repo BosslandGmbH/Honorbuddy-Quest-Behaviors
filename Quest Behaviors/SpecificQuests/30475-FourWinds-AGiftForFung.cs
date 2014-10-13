@@ -20,7 +20,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -118,36 +119,34 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGiftForFung
 		}
 
 
-		public Composite HawkFlyTo
-		{
-			get
-			{
-				return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
-					new Action(c =>
-					{
-						if (Hawk[0].Location.Distance(Me.Location) < 30)
-						{
-							TreeRoot.StatusText = "Pulling Monstrous Plainshawk";
-							Hawk[0].Target();
-							Hawk[0].Face();
-							StyxWoW.Sleep(1000);
-							SpellManager.Cast(SpellId);
-							StyxWoW.Sleep(1000);
-						}
-						TreeRoot.StatusText = "Finished Pulling!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-			}
-		}
-		
+	    private async Task<bool> HawkFlyTo()
+	    {
+	        if (!Me.IsQuestObjectiveComplete(QuestId, 1))
+	        {
+	            if (Hawk[0].Location.Distance(Me.Location) < 30)
+	            {
+	                TreeRoot.StatusText = "Pulling Monstrous Plainshawk";
+	                Hawk[0].Target();
+	                Hawk[0].Face();
+	                await Coroutine.Sleep(1000);
+	                SpellManager.Cast(SpellId);
+	                await Coroutine.Sleep(1000);
+	            }
+	            TreeRoot.StatusText = "Finished Pulling!";
+	            _isBehaviorDone = true;
+	            return true;
+	        }
+	        return false;
+	    }
 
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root =
-				new Decorator(ret => !_isBehaviorDone,
-					new PrioritySelector(DoneYet, HawkFlyTo, new ActionAlwaysSucceed())));
-		}
+
+	    protected override Composite CreateBehavior()
+	    {
+	        return _root ?? (_root =
+	            new Decorator(
+	                ret => !_isBehaviorDone,
+	                new PrioritySelector(DoneYet, new ActionRunCoroutine(ctx => HawkFlyTo()), new ActionAlwaysSucceed())));
+	    }
 	}
 }
 

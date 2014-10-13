@@ -20,11 +20,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -48,7 +50,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
 			{
 				QuestId = 30232;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
 				SpellIds = GetNumberedAttributesAsArray<int>("SpellId", 1, ConstrainAs.SpellId, null);
-				SpellId = SpellIds.FirstOrDefault(id => SpellManager.HasSpell(id));
+				SpellId = SpellIds.FirstOrDefault(SpellManager.HasSpell);
 			}
 
 			catch (Exception except)
@@ -113,37 +115,43 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RufflingSomeFeathers
 			}
 		}
 
-
-		public Composite PomfruitFlyTo
+		private async Task<bool> PomfruitFlyTo()
 		{
-			get
-			{
-				return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
-					new Action(c =>
-					{
-						if (Pomfruit[0].Location.Distance(Me.Location) > 10)
-						{
-							TreeRoot.StatusText = "Moving to Silkfeather Hawk";
-							WoWMovement.ClickToMove(Pomfruit[0].Location);
-							Pomfruit[0].Target();
-							Pomfruit[0].Face();
-							StyxWoW.Sleep(3000);
-							WoWMovement.MoveStop();
-							SpellManager.Cast(SpellId);
-							StyxWoW.Sleep(3000);
-						}
-						TreeRoot.StatusText = "Finished Pulling!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-			}
+		    if (Me.IsQuestObjectiveComplete(QuestId, 1))
+		        return false;
+
+		    var fruit = Pomfruit.FirstOrDefault();
+		    if (fruit == null)
+		        return false;
+
+            if (fruit.Location.Distance(Me.Location) > 10)
+            {
+                TreeRoot.StatusText = "Moving to Silkfeather Hawk";
+                WoWMovement.ClickToMove(fruit.Location);
+                fruit.Target();
+                fruit.Face();
+                await Coroutine.Sleep(3000);
+                await CommonCoroutines.StopMoving();
+                SpellManager.Cast(SpellId);
+                await Coroutine.Sleep(3000);
+            }
+            TreeRoot.StatusText = "Finished Pulling!";
+            _isBehaviorDone = true;
+            return true;
 		}
 
-		
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PomfruitFlyTo, new ActionAlwaysSucceed())));
-		}
+
+	    protected override Composite CreateBehavior()
+	    {
+	        return _root ??
+	               (_root =
+	                   new Decorator(
+	                       ret => !_isBehaviorDone,
+	                       new PrioritySelector(
+	                           DoneYet,
+	                           new ActionRunCoroutine(ctx => PomfruitFlyTo()),
+	                           new ActionAlwaysSucceed())));
+	    }
 	}
 }
 

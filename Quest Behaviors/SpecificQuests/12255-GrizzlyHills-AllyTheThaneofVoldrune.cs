@@ -22,7 +22,9 @@
 #region Usings
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
@@ -118,55 +120,57 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 									new Sleep(1000)))
 
 							)),
-					new Decorator(ret => Query.IsInVehicle(),
-						new Action(ret =>
-						{
-							if (Me.QuestLog.GetQuestById(12255).IsCompleted)
-							{
-								if (Me.Location.Distance(endloc) > 15)
-								{
-									WoWMovement.ClickToMove(endloc);
-									StyxWoW.Sleep(5000);
-								}
-								Lua.DoString("VehicleExit()");
-								return RunStatus.Success;
-							}
-							if (objmob.Count == 0)
-							{
-								WoWMovement.ClickToMove(startloc);
-								StyxWoW.Sleep(1000);
-							}
-							if (objmob.Count > 0)
-							{
-								objmob[0].Target();
-								WoWMovement.ClickToMove(objmob[0].Location);
-								StyxWoW.Sleep(100);
-								Lua.DoString("UseAction(122, 'target', 'LeftButton')");
-								Lua.DoString("UseAction(121, 'target', 'LeftButton')");
-							}
-							return RunStatus.Running;
-						}
-					)),
+                    new Decorator(ret => Query.IsInVehicle(), new ActionRunCoroutine(ctx => VehicleLogic())),
 
 					new DecoratorContinue(ret => !Me.IsQuestObjectiveComplete(QuestId, 1) && objmob[0].Location.Distance(Me.Location) <= 20,
 						new Sequence(
                             new Action(ret => TreeRoot.StatusText = "PWNing " + objmob[0].SafeName),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton2:Click()")),
-							//new Action(ret => StyxWoW.Sleep(1500)),
+							//new Sleep(1500),
 							//new Action(ret => Lua.DoString("VehicleMenuBarActionButton3:Click()")),
 							new Action(ret => Lua.DoString("VehicleMenuBarActionButton1:Click()")),
 							new Action(ret => WoWMovement.Move(WoWMovement.MovementDirection.Backwards)),
-							new Action(ret => StyxWoW.SleepForLagDuration()),
+                            new SleepForLagDuration(),
 							new Action(ret => WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards)),
-							new Action(ret => StyxWoW.SleepForLagDuration()),
+                            new SleepForLagDuration(),
 							new Action(ret => objmob[0].Face()),
-							new Action(ret => StyxWoW.Sleep(500))
+							new Sleep(500)
 						)
 					)
 				)
 			);
 		}
-		
+
+	    private async Task VehicleLogic()
+	    {
+            while (Me.IsAlive)
+            {
+                if (Me.QuestLog.GetQuestById(12255).IsCompleted)
+                {
+                    if (Me.Location.Distance(endloc) > 15)
+                    {
+                        WoWMovement.ClickToMove(endloc);
+                        await Coroutine.Sleep(5000);
+                    }
+                    Lua.DoString("VehicleExit()");
+                    return;
+                }
+                if (objmob.Count == 0)
+                {
+                    WoWMovement.ClickToMove(startloc);
+                     await Coroutine.Sleep(1000);
+                }
+                if (objmob.Count > 0)
+                {
+                    objmob[0].Target();
+                    WoWMovement.ClickToMove(objmob[0].Location);
+                    await Coroutine.Sleep(100);
+                    Lua.DoString("UseAction(122, 'target', 'LeftButton')");
+                    Lua.DoString("UseAction(121, 'target', 'LeftButton')");
+                }
+                await Coroutine.Yield();
+            }
+	    }
 
 		private bool _isDone;
 		public override bool IsDone

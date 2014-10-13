@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Media;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 using Styx;
@@ -113,20 +114,22 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
 		//  1May2013-01:51UTC chinajade
-		private static void AudibleNotifyOn(bool doNotifyPredicate)
-		{
-			if (doNotifyPredicate)
-			{
-				const int audioDelayInMilliseconds = 150;
-				SystemSounds.Asterisk.Play();
-				StyxWoW.Sleep(audioDelayInMilliseconds);
-				SystemSounds.Asterisk.Play();
-				StyxWoW.Sleep(audioDelayInMilliseconds);
-				SystemSounds.Asterisk.Play();
-				StyxWoW.Sleep(audioDelayInMilliseconds);
-				SystemSounds.Asterisk.Play();                
-			}
-		}
+	    private static void AudibleNotifyOn(bool doNotifyPredicate)
+	    {
+	        if (doNotifyPredicate)
+	        {
+	            Task.Run(
+	                () =>
+	                {
+	                    const int audioDelayInMilliseconds = 150;
+                        for (int cnt = 0; cnt < 3; cnt++)
+	                    {
+	                        SystemSounds.Asterisk.Play();
+	                        Thread.Sleep(audioDelayInMilliseconds);
+	                    }
+	                });
+	        }
+	    }
 
 
 		public static void BuildReplacementArgs_Ids(List<Tuple<string, string>> replacementArgs,

@@ -20,7 +20,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -131,7 +132,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
 			{
 				return 
 					new Decorator(c => Turtle != null && Turtle.IsCasting, 
-						new Action(c => BarryDurex.QuestHelper.AvoidEnemyCast(Turtle, 80, 100))
+						new ActionRunCoroutine(c => BarryDurex.QuestHelper.AvoidEnemyCast(Turtle, 80, 100))
 					);
 			}
 		}
@@ -172,28 +173,35 @@ namespace BarryDurex
 {
 	static class QuestHelper
 	{
-		public static void AvoidEnemyCast(WoWUnit Unit, float EnemyAttackRadius, float SaveDistance)
+		public static async Task AvoidEnemyCast(WoWUnit unit, float enemyAttackRadius, float saveDistance)
 		{
-			if (!StyxWoW.Me.IsFacing(Unit))
-			{ Unit.Face(); StyxWoW.Sleep(300); }
+		    if (!StyxWoW.Me.IsFacing(unit))
+		    {
+		        unit.Face(); 
+                await Coroutine.Sleep(300);
+		    }
 
-			float BehemothRotation = getPositive(Unit.RotationDegrees);
-			float invertEnemyRotation = getInvert(BehemothRotation);
+			float behemothRotation = getPositive(unit.RotationDegrees);
+			float invertEnemyRotation = getInvert(behemothRotation);
 
-			WoWMovement.MovementDirection move = WoWMovement.MovementDirection.None;
+		    WoWMovement.MovementDirection move = getPositive(StyxWoW.Me.RotationDegrees) > invertEnemyRotation 
+		        ? WoWMovement.MovementDirection.StrafeRight 
+		        : WoWMovement.MovementDirection.StrafeLeft;
 
-			if (getPositive(StyxWoW.Me.RotationDegrees) > invertEnemyRotation)
-			{ move = WoWMovement.MovementDirection.StrafeRight; }
-			else
-			{ move = WoWMovement.MovementDirection.StrafeLeft; }
-
-			while (Unit.Distance2D <= SaveDistance && Unit.IsCasting && ((EnemyAttackRadius == 0 && !StyxWoW.Me.IsSafelyBehind(Unit)) ||
-				(EnemyAttackRadius != 0 && Unit.IsSafelyFacing(StyxWoW.Me, EnemyAttackRadius)) || Unit.Distance2D <= 2 ))
-			{
-				WoWMovement.Move(move);
-				Unit.Face();
-			}
-			WoWMovement.MoveStop();
+		    try
+		    {
+		        while (unit.Distance2D <= saveDistance && unit.IsCasting && ((enemyAttackRadius == 0 && !StyxWoW.Me.IsSafelyBehind(unit)) 
+                    ||(enemyAttackRadius != 0 && unit.IsSafelyFacing(StyxWoW.Me, enemyAttackRadius)) || unit.Distance2D <= 2 ))
+		        {
+		            WoWMovement.Move(move);
+		            unit.Face();
+		            await Coroutine.Yield();
+		        }
+		    }
+		    finally
+		    {
+                WoWMovement.MoveStop();
+		    }
 		}
 
 		private static float getInvert(float f)

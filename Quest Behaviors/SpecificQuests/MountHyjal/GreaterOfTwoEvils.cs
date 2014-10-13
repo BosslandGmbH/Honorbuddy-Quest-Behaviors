@@ -32,12 +32,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -170,52 +171,32 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 									new Sequence( 
 										new Action( ret => DLog("Quest complete - cancelling Flame Ascendancy")),
 										new Action( ret => Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")")),
-										CreateWaitForLagDuration()
+										new SleepForLagDuration()
 										)
 									),
 								new Sequence(
 									new Action( ret => _isBehaviorDone = true ),
-									CreateWaitForLagDuration()
+                                    new SleepForLagDuration()
 									)
 								)
 							),
 
 						// loop waiting for target only if no buff
 						new Decorator(ret => Target == null,
-							new Action(delegate
-							{
-								StyxWoW.SleepForLagDuration();
-								return RunStatus.Success;
-							})
+                            // Using sequence since it'll return 'Success' after SleepForLagDuration ends
+                            new Sequence(new SleepForLagDuration())
 						),
 
 						// loop waiting for CurrentTarget only if no buff
 						new Decorator(ret => Target != Me.CurrentTarget,
-							new Action(delegate
-							{
-								WoWUnit target = Target;
-								target.Target();
-								StyxWoW.SleepForLagDuration();
-								return RunStatus.Success;
-							})
+                            new Sequence(
+                                new Action(ctx => Target.Target()),
+                                new SleepForLagDuration())
 						),
 
 						// use item to get buff (enter vehicle)
 						new Decorator(ret => !Me.HasAura("Flame Ascendancy"),
-							new Action(delegate
-							{
-								WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().FirstOrDefault(i => i != null && i.Entry == 54814);
-								if (item == null)
-								{
-									QBCLog.Fatal("Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
-									TreeRoot.Stop();
-								}
-
-                                Log("Use: {0}", item.SafeName);
-								item.Use(true);
-								StyxWoW.SleepForLagDuration();
-								return RunStatus.Success;
-							})
+                            new ActionRunCoroutine(ctx => UseTalismanOfFlameAscendancy())
 						),
 
 						new Decorator(ret => Target.Distance > 5,
@@ -267,6 +248,20 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 			
 		}
 
+	    async Task UseTalismanOfFlameAscendancy()
+	    {
+            WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().FirstOrDefault(i => i != null && i.Entry == 54814);
+            if (item == null)
+            {
+                QBCLog.Fatal("Quest item \"Talisman of Flame Ascendancy\" not in inventory.");
+                TreeRoot.Stop();
+                return;
+            }
+
+            Log("Use: {0}", item.SafeName);
+            item.Use(true);
+	        await CommonCoroutines.SleepForLagDuration();
+	    }
 
 		public override void Dispose()
 		{

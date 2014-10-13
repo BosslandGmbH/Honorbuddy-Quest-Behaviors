@@ -141,11 +141,7 @@
     <Compile Include="ArgentTournament\TheGrandMelee.cs" />
     <Compile Include="AscendInWater.cs" />
     <Compile Include="BarrelHook.cs" />
-    <Compile Include="BasicInteractWith.cs" />
-    <Compile Include="BasicUseObject.cs" />
     <Compile Include="BlackrockMaskHook.cs" />
-    <Compile Include="Deprecated\CastSpellOn.cs" />
-    <Compile Include="Deprecated\UseItemOn.cs" />
     <Compile Include="Hooks\DoWhen.cs" />
     <Compile Include="Hooks\BarrelHook.cs" />
     <Compile Include="Hooks\BlackrockMaskHook.cs" />
@@ -219,22 +215,15 @@
     <Compile Include="QuestBehaviorCore\DataFileAccess.cs" />
     <Compile Include="QuestBehaviorCore\LocalBlacklist.cs" />
     <Compile Include="QuestBehaviorCore\PetControl.cs" />
-    <Compile Include="Deprecated\BasicInteractWith.cs" />
-    <Compile Include="Deprecated\BasicUseObject.cs" />
     <Compile Include="BasicVehicleBehaviour.cs" />
     <Compile Include="ButtonPress\ButtonPressOnAura.cs" />
     <Compile Include="ButtonPress\ButtonPressOnChat.cs" />
-    <Compile Include="CastSpellOn.cs" />
     <Compile Include="CollectThings.cs" />
     <Compile Include="CombatUseItemOn.cs" />
     <Compile Include="CombatUseItemOnV2.cs" />
     <Compile Include="CompleteLogQuest.cs" />
     <Compile Include="DefendObject.cs" />
     <Compile Include="DeleteItems.cs" />
-    <Compile Include="Deprecated\Escort6641.cs" />
-    <Compile Include="Deprecated\FindAndBeatNpcs.cs" />
-    <Compile Include="Deprecated\IntotheRealmofShadows.cs" />
-    <Compile Include="Deprecated\TheGiftThatKeepsOnGiving.cs" />
     <Compile Include="QuestBehaviorCore\Helpers_Math.cs" />
     <Compile Include="Development\TEMPLATE_QB.cs" />
     <Compile Include="DisablePlugin.cs" />
@@ -252,7 +241,6 @@
     <Compile Include="GoThruPortal.cs" />
     <Compile Include="Halt.cs" />
     <Compile Include="InteractWith.cs" />
-    <Compile Include="ItemWhileMoving.cs" />
     <Compile Include="KillUntilComplete.cs" />
     <Compile Include="LoadProfile.cs" />
     <Compile Include="Message.cs" />
@@ -279,7 +267,6 @@
     <Compile Include="SpecificQuests\Kalimdor\Teldrassil\14005-TheVengeanceOfElune.cs" />
     <Compile Include="TaxiRide.cs" />
     <Compile Include="TheEndlessFlowHook.cs" />
-    <Compile Include="UseGameObject.cs" />
     <Compile Include="UseHearthstone.cs" />
     <Compile Include="Vehicles\BasicVehicleBehaviour.cs" />
     <Compile Include="Vehicles\NoControlVehicle.cs" />
@@ -383,9 +370,7 @@
     <Compile Include="SpecificQuests\MountHyjal\MentalTraining.cs" />
     <Compile Include="SpellLocation.cs" />
     <Compile Include="StandAndKill.cs" />
-    <Compile Include="Deprecated\UseGameObject.cs" />
     <Compile Include="UseItem.cs" />
-    <Compile Include="UseItemOn.cs" />
     <Compile Include="UseItemTargetLocation.cs" />
     <Compile Include="UsePetAbility.cs" />
     <Compile Include="UserDialog.cs">
@@ -412,6 +397,9 @@
     <Content Include="QuestBehaviorCore\Data\BagContainers.xml" />
     <Content Include="QuestBehaviorCore\Data\PluginCategory.xml" />
     <Content Include="QuestBehaviorCore\Data\SwimBreath.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Deprecated\" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSHARP.Targets" />
   <ProjectExtensions>

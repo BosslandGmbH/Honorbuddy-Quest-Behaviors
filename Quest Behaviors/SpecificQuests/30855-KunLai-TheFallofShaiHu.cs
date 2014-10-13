@@ -143,26 +143,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 									new Action(r =>
 									{
 										TreeRoot.StatusText = "Pulling explosive hatred using no combat move...";
-										WoWPoint[] path = Navigator.GeneratePath(Me.Location, ExplosiveHatredEnemy.Location);
-
-										foreach (WoWPoint p in path)
-										{
-											StyxWoW.Sleep(500);
-											WoWMovement.ClickToMove(p);
-										}
+									    Navigator.MoveTo(ExplosiveHatredEnemy.Location);
 										return RunStatus.Failure;
 									})),
 								new Decorator(cond => ExplosiveHatredEnemy.IsTargetingMeOrPet && ExplosiveHatredEnemy.Location.Distance(ShaiHuNPC.Location) > 10,
 									new Action(r =>
 									{
-
-										WoWPoint[] path = Navigator.GeneratePath(Me.Location, ShaiHuNPC.Location);
-
-										foreach (WoWPoint p in path)
-										{
-											StyxWoW.Sleep(500);
-											WoWMovement.ClickToMove(p);
-										}
+                                        Navigator.MoveTo(ShaiHuNPC.Location);
 										return RunStatus.Failure;
 									})),
 							  new Decorator(cond => ExplosiveHatredEnemy.Location.Distance(ShaiHuNPC.Location) < 10,
@@ -173,14 +160,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFallofShaiHu
 									  return RunStatus.Failure;
 								  })))),
 
-						new Decorator(cond => ShaiHuNPC != null && !ShaiHuNPC.HasAura(118633),
+						new Decorator(cond => ShaiHuNPC != null && !ShaiHuNPC.HasAura(118633),      
 							new Action(r =>
 							{
-								if (BotPoi.Current == null ? true : BotPoi.Current.Entry == ShaiHuId)
+								if (BotPoi.Current.Entry != ShaiHuId)
 								{
 									BotPoi.Current = new BotPoi(ShaiHuNPC, PoiType.Kill);
 								}
-								StyxWoW.Sleep(500);
 								Navigator.MoveTo(ShaiHuNPC.Location);
 								return RunStatus.Failure;
 							})));

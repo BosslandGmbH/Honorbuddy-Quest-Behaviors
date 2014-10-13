@@ -21,7 +21,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -195,18 +197,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
 			get
 			{
 				return new Decorator(r => (Malfurion == null) && (Cenarius != null),
-					new PrioritySelector(
-						new Action(r=>
-						{
-							WoWMovement.MoveStop();
-							Cenarius.Interact();
-							StyxWoW.Sleep(400);
-							Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
-						})
-					));
+					new ActionRunCoroutine(ctx => ListenToStory()));
 			}
 		}
 
+	    private async Task ListenToStory()
+	    {
+            WoWMovement.MoveStop();
+            Cenarius.Interact();
+            await Coroutine.Sleep(400);
+            Lua.DoString("SelectGossipOption(1,\"gossip\", true)");
+	    }
 
 		public Composite KillAdds
 		{

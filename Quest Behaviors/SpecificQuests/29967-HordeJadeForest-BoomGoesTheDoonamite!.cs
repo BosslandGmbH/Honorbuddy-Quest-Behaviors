@@ -206,8 +206,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BoomGoesTheDoonamite
 																		  CastSpell("Throw Methane Bomb");
 																		  SpellManager.ClickRemoteLocation(
 																			  Enemy.Location.RayCast(Enemy.MovementInfo.Heading,10));
-																		  //Blacklist.Add(Enemy,BlacklistFlags.All, TimeSpan.FromSeconds(5));
-																		  //StyxWoW.Sleep(100);
 																	  }
 														   ));
 			}

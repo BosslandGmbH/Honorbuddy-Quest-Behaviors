@@ -39,10 +39,13 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -176,25 +179,7 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 						new PrioritySelector(
 
 							new Decorator(ret => IsMounted != true && _vehicleList == null,
-								new Action(ctx =>
-								{
-									WoWPoint destination1 = new WoWPoint(LocationMount.X, LocationMount.Y, LocationMount.Z);
-									WoWPoint[] pathtoDest1 = Navigator.GeneratePath(Me.Location, destination1);
-
-									foreach (WoWPoint p1 in pathtoDest1)
-									{
-										while (!Me.IsDead && p1.Distance(Me.Location) > 3)
-										{
-											StyxWoW.Sleep(100);
-											WoWMovement.ClickToMove(p1);
-										}
-									}
-
-									ObjectManager.Update();
-									_vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-									  .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(Me.Location)).ToList();
-
-								})
+                                new ActionRunCoroutine(ctx => MoveToMountLocation())
 								),
 
 							new Decorator(ret => _vehicleList[0] != null && !_vehicleList[0].WithinInteractRange && IsMounted != true,
@@ -202,50 +187,21 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 								),
 
 							new Decorator(ret => StyxWoW.Me.IsMoving,
-								new Action(ret =>
-								{
-									WoWMovement.MoveStop();
-									StyxWoW.SleepForLagDuration();
-								})
-								),
+                                new ActionRunCoroutine(ctx => CommonCoroutines.StopMoving())),
 
 							new Decorator(ret => IsMounted != true,
 								new Sequence(
-									new Action(ctx =>
-									{
-
-										MountedPoint = Me.Location;
-										_vehicleList[0].Interact();
-										StyxWoW.SleepForLagDuration();
-										IsMounted = true;
-
-										ObjectManager.Update();
-										_vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-										  .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList();
-									}),
+                                    new Action(ctx => MountedPoint = Me.Location),
+                                    new Action(ctx => _vehicleList[0].Interact()),
+                                    new SleepForLagDuration(),
+                                    new Action(ctx => IsMounted = true),
+                                    new Action(ctx => _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
+										  .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList()),
 									new Sleep(3000))
 								),
 
 							new Decorator(ret => IsMounted = true,
-								new Action(ret =>
-								{
-									WoWPoint destination = new WoWPoint(LocationDest.X, LocationDest.Y, LocationDest.Z);
-									WoWPoint[] pathtoDest = Navigator.GeneratePath(_vehicleList[0].Location, destination);
-
-									foreach (WoWPoint p in pathtoDest)
-									{
-										while (!_vehicleList[0].IsDead && p.Distance(_vehicleList[0].Location) > 3)
-										{
-											StyxWoW.Sleep(100);
-											WoWMovement.ClickToMove(p);
-										}
-
-									}
-
-									Lua.DoString("CastSpellByID(" + SpellCastId + ")");
-
-									Counter++;
-								})
+                                new ActionRunCoroutine(ctx => MoveToDestination())
 								),
 
 							new Action(ret => QBCLog.DeveloperInfo(string.Empty))
@@ -253,6 +209,27 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 					));
 		}
 
+	    private async Task MoveToMountLocation()
+	    {
+	        while (Me.IsAlive && Me.Location.DistanceSqr(LocationMount) > 3*3)
+	        {
+	            Navigator.MoveTo(LocationMount);
+	            await Coroutine.Yield();
+	        }
+            _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
+              .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(Me.Location)).ToList();
+	    }
+
+	    private async Task MoveToDestination()
+	    {
+            while (Me.IsAlive && Me.Location.DistanceSqr(LocationDest) > 3 * 3)
+            {
+                Navigator.MoveTo(LocationDest);
+                await Coroutine.Yield();
+            }
+            Lua.DoString("CastSpellByID(" + SpellCastId + ")");
+            Counter++;
+	    }
 
 		public override void Dispose()
 		{

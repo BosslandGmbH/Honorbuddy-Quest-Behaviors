@@ -48,7 +48,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -239,9 +239,9 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 								new Sequence(
 									new Action(ret => TreeRoot.StatusText = "Using Pet Ability:" + " " + Counter + " Out of " + NumOfTimes + " Times"),
 									new Action(ret => Navigator.PlayerMover.MoveStop()),
-									new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new SleepForLagDuration(),
 									new Action(ret => Lua.DoString("CastPetAction({0})", AttackButton)),
-									new Action(ret => StyxWoW.SleepForLagDuration()),
+                                    new SleepForLagDuration(),
 									new Action(ret => Counter++),
 									new Sleep(WaitTime))
 							))),
@@ -257,9 +257,9 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 							new Sequence(
 								new Action(ret => TreeRoot.StatusText = "Using Pet Ability At Location:" + " " + Counter + " Out of " + NumOfTimes + " Times"),
 								new Action(ret => Navigator.PlayerMover.MoveStop()),
-								new Action(ret => StyxWoW.SleepForLagDuration()),
+                                new SleepForLagDuration(),
 								new Action(ret => Lua.DoString("CastPetAction({0})", AttackButton)),
-								new Action(ret => StyxWoW.SleepForLagDuration()),
+                                new SleepForLagDuration(),
 								new Action(ret => Counter++),
 								new Sleep(WaitTime))
 							)),
@@ -291,10 +291,10 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 										new Action(ret => UseObject.Target()),
 										new Action(ret => Navigator.PlayerMover.MoveStop()),
 										new Action(ret => UseObject.Face()),
-										new Action(ret => StyxWoW.SleepForLagDuration()),
+                                        new SleepForLagDuration(),
 										new Action(ret => Lua.DoString("CastPetAction({0})", AttackButton)),
 										new Action(ret => Counter++),
-										new Action(ret => StyxWoW.SleepForLagDuration()),
+                                        new SleepForLagDuration(),
 										new Action(ret => _npcBlacklist.Add(UseObject.Guid)),
 										new Sleep(WaitTime)))),
 							new Action(ret => TreeRoot.StatusText = "No objects around. Waiting")

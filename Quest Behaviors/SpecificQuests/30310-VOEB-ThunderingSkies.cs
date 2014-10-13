@@ -20,7 +20,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -119,34 +120,40 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThunderingSkies
 		}
 
 
-		public Composite SerpentPull
-		{
-			get
-			{
-				return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
-					new Action(c =>
-					{
-						if (Serpent[0].Location.Distance(Me.Location) > 15)
-						{
-							TreeRoot.StatusText = "Moving to Serpent";
-							Navigator.MoveTo(Serpent[0].Location);
-							Serpent[0].Target();
-							Serpent[0].Face();
-							StyxWoW.Sleep(3000);
-							WoWMovement.MoveStop();
-							SpellManager.Cast(SpellId);
-							StyxWoW.Sleep(1500);
-						}
-						TreeRoot.StatusText = "Finished Pulling!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-			}
-		}
-		
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, SerpentPull, new ActionAlwaysSucceed())));
-		}
+	    public async Task<bool> SerpentPull()
+	    {
+	        if (!Me.IsQuestObjectiveComplete(QuestId, 1))
+	        {
+	            var serpent = Serpent.First();
+	            if (serpent.Location.Distance(Me.Location) > 15)
+	            {
+	                TreeRoot.StatusText = "Moving to Serpent";
+	                Navigator.MoveTo(serpent.Location);
+	                serpent.Target();
+	                return true;
+	            }
+                serpent.Face();
+                await Coroutine.Sleep(3000);
+                WoWMovement.MoveStop();
+                SpellManager.Cast(SpellId);
+                await Coroutine.Sleep(1500);
+	            TreeRoot.StatusText = "Finished Pulling!";
+	            _isBehaviorDone = true;
+	            return true;
+	        }
+	        return false;
+	    }
+
+	    protected override Composite CreateBehavior()
+	    {
+	        return _root ??
+	               (_root =
+	                   new Decorator(
+	                       ret => !_isBehaviorDone,
+	                       new PrioritySelector(
+	                           DoneYet,
+	                           new ActionRunCoroutine(ctx => SerpentPull()),
+	                           new ActionAlwaysSucceed())));
+	    }
 	}
 }

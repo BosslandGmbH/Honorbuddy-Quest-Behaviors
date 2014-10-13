@@ -35,8 +35,10 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
-
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -278,181 +280,189 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
 							})
 						),
-						new Decorator(c => Query.IsInVehicle() && VehicleType == 0,
-							new Action(c =>
-							{
-								if (_vehicle == null || !_vehicle.IsValid)
-								{
-									_vehicle = VehicleList.FirstOrDefault();
-								}
-
-								if (_vehicle.Location.Distance(FirePoint) <= 5)
-								{
-                                    TreeRoot.StatusText = "Firing Vehicle - " + _vehicle.SafeName + " Using Spell Index: " + AttackButton + " Height: " + FireHeight;
-									WoWMovement.ClickToMove(TargetPoint);
-									StyxWoW.Sleep(500);
-									WoWMovement.MoveStop();
-
-									Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
-									Lua.DoString("CastPetAction({0})", AttackButton);
-									Counter++;
-									return RunStatus.Success;
-								}
-								if (_vehicle.Location.Distance(FirePoint) > 5)
-								{
-									TreeRoot.StatusText = "Moving To FireLocation - Yards Away: " + FirePoint.Distance(_vehicle.Location);
-									WoWMovement.ClickToMove(MoveToLocation);
-									_vehicle.Target();
-								}
-								return RunStatus.Running;
-							})),
-
-						new Decorator(c => Query.IsInVehicle() && VehicleType == 1,
-							new Action(c =>
-							{
-								if (_vehicle == null || !_vehicle.IsValid)
-								{
-									_vehicle = VehicleList.FirstOrDefault();
-								}
-
-								if (NpcAttackList.Count > 1)
-								{
-                                    TreeRoot.StatusText = "Moving to Assault - " + NpcAttackList[0].SafeName + " Using Spell Index: " + AttackButton;
-
-									if (_vehicle.Location.Distance(NpcAttackList[0].Location) > 20)
-									{
-										var testfly = Flightor.CanFly;
-									
-										if(testfly)
-										{
-											Flightor.MoveTo(NpcAttackList[0].Location);
-										}
-										else
-										{
-											TreeRoot.StatusText = "CAUTION - USING CTM!!!";
-											WoWMovement.ClickToMove(NpcAttackList[0].Location);
-										}
-
-										if (Me.CurrentTarget != NpcAttackList[0])
-											NpcAttackList[0].Target();
-
-										return RunStatus.Success;
-									}
-
-									Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
-									Lua.DoString("CastPetAction({0})", AttackButton);
-									Counter++;
-									StyxWoW.Sleep(1000);
-
-									return RunStatus.Success;
-								}
-								if (_vehicle.Location.Distance(StartObjectivePoint) > 5)
-								{
-									TreeRoot.StatusText = "Moving To Start Location - Yards Away: " + StartObjectivePoint.Distance(Me.Location);
-
-									var testfly = Flightor.CanFly;
-
-									//QBCLog.Info("" + testfly);
-									
-									if(testfly)
-									{
-										Flightor.MoveTo(StartObjectivePoint);
-									}
-									else
-									{
-										TreeRoot.StatusText = "CAUTION - USING CTM!!!";
-										WoWMovement.ClickToMove(StartObjectivePoint);
-									}
-
-									if (StyxWoW.Me.CurrentTarget != _vehicle)
-										_vehicle.Target();
-								}
-								return RunStatus.Running;
-							})),
-
-						new Decorator(c => Query.IsInVehicle() && VehicleType == 2,
-							new Action(c =>
-							{
-								if (_vehicle == null || !_vehicle.IsValid)
-								{
-									_vehicle = VehicleList.FirstOrDefault();
-								}
-
-								if ((Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted))
-								{
-									if (EndPoint.Distance(Me.Location) > 20)
-									{
-										var testfly = Flightor.CanFly;
-									
-										if(testfly)
-										{
-											Flightor.MoveTo(EndPoint);
-										}
-										else
-										{
-											TreeRoot.StatusText = "CAUTION - USING CTM!!!";
-											WoWMovement.ClickToMove(EndPoint);
-										}
-										
-										return RunStatus.Running;
-									}
-										
-									return RunStatus.Success;
-								}
-
-								if (PathCircle.Count == 0)
-								{
-									//Counter++;
-									ParsePaths();
-									return RunStatus.Running;
-								}
-
-								if (PathCircle.Peek().Distance(Me.Location) > 5)
-								{
-									var testfly = Flightor.CanFly;
-									
-									if(testfly)
-									{
-										Flightor.MoveTo(PathCircle.Peek());
-									}
-									else
-									{
-										TreeRoot.StatusText = "CAUTION - USING CTM!!!";
-										WoWMovement.ClickToMove(PathCircle.Peek());
-									}
-
-									return RunStatus.Running;
-								}
-								WoWMovement.MoveStop();
-								StyxWoW.Sleep(400);
-
-								if (NpcAttackList[0] != null)
-								{
-									var testfly = Flightor.CanFly;
-								
-									if(testfly)
-									{
-										Flightor.MoveTo(NpcAttackList[0].Location);
-									}
-									else
-									{
-										TreeRoot.StatusText = "CAUTION - USING CTM!!!";
-										WoWMovement.ClickToMove(NpcAttackList[0].Location);
-									}
-								}
-										
-									WoWMovement.MoveStop();
-									StyxWoW.Sleep(400);
-									Lua.DoString("CastPetAction({0})", AttackButton);
-									WoWMovement.MoveStop();
-
-									PathCircle.Dequeue();
-
-									return RunStatus.Running;
-								}))
-
+						new Decorator(c => Query.IsInVehicle() && VehicleType == 0, new ActionRunCoroutine(ctx => TypeZeroVehicleBehavior())),
+						new Decorator(c => Query.IsInVehicle() && VehicleType == 1, new ActionRunCoroutine(ctx => TypeOneVehicleBehavior())),
+						new Decorator(c => Query.IsInVehicle() && VehicleType == 2, new ActionRunCoroutine(ctx => TypeTwoVehicleBehavior()))
 					));
 		}
+
+        private async Task<bool> TypeZeroVehicleBehavior()
+        {
+            while (Me.IsAlive)
+            {
+                if (_vehicle == null || !_vehicle.IsValid)
+                {
+                    _vehicle = VehicleList.FirstOrDefault();
+                }
+
+                if (_vehicle.Location.Distance(FirePoint) <= 5)
+                {
+                    TreeRoot.StatusText = "Firing Vehicle - " + _vehicle.SafeName + " Using Spell Index: " + AttackButton + " Height: " + FireHeight;
+                    WoWMovement.ClickToMove(TargetPoint);
+                    await Coroutine.Sleep(500);
+                    WoWMovement.MoveStop();
+
+                    Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
+                    Lua.DoString("CastPetAction({0})", AttackButton);
+                    Counter++;
+                    return true;
+                }
+                TreeRoot.StatusText = "Moving To FireLocation - Yards Away: " + FirePoint.Distance(_vehicle.Location);
+                WoWMovement.ClickToMove(MoveToLocation);
+                _vehicle.Target();
+                await Coroutine.Yield();
+            }
+            return false;
+        }
+
+        private async Task<bool> TypeOneVehicleBehavior()
+        {
+            while (Me.IsAlive)
+            {
+                if (_vehicle == null || !_vehicle.IsValid)
+                {
+                    _vehicle = VehicleList.FirstOrDefault();
+                }
+
+                if (NpcAttackList.Count > 1)
+                {
+                    TreeRoot.StatusText = "Moving to Assault - " + NpcAttackList[0].SafeName + " Using Spell Index: " + AttackButton;
+                    if (_vehicle.Location.Distance(NpcAttackList[0].Location) > 20)
+                    {
+                        var testfly = Flightor.CanFly;
+
+                        if (testfly)
+                        {
+                            Flightor.MoveTo(NpcAttackList[0].Location);
+                        }
+                        else
+                        {
+                            TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+                            WoWMovement.ClickToMove(NpcAttackList[0].Location);
+                        }
+
+                        if (Me.CurrentTarget != NpcAttackList[0])
+                            NpcAttackList[0].Target();
+
+                        return true;
+                    }
+
+                    Lua.DoString("VehicleAimRequestNormAngle(0.{0})", FireHeight);
+                    Lua.DoString("CastPetAction({0})", AttackButton);
+                    Counter++;
+                    await Coroutine.Sleep(1000);
+                    return true;
+                }
+
+                if (_vehicle.Location.Distance(StartObjectivePoint) > 5)
+                {
+                    TreeRoot.StatusText = "Moving To Start Location - Yards Away: " + StartObjectivePoint.Distance(Me.Location);
+
+                    var testfly = Flightor.CanFly;
+
+                    if (testfly)
+                    {
+                        Flightor.MoveTo(StartObjectivePoint);
+                    }
+                    else
+                    {
+                        TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+                        WoWMovement.ClickToMove(StartObjectivePoint);
+                    }
+
+                    if (StyxWoW.Me.CurrentTarget != _vehicle)
+                        _vehicle.Target();
+                }
+                await Coroutine.Yield();
+            }
+            return false;
+        }
+
+        private async Task<bool> TypeTwoVehicleBehavior()
+        {
+            while (Me.IsAlive)
+            {
+                if (_vehicle == null || !_vehicle.IsValid)
+                {
+                    _vehicle = VehicleList.FirstOrDefault();
+                }
+
+                if ((Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted))
+                {
+                    if (EndPoint.Distance(Me.Location) > 20)
+                    {
+                        var testfly = Flightor.CanFly;
+
+                        if (testfly)
+                        {
+                            Flightor.MoveTo(EndPoint);
+                        }
+                        else
+                        {
+                            TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+                            WoWMovement.ClickToMove(EndPoint);
+                        }
+
+                        await Coroutine.Yield();
+                        continue;
+                    }
+
+                    return true;
+                }
+
+                if (PathCircle.Count == 0)
+                {
+                    //Counter++;
+                    ParsePaths();
+                    await Coroutine.Yield();
+                    continue;
+                }
+
+                if (PathCircle.Peek().Distance(Me.Location) > 5)
+                {
+                    var testfly = Flightor.CanFly;
+
+                    if (testfly)
+                    {
+                        Flightor.MoveTo(PathCircle.Peek());
+                    }
+                    else
+                    {
+                        TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+                        WoWMovement.ClickToMove(PathCircle.Peek());
+                    }
+                    await Coroutine.Yield();
+                    continue;
+                }
+                WoWMovement.MoveStop();
+                await Coroutine.Sleep(400);
+
+                if (NpcAttackList[0] != null)
+                {
+                    var testfly = Flightor.CanFly;
+
+                    if (testfly)
+                    {
+                        Flightor.MoveTo(NpcAttackList[0].Location);
+                    }
+                    else
+                    {
+                        TreeRoot.StatusText = "CAUTION - USING CTM!!!";
+                        WoWMovement.ClickToMove(NpcAttackList[0].Location);
+                    }
+                }
+
+                WoWMovement.MoveStop();
+                await Coroutine.Sleep(400);
+                Lua.DoString("CastPetAction({0})", AttackButton);
+                WoWMovement.MoveStop();
+
+                PathCircle.Dequeue();
+
+                await Coroutine.Yield();
+            }
+            return false;
+        }
 
 		public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
 		{

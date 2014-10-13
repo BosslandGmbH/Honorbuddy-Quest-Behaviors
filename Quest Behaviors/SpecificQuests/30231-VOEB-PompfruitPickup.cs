@@ -20,7 +20,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -38,7 +40,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 {
 	[CustomBehaviorFileName(@"SpecificQuests\30231-VOEB-PompfruitPickup")]
-	public class Blastranaar : CustomForcedBehavior
+	public class Blastranaar : QuestBehaviorBase
 	{
 		public Blastranaar(Dictionary<string, string> args)
 			: base(args)
@@ -48,8 +50,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 			try
 			{
 				QuestId = 30231;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+			    QuestObjectiveIndex = 1;
 			}
-
 			catch (Exception except)
 			{
 				// Maintenance problems occur for a number of reasons.  The primary two are...
@@ -61,32 +63,34 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 				IsAttributeProblem = true;
 			}
 		}
-		public int QuestId { get; set; }
-		private bool _isBehaviorDone;
 		public int MobIdPomfruit = 58767;
 		public int PomharvestFireworkId = 79344;
 		private Composite _root;
 
-		public override bool IsDone
-		{
-			get
-			{
-				return _isBehaviorDone;
-			}
-		}
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
 
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
-			{
-				this.UpdateGoalText(QuestId);
-			}
-		}
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
 
 		public List<WoWUnit> Pomfruit
 		{
@@ -98,58 +102,32 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 
 		public WoWItem PomharvestFirework { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == PomharvestFireworkId)); } }
 
+	    protected override Composite CreateBehavior_CombatMain()
+	    {
+            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+	    }
 
-		public Composite DoneYet
+	    public async Task<bool> MainCoroutine ()
 		{
-			get
-			{
-				return new Decorator(ret => Me.IsQuestObjectiveComplete(QuestId, 1),
-					new Action(delegate
-					{
-						TreeRoot.StatusText = "Finished!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-			}
-		}
+		    if (IsDone)
+		        return false;
 
+		    var pomFruit = Pomfruit.FirstOrDefault();
+		    if (pomFruit == null)
+		        return false;
+            
+            if (pomFruit.Distance < 25 && PomharvestFirework.Cooldown == 0)
+            {
+                PomharvestFirework.UseContainerItem();
+                await Coroutine.Sleep(200);
+            }
 
-		public Composite PomfruitFlyTo
-		{
-			get
-			{
-				return new Decorator(ret => !Me.IsQuestObjectiveComplete(QuestId, 1),
-					new Action(c =>
-					{
-						if (Pomfruit[0].Location.Distance(Me.Location) > 0)
-						{
-							if (PomharvestFirework.Cooldown == 0)
-							{
-								PomharvestFirework.UseContainerItem();
-								StyxWoW.Sleep(200);
-							}
+            TreeRoot.StatusText = "Moving to Pomfruit";
+            Flightor.MoveTo(pomFruit.Location);
+            await Coroutine.Sleep(200);
+            pomFruit.Interact();
 
-							TreeRoot.StatusText = "Moving to Pomfruit";
-							Flightor.MoveTo(Pomfruit[0].Location);
-											StyxWoW.Sleep(200);
-							Pomfruit[0].Interact();
-
-							if (Me.IsQuestObjectiveComplete(QuestId, 1))
-							{
-								TreeRoot.StatusText = "Finished!";
-								_isBehaviorDone = true;
-								return RunStatus.Success;
-							}
-						}
-					return RunStatus.Running;
-					}));
-			}
-		}
-
-		
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, PomfruitFlyTo, new ActionAlwaysSucceed())));
+            return true;
 		}
 	}
 }

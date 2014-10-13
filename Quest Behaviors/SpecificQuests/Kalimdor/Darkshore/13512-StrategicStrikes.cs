@@ -210,7 +210,7 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
 								   ret => KillUnit != null && KillUnit.Location.Distance(KillLocation) < 5 && Item != null,
 								   new Sequence(
 									   new Action(ret => KillUnit.Target()),
-									   new Action(ret => StyxWoW.SleepForLagDuration()),
+                                       new SleepForLagDuration(),
 									   new Action(ret => Item.UseContainerItem()),
 									   new ActionAlwaysSucceed())),
 

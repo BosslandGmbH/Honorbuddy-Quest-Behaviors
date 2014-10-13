@@ -23,11 +23,14 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-
+using System.Threading.Tasks;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.TreeSharp;
 using Styx.WoWInternals;
 #endregion
 
@@ -147,24 +150,32 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
 			// We had to defer this action, as the 'profile line number' is not available during the element's
 			// constructor call.
 			OnStart_HandleAttributeProblem();
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				for (int counter = 1; counter <= NumOfTimes; ++counter)
-				{
-					this.UpdateGoalText(QuestId, string.Format("Running macro {0} times", NumOfTimes));
-					TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
-
-					Lua.DoString(string.Format("RunMacroText(\"{0}\")", Macro), 0);
-					StyxWoW.Sleep(WaitTime);
-				}
-
-				_isBehaviorDone = true;
-			}
 		}
 
-		#endregion
+	    private Composite _root;
+	    protected override Composite CreateBehavior()
+	    {
+	        return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+	    }
+
+        private async Task<bool>MainCoroutine()
+        {
+            if (IsDone)
+                return false;
+
+            for (int counter = 1; counter <= NumOfTimes; ++counter)
+            {
+                this.UpdateGoalText(QuestId, string.Format("Running macro {0} times", NumOfTimes));
+                TreeRoot.StatusText = string.Format("RunMacro {0}/{1} Times", counter, NumOfTimes);
+
+                Lua.DoString(string.Format("RunMacroText(\"{0}\")", Macro), 0);
+                await Coroutine.Sleep(WaitTime);
+            }
+
+            _isBehaviorDone = true;
+            return true;
+        }
+
+	    #endregion
 	}
 }
