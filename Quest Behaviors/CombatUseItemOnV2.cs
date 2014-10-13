@@ -367,11 +367,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		// Empty, for now
-		#endregion
-
-
 		#region Overrides of CustomForcedBehavior
 		public override void OnStart()
 		{

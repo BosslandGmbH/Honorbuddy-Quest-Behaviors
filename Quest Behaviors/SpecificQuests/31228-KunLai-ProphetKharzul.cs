@@ -52,8 +52,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 		private const uint CrowStormId = 64678;
 		private readonly WoWPoint _platformPoint = new WoWPoint(5236.239, 58.70723, 33.64487);
 		private Composite _behaviorTreeHook_Combat;
-		private bool _isDisposed;
-
 		private readonly WoWPoint _prophetLocation = new WoWPoint(5246.656, 54.33482, 31.962);
 
 		public ProphetKharzulBehavior(Dictionary<string, string> args) : base(args)
@@ -82,7 +80,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 
 		public override void OnStart()
 		{
-			BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 			_behaviorTreeHook_Combat = CreateCombatBehavior();
 			TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_Combat);
 
@@ -100,11 +97,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 					new Action<WoWUnit>(prophet => BotPoi.Current = new BotPoi(prophet, PoiType.Kill))));
 		}
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		protected Composite CreateCombatBehavior()
 		{
@@ -162,51 +161,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
 								new ActionSetActivity("Moving out of Crow Storm"),
 								new Action<WoWUnit>(prophet => Navigator.PlayerMover.MoveTowards(WoWMathHelper.CalculatePointFrom(prophet.Location, crowStorm.Location, 7.5f))))))));
 		}
-
-
-		~ProphetKharzulBehavior()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_behaviorTreeHook_Combat != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
-					_behaviorTreeHook_Combat = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
-
 
 		private static float MeleeRange(WoWUnit unit)
 		{

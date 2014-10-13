@@ -41,10 +41,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
 	[CustomBehaviorFileName(@"SpecificQuests\27748-Uldum-FortuneAndGlory")]
 	public class FortuneAndGlory : CustomForcedBehavior
 	{
-		~FortuneAndGlory()
-		{
-			Dispose(false);
-		}
 
 		public FortuneAndGlory(Dictionary<string, string> args)
 			: base(args)
@@ -81,7 +77,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 
@@ -91,31 +86,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
 			get { return (StyxWoW.Me); }
 		}
 
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior());
-					Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
 
 		#region Overrides of CustomForcedBehavior
 
@@ -180,11 +150,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FortuneAndGlory
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior());
+            Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone

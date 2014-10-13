@@ -73,7 +73,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 
 		private ConfigMemento _configMemento;
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 		private List<WoWUnit> MobList
@@ -92,49 +91,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 				return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry != MobId && !u.IsDead && u.IsHostile && u.Distance < 15).OrderBy(u => u.Distance).ToList();
 			}
 		}
-
-		 ~_10838()
-		{
-			Dispose(false);
-		}
-
-
-		public void     Dispose(bool    isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void    BotEvents_OnBotStopped(EventArgs args)
-		{
-			 Dispose();
-		}
-
 
 		WoWSpell RangeSpell
 		{
@@ -160,12 +116,17 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 			}
 		}
 
-		public override void   Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+        public override void OnFinished()
+        {
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{
@@ -188,8 +149,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
 			if (!IsDone)
 			{
 				_configMemento = new ConfigMemento();
-
-				BotEvents.OnBotStopped  += BotEvents_OnBotStopped;
 
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.

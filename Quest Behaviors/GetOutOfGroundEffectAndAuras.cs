@@ -397,68 +397,9 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 		private ConfigMemento _configMemento = null;
 		private int _gossipOptionIndex;
 		private bool _isBehaviorDone = false;
-		private bool _isDisposed = false;
 		private List<WoWPoint> _safespots = null;
 		private WoWPoint _toonStartingPosition = StyxWoW.Me.Location;
 		#endregion
-
-
-		#region Destructor, Dispose, and cleanup
-		~GetOutOfGroundEffectAndAuras()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_behaviorTreeHook_Combat != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
-					_behaviorTreeHook_Combat = null;
-				}
-
-				if (_behaviorTreeHook_Death != null)
-				{
-					TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_Death);
-					_behaviorTreeHook_Death = null;
-				}
-
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
-		#endregion
-
 
 		#region Overrides of CustomForcedBehavior
 
@@ -467,13 +408,31 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 			return CreateMainBehavior();
 		}
 
+        public override void OnFinished()
+        {
+            // Clean up unmanaged resources (if any) here...
+            if (_behaviorTreeHook_Combat != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
+                _behaviorTreeHook_Combat = null;
+            }
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+            if (_behaviorTreeHook_Death != null)
+            {
+                TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_Death);
+                _behaviorTreeHook_Death = null;
+            }
 
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{
@@ -504,8 +463,6 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 			if (!IsDone)
 			{
 				_configMemento = new ConfigMemento();
-
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.

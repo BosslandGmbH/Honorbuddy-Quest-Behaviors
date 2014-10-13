@@ -123,71 +123,12 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 		private Composite _behaviorTreeHook_DeathMain = null;
 		private Composite _behaviorTreeHook_Main = null;
 		private bool _isBehaviorDone = false;
-		private bool _isDisposed;
 		public static Random _random = new Random((int)DateTime.Now.Ticks);
 		private StateType_Behavior _state_Behavior;
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-		#region Destructor, Dispose, and cleanup
-		~TheLightOfDawn()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				if (_behaviorTreeHook_CombatMain != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-					_behaviorTreeHook_CombatMain = null;
-				}
-
-				if (_behaviorTreeHook_CombatOnly != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
-					_behaviorTreeHook_CombatOnly = null;
-				}
-
-				if (_behaviorTreeHook_DeathMain != null)
-				{
-					TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-					_behaviorTreeHook_DeathMain = null;
-				}
-				
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
-		#endregion
 
 
 		private void AntiAfk()
@@ -211,11 +152,29 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            if (_behaviorTreeHook_CombatMain != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
+                _behaviorTreeHook_CombatMain = null;
+            }
+
+            if (_behaviorTreeHook_CombatOnly != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
+                _behaviorTreeHook_CombatOnly = null;
+            }
+
+            if (_behaviorTreeHook_DeathMain != null)
+            {
+                TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
+                _behaviorTreeHook_DeathMain = null;
+            }
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone
@@ -239,8 +198,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (!IsDone)
 			{
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-
 				State_Behavior = StateType_Behavior.ChattingToStartBattle;
 			
 				_behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();

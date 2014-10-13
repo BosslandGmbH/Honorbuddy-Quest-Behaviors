@@ -41,10 +41,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheTwilightFlight
 	[CustomBehaviorFileName(@"SpecificQuests\26831-Deepholm-TheTwilightFlight")]
 	public class Zoltrik : CustomForcedBehavior
 	{
-		~Zoltrik()
-		{
-			Dispose(false);
-		}
 
 		public Zoltrik(Dictionary<string, string> args)
 			: base(args)
@@ -81,7 +77,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheTwilightFlight
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 		// Private properties
@@ -106,31 +101,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheTwilightFlight
 					   (Me.Class == WoWClass.Shaman && SpellManager.HasSpell("Lava Lash")) ||
 					   (Me.Class == WoWClass.Druid && SpellManager.HasSpell("Mangle"));
 			}
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
 		}
 
 
@@ -221,11 +191,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheTwilightFlight
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone

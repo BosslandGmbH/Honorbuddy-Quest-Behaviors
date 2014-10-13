@@ -384,7 +384,6 @@
     <Compile Include="Vehicles\VehicleBehavior.cs" />
     <Compile Include="Vehicles\VehicleMover.cs" />
     <Compile Include="WaitTimer.cs" />
-    <Compile Include="WaterBehavior.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="UserDialog.resx">

@@ -675,7 +675,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		#endregion
 
-		#region Destructor, Dispose, and cleanup
+		#region Cleanup
 
 		public override void OnFinished()
 		{

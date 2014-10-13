@@ -41,11 +41,6 @@ namespace Styx.Bot.Quest_Behaviors
 	[CustomBehaviorFileName(@"ArgentTournament\AtTheEnemysGates")]
 	public class EnemysGate : CustomForcedBehavior
 	{
-		~EnemysGate()
-		{
-			Dispose(false);
-		}
-
 		public EnemysGate(Dictionary<string, string> args)
 			: base(args)
 		{
@@ -99,7 +94,6 @@ namespace Styx.Bot.Quest_Behaviors
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 
@@ -108,32 +102,6 @@ namespace Styx.Bot.Quest_Behaviors
 		{
 			get { return (StyxWoW.Me); }
 		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
 
 		#region Overrides of CustomForcedBehavior
 
@@ -510,14 +478,13 @@ namespace Styx.Bot.Quest_Behaviors
 								  new PrioritySelector(DoneYet, LanceUp, MountUp, BuffUp, HealUp,PickFight,Fight, new ActionAlwaysSucceed())));
 		}
 
-
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+	    public override void OnFinished()
+	    {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+	        base.OnFinished();
+	    }
 
 		public override bool IsDone
 		{

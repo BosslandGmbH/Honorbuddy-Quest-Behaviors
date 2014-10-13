@@ -129,42 +129,12 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 		// Private properties
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
-
-
-		~UseHearthstone()
-		{
-			Dispose(false);
-		}
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
 
 //thanks to dungonebuddy
 		private uint CheckId(uint uint_13)
@@ -205,12 +175,12 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{

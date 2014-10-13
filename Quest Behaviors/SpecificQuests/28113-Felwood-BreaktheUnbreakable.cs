@@ -54,8 +54,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
 		private Composite _root;
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
-
 
 		private WoWItem ClawThing
 		{
@@ -80,32 +78,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
 		private WoWGameObject Firewall
 		{
 			get { return ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(r => r.Entry == 206625 && r.FlagsUint == 32); }
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
 		}
 
 
@@ -151,5 +123,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
 				this.UpdateGoalText(QuestId);
 			}
 		}
+
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 	}
 }

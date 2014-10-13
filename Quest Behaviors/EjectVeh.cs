@@ -86,7 +86,6 @@ namespace Honorbuddy.Quest_Behaviors.EjectVeh
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 		// Private properties
@@ -95,38 +94,6 @@ namespace Honorbuddy.Quest_Behaviors.EjectVeh
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-		~EjectVeh()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
 
 		#region Overrides of CustomForcedBehavior
 
@@ -154,14 +121,6 @@ namespace Honorbuddy.Quest_Behaviors.EjectVeh
 					)));
 		}
 
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-
 		public override bool IsDone
 		{
 			get
@@ -186,6 +145,13 @@ namespace Honorbuddy.Quest_Behaviors.EjectVeh
 				this.UpdateGoalText(QuestId, "Ejecting from Vehicle");
 			}
 		}
+
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		#endregion
 	}

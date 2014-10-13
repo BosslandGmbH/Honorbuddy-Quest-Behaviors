@@ -117,12 +117,12 @@ namespace Honorbuddy.Quest_Behaviors.DefendObject
 							)))));
 		}
 
-
-		public override void Dispose()
-		{
-			
-		}
-
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		private bool _isDone = false;
 		public override bool IsDone

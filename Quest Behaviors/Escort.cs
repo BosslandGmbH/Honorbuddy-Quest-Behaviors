@@ -135,7 +135,6 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 		// Private variables for internal state
 		private ConfigMemento _configMemento;
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 		public Stopwatch TimeOut = new Stopwatch();
 
@@ -198,50 +197,6 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-		~Escort()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
 
 		#region Overrides of CustomForcedBehavior
 
@@ -440,13 +395,18 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 			);
 		}
 
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{
@@ -475,7 +435,6 @@ namespace Honorbuddy.Quest_Behaviors.Escort
 			if (!IsDone)
 			{
 				_configMemento = new ConfigMemento();
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.

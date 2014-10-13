@@ -222,7 +222,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			}
 
 			TreeHooks.Instance.RemoveHook("GoobyHook", gooby.Branch);
-			gooby.Dispose();
+			gooby.OnFinished();
 			gooby = null;
 		}
 

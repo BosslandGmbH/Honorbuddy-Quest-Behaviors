@@ -264,11 +264,6 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		// Empty, for now...
-		#endregion
-
-
 		#region Overrides of CustomForcedBehavior
 		// DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: Brewfest_RamRidingQuests.cs 1581 2014-06-27 02:34:30Z chinajade $"; } }

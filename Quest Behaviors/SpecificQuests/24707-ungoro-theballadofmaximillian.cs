@@ -44,10 +44,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 	[CustomBehaviorFileName(@"SpecificQuests\24707-ungoro-theballadofmaximillian")]
 	public class theballadofmaximillian : CustomForcedBehavior
 	{
-		~theballadofmaximillian()
-		{
-			Dispose(false);
-		}
 
 		public theballadofmaximillian(Dictionary<string, string> args)
 			: base(args)
@@ -86,7 +82,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 
@@ -95,35 +90,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 		{
 			get { return (StyxWoW.Me); }
 		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			//LevelBot.BehaviorFlags |= ~BehaviorFlags.Combat;
-
-			_isDisposed = true;
-		}
-
-
 
 		#region Overrides of CustomForcedBehavior
 
@@ -211,12 +177,12 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.theballadofmaximillian
 			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, GoobyPls, new ActionAlwaysSucceed())));
 		}
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{

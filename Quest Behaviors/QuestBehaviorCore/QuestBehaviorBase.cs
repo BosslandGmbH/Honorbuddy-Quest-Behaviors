@@ -233,10 +233,6 @@ namespace Honorbuddy.QuestBehaviorCore
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		#endregion
-
-
 		#region Overrides of CustomForcedBehavior
 
 		protected sealed override Composite CreateBehavior()

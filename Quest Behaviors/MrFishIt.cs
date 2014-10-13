@@ -104,68 +104,35 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		private Version _Version { get { return new Version(1, 0, 8); } }
 		public static double _PoolGUID;
 		private ConfigMemento _configMemento;
-		private bool _isDisposed, _cancelBehavior;
+		private bool _cancelBehavior;
 		private Composite _root;
-
-		~MrFishIt()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				_cancelBehavior = true;
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
-				Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				if (Fishing.IsFishing)
-					SpellManager.StopCasting();
-				
-				// Call parent Dispose() (if it exists) here ...                
-				_root = null;
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
-
 
 		#region Overrides of CustomForcedBehavior
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+            // Clean up unmanaged resources (if any) here...
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+
+            _cancelBehavior = true;
+
+            Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
+            Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+
+            if (Fishing.IsFishing)
+                SpellManager.StopCasting();
+
+            // Call parent Dispose() (if it exists) here ...                
+            _root = null;
+            base.OnFinished();
+        }
 		
 		public override bool IsDone
 		{
@@ -198,7 +165,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			{
 				_configMemento = new ConfigMemento();
 
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped; 
 				Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);
 				Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
 				LootOpen = false;

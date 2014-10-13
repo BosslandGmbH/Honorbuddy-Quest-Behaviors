@@ -42,10 +42,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CoupDeGrace
 	[CustomBehaviorFileName(@"SpecificQuests\27702-27703-TwilightHighlands-CoupDeGrace")]
 	public class CoupDeGrave : CustomForcedBehavior
 	{
-		~CoupDeGrave()
-		{
-			Dispose(false);
-		}
 
 		public CoupDeGrave(Dictionary<string, string> args)
 			: base(args)
@@ -82,7 +78,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CoupDeGrace
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 
@@ -91,39 +86,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CoupDeGrace
 		{
 			get { return (StyxWoW.Me); }
 		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-			/*var items = ObjectManager.GetObjectsOfType<WoWDynamicObject>();
-			foreach (var obj in items) 
-			{
-				QBCLog.Info("{0} Radius: {1}", obj.Name, obj.Radius);
-			}*/
-
-
-			_isDisposed = true;
-		}
-
-
 
 		#region Overrides of CustomForcedBehavior
 
@@ -225,11 +187,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CoupDeGrace
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone

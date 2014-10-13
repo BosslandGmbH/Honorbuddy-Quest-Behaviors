@@ -40,10 +40,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 	[CustomBehaviorFileName(@"SpecificQuests\28591-HordeTwilightHighlands-OffTheWall")]
 	public class OffTheWall : CustomForcedBehavior
 	{
-		~OffTheWall()
-		{
-			Dispose(false);
-		}
 
 		public OffTheWall(Dictionary<string, string> args)
 			: base(args)
@@ -80,7 +76,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 
@@ -88,31 +83,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 		private LocalPlayer Me
 		{
 			get { return (StyxWoW.Me); }
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
 		}
 
 
@@ -247,11 +217,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone

@@ -235,79 +235,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 		private Composite _behaviorTreeHook_Main = null;
 		private ConfigMemento _configMemento = null;
 		private bool _isBehaviorDone = false;
-		private bool _isDisposed = false;
 		private StateType_MainBehavior _state_MainBehavior;
-		#endregion
-
-
-		#region Destructor, Dispose, and cleanup
-		~GaspingForBreath()
-		{
-			Dispose(false);
-		}
-
-
-		// 24Feb2013-08:10UTC chinajade
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-
-				// NB: we don't unhook _behaviorTreeHook_Main
-				// This was installed when HB created the behavior, and its up to HB to unhook it
-
-				if (_behaviorTreeHook_CombatMain != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-					_behaviorTreeHook_CombatMain = null;
-				}
-
-				if (_behaviorTreeHook_CombatOnly != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
-					_behaviorTreeHook_CombatOnly = null;
-				}
-
-				if (_behaviorTreeHook_DeathMain != null)
-				{
-					TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-					_behaviorTreeHook_DeathMain = null;
-				}
-
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BlackspotManager.RemoveBlackspots(Blackspots);
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
 		#endregion
 
 
@@ -319,11 +247,41 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+
+            // NB: we don't unhook _behaviorTreeHook_Main
+            // This was installed when HB created the behavior, and its up to HB to unhook it
+
+            if (_behaviorTreeHook_CombatMain != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
+                _behaviorTreeHook_CombatMain = null;
+            }
+
+            if (_behaviorTreeHook_CombatOnly != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Only", _behaviorTreeHook_CombatOnly);
+                _behaviorTreeHook_CombatOnly = null;
+            }
+
+            if (_behaviorTreeHook_DeathMain != null)
+            {
+                TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
+                _behaviorTreeHook_DeathMain = null;
+            }
+
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+
+            BlackspotManager.RemoveBlackspots(Blackspots);
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone
@@ -356,8 +314,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 			if (!IsDone)
 			{
 				_configMemento = new ConfigMemento();
-
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.

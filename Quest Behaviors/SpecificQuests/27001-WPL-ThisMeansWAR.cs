@@ -51,10 +51,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 			QBCLog.BehaviorLoggingContext = this;
 		}
 
-		~ThisMeansWAR()
-		{
-			Dispose(false);
-		}
 
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 		readonly WoWPoint _lumberMillLocation = new WoWPoint(2427.133, -1649.115, 104.0841);
@@ -73,13 +69,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 				var quest = Me.QuestLog.GetQuestById(27001);
 
 				var done = (quest != null && quest.IsCompleted);
-
-				if (done)
-				{
-					BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-					Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-				}
-
 				return done;
 			}
 		}
@@ -88,37 +77,23 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 		{
 			if (!IsDone)
 			{
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 				Targeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
 
 				this.UpdateGoalText(0);
 			}
 		}
 
+        public override void OnFinished()
+        {
+            Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
+
 		private static void Instance_RemoveTargetsFilter(List<WoWObject> units)
 		{
 			units.Clear();
-		}
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
-
-		private bool _isDisposed;
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-				base.Dispose();
-			}
-
-			_isDisposed = true;
 		}
 
 		private Composite _root;

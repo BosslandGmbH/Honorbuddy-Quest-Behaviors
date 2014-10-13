@@ -250,7 +250,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 		private ConfigMemento _configMemento;
 		private bool _isBehaviorInProgress;
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private bool _isInteracting;
 		private bool _isMonitoringEnabled;
 		private Queue<string> _messagesPending = new Queue<string>();
@@ -270,44 +269,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Rev$"); } }
-
-
-		~ButtonPressOnChat()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
 
 		// The same phrase must no be used for multiple roles...
 		// We enforce the constraint here.
@@ -585,11 +546,17 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone

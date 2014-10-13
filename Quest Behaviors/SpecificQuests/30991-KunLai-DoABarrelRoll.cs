@@ -199,63 +199,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
 		private BattlefieldContext _combatContext = null;
 		private ConfigMemento _configMemento = null;
 		private bool _isBehaviorDone = false;
-		private bool _isDisposed = false;
-		#endregion
-
-
-		#region Destructor, Dispose, and cleanup
-		~DoABarrelRoll()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-
-				// NB: we don't unhook _behaviorTreeHook_Main
-				// This was installed when HB created the behavior, and its up to HB to unhook it
-
-				if (_behaviorTreeHook_Combat != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
-					_behaviorTreeHook_Combat = null;
-				}
-
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
 		#endregion
 
 
@@ -267,11 +210,27 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            // NB: we don't unhook _behaviorTreeHook_Main
+            // This was installed when HB created the behavior, and its up to HB to unhook it
+
+            if (_behaviorTreeHook_Combat != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_Combat);
+                _behaviorTreeHook_Combat = null;
+            }
+
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone
@@ -303,9 +262,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (!IsDone)
 			{
-				_configMemento = new ConfigMemento();
-				
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+				_configMemento = new ConfigMemento();			
 
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.

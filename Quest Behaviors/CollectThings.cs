@@ -224,7 +224,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 		private SwimBreathBehavior _behavior_SwimBreath;
 		private UnderwaterLootingBehavior _behavior_UnderwaterLooting;
 		private bool _isBehaviorDone = false;
-		private bool _isDisposed;
 		private PluginContainer _pluginAntiDrown;
 		private bool _pluginAntiDrownWasEnabled;
 
@@ -250,42 +249,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-
-		~CollectThings()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_pluginAntiDrown != null)
-				{
-					_pluginAntiDrown.Enabled = _pluginAntiDrownWasEnabled;
-					_pluginAntiDrown = null;
-				}
-
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
 
 
 		// If player is close to a target that is interesting to us, ignore the target...
@@ -532,13 +495,17 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 			);
 		}
 
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+			if (_pluginAntiDrown != null)
+			{
+				_pluginAntiDrown.Enabled = _pluginAntiDrownWasEnabled;
+				_pluginAntiDrown = null;
+			}
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{

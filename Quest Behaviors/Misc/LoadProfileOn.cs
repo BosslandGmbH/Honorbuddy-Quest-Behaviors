@@ -112,8 +112,6 @@ namespace Styx.Bot.Quest_Behaviors
 
 		// Private variables for internal state
 		private static bool _isBehaviorDone;
-		private bool _Init;
-		private bool _IsDisposed;
 		private Composite _Root;
 		public static LocalPlayer Me { get { return StyxWoW.Me; } }
 		// Disabled until I can find out a safer way to to it.
@@ -137,50 +135,8 @@ namespace Styx.Bot.Quest_Behaviors
 		public WoWPoint MyHotSpot = WoWPoint.Empty;
 		#endregion
 
-		#region Dispose
-		~LoadProfileOn() { Dispose(false); }
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_IsDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose) { }  // empty, for now
-
-				// Clean up unmanaged resources (if any) here...
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				// Disabled until I can find out a safer way to to it.
-				// Chat.Addon -= ChatAddon;
-				_isBehaviorDone = false;
-				_Init = false;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-			_IsDisposed = true;
-		}
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		public void BotEvents_OnBotStopped(EventArgs args) { Dispose(); }
-		#endregion
-
 		#region Methods
-		#region Init
-		private void Init()
-		{
-			BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-			QBCLog.DeveloperInfo("Init done.");
-			_Init = true;
-		}
-		#endregion
+
 
 		#region AreWeDone
 		// Disabled until I can find out a safer way to to it.
@@ -302,12 +258,6 @@ namespace Styx.Bot.Quest_Behaviors
 		{
 			return _Root ?? (_Root =
 				new PrioritySelector(context => !_isBehaviorDone,
-			#region Initialize
-				// Initialize the QuestBehavior.
-					new Decorator(context => !_Init,
-						new Action(context => Init())
-					),
-			#endregion
 
 			#region MyHotSpot
 				// Store our current location.
@@ -481,6 +431,14 @@ namespace Styx.Bot.Quest_Behaviors
 				this.UpdateGoalText(0, "Loading " + (ProfileName ?? "no profile"));
 			}
 		}
+
+        public override void OnFinished()
+        {
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
+
 		#endregion
 	}
 

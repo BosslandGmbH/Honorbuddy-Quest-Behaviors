@@ -44,7 +44,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
 	public class OnTheRightTrack : CustomForcedBehavior
 	{
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 		public OnTheRightTrack(Dictionary<string, string> args) : base(args)
@@ -86,37 +85,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
 		private LocalPlayer Me
 		{
 			get { return (StyxWoW.Me); }
-		}
-
-		~OnTheRightTrack()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					CharacterSettings.Instance.UseMount = _mount;
-					TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
 		}
 
 		#region Overrides of CustomForcedBehavior
@@ -207,11 +175,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScoutingReportOnTheRightTrac
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            CharacterSettings.Instance.UseMount = _mount;
+            TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override void OnStart()

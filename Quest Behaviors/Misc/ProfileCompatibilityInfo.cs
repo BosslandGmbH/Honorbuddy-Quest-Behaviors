@@ -167,11 +167,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		// Empty, for now...
-		#endregion
-
-
 		#region Overrides of CustomForcedBehavior
 
 		// CreateBehavior supplied by QuestBehaviorBase.

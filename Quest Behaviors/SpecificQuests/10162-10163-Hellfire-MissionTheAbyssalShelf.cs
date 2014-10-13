@@ -106,10 +106,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		#endregion
-
-
 		#region Overrides of CustomForcedBehavior
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }

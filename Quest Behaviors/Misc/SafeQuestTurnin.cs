@@ -90,50 +90,9 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
 		// Private properties
 		private ForcedQuestTurnIn QuestTurnIn { get; set; }
 
-		private bool _isDisposed;
-
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-		~SafeQuestTurnin()
-		{
-			Dispose(false);
-		}
-
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					// empty, for now
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-				if (QuestTurnIn != null)
-				{
-					QuestTurnIn.Dispose();
-					QuestTurnIn = null;
-				}
-
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
 
 		private static void Instance_RemoveTargetsFilter(List<WoWObject> units)
 		{
@@ -145,13 +104,18 @@ namespace Honorbuddy.Quest_Behaviors.SafeQuestTurnin
 
 		protected override Composite CreateBehavior() { return QuestTurnIn.Branch; }
 
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
+        public override void OnFinished()
+        {
+            Targeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+            if (QuestTurnIn != null)
+            {
+                QuestTurnIn.OnFinished();
+                QuestTurnIn = null;
+            }
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		public override bool IsDone
 		{

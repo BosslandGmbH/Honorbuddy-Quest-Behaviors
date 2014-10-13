@@ -88,7 +88,6 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion

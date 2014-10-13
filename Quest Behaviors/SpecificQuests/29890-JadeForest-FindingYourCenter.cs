@@ -46,7 +46,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
 
 		private Composite _root;
 		private bool _useMount;
-		private bool _isDisposed;
 
 		public FindingYourCenter(Dictionary<string, string> args) : base(args)
 		{
@@ -67,11 +66,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
 				QBCLog.Exception(except);
 				IsAttributeProblem = true;
 			}
-		}
-
-		~FindingYourCenter()
-		{
-			Dispose(false);
 		}
 
 		public int QuestId { get; set; }
@@ -160,36 +154,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FindingYourCenter
 			}
 		}
 
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
-					CharacterSettings.Instance.UseMount = _useMount;
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            CharacterSettings.Instance.UseMount = _useMount;
+            TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		public void UsePetAbility(string action)
 		{

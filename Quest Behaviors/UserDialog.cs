@@ -563,54 +563,10 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
 		private AsyncCompletionToken _completionToken;
 		private ConfigMemento _configMemento;
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-		~UserDialog()
-		{
-			Dispose(false);
-		}
-
-
-		public /*virtual*/ void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				if (_completionToken != null)
-				{
-					_completionToken.Dispose();
-					_completionToken = null;
-				}
-
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
 
 
 		private void UserDialogExitProcessing(PopdownReason popdownReason)
@@ -640,13 +596,6 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
 
 			if (popdownReason.IsBotStop())
 				{ TreeRoot.Stop(); }
-		}
-
-
-		private void BotEvents_OnBotStopped(EventArgs args)
-		{
-			UserDialogExitProcessing(PopdownReason.UNKNOWN);
-			Dispose();
 		}
 
 
@@ -694,11 +643,24 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
 		}
 
 
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
+        public override void OnFinished()
+        {
+            if (_completionToken != null)
+            {
+                _completionToken.Dispose();
+                _completionToken = null;
+            }
+
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+            UserDialogExitProcessing(PopdownReason.UNKNOWN);
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 
 		public override bool IsDone
@@ -723,8 +685,6 @@ namespace Honorbuddy.Quest_Behaviors.UserDialog
 			if (!IsDone)
 			{
 				_configMemento = new ConfigMemento();
-
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
 				// We don't want the bot running around harvesting while the user
 				// is manually controlling it trying to get the task completed.

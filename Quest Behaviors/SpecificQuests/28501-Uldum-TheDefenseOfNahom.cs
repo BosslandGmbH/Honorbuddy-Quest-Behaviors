@@ -42,7 +42,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
 	public class Defend : CustomForcedBehavior // The Defense of Nahom - Uldum
 	{
 		private bool _isBehaviorDone;
-		private bool _isDisposed;
 		private Composite _root;
 
 		public Defend(Dictionary<string, string> args)
@@ -242,40 +241,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
 
 		#region Cleanup
 
-		~Defend()
-		{
-			Dispose(false);
-		}
-
-		public override void Dispose()
-		{
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
-
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
-				}
-
-				// Clean up unmanaged resources (if any) here...
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_CombatMain());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
 		#endregion
 	}

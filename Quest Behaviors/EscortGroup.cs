@@ -445,7 +445,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		private LocalBlacklist _gossipBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 		private int _gossipOptionIndex;
 		private bool _isBehaviorDone = false;
-		private bool _isDisposed = false;
 		private MovementState _movementStateForCombat = new MovementState();
 		private MovementState _movementStateForNonCombat = new MovementState();
 		public static Random _random = new Random((int)DateTime.Now.Ticks);
@@ -454,69 +453,42 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		~EscortGroup()
-		{
-			Dispose(false);
-		}
+		#region Cleanup
 
+        public override void OnFinished()
+        {
+            // Clean up unmanaged resources (if any) here...
+            if (_behaviorTreeHook_CombatMain != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
+                _behaviorTreeHook_CombatMain = null;
+            }
 
-		public void Dispose(bool isExplicitlyInitiatedDispose)
-		{
-			if (!_isDisposed)
-			{
-				// NOTE: we should call any Dispose() method for any managed or unmanaged
-				// resource, if that resource provides a Dispose() method.
+            if (_behaviorTreeHook_CombatOnly != null)
+            {
+                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatOnly);
+                _behaviorTreeHook_CombatOnly = null;
+            }
 
-				// Clean up managed resources, if explicit disposal...
-				if (isExplicitlyInitiatedDispose)
-				{
-				}
+            if (_behaviorTreeHook_DeathMain != null)
+            {
+                TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
+                _behaviorTreeHook_DeathMain = null;
+            }
 
-				// Clean up unmanaged resources (if any) here...
-				if (_behaviorTreeHook_CombatMain != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-					_behaviorTreeHook_CombatMain = null;
-				}
+            // NB: we don't unhook _behaviorTreeHook_Main
+            // This was installed when HB created the behavior, and its up to HB to unhook it
 
-				if (_behaviorTreeHook_CombatOnly != null)
-				{
-					TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatOnly);
-					_behaviorTreeHook_CombatOnly = null;
-				}
+            if (_configMemento != null)
+            {
+                _configMemento.Dispose();
+                _configMemento = null;
+            }
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
-				if (_behaviorTreeHook_DeathMain != null)
-				{
-					TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-					_behaviorTreeHook_DeathMain = null;
-				}
-
-				// NB: we don't unhook _behaviorTreeHook_Main
-				// This was installed when HB created the behavior, and its up to HB to unhook it
-
-				if (_configMemento != null)
-				{
-					_configMemento.Dispose();
-					_configMemento = null;
-				}
-
-				BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-				TreeRoot.GoalText = string.Empty;
-				TreeRoot.StatusText = string.Empty;
-
-				// Call parent Dispose() (if it exists) here ...
-				base.Dispose();
-			}
-
-			_isDisposed = true;
-		}
-
-
-		public void BotEvents_OnBotStopped(EventArgs args)
-		{
-			Dispose();
-		}
 		#endregion
 
 
@@ -526,16 +498,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		{
 			return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
 		}
-
-
-		public override void Dispose()
-		{
-			Targeting.Instance.IncludeTargetsFilter -= Instance_IncludeTargetsFilter;
-
-			Dispose(true);
-			GC.SuppressFinalize(this);
-		}
-
 
 		public override bool IsDone
 		{
@@ -561,7 +523,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 			if (!IsDone)
 			{
 				_configMemento = new ConfigMemento();
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.

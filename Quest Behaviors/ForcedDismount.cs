@@ -96,10 +96,6 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
 		#endregion
 
 
-		#region Destructor, Dispose, and cleanup
-		#endregion
-
-
 		#region Overrides of CustomForcedBehavior
 		// CreateBehavior supplied by QuestBehaviorBase.
 		// Instead, provide CreateMainBehavior definition.
