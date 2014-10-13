@@ -16,24 +16,28 @@
 // once the criteria for performing a 'use item' or 'cast spell' activity have been established.
 //
 // Basic Attributes:
-//      ItemId  [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
-//          Identifies the item to be used when the trigger condition defined in USEWHEN
-//          has been met.
-//          The ItemId attribute is mutually exclusive with SpellId attribute.
-//      SpellId [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
-//          Identifies the spell to be cast when the trigger condition defined in USEWHEN
-//          has been met.
-//          The SpellId attribute is mutually exclusive with ItemId and ActivityName attributes.
 //      ActivityName [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
 //          Identifies a custom activity that will be executed when the trigger condition defined in USEWHEN
 //          has been met.
 //			A custom activity allows the profile writer to define what happens when activity is executed.
-//          The ActivityName attribute is mutually exclusive with ItemId and SpellId attributes.
-//      UseWhen [REQUIRED if Command is"Update"]
+//          "ActivityName", "ItemId", and "SpellId" attributes are mutually exclusive.
+//      ItemId  [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
+//          Identifies the item to be used when the trigger condition defined in USEWHEN
+//          has been met.
+//          "ActivityName", "ItemId", and "SpellId" attributes are mutually exclusive.
+//      SpellId [at least one is REQUIRED if Command is "Update": ItemId, SpellId, ActivityName]
+//          Identifies the spell to be cast when the trigger condition defined in USEWHEN
+//          has been met.
+//          "ActivityName", "ItemId", and "SpellId" attributes are mutually exclusive.
+//      UseAtInterval [UseAtInterval OR UseWhen REQUIRED if Command is "Update"]
+//          Defines an interval (in milliseconds) at which the Activity should be conducted.
+//          "UseAtInterval" and "UseWhen" attributes are mutually exclusive.
+//      UseWhen [UseAtInterval OR UseWhen REQUIRED if Command is "Update"]
 //          Defines a predicate that must return a boolean value.  When the predicate
 //          evaluates to 'true', the item is used, or spell is cast.  Once the activity
 //          succeeds, the predicate must evaluate to 'false'; otherwise, the behavior will
 //          flag an error with the predicate.
+//          "UseAtInterval" and "UseWhen" attributes are mutually exclusive.
 //
 // Tunables:
 //      AllowUseDuringCombat [optional; Default: false]
@@ -47,9 +51,13 @@
 //      Command [optional; ONE OF: Disable, Enable, Remove, ShowActivities, Update; Default: Update]
 //          Determines the disposition of the activity that evaluates the item use, spell cast or a custom activity
 //          Please see the examples below, and the purpose will become clear.
+//      StopMovingToConductActivity [optional; Default: false]
+//          Many items and spells do not require the toon to be motionless when performing the actions;
+//          however, some do.
 //
 // THINGS TO KNOW:
-// * We refer to the item id (or spell cast) and its trigger condition as an DoWhen 'activity'.
+// * We refer to the item id (or spell cast, or custom activity) and its trigger condition
+//   as an DoWhen 'activity'.
 //
 // * Once a UseWhen predicate evaluates to 'true', after the associated action is taken
 //   (e.g., item is used, or spell is cast), the predicate must immediately return to
@@ -70,11 +78,9 @@
 //   slate with which to start working without concern for DoWhen remnants left by
 //   a previous profile.
 //
-// * There is only one activity entry for any given ItemId or SpellId.
+// * There is only one activity entry for any given ActivityName, ItemId, or SpellId.
 //   If you think you are creating more than one activity for the same Id, you are actually replacing
 //   the activity already present, instead.
-//   However, ItemId and SpellId activities are distinct.  (I.e., you can have an ItemId="123"
-//   and SpellId="123" and these will be kept separately.)
 //
 #endregion
 
@@ -139,6 +145,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -155,6 +162,8 @@ using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
+using Styx.WoWInternals.WoWObjects;
+
 #endregion
 
 
@@ -187,22 +196,25 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				Command = GetAttributeAsNullable<CommandType>("Command", false, null, null) ?? CommandType.Update;
 
 				// Primary attributes...
-				ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
-				SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
-				ActivityName = GetAttributeAs<string>("ActivityName", false, ConstrainAs.StringNonEmpty, null) ?? "";
+				ActivityKey_ItemId = GetAttributeAsNullable<int>("ItemId", false, ConstrainAs.ItemId, null) ?? 0;
+				ActivityKey_SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
+				ActivityKey_Name = GetAttributeAs<string>("ActivityName", false, ConstrainAs.StringNonEmpty, null) ?? "";
+
+                var useAtInterval = GetAttributeAsNullable<int>("UseAtInterval", false, ConstrainAs.Milliseconds, null) ?? 0;
+                UseAtInterval = TimeSpan.FromMilliseconds(useAtInterval);
 
 				// We test compile the "UseWhen" expression to look for problems.
 				// If there is a problem, an exception will be thrown (and handled here).
-				Func<bool> isUseWhenRequired = () => { return Command == CommandType.Update; };
-				UseWhenExpression = GetAttributeAs<string>("UseWhen", isUseWhenRequired(), ConstrainAs.StringNonEmpty, null) ?? "false";
+				UseWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
 				if (CompileAttributePredicateExpression("UseWhen", UseWhenExpression) == null)
-				{ IsAttributeProblem = true; }
+				    IsAttributeProblem = true;
 
 				// Tunables...
 				AllowUseDuringCombat = GetAttributeAsNullable<bool>("AllowUseDuringCombat", false, null, null) ?? false;
 				AllowUseInVehicle = GetAttributeAsNullable<bool>("AllowUseInVehicle", false, null, null) ?? false;
 				AllowUseWhileFlying = GetAttributeAsNullable<bool>("AllowUseWhileFlying", false, null, null) ?? false;
 				AllowUseWhileMounted = GetAttributeAsNullable<bool>("AllowUseWhileMounted", false, null, null) ?? false;
+                StopMovingToConductActivity = GetAttributeAsNullable<bool>("StopMovingToConductActivity", false, null, null) ?? false;
 
 				CfbContextForHook = this;
 			}
@@ -221,14 +233,16 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 
 		// Variables for Attributes provided by caller
-		private bool AllowUseDuringCombat { get; set; }
+        private int ActivityKey_ItemId { get; set; }
+        private string ActivityKey_Name { get; set; }
+        private int ActivityKey_SpellId { get; set; }
+        private bool AllowUseDuringCombat { get; set; }
 		private bool AllowUseInVehicle { get; set; }
 		private bool AllowUseWhileFlying { get; set; }
 		private bool AllowUseWhileMounted { get; set; }
 		private CommandType Command { get; set; }
-		private int ItemId { get; set; }
-		private int SpellId { get; set; }
-		private string ActivityName { get; set; }
+        private bool StopMovingToConductActivity { get; set; }
+        private TimeSpan UseAtInterval { get; set; }
 		private string UseWhenExpression { get; set; }
 
 		private static CustomForcedBehavior CfbContextForHook { get; set; }
@@ -241,35 +255,47 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
 		{
-			var primaryAttributeUsage = (Args.ContainsKey("ItemId") ? 1 : 0)
+			var activityKeyUsage = (Args.ContainsKey("ItemId") ? 1 : 0)
 				+ (Args.ContainsKey("SpellId") ? 1 : 0)
 				+ (Args.ContainsKey("ActivityName") ? 1 : 0);
 
-			// If Id is required, then ItemId or SpellId must have been specified...
+			// Activity Identifier coherency...
 			var isIdRequired = (Command != CommandType.ShowActivities);
 			UsageCheck_SemanticCoherency(xElement,
-				isIdRequired && primaryAttributeUsage == 0,
-				context => "ItemId, SpellId or ActivityName attribute is required.");
+				isIdRequired && (activityKeyUsage == 0),
+				context => "ItemId, SpellId, or ActivityName attribute is required.");
+
+            UsageCheck_SemanticCoherency(xElement,
+				isIdRequired && (activityKeyUsage > 1),
+				context => "ItemId, SpellId, and ActivityName attributes are mutually exclusive.");
 
 			// If Id is not allowed, then neither ItemId, SpellId nor ActivityName can be specified...
 			var isIdAllowed = (Command != CommandType.ShowActivities);
 			UsageCheck_SemanticCoherency(xElement,
-				!isIdAllowed && (Args.ContainsKey("ItemId") || Args.ContainsKey("SpellId") || Args.ContainsKey("ActivityName")),
-				context => "ItemId, SpellId and ActivityName attributes are not allowed when Command is CommandType.ShowActivities.");
+                !isIdAllowed && (activityKeyUsage > 0),
+				context => "ItemId, SpellId, and ActivityName attributes are not allowed when Command is \"ShowActivities\".");
 
 
-			// ItemId, SpellId and ActivityName attributes are mutually exclusive...
-			UsageCheck_SemanticCoherency(xElement,
-				primaryAttributeUsage > 1,
-				context => "ItemId, SpellId and ActivityName attributes are mutually exclusive.");
+            // Predicate coherency...
+            var predicateUsage = (Args.ContainsKey("UseAtInterval") ? 1 : 0)
+                                 + (Args.ContainsKey("UseWhen") ? 1 : 0);
 
-			// Is UseWhen allowed?
-			var isUseWhenAllowed = (Command == CommandType.Update);
-			UsageCheck_SemanticCoherency(xElement,
-				Args.ContainsKey("UseWhen") && !isUseWhenAllowed,
-				context => "UseWhen attribute is only allowed when Command is \"Update\".");
+            var isPredicateRequired = (Command == CommandType.Update);
+            UsageCheck_SemanticCoherency(xElement,
+                isPredicateRequired && (predicateUsage == 0),
+                context => "UseAtInterval or UseWhen attribute is required.");
 
-			// Is Allow* allowed?
+            UsageCheck_SemanticCoherency(xElement,
+                isPredicateRequired && (predicateUsage > 1),
+                context => "UseAtInterval or UseWhen attributes are mutually exclusive.");
+
+		    var isPredicateAllowed = (Command == CommandType.Update);
+            UsageCheck_SemanticCoherency(xElement,
+                !isPredicateAllowed && (predicateUsage > 0),
+                context => string.Format("UseAtInterval and UseWhen attributes are only allowed if Command is \"Update\"."));
+
+
+			// Tunable coherency...
 			var isAllowUseAllowed = (Command == CommandType.Update);
 			UsageCheck_SemanticCoherency(xElement,
 				Args.ContainsKey("AllowUseDuringCombat") && !isAllowUseAllowed,
@@ -286,14 +312,18 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			UsageCheck_SemanticCoherency(xElement,
 				Args.ContainsKey("AllowUseWhileMounted") && !isAllowUseAllowed,
 				context => "AllowUseWhileMounted attribute is only allowed when Command is \"Update\".");
+
+            UsageCheck_SemanticCoherency(xElement,
+				Args.ContainsKey("StopMovingToConductActivity") && !isAllowUseAllowed,
+				context => "StopMovingToConductActivity attribute is only allowed when Command is \"Update\".");
 		}
 		#endregion
 
 
 		#region Private and Convenience variables
-		private readonly TimeSpan _activityThrottleDelay = TimeSpan.FromMilliseconds(1000);
+		private readonly TimeSpan _activityThrottleDelay = TimeSpan.FromMilliseconds(750);
 		private static Composite _persistedDoWhenHookBehavior = null;
-		private static readonly List<DoWhenActivity> PersistedActivities = new List<DoWhenActivity>();
+		private static readonly List<IDoWhenActivity> PersistedActivities = new List<IDoWhenActivity>();
 		private static WaitTimer _persistedActivityThrottle = null;
 		private static bool _persistedIsOnBotStopHooked = false;
 		private static bool _persistedIsOnNewProfileLoadedHooked = false;
@@ -314,16 +344,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		// IsDone provided by QuestBehaviorBase.
 		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
-		public override void OnFinished()
-		{
-			// Defend against being called multiple times (just in case)...
-			if (!IsOnFinishedRun)
-			{
-				// QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
-				base.OnFinished();
-			}
-		}
-
+        // OnFinished provided by QuestBehaviorBase.
 
 		public override void OnStart()
 		{
@@ -373,7 +394,20 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 						break;
 
 					case CommandType.Update:
-						ActionUpdate(UseWhenExpression, AllowUseWhileMounted, AllowUseWhileFlying, AllowUseDuringCombat, AllowUseInVehicle);
+				        IUseWhenPredicate useWhenPredicate =
+                            (UseAtInterval > TimeSpan.Zero)
+                            ? (IUseWhenPredicate)new UseWhenPredicate_TimeElapse(UseAtInterval,
+                                                                                AllowUseDuringCombat,
+                                                                                AllowUseInVehicle,
+                                                                                AllowUseWhileFlying,
+                                                                                AllowUseWhileMounted)
+                            : (IUseWhenPredicate)new UseWhenPredicate_FuncEval(UseWhenExpression,
+                                                                                AllowUseDuringCombat,
+                                                                                AllowUseInVehicle,
+                                                                                AllowUseWhileFlying,
+                                                                                AllowUseWhileMounted);
+
+						ActionUpdate(useWhenPredicate, StopMovingToConductActivity);
 						break;
 
 					default:
@@ -392,10 +426,10 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				// QuestBehaviorBase-provide facilities (e.g., override the methods), then the hooks would be
 				// cleaned up (e.g., removed) when this behavior exits.
 				if (PersistedActivities.Count > 0)
-				{ DoWhenHookInstall(); }
+				    DoWhenHookInstall();
 
 				if (PersistedActivities.Count <= 0)
-				{ DoWhenHookRemove(); }
+				    DoWhenHookRemove();
 
 				BehaviorDone();
 			}
@@ -414,15 +448,11 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		{
 			// Ignore, while in non-actionable condition...
 			if (Me.IsDead)
-			{
-				return false;
-			}
+			    return false;
 
 			// Ignore if eating or drinking...
 			if (IsDrinkingOrEating())
-			{
-				return false;
-			}
+			    return false;
 
 			// If throttle is not running, get it started...
 			if (_persistedActivityThrottle == null)
@@ -433,9 +463,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 			// If throttling in progress, return immediately...
 			if (!_persistedActivityThrottle.IsFinished)
-			{
-				return false;
-			}
+			    return false;
 
 			// Process each of the activites in play...
 			var oldLoggingContext = QBCLog.BehaviorLoggingContext;
@@ -472,21 +500,21 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		#region Helpers
 		private void ActionSetEnableState(bool wantEnabled)
 		{
-			var wantedActivityName = FindActivityName();
-			var activity = FindActivity(wantedActivityName);
+			var activityIdentifier = FindActivityIdentifier();
+			var activity = FindActivity(activityIdentifier);
 
 			// If activity does not exist, that's a problem...
 			if (activity == null)
 			{
-				QBCLog.Error("DoWhenActivity '{0}' is not in use.", wantedActivityName);
+				QBCLog.Error("DoWhenActivity '{0}' is not in use.", activityIdentifier);
 				return;
 			}
 
 			// Update activity's enabled status...
-			var previousState = activity.IsEnabled;
-			activity.IsEnabled = wantEnabled;
+			var previousState = activity.UseWhenPredicate.IsEnabled;
+			activity.UseWhenPredicate.IsEnabled = wantEnabled;
 			QBCLog.DeveloperInfo("DoWhenActivity '{0}' {1} (was {2}).",
-				activity.Name,
+				activity.ActivityIdentifier,
 				(wantEnabled ? "enabled" : "disabled"),
 				(previousState ? "enabled" : "disabled"));
 		}
@@ -494,19 +522,19 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 		private void ActionRemove()
 		{
-			var wantedActivityName = FindActivityName();
-			var activity = FindActivity(wantedActivityName);
+			var activityIdentifier = FindActivityIdentifier();
+			var activity = FindActivity(activityIdentifier);
 
 			// If activity does not exist, that's a problem...
 			if (activity == null)
 			{
-				QBCLog.Error("DoWhenActivity '{0}' is not in use.", wantedActivityName);
+				QBCLog.Error("DoWhenActivity '{0}' is not in use.", activityIdentifier);
 				return;
 			}
 
 			// Remove the activity...
 			PersistedActivities.Remove(activity);
-			QBCLog.DeveloperInfo("DoWhenActivity '{0}' removed.", activity.Name);
+			QBCLog.DeveloperInfo("DoWhenActivity '{0}' removed.", activity.ActivityIdentifier);
 		}
 
 
@@ -515,73 +543,45 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			var builder = new StringBuilder();
 
 			if (PersistedActivities.Count <= 0)
-			{ builder.AppendFormat("No DoWhenActivities in use."); }
+			    builder.AppendFormat("No DoWhenActivities in use.");
 
 			else
 			{
 				builder.AppendFormat("DoWhenActivities in use (count:{0}):", PersistedActivities.Count);
 
-				foreach (var activity in PersistedActivities.OrderBy(e => e.Name))
-				{
-					builder.Append(activity.BuildDebugInfo("    "));
-				}
+				foreach (var activity in PersistedActivities.OrderBy(e => e.ActivityIdentifier))
+				    builder.Append(activity.BuildDebugInfo("    "));
 			}
 
 			QBCLog.Info(builder.ToString());
 		}
 
 
-		private void ActionUpdate(string useWhenExpression,
-								bool allowUseWhileMounted,
-								bool allowUseWhileFlying,
-								bool allowUseDuringCombat,
-								bool allowUseInVehicle)
+		private void ActionUpdate(IUseWhenPredicate useWhenPredicate, bool isMovementStopRequired)
 		{
-			var activityName = FindActivityName();
-			var existingActivity = FindActivity(activityName);
+			var activityIdentifier = FindActivityIdentifier();
+			var existingActivity = FindActivity(activityIdentifier);
 
 			// If activity already exists, remove it...
 			if (existingActivity != null)
-			{ PersistedActivities.Remove(existingActivity); }
+			    PersistedActivities.Remove(existingActivity);
 
 			// Install new activity...
-			DoWhenActivity doWhenActivity = null;
-			if (ItemId > 0)
-			{
-				doWhenActivity = new DoWhenUseItemActivity(ItemId,
-								useWhenExpression,
-								allowUseDuringCombat,
-								allowUseInVehicle,
-								allowUseWhileFlying,
-								allowUseWhileMounted);
-			}
+			IDoWhenActivity doWhenActivity = null;
+			if (ActivityKey_ItemId > 0)
+			    doWhenActivity = new DoWhenUseItemActivity(ActivityKey_ItemId, useWhenPredicate, isMovementStopRequired);
 
-			if (SpellId > 0)
-			{
-				doWhenActivity = new DoWhenCastSpellActivity(SpellId,
-								useWhenExpression,
-								allowUseDuringCombat,
-								allowUseInVehicle,
-								allowUseWhileFlying,
-								allowUseWhileMounted);
-			}
+			else if (ActivityKey_SpellId > 0)
+			    doWhenActivity = new DoWhenCastSpellActivity(ActivityKey_SpellId, useWhenPredicate, isMovementStopRequired);
 
-			if (!string.IsNullOrEmpty(ActivityName))
-			{
-				doWhenActivity = new DoWhenCustomActivity(ActivityName,
-								Element,
-								useWhenExpression,
-								allowUseDuringCombat,
-								allowUseInVehicle,
-								allowUseWhileFlying,
-								allowUseWhileMounted);
-			}
+			else if (!string.IsNullOrEmpty(ActivityKey_Name))
+                doWhenActivity = new DoWhenNamedActivity(ActivityKey_Name, useWhenPredicate, Element, isMovementStopRequired);
 
 			if (doWhenActivity != null)
 			{
 				PersistedActivities.Add(doWhenActivity);
 				QBCLog.DeveloperInfo("DoWhenActivity '{0}' created:{1}",
-					doWhenActivity.Name,
+					doWhenActivity.ActivityIdentifier,
 					doWhenActivity.BuildDebugInfo("    "));
 			}
 		}
@@ -614,57 +614,57 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private void DoWhenHookInstall()
 		{
 			if (_persistedDoWhenHookBehavior == null)
-			{
-				_persistedDoWhenHookBehavior = BehaviorHookInstall("Questbot_Main", CreateDoWhenHook());
-			}
+			    _persistedDoWhenHookBehavior = BehaviorHookInstall("Questbot_Main", CreateDoWhenHook());
 		}
 
 
 		private void DoWhenHookRemove()
 		{
-			if (_persistedDoWhenHookBehavior != null)
+		    if (_persistedDoWhenHookBehavior == null)
+		        return;
+
+			// Log the item activity that are being removed...
+			var builder = new StringBuilder();
+
+			if (PersistedActivities.Count <= 0)
+			    builder.AppendFormat("DoWhen hook removed--no DoWhenActivities to clean up.");
+
+			else
 			{
-				// Log the item activity that are being removed...
-				var builder = new StringBuilder();
+				builder.AppendFormat("Removing DoWhenActivities (count:{0}):", PersistedActivities.Count);
 
-				if (PersistedActivities.Count <= 0)
-				{ builder.AppendFormat("DoWhen hook removed--no DoWhenActivities to clean up."); }
-
-				else
-				{
-					builder.AppendFormat("Removing DoWhenActivities (count:{0}):", PersistedActivities.Count);
-
-					// Show each activity to be removed...
-					foreach (var activity in PersistedActivities.OrderBy(e => e.Name).ToList())
-					{
-						builder.Append(activity.BuildDebugInfo("    "));
-					}
-				}
-
-				QBCLog.DeveloperInfo(CfbContextForHook, builder.ToString());
-				PersistedActivities.Clear();
-
-				BehaviorHookRemove("Questbot_Main", ref _persistedDoWhenHookBehavior);
-				_persistedDoWhenHookBehavior = null;
-				_persistedActivityThrottle = null;
+				// Show each activity to be removed...
+				foreach (var activity in PersistedActivities.OrderBy(e => e.ActivityIdentifier).ToList())
+				    builder.Append(activity.BuildDebugInfo("    "));
 			}
+
+			QBCLog.DeveloperInfo(CfbContextForHook, builder.ToString());
+			PersistedActivities.Clear();
+
+			BehaviorHookRemove("Questbot_Main", ref _persistedDoWhenHookBehavior);
+			_persistedDoWhenHookBehavior = null;
+			_persistedActivityThrottle = null;
 		}
 
 
-		private DoWhenActivity FindActivity(string activityNameToFind)
+		private IDoWhenActivity FindActivity(string activityIdentifierToFind)
 		{
-			return PersistedActivities.FirstOrDefault(e => e.Name == activityNameToFind);
+			return PersistedActivities.FirstOrDefault(e => e.ActivityIdentifier == activityIdentifierToFind);
 		}
 
 
-		private string FindActivityName()
+		private string FindActivityIdentifier()
 		{
-			if (ItemId > 0)
-			{ return DoWhenUseItemActivity.CreateActivityName(ItemId); }
+			if (ActivityKey_ItemId > 0)
+			    return DoWhenUseItemActivity.CreateActivityIdentifier(ActivityKey_ItemId);
 
-			if (SpellId > 0)
-			{ return DoWhenCastSpellActivity.CreateActivityName(SpellId); }
+			if (ActivityKey_SpellId > 0)
+			    return DoWhenCastSpellActivity.CreateActivityIdentifier(ActivityKey_SpellId);
 
+            if (!string.IsNullOrEmpty(ActivityKey_Name))
+                return DoWhenNamedActivity.CreateActivityIdentifier(ActivityKey_Name);
+
+            QBCLog.MaintenanceError("Unable to find ActivityIdentifier for ItemId, SpellId, or ActivityName--none were specified.");
 			return string.Empty;
 		}
 
@@ -679,57 +679,31 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		#endregion
 
 
-		#region Helper Classes
-		private abstract class DoWhenActivity
+		#region Helper Classes - IDoWhenActivity
+		private abstract class IDoWhenActivity
 		{
-			protected DoWhenActivity(string activityName,
-										string useWhenExpression,
-										bool allowUseDuringCombat,
-										bool allowUseInVehicle,
-										bool allowUseWhileFlying,
-										bool allowUseWhileMounted)
+            protected enum ActivityResult
+            {
+                Failed,
+                Indeterminate,
+                Succeeded,
+            }
+
+            protected IDoWhenActivity(string activityIdentifier,
+                                      IUseWhenPredicate useWhenPredicate,
+                                      bool isMovementStopRequired)
 			{
-				Name = activityName;
+			    Contract.Requires(!string.IsNullOrEmpty(activityIdentifier), (context) => "activityIdentifier may not be null or empty");
+			    Contract.Requires(useWhenPredicate != null, (context) => "useWhenPredicate != null");
 
-				AllowUseDuringCombat = allowUseDuringCombat;
-				AllowUseInVehicle = allowUseInVehicle;
-				AllowUseWhileFlying = allowUseWhileFlying;
-				AllowUseWhileMounted = allowUseWhileMounted;
-				IsEnabled = true;
-
-				// We keep the string representation of the expression for use in logging messages, etc...
-				UseWhenExpression = useWhenExpression;
-				UseWhenPredicateFunc = CompileAttributePredicateExpression("UseWhen", useWhenExpression);
-				if (UseWhenPredicateFunc == null)
-				{
-					throw new ArgumentException("Predicate ({0}) expression doesn't compile.", useWhenExpression);
-				}
+				ActivityIdentifier = activityIdentifier;
+			    IsMovementStopRequired = isMovementStopRequired;
+                UseWhenPredicate = useWhenPredicate;
 			}
 
-			public bool AllowUseDuringCombat { get; private set; }
-			public bool AllowUseInVehicle { get; private set; }
-			public bool AllowUseWhileFlying { get; private set; }
-			public bool AllowUseWhileMounted { get; private set; }
-			public string Name { get; private set; }
-			public bool IsEnabled { get; set; }
-			public Func<bool> UseWhenPredicateFunc { get; private set; }
-			public string UseWhenExpression { get; private set; }
-
-
-			// Methods requiring override...
-			public abstract Task<bool> Execute();
-
-
-			public bool IsExecutionNeeded()
-			{
-				return
-					IsEnabled
-					&& (AllowUseDuringCombat || !Me.Combat)
-					&& (AllowUseInVehicle || !Query.IsInVehicle())
-					&& (AllowUseWhileFlying || !Me.IsFlying)
-					&& (AllowUseWhileMounted || !Me.IsMounted())
-					&& UseWhenPredicateFunc();
-			}
+            public string ActivityIdentifier { get; private set; }
+            public IUseWhenPredicate UseWhenPredicate { get; private set; }
+            public bool IsMovementStopRequired { get; private set; }
 
 
 			// Utility methods...
@@ -737,46 +711,89 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			{
 				var builder = new StringBuilder();
 
-				builder.AppendFormat("{0}{1}{2}", Environment.NewLine, linePrefix, Name);
+				builder.AppendFormat("{0}{1}{2}", Environment.NewLine, linePrefix, ActivityIdentifier);
 				builder.AppendFormat("{0}{1}    Used when: \"{2}\"",
 					Environment.NewLine,
 					linePrefix,
-					UseWhenExpression);
-				builder.AppendFormat("{0}{1}    Enabled={2}", Environment.NewLine, linePrefix, IsEnabled);
-				builder.AppendFormat("{0}{1}    AllowUseDuringCombat={2}", Environment.NewLine, linePrefix, AllowUseDuringCombat);
-				builder.AppendFormat(", AllowUseInVehicle={0}", AllowUseInVehicle);
-				builder.AppendFormat(", AllowUseWhileFlying={0}", AllowUseWhileFlying);
-				builder.AppendFormat(", AllowUseWhileMounted={0}", AllowUseWhileMounted);
+					UseWhenPredicate.ExpressionAsString);
+                builder.AppendFormat("{0}{1}    Enabled={2}", Environment.NewLine, linePrefix, UseWhenPredicate.IsEnabled);
+				builder.AppendFormat("{0}{1}    AllowUseDuringCombat={2}", Environment.NewLine, linePrefix, UseWhenPredicate.AllowUseDuringCombat);
+                builder.AppendFormat(", AllowUseInVehicle={0}", UseWhenPredicate.AllowUseInVehicle);
+                builder.AppendFormat(", AllowUseWhileFlying={0}", UseWhenPredicate.AllowUseWhileFlying);
+                builder.AppendFormat(", AllowUseWhileMounted={0}", UseWhenPredicate.AllowUseWhileMounted);
 
 				return builder.ToString();
 			}
+
+
+            public async Task<bool> Execute()
+            {
+                if (!IsSpecificExecutionNeeded())
+                    return false;
+
+                if (IsMovementStopRequired && Me.IsMoving)
+                    await UtilityCoroutine.MoveStop();
+
+                var activityResult = await ExecuteSpecificActivity();
+                if (activityResult == ActivityResult.Indeterminate)
+                    return true;
+                if (activityResult == ActivityResult.Failed)
+                    return false;
+
+                // If we get here, we got a ActivityResult.Succeeded
+                UseWhenPredicate.Reset();
+
+                // If predicate did not clear, then predicate is bad...
+                // We allow for a server round-trip time to allow enough time for a potential
+                // aura to be applied.
+                await CommonCoroutines.SleepForLagDuration();
+                if (UseWhenPredicate.IsReady())
+                {
+                    QBCLog.Error(
+                        "For DoWhenActivity {1}, predicate ({2}) was not reset by execution.{0}"
+                        + "  This is a profile problem, and can result in erratic Honorbuddy behavior.{0}"
+                        + "  The predicate must return to 'false' after the action has been successfully executed.",
+                        Environment.NewLine, ActivityIdentifier, UseWhenPredicate.ExpressionAsString);
+                }
+
+                return true;
+            }
+
+            // Methods requiring override...
+            protected abstract Task<ActivityResult> ExecuteSpecificActivity();
+
+            protected virtual bool IsSpecificExecutionNeeded()
+            {
+                return UseWhenPredicate.IsReady();
+            }
 		}
 
 
 		/// <summary>
 		/// Subclass of DoWhenActivity that knows how to cast spells...
 		/// </summary>
-		private class DoWhenCastSpellActivity : DoWhenActivity
+		private class DoWhenCastSpellActivity : IDoWhenActivity
 		{
-			public DoWhenCastSpellActivity(int spellId,
-									string useWhenExpression,
-									bool allowUseDuringCombat,
-									bool allowUseInVehicle,
-									bool allowUseWhileFlying,
-									bool allowUseWhileMounted)
-				: base(CreateActivityName(spellId),
-						useWhenExpression,
-						allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
+			public DoWhenCastSpellActivity(int spellId, IUseWhenPredicate useWhenPredicate, bool isMovementStopRequired)
+				: base(CreateActivityIdentifier(spellId), useWhenPredicate, isMovementStopRequired)
 			{
 				Contract.Requires(spellId > 0, context => "spellId > 0");
 
-				SpellId = spellId;
+                _errorMessage_UnknownSpell = string.Format(
+                        "For DoWhenActivity {1}, SpellId({2}) is not known.{0}"
+                        + "  This is a profile problem.  To squelch this message there are two options:{0}"
+                        + "  * (Preferred) Remove the corresponding DoWhen in the profile until the spell is learned.{0}"
+                        + "  * Include a \"HasSpell({2})\" term as part of the UseWhen predicate expression.",
+                        Environment.NewLine, ActivityIdentifier, spellId);
+
+                _wowSpell = WoWSpell.FromId(spellId);
 			}
 
-			public int SpellId { get; private set; }
+		    private readonly string _errorMessage_UnknownSpell;
+		    private readonly WoWSpell _wowSpell;
 
 
-			public static string CreateActivityName(int spellId)
+			public static string CreateActivityIdentifier(int spellId)
 			{
 				// Note: we can't use Utility.GetSpellNameFromId() for this, because its value
 				// will change based on whether or not the spell is known or not.
@@ -784,40 +801,19 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			}
 
 
-			public override async Task<bool> Execute()
+            protected override async Task<ActivityResult> ExecuteSpecificActivity()
 			{
-				if (!IsExecutionNeeded())
-				{
-					return false;
-				}
-
 				// If spell is not known at the moment, this is a problem...
-				var wowSpell = WoWSpell.FromId(SpellId);
-				if ((wowSpell == null) || !wowSpell.IsValid)
-				{
-					QBCLog.Error(
-						"For DoWhenActivity {1}, SpellId({2}) is not known.{0}"
-						+ "  This is a profile problem.  To squelch this message there are two options:{0}"
-						+ "  * (Preferred) Remove the corresponding DoWhen in the profile until the spell is learned.{0}"
-						+ "  * Include a \"HasSpell({2})\" term as part of the UseWhen predicate expression.",
-						Environment.NewLine, Name, SpellId);
-					return false;
+                if ((_wowSpell == null) || !_wowSpell.IsValid)
+                {
+                    QBCLog.Error(_errorMessage_UnknownSpell);
+                    return ActivityResult.Failed;
 				}
 
-				await UtilityCoroutine.CastSpell(SpellId);
-
-				// If predicate did not clear, then predicate is bad...
-				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
-				if (UseWhenPredicateFunc())
-				{
-					QBCLog.Error(
-						"For DoWhenActivity {1}, predicate ({2}) was not reset by execution.{0}"
-						+ "  This is a profile problem, and can result in erratic Honorbuddy behavior.{0}"
-						+ "  The predicate must return to 'false' after the action has been successfully executed.",
-						Environment.NewLine, Name, UseWhenExpression);
-				}
-
-				return true;
+                return
+                    await UtilityCoroutine.CastSpell(_wowSpell.Id) == SpellCastResult.Succeeded
+                        ? ActivityResult.Succeeded
+                        : ActivityResult.Failed;
 			}
 		}
 
@@ -825,27 +821,28 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		/// <summary>
 		/// Subclass of DoWhenActivity that knows how to use items...
 		/// </summary>
-		private class DoWhenUseItemActivity : DoWhenActivity
+		private class DoWhenUseItemActivity : IDoWhenActivity
 		{
-			public DoWhenUseItemActivity(int itemId,
-									string useWhenExpression,
-									bool allowUseDuringCombat,
-									bool allowUseInVehicle,
-									bool allowUseWhileFlying,
-									bool allowUseWhileMounted)
-				: base(CreateActivityName(itemId),
-						useWhenExpression,
-						allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
+			public DoWhenUseItemActivity(int itemId, IUseWhenPredicate useWhenPredicate, bool isMovementStopRequired)
+				: base(CreateActivityIdentifier(itemId), useWhenPredicate, isMovementStopRequired)
 			{
 				Contract.Requires(itemId > 0, context => "itemId > 0");
 
-				ItemId = itemId;
+                _errorMessage_ItemNotInInventory = string.Format(
+						"For DoWhenActivity {1}, ItemId({2}) is not in our inventory.{0}"
+						+ "  This is a profile problem.  To squelch this message there are two options:{0}"
+						+ "  * (Preferred) Remove the corresponding DoWhen in the profile until the item is in our backpack.{0}"
+						+ "  * Include a \"HasItem({2})\" term as part of the UseWhen predicate expression.",
+                        Environment.NewLine, ActivityIdentifier, itemId);
+
+                _itemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == itemId));
 			}
 
-			public int ItemId { get; private set; }
+		    private readonly string _errorMessage_ItemNotInInventory;
+		    private readonly WoWItem _itemToUse;
 
 
-			public static string CreateActivityName(int itemId)
+			public static string CreateActivityIdentifier(int itemId)
 			{
 				// Note: we can't use Utility.FindItemNameFromId() for this, because its value
 				// will change based on whether or not the item is in our inventory currently.
@@ -853,80 +850,54 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			}
 
 
-			public override async Task<bool> Execute()
+            protected override async Task<ActivityResult> ExecuteSpecificActivity()
 			{
-				if (!IsExecutionNeeded())
-				{
-					return false;
-				}
-
 				// If item is not in inventory at the moment, we consider that a problem...
-				// TODO: Convert this to ProfileHelperFunctionBase.HasItem(ItemId), if that method ever becomes static.
-				var itemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == ItemId));
-				if (!Query.IsViable(itemToUse))
+                if (!Query.IsViable(_itemToUse))
 				{
-					QBCLog.Error(
-						"For DoWhenActivity {1}, ItemId({2}) is not in our inventory.{0}"
-						+ "  This is a profile problem.  To squelch this message there are two options:{0}"
-						+ "  * (Preferred) Remove the corresponding DoWhen in the profile until the item is in our backpack.{0}"
-						+ "  * Include a \"HasItem({2})\" term as part of the UseWhen predicate expression.",
-						Environment.NewLine, Name, ItemId);
-					return false;
+                    QBCLog.Error(_errorMessage_ItemNotInInventory);
+                    return ActivityResult.Failed;
 				}
 
-				await UtilityCoroutine.UseItem(ItemId, null /*missing item is non-fatal*/);
-
-				// If predicate did not clear, then predicate is bad...
-				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
-				if (UseWhenPredicateFunc())
-				{
-					QBCLog.Error(
-						"For DoWhenActivity {1}, predicate ({2}) was not reset by execution.{0}"
-						+ "  This is a profile problem, and can result in erratic Honorbuddy behavior.{0}"
-						+ "  The predicate must return to 'false' after the action has been successfully executed.",
-						Environment.NewLine, Name, UseWhenExpression);
-				}
-
-				return true;
+                var activityResult = ActivityResult.Failed;
+				await UtilityCoroutine.UseItem((int)_itemToUse.Entry,
+                                                null, /*missing item is non-fatal*/
+                                                null, /*notification on fail*/
+                                                () => { activityResult = ActivityResult.Succeeded; });
+                return activityResult;
 			}
 		}
 
 		/// <summary>
 		/// Subclass of DoWhenActivity that knows how to use items...
 		/// </summary>
-		private class DoWhenCustomActivity : DoWhenActivity
+		private class DoWhenNamedActivity : IDoWhenActivity
 		{
-			public DoWhenCustomActivity(string activityName,
-									XElement element,
-									string useWhenExpression,
-									bool allowUseDuringCombat,
-									bool allowUseInVehicle,
-									bool allowUseWhileFlying,
-									bool allowUseWhileMounted)
-				: base(activityName,
-						useWhenExpression,
-						allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
+            public DoWhenNamedActivity(string customActivityName,
+                                        IUseWhenPredicate useWhenPredicate, 
+									    XElement element,
+                                        bool isMovementStopRequired)
+                : base(CreateActivityIdentifier(customActivityName), useWhenPredicate, isMovementStopRequired)
 			{
-				Contract.Requires(!string.IsNullOrEmpty(activityName), context => "!string.IsNullOrEmpty(activityName)");
+                Contract.Requires(!string.IsNullOrEmpty(customActivityName), context => "!string.IsNullOrEmpty(customActivityName)");
 				Contract.Requires(element != null, context => "element != null");
-				ActivityName = activityName;
+
 				Element = element;
 			}
 
-			public XElement Element { get; private set; }
-			public ForcedBehaviorExecutor BehaviorExecutor { get; private set; }
-			public string ActivityName { get; private set; }
-			public override async Task<bool> Execute()
-			{
-				// IsExecutionNeeded() might return 'false' after we started executing this activity.
-				// If this happens we want to continue executing until this activity is complete.
-				// BehaviorExecutor will not be null when activty is executing
-				if (!IsExecutionNeeded() && BehaviorExecutor == null)
-				{
-					return false;
-				}
+            private XElement Element { get; set; }
+			private ForcedBehaviorExecutor BehaviorExecutor { get; set; }
 
-				if (BehaviorExecutor == null)
+
+            public static string CreateActivityIdentifier(string customActivityName)
+            {
+                return string.Format("ActivityName({0})", customActivityName);
+            }
+
+
+            protected override async Task<ActivityResult> ExecuteSpecificActivity()
+			{
+                if (BehaviorExecutor == null)
 				{
 					var questOrder = new QuestOrder(OrderNodeCollection.FromXml(Element));
 					questOrder.UpdateNodes();
@@ -938,26 +909,127 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 					await BehaviorExecutor.ExecuteCoroutine();
 					// return now if we have any nodes left to execute
 					if (BehaviorExecutor.Order.Nodes.Any())
-						return true;
+                        return ActivityResult.Indeterminate;
 				}
 
 				BehaviorExecutor = null;
-
-				// If predicate did not clear, then predicate is bad...
-				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
-				if (UseWhenPredicateFunc())
-				{
-					QBCLog.Error(
-						"For DoWhenActivity {1}, predicate ({2}) was not reset by execution.{0}"
-						+ "  This is a profile problem, and can result in erratic Honorbuddy behavior.{0}"
-						+ "  The predicate must return to 'false' after the action has been successfully executed.",
-						Environment.NewLine, Name, UseWhenExpression);
-				}
-
-				return true;
+                return ActivityResult.Succeeded;
 			}
-		}
 
+            protected override bool IsSpecificExecutionNeeded()
+            {
+                // UseWhenPredicate.IsReady() might return 'false' after we started executing this activity.
+                // If this happens, we want to continue executing until this activity is complete.
+                // BehaviorExecutor will not be null when the activity is executing.
+                return UseWhenPredicate.IsReady() || (BehaviorExecutor != null);
+            }
+		}
 		#endregion
-	}
+
+        #region Helper Classes - IUseWhenPredicate
+        private abstract class IUseWhenPredicate
+        {
+            protected IUseWhenPredicate(string useWhenExpression,
+                                    bool allowUseDuringCombat,
+                                    bool allowUseInVehicle,
+                                    bool allowUseWhileFlying,
+                                    bool allowUseWhileMounted)
+			{
+				AllowUseDuringCombat = allowUseDuringCombat;
+				AllowUseInVehicle = allowUseInVehicle;
+				AllowUseWhileFlying = allowUseWhileFlying;
+				AllowUseWhileMounted = allowUseWhileMounted;
+				IsEnabled = true;
+
+                // We keep the string representation of the expression for use in logging messages, etc...
+                ExpressionAsString = useWhenExpression;
+			}
+
+            public readonly bool AllowUseDuringCombat;
+            public readonly bool AllowUseInVehicle;
+            public readonly bool AllowUseWhileFlying;
+            public readonly bool AllowUseWhileMounted;
+            public readonly string ExpressionAsString;
+            public bool IsEnabled { get; set; }
+
+            public abstract bool IsReady();
+            public abstract void Reset();
+
+            protected bool IsReady_Common()
+            {
+                return
+                    IsEnabled
+                    && (AllowUseDuringCombat || !Me.Combat)
+                    && (AllowUseInVehicle || !Query.IsInVehicle())
+                    && (AllowUseWhileFlying || !Me.IsFlying)
+                    && (AllowUseWhileMounted || !Me.IsMounted());
+            }
+        }
+
+        private class UseWhenPredicate_FuncEval : IUseWhenPredicate
+        {
+            public UseWhenPredicate_FuncEval(string useWhenExpression,
+                                                bool allowUseDuringCombat,
+                                                bool allowUseInVehicle,
+                                                bool allowUseWhileFlying,
+                                                bool allowUseWhileMounted)
+                :base(useWhenExpression,
+                      allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
+            {
+                // We keep the string representation of the expression for use in logging messages, etc...
+                _predicate = CompileAttributePredicateExpression("UseWhen", useWhenExpression);
+                if (_predicate == null)
+                    throw new ArgumentException("Predicate ({0}) expression doesn't compile.", useWhenExpression);
+            }
+
+            private readonly Func<bool> _predicate; 
+
+            public override bool IsReady()
+            {
+                return IsReady_Common() && _predicate();
+            }
+
+            public override void Reset()
+            {
+                // empty on purpose--predicate should be written to reset when action is taken
+            }
+        }
+
+        private class UseWhenPredicate_TimeElapse : IUseWhenPredicate
+        {
+            public UseWhenPredicate_TimeElapse(TimeSpan delayInterval,
+                                                bool allowUseDuringCombat,
+                                                bool allowUseInVehicle,
+                                                bool allowUseWhileFlying,
+                                                bool allowUseWhileMounted)
+                :base(string.Format("TimeSpan({0})", delayInterval.ToString()),
+                      allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
+            {
+                _delayInterval = delayInterval;
+            }
+
+            private readonly TimeSpan _delayInterval;
+            private readonly Stopwatch _timer = new Stopwatch();
+
+            public override bool IsReady()
+            {
+                // Boundary condition...
+                // We want the predicate to be 'is ready' immediately after timer creation.
+                // So, we don't do an elapsed time check if the timer is not running.  (The
+                // timer is not running until Reset() is called.)
+                // When the caller calls Reset(), the timer will start running, and we'll
+                // start taking the elapsed time into consideration.
+                return
+                    _timer.IsRunning
+                    ? (IsReady_Common() && (_timer.Elapsed > _delayInterval))
+                    : IsReady_Common();
+            }
+
+            public override void Reset()
+            {
+                _timer.Restart();
+            }
+        }
+        #endregion
+    }
 }
