@@ -411,9 +411,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
 							// Move to drop off spot...
 							new Decorator(context => Me.Location.Distance(PositionToMakeLandfall) > Navigator.PathPrecision,
-								new UtilityBehaviorPS.MoveTo(
-									context => PositionToMakeLandfall,
-									context => "back to shore"))
+							    new ActionRunCoroutine(
+							        context => UtilityCoroutine.MoveTo(
+							            PositionToMakeLandfall,
+							            "back to shore")))
 						)),
 					#endregion 
 
@@ -447,9 +448,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 								new Action(context => { CurrentPath.Dequeue(); })),
 
 							// Follow the prescribed path...
-							new UtilityBehaviorPS.MoveTo(
-								context => CurrentPath.Peek(),
-								current => "out to Drowned Watcman")
+							new ActionRunCoroutine(
+							    context => UtilityCoroutine.MoveTo(
+							        CurrentPath.Peek(),
+							        "out to Drowned Watcman"))
 						)),
 					#endregion
 
@@ -505,9 +507,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 								new Action(context => { CurrentPath.Dequeue(); })),
 
 							// Follow the prescribed path...
-							new UtilityBehaviorPS.MoveTo(
-								context => CurrentPath.Peek(),
-								current => "in to drop off Drowned Watchman")
+							new ActionRunCoroutine(
+							    context => UtilityCoroutine.MoveTo(
+							        CurrentPath.Peek(),
+							        "in to drop off Drowned Watchman"))
 						))
 					#endregion
 				));
@@ -649,9 +652,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
 
 						// If not within interact range, move closer...
 						new Decorator(interactUnitContext => !((WoWUnit)interactUnitContext).WithinInteractRange,
-							new UtilityBehaviorPS.MoveTo(
-								interactUnitContext => ((WoWUnit)interactUnitContext).Location,
-                                interactUnitContext => "to interact with " + ((WoWUnit)interactUnitContext).SafeName)),
+						    new ActionRunCoroutine(
+						        interactUnitContext => UtilityCoroutine.MoveTo(
+						            ((WoWUnit) interactUnitContext).Location,
+						            "to interact with " + ((WoWUnit) interactUnitContext).SafeName))),
 
 						new Decorator(interactUnitContext => Me.IsMoving,
 							new Action(interactUnitContext => { WoWMovement.MoveStop(); })),

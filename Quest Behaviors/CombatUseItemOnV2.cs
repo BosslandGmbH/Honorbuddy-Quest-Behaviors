@@ -225,6 +225,7 @@ using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -364,6 +365,9 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 		private WoWUnit SelectedTarget { get; set; }
 
 		private readonly WaitTimer _waitTimerAfterUsingItem = new WaitTimer(TimeSpan.Zero);
+	    private UtilityCoroutine.WarnIfBagsFull _warnIfBagsFull;
+	    private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
+
 		#endregion
 
 
@@ -444,7 +448,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 				// If we acquired mob aggro while on the way to our selected target,
 				// deal with the aggro'd mob immediately...
-				new UtilityBehaviorPS.PreferAggrodMob(),
+                new ActionRunCoroutine(context => UtilityCoroutine.PreferAggrodMob()),
 
 				// Combat with viable mob...
 				new Decorator(isViableContext => (bool)isViableContext,
@@ -465,7 +469,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 					return context;
 				},
 
-				new UtilityBehaviorPS.WarnIfBagsFull(),
+                new ActionRunCoroutine(ctx => _warnIfBagsFull 
+                    ?? (_warnIfBagsFull = new UtilityCoroutine.WarnIfBagsFull())),
 
 				// Wait additional time requested by profile writer...
 				// NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
@@ -502,12 +507,18 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 				// No mobs in immediate vicinity...
 				new Decorator(context => !Query.IsViable(SelectedTarget),
-					new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
-						context => HuntingGrounds,
-						context => MovementBy,
-						context => { /*NoOp*/ },
-						context => TargetExclusionAnalysis.Analyze(
-							Element, () => Query.FindMobsAndFactions(MobIds), TargetExclusionChecks)))
+				    new ActionRunCoroutine(
+				        context =>
+				            _noMobsAtCurrentWaypoint ??
+				            (_noMobsAtCurrentWaypoint =
+				                new UtilityCoroutine.NoMobsAtCurrentWaypoint(
+				                    () => HuntingGrounds,
+				                    () => MovementBy,
+				                    () =>{ /*NoOp*/},
+				                    () => TargetExclusionAnalysis.Analyze(
+				                        Element,
+				                        () => Query.FindMobsAndFactions(MobIds),
+				                        TargetExclusionChecks)))))
 			);
 		}
 		#endregion
@@ -539,15 +550,16 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 
 				// If we are beyond the max range allowed to use the item, move within range...
 				new Decorator(context => SelectedTarget.Distance > MaxRangeToUseItem,
-					new UtilityBehaviorPS.MoveTo(
-						context => SelectedTarget.Location,
-						context => string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.SafeName),
-						context => MovementBy)),
+				    new ActionRunCoroutine(
+				        interactUnitContext => UtilityCoroutine.MoveTo(
+				            SelectedTarget.Location,
+				            string.Format("within {0} feet of {1}", MaxRangeToUseItem, SelectedTarget.SafeName),
+				            MovementBy))),
 
 				// If time to use the item, do so...
 				new Decorator(context => IsUseItemNeeded(SelectedTarget),
 					new PrioritySelector(
-						new UtilityBehaviorPS.MoveStop(),
+                        new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
 
 						// Halt combat until we are able to use the item...
 						new Decorator(context => ((UseItemStrategy == UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend)
@@ -566,14 +578,12 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 							})),
 
 						new Sequence(
-							new UtilityBehaviorSeq.UseItem(
-								context => ItemId,
-								context => SelectedTarget,
-								context =>
-								{
-									BehaviorDone(string.Format("Terminating behavior due to missing {0}",
-										Utility.GetItemNameFromId(ItemId)));
-								}),
+                            new ActionRunCoroutine(ctx =>
+                            UtilityCoroutine.UseItemOnTarget(
+								ItemId,
+								SelectedTarget,
+								() => BehaviorDone(string.Format("Terminating behavior due to missing {0}",
+								    Utility.GetItemNameFromId(ItemId))))),
 				// Allow a brief time for WoWclient to apply aura to mob...
 							new WaitContinue(TimeSpan.FromMilliseconds(5000),
 								context => ItemUseAlwaysSucceeds || SelectedTarget.HasAura(ItemAppliesAuraId),

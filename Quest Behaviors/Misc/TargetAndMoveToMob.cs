@@ -143,10 +143,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -243,6 +244,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 		}
 		private HuntingGroundsType HuntingGrounds { get; set; }
 		private WoWUnit SelectedTarget { get; set; }
+	    private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return "$Id$"; } }
@@ -336,14 +338,17 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 
 								// NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
 				// this sub-behavior will terminate the overall behavior.
-								new UtilityBehaviorPS.NoMobsAtCurrentWaypoint(
-										context => HuntingGrounds,
-										context => MovementBy,
-										context => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
-										context => TargetExclusionAnalysis.Analyze(Element,
-													() => Query.FindMobsAndFactions(MobIds),
-													TargetExclusionChecks))
-							))
+								new ActionRunCoroutine(context =>
+								        _noMobsAtCurrentWaypoint ??
+								        (_noMobsAtCurrentWaypoint =
+								            new UtilityCoroutine.NoMobsAtCurrentWaypoint(
+								                () => HuntingGrounds,
+								                () => MovementBy,
+								                () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
+								                () => TargetExclusionAnalysis.Analyze(
+								                    Element,
+								                    () => Query.FindMobsAndFactions(MobIds),
+								                    TargetExclusionChecks))))))
 					)),
 
 				// If qualified mob was found, move within range, if needed...
@@ -353,11 +358,12 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 					new PrioritySelector(
 						new ActionFail(context => { Utility.Target(SelectedTarget); }),
 						new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
-							new UtilityBehaviorPS.MoveTo(
-								context => SelectedTarget.Location,
-                                context => SelectedTarget.SafeName,
-								context => MovementBy)),
-						new UtilityBehaviorPS.MoveStop(),
+						    new ActionRunCoroutine(
+                                context => UtilityCoroutine.MoveTo(
+                                    SelectedTarget.Location, 
+                                    SelectedTarget.SafeName, 
+                                    MovementBy))),
+                        new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
 						new Action(context =>
 						{
 							Utility.Target(SelectedTarget, true);

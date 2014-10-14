@@ -151,6 +151,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -431,10 +432,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 								new ActionFail(context => { Utility.Target(Mob_ToMoveNear); }),
 
 								// Move to mob...
-								new UtilityBehaviorPS.MoveTo(
-									context => Mob_ToMoveNear.Location,
-                                    context => Mob_ToMoveNear.SafeName,
-									context => MovementBy)
+                                new ActionRunCoroutine(
+                                    context => UtilityCoroutine.MoveTo(
+                                        Mob_ToMoveNear.Location,
+                                        Mob_ToMoveNear.SafeName, 
+                                        MovementBy))
 							)),
 
 						// Need to wait for Mob to respawn...
@@ -447,10 +449,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 				// No "Move Near" mob, so use the provided Safe spot coordinates...
 				new Decorator(context => MobIdToMoveNear <= 0,
-					new UtilityBehaviorPS.MoveTo(
-						context => SafespotLocation,
-						context => "safe spot",
-						context => MovementBy)),
+                    new ActionRunCoroutine(
+                        context => UtilityCoroutine.MoveTo(
+                            SafespotLocation,
+                            "safe spot", 
+                            MovementBy))),
 
 				// Dismount once we've arrived at mob or destination...
 				new Mount.ActionLandAndDismount(),
@@ -521,7 +524,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 					new SwitchArgument<SafePathType.StrategyType>(SafePathType.StrategyType.StalkMobAtAvoidDistance,
 						new Decorator(context => Query.IsViable(Mob_ToAvoid) && (Mob_ToAvoid.Distance < AvoidDistance),
 							new PrioritySelector(
-								new UtilityBehaviorPS.MoveStop(),
+                                new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
 								new ActionAlwaysSucceed()
 							))),
 
@@ -541,10 +544,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 
 				// Follow the prescribed ingress path, if its still safe to proceed...
 				new Decorator(context => IsSafeToMoveToDestination(Mob_ToAvoid),
-					new UtilityBehaviorPS.MoveTo(
-						context => Path_Ingress.Peek().Location,
-						context => "follow ingress path",
-						context => MovementBy)),
+                    new ActionRunCoroutine(
+                        context => UtilityCoroutine.MoveTo(
+                            Path_Ingress.Peek().Location,
+                            "follow ingress path", 
+                            MovementBy))),
 
 				// If mob is heading our direction, hold position...
 				new Decorator(context => !IsSafeToMoveToDestination(Mob_ToAvoid),
@@ -553,7 +557,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 						{
                             TreeRoot.StatusText = string.Format("Holding position to evaluate {0}'s actions.", Mob_ToAvoid.SafeName);
 						}),
-						new UtilityBehaviorPS.MoveStop()
+                        new ActionRunCoroutine(context => CommonCoroutines.StopMoving())
 					))
 			);
 		}
@@ -586,10 +590,11 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 				new Decorator(context => Navigator.AtLocation(Path_Egress.Peek().Location),
 					new Action(context => { Path_Egress.Dequeue(); })),
 
-				new UtilityBehaviorPS.MoveTo(
-					context => Path_Egress.Peek().Location,
-					context => "retreat",
-					context => MovementBy)
+                new ActionRunCoroutine(
+                    context => UtilityCoroutine.MoveTo(
+                        Path_Egress.Peek().Location,
+                        "retreat", 
+                        MovementBy))
 			);
 		}
 		#endregion

@@ -34,7 +34,7 @@
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -156,7 +156,7 @@ namespace Honorbuddy.Quest_Behaviors.ForcedDismount
 				new Decorator(ret => !Me.IsMounted() && !Me.IsShapeshifted(),
 					new Action(delegate { BehaviorDone(); })),
 
-				new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)
+                new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift))
 			);
 		}
 		#endregion

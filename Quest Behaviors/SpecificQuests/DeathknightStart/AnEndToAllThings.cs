@@ -263,7 +263,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
 				// If we're mounted on something other than the dragon, then dismount...
 				new Decorator(context => Me.Mounted && !Query.IsViable(DragonVehicle),
-					new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)),
+                    new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift))),
 
 				// If we're on the dragon, get moving...
 				new Decorator(context => Query.IsViable(DragonVehicle),

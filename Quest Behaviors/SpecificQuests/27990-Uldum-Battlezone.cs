@@ -286,10 +286,11 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 						}),
 
 						// No vehicle found, move to staging area...
-						new UtilityBehaviorPS.MoveTo(
-							context => Location_VehicleStagingArea,
-							context => "Vehicle Staging Area",
-							context => MovementBy),
+						new ActionRunCoroutine(
+						    interactUnitContext => UtilityCoroutine.MoveTo(
+						        Location_VehicleStagingArea,
+						        "Vehicle Staging Area",
+                                MovementBy)),
 
 						// Wait for vehicle to respawn...
 						new CompositeThrottle(Throttle.UserUpdate,
@@ -304,14 +305,15 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 				new CompositeThrottle(Throttle.UserUpdate,
                     new Action(context => { TreeRoot.StatusText = string.Format("Moving to {0}", Vehicle.SafeName); })),
 				new Decorator(context => !Vehicle.WithinInteractRange,
-					new UtilityBehaviorPS.MoveTo(
-						context => Vehicle.Location,
-                        context => Vehicle.SafeName,
-						context => MovementBy)),
+				    new ActionRunCoroutine(
+				        interactUnitContext => UtilityCoroutine.MoveTo(
+				            Vehicle.Location,
+				            Vehicle.SafeName,
+				            MovementBy))),
 				new Decorator(context => Me.IsMoving,
 					new Action(context => { Navigator.PlayerMover.MoveStop(); })),
 				new Decorator(context => Me.Mounted,
-					new UtilityBehaviorPS.ExecuteMountStrategy(context => MountStrategyType.DismountOrCancelShapeshift)),
+                    new ActionRunCoroutine(context => UtilityCoroutine.ExecuteMountStrategy(MountStrategyType.DismountOrCancelShapeshift))),
 				new ActionFail(context =>
 				{
 					// If we got booted out of a vehicle for some reason, reset the weapons...
@@ -406,10 +408,11 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 					)),
 
 				new Decorator(context => !Navigator.AtLocation(Location_ReturnToSchnottz),
-					new UtilityBehaviorPS.MoveTo(
-						context => Location_ReturnToSchnottz,
-						context => "Commander Schnottz",
-						context => MovementBy)),
+				    new ActionRunCoroutine(
+				        interactUnitContext => UtilityCoroutine.MoveTo(
+				            Location_ReturnToSchnottz,
+				            "Commander Schnottz",
+				            MovementBy))),
 
 				new Decorator(context => Me.IsQuestComplete(QuestId),
 					new Action(context => BehaviorDone("quest complete")))

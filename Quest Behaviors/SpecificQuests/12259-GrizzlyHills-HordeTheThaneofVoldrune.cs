@@ -24,11 +24,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -108,7 +109,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AllyTheThaneofVoldrune
 					new Decorator(ctx => flamebringer == null,CreateBehavior_MoveTo(ctx =>_flamebringerLocation)),
 					new Decorator(ctx => flamebringer.Distance > 5, CreateBehavior_MoveTo(ctx => flamebringer.Location)),
 					// dismount and cancel shapeshift
-					new Decorator(ctx => Me.IsMounted(), new Action(ctx => Mount.Dismount("Getting on Flamebringger"))),
+					new Decorator(ctx => Me.IsMounted(), new ActionRunCoroutine(context => CommonCoroutines.Dismount("Getting on Flamebringger"))),
 					new Decorator(ctx => Me.IsShapeshifted(), new Action(ctx => Lua.DoString("CancelShapeshiftForm()"))),
 					new Decorator(ctx => Me.IsMoving, new Action(ctx => WoWMovement.MoveStop())),
 					// interact with and talk to flamebringer

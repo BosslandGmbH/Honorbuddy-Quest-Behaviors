@@ -372,10 +372,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 										})),
 									new DecoratorContinue(context => VehicleUnoccupied.WithinInteractRange,
 										new Action(context => { VehicleUnoccupied.Interact(); })),
-									new UtilityBehaviorPS.MoveTo(
-										context => VehicleUnoccupied.Location,
-                                        context => VehicleUnoccupied.SafeName,
-										context => MovementBy)
+									new ActionRunCoroutine(
+									    interactUnitContext => UtilityCoroutine.MoveTo(
+									        VehicleUnoccupied.Location,
+									        VehicleUnoccupied.SafeName,
+									        MovementBy))
 								)),
 
 							// If we can't find a vehicle, terminate if requested...
@@ -398,10 +399,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 									 new Decorator(context => !DidSuccessfullyMount,
 										new Action(context => { DidSuccessfullyMount = true; })),
 
-									new UtilityBehaviorPS.MoveTo(
-										context => FinalDestination,
-										context => FinalDestinationName,
-										context => MovementBy),
+                                    new ActionRunCoroutine(
+									    interactUnitContext => UtilityCoroutine.MoveTo(
+									        FinalDestination,
+									        FinalDestinationName,
+									        MovementBy)),
 
 									new Decorator(context => WoWMovement.ActiveMover.IsMoving,
 										new Action(context => { WoWMovement.MoveStop(); })),

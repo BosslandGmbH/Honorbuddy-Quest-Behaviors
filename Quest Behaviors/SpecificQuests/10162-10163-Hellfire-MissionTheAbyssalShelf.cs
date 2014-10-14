@@ -29,6 +29,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -103,6 +104,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
 
 		private Composite _behaviorTreeHook_TaxiCheck = null;
 		private WoWItem _bomb = null;
+	    private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
 		#endregion
 
 
@@ -201,30 +203,34 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MissionTheAbyssalShelf
 
 						// If flight master not in view, move to where he should be...
 						new Decorator(context => FlightMaster == null,
-							new UtilityBehaviorPS.MoveTo(
-								context => WaitLocation,
-								context => "FlightMaster location",
-								context => MovementBy)),
+						    new ActionRunCoroutine(
+						        context => UtilityCoroutine.MoveTo(
+						            WaitLocation,
+						            "FlightMaster location",
+						            MovementBy))),
 
 						// Make certain the bombs are in our backpack...
-						new UtilityBehaviorPS.WaitForInventoryItem(
-							context => ItemId_Bomb,
-							context =>
-							{
-								QBCLog.ProfileError("Cannot continue without required item: {0}",
-													Utility.GetItemNameFromId(ItemId_Bomb));
-								BehaviorDone();
-							}),
-
+					    new ActionRunCoroutine(
+					        ctx => _waitForInventoryItem
+					               ?? (_waitForInventoryItem = new UtilityCoroutine.WaitForInventoryItem(
+					                   () => ItemId_Bomb,
+					                   () =>
+					                   {
+					                       QBCLog.ProfileError(
+					                           "Cannot continue without required item: {0}",
+					                           Utility.GetItemNameFromId(ItemId_Bomb));
+					                       BehaviorDone();
+					                   }))),
 						// Move to flightmaster, and gossip to hitch a ride...
 						new Decorator(context => FlightMaster != null,
 							new PrioritySelector(
 								new Decorator(context => !FlightMaster.WithinInteractRange,
-									new UtilityBehaviorPS.MoveTo(
-										context => FlightMaster.Location,
-										context => FlightMaster.SafeName,
-										context => MovementBy)),
-								new UtilityBehaviorPS.MoveStop(),
+								    new ActionRunCoroutine(
+								        context => UtilityCoroutine.MoveTo(
+								            FlightMaster.Location,
+								            FlightMaster.SafeName,
+								            MovementBy))),
+                                new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
 								new Mount.ActionLandAndDismount(),
 								new Decorator(context => !GossipFrame.Instance.IsVisible,
 									new Action(context => { FlightMaster.Interact(); })),

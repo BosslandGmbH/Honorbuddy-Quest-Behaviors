@@ -51,10 +51,12 @@ using System.Collections.Generic;
 using System.Xml.Linq;
 
 using Bots.Grind;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -271,7 +273,7 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 						new DecoratorContinue(context => _antiStuckMyLoc.DistanceSqr(_antiStuckPrevPosition) < (3 * 3),
 							new Sequence(context => _antiStuckPerformSimpleSequence = _antiStuckStuckSucceedTimer.IsFinished,
 								new DecoratorContinue(context => Me.IsMounted() && !Me.IsFlying,
-									new Action(context => Mount.Dismount("Stuck"))),
+                                    new ActionRunCoroutine(context => CommonCoroutines.Dismount("Stuck"))),
 
 								// Perform simple unstuck proceedure...
 								new DecoratorContinue(context => _antiStuckPerformSimpleSequence,

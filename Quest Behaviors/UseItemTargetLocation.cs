@@ -231,7 +231,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 						new PrioritySelector(
 							new Decorator(
 								ret => Me.Location.Distance(MoveToLocation) > 3,
-								new UtilityBehaviorPS.MoveTo(context => MoveToLocation, context=> "Destination", context => MovementBy)),
+                                new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(MoveToLocation, "Destination", MovementBy))),
 							new Sequence(
 								new Action(ret => TreeRoot.StatusText = string.Format("Using Quest Item: {0} Out of {1} Times",
 									Counter, NumOfTimes)),
@@ -252,7 +252,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 								ret => UseObject == null && Me.Location.DistanceSqr(MoveToLocation) >= 2 * 2,
 								new Sequence(
 									new Action(ret => TreeRoot.StatusText = "Moving to location"),
-									new UtilityBehaviorPS.MoveTo(context => MoveToLocation, context=> "Destination", context => MovementBy))),
+                                    new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(MoveToLocation, "Destination", MovementBy)))),
 							new Decorator(
 								ret => UseObject != null,
 								new PrioritySelector(
@@ -260,12 +260,16 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 										ret => UseObject.DistanceSqr >= Range * Range,
 										new Sequence(
 											new Action(ret => TreeRoot.StatusText = "Moving closer to the object"),
-											new UtilityBehaviorPS.MoveTo(context => UseObject.Location, context=> "UseObject location", context => MovementBy))),
+                                            new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(UseObject.Location, "UseObject location", MovementBy)))),
 									new Decorator(
 										ret => UseObject.DistanceSqr < MinRange * MinRange,
 										new Sequence(
 											new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-											new UtilityBehaviorPS.MoveTo(context => WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f), context=> "Backing up", context => MovementBy)
+											new ActionRunCoroutine(context =>
+											        UtilityCoroutine.MoveTo(
+											            WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float) MinRange + 2f),
+											            "Backing up",
+											            MovementBy))
 											)),
 									new Sequence(
 										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
@@ -292,12 +296,17 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 										ret => UseObject.DistanceSqr >= Range * Range,
 										new Sequence(
 											new Action(ret => TreeRoot.StatusText = "Moving to object's range"),
-											new UtilityBehaviorPS.MoveTo(context => UseObject.Location, context=> "UseObject location", context => MovementBy))),
+                                            new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(UseObject.Location, "UseObject location", MovementBy)))),
 									new Decorator(
 										ret => UseObject.DistanceSqr < MinRange * MinRange,
 										new Sequence(
-											new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
-											new UtilityBehaviorPS.MoveTo(context => WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float)MinRange + 2f), context=> "Backing up", context => MovementBy)
+										    new Action(ret => TreeRoot.StatusText = "Too Close, Backing Up"),
+										    new ActionRunCoroutine(
+										        context =>
+										            UtilityCoroutine.MoveTo(
+										                WoWMathHelper.CalculatePointFrom(Me.Location, UseObject.Location, (float) MinRange + 2f),
+										                "Backing up",
+										                MovementBy))
 											)),
 									new Sequence(
 										new Action(ret => TreeRoot.StatusText = string.Format("Using Item: {0} {1} Out of {2} Times",
@@ -315,7 +324,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 								ret => Me.Location.DistanceSqr(MoveToLocation) > 2 * 2,
 								new Sequence(
 									new Action(ret => TreeRoot.StatusText = "Moving to location"),
-									new UtilityBehaviorPS.MoveTo(context => MoveToLocation, context=> "Destination", context => MovementBy)))
+                                    new ActionRunCoroutine(context => UtilityCoroutine.MoveTo(MoveToLocation, "Destination", MovementBy))))
 						))
 					));
 		}

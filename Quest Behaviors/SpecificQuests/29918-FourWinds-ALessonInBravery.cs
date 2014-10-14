@@ -187,7 +187,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 						// Spank bird (use backup MiniCombatRoutine if main CR doesn't attack in vehicles...
 						RoutineManager.Current.CombatBuffBehavior,
 						RoutineManager.Current.CombatBehavior,
-						new UtilityBehaviorPS.MiniCombatRoutine()
+                        new ActionRunCoroutine(context => UtilityCoroutine.MiniCombatRoutine())
 					));
 			}
 		}

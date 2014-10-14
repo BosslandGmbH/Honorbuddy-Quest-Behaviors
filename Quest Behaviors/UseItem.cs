@@ -147,10 +147,11 @@ namespace Honorbuddy.Quest_Behaviors.UseItem
 
 				new Decorator(
 					ret => Location.Distance(StyxWoW.Me.Location) > 2,
-					new UtilityBehaviorPS.MoveTo(
-						context => Location,
-						context => "destination",
-						context => MovementBy)),
+					new ActionRunCoroutine(
+					    interactUnitContext => UtilityCoroutine.MoveTo(
+					        Location,
+					        "destination",
+					        MovementBy))),
 
 				new Decorator(ret => StyxWoW.Me.IsMoving,
 					new Action(ret => { Navigator.PlayerMover.MoveStop(); })),

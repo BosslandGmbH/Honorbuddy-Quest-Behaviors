@@ -16,8 +16,10 @@
 #region Examples
 #endregion
 
+using Styx.CommonBot.Coroutines;
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -223,7 +225,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Gnomebliteration
 						new Sequence(
 							new DecoratorContinue(ctx => Me.Mounted, 
 								new Sequence(
-									new Action(ctx => Mount.Dismount("interacting with orb")),
+                                    new ActionRunCoroutine(context => CommonCoroutines.Dismount("interacting with orb")),
 									new WaitContinue(2, ctx => !Me.Mounted, new ActionAlwaysSucceed()))),
 						new Action(ctx => ((WoWUnit)ctx).Interact()),                                    
 						new WaitContinue(2, ctx => GossipFrame.Instance.IsVisible, new ActionAlwaysSucceed()),

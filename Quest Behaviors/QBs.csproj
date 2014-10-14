@@ -158,7 +158,7 @@
     <Compile Include="QuestBehaviorCore\Logging.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Generics.cs" />
     <Compile Include="QuestBehaviorCore\QBCLog.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\CastSpell.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityCoroutines\Combat.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Vehicle.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\CastSpell.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Common.cs" />
@@ -172,16 +172,6 @@
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Combat.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Common.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Interact.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Looting.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Misc.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Mount.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\Movement.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\SpankMob.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\SwimBreath.cs" />
-    <Compile Include="QuestBehaviorCore\UtilityBehaviors\UseItem.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query_Database.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Contract.cs" />

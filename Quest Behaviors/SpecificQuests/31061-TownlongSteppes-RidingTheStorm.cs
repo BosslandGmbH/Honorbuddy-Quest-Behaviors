@@ -226,7 +226,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 
 						// Spank Dragon (use backup MiniCombatRoutine if main CR doesn't attack in vehicles...
 						new ActionFail(context => TreeRoot.StatusText = "Fighting the dragon."),
-						new UtilityBehaviorPS.MiniCombatRoutine()
+                        new ActionRunCoroutine(context => UtilityCoroutine.MiniCombatRoutine())
 					));
 			}
 		}

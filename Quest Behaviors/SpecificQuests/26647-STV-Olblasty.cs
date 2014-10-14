@@ -26,6 +26,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -136,7 +137,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Olblasty
 						ctx => vehicle != null && vehicle.WithinInteractRange,
 						new PrioritySelector(
 							new Decorator(ctx => Me.Mounted,
-								new Action(ctx => Mount.Dismount("Getting in vehicle"))),
+                                new ActionRunCoroutine(context => CommonCoroutines.Dismount("Getting in vehicle"))),
 							new Decorator(ctx => Me.IsShapeshifted(),
 								new Action(ctx => Lua.DoString("CancelShapeshiftForm()"))),
 							new Action(ctx => vehicle.Interact())))));
