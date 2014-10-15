@@ -163,7 +163,6 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (!IsDone)
 			{
-				CharacterSettings.Instance.FindVendorsAutomatically = true;
 				Vendors.ForceMail |= DoMail;
 				Vendors.ForceRepair |= DoRepair;
 				Vendors.ForceSell |= DoSell;

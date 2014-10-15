@@ -330,7 +330,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
             return (isPlayersNearby);
         }
-        private static readonly Dictionary<ulong, DateTime> _inCompetitionTimers = new Dictionary<ulong, DateTime>();
+        private static readonly Dictionary<WoWGuid, DateTime> _inCompetitionTimers = new Dictionary<WoWGuid, DateTime>();
         private static readonly TimeSpan _inCompetitionMaxWaitTime = TimeSpan.FromSeconds(90);
         private static readonly TimeSpan _inCompetitionSweepTime = TimeSpan.FromSeconds(10/*mins*/ * 60 /*secs*/);
         private static WaitTimer _inCompetitionSweepTimer = null;
@@ -521,7 +521,6 @@ namespace Honorbuddy.QuestBehaviorCore
                                     || wowUnit.IsAuctioneer
                                     || wowUnit.IsBanker
                                     || wowUnit.IsFlightMaster
-                                    || wowUnit.IsGuard
                                     || wowUnit.IsGuildBanker
                                     || wowUnit.IsInnkeeper
                                     || wowUnit.IsQuestGiver

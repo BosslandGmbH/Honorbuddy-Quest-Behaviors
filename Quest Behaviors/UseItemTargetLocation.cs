@@ -145,7 +145,7 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
 		public int Counter { get; private set; }
 		private WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId); } }
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-		private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private readonly List<WoWGuid> _npcBlacklist = new List<WoWGuid>();
 
 		private WoWObject UseObject
 		{

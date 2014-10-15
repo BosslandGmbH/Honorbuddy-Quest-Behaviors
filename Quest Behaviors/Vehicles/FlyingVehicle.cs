@@ -436,12 +436,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 			}
 		}
 
-		private ulong _targetGuid;
+		private WoWGuid _targetGuid;
 		private WoWUnit FindTarget(WoWPoint location)
 		{
 			WoWUnit target = null;
-			if (_targetGuid != 0)
-				target = ObjectManager.GetAnyObjectByGuid<WoWUnit>(_targetGuid);
+			if (_targetGuid.IsValid)
+				target = ObjectManager.GetObjectByGuid<WoWUnit>(_targetGuid);
 
 			if (target != null && target.IsAlive 
 				// if rescuing NPCs then we don't want to include those rescued by other players.
@@ -473,7 +473,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 			if (!Query.IsViable(unit))
 				return false;
 			var myTransportGuid = Me.TransportGuid;
-			if (myTransportGuid == 0)
+			if (!myTransportGuid.IsValid)
 				return false;
 			return myTransportGuid == unit.TransportGuid;
 		}
@@ -508,7 +508,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 			if (!Query.IsViable(unit))
 				return false;
 			var transportGuid = unit.TransportGuid;
-			return transportGuid != 0 && transportGuid != Me.TransportGuid 
+			return transportGuid.IsValid && transportGuid != Me.TransportGuid 
 				&& ObjectManager.GetObjectsOfType<WoWPlayer>(false, false).Any(p => p.TransportGuid == transportGuid);
 		}
 		#endregion

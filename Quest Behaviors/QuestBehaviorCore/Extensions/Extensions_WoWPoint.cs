@@ -222,9 +222,8 @@ namespace Honorbuddy.QuestBehaviorCore
 			WoWPoint destination = location.Add(0.0, 0.0, -probeDistance);
 
 			var isObstructed = GameWorld.TraceLine(location, destination,
-												   GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures
-												   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid
-												   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
+												   TraceLineHitFlags.Collision
+                                                   | TraceLineHitFlags.LiquidAll,
 												   out hitLocation);
 
 			return isObstructed
@@ -246,7 +245,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			return (GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
 										location.Add(0.0, 0.0, -probeDistance),
-										GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures));
+                                        TraceLineHitFlags.Collision));
 		}
 
 
@@ -263,9 +262,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			return GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
 									   location.Add(0.0, 0.0, -probeDistance),
-									   GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures
-									   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid
-									   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2);
+                                       TraceLineHitFlags.Collision | TraceLineHitFlags.LiquidAll);
 		}
 
 
@@ -282,8 +279,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			return GameWorld.TraceLine(location.Add(0.0, 0.0, 1.0),
 									   location.Add(0.0, 0.0, -probeDistance),
-									   GameWorld.CGWorldFrameHitFlags.HitTestLiquid
-									   | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2);
+                                       TraceLineHitFlags.LiquidAll);
 		}
 
 
@@ -453,8 +449,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			var hitResult = (GameWorld.TraceLine(locationUpper,
 											 locationLower,
-											 (GameWorld.CGWorldFrameHitFlags.HitTestLiquid
-											  | GameWorld.CGWorldFrameHitFlags.HitTestLiquid2),
+                                             TraceLineHitFlags.LiquidAll,
 											 out hitLocation));
 
 			return (hitResult ? hitLocation : WoWPoint.Empty);

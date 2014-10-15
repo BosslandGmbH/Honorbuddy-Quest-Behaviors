@@ -82,7 +82,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		// 2Sep2013 chinajade
 		public static int SafeGuid(this WoWObject wowObject)
 		{
-			return (int)(wowObject.Guid & 0x0ffffff);
+		    return (int)wowObject.Guid.Lowest & 0x0ffffff;
 		}
 
 

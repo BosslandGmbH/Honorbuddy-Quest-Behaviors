@@ -82,7 +82,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
 		// Private variables for internal state
 		private bool _isBehaviorDone;
 		private bool IsOnFinishedRun { get; set; }
-		private ulong _lastguid;
+        private WoWGuid _lastguid;
 		private Composite _root;
 
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
@@ -180,7 +180,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ResonatingBlow
 						}
 						catch (NullReferenceException e)
 						{
-							_lastguid = 0;
+                            _lastguid = WoWGuid.Empty;
 							QBCLog.Error(e.ToString());
 						}
 					}

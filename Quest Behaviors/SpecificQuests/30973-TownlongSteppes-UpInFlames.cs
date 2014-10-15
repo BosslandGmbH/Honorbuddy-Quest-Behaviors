@@ -1114,7 +1114,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.SafeName);
 			StyxWoW.Me.SetFocus(wowUnit);
 			Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
-			StyxWoW.Me.SetFocus(0);
+            StyxWoW.Me.SetFocus(WoWGuid.Empty);
 		}
 
 
@@ -1257,7 +1257,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 				// destination meets the ground.  Before this MassTrace, only the candidateDestination's
 				// X/Y values were valid.
 				GameWorld.MassTraceLine(traceLines.ToArray(),
-										GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+										TraceLineHitFlags.Collision,
 										out hitResults,
 										out hitPoints);
 
@@ -1318,14 +1318,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
 			WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
 			WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
-			hitResult = (GameWorld.TraceLine(locationUpper,
+			hitResult = GameWorld.TraceLine(locationUpper,
 											 locationLower,
-											 GameWorld.CGWorldFrameHitFlags.HitTestLiquid,
-											 out hitLocation)
-						 || GameWorld.TraceLine(locationUpper,
-												locationLower,
-												GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
-												out hitLocation));
+                                             TraceLineHitFlags.LiquidAll,
+											 out hitLocation);
 
 			return (hitResult ? hitLocation : WoWPoint.Empty);
 		}

@@ -155,19 +155,20 @@ namespace QBs.QuestBehaviorCore.Utility
 		#region Helpers
 
 		// Stolen from Singluar.
-		private static ulong ArgToGuid(object o)
+		private static WoWGuid ArgToGuid(object o)
 		{
-			string svalue = o.ToString().Replace("0x", string.Empty);
+			string svalue = o.ToString();
 			try
 			{
-				return ulong.Parse(svalue, NumberStyles.HexNumber);
+			    WoWGuid guid;
+                if (WoWGuid.TryParseFriendly(svalue, out guid))
+			        return guid;
 			}
 			catch
 			{
 				QBCLog.Debug("error parsing Guid '{0}'", o.ToString());
 			}
-
-			return 0;
+		    return WoWGuid.Empty;
 		}
 
 		private SpellCastResult GetResultFromError(string error)

@@ -98,7 +98,7 @@ namespace Honorbuddy.Quest_Behaviors.ForceSetVendor
 									 .OrderBy(u => u.Distance).ToList());
 			}
 		}
-		private NpcResult RidingTrainer { get { return (NpcQueries.GetNpcById((uint)MobId)); } }
+		private NpcResult RidingTrainer { get { return (Styx.CommonBot.ObjectDatabase.Query.GetNpcById((uint)MobId)); } }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }

@@ -451,7 +451,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 				// destination meets the ground.  Before this MassTrace, only the candidateDestination's
 				// X/Y values were valid.
 				GameWorld.MassTraceLine(traceLines.ToArray(),
-										GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+										TraceLineHitFlags.Collision,
 										out hitResults,
 										out hitPoints);
 
@@ -512,14 +512,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 			WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
 			WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
-			hitResult = (GameWorld.TraceLine(locationUpper,
+			hitResult = GameWorld.TraceLine(locationUpper,
 											 locationLower,
-											 GameWorld.CGWorldFrameHitFlags.HitTestLiquid,
-											 out hitLocation)
-						 || GameWorld.TraceLine(locationUpper,
-												locationLower,
-												GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
-												out hitLocation));
+                                             TraceLineHitFlags.LiquidAll,
+											 out hitLocation);
 
 			return (hitResult ? hitLocation : WoWPoint.Empty);
 		}

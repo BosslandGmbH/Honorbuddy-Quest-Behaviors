@@ -150,7 +150,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
 		{
 			return
 				ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
-					.Where(u => (u.CharmedByUnitGuid == 0 || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 46707)
+					.Where(u => (!u.CharmedByUnitGuid.IsValid || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 46707)
 					.OrderBy(u => u.DistanceSqr)
 					.FirstOrDefault();
 		}

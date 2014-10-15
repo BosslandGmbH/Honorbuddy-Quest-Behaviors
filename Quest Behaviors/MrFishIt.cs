@@ -102,7 +102,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 		// Private variables for internal state
 		private Version _Version { get { return new Version(1, 0, 8); } }
-		public static double _PoolGUID;
+		public static WoWGuid _PoolGUID;
 		private ConfigMemento _configMemento;
 		private bool _cancelBehavior;
 		private Composite _root;
@@ -214,14 +214,14 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 				if (_pool != null)
 				{
 					//QBCLog.DeveloperInfo(DateTime.Now.ToLongTimeString() + " - hasPoolFound - set " + _pool.Guid.ToString() + " - " + _pool.Name + " - " + _pool.Distance2D);
-					if (_PoolGUID != (double)_pool.Guid)
+					if (_PoolGUID != _pool.Guid)
 					{
 						PoolFishingBuddy.looking4NewLoc = true;
-						_PoolGUID = (double)_pool.Guid;
+						_PoolGUID = _pool.Guid;
 					}
 					return true;
 				}
-				_PoolGUID = -1;
+				_PoolGUID = WoWGuid.Empty;
 				return false;
 			}
 		}
@@ -233,7 +233,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 					new PrioritySelector(
 
 						// Have we a facing waterpoint or a PoolId and PoolGUID? No, then cancel this behavior!
-						new Decorator(ret => (!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || _PoolGUID == -1)) ||
+						new Decorator(ret => (!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || !_PoolGUID.IsValid)) ||
 						StyxWoW.Me.Combat || StyxWoW.Me.IsDead || StyxWoW.Me.IsGhost,
 							new Action(ret => _cancelBehavior = true)),
 
@@ -396,7 +396,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			//return value.AnimationState == 1;
 		}
 
-		public static WoWGameObject asWoWGameObject(this double GUID)
+		public static WoWGameObject asWoWGameObject(this WoWGuid GUID)
 		{
 			ObjectManager.Update();
 			WoWGameObject _o = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o.Guid == GUID);
@@ -576,7 +576,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		{
 			WoWPoint ground = WoWPoint.Empty;
 
-			GameWorld.TraceLine(new WoWPoint(p.X, p.Y, (p.Z + MaxCastRange)), new WoWPoint(p.X, p.Y, (p.Z - 0.8f)), GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures/* | GameWorld.CGWorldFrameHitFlags.HitTestBoundingModels | GameWorld.CGWorldFrameHitFlags.HitTestWMO*/, out ground);
+            GameWorld.TraceLine(new WoWPoint(p.X, p.Y, (p.Z + MaxCastRange)), new WoWPoint(p.X, p.Y, (p.Z - 0.8f)), TraceLineHitFlags.Collision, out ground);
 
 			if (ground != WoWPoint.Empty)
 			{

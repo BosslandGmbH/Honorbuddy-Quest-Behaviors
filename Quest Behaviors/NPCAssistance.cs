@@ -114,7 +114,7 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
 
 		// Private properties
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-		private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private readonly List<WoWGuid> _npcBlacklist = new List<WoWGuid>();
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
@@ -149,7 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
 
 		class BehaviorBlacklist
 		{
-			static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
+            static readonly Dictionary<WoWGuid, BlacklistTime> SpellBlacklistDict = new Dictionary<WoWGuid, BlacklistTime>();
 			private BehaviorBlacklist()
 			{
 			}
@@ -165,18 +165,18 @@ namespace Honorbuddy.Quest_Behaviors.NPCAssistance
 				public TimeSpan Duration { get; private set; }
 			}
 
-			static public bool Contains(ulong id)
+            static public bool Contains(WoWGuid id)
 			{
 				RemoveIfExpired(id);
 				return SpellBlacklistDict.ContainsKey(id);
 			}
 
-			static public void Add(ulong id, TimeSpan duration)
+            static public void Add(WoWGuid id, TimeSpan duration)
 			{
 				SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
 			}
 
-			static void RemoveIfExpired(ulong id)
+            static void RemoveIfExpired(WoWGuid id)
 			{
 				if (SpellBlacklistDict.ContainsKey(id) &&
 					SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)

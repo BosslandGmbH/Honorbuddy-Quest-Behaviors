@@ -19,6 +19,7 @@ using Bots.Grind;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.AreaManagement;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest;
 using Styx.CommonBot.Routines;
@@ -326,7 +327,6 @@ namespace Honorbuddy.QuestBehaviorCore
 			// IMMUTABLE: private readonly int _minFreeBagSlots;
 			// IMMUTABLE: private readonly int _minLevel;
 			// IMMUTABLE: private readonly int _minMailLevel;
-			private readonly HashSet<uint> _mobIds;
 			// IMMUTABLE: private readonly string _name;
 			// NON-CONFIGURATION: private readonly Styx.CommonBot.Profiles.Profile _parent;
 			private readonly DualHashSet<uint, string> _protectedItems;
@@ -368,7 +368,6 @@ namespace Honorbuddy.QuestBehaviorCore
 					_lootMobs = currentProfile.LootMobs;
 					_lootRadius = currentProfile.LootRadius;
 					_mailQualities = new List<WoWItemQuality>(currentProfile.MailQualities);
-					_mobIds = new HashSet<uint>(currentProfile.MobIDs);
 					_protectedItems = currentProfile.ProtectedItems.Clone();
 					_quests = new List<QuestInfo>(currentProfile.Quests);
 					_subProfiles = new List<Profile>(currentProfile.SubProfiles);
@@ -381,7 +380,6 @@ namespace Honorbuddy.QuestBehaviorCore
 			public void Restore()
 			{
 				var currentProfile = ProfileManager.CurrentProfile;
-
 				if (currentProfile != null)
 				{
 					// NB: We can't use reflection, because not all data members are 'configuration items'.
@@ -401,7 +399,6 @@ namespace Honorbuddy.QuestBehaviorCore
 					currentProfile.LootMobs = _lootMobs;
 					currentProfile.LootRadius = _lootRadius;
 					currentProfile.MailQualities.CopyFrom(_mailQualities);
-					currentProfile.MobIDs.CopyFrom(_mobIds);
 					currentProfile.ProtectedItems.CopyFrom(_protectedItems);
 					currentProfile.Quests.CopyFrom(_quests);
 					currentProfile.SubProfiles.CopyFrom(_subProfiles);

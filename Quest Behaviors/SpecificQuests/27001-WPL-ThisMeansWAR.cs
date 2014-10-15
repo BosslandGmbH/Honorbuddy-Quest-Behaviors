@@ -58,7 +58,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 		private WoWPoint _movetoPoint;
 		private WoWUnit _currentTarget;
 
-		readonly List<ulong> _blackList = new List<ulong>();
+        readonly List<WoWGuid> _blackList = new List<WoWGuid>();
 		private DateTime _stuckTimeStamp = DateTime.Now;
 		private WoWPoint _lastMovetoPoint;
 
@@ -191,7 +191,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 
 		WoWUnit GetMustang()
 		{
-			return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.CharmedByUnitGuid == 0 || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 44836)
+			return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (!u.CharmedByUnitGuid.IsValid || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 44836)
 				.OrderBy(u => u.DistanceSqr).
 				FirstOrDefault();
 		}

@@ -1932,7 +1932,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 	    private WoWSpell GetInteractSpell()
 	    {
             return Query.IsViable(ItemToUse)
-                ? ItemToUse.ItemSpells.Select(i => i.ActualSpell).FirstOrDefault()
+                ? ItemToUse.Effects.Select(i => i.Spell).FirstOrDefault()
                 : (InteractByCastingSpellId > 0 ? WoWSpell.FromId(InteractByCastingSpellId) : null);
 	    }
 

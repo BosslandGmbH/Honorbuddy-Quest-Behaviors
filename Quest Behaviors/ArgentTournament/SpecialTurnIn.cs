@@ -36,6 +36,8 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+using Query = Styx.CommonBot.ObjectDatabase.Query;
+
 #endregion
 
 
@@ -147,7 +149,7 @@ namespace Styx.Bot.Quest_Behaviors
 
 		private NpcResult turninguy
 		{
-			get { return NpcQueries.GetNpcById((uint) TurnInId); }
+            get { return Query.GetNpcById((uint)TurnInId); }
 		}
 
         public override void OnFinished()

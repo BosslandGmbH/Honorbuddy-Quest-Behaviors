@@ -254,7 +254,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				// tmp.AppendFormat("{0}DurationPerLevel=\"{1}\"", fieldSeparator, wowSpell.DurationPerLevel);
 				tmp.AppendFormat("{0}HasRange=\"{1}\"", fieldSeparator, wowSpell.HasRange);
 				tmp.AppendFormat("{0}Id=\"{1}\"", fieldSeparator, wowSpell.Id);
-				tmp.AppendFormat("{0}IsFunnel=\"{1}\"", fieldSeparator, wowSpell.IsFunnel);
+				tmp.AppendFormat("{0}IsFunnel=\"{1}\"", fieldSeparator, wowSpell.IsChanneled);
 				tmp.AppendFormat("{0}IsMelee=\"{1}\"", fieldSeparator, wowSpell.IsMeleeSpell);
 				tmp.AppendFormat("{0}IsSelfOnly=\"{1}\"", fieldSeparator, wowSpell.IsSelfOnlySpell);
 				tmp.AppendFormat("{0}Level: {1}", fieldSeparator, wowSpell.Level);
@@ -265,7 +265,6 @@ namespace Honorbuddy.QuestBehaviorCore
 				tmp.AppendFormat("{0}Mechanic=\"{1}\"", fieldSeparator, wowSpell.Mechanic);
 				tmp.AppendFormat("{0}MinRange=\"{1}\"", fieldSeparator, wowSpell.MinRange);
 				tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, wowSpell.Name);
-				tmp.AppendFormat("{0}PowerCost=\"{1}\"", fieldSeparator, wowSpell.PowerCost);
 				tmp.AppendFormat("{0}ResearchProjectId=\"{1}\"", fieldSeparator, wowSpell.ResearchProjectId);
 				tmp.AppendFormat("{0}School=\"{1}\"", fieldSeparator, wowSpell.School);
 				tmp.AppendFormat("{0}SpellDescriptionVariableId=\"{1}\"", fieldSeparator, wowSpell.SpellDescriptionVariableId);

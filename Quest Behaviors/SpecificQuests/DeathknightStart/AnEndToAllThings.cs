@@ -149,7 +149,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 			{
 				if (!Query.IsViable(_dragonVehicle))
 				{
-					_dragonVehicle = (Me.TransportGuid != 0)
+					_dragonVehicle = (Me.TransportGuid.IsValid)
 						? ObjectManager.GetObjectByGuid<WoWUnit>(Me.TransportGuid)
 						: null;
 				}

@@ -1149,7 +1149,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 			if (currentTarget == null)
 			{ return false; }
 
-			ulong currentTargetGuid = currentTarget.Guid;
+            WoWGuid currentTargetGuid = currentTarget.Guid;
 
 			// NB: We can only check player pets... checking for NPC pets gives Honorbuddy heartburn
 			return (currentTarget == null)
@@ -1458,12 +1458,12 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 				_stopWatchForSweeping.Start();
 			}
 
-			private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+            private Dictionary<WoWGuid, DateTime> _blackList = new Dictionary<WoWGuid, DateTime>();
 			private TimeSpan _maxSweepTime;
 			private Stopwatch _stopWatchForSweeping = new Stopwatch();
 
 
-			public void Add(ulong guid, TimeSpan timeSpan)
+            public void Add(WoWGuid guid, TimeSpan timeSpan)
 			{
 				if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
 				{ RemoveExpired(); }
@@ -1479,7 +1479,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 			}
 
 
-			public bool Contains(ulong guid)
+            public bool Contains(WoWGuid guid)
 			{
 				return (_blackList.ContainsKey(guid) && (_blackList[guid] > DateTime.Now));
 			}
@@ -1497,11 +1497,11 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 			{
 				DateTime now = DateTime.Now;
 
-				List<ulong> expiredEntries = (from key in _blackList.Keys
+                List<WoWGuid> expiredEntries = (from key in _blackList.Keys
 											  where (_blackList[key] < now)
 											  select key).ToList();
 
-				foreach (ulong entry in expiredEntries)
+                foreach (WoWGuid entry in expiredEntries)
 				{ _blackList.Remove(entry); }
 
 				_stopWatchForSweeping.Restart();

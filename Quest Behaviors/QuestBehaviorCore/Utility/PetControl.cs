@@ -78,7 +78,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				else if (wowUnit.IsValid)
 				{
 					QBCLog.DeveloperInfo("Instructing pet \"{0}\" on {1}.", petActionName, wowUnit.SafeName);
-					uint originalFocus = Me.CurrentFocus;
+					var originalFocus = Me.FocusedUnitGuid;
 					StyxWoW.Me.SetFocus(wowUnit);
 					Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex + 1);
 					StyxWoW.Me.SetFocus(originalFocus);

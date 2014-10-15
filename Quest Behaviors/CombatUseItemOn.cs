@@ -194,7 +194,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-		private ulong _lastMobGuid;
+        private WoWGuid _lastMobGuid;
 		private Composite RootCompositeOverride()
 		{
 			return
@@ -310,7 +310,7 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 
 	class BehaviorBlacklist
 	{
-		static readonly Dictionary<ulong, BlacklistTime> SpellBlacklistDict = new Dictionary<ulong, BlacklistTime>();
+        static readonly Dictionary<WoWGuid, BlacklistTime> SpellBlacklistDict = new Dictionary<WoWGuid, BlacklistTime>();
 		private BehaviorBlacklist()
 		{
 		}
@@ -326,18 +326,18 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 			public TimeSpan Duration { get; private set; }
 		}
 
-		static public bool Contains(ulong id)
+        static public bool Contains(WoWGuid id)
 		{
 			RemoveIfExpired(id);
 			return SpellBlacklistDict.ContainsKey(id);
 		}
 
-		static public void Add(ulong id, TimeSpan duration)
+        static public void Add(WoWGuid id, TimeSpan duration)
 		{
 			SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
 		}
 
-		static void RemoveIfExpired(ulong id)
+        static void RemoveIfExpired(WoWGuid id)
 		{
 			if (SpellBlacklistDict.ContainsKey(id) &&
 				SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)

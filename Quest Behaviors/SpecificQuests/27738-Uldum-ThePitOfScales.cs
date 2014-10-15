@@ -967,7 +967,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 				WoWPoint[] hitPoints;
 				GameWorld.MassTraceLine(
 					potentialNavPointsAsLines,
-					GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+					TraceLineHitFlags.Collision,
 					out hitResults,
 					out hitPoints);
 
@@ -1082,24 +1082,24 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 			public static void Allow(WoWUnit wowUnit)
 			{
 				if (wowUnit != null)
-					{ _combatDisallowed.Remove((int)wowUnit.Guid); }
+					{ _combatDisallowed.Remove(wowUnit.Guid); }
 			}
 
 			public static void Disallow(WoWUnit wowUnit)
 			{
 				// Make certain unit is placed on the list only once...
-				if ((wowUnit != null) && !_combatDisallowed.Contains((int)wowUnit.Guid))
-					{ _combatDisallowed.Add((int)wowUnit.Guid); }
+				if ((wowUnit != null) && !_combatDisallowed.Contains(wowUnit.Guid))
+					{ _combatDisallowed.Add(wowUnit.Guid); }
 			}
 
 			public static bool IsAllowed(WoWUnit wowUnit)
 			{
 				return (wowUnit != null)
-					? !_combatDisallowed.Contains((int)wowUnit.Guid)
+					? !_combatDisallowed.Contains(wowUnit.Guid)
 					: false;
 			}
 
-			private static List<int> _combatDisallowed = new List<int>();
+            private static List<WoWGuid> _combatDisallowed = new List<WoWGuid>();
 		}
 		#endregion
 
@@ -1139,7 +1139,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
             QBCLog.Info("Instructing pet \"{0}\" on {1}", petActionName, wowUnit.SafeName);
 			StyxWoW.Me.SetFocus(wowUnit);
 			Lua.DoString("CastPetAction({0}, 'focus')", petAction.ActionBarIndex +1);
-			StyxWoW.Me.SetFocus(0);
+			StyxWoW.Me.SetFocus(WoWGuid.Empty);
 		}
 
 
@@ -1312,7 +1312,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 				// destination meets the ground.  Before this MassTrace, only the candidateDestination's
 				// X/Y values were valid.
 				GameWorld.MassTraceLine(traceLines.ToArray(),
-										GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+										TraceLineHitFlags.Collision,
 										out hitResults,
 										out hitPoints);
 

@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Styx.Common.Helpers;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 #endregion
@@ -38,11 +39,11 @@ namespace Honorbuddy.QuestBehaviorCore
 			_sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
 		}
 
-		private readonly Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+        private readonly Dictionary<WoWGuid, DateTime> _blackList = new Dictionary<WoWGuid, DateTime>();
 		private readonly WaitTimer _sweepTimer = null;
 
 
-		public void Add(ulong guid, TimeSpan timeSpan)
+        public void Add(WoWGuid guid, TimeSpan timeSpan)
 		{
 			RemoveExpired();
 			_blackList[guid] = DateTime.Now.Add(timeSpan);
@@ -56,7 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		}
 
 
-		public bool Contains(ulong guid)
+        public bool Contains(WoWGuid guid)
 		{
 			DateTime expiry;
 			if (_blackList.TryGetValue(guid, out expiry))
@@ -78,11 +79,11 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				DateTime now = DateTime.Now;
 
-				List<ulong> expiredEntries = (from key in _blackList.Keys
+                List<WoWGuid> expiredEntries = (from key in _blackList.Keys
 												where (_blackList[key] < now)
 												select key).ToList();
 
-				foreach (ulong entry in expiredEntries)
+                foreach (WoWGuid entry in expiredEntries)
 					{ _blackList.Remove(entry); }
 
 				_sweepTimer.Reset();

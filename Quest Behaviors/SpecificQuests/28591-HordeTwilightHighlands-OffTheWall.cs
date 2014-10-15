@@ -123,7 +123,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.OffTheWall
 
 		WoWUnit GetTurret()
 		{
-			return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (u.CharmedByUnitGuid == 0 || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 49135)
+			return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => (!u.CharmedByUnitGuid.IsValid || u.CharmedByUnitGuid == Me.Guid) && u.Entry == 49135)
 				.OrderBy(u => u.DistanceSqr).
 				FirstOrDefault();
 		}

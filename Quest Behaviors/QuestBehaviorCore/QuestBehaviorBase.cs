@@ -223,7 +223,6 @@ namespace Honorbuddy.QuestBehaviorCore
 		private Composite _behaviorTreeHook_Main;
 		private ConfigMemento _configMemento;
 		private bool _isBehaviorDone;
-		private AvoidMobsType _temporaryAvoidMobs;
 		private BlackspotsType _temporaryBlackspots;
 
 		protected bool IsOnFinishedRun { get; private set; }
@@ -287,13 +286,6 @@ namespace Honorbuddy.QuestBehaviorCore
 				BehaviorHookRemove("Combat_Only", ref _behaviorTreeHook_CombatOnly);
 				BehaviorHookRemove("Death_Main", ref _behaviorTreeHook_DeathMain);
 				BehaviorHookRemove("Questbot_Main", ref _behaviorTreeHook_QuestbotMain);
-
-				// Remove temporary 'avoid mobs'...
-				if (_temporaryAvoidMobs != null)
-				{
-					AvoidanceManager.RemoveAll(_temporaryAvoidMobs.GetAvoidMobIds());
-					_temporaryAvoidMobs = null;
-				}
 
 				// Remove temporary blackspots...
 				if (_temporaryBlackspots != null)
@@ -408,11 +400,19 @@ namespace Honorbuddy.QuestBehaviorCore
 				Utility.BlacklistsReset();
 
 				// Add temporary avoid mobs, if any were specified...
-				// NB: Ideally, we'd save and restore the original 'avoid mob' list.  However,
-				// AvoidanceManager does not currently give us a way to "see" hat is currently
-				// on the list.
-				_temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
-				AvoidanceManager.AddAll(_temporaryAvoidMobs.GetAvoidMobIds());
+				// NB: ConfigMemento will restore the orginal list in OnFinished 
+				var temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
+                if (temporaryAvoidMobs != null )
+                {
+                    foreach (var avoidMobId in temporaryAvoidMobs.GetAvoidMobIds())
+                    {
+                        // NB: ProfileManager.CurrentProfile.AvoidMobs will never be null
+                        if (!ProfileManager.CurrentProfile.AvoidMobs.Contains(avoidMobId))
+                        {
+                            ProfileManager.CurrentProfile.AvoidMobs.Add(avoidMobId);
+                        }
+                    }
+                }
 
 				// Add temporary blackspots, if any were specified...
 				// NB: Ideally, we'd save and restore the original blackspot list.  However,

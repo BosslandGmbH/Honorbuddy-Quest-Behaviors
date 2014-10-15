@@ -112,7 +112,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Blackout
 			get
 			{
 				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 46141 && u.IsAlive && u.ChannelObjectGuid == 0).OrderBy(u => u.Distance).FirstOrDefault();
+					ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == 46141 && u.IsAlive && !u.ChannelObjectGuid.IsValid).OrderBy(u => u.Distance).FirstOrDefault();
 			}
 		}
 

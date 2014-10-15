@@ -154,7 +154,7 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
 		// Private properties
 		public int Counter { get; private set; }
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-		private readonly List<ulong> _npcBlacklist = new List<ulong>();
+        private readonly List<WoWGuid> _npcBlacklist = new List<WoWGuid>();
 
 		private WoWUnit UseObject
 		{

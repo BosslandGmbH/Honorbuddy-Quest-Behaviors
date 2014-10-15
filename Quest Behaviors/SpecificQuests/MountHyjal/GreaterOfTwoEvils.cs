@@ -38,6 +38,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Bars;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -185,22 +186,20 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 							})
 						),
 
-						new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(2, BlacklistFlags.Combat) && !Me.Auras.ContainsKey("Flame Shield"),
+                        new Decorator(ret => ActionBar.Active.Buttons[1].CanUse && !Me.Auras.ContainsKey("Flame Shield"),
 							new Action(delegate
 							{
 								Log("Cast Flame Shield");
-								Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
-								Blacklist.Add(2, BlacklistFlags.Combat, TimeSpan.FromMilliseconds(6000));
+								ActionBar.Active.Buttons[1].Use();
 								return RunStatus.Success;
 							})
 						),
 
-						new Decorator(ret => !SpellManager.GlobalCooldown && !Blacklist.Contains(1, BlacklistFlags.Combat),
+						new Decorator(ret => ActionBar.Active.Buttons[0].CanUse,
 							new Action(delegate
 							{
 								Log("Cast Attack");
-								Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
-								Blacklist.Add(1, BlacklistFlags.Combat, TimeSpan.FromMilliseconds(1500));
+								ActionBar.Active.Buttons[0].Use();
 								return RunStatus.Success;
 							})
 						),

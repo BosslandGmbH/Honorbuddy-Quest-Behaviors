@@ -691,12 +691,12 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 			_stopWatchForSweeping.Start();
 		}
 
-		private Dictionary<ulong, DateTime> _blackList = new Dictionary<ulong, DateTime>();
+        private Dictionary<WoWGuid, DateTime> _blackList = new Dictionary<WoWGuid, DateTime>();
 		private TimeSpan _maxSweepTime;
 		private Stopwatch _stopWatchForSweeping = new Stopwatch();
 
 
-		public void Add(ulong guid, TimeSpan timeSpan)
+        public void Add(WoWGuid guid, TimeSpan timeSpan)
 		{
 			if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
 			{ RemoveExpired(); }
@@ -705,7 +705,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 		}
 
 
-		public bool Contains(ulong guid)
+        public bool Contains(WoWGuid guid)
 		{
 			if (_stopWatchForSweeping.Elapsed > _maxSweepTime)
 			{ RemoveExpired(); }
@@ -718,11 +718,11 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 		{
 			DateTime now = DateTime.Now;
 
-			List<ulong> expiredEntries = (from key in _blackList.Keys
+            List<WoWGuid> expiredEntries = (from key in _blackList.Keys
 										  where (_blackList[key] < now)
 										  select key).ToList();
 
-			foreach (ulong entry in expiredEntries)
+            foreach (WoWGuid entry in expiredEntries)
 			{ _blackList.Remove(entry); }
 
 			_stopWatchForSweeping.Reset();
@@ -857,7 +857,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 				// destination meets the ground.  Before this MassTrace, only the candidateDestination's
 				// X/Y values were valid.
 				GameWorld.MassTraceLine(traceLines.ToArray(),
-										GameWorld.CGWorldFrameHitFlags.HitTestGroundAndStructures,
+                                        TraceLineHitFlags.Collision,
 										out hitResults,
 										out hitPoints);
 
@@ -918,14 +918,10 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 			WoWPoint locationUpper = location.Add(0.0, 0.0, 2000.0);
 			WoWPoint locationLower = location.Add(0.0, 0.0, -2000.0);
 
-			hitResult = (GameWorld.TraceLine(locationUpper,
+			hitResult = GameWorld.TraceLine(locationUpper,
 											 locationLower,
-											 GameWorld.CGWorldFrameHitFlags.HitTestLiquid,
-											 out hitLocation)
-						 || GameWorld.TraceLine(locationUpper,
-												locationLower,
-												GameWorld.CGWorldFrameHitFlags.HitTestLiquid2,
-												out hitLocation));
+                                             TraceLineHitFlags.LiquidAll,
+											 out hitLocation);
 
 			return (hitResult ? hitLocation : WoWPoint.Empty);
 		}
