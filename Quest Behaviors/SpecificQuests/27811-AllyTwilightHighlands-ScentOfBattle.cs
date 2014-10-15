@@ -178,7 +178,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ScentOfBattle
 								new Action(ret =>WoWMovement.MoveStop()),
 								new Action(ret =>Lua.DoString("Dismount()")),
 								new Decorator(ret => Me.Class == WoWClass.Druid,
-									new Action(ret => Lua.DoString("RunMacroText('/cancelaura Flight Form')"))),
+									new Action(ret => Lua.DoString("RunMacroText('/cancelform')"))),
                                 new ActionRunCoroutine(context => CommonCoroutines.Dismount())
 						)),
 						//new Decorator(ret => RoutineManager.Current.CombatBehavior != null, RoutineManager.Current.CombatBehavior),

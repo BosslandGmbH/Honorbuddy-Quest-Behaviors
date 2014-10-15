@@ -99,13 +99,13 @@ namespace Honorbuddy.Quest_Behaviors.ForcedMount
 		    if (!Flightor.CanFly)
 		        return false;
 
-			if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || SpellManager.HasSpell("Swift Flight Form")))
+			if (StyxWoW.Me.Class == WoWClass.Druid && (SpellManager.HasSpell("Flight Form") || StyxWoW.Me.Level >= 58))
 			{
-				if (SpellManager.CanCast("Swift Flight Form"))
-				{ SpellManager.Cast("Swift Flight Form"); }
-
-				else if (SpellManager.CanCast("Flight Form"))
+				if (SpellManager.CanCast("Flight Form"))
 				{ SpellManager.Cast("Flight Form"); }
+
+				else if (SpellManager.CanCast("Travel Form"))
+				{ SpellManager.Cast("Travel Form"); }
 			}
 
 			else

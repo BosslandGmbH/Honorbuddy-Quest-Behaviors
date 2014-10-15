@@ -37,6 +37,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		}
 		private readonly static int[] _mountedAuras =
 			{
+				165962,		// Druid: Flight Form (Patch 6.0.2)
 				33943,      // Druid: Flight Form
 				40120,      // Druid: Swift Flight Form
 				  783,      // Druid: Travel Form
@@ -56,6 +57,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				 1066,      // Druid: Aquatic Form
 				 5487,      // Druid: Bear Form
 				  768,      // Druid: Cat Form
+				165962,		// Druid: Flight Form (Patch 6.0.2)
 				33943,      // Druid: Flight Form
 				40120,      // Druid: Swift Flight Form
 				  783,      // Druid: Travel Form       
