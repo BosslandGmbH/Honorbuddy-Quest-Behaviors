@@ -636,6 +636,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		#region Private and Convenience variables
 
 		private const double RangeMinMaxEpsilon = 3.0;
+		private bool _closeFrames;
 		private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 		private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
 		private WaitTimer _waitTimerAfterInteracting = null;
@@ -742,9 +743,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				// NB: With the post-.557 HB releases, Honorbuddy will keep the NPC dialog boxes up
 				// after a <PickUp> directive.  This looks more human like, and is a good thing.
 				// Unfortunately, a <PickUp> immediate followed by an <InteractWith> will cause InteractWith
-				// to see an unexpected quest dialog frame.  To prevent problems, we close all dialogs
-				// when InteractWith is started, here.
-				CloseOpenFrames(true);
+				// to see an unexpected quest dialog frame. To prevent problems, we close all dialogs
+				// when InteractWith is started.
+				_closeFrames = true;
 
 				// If toon doesn't know any of the prescribed spells, we're done...
 				if ((InteractByCastingSpellId > 0) && !SpellManager.HasSpell(InteractByCastingSpellId))
@@ -805,6 +806,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private async Task<bool> MainCoroutine()
 		{
+			if (_closeFrames)
+			{
+				await CloseOpenFramesAndWait();
+				_closeFrames = false;
+			}
+
 			// return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
 			bool shouldFight = Targeting.Instance.FirstUnit != null
 				&& LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat)
@@ -1556,73 +1563,35 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		#region Helpers
 
-		private PerFrameCachedValue<bool> _isGossipFrameVisible;
-
-		private PerFrameCachedValue<bool> _isLootFrameVisible;
-
-		private PerFrameCachedValue<bool> _isMerchantFrameVisible;
-
-		private PerFrameCachedValue<bool> _isQuestFrameVisible;
-
-		private PerFrameCachedValue<bool> _isTaxiFrameVisible;
-
-		private PerFrameCachedValue<bool> _isTrainerFrameVisible;
-
 		// cache the 'IsVisible' results for one frame to help increase performance.
 		private bool IsLootFrameVisible
 		{
-			get
-			{
-				return _isLootFrameVisible ??
-						(_isLootFrameVisible = new PerFrameCachedValue<bool>(() => LootFrame.Instance.IsVisible));
-			}
+			get { return LootFrame.Instance.IsVisible; }
 		}
 
 		private bool IsGossipFrameVisible
 		{
-			get
-			{
-				return _isGossipFrameVisible ??
-						(_isGossipFrameVisible = new PerFrameCachedValue<bool>(() => GossipFrame.Instance.IsVisible));
-			}
+			get { return GossipFrame.Instance.IsVisible; }
 		}
 
 		private bool IsMerchantFrameVisible
 		{
-			get
-			{
-				return _isMerchantFrameVisible ??
-						(_isMerchantFrameVisible =
-							new PerFrameCachedValue<bool>(() => MerchantFrame.Instance.IsVisible));
-			}
+			get { return MerchantFrame.Instance.IsVisible; }
 		}
 
 		private bool IsQuestFrameVisible
 		{
-			get
-			{
-				return _isQuestFrameVisible ??
-						(_isQuestFrameVisible = new PerFrameCachedValue<bool>(() => QuestFrame.Instance.IsVisible));
-			}
+			get { return QuestFrame.Instance.IsVisible; }
 		}
 
 		private bool IsTaxiFrameVisible
 		{
-			get
-			{
-				return _isTaxiFrameVisible ??
-						(_isTaxiFrameVisible = new PerFrameCachedValue<bool>(() => TaxiFrame.Instance.IsVisible));
-			}
+			get { return TaxiFrame.Instance.IsVisible; }
 		}
 
 		private bool IsTrainerFrameVisible
 		{
-			get
-			{
-				return _isTrainerFrameVisible ??
-						(_isTrainerFrameVisible =
-							new PerFrameCachedValue<bool>(() => TrainerFrame.Instance.IsVisible));
-			}
+			get { return TrainerFrame.Instance.IsVisible; }
 		}
 
 		private TimeSpan BlacklistInteractTarget(WoWObject selectedTarget)
@@ -1651,6 +1620,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			{
 				Utility.CloseAllNpcFrames();
 			}
+		}
+
+		private async Task CloseOpenFramesAndWait()
+		{
+			CloseOpenFrames(true);
+			await Coroutine.Wait(3000, () => Utility.GetNpcFrames().All(frame => !frame.IsVisible));
 		}
 
 

@@ -50,23 +50,24 @@ namespace Honorbuddy.QuestBehaviorCore
 			Blacklist.Clear(blacklistEntry => { return (blacklistEntry.Flags & BlacklistFlags.Interact) != 0; });
 		}
 
+		public static IEnumerable<Frame> GetNpcFrames()
+		{
+			yield return AuctionFrame.Instance;
+			yield return GossipFrame.Instance;
+			yield return MailFrame.Instance;
+			yield return MerchantFrame.Instance;
+			yield return QuestFrame.Instance;
+			yield return TaxiFrame.Instance;
+			yield return TrainerFrame.Instance;
+		}
 
 		public static void CloseAllNpcFrames()
 		{
-			if (AuctionFrame.Instance.IsVisible)
-				{ AuctionFrame.Instance.Close(); }
-			if (GossipFrame.Instance.IsVisible)
-				{ GossipFrame.Instance.Close(); }
-			if (MailFrame.Instance.IsVisible)
-				{ MailFrame.Instance.Close(); }
-			if (MerchantFrame.Instance.IsVisible)
-				{ MerchantFrame.Instance.Close(); }
-			if (QuestFrame.Instance.IsVisible)
-				{ QuestFrame.Instance.Close(); }
-			if (TaxiFrame.Instance.IsVisible)
-				{ TaxiFrame.Instance.Close(); }
-			if (TrainerFrame.Instance.IsVisible)
-				{ TrainerFrame.Instance.Close(); }
+			foreach (Frame frame in GetNpcFrames())
+			{
+				if (frame.IsVisible)
+					frame.Close();
+			}
 		}
 
 
