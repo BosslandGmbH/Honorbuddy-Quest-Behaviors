@@ -525,6 +525,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                     || wowUnit.IsInnkeeper
                                     || wowUnit.IsQuestGiver
                                     || wowUnit.IsStableMaster
+                                    || wowUnit.CanGossip
                                    );
             
             return isSharedResource;
