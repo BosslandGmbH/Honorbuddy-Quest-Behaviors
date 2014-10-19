@@ -34,6 +34,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
@@ -240,7 +241,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 						new Decorator(ret => (!Flightor.MountHelper.Mounted || !StyxWoW.Me.IsFlying) && (TestFishing || (WaterPoint != WoWPoint.Empty ||
 							(PoolId != 0 && hasPoolFound && PoolFishingBuddy.saveLocation.Count > 0 &&
 							StyxWoW.Me.Location.Distance(PoolFishingBuddy.saveLocation[0]) <= 2.5 && !PoolFishingBuddy.looking4NewLoc))),
-							CreateFishBehavior()
+                            new ActionRunCoroutine(ctx => FishLogic())
 							),
 
 						PoolFishingBuddy.CreateMoveToPoolBehavior()                            
@@ -263,69 +264,69 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		}
 		private void HandleLootClosed(object sender, LuaEventArgs args) { QBCLog.DeveloperInfo("(hook)looting done."); LootOpen = false; }
 
-		private Composite CreateFishBehavior()
-		{
-			return new PrioritySelector(
 
-				// Don't do anything if the global cooldown timer is running
-				new Decorator(ret => SpellManager.GlobalCooldown,
-					new ActionIdle()),
+	    private async Task<bool> FishLogic()
+	    {
+	        // Don't do anything if the global cooldown timer is running
+	        if (SpellManager.GlobalCooldown)
+	            return true;
 
-				// Do we need to interact with the bobber?
-				new Decorator(ret => Fishing.IsBobberBobbing,
-					new Sequence(
+	        // Do we need to interact with the bobber?
+	        if (Fishing.IsBobberBobbing)
+	        {
+	            // Interact with the bobber
+	            QBCLog.Info("[MrFishIt] Got a bite!");
+	            WoWGameObject bobber = Fishing.FishingBobber;
 
-						// Interact with the bobber
-						new Action(delegate
-						{
-							QBCLog.Info("[MrFishIt] Got a bite!");
-							WoWGameObject bobber = Fishing.FishingBobber;
+	            if (bobber == null)
+	                return false;
 
-							if (bobber != null)
-								bobber.Interact();
+	            bobber.Interact();
+	            await Coroutine.Sleep(Delay.AfterInteraction);
 
-							else
-								return RunStatus.Failure;
+	            // Wait for the lootframe
+	            if (!await Coroutine.Wait(5000, () => LootFrame.Instance.IsVisible))
+	            {
+	                QBCLog.Warning("[MrFishIt] Did not see lootframe");
+	                return false;
+	            }
 
-							return RunStatus.Success;
-						}),
+	            QBCLog.Info("[MrFishIt] Looting ...");
+	            LootFrame.Instance.LootAll();
+	            await Coroutine.Sleep(Delay.AfterInteraction);
+	            return true;
+	        }
 
-						// Wait for the lootframe
-						new Wait(5, ret => LootFrame.Instance.IsVisible,
-							new Sequence(
-								new Action(ret => TreeRoot.StatusText = "[MrFishIt] Looting ..."),
-								new ActionAlwaysSucceed()
-								))
-							)),
+            if (Fishing.FishingBobber == null 
+                || !Fishing.IsFishing 
+                || (Fishing.IsFishing && PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole))
+	        {
+	            if (Fishing.FishingBobber == null) 
+                    QBCLog.DeveloperInfo("no FishingBobber found!?");
 
-				// Do we need to recast?
-                new Decorator(ret => Fishing.FishingBobber == null || !Fishing.IsFishing || (Fishing.IsFishing && PoolId != 0 && !PoolFishingBuddy.BobberIsInTheHole),
-                    new Sequence(
-						new Action(ret => { if (Fishing.FishingBobber == null) QBCLog.DeveloperInfo("no FishingBobber found!?"); }),
-						new Action(ret => QBCLog.Info("Casting...")),
+	            QBCLog.Info("Casting...");
 
-                        new Decorator(ctx =>WaterPoint != WoWPoint.Empty,
-                            new Sequence(
-                                new Action(ctx => StyxWoW.Me.SetFacing(WaterPoint)),
-                                new Sleep(200))),
+	            if (WaterPoint != WoWPoint.Empty)
+	            {
+	                StyxWoW.Me.SetFacing(WaterPoint);
+	                await Coroutine.Sleep(200);
+	            }
 
-                        new Decorator(ctx => PoolId != 0,
-                            new Sequence(
-                                new Action(ctx => StyxWoW.Me.SetFacing(_PoolGUID.asWoWGameObject())),
-                                new Sleep(200))),
+                if (PoolId != 0)
+	            {
+	                StyxWoW.Me.SetFacing(_PoolGUID.asWoWGameObject());
+	                await Coroutine.Sleep(200);
+	            }
 
-						new Action(ret => SpellManager.Cast("Fishing")),
-                        new DecoratorContinue(ctx =>PoolId != 0, new Sleep(300)),
-						new Wait(2, ret => Fishing.IsFishing, new ActionAlwaysSucceed())
-						//CreateWaitForLagDuration()
-						)),
-
-				new Sequence(
-					new ActionSetActivity("[MrFishIt] Waiting for bobber to splash ..."),
-					new ActionIdle()
-					));
-		}
-
+	            SpellManager.Cast("Fishing");
+	            await Coroutine.Wait(2000, () => Fishing.IsFishing);
+                if (PoolId != 0)
+                     await Coroutine.Wait(2000, () => Fishing.FishingBobber != null);
+	            return true;
+	        }
+	        TreeRoot.StatusText = "[MrFishIt] Waiting for bobber to splash ...";
+	        return true;
+        }
 		#endregion
 	}
 
