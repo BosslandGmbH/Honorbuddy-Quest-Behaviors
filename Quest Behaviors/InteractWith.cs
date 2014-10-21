@@ -1193,93 +1193,108 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private async Task<bool> SubCoroutine_HandleFrame_Gossip()
 		{
-			if (IsGossipFrameVisible)
-			{
-				if (InteractByGossipOptions.Length > 0)
-				{
-					TreeRoot.StatusText = string.Format("Gossiping with {0}", GetName(SelectedTarget));
-					BindingEventState = BindingEventStateType.BindingEventUnhooked;
-					GossipPageIndex = 0;
-					while (!IsDone && GossipPageIndex < InteractByGossipOptions.Length)
-					{
-						GossipEntry gossipEntry;
-						if (!TryGetGossipEntry(out gossipEntry))
-						{
-							QBCLog.Error(
-								"{0} is not offering gossip option {1} on page {2}."
-								+ "  Did competing player alter NPC state?"
-								+ "  Did you stop/start Honorbuddy?"
-								+ "  Terminating behavior.",
-								GetName(SelectedTarget),
-								InteractByGossipOptions[GossipPageIndex] + 1,
-								GossipPageIndex + 1);
-							CloseOpenFrames();
-							Me.ClearTarget();
-							BehaviorDone();
-							return false;
-						}
+		    if (!IsGossipFrameVisible)
+		        return false;
 
-						// Log the gossip option we're about to take...
-						QBCLog.DeveloperInfo(
-							"Selecting Gossip Option({0}) on page {1}: \"{2}\"",
-							gossipEntry.Index + 1,
-							GossipPageIndex + 1,
-							gossipEntry.Text);
+		    if (InteractByGossipOptions.Length > 0)
+		    {
+		        TreeRoot.StatusText = string.Format("Gossiping with {0}", GetName(SelectedTarget));
+		        BindingEventState = BindingEventStateType.BindingEventUnhooked;
+		        GossipPageIndex = 0;
+		        while (!IsDone && GossipPageIndex < InteractByGossipOptions.Length)
+		        {
+		            GossipEntry gossipEntry;
+		            if (!TryGetGossipEntry(out gossipEntry))
+		            {
+		                QBCLog.Error(
+		                    "{0} is not offering gossip option {1} on page {2}."
+		                    + "  Did competing player alter NPC state?"
+		                    + "  Did you stop/start Honorbuddy?"
+		                    + "  Terminating behavior.",
+		                    GetName(SelectedTarget),
+		                    InteractByGossipOptions[GossipPageIndex] + 1,
+		                    GossipPageIndex + 1);
+		                CloseOpenFrames();
+		                Me.ClearTarget();
+		                BehaviorDone();
+		                return false;
+		            }
 
-						// If Innkeeper 'binding option', arrange to confirm ensuing popup...
-						if (gossipEntry.Type == GossipEntry.GossipEntryType.Binder)
-						{
-							BindingEventState = BindingEventStateType.BindingEventHooked;
-							Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
-						}
+		            // Log the gossip option we're about to take...
+		            QBCLog.DeveloperInfo(
+		                "Selecting Gossip Option({0}) on page {1}: \"{2}\"",
+		                gossipEntry.Index + 1,
+		                GossipPageIndex + 1,
+		                gossipEntry.Text);
 
-						GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipPageIndex]);
-						++GossipPageIndex;
+		            // If Innkeeper 'binding option', arrange to confirm ensuing popup...
+		            if (gossipEntry.Type == GossipEntry.GossipEntryType.Binder)
+		            {
+		                BindingEventState = BindingEventStateType.BindingEventHooked;
+		                Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
+		            }
 
-						// If gossip is complete, claim credit...
-						// Frequently, the last gossip option in a chain will start a fight.  If this happens,
-						// and we don't claim credit, the behavior will hang trying to re-try a gossip with the NPC,
-						// and the NPC doesn't want to gossip any more.
-						if (GossipPageIndex >= InteractByGossipOptions.Length)
-						{
-							QBCLog.DeveloperInfo("Gossip with {0} complete.", GetName(SelectedTarget));
+		            GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipPageIndex]);
+		            ++GossipPageIndex;
 
-							// NB: Some merchants require that we gossip with them before purchase.
-							// If the caller has also specified a "buy item", then we're not done yet.
-							if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
-							{
-								BlacklistInteractTarget(SelectedTarget);
-								_waitTimerAfterInteracting.Reset();
-								++Counter;
-							}
-						}
-						await Coroutine.Wait((int)Delay.AfterInteraction.TotalMilliseconds, () => !IsGossipFrameVisible);
-					}
-					// If the NPC pops down the dialog for us, or goes non-viable after gossip...
-					// Go ahead and blacklist it, so we don't try to interact again.
+		            // If gossip is complete, claim credit...
+		            // Frequently, the last gossip option in a chain will start a fight.  If this happens,
+		            // and we don't claim credit, the behavior will hang trying to re-try a gossip with the NPC,
+		            // and the NPC doesn't want to gossip any more.
+		            if (GossipPageIndex >= InteractByGossipOptions.Length)
+		            {
+		                QBCLog.DeveloperInfo("Gossip with {0} complete.", GetName(SelectedTarget));
 
-					if (!IsGossipFrameVisible || !Query.IsViable(SelectedTarget))
-					{
-						TreeRoot.StatusText = string.Format("Gossip with {0} complete.", GetName(SelectedTarget));
-						_waitTimerAfterInteracting.Reset();
-						++Counter;
+		                // NB: Some merchants require that we gossip with them before purchase.
+		                // If the caller has also specified a "buy item", then we're not done yet.
+		                if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
+		                {
+		                    BlacklistInteractTarget(SelectedTarget);
+		                    _waitTimerAfterInteracting.Reset();
+		                    ++Counter;
+		                }
+		            }
+		            await Coroutine.Wait((int) Delay.AfterInteraction.TotalMilliseconds, () => !IsGossipFrameVisible);
+		        }
+		        // If the NPC pops down the dialog for us, or goes non-viable after gossip...
+		        // Go ahead and blacklist it, so we don't try to interact again.
 
-						BlacklistInteractTarget(SelectedTarget);
-						if (IsClearTargetNeeded(SelectedTarget))
-						{
-							Me.ClearTarget();
-						}
-					}
-				}
-				// Only a problem if Gossip frame, and not also another frame type...
-				if ((InteractByGossipOptions.Length <= 0) && IsGossipFrameVisible && !IsMultipleFramesVisible())
-				{
-					QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring.");
-				}
-				await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
-			}
+		        if (!IsGossipFrameVisible || !Query.IsViable(SelectedTarget))
+		        {
+		            TreeRoot.StatusText = string.Format("Gossip with {0} complete.", GetName(SelectedTarget));
+		            _waitTimerAfterInteracting.Reset();
+		            ++Counter;
 
-			// Tell user if he is now bound to a new location...
+		            BlacklistInteractTarget(SelectedTarget);
+		            if (IsClearTargetNeeded(SelectedTarget))
+		            {
+		                Me.ClearTarget();
+		            }
+		        }
+		    }
+
+            // If we get the gossip frame while trying to buy something then click through it.
+		    if (InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > 0)
+		    {
+		        foreach (var gossip in GossipFrame.Instance.GossipOptionEntries)
+		        {
+		            if (gossip.Type == GossipEntry.GossipEntryType.Vendor)
+		            {
+		                GossipFrame.Instance.SelectGossipOption(gossip.Index);
+		                await Coroutine.Sleep(Delay.AfterInteraction);
+		                return true;
+		            }
+		        }
+		    }
+
+		    // Only a problem if Gossip frame, and not also another frame type...
+		    if ((InteractByGossipOptions.Length <= 0) && IsGossipFrameVisible && !IsMultipleFramesVisible())
+		    {
+		        QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring.");
+		    }
+		    await Coroutine.Sleep((int) Delay.AfterInteraction.TotalMilliseconds);
+
+		    // Tell user if he is now bound to a new location...
 			if (BindingEventState != BindingEventStateType.BindingEventUnhooked)
 			{
 				if (await Coroutine.Wait(10000, () => BindingEventState == BindingEventStateType.BindingEventFired))

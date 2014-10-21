@@ -429,7 +429,7 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 				return false;
 
 			var zTolerance = Math.Max(4.5f, RoughDestination.ArrivalTolerance);
-			return Math.Abs(otherPos.Z - otherPos.Z) < zTolerance;
+            return Math.Abs(otherPos.Z - myPos.Z) < zTolerance;
 		}
 		#endregion
 	}
