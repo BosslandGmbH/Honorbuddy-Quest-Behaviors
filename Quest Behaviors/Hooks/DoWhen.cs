@@ -638,7 +638,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				    builder.Append(activity.BuildDebugInfo("    "));
 			}
 
-			QBCLog.DeveloperInfo(CfbContextForHook, builder.ToString());
+			QBCLog.DeveloperInfo(CfbContextForHook, "{0}", builder.ToString());
 			PersistedActivities.Clear();
 
 			BehaviorHookRemove("Questbot_Main", ref _persistedDoWhenHookBehavior);
