@@ -171,7 +171,7 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 			var recipes = SkillLineAbility.GetAbilities()
                 .Where(a => skillLineIds.Contains(a.SkillLine) && a.NextSpellId == 0 && a.GreySkillLevel > 0 && a.TradeSkillCategoryId > 0)
 				.Select(a => WoWSpell.FromId(a.SpellId))
-				.Where(s => s.IsValid)
+				.Where(s => s != null && s.IsValid)
 				.ToList();
 
 			return recipes.FirstOrDefault(s => s.CreatesItemId == itemOrSpellId)

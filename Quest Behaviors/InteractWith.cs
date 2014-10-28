@@ -1274,7 +1274,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		    }
 
             // If we get the gossip frame while trying to buy something then click through it.
-		    if (InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > 0)
+            if ((InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > 0 ) && GossipFrame.Instance.GossipOptionEntries != null)
 		    {
 		        foreach (var gossip in GossipFrame.Instance.GossipOptionEntries)
 		        {
