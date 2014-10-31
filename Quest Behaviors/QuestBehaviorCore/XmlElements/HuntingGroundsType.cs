@@ -32,7 +32,22 @@
 //                  (you know which waypoint to be fiddling with).
 //              X/Y/Z [REQUIRED; Default: none]
 //                  The world coordinates of the waypoint.
-//              Radius [optional; Default: 10.0]
+//              AllowedVariance [optional; Default: 0.0; RECOMMENDED: 7.0]
+//                  ***It is HIGHLY recommended you make this value somewhere around 7.0 - 10.0.  The default value
+//                   of zero is to maintain backward compatibility for existing profiles.***
+//		        	This value is used to:
+//			        * Prevent toons running the same profile from 'stacking up' on each other once they arrive
+//			        * Defeat WoWserver-side LCP detection
+//			        This value represents a radius.  A fractional percentage of this radius will be added
+//			        to the specified X/Y/Z in a random direction, and that new point used for the final destination.
+//			        The effect is that X/Y/Z no longer defines a 'landing point', but instead, a 'landing zone'.
+//			        The final destination is always selected in a sane fashion, so boundary cases like boat
+//			        docks and blimp towers should not be a concern.
+//                  By default, this value will move to the exact X/Y/Z specified.  It is HIGHLY recommended you
+//                  allow a more 'fuzzy' destination by setting this value from 7.0 - 10.0.  This will help
+//                  abate automated WoWserver-side detection, and make the toons look more 'human like' when
+//                  they are waiting for boats and whatnot.
+//              ArrivalTolerance [optional; Default: 1.5]
 //                  Once the toon gets within Radius of the waypoint, the next waypoint
 //                  will be sought.
 #endregion
@@ -126,11 +141,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 						_visitStrategy = null;
 					}
 
-					if (_visitStrategy != null)
-						QBCLog.DeveloperInfo("WaypointVisitStrategy set to {0}", _visitStrategy.VisitStrategyType);
+                    if (_visitStrategy != null)
+                        QBCLog.DeveloperInfo("WaypointVisitStrategy set to {0}", _visitStrategy.VisitStrategyType);
 
 					// Strategy change requires current waypoint re-evaluation...
-					_indexOfCurrentWaypoint = IVisitStrategy.InvalidWaypointIndex;
+					ResetWaypoints();
 				}
 			}
 		}
@@ -178,7 +193,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 			// If we haven't initialized current waypoint yet, find first waypoint...
 			if (_indexOfCurrentWaypoint == IVisitStrategy.InvalidWaypointIndex)
+            {
 				_indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(this);
+                if (_indexOfCurrentWaypoint != IVisitStrategy.InvalidWaypointIndex)
+                    FindWaypointAtIndex(_indexOfCurrentWaypoint).GenerateNewVariantLocation();  // Apply "AllowedVariance"
+            }
 
 			// If we haven't arrived at the current waypoint, still use it...
 			var currentWaypoint = FindWaypointAtIndex(_indexOfCurrentWaypoint);
@@ -187,8 +206,25 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 			// Otherwise, find next waypoint index, and return new waypoint...
 			_indexOfCurrentWaypoint = _visitStrategy.FindIndexOfNextWaypoint(this, _indexOfCurrentWaypoint);
-			return FindWaypointAtIndex(_indexOfCurrentWaypoint);
+            var waypoint = FindWaypointAtIndex(_indexOfCurrentWaypoint);
+            waypoint.GenerateNewVariantLocation();  // Apply "AllowedVariance"
+            return waypoint;
 		}
+
+
+        /// <summary>
+        /// <para>This method is used to "start over" on the HuntingGround's waypoint evaluation.</para>
+        /// <para>* For a visit strategy of <see cref="InOrder"/>, this method causes the <see cref="CurrentWaypoint"/>
+        /// to be reset to the 'first' waypoint in the list.</para>
+        /// <para>* For a visit strategy of <see cref="PickOneAtRandom"/>, this method will cause  <see cref="CurrentWaypoint"/>
+        /// to be set to a new random waypoint from the list.</para>
+        /// <para>* etc.</para>
+        /// </summary>
+        public void ResetWaypoints()
+        {
+            // Strategy change requires current waypoint re-evaluation...
+            _indexOfCurrentWaypoint = IVisitStrategy.InvalidWaypointIndex;
+        }
 
 
 		private WaypointType FindWaypointAtIndex(int index)

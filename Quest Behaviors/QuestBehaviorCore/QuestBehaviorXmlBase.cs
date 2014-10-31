@@ -221,7 +221,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 string  constraintViolationMessage  = constraints.Check(keyName, tmpResult);
                 if (constraintViolationMessage != null)
                 {
-                    QBCLog.Error(constraintViolationMessage);
+                    QBCLog.Error(QBCLog.BuildMessageWithContext(Element, constraintViolationMessage));
                     isError = true;
                     continue;
                 }
@@ -365,7 +365,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             string  constraintViolationMessage  = constraints.Check(keyName, tmpResult);
             if (constraintViolationMessage != null)
             {
-                QBCLog.Error(constraintViolationMessage);
+                QBCLog.Error(QBCLog.BuildMessageWithContext(Element, constraintViolationMessage));
                 IsAttributeProblem = true;
                 return (null);
             }

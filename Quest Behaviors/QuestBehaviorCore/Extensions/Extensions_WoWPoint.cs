@@ -104,7 +104,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			Contract.Requires(maxRadius >= 0.0, context => "maxRadius >= 0.0");
 
 			// Optimize situations where we want the exact point...
-			if (maxRadius <= 0.0)
+			if (maxRadius <= Navigator.PathPrecision)
 				return location;
 
 			const int CYLINDER_LINE_COUNT = 12;

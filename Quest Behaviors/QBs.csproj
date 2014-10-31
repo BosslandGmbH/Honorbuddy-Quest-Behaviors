@@ -253,6 +253,7 @@
     <Compile Include="SpecificQuests\29890-JadeForest-FindingYourCenter.cs" />
     <Compile Include="SpecificQuests\30475-FourWinds-AGiftForFung.cs" />
     <Compile Include="SpecificQuests\Holiday\Brewfest-RamRidingQuests.cs" />
+    <Compile Include="SpecificQuests\Holiday\HallowsEnd-CandyBuckets.cs" />
     <Compile Include="SpecificQuests\Kalimdor\Darkshore\13512-StrategicStrikes.cs" />
     <Compile Include="SpecificQuests\Kalimdor\Teldrassil\14005-TheVengeanceOfElune.cs" />
     <Compile Include="TaxiRide.cs" />
@@ -384,6 +385,9 @@
   <ItemGroup>
     <Content Include="QuestBehaviorCore\Data\AuraIds_OccupiedVehicle.xml" />
     <Content Include="QuestBehaviorCore\Data\BagContainers.xml" />
+    <Content Include="QuestBehaviorCore\Data\HallowsEnd.xml">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="QuestBehaviorCore\Data\PluginCategory.xml" />
     <Content Include="QuestBehaviorCore\Data\SwimBreath.xml" />
   </ItemGroup>

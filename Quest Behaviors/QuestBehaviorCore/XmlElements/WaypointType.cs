@@ -28,13 +28,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             try
             {
-                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                DefinedLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 				AllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? DefaultAllowedVariance;
 				ArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, ConstrainAs.Range, null) ?? DefaultArrivalTolerance;
 				Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 
                 if (string.IsNullOrEmpty(Name))
-                    { Name = GetDefaultName(Location); }
+                    { Name = GetDefaultName(DefinedLocation); }
+
+                GenerateNewVariantLocation();
 
                 HandleAttributeProblem();
             }
@@ -48,22 +50,47 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        public WaypointType(WoWPoint location,
+        public WaypointType(WoWPoint definedLocation,
 			string name = "", 
 			double allowedVariance = DefaultAllowedVariance,
 			double arrivalTolerance = DefaultArrivalTolerance)
         {
-            Location = location;
-            Name = name ?? GetDefaultName(location);
+            DefinedLocation = definedLocation;
+            Name = name ?? GetDefaultName(definedLocation);
 	        AllowedVariance = allowedVariance;
             ArrivalTolerance = arrivalTolerance;
+
+            GenerateNewVariantLocation();
         }
 
 
 		public double ArrivalTolerance { get; set; }
 		public double AllowedVariance { get; set; }
-		public WoWPoint Location { get; set; }
+
+        /// <summary>
+        /// This is the original location with which the <see cref="WaypointType"/> was defined.
+        /// This location is not affected by <see cref="AllowedVariance"/>.
+        /// </summary>
+		public WoWPoint DefinedLocation { get; set; }
+
+        /// <summary>
+        /// This location is constructed from the <see cref="DefinedLocation"/> and <see cref="AllowedVariance"/>
+        /// values when the waypoint is initialized.  This value will not change, unless a call to
+        /// <see cref="GenerateNewVariantLocation()"/> is made.
+        /// </summary>
+        public WoWPoint Location { get; set; }
+
         public string Name { get; set; }
+
+
+        /// <summary>
+        /// Updates <see cref="Location"/> with a new value constructed from <see cref="DefinedLocation"/>
+        /// and <see cref="AllowedVariance"/>.
+        /// </summary>
+        public void GenerateNewVariantLocation()
+        {
+            Location = DefinedLocation.FanOutRandom(AllowedVariance);
+        }
 
 
 		#region Concrete class required implementations...
@@ -78,9 +105,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 			var root = new XElement(elementName,
 			                        new XAttribute("Name", Name),
-			                        new XAttribute("X", Location.X),
-			                        new XAttribute("Y", Location.Y),
-			                        new XAttribute("Z", Location.Z));
+			                        new XAttribute("X", DefinedLocation.X),
+                                    new XAttribute("Y", DefinedLocation.Y),
+                                    new XAttribute("Z", DefinedLocation.Z));
 
 			if (AllowedVariance != DefaultAllowedVariance)
 				root.Add(new XAttribute("AllowedVariance", AllowedVariance));

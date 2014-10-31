@@ -1,4 +1,4 @@
-﻿// Template originally contributed by Chinajade.
+﻿// Behavior originally contributed by Chinajade.
 //
 // LICENSE:
 // This work is licensed under the
@@ -44,9 +44,9 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using System.Xml.Linq;
-
-
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 
 using Styx.CommonBot.Profiles;
@@ -197,45 +197,62 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 		#region Main Behaviors
 		protected override Composite CreateBehavior_CombatMain()
 		{
-			return new PrioritySelector(
-				// empty--left for child to override
-				);
+            return new ActionRunCoroutine(ctx => CombatMainCoroutine());
 		}
+
+        private async Task<bool> CombatMainCoroutine()
+        {
+            // TODO: Populate this...
+            return false;
+        }
 
 
 		protected override Composite CreateBehavior_CombatOnly()
 		{
-			return new PrioritySelector(
-				// empty--left for child to override
-				);
+            return new ActionRunCoroutine(ctx => CombatOnlyCoroutine());
 		}
+
+        private async Task<bool> CombatOnlyCoroutine()
+        {
+            // TODO: Populate this...
+            return false;
+        }
 
 
 		protected override Composite CreateBehavior_DeathMain()
 		{
-			return new PrioritySelector(
-				// empty--left for child to override
-				);
+            return new ActionRunCoroutine(ctx => DeathMainCoroutine());
 		}
+
+        private async Task<bool> DeathMainCoroutine()
+        {
+            // TODO: Populate this...
+            return false;
+        }
 
 
 		protected override Composite CreateBehavior_QuestbotMain()
 		{
-			return new PrioritySelector(
-				// empty--left for child to override
-				);
+            return new ActionRunCoroutine(ctx => QuestbotMainCoroutine());
 		}
+
+        private async Task<bool> QuestbotMainCoroutine()
+        {
+            // TODO: Populate this...
+            return false;
+        }
 
 
 		protected override Composite CreateMainBehavior()
 		{
-			return new PrioritySelector(
-
-				// If quest is done, behavior is done...
-				new Decorator(context => IsDone,
-					new Action(context => { BehaviorDone(); }))
-				);
+            return new ActionRunCoroutine(ctx => MainCoroutine());
 		}
+
+        private async Task<bool> MainCoroutine()
+        {
+            // TODO: Populate this...
+            return false;
+        }
 		#endregion
 	}
 }
