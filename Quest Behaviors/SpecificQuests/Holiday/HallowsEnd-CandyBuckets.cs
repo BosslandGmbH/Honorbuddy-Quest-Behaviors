@@ -59,12 +59,12 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.Grind;
+
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
-using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -133,17 +133,12 @@ namespace Honorbuddy.Quest_Behaviors
         private const int AuraId_JackOLanterned = 44212; // http://wowhead.com/spell=44212
         private const int AuraId_MagicBroom = 47977; // http://wowhead.com/spell=47977
         private const int AuraId_TrickyTreat = 42919; // http://wowhead.com/spell=42919
+        private const int AuraId_UpsetTummy = 42966; // http://wowhead.com/spell=42966
 
         private const int ItemId_MagicBroom = 37011; // http://wowhead.com/item=37011
         private const int ItemId_ToothPick = 37604; // http://wowhead.com/item=37604
         private const int ItemId_TrickyTreat = 33226; // http://wowhead.com/item=33226
         private const int ItemId_WeightedJackOLantern = 34068; // http://wowhead.com/item=34068
-
-        private static readonly CandyBucketList CandyBuckets = CandyBucketList.GetOrCreate("CandyBuckets");
-        private static readonly AchievementGoals_CheckYourHead GoalsCheckYourHead = AchievementGoals_CheckYourHead.GetOrCreate("CheckYourHead");
-        private static readonly DispelAuraList DispelAuras = DispelAuraList.GetOrCreate("DispelAuras");
-        private static readonly ItemList ItemsToDiscard = ItemList.GetOrCreate("ItemsToDiscard");
-        private static readonly ItemList ItemsToOpen = ItemList.GetOrCreate("ItemsToOpen");
 
         private bool IsPostQuestWrapUpNeeded { get; set; }
         private CandyBucketType CandyBucketInfo { get; set; }
@@ -174,6 +169,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         private const string TrickAuraName = "Trick";
 
+        private static readonly BehaviorDatabase _behaviorDatabase = new BehaviorDatabase();
         private static readonly ProfileHelperFunctionsBase _helpers = new ProfileHelperFunctionsBase();
         private readonly Stopwatch _throttleTimer_CheckYourHead = new Stopwatch();
         #endregion
@@ -195,9 +191,11 @@ namespace Honorbuddy.Quest_Behaviors
 
 		public override void OnStart()
 		{
-		    IsAttributeProblem |= CandyBuckets.IsAttributeProblem;
+            _behaviorDatabase.RereadDatabaseIfFileChanged();
 
-            CandyBucketInfo = CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == QuestId);
+		    IsAttributeProblem |= _behaviorDatabase.CandyBuckets.IsAttributeProblem;
+
+            CandyBucketInfo = _behaviorDatabase.CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == QuestId);
             if (CandyBucketInfo == null)
             {
                 CandyBucketInfo = CandyBucketType.Empty;
@@ -219,6 +217,7 @@ namespace Honorbuddy.Quest_Behaviors
 		    if (!isBehaviorShouldRun)
 		        return;
 
+
             // If we're on the wrong map, we're done...
             if (Me.MapId != CandyBucketInfo.MapId)
             {
@@ -229,6 +228,18 @@ namespace Honorbuddy.Quest_Behaviors
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
                 return;
+            }
+
+            // If we're the wrong faction, we're done...
+            if ((CandyBucketInfo.FactionGroup != Me.FactionGroup) && (CandyBucketInfo.FactionGroup != WoWFactionGroup.Neutral))
+            {
+                var message = string.Format("QuestId({0}) is for faction group {1}, your FactionGroup is {2}.",
+                                            QuestId,
+                                            CandyBucketInfo.FactionGroup,
+                                            Me.FactionGroup);
+                QBCLog.Fatal(message);
+                BehaviorDone(message);
+                return;                
             }
 
 			// Setup settings to prevent interference with your behavior --
@@ -255,8 +266,10 @@ namespace Honorbuddy.Quest_Behaviors
         // Used by profiles...
         public static bool HaveAnyQuestsOnMap(int mapId)
         {
+            _behaviorDatabase.RereadDatabaseIfFileChanged();
+
             return
-                CandyBuckets.CandyBuckets
+                _behaviorDatabase.CandyBuckets.CandyBuckets
                     .Any(q => (mapId == q.MapId)
                               && (Me.FactionGroup == q.FactionGroup)
                               && (Me.Level >= q.LevelRequirement)
@@ -274,6 +287,9 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> MainCoroutine()
         {
+            if (IsDone)
+                return false;
+
             var isMounted = Me.Mounted;
             var isQuestComplete = Me.IsQuestComplete(QuestId);
 
@@ -299,13 +315,6 @@ namespace Honorbuddy.Quest_Behaviors
                 SelectedLandingAreaName = string.Format("{0} of \"{1}\" Candy Bucket",
                                                         SelectedLandingArea.Name,
                                                         CandyBucketInfo.CandyBucketLocationName);
-            }
-
-            // Establish exit area..
-            if (SelectedTakeOffArea == null)
-            {
-                CandyBucketInfo.LandingAreas.ResetWaypoints();  // selects a new "CurrentWaypoint" from those available
-                SelectedTakeOffArea = CandyBucketInfo.LandingAreas.CurrentWaypoint();
             }
 
             if (!isMounted && await PursueAchievement_CheckYourHead())
@@ -416,8 +425,10 @@ namespace Honorbuddy.Quest_Behaviors
             // Move toward candy bucket on foot...
             // The Candy Buckets have a very large interact range.  The bot will interact with them through
             // walls if we let it.  Thus, the LoS requirement.
+            // NB: Some CandyBuckets--like the one in Wildhammer Stronghold, Shadowmoon Valley--are behind a bar that will
+            // not pass a LoS check, so we need to selectively disable this.
             ProfileManager.CurrentProfile.UseMount = false;
-            if (!SelectedCandyBucket.WithinInteractRange || !SelectedCandyBucket.InLineOfSight)
+            if (!SelectedCandyBucket.WithinInteractRange || (CandyBucketInfo.NeedLos && !SelectedCandyBucket.InLineOfSight))
             {
                 await UtilityCoroutine.MoveTo(SelectedCandyBucket.Location, SelectedCandyBucket.Name, MovementByType.NavigatorPreferred);
                 return true;
@@ -459,6 +470,15 @@ namespace Honorbuddy.Quest_Behaviors
             // do some basic things while waiting for it to expire.
             if (!Me.Mounted)
             {
+                // Pursue any missing Achievements...
+                // We go after achievements first, in case user decides to delete items we need
+                // to pursue them.w
+                if (await PursueAchievement_OutWithIt())
+                    return true;
+
+                if (await PursueAchievement_ThatSparklingSmile())
+                    return true;
+
                 // Handle inventory, before we move on...
                 if (await HandleItems_ToOpen())
                     return true;
@@ -466,27 +486,20 @@ namespace Honorbuddy.Quest_Behaviors
                 if (await HandleItems_ToDiscard())
                     return true;
 
-                if (await Handle_UnwantedAuras())
-                    return true;
-
-                // Pursue any missing Achievements...
-                if (await PursueAchievement_OutWithIt())
-                    return true;
-
-                if (await PursueAchievement_ThatSparklingSmile())
-                    return true;
             }
 
-            // Move to take off area...
+            // Establish take off area, and move to it...
+            if (SelectedTakeOffArea == null)
+            {
+                CandyBucketInfo.LandingAreas.ResetWaypoints();  // selects a new "CurrentWaypoint" from those available
+                SelectedTakeOffArea = CandyBucketInfo.LandingAreas.CurrentWaypoint();
+            }
+
             if (!Navigator.AtLocation(SelectedTakeOffArea.Location))
             {
                 await UtilityCoroutine.MoveTo(SelectedTakeOffArea.Location, "Take off area", MovementByType.NavigatorPreferred);
                 return true;
             }
-
-            // "Trick" aura must be gone before we try to mount...
-            if (await HandleAura_Trick())
-                return true;
 
             ProfileManager.CurrentProfile.UseMount = null;
             if (await PreferMount_MagicBroom())
@@ -504,7 +517,7 @@ namespace Honorbuddy.Quest_Behaviors
                  where
                      aura.Cancellable
                      && (aura.Name.EndsWith(" Costume")
-                         || DispelAuras.Auras.Any(d => d.Id == aura.SpellId)
+                         || _behaviorDatabase.DispelAuras.NameAndIds.Any(d => d.Id == aura.SpellId)
                          // Jack-o'-Lanterned explicitly included since part of "Check Your Head" achievement...
                          || (aura.SpellId == AuraId_JackOLanterned))
                  select aura)
@@ -537,7 +550,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> HandleItems_ToOpen()
         {
-            var itemToOpen = Me.CarriedItems.FirstOrDefault(i => ItemsToOpen.Items.Any(o => i.Entry == o.Id));
+            var itemToOpen = Me.CarriedItems.FirstOrDefault(i => _behaviorDatabase.ItemsToOpen.NameAndIds.Any(o => i.Entry == o.Id));
 
             if (itemToOpen == null)
                 return false;
@@ -552,7 +565,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> HandleItems_ToDiscard()
         {
-            var unwantedItem = Me.CarriedItems.FirstOrDefault(i => ItemsToDiscard.Items.Any(o => i.Entry == o.Id));
+            var unwantedItem = Me.CarriedItems.FirstOrDefault(i => _behaviorDatabase.ItemsToDiscard.NameAndIds.Any(o => i.Entry == o.Id));
 
             if (unwantedItem == null)
                 return false;
@@ -564,6 +577,14 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> PreferMount_MagicBroom()
         {
+            // We can't mount if we have certain auras, so nuke them...
+            if (await Handle_UnwantedAuras())
+                return true;
+
+            // "Trick" aura must be gone before we try to mount...
+            if (await HandleAura_Trick())
+                return true;
+
             if (!Flightor.MountHelper.CanMount || Me.HasAura(AuraId_MagicBroom))
                 return false;
 
@@ -582,7 +603,7 @@ namespace Honorbuddy.Quest_Behaviors
         {
             const double MaxDistanceSqrToSelectedTarget = (40 * 40);
             const double MaxRangeSqrForWeightedJackOLantern = (10 * 10);
-            if (_helpers.IsAchievementCompleted(AchievementId_CheckYourHead))
+            if (Query.IsAchievementPersonallyCompleted(AchievementId_CheckYourHead))
                 return false;
 
             // If we're still in throttle, nothing to do...
@@ -597,7 +618,7 @@ namespace Honorbuddy.Quest_Behaviors
 
             // See if we can find a viable target nearby...
             var neededRaces =
-                GoalsCheckYourHead.SubGoals
+                _behaviorDatabase.AchievementGoals_CheckYourHead.SubGoals
                     .Where(s => !_helpers.IsAchievementCompleted(AchievementId_CheckYourHead, s.Index))
                     .Select(s => s.Race)
                     .ToList();
@@ -653,7 +674,11 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> PursueAchievement_OutWithIt()
         {
-            if (_helpers.IsAchievementCompleted(AchievementId_OutWithIt))
+            if (Query.IsAchievementPersonallyCompleted(AchievementId_OutWithIt))
+                return false;
+
+            // If we can't eat any more candy at the moment, don't try...
+            if (Me.HasAura(AuraId_UpsetTummy))
                 return false;
 
             var trickyTreatCount = _helpers.GetItemCount(ItemId_TrickyTreat);
@@ -678,7 +703,7 @@ namespace Honorbuddy.Quest_Behaviors
             if (toothPick == null)
                 return false;
 
-            if (_helpers.IsAchievementCompleted(AchievementId_ThatSparklingSmile))
+            if (Query.IsAchievementPersonallyCompleted(AchievementId_ThatSparklingSmile))
             {
                 // Achievement is done, delete spare toothpicks to free up inventory space...
                 return await DeleteItem(toothPick);
@@ -705,6 +730,102 @@ namespace Honorbuddy.Quest_Behaviors
                                 fileName);
         }
         #endregion
+
+
+        #region Helper classes: Database
+        public class BehaviorDatabase
+        {
+            public BehaviorDatabase()
+            {
+                _databaseName = "HallowsEnd.xml";
+                _lastDatabaseModifiedTime = new DateTime(0);
+                RereadDatabaseIfFileChanged();
+            }
+
+            public CandyBucketList CandyBuckets;
+            public AchievementGoals_CheckYourHead AchievementGoals_CheckYourHead;
+            public NameAndIdList DispelAuras;
+            public NameAndIdList ItemsToDiscard;
+            public NameAndIdList ItemsToOpen;
+
+            private readonly string _databaseName;
+            private DateTime _lastDatabaseModifiedTime;
+
+
+            public void RereadDatabaseIfFileChanged()
+            {
+
+                // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
+                // QBs supplied in the Honorbuddy/Default Profiles/. directory.
+                var dataFileFullPath = GetDataFileFullPath(_databaseName);
+                var lastReadTime = File.GetLastWriteTime(dataFileFullPath);
+
+                if (lastReadTime <= _lastDatabaseModifiedTime)
+                    return;
+
+                QBCLog.DeveloperInfo("Database \"{0}\" has changed--re-reading.", _databaseName);
+
+                var xDoc = XDocument.Load(dataFileFullPath, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
+                var xHallowsEnd = xDoc.Elements("HallowsEnd").DefaultIfEmpty(new XElement("HallowsEnd")).ToList();
+
+                // Achievement goals for "Check Your Head" ...
+                {
+                    var xAchievements = xHallowsEnd.Elements("Achievements").DefaultIfEmpty(new XElement("Achievements"));
+                    var xCheckYourHead = xAchievements.Elements("CheckYourHead").DefaultIfEmpty(new XElement("CheckYourHead"));
+
+                    AchievementGoals_CheckYourHead = new AchievementGoals_CheckYourHead(xCheckYourHead.FirstOrDefault());
+                }
+
+                // Candy Buckets...
+                using (StyxWoW.Memory.AcquireFrame())
+                {
+                    var xCandyBuckets = xHallowsEnd.Elements("CandyBuckets").DefaultIfEmpty(new XElement("CandyBuckets"));
+
+                    CandyBuckets = new CandyBucketList(xCandyBuckets.FirstOrDefault());
+                }
+
+                // Auras to dispel...
+                {
+                    var xDispelAuras = xHallowsEnd.Elements("DispelAuras").DefaultIfEmpty(new XElement("DispelAuras"));
+
+                    DispelAuras = new NameAndIdList(xDispelAuras.FirstOrDefault());
+                }
+
+                // Items to Discard...
+                {
+                    var xItems = xHallowsEnd.Elements("ItemsToDiscard").DefaultIfEmpty(new XElement("ItemsToDiscard"));
+
+                    ItemsToDiscard = new NameAndIdList(xItems.FirstOrDefault());
+                }
+
+                // Items to open...
+                {
+                    var xItems = xHallowsEnd.Elements("ItemsToOpen").DefaultIfEmpty(new XElement("ItemsToOpen"));
+
+                    ItemsToOpen = new NameAndIdList(xItems.FirstOrDefault());
+                }
+
+                QBCLog.DeveloperInfo("Database \"{0}\" re-read complete.", _databaseName);
+                _lastDatabaseModifiedTime = lastReadTime;
+            }
+
+
+            public XElement ToXml()
+            {
+                var root = new XElement("HallowsEnd");
+
+                root.Add(CandyBuckets.ToXml("CandyBuckets"));
+                root.Add(AchievementGoals_CheckYourHead.ToXml("CheckYourHead"));
+                root.Add(DispelAuras.ToXml("DispelAuras"));
+                root.Add(ItemsToDiscard.ToXml("ItemsToDiscard"));
+                root.Add(ItemsToOpen.ToXml("ItemsToOpen"));
+
+                return root;
+            }
+            
+        }
+        #endregion
+
 
         #region Helper classes: Database-GoalsCheckYourHead
         public class Achievement_CheckYourHead_SubGoal : QuestBehaviorXmlBase
@@ -749,7 +870,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         public class AchievementGoals_CheckYourHead : QuestBehaviorXmlBase
         {
-            protected AchievementGoals_CheckYourHead(XElement xElement)
+            public AchievementGoals_CheckYourHead(XElement xElement)
                 : base(xElement)
             {
                 try
@@ -784,24 +905,6 @@ namespace Honorbuddy.Quest_Behaviors
 
             private const string DefaultElementName = "GoalsCheckYourHead";
 
-
-            public static AchievementGoals_CheckYourHead GetOrCreate(string elementName = null)
-            {
-                elementName = string.IsNullOrEmpty(elementName) ? DefaultElementName : elementName;
-
-                // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-                // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-                var dataFileFullPath = GetDataFileFullPath("HallowsEnd.xml");
-
-                var xDoc = XDocument.Load(dataFileFullPath, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-
-                var xHallowsEnd = xDoc.Elements("HallowsEnd").DefaultIfEmpty(new XElement("HallowsEnd"));
-                var xAchievements = xHallowsEnd.Elements("Achievements").DefaultIfEmpty(new XElement("Achievements"));
-                var xCheckYourHead = xAchievements.Elements(elementName).DefaultIfEmpty(new XElement(elementName));
-
-                return new AchievementGoals_CheckYourHead(xCheckYourHead.FirstOrDefault());
-            }
-
             public override XElement ToXml(string elementName = null)
             {
                 elementName = string.IsNullOrEmpty(elementName) ? DefaultElementName : elementName;
@@ -809,7 +912,7 @@ namespace Honorbuddy.Quest_Behaviors
                 var root = new XElement(elementName);
 
                 foreach (var subGoal in SubGoals)
-                    root.Add(subGoal.ToXml());
+                    root.Add(subGoal.ToXml("SubGoal"));
 
                 return root;
             }
@@ -832,6 +935,9 @@ namespace Honorbuddy.Quest_Behaviors
                     AchievementSubIndex = GetAttributeAsNullable<int>("AchievementSubIndex", true, new ConstrainTo.Domain<int>(1, 50), null) ?? -1;
                     CandyBucketId = GetAttributeAsNullable<int>("CandyBucketId", true, ConstrainAs.MobId, null) ?? -1;
                     QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId, null) ?? -1;
+
+                    // Tunables
+                    NeedLos = GetAttributeAsNullable<bool>("NeedLos", false, null, null) ?? true;
                     MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.FlightorPreferred;
 
                     // LandingArea processing...
@@ -863,28 +969,18 @@ namespace Honorbuddy.Quest_Behaviors
             }
 
 
-            private CandyBucketType(int mapId,
-                             WoWFactionGroup factionGroup,
-                             int levelRequirement,
-                             int achievementId,
-                             int achivementSubIndex,
-                             int candyBucketId,
-                             int questId)
+            private CandyBucketType()
             {
-                MapId = mapId;
-                FactionGroup = factionGroup;
-                LevelRequirement = levelRequirement;
-                AchievementId = achievementId;
-                AchievementSubIndex = achivementSubIndex;
-                CandyBucketId = candyBucketId;
-                QuestId = questId;
-                MovementBy = MovementByType.FlightorPreferred;
-
-                // Look up the location name from the achievement itself...
-                var luaCmd = string.Format("return GetAchievementCriteriaInfo({0},{1});", achievementId, AchievementSubIndex);
-                CandyBucketLocationName = Lua.GetReturnVal<string>(luaCmd, 0);
-                if (string.IsNullOrEmpty(CandyBucketLocationName))
-                    CandyBucketLocationName = "UNKNOWN";
+                AchievementId = -1;
+                AchievementSubIndex = -1;
+                CandyBucketId = -1;
+                CandyBucketLocationName = "UNKNOWN";
+                FactionGroup = WoWFactionGroup.None;
+                NeedLos = true;
+                LevelRequirement = -1;
+                MapId = -1;
+                MovementBy = MovementByType.None;
+                QuestId = -1;
             }
 
             public int AchievementId { get; private set; }
@@ -892,6 +988,7 @@ namespace Honorbuddy.Quest_Behaviors
             public int CandyBucketId { get; private set; }
             public string CandyBucketLocationName { get; private set; }
             public WoWFactionGroup FactionGroup { get; private set; }
+            public bool NeedLos { get; private set; }
             public HuntingGroundsType LandingAreas { get; private set; }
             public int LevelRequirement { get; private set; }
             public int MapId { get; private set; }
@@ -901,7 +998,7 @@ namespace Honorbuddy.Quest_Behaviors
             private const string DefaultElementName = "CandyBucket";
 
 
-            public static CandyBucketType Empty = new CandyBucketType(-1, WoWFactionGroup.None, -1, -1, -1, -1, 0);
+            public static CandyBucketType Empty = new CandyBucketType();
 
 
             public override XElement ToXml(string elementName = null)
@@ -916,7 +1013,8 @@ namespace Honorbuddy.Quest_Behaviors
                                         new XAttribute("AchievementSubIndex", AchievementSubIndex),
                                         new XAttribute("CandyBucketId", CandyBucketId),
                                         new XAttribute("QuestId", QuestId),
-                                        new XAttribute("MovementBy", MovementBy));
+                                        new XAttribute("MovementBy", MovementBy),
+                                        new XAttribute("NeedLos", NeedLos));
                 root.Add(LandingAreas.ToXml("LandingAreas"));
 
                 return root;
@@ -925,7 +1023,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         public class CandyBucketList : QuestBehaviorXmlBase
         {
-            protected CandyBucketList(XElement xElement)
+            public CandyBucketList(XElement xElement)
                 : base(xElement)
             {
                 try
@@ -959,23 +1057,6 @@ namespace Honorbuddy.Quest_Behaviors
             public readonly List<CandyBucketType> CandyBuckets;
 
             private const string DefaultElementName = "CandyBuckets";
-
-
-            public static CandyBucketList GetOrCreate(string elementName = null)
-            {
-                elementName = string.IsNullOrEmpty(elementName) ? DefaultElementName : elementName;
-
-			    // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-			    // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-			    var dataFileFullPath = GetDataFileFullPath("HallowsEnd.xml");
-
-                var xDoc = XDocument.Load(dataFileFullPath, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-
-                var xHallowsEnd = xDoc.Elements("HallowsEnd").DefaultIfEmpty(new XElement("HallowsEnd"));
-                var xCandyBuckets = xHallowsEnd.Elements(elementName).DefaultIfEmpty(new XElement(elementName));
-
-                return new CandyBucketList(xCandyBuckets.FirstOrDefault());
-            }
  
             public override XElement ToXml(string elementName = null)
             {
@@ -989,7 +1070,7 @@ namespace Honorbuddy.Quest_Behaviors
                                                         candyBucket.AchievementId,
                                                         candyBucket.AchievementSubIndex,
                                                         candyBucket.CandyBucketLocationName)));
-                    root.Add(candyBucket.ToXml());
+                    root.Add(candyBucket.ToXml("CandyBucket"));
                 }
 
                 return root;
@@ -1001,18 +1082,18 @@ namespace Honorbuddy.Quest_Behaviors
         #region Helper classes: Database-DispelAuras
         public class DispelAuraList : QuestBehaviorXmlBase
         {
-            protected DispelAuraList(XElement xElement)
+            public DispelAuraList(XElement xElement)
                 : base(xElement)
             {
                 try
                 {
                     // Acquire the candy bucket info...
-                    Auras = new List<ItemType>();
+                    Auras = new List<NameAndIdType>();
                     if (xElement != null)
                     {
                         foreach (var childElement in xElement.Elements("Aura"))
                         {
-                            var aura = new ItemType(childElement);
+                            var aura = new NameAndIdType(childElement);
 
                             if (!aura.IsAttributeProblem)
                                 Auras.Add(aura);
@@ -1032,26 +1113,9 @@ namespace Honorbuddy.Quest_Behaviors
                 }
             }
 
-            public readonly List<ItemType> Auras;
+            public readonly List<NameAndIdType> Auras;
 
             private const string DefaultElementName = "DispelAuras";
-
-
-            public static DispelAuraList GetOrCreate(string elementName = null)
-            {
-                elementName = string.IsNullOrEmpty(elementName) ? DefaultElementName : elementName;
-
-                // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-                // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-                var dataFileFullPath = GetDataFileFullPath("HallowsEnd.xml");
-
-                var xDoc = XDocument.Load(dataFileFullPath, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-
-                var xHallowsEnd = xDoc.Elements("HallowsEnd").DefaultIfEmpty(new XElement("HallowsEnd"));
-                var xDispelAuras = xHallowsEnd.Elements(elementName).DefaultIfEmpty(new XElement(elementName));
-
-                return new DispelAuraList(xDispelAuras.FirstOrDefault());
-            }
 
             public override XElement ToXml(string elementName = null)
             {
@@ -1060,7 +1124,7 @@ namespace Honorbuddy.Quest_Behaviors
                 var root = new XElement(elementName);
 
                 foreach (var aura in Auras)
-                    root.Add(aura.ToXml());
+                    root.Add(aura.ToXml("Aura"));
 
                 return root;
             }
@@ -1068,10 +1132,10 @@ namespace Honorbuddy.Quest_Behaviors
         #endregion
 
 
-        #region Helper classes: Database-Items
-        public class ItemType : QuestBehaviorXmlBase
+        #region Helper classes: Database-NameAndIdType
+        public class NameAndIdType : QuestBehaviorXmlBase
         {
-            public ItemType(XElement xElement)
+            public NameAndIdType(XElement xElement)
                 : base(xElement)
             {
                 try
@@ -1112,23 +1176,23 @@ namespace Honorbuddy.Quest_Behaviors
             }
         }
 
-        public class ItemList : QuestBehaviorXmlBase
+        public class NameAndIdList : QuestBehaviorXmlBase
         {
-            protected ItemList(XElement xElement)
+            public NameAndIdList(XElement xElement)
                 : base(xElement)
             {
                 try
                 {
                     // Acquire the candy bucket info...
-                    Items = new List<ItemType>();
+                    NameAndIds = new List<NameAndIdType>();
                     if (xElement != null)
                     {
                         foreach (XElement childElement in xElement.Elements("Item"))
                         {
-                            var item = new ItemType(childElement);
+                            var item = new NameAndIdType(childElement);
 
                             if (!item.IsAttributeProblem)
-                                Items.Add(item);
+                                NameAndIds.Add(item);
 
                             IsAttributeProblem |= item.IsAttributeProblem;
                         }
@@ -1146,26 +1210,9 @@ namespace Honorbuddy.Quest_Behaviors
                 }
             }
 
-            public readonly List<ItemType> Items;
+            public readonly List<NameAndIdType> NameAndIds;
 
             private const string DefaultElementName = "Items";
-
-
-            public static ItemList GetOrCreate(string elementName = null)
-            {
-                elementName = string.IsNullOrEmpty(elementName) ? DefaultElementName : elementName;
-
-                // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-                // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-                var dataFileFullPath = GetDataFileFullPath("HallowsEnd.xml");
-
-                var xDoc = XDocument.Load(dataFileFullPath, LoadOptions.SetBaseUri | LoadOptions.SetLineInfo);
-
-                var xHallowsEnd = xDoc.Elements("HallowsEnd").DefaultIfEmpty(new XElement("HallowsEnd"));
-                var xItems = xHallowsEnd.Elements(elementName).DefaultIfEmpty(new XElement(elementName));
-
-                return new ItemList(xItems.FirstOrDefault());
-            }
 
             public override XElement ToXml(string elementName = null)
             {
@@ -1173,8 +1220,8 @@ namespace Honorbuddy.Quest_Behaviors
 
                 var root = new XElement(elementName);
 
-                foreach (var item in Items)
-                    root.Add(item.ToXml());
+                foreach (var item in NameAndIds)
+                    root.Add(item.ToXml("Item"));
 
                 return root;
             }
@@ -1185,10 +1232,10 @@ namespace Honorbuddy.Quest_Behaviors
 
 
 #region DevTools Snippets
-//var achievementId = 966;
-//var achievementSubIndex = 5;
+//var achievementId = 965;
+//var achievementSubIndex = 0;
 //var candyBucket =
-//    ObjectManager.GetObjectsOfType<WoWGameObject>()
+//    ObjectManager.GetObjectsOfType<WoWObject>(true,false)
 //    .OrderBy(o => o.Distance)
 //    .FirstOrDefault(o => o.Name == "Candy Bucket");
 //if (candyBucket != null)
@@ -1201,11 +1248,20 @@ namespace Honorbuddy.Quest_Behaviors
 
 //    var questId = QuestFrame.Instance.CurrentShownQuestId;
 //    QuestFrame.Instance.Close();
-//    Logging.Write("\n\n\n\n\nQuestDesc.Create({1}, WoWFactionGroup.{2}, 60, {3}, {4}, {5}, {6}),    // \"{7}\"",
-//        Environment.NewLine, Me.MapId, Me.FactionGroup.ToString(), 
-//        achievementId, achievementSubIndex, 
-//        candyBucket.Entry, questId,
-//        candyBucketLocationName );
+//   Logging.Write("{0}{0}{0}{0}{0}{0}"
+//       + "      <CandyBucket MapId=\"{1}\" FactionGroup=\"{2}\" LevelRequirement=\"60\" {0}"
+//       + "                   AchievementId=\"{3}\" AchievementSubIndex=\"{4}\"{0}"
+//       + "                   CandyBucketId=\"{5}\" QuestId=\"{6}\" >{0}"
+//       + "        <LandingAreas>{0}"
+//       + "        </LandingAreas>{0}"
+//       + "      </CandyBucket>{0}",
+//      Environment.NewLine,
+//      Me.MapId,
+//      Me.FactionGroup.ToString(),
+//      achievementId,
+//      achievementSubIndex,
+//      candyBucket.Entry,
+//      questId);
 //}
 #endregion
 

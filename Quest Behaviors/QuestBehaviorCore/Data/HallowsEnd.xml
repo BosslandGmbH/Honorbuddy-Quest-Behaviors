@@ -1,11 +1,6 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <!--Original contribution by Chinajade-->
 
-<!--======================================================================
-If you make changes to this file, you will need to restart Honorbuddy
-for the changes to take effect.
-======================================================================-->
-
 <HallowsEnd>
     <Achievements>
         <CheckYourHead>
@@ -32,7 +27,7 @@ for the changes to take effect.
         <!--Achievement(971,2): Tricks and Treats of Kalimdor -->
         <!--Achievement(971,3): Tricks and Treats of Outland -->
 
-        
+
         <!--======================================================================
             Achievement: A Mask for All Occasions (http://wowhead.com/achievement=284)
             ======================================================================-->
@@ -71,9 +66,33 @@ for the changes to take effect.
             ======================================================================-->
 
         <!--Achievement(5837,1): Deepholm, Temple of Earth -->
+
         <!--Achievement(5837,2): Mount Hyjal, Grove of Aessina -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="5837" AchievementSubIndex="2"
+                     CandyBucketId="208163" QuestId="29000" >
+            <LandingAreas>
+                <Hotspot Name="by moonwell" X="5132.274" Y="-1735.198" Z="1335.705" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(5837,3): Mount Hyjal, Nordrassil -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="5837" AchievementSubIndex="3"
+                     CandyBucketId="208162" QuestId="28999" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="5538.493" Y="-3630.616" Z="1566.357" AllowedVariance="11" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(5837,4): Mount Hyjal, Shrine of Aviana -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="5837" AchievementSubIndex="4"
+                     CandyBucketId="208164" QuestId="29001" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="4930.989" Y="-2695.436" Z="1431.122" AllowedVariance="14" />
+            </LandingAreas>
+        </CandyBucket>
 
         <!--Achievement(5837, 5): "Twilight Highlands, Firebeard's Patrol"-->
         <CandyBucket MapId="0" FactionGroup="Alliance" LevelRequirement="84"
@@ -114,10 +133,30 @@ for the changes to take effect.
         </CandyBucket>
 
         <!--Achievement(5837,9): Uldum, Oasis of Vir'sar -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="5837" AchievementSubIndex="9"
+                     CandyBucketId="208178" QuestId="29016" >
+            <LandingAreas>
+                <Hotspot Name="between tents" X="-8321.772" Y="793.7915" Z="152.7286" AllowedVariance="5" />
+                <Hotspot Name="by vendor" X="-8338.07" Y="798.9344" Z="151.7047" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(5837,10): Uldum, Ramkahen -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="5837" AchievementSubIndex="10"
+                     CandyBucketId="208179" QuestId="29017" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-9440.736" Y="-959.3629" Z="111.0116" AllowedVariance="14" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(5837,11): Vashj'ir, Darkbreak Cove -->
+
         <!--Achievement(5837,12): Vashj'ir, Deepmist Grotto -->
+
         <!--Achievement(5837,13): Vashj'ir, Silver Tide Hollow -->
+
         <!--Achievement(5837,14): Vashj'ir, Tranquil Wash -->
 
 
@@ -126,9 +165,34 @@ for the changes to take effect.
             ======================================================================-->
 
         <!--Achievement(5838,1): Deepholm, Temple of Earth -->
+
         <!--Achievement(5838,2): Mount Hyjal, Grove of Aessina -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="5838" AchievementSubIndex="2"
+                     CandyBucketId="208163" QuestId="29000" >
+            <LandingAreas>
+                <Hotspot Name="by moonwell" X="5132.274" Y="-1735.198" Z="1335.705" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(5838,3): Mount Hyjal, Nordrassil -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="5838" AchievementSubIndex="3"
+                     CandyBucketId="208162" QuestId="28999" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="5538.493" Y="-3630.616" Z="1566.357" AllowedVariance="11" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(5838,4): Mount Hyjal, Shrine of Aviana -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="5838" AchievementSubIndex="4"
+                     CandyBucketId="208164" QuestId="29001" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="4930.989" Y="-2695.436" Z="1431.122" AllowedVariance="14" />
+            </LandingAreas>
+        </CandyBucket>
+
 
         <!--Achievement(5838,5): Twilight Highlands, Bloodgulch -->
         <CandyBucket MapId="0" FactionGroup="Horde" LevelRequirement="60"
@@ -150,7 +214,7 @@ for the changes to take effect.
 
         <!--Achievement(5838,7): Twilight Highlands, The Krazzworks -->
         <CandyBucket MapId="0" FactionGroup="Horde" LevelRequirement="60"
-                     AchievementId="967" AchievementSubIndex="7"
+                     AchievementId="5838" AchievementSubIndex="7"
                      CandyBucketId="208153" QuestId="28976" >
             <LandingAreas>
                 <Hotspot Name="front deck of Inn" X="-2752.772" Y="-6411.827" Z="242.3921" AllowedVariance="6" />
@@ -158,10 +222,30 @@ for the changes to take effect.
         </CandyBucket>
 
         <!--Achievement(5838,8): Uldum, Oasis of Vir'sar -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="5838" AchievementSubIndex="8"
+                     CandyBucketId="208178" QuestId="29016" >
+            <LandingAreas>
+                <Hotspot Name="between tents" X="-8321.772" Y="793.7915" Z="152.7286" AllowedVariance="5" />
+                <Hotspot Name="by vendor" X="-8338.07" Y="798.9344" Z="151.7047" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(5838,9): Uldum, Ramkahen -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60"
+                     AchievementId="5838" AchievementSubIndex="9"
+                     CandyBucketId="208179" QuestId="29017" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-9440.736" Y="-959.3629" Z="111.0116" AllowedVariance="14" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(5838,10): Vashj'ir, Deepmist Grotto -->
+
         <!--Achievement(5838,11): Vashj'ir, Legion's Rest -->
+
         <!--Achievement(5838,12): Vashj'ir, Silver Tide Hollow -->
+
         <!--Achievement(5838,13): Vashj'ir, Tenebrous Cavern -->
 
 
@@ -509,7 +593,7 @@ for the changes to take effect.
 
         <!--Achievement(967, 9): "Eversong Woods, Falconwing Square"-->
         <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60"
-                     AchievementId="967" AchievementSubIndex="9" 
+                     AchievementId="967" AchievementSubIndex="9"
                      CandyBucketId="190067" QuestId="12364" MovementBy="NavigatorPreferred" >
             <LandingAreas>
                 <Hotspot Name="front of Inn" X="9502.546" Y="-6822.897" Z="16.4923" AllowedVariance="12" />
@@ -685,32 +769,269 @@ for the changes to take effect.
             ======================================================================-->
 
         <!--Achievement(963,1): Ashenvale, Astranaar -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="1"
+                     CandyBucketId="190035" QuestId="12345" >
+            <LandingAreas>
+                <Hotspot Name="Inn front entrance" X="2719.572" Y="-427.6742" Z="108.0146" AllowedVariance="7" />
+                <Hotspot Name="Inn mailbox entrance" X="2732.09" Y="-394.8311" Z="107.3575" AllowedVariance="7" />
+                <Hotspot Name="Inn side entrance" X="2772.847" Y="-380.5741" Z="107.7541" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,2): Azuremyst Isle, Azure Watch -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="2"
+                     CandyBucketId="190037" QuestId="12333" MovementBy="NavigatorPreferred" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4158.227" Y="-12499.51" Z="44.33281" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,3): Bloodmyst Isle, Blood Watch -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="3"
+                     CandyBucketId="190045" QuestId="12341" MovementBy="NavigatorPreferred" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-2044.148" Y="-11857.87" Z="47.37518" AllowedVariance="15" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,4): Darkshore, Lor'danel -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="4"
+                     CandyBucketId="208115" QuestId="28951" >
+            <LandingAreas>
+                <Hotspot Name="Inn front entrance" X="7388.704" Y="-290.6655" Z="4.979133" AllowedVariance="9" />
+                <Hotspot Name="Inn mailbox entrance" X="7388.138" Y="-257.4351" Z="5.967479" AllowedVariance="5" />
+                <Hotspot Name="Inn side entrance" X="7416.297" Y="-233.9278" Z="5.42892" AllowedVariance="4" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,5): Darnassus, Craftsmen's Terrace -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="5"
+                     CandyBucketId="190038" QuestId="12334" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="10121.9" Y="2240.873" Z="1327.545" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(963,6): Desolace, Karnum's Glade -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="6"
+                     CandyBucketId="208157" QuestId="28993" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1030.723" Y="1662.537" Z="60.40668" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,7): Desolace, Nijel's Point -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="7"
+                     CandyBucketId="190051" QuestId="12348" >
+            <LandingAreas>
+                <Hotspot Name="east Inn entrance" X="249.1608" Y="1208.845" Z="190.067" AllowedVariance="5" />
+                <Hotspot Name="west Inn entrance" X="235.2236" Y="1296.656" Z="189.9312" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,8): Dustwallow Marsh, Mudsprocket -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="8"
+                     CandyBucketId="190104" QuestId="12398" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4583.152" Y="-3171.217" Z="34.07335" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(963,9): Exodar, Seat of the Naaru -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="9"
+                     CandyBucketId="190041" QuestId="12337" MovementBy="NavigatorPreferred" >
+            <LandingAreas>
+                <Hotspot Name="Exodar Inn" X="-3750.774" Y="-11695.42" Z="-105.8809" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,10): Felwood - Talonbranch Glade -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="10"
+                     CandyBucketId="208159" QuestId="28995" >
+            <LandingAreas>
+                <Hotspot Name="Inn front entrance" X="6206.236" Y="-1929.125" Z="568.5462" AllowedVariance="4" />
+                <Hotspot Name="by taxi" X="6186.724" Y="-1901.364" Z="566.6852" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,11): Felwood - Whisperwind Grove -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="11"
+                     CandyBucketId="208158" QuestId="28994" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="6084.354" Y="-886.5359" Z="411.8008" AllowedVariance="5" />
+                <Hotspot Name="by moonwell" X="6066.348" Y="-879.2285" Z="412.3446" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,12): Feralas, Dreamer's Rest -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="12"
+                     CandyBucketId="208116" QuestId="28952" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-3190.463" Y="1903.395" Z="48.14214" AllowedVariance="9" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(963,13): Feralas, Feathermoon Stronghold -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="13"
+                     CandyBucketId="190053" QuestId="12350" >
+            <LandingAreas>
+                <Hotspot Name="inland entrance to Inn" X="-4447.088" Y="2175.496" Z="17.8975" AllowedVariance="8" />
+                <Hotspot Name="seaside entrance to Inn" X="-4444.75" Y="2313.109" Z="12.43742" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
+
         <!--Achievement(963,14): Northern Barrens, Ratchet -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="14"
+                     CandyBucketId="190102" QuestId="12396" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1025.218" Y="-3668.902" Z="22.80967" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,15): Silithus, Cenarion Hold -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="15"
+                     CandyBucketId="190107" QuestId="12401" >
+            <LandingAreas>
+                <Hotspot Name="left side of Inn" X="-6826.982" Y="738.6008" Z="42.21459" AllowedVariance="10" />
+                <Hotspot Name="right side of Inn" X="-6833.355" Y="755.4755" Z="42.80556" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,16): Southern Barrens, Fort Triumph -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="16"
+                     CandyBucketId="208171" QuestId="29008" >
+            <LandingAreas>
+                <Hotspot Name="by campfire" X="-3189.747" Y="-2289.077" Z="93.4426" AllowedVariance="6" />
+                <Hotspot Name="by taxi" X="-3165.126" Y="-2295.286" Z="93.355" AllowedVariance="9" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,17): Southern Barrens, Honor's Stand -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="17"
+                     CandyBucketId="208169" QuestId="29006" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-345.6495" Y="-1531.426" Z="87.23675" AllowedVariance="7" />
+                <Hotspot Name="behind tents" X="-325.1718" Y="-1543.525" Z="88.34711" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,18): Southern Barrens, Northwatch Hold -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="18"
+                     CandyBucketId="208170" QuestId="29007" >
+            <LandingAreas>
+                <Hotspot Name="tower entrance" X="-2112.696" Y="-3514.408" Z="94.99033" AllowedVariance="5" />
+                <Hotspot Name="front of tower" X="-2134.723" Y="-3526.672" Z="91.66593" AllowedVariance="7"/>
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,19): Stonetalon Mountains, Farwatcher's Glen -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="19"
+                     CandyBucketId="208176" QuestId="29013" >
+            <LandingAreas>
+                <Hotspot Name="Inn front entrance" X="1000.19" Y="2016.679" Z="126.4743" AllowedVariance="7" />
+                <Hotspot Name="Inn mailbox entrance" X="1044.857" Y="2015.213" Z="126.7594" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,20): Stonetalon Mountains, Northwatch Expedition Base -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="20"
+                     CandyBucketId="208173" QuestId="29010" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="266.2535" Y="-294.255" Z="92.77761" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,21): Stonetalon Mountains, Thal'darah Overlook -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="21"
+                     CandyBucketId="208175" QuestId="29012" >
+            <LandingAreas>
+                <Hotspot Name="Inn side entrance" X="2074.933" Y="1599.977" Z="341.2545" AllowedVariance="10" />
+                <Hotspot Name="Inn front entrance 1" X="2116.983" Y="1604.817" Z="341.2545" AllowedVariance="9" />
+                <Hotspot Name="Inn front entrance 2" X="2143.613" Y="1584.709" Z="341.2545" AllowedVariance="10" />
+                <Hotspot Name="by taxi" X="2139.034" Y="1540.094" Z="341.238" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
+
         <!--Achievement(963,22): Stonetalon Mountains, Windshear Hold -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="22"
+                     CandyBucketId="208174" QuestId="29011" >
+            <LandingAreas>
+                <Hotspot Name="Inn side entrance" X="1146.55" Y="436.1385" Z="78.01331" AllowedVariance="10" />
+                <Hotspot Name="Inn front entrance" X="1185.751" Y="449.9613" Z="77.9846" AllowedVariance="13" />
+                <Hotspot Name="Inn mailbox entrance" X="1214.529" Y="433.6108" Z="77.30222" AllowedVariance="9" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,23): Tanaris, Bootlegger Outpost -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="23"
+                     CandyBucketId="208177" QuestId="29014" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-8680.271" Y="-4072.223" Z="40.44247" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,24): Tanaris, Gadgetzan -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="24"
+                     CandyBucketId="190105" QuestId="12399" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-7100.165" Y="-3855.198" Z="8.98821" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,25): Teldrassil, Dolanaar -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="25"
+                     CandyBucketId="190034" QuestId="12331" >
+            <LandingAreas>
+                <Hotspot Name="south Inn entrance" X="9847.423" Y="968.0089" Z="1306.448" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,26): Un'Goro Crater, Marshal's Stand -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60"
+                     AchievementId="963" AchievementSubIndex="26"
+                     CandyBucketId="208180" QuestId="29018" >
+            <LandingAreas>
+                <Hotspot Name="by campfire" X="-7497.498" Y="-1503.421" Z="-266.1983" AllowedVariance="3" />
+                <Hotspot Name="north entrance to outpost" X="-7483.009" Y="-1523.23" Z="-269.2031" AllowedVariance="5" />
+                <Hotspot Name="east entrance to outpost" X="-7524.93" Y="-1524.788" Z="-268.9498" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(963,27): Winterspring, Everlook -->
+        <CandyBucket MapId="1" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="963" AchievementSubIndex="27"
+                     CandyBucketId="190106" QuestId="12400" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="6713.224" Y="-4667.695" Z="720.99" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
 
 
         <!--======================================================================
@@ -718,35 +1039,285 @@ for the changes to take effect.
             ======================================================================-->
 
         <!--Achievement(965,1): Ashenvale, Hellscream's Watch -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="1"
+                     CandyBucketId="208118" QuestId="28958" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="3031.693" Y="-528.4324" Z="205.8628" AllowedVariance="11" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,2): Ashenvale, Silverwind Refuge -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="2"
+                     CandyBucketId="208117" QuestId="28953" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="2140.56" Y="-1191.878" Z="97.10414" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(965,3): Ashenvale, Splintertree Post -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="3"
+                     CandyBucketId="190079" QuestId="12377" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="2323.045" Y="-2540.236" Z="100.5307" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,4): Ashenvale, Zoram'gar Outpost -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="4"
+                     CandyBucketId="208119" QuestId="28989" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="3364.798" Y="976.5648" Z="7.174984" AllowedVariance="11" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,5): Azshara, Bilgewater Harbor -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="5"
+                     CandyBucketId="208140" QuestId="28992" >
+            <LandingAreas>
+                <Hotspot Name="Inn entrance" X="3535.986" Y="-6482.384" Z="39.81034" AllowedVariance="5" />
+                <Hotspot Name="left of Inn entrance" X="3547.17" Y="-6493.791" Z="41.07471" AllowedVariance="3" />
+                <Hotspot Name="right of Inn entranee" X="3523.247" Y="-6492.801" Z="40.11031" AllowedVariance="3" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,6): Desolace, Karnum's Glade -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="6"
+                     CandyBucketId="208157" QuestId="28993" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1030.723" Y="1662.537" Z="60.40668" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,7): Desolace, Shadowprey Village -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="7"
+                     CandyBucketId="190083" QuestId="12381" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1613.346" Y="3109.304" Z="42.57618" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,8): Durotar, Razor Hill -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="8"
+                     CandyBucketId="190064" QuestId="12361" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="321.2639" Y="-4719.223" Z="12.33003" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(965,9): Dustwallow Marsh, Brackenwall Village -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="9"
+                     CandyBucketId="190085" QuestId="12383" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-3146.387" Y="-2902.52" Z="34.17116" AllowedVariance="9" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,10): Dustwallow Marsh, Mudsprocket -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60"
+                     AchievementId="965" AchievementSubIndex="10"
+                     CandyBucketId="190104" QuestId="12398" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4583.152" Y="-3171.217" Z="34.07335" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,11): Felwood, Whisperwind Grove -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="11"
+                     CandyBucketId="208158" QuestId="28994" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="6084.354" Y="-886.5359" Z="411.8008" AllowedVariance="5" />
+                <Hotspot Name="by moonwell" X="6066.348" Y="-879.2285" Z="412.3446" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,12): Feralas, Camp Ataya -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="12"
+                     CandyBucketId="208160" QuestId="28996" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-3091.772" Y="2568.436" Z="50.07181" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,13): Feralas, Camp Mojache -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="13"
+                     CandyBucketId="190088" QuestId="12386" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4430.206" Y="256.1808" Z="36.86897" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,14): Feralas, Stonemaul Hold -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="14"
+                     CandyBucketId="208161" QuestId="28998" >
+            <LandingAreas>
+                <Hotspot Name="entrance to Inn" X="-4581.865" Y="1832.475" Z="88.98257" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(965,15): Mulgore, Bloodhoof Village -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="15"
+                     CandyBucketId="190065" QuestId="12362" >
+            <LandingAreas>
+                <Hotspot Name="entrance to Inn" X="-2334.042" Y="-360.9163" Z="-8.618233" AllowedVariance="6" />
+                <Hotspot Name="front of Inn" X="-2319.816" Y="-375.9751" Z="-8.986644" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,16): Northern Barrens, The Crossroads -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="16"
+                     CandyBucketId="190076" QuestId="12374" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-438.1157" Y="-2657.402" Z="95.87873" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,17): Northern Barrens, Grol'dom Farm -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="17"
+                     CandyBucketId="208165" QuestId="29002" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="255.5066" Y="-3044.409" Z="96.20324" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(965,18): Northern Barrens, Nozzlepot's Outpost -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="18"
+                     CandyBucketId="208166" QuestId="29003" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="1158.909" Y="-3389.852" Z="91.66758" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(965,19): Northern Barrens, Ratchet -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60"
+                     AchievementId="965" AchievementSubIndex="19"
+                     CandyBucketId="190102" QuestId="12396" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1025.218" Y="-3668.902" Z="22.80967" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,20): Orgrimmar, Valley of Strength -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="20"
+                     CandyBucketId="190069" QuestId="12366" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="1566.811" Y="-4420.784" Z="15.09608" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(965,21): Silithus, Cenarion Hold -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="21"
+                     CandyBucketId="190107" QuestId="12401" >
+            <LandingAreas>
+                <Hotspot Name="left side of Inn" X="-6826.982" Y="738.6008" Z="42.21459" AllowedVariance="10" />
+                <Hotspot Name="right side of Inn" X="-6833.355" Y="755.4755" Z="42.80556" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,22): Southern Barrens, Desolation Hold -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="22"
+                     CandyBucketId="208168" QuestId="29005" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-3239.658" Y="-1680.753" Z="98.89555" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,23): Southern Barrens, Hunter's Hill -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="23"
+                     CandyBucketId="208167" QuestId="29004" >
+            <LandingAreas>
+                <Hotspot Name="front of inn" X="-787.9336" Y="-1560.823" Z="140.8506" AllowedVariance="3" />
+                <Hotspot Name="by mailbox" X="-797.1115" Y="-1558.443" Z="141.1152" AllowedVariance="3" />
+                <Hotspot Name="by apple bob" X="-777.9406" Y="-1565.817" Z="140.7246" AllowedVariance="3" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,24): Stonetalon Mountains, Krom'gar Fortress -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="24"
+                     CandyBucketId="208172" QuestId="29009" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="893.8612" Y="-1.512416" Z="92.72412" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(965,25): Stonetalon Mountains, Sun Rock Retreat -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="25"
+                     CandyBucketId="190080" QuestId="12378" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="932.9039" Y="905.7261" Z="104.4282" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(965,26): Tanaris, Bootlegger Outpost -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60"
+                     AchievementId="965" AchievementSubIndex="26"
+                     CandyBucketId="208177" QuestId="29014" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-8680.271" Y="-4072.223" Z="40.44247" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,27): Tanaris, Gadgetzan -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60"
+                     AchievementId="965" AchievementSubIndex="27"
+                     CandyBucketId="190105" QuestId="12399" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-7100.165" Y="-3855.198" Z="8.98821" AllowedVariance="12" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,28): Thunder Bluff, Lower Rise -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="28"
+                     CandyBucketId="190070" QuestId="12367" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1273.056" Y="54.72696" Z="128.6072" AllowedVariance="5" />
+                <Hotspot Name="by Guild vault" X="-1266.141" Y="71.36714" Z="127.564" AllowedVariance="8" />
+                <Hotspot Name="by Command Board" X="-1241.46" Y="76.31763" Z="129.0841" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(965,29): Un'Goro Crater, Marshal's Stand -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60"
+                     AchievementId="965" AchievementSubIndex="29"
+                     CandyBucketId="208180" QuestId="29018" >
+            <LandingAreas>
+                <Hotspot Name="by campfire" X="-7497.498" Y="-1503.421" Z="-266.1983" AllowedVariance="3" />
+                <Hotspot Name="north entrance to outpost" X="-7483.009" Y="-1523.23" Z="-269.2031" AllowedVariance="5" />
+                <Hotspot Name="east entrance to outpost" X="-7524.93" Y="-1524.788" Z="-268.9498" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(965,30): Winterspring, Everlook -->
+        <CandyBucket MapId="1" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="965" AchievementSubIndex="30"
+                     CandyBucketId="190106" QuestId="12400" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="6713.224" Y="-4667.695" Z="720.99" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
 
 
         <!--======================================================================
@@ -812,40 +1383,328 @@ for the changes to take effect.
             ======================================================================-->
 
         <!--Achievement(969,1): Blade's Edge Mountains, Evergrove -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="1"
+                     CandyBucketId="190112" QuestId="12406" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn" X="3014.913" Y="5459.454" Z="146.0751" AllowedVariance="7" />
+                <Hotspot Name="right of Inn" X="3004.232" Y="5449.237" Z="145.7656" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(969,2): Blade's Edge Mountains, Sylvanaar -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="2"
+                     CandyBucketId="190061" QuestId="12358" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="2072.824" Y="6877.418" Z="178.4117" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,3): Blade's Edge Mountains, Toshley's Station -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="3"
+                     CandyBucketId="190062" QuestId="12359" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="1934.717" Y="5555.246" Z="264.6516" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,4): Hellfire Peninsula, Honor Hold -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="4"
+                     CandyBucketId="190055" QuestId="12352" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn" X="-713.9144" Y="2691.756" Z="94.26366" AllowedVariance="6" />
+                <Hotspot Name="right of Inn" X="-700.2207" Y="2693.736" Z="94.50001" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,5): Hellfire Peninsula, Temple of Telhamat -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="5"
+                     CandyBucketId="190056" QuestId="12353" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn" X="187.2665" Y="4337.314" Z="116.3259" AllowedVariance="7" />
+                <Hotspot Name="right of Inn" X="188.0476" Y="4327.681" Z="116.4632" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,6): Nagrand, Telaar -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="6"
+                     CandyBucketId="190060" QuestId="12357" >
+            <LandingAreas>
+                <Hotspot Name="Inn front entrance" X="-2687.553" Y="7287.115" Z="40.4982" AllowedVariance="6" />
+                <Hotspot Name="Inn rear entrance" X="-2804.632" Y="7340.016" Z="41.4627" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,7): Netherstorm, Area 52 -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="7"
+                     CandyBucketId="190113" QuestId="12407" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn entrance" X="3040.949" Y="3691.921" Z="143.0304" AllowedVariance="7" />
+                <Hotspot Name="right of Inn entrance" X="3051.01" Y="3679.002" Z="142.4055" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(969,8): Netherstorm, The Stormspire -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="8"
+                     CandyBucketId="190114" QuestId="12408" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="4123.762" Y="3041.351" Z="338.3018" AllowedVariance="11" />
+                <Hotspot Name="Inn landing deck" X="4100.969" Y="3094.84" Z="339.3883" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(969,9): Shadowmoon Valley, Altar of Sha'tar or Sanctum of the Stars -->
+        <!-- Alter of Sha'tar -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="9"
+                     CandyBucketId="190115" QuestId="12409" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-3021.478" Y="847.5558" Z="-10.41196" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
+        <!-- Sanctum of the Stars -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="9"
+                     CandyBucketId="190116" QuestId="12409" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4097.498" Y="1117.708" Z="42.53117" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,10): Shadowmoon Valley, Wildhammer Stronghold -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="10"
+                     CandyBucketId="190063" QuestId="12360" NeedLos="false" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4054.613" Y="2184.984" Z="109.8007" AllowedVariance="3" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,11): Shattrath City, Aldor Rise or Scryer's Tier -->
+        <!-- Aldor Rise -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="11"
+                     CandyBucketId="190110" QuestId="12404" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1879.863" Y="5762.394" Z="129.5583" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+
+        <!-- Scryer's Tier -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="11"
+                     CandyBucketId="190111" QuestId="12404" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-2157.46" Y="5406.079" Z="50.22837" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(969,12): Terokkar Forest, Allerian Stronghold -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="12"
+                     CandyBucketId="190059" QuestId="12356" >
+            <LandingAreas>
+                <Hotspot Name="entrance to Inn" X="-2928.629" Y="4015.073" Z="-0.2939278" AllowedVariance="3" />
+                <Hotspot Name="front of Inn" X="-2940.795" Y="4010.919" Z="-1.125628" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,13): Zangarmarsh, Cenarion Refuge -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="13"
+                     CandyBucketId="190109" QuestId="12403" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-207.6716" Y="5512.948" Z="21.55669" AllowedVariance="8" />
+                <Hotspot Name="back deck of Inn" X="-145.9979" Y="5532.858" Z="30.90623" AllowedVariance="2.5" />
+            </LandingAreas>
+        </CandyBucket>
+        
         <!--Achievement(969,14): Zangarmarsh, Orebor Harborage -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="14"
+                     CandyBucketId="190058" QuestId="12355" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="1028.577" Y="7353.787" Z="36.60948" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(969,15): Zangarmarsh, Telredor -->
+        <CandyBucket MapId="530" FactionGroup="Alliance" LevelRequirement="60" 
+                     AchievementId="969" AchievementSubIndex="15"
+                     CandyBucketId="190057" QuestId="12354" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="282.1966" Y="6073.508" Z="130.2845" AllowedVariance="9" />
+            </LandingAreas>
+        </CandyBucket>
 
-
+      
         <!--======================================================================
             Achievement: Tricks and Treats of Outland (Horde: http://wowhead.com/achievement=968)
             ======================================================================-->
 
         <!--Achievement(968,1): Blade's Edge Mountains, Evergrove -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="1"
+                     CandyBucketId="190112" QuestId="12406" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn" X="3014.913" Y="5459.454" Z="146.0751" AllowedVariance="7" />
+                <Hotspot Name="right of Inn" X="3004.232" Y="5449.237" Z="145.7656" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,2): Blade's Edge Mountains, Mok'Nathal Village -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="2"
+                     CandyBucketId="190100" QuestId="12394" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="2206.592" Y="4749.433" Z="158.3037" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,3): Blade's Edge Mountains, Thunderlord Stronghold -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="3"
+                     CandyBucketId="190099" QuestId="12393" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn" X="2409.056" Y="5997.16" Z="150.6399" AllowedVariance="7" />
+                <Hotspot Name="right of Inn" X="2389.191" Y="5997.829" Z="150.214" AllowedVariance="9" />
+            </LandingAreas>
+      </CandyBucket>
+
         <!--Achievement(968,4): Hellfire Peninsula, Falcon Watch -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="4"
+                     CandyBucketId="190091" QuestId="12389" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-598.2484" Y="4165.441" Z="65.20149" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+      
         <!--Achievement(968,5): Hellfire Peninsula, Thrallmar -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="5"
+                     CandyBucketId="190090" QuestId="12388" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="172.2325" Y="2639.108" Z="86.58434" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,6): Nagrand, Garadar -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="6"
+                     CandyBucketId="190098" QuestId="12392" >
+            <LandingAreas>
+                <Hotspot Name="front entrance to Inn" X="-1265.448" Y="7184.179" Z="56.80976" AllowedVariance="8" />
+                <Hotspot Name="side entrance to Inn" X="-1192.395" Y="7195.352" Z="56.59924" AllowedVariance="5" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,7): Netherstorm, Area 52 -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="7"
+                     CandyBucketId="190113" QuestId="12407" >
+            <LandingAreas>
+                <Hotspot Name="left of Inn entrance" X="3040.949" Y="3691.921" Z="143.0304" AllowedVariance="7" />
+                <Hotspot Name="right of Inn entrance" X="3051.01" Y="3679.002" Z="142.4055" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,8): Netherstorm, The Stormspire -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="8"
+                     CandyBucketId="190114" QuestId="12408" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="4123.762" Y="3041.351" Z="338.3018" AllowedVariance="11" />
+                <Hotspot Name="Inn landing deck" X="4100.969" Y="3094.84" Z="339.3883" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,9): Shadowmoon Valley, Altar of Sha'tar or Sanctum of the Stars -->
+        <!-- Alter of Sha'tar -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="9"
+                     CandyBucketId="190115" QuestId="12409" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-3021.478" Y="847.5558" Z="-10.41196" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
+        <!-- Sanctum of the Stars -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="9"
+                     CandyBucketId="190116" QuestId="12409" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-4097.498" Y="1117.708" Z="42.53117" AllowedVariance="10" />
+            </LandingAreas>
+        </CandyBucket>
+
+      
         <!--Achievement(968,10): Shadowmoon Valley, Shadowmoon Village -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="10"
+                     CandyBucketId="190101" QuestId="12395" >
+            <LandingAreas>
+                <Hotspot Name="Inn left entrance" X="-2973.848" Y="2590.364" Z="77.77276" AllowedVariance="7" />
+                <Hotspot Name="Inn right entrance" X="-2989.708" Y="2545.633" Z="76.58366" AllowedVariance="7" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,11): Shattrath City, Aldor Rise or Scryer's Tier -->
+        <!-- Aldor Rise -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="11"
+                     CandyBucketId="190110" QuestId="12404" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-1879.863" Y="5762.394" Z="129.5583" AllowedVariance="6" />
+            </LandingAreas>
+        </CandyBucket>
+
+        <!-- Scryer's Tier -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="11"
+                     CandyBucketId="190111" QuestId="12404" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-2157.46" Y="5406.079" Z="50.22837" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,12): Terokkar Forest, Stonebreaker Hold -->
-        <!--Achievement(968,13):  Zangarmarsh, Zabra'jin -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="12"
+                     CandyBucketId="190097" QuestId="12391" >
+            <LandingAreas>
+                <Hotspot Name="left of entrance" X="-2644.74" Y="4414.836" Z="35.32374" AllowedVariance="7" />
+                <Hotspot Name="Inn entrance" X="-2628.111" Y="4411.949" Z="34.71487" AllowedVariance="8" />
+                <Hotspot Name="right of entrance" X="-2611.969" Y="4407.364" Z="34.11271" AllowedVariance="8" />
+            </LandingAreas>
+        </CandyBucket>
+
+        <!--Achievement(968,13): Zangarmarsh, Zabra'jin -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="13"
+                     CandyBucketId="190096" QuestId="12390" >
+            <LandingAreas>
+                <Hotspot Name="Inn entrance" X="245.5962" Y="7891.3" Z="23.13219" AllowedVariance="4" />
+            </LandingAreas>
+        </CandyBucket>
+
         <!--Achievement(968,14): Zangarmarsh, Cenarion Refuge -->
+        <CandyBucket MapId="530" FactionGroup="Horde" LevelRequirement="60" 
+                     AchievementId="968" AchievementSubIndex="14"
+                     CandyBucketId="190109" QuestId="12403" >
+            <LandingAreas>
+                <Hotspot Name="front of Inn" X="-207.6716" Y="5512.948" Z="21.55669" AllowedVariance="8" />
+                <Hotspot Name="back deck of Inn" X="-145.9979" Y="5532.858" Z="30.90623" AllowedVariance="2.5" />
+            </LandingAreas>
+        </CandyBucket>
 
 
         <!--======================================================================-->
@@ -913,10 +1772,10 @@ for the changes to take effect.
         ======================================================================-->
 
     <DispelAuras>
-        <Aura Name="Hallow's End Candy" Id="24927" />        
+        <Aura Name="Hallow's End Candy" Id="24927" />
     </DispelAuras>
-    
-    
+
+
     <!--======================================================================
         ItemIds_Unwanted: Items on this list will be deleted whn they land in our inventory.
         ======================================================================-->
@@ -925,11 +1784,12 @@ for the changes to take effect.
         <!--Since Item names are localized, we can't delete them "by name", and *must* use the IDs... -->
         <Item Name="Bobbing Apple" Id="20516" />
         <Item Name="Chewy Fel Taffy" Id="37585" />
+        <Item Name="Folded Letter" Id="36877" />
         <Item Name="Hallowed Helm" Id="33292" />
         <Item Name="Penny Pouch" Id="37606" />
         <Item Name="Pyroblast Cinnamon Ball" Id="37582" />
         <Item Name="Soothing Spearmint Candy" Id="37584" />
-        
+
         <!--The Achievement "A Mask for All Occasions" (http://www.wowhead.com/achievement=284)
             just requires that the mask lands in your inventory => you do not have to equip it.
             So, we can safely delete any we find in our inventory, and the Achievement will still

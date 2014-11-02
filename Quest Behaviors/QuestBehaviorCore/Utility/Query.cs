@@ -222,6 +222,32 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
+        /// <summary>
+        /// This method returns whether ACHIEVEMENTID is personal compelete for the toon.
+        /// This means the achievement is complete (account-wide), and the toon personally has the achievement.
+        /// If CHECKISPERSONALLYCOMPLETE is false, the personal check is foregone, and only the account-wide
+        /// check is conducted.
+        /// </summary>
+        /// <param name="achievementId"></param>
+        /// <returns></returns>
+        public static bool IsAchievementPersonallyCompleted(int achievementId)
+        {
+            var luaCmd = string.Format("return GetAchievementInfo({0})", achievementId);
+
+            var results = Lua.GetReturnValues(luaCmd);
+            try
+            {
+                var isAchievementComplete = (results.Count < 4) ? false : Lua.ParseLuaValue<bool>(results[3]);
+                var wasEarnedByMe = (results.Count < 13) ? false : Lua.ParseLuaValue<bool>(results[12]);
+
+                return isAchievementComplete && wasEarnedByMe;
+            }
+            catch (Exception ex)
+            {
+                return false;
+            }
+        }
+
         public static bool IsAnyNpcFrameVisible()
         {
             return
