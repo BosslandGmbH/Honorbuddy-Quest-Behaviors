@@ -1,15 +1,15 @@
-﻿using System;
+﻿#region Usings
+using System;
 using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 using Buddy.Coroutines;
-using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.WoWInternals;
+#endregion
 
-namespace QBs.QuestBehaviorCore.Utility
+
+namespace Honorbuddy.QuestBehaviorCore
 {
 	/// <summary>Monitors a spell cast</summary>
 	internal class SpellCastMonitor : IDisposable

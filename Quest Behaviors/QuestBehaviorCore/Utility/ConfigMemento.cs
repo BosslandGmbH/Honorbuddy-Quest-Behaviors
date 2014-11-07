@@ -16,16 +16,15 @@ using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
 using Bots.Grind;
+
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.AreaManagement;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest;
 using Styx.CommonBot.Routines;
 using Styx.Helpers;
 using Styx.Pathing;
-
 #endregion
 
 

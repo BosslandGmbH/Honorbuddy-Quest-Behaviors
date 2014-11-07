@@ -9,17 +9,9 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
-using System;
 using System.Diagnostics;
-using System.Windows.Media;
-using System.Xml.Linq;
-using JetBrains.Annotations;
-using Styx.Common;
-using Styx.CommonBot;
-using Styx.CommonBot.Profiles;
-using Styx.TreeSharp;
 
-using Action = Styx.TreeSharp.Action;
+using JetBrains.Annotations;
 #endregion
 
 

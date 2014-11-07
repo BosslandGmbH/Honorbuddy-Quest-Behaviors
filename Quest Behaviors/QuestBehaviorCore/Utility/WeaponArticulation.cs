@@ -15,7 +15,6 @@ using System.Globalization;
 using Styx;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 

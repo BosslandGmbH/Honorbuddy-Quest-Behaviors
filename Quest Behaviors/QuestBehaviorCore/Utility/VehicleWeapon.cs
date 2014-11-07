@@ -15,10 +15,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using Styx;
-using Styx.Common;
 using Styx.Common.Helpers;
-using Styx.CommonBot;
-using Styx.Helpers;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 #endregion

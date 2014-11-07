@@ -17,7 +17,6 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.DBC;
 
 using Tripper.Tools.Math;
-
 #endregion
 
 

@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
+﻿#region Usings
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
-using Honorbuddy.QuestBehaviorCore;
+
 using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.WoWInternals;
+#endregion
+
 
 namespace Honorbuddy.QuestBehaviorCore
 {

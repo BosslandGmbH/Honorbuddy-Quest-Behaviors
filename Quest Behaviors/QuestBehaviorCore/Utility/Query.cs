@@ -14,6 +14,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
+
 using JetBrains.Annotations;
 using Styx;
 using Styx.Common.Helpers;
@@ -26,7 +27,6 @@ using Styx.Helpers;
 using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 
@@ -225,8 +225,6 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <summary>
         /// This method returns whether ACHIEVEMENTID is personal compelete for the toon.
         /// This means the achievement is complete (account-wide), and the toon personally has the achievement.
-        /// If CHECKISPERSONALLYCOMPLETE is false, the personal check is foregone, and only the account-wide
-        /// check is conducted.
         /// </summary>
         /// <param name="achievementId"></param>
         /// <returns></returns>

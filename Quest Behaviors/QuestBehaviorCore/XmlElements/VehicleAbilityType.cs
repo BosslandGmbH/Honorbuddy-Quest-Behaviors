@@ -8,14 +8,14 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Usings
 using System;
 using System.Linq;
 using System.Xml.Linq;
 
-using Styx;
 using Styx.CommonBot.Bars;
-using Styx.CommonBot.Profiles;
 using Styx.Helpers;
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
@@ -32,10 +32,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 				ButtonIndex = GetAttributeAsNullable<int>("ButtonIndex", true, new ConstrainTo.Domain<int>(1, 12), null) ?? 1;
 				TargetingType = GetAttributeAsNullable<AbilityTargetingType>("TargetingType", false, null, null) ?? AbilityTargetingType.Vehicle;
 				IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
-				UseWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "true";
-	            UseWhenPredicateFunc = QuestBehaviorBase.CompileAttributePredicateExpression("UseWhen", UseWhenExpression);
-				if (UseWhenPredicateFunc == null)
-					IsAttributeProblem = true; 
+
+                // We test compile the "UseWhen" expression to look for problems.
+                // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
+                // If there is a problem, an exception will be thrown (and handled here).
+                var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "true";
+                UseWhen = UserDefinedExpression<bool>.NoArgsFactory("UseWhen", useWhenExpression);
+                if (UseWhen == null)
+                    IsAttributeProblem = true;
 
                 HandleAttributeProblem();
             }
@@ -53,11 +57,13 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			bool ignoreLosToTarget = false,
 			string useWhenExpression = "true")
 		{
-				ButtonIndex = abilityIndex;
-				TargetingType = targetingType;
-				IgnoreLoSToTarget = ignoreLosToTarget;
-				UseWhenExpression = useWhenExpression ?? "true";
-				UseWhenPredicateFunc = QuestBehaviorBase.CompileAttributePredicateExpression("UseWhen", UseWhenExpression);
+			ButtonIndex = abilityIndex;
+			TargetingType = targetingType;
+			IgnoreLoSToTarget = ignoreLosToTarget;
+			useWhenExpression = string.IsNullOrEmpty(useWhenExpression) ? "true" : useWhenExpression;
+            UseWhen = UserDefinedExpression<bool>.NoArgsFactory("UseWhen", useWhenExpression);
+	        if (UseWhen == null)
+	            IsAttributeProblem = true;
 		}
 
 
@@ -77,14 +83,13 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			return new XElement(elementName,
 							 new XAttribute("ButtonIndex", ButtonIndex),
 							 new XAttribute("TargetingType", TargetingType),
-							 new XAttribute("UseWhen", UseWhenExpression));
+							 new XAttribute("UseWhen", UseWhen.ExpressionAsString));
 		}
 
 		public int ButtonIndex { get; private set; }
 		public AbilityTargetingType TargetingType { get; set; }
-		public Func<bool> UseWhenPredicateFunc { get; private set; }
 		public bool IgnoreLoSToTarget { get; private set; }
-		private string UseWhenExpression { get; set; }
+        public UserDefinedExpression<bool> UseWhen { get; private set; }
 
 	    private PerFrameCachedValue<SpellActionButton> _ability;
 	    public SpellActionButton Ability
@@ -102,11 +107,5 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 	    }
 
 		#endregion
-
-
-		#region Private and Convenience variables
-
-        #endregion
-		
     }
 }

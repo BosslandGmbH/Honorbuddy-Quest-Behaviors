@@ -8,14 +8,13 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Xml.Linq;
-
-using Styx;
-using Styx.CommonBot.Profiles;
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements

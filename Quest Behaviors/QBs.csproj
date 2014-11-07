@@ -155,7 +155,6 @@
     <Compile Include="Misc\ProfileCompatibilityInfo.cs" />
     <Compile Include="MountHook.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Coroutine.cs" />
-    <Compile Include="QuestBehaviorCore\Logging.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Generics.cs" />
     <Compile Include="QuestBehaviorCore\QBCLog.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Combat.cs" />
@@ -171,6 +170,7 @@
     <Compile Include="QuestBehaviorCore\Utility\ConfigMemento.cs" />
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\UserDefinedExpression.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query_Database.cs" />
@@ -204,7 +204,6 @@
     <Compile Include="QuestBehaviorCore\XmlElements\WaypointType.cs" />
     <Compile Include="QuestBehaviorCore\DataFileAccess.cs" />
     <Compile Include="QuestBehaviorCore\LocalBlacklist.cs" />
-    <Compile Include="QuestBehaviorCore\PetControl.cs" />
     <Compile Include="BasicVehicleBehaviour.cs" />
     <Compile Include="ButtonPress\ButtonPressOnAura.cs" />
     <Compile Include="ButtonPress\ButtonPressOnChat.cs" />

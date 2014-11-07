@@ -11,7 +11,7 @@
 
 #region Usings
 using System.Linq;
-using Styx;
+
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 #endregion

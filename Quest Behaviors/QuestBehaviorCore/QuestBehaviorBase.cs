@@ -120,21 +120,16 @@ using System.Diagnostics;
 using System.Linq;
 using System.Xml.Linq;
 
-using Bots.Grind;
 
 using Honorbuddy.QuestBehaviorCore.XmlElements;
-
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
-using Styx.CommonBot.Profiles.Quest.Order;
-using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 
@@ -164,10 +159,13 @@ namespace Honorbuddy.QuestBehaviorCore
 				MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.FlightorPreferred;
 				NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
 
-				var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-				TerminateWhen = CompileAttributePredicateExpression("TerminateWhen", terminateWhenExpression);
-				if (TerminateWhen == null)
-					{ IsAttributeProblem = true; }
+				// Go ahead and compile the "TerminateWhen" expression to look for problems...
+                // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
+				// If there is a problem, an exception will be thrown (and handled here).
+                var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
+			    TerminateWhen = UserDefinedExpression<bool>.NoArgsFactory("TerminateWhen", terminateWhenExpression);
+			    if (TerminateWhen == null)
+			        IsAttributeProblem = true;
 
 				TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
 
@@ -204,7 +202,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		public int QuestObjectiveIndex { get; protected set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
 		public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
-		public Func<bool> TerminateWhen { get; protected set; }
+		public UserDefinedExpression<bool> TerminateWhen { get; protected set; }
 		public bool TerminationChecksQuestProgress { get; protected set; }
 
 		public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
@@ -259,7 +257,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			get
 			{
 				return _isBehaviorDone // normal completion
-					   || TerminateWhen() // Specified condition in profile
+					   || TerminateWhen.Evaluate() // Specified condition in profile
 					   || CheckTermination(); // Quest/objective ID
 			}
 		}
@@ -634,43 +632,6 @@ namespace Honorbuddy.QuestBehaviorCore
 			return new PrioritySelector(
 				// empty, for now...
 				);
-		}
-		#endregion
-
-
-		#region Helpers
-
-		/// <summary>
-		/// Compiles the text form of PREDICATEEXPRESSION, and returns PREDICATEFUNC as a result.
-		/// If the PREDICATEEXPRESSION is invald, then 'null' is returned.
-		/// </summary>
-		/// <param name="attributeName"></param>
-		/// <param name="predicateExpression"></param>
-		/// <returns></returns>
-		public static Func<bool> CompileAttributePredicateExpression(string attributeName, string predicateExpression)
-		{
-			var originalProfileDebuggingMode = GlobalSettings.Instance.ProfileDebuggingMode;
-
-			try
-			{
-				// ParseConditionString() does not actually compile anything, unless
-				// ProfileDebuggingMode is enabled.
-				GlobalSettings.Instance.ProfileDebuggingMode = true;
-				var predicateFunc = ConditionHelper.ParseConditionString(predicateExpression);
-
-				if (predicateFunc == null)
-				{
-					QBCLog.ProfileError("The \"{0}\" predicate expression ({1}) is not valid.",
-										attributeName, predicateExpression);
-				}
-
-				return predicateFunc;
-			}
-
-			finally
-			{
-				GlobalSettings.Instance.ProfileDebuggingMode = originalProfileDebuggingMode;
-			}
 		}
 		#endregion
 	}

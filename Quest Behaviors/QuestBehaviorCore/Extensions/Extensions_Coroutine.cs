@@ -9,12 +9,11 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
-
 using System;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using Styx.CommonBot.Coroutines;
 
+using Styx.CommonBot.Coroutines;
 #endregion
 
 namespace Honorbuddy.QuestBehaviorCore

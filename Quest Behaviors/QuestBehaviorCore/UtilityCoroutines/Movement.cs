@@ -1,21 +1,20 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿#region Usings
+using System;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
+
 using Buddy.Coroutines;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
-using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.CommonBot.Coroutines;
-using Action = Styx.TreeSharp.Action;
+#endregion
+
 
 namespace Honorbuddy.QuestBehaviorCore
 {

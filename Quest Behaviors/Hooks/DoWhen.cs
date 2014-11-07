@@ -65,6 +65,9 @@
 //   then the behavior will flag an error with the predicate.  With bad predicates,
 //   erratic Honorbuddy behavior may ensue.
 //
+// * The DoWhen Activity is not called when the toon is eating or drinking.
+//   This prevents interference while a toon is trying to recover after a fight.
+//
 // * Attempting to use an Item that is not in the backpack will cause the behavior to
 //   emit errors warning of a problem with the profile.  There are two resolutions to
 //   this situation:
@@ -143,16 +146,15 @@
 
 #region Usings
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+
 using Bots.Quest.Actions;
 using Bots.Quest.QuestOrder;
-using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.Common.Helpers;
@@ -163,7 +165,6 @@ using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 
@@ -203,13 +204,15 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                 var useAtInterval = GetAttributeAsNullable<int>("UseAtInterval", false, ConstrainAs.Milliseconds, null) ?? 0;
                 UseAtInterval = TimeSpan.FromMilliseconds(useAtInterval);
 
-				// We test compile the "UseWhen" expression to look for problems.
+				// Go ahead and compile the "UseWhen" expression to look for problems...
+                // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
 				// If there is a problem, an exception will be thrown (and handled here).
-				UseWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-				if (CompileAttributePredicateExpression("UseWhen", UseWhenExpression) == null)
-				    IsAttributeProblem = true;
+                var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
+			    UseWhen = UserDefinedExpression<bool>.NoArgsFactory("UseWhen", useWhenExpression);
+			    if (UseWhen == null)
+			        IsAttributeProblem = true;
 
-				// Tunables...
+			    // Tunables...
 				AllowUseDuringCombat = GetAttributeAsNullable<bool>("AllowUseDuringCombat", false, null, null) ?? false;
 				AllowUseInVehicle = GetAttributeAsNullable<bool>("AllowUseInVehicle", false, null, null) ?? false;
 				AllowUseWhileFlying = GetAttributeAsNullable<bool>("AllowUseWhileFlying", false, null, null) ?? false;
@@ -243,7 +246,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private CommandType Command { get; set; }
         private bool StopMovingToConductActivity { get; set; }
         private TimeSpan UseAtInterval { get; set; }
-		private string UseWhenExpression { get; set; }
+		private UserDefinedExpression<bool> UseWhen { get; set; }
 
 		private static CustomForcedBehavior CfbContextForHook { get; set; }
 
@@ -401,7 +404,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                                                                                 AllowUseInVehicle,
                                                                                 AllowUseWhileFlying,
                                                                                 AllowUseWhileMounted)
-                            : (IUseWhenPredicate)new UseWhenPredicate_FuncEval(UseWhenExpression,
+                            : (IUseWhenPredicate)new UseWhenPredicate_FuncEval(UseWhen,
                                                                                 AllowUseDuringCombat,
                                                                                 AllowUseInVehicle,
                                                                                 AllowUseWhileFlying,
@@ -802,7 +805,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 
             protected override async Task<ActivityResult> ExecuteSpecificActivity()
-			{
+            {
 				// If spell is not known at the moment, this is a problem...
                 if ((_wowSpell == null) || !_wowSpell.IsValid)
                 {
@@ -968,25 +971,22 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
         private class UseWhenPredicate_FuncEval : IUseWhenPredicate
         {
-            public UseWhenPredicate_FuncEval(string useWhenExpression,
+            public UseWhenPredicate_FuncEval(UserDefinedExpression<bool> useWhen,
                                                 bool allowUseDuringCombat,
                                                 bool allowUseInVehicle,
                                                 bool allowUseWhileFlying,
                                                 bool allowUseWhileMounted)
-                :base(useWhenExpression,
+                :base(useWhen.ExpressionAsString,
                       allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
             {
-                // We keep the string representation of the expression for use in logging messages, etc...
-                _predicate = CompileAttributePredicateExpression("UseWhen", useWhenExpression);
-                if (_predicate == null)
-                    throw new ArgumentException("Predicate ({0}) expression doesn't compile.", useWhenExpression);
+                _predicate = useWhen;
             }
 
-            private readonly Func<bool> _predicate; 
+            private readonly UserDefinedExpression<bool> _predicate; 
 
             public override bool IsReady()
             {
-                return IsReady_Common() && _predicate();
+                return IsReady_Common() && _predicate.Evaluate();
             }
 
             public override void Reset()

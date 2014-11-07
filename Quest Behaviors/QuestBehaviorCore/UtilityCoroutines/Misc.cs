@@ -1,20 +1,16 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿#region Usings
+using System;
 using System.Linq;
-using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading.Tasks;
-using Buddy.Coroutines;
-using Honorbuddy.QuestBehaviorCore;
-using Styx;
+
 using Styx.Common.Helpers;
 using Styx.CommonBot;
-using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
 using Styx.CommonBot.Coroutines;
+
 using Action = System.Action;
+#endregion
+
 
 namespace Honorbuddy.QuestBehaviorCore
 {

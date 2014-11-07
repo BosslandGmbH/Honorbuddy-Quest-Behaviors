@@ -9,22 +9,14 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
-
 using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Bots.BGBuddy.Helpers;
+
 using Buddy.Coroutines;
-using CommonBehaviors.Actions;
 using Styx;
-using Styx.CommonBot;
 using Styx.Pathing;
-using Styx.TreeSharp;
-using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-using Action = Styx.TreeSharp.Action;
 using Styx.CommonBot.Coroutines;
 #endregion
 

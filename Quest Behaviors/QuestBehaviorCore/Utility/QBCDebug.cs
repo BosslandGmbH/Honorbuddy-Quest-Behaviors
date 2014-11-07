@@ -15,7 +15,6 @@ using System.Text;
 using Styx;
 using Styx.CommonBot;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 

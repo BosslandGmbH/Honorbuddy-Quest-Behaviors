@@ -52,6 +52,7 @@
 //                  will be sought.
 #endregion
 
+#region Usings
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,6 +60,7 @@ using System.Xml.Linq;
 
 using Styx;
 using Styx.WoWInternals;
+#endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements

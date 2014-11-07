@@ -13,7 +13,6 @@ using System;
 
 using Styx;
 using Styx.CommonBot;
-using Styx.Pathing;
 using Styx.WoWInternals.WoWObjects;
 #endregion
 

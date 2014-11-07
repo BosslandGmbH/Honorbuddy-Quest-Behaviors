@@ -718,20 +718,6 @@ namespace Honorbuddy.Quest_Behaviors
         #endregion
 
 
-        #region Helpers
-        private static string GetDataFileFullPath(string fileName)
-        {
-            // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
-            // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-            return Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
-                                GlobalSettings.Instance.QuestBehaviorsPath,
-                                "QuestBehaviorCore",
-                                "Data",
-                                fileName);
-        }
-        #endregion
-
-
         #region Helper classes: Database
         public class BehaviorDatabase
         {
@@ -757,7 +743,7 @@ namespace Honorbuddy.Quest_Behaviors
 
                 // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
                 // QBs supplied in the Honorbuddy/Default Profiles/. directory.
-                var dataFileFullPath = GetDataFileFullPath(_databaseName);
+                var dataFileFullPath = Utility.GetDataFileFullPath(_databaseName);
                 var lastReadTime = File.GetLastWriteTime(dataFileFullPath);
 
                 if (lastReadTime <= _lastDatabaseModifiedTime)

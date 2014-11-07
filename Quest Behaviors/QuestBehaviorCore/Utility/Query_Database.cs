@@ -22,9 +22,7 @@ using Styx;
 using Styx.CommonBot.Database;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
-using Styx.WoWInternals;
 using Styx.WoWInternals.DBC;
-
 #endregion
 
 

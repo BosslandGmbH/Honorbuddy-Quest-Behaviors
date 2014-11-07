@@ -11,6 +11,8 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
@@ -79,7 +81,19 @@ namespace Honorbuddy.QuestBehaviorCore
 		}
 
 
-		// 20Apr2013-12:50UTC chinajade
+        public static string GetDataFileFullPath(string fileName)
+        {
+            // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
+            // QBs supplied in the Honorbuddy/Default Profiles/. directory.
+            return Path.Combine(Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName),
+                                GlobalSettings.Instance.QuestBehaviorsPath,
+                                "QuestBehaviorCore",
+                                "Data",
+                                fileName);
+        }
+        
+        
+        // 20Apr2013-12:50UTC chinajade
 		public static string GetItemNameFromId(int wowItemId)
 		{
 			var itemInfo = ItemInfo.FromId((uint)wowItemId);

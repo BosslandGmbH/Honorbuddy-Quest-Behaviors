@@ -16,7 +16,6 @@ using System.Linq;
 using Styx.Common.Helpers;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 

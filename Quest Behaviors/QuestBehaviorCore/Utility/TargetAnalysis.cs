@@ -18,7 +18,6 @@ using System.Xml.Linq;
 
 using Styx.CommonBot;
 using Styx.WoWInternals.WoWObjects;
-
 #endregion
 
 
