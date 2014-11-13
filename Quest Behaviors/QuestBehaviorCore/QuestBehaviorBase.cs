@@ -163,8 +163,9 @@ namespace Honorbuddy.QuestBehaviorCore
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
 				// If there is a problem, an exception will be thrown (and handled here).
                 var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-			    TerminateWhen = UserDefinedExpression<bool>.NoArgsFactory("TerminateWhen", terminateWhenExpression);
-			    if (TerminateWhen == null)
+                TerminateWhen = new UserDefinedExpression<bool>("TerminateWhen", terminateWhenExpression);
+
+			    if (TerminateWhen.HasErrors)
 			        IsAttributeProblem = true;
 
 				TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;

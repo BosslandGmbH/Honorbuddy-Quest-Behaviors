@@ -208,8 +208,8 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
 				// If there is a problem, an exception will be thrown (and handled here).
                 var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-			    UseWhen = UserDefinedExpression<bool>.NoArgsFactory("UseWhen", useWhenExpression);
-			    if (UseWhen == null)
+                UseWhen = new UserDefinedExpression<bool>("UseWhen", useWhenExpression);
+                if (UseWhen.HasErrors)
 			        IsAttributeProblem = true;
 
 			    // Tunables...

@@ -37,8 +37,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
                 // If there is a problem, an exception will be thrown (and handled here).
                 var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "true";
-                UseWhen = UserDefinedExpression<bool>.NoArgsFactory("UseWhen", useWhenExpression);
-                if (UseWhen == null)
+                UseWhen = new UserDefinedExpression<bool>("UseWhen", useWhenExpression);
+                if (UseWhen.HasErrors)
                     IsAttributeProblem = true;
 
                 HandleAttributeProblem();
@@ -61,8 +61,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			TargetingType = targetingType;
 			IgnoreLoSToTarget = ignoreLosToTarget;
 			useWhenExpression = string.IsNullOrEmpty(useWhenExpression) ? "true" : useWhenExpression;
-            UseWhen = UserDefinedExpression<bool>.NoArgsFactory("UseWhen", useWhenExpression);
-	        if (UseWhen == null)
+            UseWhen = new UserDefinedExpression<bool>("UseWhen", useWhenExpression);
+            if (UseWhen.HasErrors)
 	            IsAttributeProblem = true;
 		}
 

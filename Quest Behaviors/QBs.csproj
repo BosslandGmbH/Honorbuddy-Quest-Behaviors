@@ -191,6 +191,8 @@
     <Compile Include="QuestBehaviorCore\Utility\VehicleWeapon.cs" />
     <Compile Include="QuestBehaviorCore\Utility\TargetAnalysis.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\BlackspotsType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\PursueObjectType.cs" />
+    <Compile Include="QuestBehaviorCore\XmlElements\PursuitListType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\VehicleAbilityType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\VehicleAbilitiesType.cs" />
     <Compile Include="QuestBehaviorCore\XmlElements\BlackspotType.cs" />
