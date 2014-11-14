@@ -414,32 +414,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 			}
 		}
 
-
-		// Stolen from Talented2
-		private static IEnumerable<TalentPlacement> BuildLearnedTalents()
-		{
-			var talents = new List<TalentPlacement>();
-
-			for (int tierIndex = 0; tierIndex < 6; tierIndex++)
-			{
-				for (int talentIndex = 1; talentIndex <= 3; talentIndex++)
-				{
-					var index = tierIndex * 3 + talentIndex;
-					var vals = Lua.GetReturnValues("return GetTalentInfo(" + index + ")");
-					var name = vals[0];
-					var learned = int.Parse(vals[4]) != 0;
-
-					if (learned)
-					{
-						talents.Add(new TalentPlacement(tierIndex + 1, talentIndex, name));
-					}
-				}
-			}
-
-			return talents;
-		}
-
-
 		private void BuildMountInfo(StringBuilder builder, string linePrefix, out string problemMountWarnings)
 		{
 			problemMountWarnings = "";
@@ -781,7 +755,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 				builderInfo.Append(Environment.NewLine);
 				builderInfo.AppendFormat("{0}Specialization: {1}", linePrefix, Me.Specialization);
 				builderInfo.Append(Environment.NewLine);
-				foreach (var talent in BuildLearnedTalents().OrderBy(t => t.Tier))
+				foreach (var talent in Me.GetLearnedTalents().OrderBy(t => t.Tier))
 				{
 					builderInfo.AppendFormat("{0}    Tier {1}: {2}({3})",
 						linePrefix,
@@ -1094,21 +1068,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 		}
 		private readonly Regex _regexUiEscape = new Regex(@"\|c[0-9A-Fa-f]{1,8}([^|]*)(\s*\|r)?", RegexOptions.IgnoreCase);
 
-
-
-		private class TalentPlacement
-		{
-			public readonly int Tier;
-			public readonly int Index;
-			public readonly string Name;
-
-			public TalentPlacement(int tier, int index, string name)
-			{
-				Tier = tier;
-				Index = index;
-				Name = name;
-			}
-		}
 		#endregion
 	}
 }
