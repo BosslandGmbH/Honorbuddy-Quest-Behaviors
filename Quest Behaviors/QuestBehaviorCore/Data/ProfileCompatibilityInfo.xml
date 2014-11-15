@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!--Original contribution by Chinajade-->
+
+<ProfileCompatibilityInfo>
+    <BosslandGmbHPlugIns>
+        <PlugIn Name="Anti Drown" />
+        <PlugIn Name="DrinkPotions" />
+        <PlugIn Name="Questhelper - ItemForAura" />
+        <PlugIn Name="Refreshment Detection" />
+    </BosslandGmbHPlugIns>
+
+    <!-- Match is case-insensitive StartsWith()... -->
+    <ProblemAddOns>
+        <!-- General addons -->
+        <AddOn Name="Bartender4" Uri="http://curse.com/addons/wow/bartender4/" />
+        <AddOn Name="ElvUI" Uri="http://tukui.org/dl.php" />
+        <AddOn Name="Zygor Guides Viewer" Uri="http://zygorguides.com/" />
+      
+        <!-- Minipet deployers -->
+        <AddOn Name="CollectMe" Uri="http://curse.com/addons/wow/collect_me" />
+        <AddOn Name="Collectinator" Uri="http://curse.com/addons/wow/collectinator" />
+        <AddOn Name="Critter Caller" Uri="http://curse.com/addons/wow/crittercaller" />
+        <AddOn Name="GoGoPet" Uri="http://curse.com/addons/wow/gogopet" />
+        <AddOn Name="Kennel" Uri="http://curse.com/addons/wow/kennel" />
+        <AddOn Name="Menagerie" Uri="http://curse.com/addons/wow/menagerie" />
+        <AddOn Name="PermanentPet" Uri="http://curse.com/addons/wow/permanentpet" />
+        <AddOn Name="PetLeash" Uri="http://curse.com/addons/wow/petleash" />
+        <AddOn Name="Tiffy's Pet Summoner" Uri="http://curse.com/addons/wow/tiffys-pet-summoner" />
+    </ProblemAddOns>
+
+    <ProblemPlugIns>
+    </ProblemPlugIns>
+
+    <Thresholds>
+        <LatencyMaximum Value="850" />
+        <FpsMinimum Value="7" />
+    </Thresholds>
+</ProfileCompatibilityInfo>

@@ -386,6 +386,9 @@
   <ItemGroup>
     <Content Include="QuestBehaviorCore\Data\AuraIds_OccupiedVehicle.xml" />
     <Content Include="QuestBehaviorCore\Data\BagContainers.xml" />
+    <Content Include="QuestBehaviorCore\Data\ProfileCompatibilityInfo.xml">
+      <SubType>Designer</SubType>
+    </Content>
     <Content Include="QuestBehaviorCore\Data\HallowsEnd.xml">
       <SubType>Designer</SubType>
     </Content>

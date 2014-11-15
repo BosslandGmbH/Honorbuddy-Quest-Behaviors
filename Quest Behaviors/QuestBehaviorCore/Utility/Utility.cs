@@ -297,6 +297,25 @@ namespace Honorbuddy.QuestBehaviorCore
 		}
 
 
+        public enum WowheadSubject
+        {
+            Item,
+            Npc,
+            Object,
+            Quest,
+            Spell,
+            Zone,
+        }
+        public static string WowheadLink(WowheadSubject subject, int id, bool wrapWithParens = true)
+        {
+            Contract.Requires(id >= 0, (context) => "Id greater than or equal to zero");
+            return string.Format("{0}http://wowhead.com/{1}={2}{3}",
+                (wrapWithParens ? "(" : string.Empty),
+                subject.ToString().ToLower(),
+                id,
+                (wrapWithParens ? ")" : string.Empty));
+        }
+
 		private static LocalPlayer Me { get { return StyxWoW.Me; } }
 	}
 }
