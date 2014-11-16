@@ -152,7 +152,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
 				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
 				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-				QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 8), null) ?? 0;
+				QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 0;
 
 				// Tunables...
 				IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
@@ -197,7 +197,8 @@ namespace Honorbuddy.QuestBehaviorCore
 		// to reparse some information.  It is _very_ bad form to use the setters outside of
 		// the base-class' or concrete-class' constructor.
 		public bool IgnoreMobsInBlackspots { get; protected set; }
-		public MovementByType MovementBy { get; protected set; }
+        public MovementByType MovementBy { get; protected set; }
+        public PursuitListType PursuitList { get; protected set; }
 		public double NonCompeteDistance { get; protected set; }
 		public int QuestId { get; protected set; }
 		public int QuestObjectiveIndex { get; protected set; }
@@ -419,6 +420,8 @@ namespace Honorbuddy.QuestBehaviorCore
 				// on the list.
 				_temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
 				BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
+
+			    PursuitList = PursuitListType.GetOrCreate(Element, "PursuitList");
 
 				_behaviorTreeHook_CombatMain = BehaviorHookInstall("Combat_Main", CreateBehavior_CombatMain());
 				_behaviorTreeHook_CombatOnly = BehaviorHookInstall("Combat_Only", CreateBehavior_CombatOnly());

@@ -85,7 +85,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         protected string ConvertWhenExpression { get; private set; }
         protected string PursueWhenExpression { get; private set; }
         protected ConvertByType ConvertBy { get; private set; }
-        public int Priority { get; private set; }
+        public float Priority { get; private set; }
 
         #region Concrete class required implementations...
         // DON'T EDIT THESE--they are auto-populated by Subversion
@@ -107,12 +107,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             return element;
         }
 
-        public abstract bool ShouldPursue(WoWObject obj);
-        public abstract bool ShouldPursue(WoWObject obj, out int priority);
-        public abstract bool CanConvert(WoWObject obj, ConvertByType convertBy);
-
         #endregion
 
+        public abstract bool ShouldPursue(WoWObject obj);
+        public abstract bool ShouldPursue(WoWObject obj, out float priority);
+        public abstract bool CanConvert(WoWObject obj, ConvertByType convertBy);
     }
 
     public class PursueObjectType<T> : PursueObjectTypeBase where T : WoWObject
@@ -140,7 +139,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
         }
 
-        public PursueObjectType(int id, string pursueWhenExp, string convertWhenExp, ConvertByType convertBy)
+        public PursueObjectType(
+            int id,
+            string pursueWhenExp = "true",
+            string convertWhenExp = "false",
+            ConvertByType convertBy = ConvertByType.Killing)
             : base(id, pursueWhenExp, convertWhenExp, convertBy)
         {
             CompileExpressions();
@@ -189,7 +192,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
            return (Id == 0 || obj.Entry == Id) &&  obj is T && PursueWhen.Evaluate((T)obj) ;
         }
 
-        public override bool ShouldPursue(WoWObject obj, out int priority)
+        public override bool ShouldPursue(WoWObject obj, out float priority)
         {
             priority = Priority;
             return (Id == 0 || obj.Entry == Id) && obj is T && PursueWhen.Evaluate((T)obj);

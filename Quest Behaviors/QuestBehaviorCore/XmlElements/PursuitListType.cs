@@ -16,6 +16,7 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Styx.CommonBot.Profiles;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 #endregion
@@ -90,7 +91,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             return PursueObjects.Any(p => p.ShouldPursue(woWObject));
         }
 
-        public bool ShouldPursue(WoWObject woWObject, out int priority)
+        public bool ShouldPursue(WoWObject woWObject, out float priority)
         {
             var pursueObject =  PursueObjects.FirstOrDefault(p => p.ShouldPursue(woWObject));
             if (pursueObject == null)
@@ -130,10 +131,14 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 		#region Private and Convenience variables
         #endregion
 
-
-        public List<PursueObjectTypeBase> GetPursuitList()
+        public IEnumerable<WoWObject> GetPursuitedObjects()
         {
-            return (from persueObj in PursueObjects select persueObj).ToList();
+            return from obj in ObjectManager.ObjectList
+                let pursueObj = PursueObjects.FirstOrDefault(p => p.ShouldPursue(obj))
+                where pursueObj != null
+                orderby pursueObj.Priority descending
+                orderby obj.DistanceSqr
+                select obj;
         }
 
         public static PursuitListType GetOrCreate(XElement parentElement, string elementName)

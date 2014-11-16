@@ -181,7 +181,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 		// NB: The "initial position waypoint" is special.
 		// It is only used if no other waypoints have been defined.
-		private readonly WaypointType _initialPositionWaypoint = new WaypointType(WoWMovement.ActiveMover.Location, "my initial position");
+		private readonly WaypointType _initialPositionWaypoint = new WaypointType((WoWMovement.ActiveMover ?? StyxWoW.Me).Location, "my initial position");
 		private int _indexOfCurrentWaypoint = IVisitStrategy.InvalidWaypointIndex;
 		private IVisitStrategy _visitStrategy;
 
