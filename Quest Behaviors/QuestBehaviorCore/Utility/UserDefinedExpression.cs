@@ -72,7 +72,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 builder.AppendLine(errorDetail.Error);
             }
 
-            QBCLog.ProfileError(builder.ToString());
+            QBCLog.Error("{0}",builder.ToString());
             return false;
         }
 

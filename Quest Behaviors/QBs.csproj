@@ -140,6 +140,7 @@
     <Compile Include="ArgentTournament\SpecialTurnIn.cs" />
     <Compile Include="ArgentTournament\TheGrandMelee.cs" />
     <Compile Include="AscendInWater.cs" />
+    <Compile Include="Hooks\Avoid.cs" />
     <Compile Include="BarrelHook.cs" />
     <Compile Include="BlackrockMaskHook.cs" />
     <Compile Include="Hooks\DoWhen.cs" />
