@@ -8,6 +8,11 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+#region Summary and Documentation
+// Documentation is in QuestBehaviorBase
+#endregion
+
+
 #region Usings
 using System;
 using System.Collections.Generic;

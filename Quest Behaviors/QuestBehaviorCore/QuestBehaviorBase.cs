@@ -91,18 +91,86 @@
 //                  Height [optional; Default 1.0]
 //                      The height of the blackspot.
 //
+// These elements are provided by QuestBehaviorBase, but are used on individual behaviors
+// on a case-by-case basis.
+//
+//      PursuitList [optional; Default: none]
+//          Specifies a set of mobs or objects to pursue to fulfill the goal.
+//          This element expects a list of one or more of the following sub-elements:
+//
+//          PursueGameObject
+//              Id [REQUIRED, if PursueWhen is not specified; Default: none]
+//                  The Id of the GameObject you wish to pursue.  The Id is
+//                  optional, because the PursueWhen expression is capable of specifying
+//                  whether or not a particular mob should be pursued.
+//              PursueWhen [REQUIRED, if Id is not specified; Default: none]
+//                  defines a boolean expression that indicates the object under
+//                  consideration should be pursued.  If 'true' is returned, then
+//                  the object under consideration is a candidate for pursuit.
+//                  The candidate object to be considered for pursuit is made available
+//                  in a variable called "GAMEOBJECT".  This variable is of type
+//                  WoWGameObject (http://docs.honorbuddy.com/html/09b5630c-a2fe-0519-14e6-96be1babf9fb.htm),
+//                  and may use any of the methods or properties associated with this type.
+//              Priority [optional; Range: [-10000..10000]; Default: 0]
+//                  Alters the importance of the GAMEOBJECT in the pursuit list.  Higher values are more important.
+//                  Each behavior may implement honoring the priority differently.
+//                  This may result in an immediate target switch, or it may be consulted only
+//                  when a new target is selected
+//
+//          PursueSelf
+//              PursueWhen [REQUIRED, if Id is not specified; Default: none]
+//                  defines a boolean expression that indicates when 'self' should be pursued.  
+//                  If 'true' is returned, then the toon is a candidate for pursuit.
+//                  The candidate object to be considered for pursuit is made available
+//                  in a variable called "ME".  This variable is of type
+//                  LocalPlayer (http://docs.honorbuddy.com/html/f911a610-93d8-289e-16d7-5cc1fc7ed512.htm),
+//                  and may use any of the methods or properties associated with this type.
+//              Priority [optional; Range: [-10000..10000]; Default: 0]
+//                  Alters the importance of the toon in the pursuit list.  Higher values are more important.
+//                  Each behavior may implement honoring the priority differently.
+//                  This may result in an immediate target switch, or it may be consulted only
+//                  when a new target is selected
+//
+//          PursueUnit
+//              Id [REQUIRED, if PursueWhen is not specified; Default: none]
+//                  The Id of the Unit you wish to pursue.  The Id is
+//                  optional, because the PursueWhen expression is capable of specifying
+//                  whether or not a particular mob should be pursued.
+//              PursueWhen [REQUIRED, if Id is not specified; Default: none]
+//                  defines a boolean expression that indicates the object under
+//                  consideration should be pursued.  If 'true' is returned, then
+//                  the object under consideration is a candidate for pursuit.
+//                  The candidate unit to be considered for pursuit is made available
+//                  in a variable called "UNIT".  This variable is of type
+//                  WoWGameObject (http://docs.honorbuddy.com/html/6a12b75b-11cf-59c9-6b9f-d1528403d326.htm),
+//                  and may use any of the methods or properties associated with this type.
+//              Priority [optional; Range: [-10000..10000]; Default: 0]
+//                  Alters the importance of the UNIT in the pursuit list.  Higher values are more important.
+//                  Each behavior may implement honoring the priority differently.
+//                  This may result in an immediate target switch, or it may be consulted only
+//                  when a new target is selected
+//              ConvertWhen [optional; Default: false]
+//                  defines a boolean expression that indicates the object under
+//                  consideration can fulfill the needed goal, if we 'convert' it.
+//                  The mob will be converted using the technique specified in the "ConvertBy"
+//                  attribute.
+//              ConvertBy [optional; ONE OF: Killing Default: Killing]
+//                  Currently, it is only possible to 'convert' alive mobs into dead mobs.
+//                  This is only useful when dead mobs are needed to fulfill the goal.
+//
 // THINGS TO KNOW:
+// * n/a
 //
 // EXAMPLES:
-// Usage of an arbitrary terminating condition:
+// Usage of an arbitrary TerminateWhen terminating condition:
 //      <CustomBehavior File="InteractWith" MobId="12345" TerminateWhen="GetItemCount(39328) &gt; 12" >
 //
 // Usage of AvoidMobs and Blackspots:
 //      <CustomBehavior File="InteractWith" MobId="12345" >
 //          <AvoidMobs>
-//              <Mob Name="Stable Master Kitrik" Entry="28683" />
-//              <Mob Name="Initiate's Training Dummy" Entry="32541" />
-//              <Mob Name="Scarlet Lord Jesseriah McCree" Entry="28964" />
+//              <Mob Name="Stable Master Kitrik" Id="28683" />
+//              <Mob Name="Initiate's Training Dummy" Id="32541" />
+//              <Mob Name="Scarlet Lord Jesseriah McCree" Id="28964" />
 //          </AvoidMobs>
 //          <Blackspots>
 //              <Blackspot X="2053.501" Y="-5783.61" Z="101.3919" Radius="15.69214" />
@@ -111,6 +179,59 @@
 //              <Blackspot X="1777.866" Y="-5923.742" Z="116.1065" Radius="5.556122" />
 //          </Blackspots>
 //      </CustomBehavior>
+//
+// Usage of PursuitList:
+//  Not all QBcore-based behaviors support the Pursuit list.  You will need to consult
+//  the individual behavior to discover if <PursuitList> is supported.
+//
+//  The following three invocations are equivalent:
+//      <CustomBehavior File="XXXXX" MobId="12345" MobId2="23456" MobId3="34567" />
+//
+//      <CustomBehavior File="XXXXX">
+//          <PursuitList>
+//              <PursueUnit Id="12345" />
+//              <PursueUnit Id="23456" />
+//              <PursueUnit Id="34567" />
+//          </PursuitList>
+//      </CustomBehavior>
+//
+//      <CustomBehavior File="XXXXX">
+//          <PursuitList>
+//              <PursueUnit PursueWhen="UNIT.Entry == 12345" />
+//              <PursueUnit PursueWhen="UNIT.Entry == 23456" />
+//              <PursueUnit PursueWhen="UNIT.Entry == 34567" />
+//          </PursuitList>
+//      </CustomBehavior>
+//
+//  If a certain mob needs to be the higher priority, you can alter that with "Priority" attribute.
+//  The "Priority" attribute may cause an 'immediate' switch to a higher-priority target when it becomes
+//  available, or the behavior may defer the priority consideration until a new target needs to be selected.
+//  Each behavior using the <PursuitList> will utilize priority differently.
+//  You can also pursue yourself:
+//      <CustomBehavior File="XXXXX">
+//          <PursuitList>
+//              <PursueSelf PursueWhen="ME.HasAura(54321)" />
+//              <PursueUnit Id="23456" PursueWhen="!IsObjectiveComplete(1,98765)" Priority="100" />
+//              <PursueUnit Id="34567" PursueWhen="!IsObjectiveComplete(2,98765)" />
+//          </PursuitList>
+//      </CustomBehavior>
+//
+//  Some goals need pursuing by faction:
+//      <CustomBehavior File="XXXXX">
+//          <PursuitList>
+//              <PursueUnit PursueWhen="UNIT.FactionId == 876" />
+//          </PursuitList>
+//      </CustomBehavior>
+//
+//  Some quests require pursuing "dead" mobs for their goals.  Sometimes, "Alive" mobs can be converted
+//  to "Dead" mobs to accelerate the process:
+//      <CustomBehavior File="XXXXX">
+//          <PursuitList>
+//              <PursueUnit Id="23456" PursueWhen="UNIT.IsDead &amp;&amp; !UNIT.TaggedByOther"
+//                                     ConvertWhen="UNIT.IsAlive" ConvertBy="Killing" />
+//          </PursuitList>
+//      </CustomBehavior>
+//
 #endregion
 
 #region Usings

@@ -43,7 +43,14 @@
 //          This allows the user to customize the location that needs to be avoided 
 //
 // THINGS TO KNOW:
-//      The algorithm that generates path around avoided areas is pretty simple, it uses a recursive algorithm 
+// * It is VERY important to remove the Avoid hook behavior when it is no longer needed.
+//      This is accomplished with a command similar to the following:
+//          <CustomBehavior File="Hooks\Avoid" AvoidName="AvoidGreenStuff" Command="Remove" />
+//      If you add Avoid's, and don't remove them when no longer needed.  Honorbuddy performance
+//      will be negatively impacted by constantly checking (with a very high frequency)
+//      for conditions that will never be present.
+//
+// * The algorithm that generates path around avoided areas is pretty simple, it uses a recursive algorithm 
 //      that picks the left or right edge of the area being avoided and traces along it until if finds a path round it
 //      or hits an obstacle. If an obstacle is found along the edge that was picked then it will try the other edge.
 //      If both edges are blocked then the algorthim will either ignore the avoided area if IgnoreIfBlocking is true
@@ -62,7 +69,7 @@
 //      This can only avoid ciruclar areas but it's posible to cover cone areas by using the AvoidLocationProducer 
 //      tunable to place avoid location in the center of the cone area
 //      
-//      A cat has 32 muscles in each ear. All the better for them to eavesdrop on your conversations and plot your demise.
+// * A cat has 32 muscles in each ear. All the better for them to eavesdrop on your conversations and plot your demise.
 //
 #endregion
 

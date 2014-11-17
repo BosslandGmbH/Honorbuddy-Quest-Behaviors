@@ -10,16 +10,91 @@
 //
 
 #region Summary and Documentation
-// This is only used when you get a quest that Says, Kill anything x times. Or on the chance the wowhead ID is wrong
-// ##Syntax##
-// QuestId: Id of the quest.
-// MobId, MobId2, ...MobIdN: Mob Values that it will kill.
-// X,Y,Z: The general location where theese objects can be found
+// QUICK DOX:
+// KILLUNTILCOMPLETE kills the mobs defined as the goal.  This behavior complements
+// Honorbuddy's Kill-form of <Objective> in the following ways:
+//  * You can hunt multiple mobs simultaneously.
+//  * Each mob can be qualified, and pursuit stops when the mob is no longer needed
+//      for the goal.
+//  * The behavior can prioritize the importance of which targets should be pursued
+//      first when many targets are available.
+//  * Priority targets can be switched to immediately, if necessary, rather than waiting
+//      for the current target to die.
+//
+// BEHAVIOR ATTRIBUTES:
+// *** ALSO see the documentation in QuestBehaviorCore/QuestBehaviorBase.cs.  All of the attributes it provides
+// *** are available here, also.  The documentation on the attributes QuestBehaviorBase provides
+// *** is _not_ repeated here, to prevent documentation inconsistencies.
+//
+// Basic Attributes:
+//      MobIdN [at least one is REQUIRED]
+//          Identifies the mobs on which the kill task should take place.
+//          The MobIdN can represent either an NPC (WoWUnit) or an Object (WoWGameObject).
+//          The two types can freely be mixed.
+//
+// Tunables:
+//      ImmediatelySwitchToHighestPriorityTarget [optional; default: true]
+//          If a higher-priority target becomes available, the behavior will immediately switch
+//          to killing it, rather than waiting for the current mob to die.
+//      WaitForNpcs [optional; Default: true]
+//          This value affects what happens if there are no MobIds in the immediate area.
+//          If true, the behavior will move to the next hunting ground waypoint, or if there
+//          is only one waypoint, the behavior will stand and wait for MobIdN to respawn.
+//          If false, and the behavior cannot locate MobIdN in the immediate area, the behavior
+//          considers itself complete.
+//          Please see "Things to know", below.
+//      X/Y/Z [optional; Default: toon's current location when behavior is started]
+//          This specifies the location where the toon should loiter
+//          while waiting to kill MobIdN.  If you need a large hunting ground
+//          you should prefer using the <HuntingGrounds> sub-element, as it allows for
+//          multiple locations (waypoints) to visit.
+//          This value is automatically converted to a <HuntingGrounds> waypoint.
 // 
+// BEHAVIOR EXTENSION ELEMENTS (goes between <CustomBehavior ...> and </CustomBehavior> tags)
+// See the "Examples" section for typical usage.
+//      <AvoidMobs> [optional; Default: none]
+//          See documentation in QuestBehaviorCore/QuestBehaviorBase.cs for full explanation.
+//
+//      <Blackspots> [optional; Default: none]
+//          See documentation in QuestBehaviorCore/QuestBehaviorBase.cs for full explanation.
+//
+//      <HuntingGrounds> [optional; Default: toon's position when behavior is started]
+//          See documentation in QuestBehaviorCore/QuestBehaviorBase.cs for full explanation.
+//
+//      <PursuitList> [optional; None]
+//          See documentation in QuestBehaviorCore/QuestBehaviorBase.cs for full explanation.
 #endregion
 
 
 #region Examples
+// SIMPLEST FORM:
+// Kill a set of mobs in the area.  The hunting ground is centered around the point where
+// the toon is standing when the behavior starts:
+//      <CustomBehavior File="KillUntilComplete" MobId="12345" MobId2="23456" MobId3="34567" />
+//
+// A FULL FEATURED EXAMPLE:
+// In Recon Essentials (http://wowhead.com/quest=27977), Only Dark Iron Steamsmiths can drop the
+// Smithing Tuyere, but Dark Iron Steamsmiths and Dark Iron Lookouts can both drop the Lookout's Spyglass.
+// We prioritize Dark Iron Steamsmiths any time we find them, because they are hard to find, and
+// the bottleneck for this quest.
+//      <CustomBehavior File="KillUntilComplete" QuestId="27977" >
+//          <Blackspots>
+//              <Blackspot Name="low-hanging rock" X="9876.54" Y="8765.43" Z="125.2" />
+//          </Blackspot>
+//          <HuntingGrounds>
+//              <Hotspot Name="North-central tent area" X="1234.56" Y="2345.67" Z="131.05" />
+//              <Hotspot Name="NE tent area" X="2345.56" Y="3456.67" Z="128.05" />
+//              <Hotspot Name="Tower 1" X="3456.56" Y="4567.67" Z="121.05" />
+//              <Hotspot Name="Tower 2" X="4567.56" Y="5678.67" Z="135.05" />
+//              <Hotspot Name="Tower 3" X="5678.56" Y="6789.67" Z="127.05" />
+//          </HuntingGrounds>
+//          <PursuitList>
+//              <PursueUnit Id="5840" PursueWhen="!IsObjectiveComplete(1,27977)" />
+//              <PursueUnit Id="5840" PursueWhen="!IsObjectiveComplete(2,27977)" Priority="10" />
+//              <PursueUnit Id="8566" PursueWhen="!IsObjectiveComplete(2,27977)" />
+//          </PursuitList>
+//      </CustomBehavior>
+//
 #endregion
 
 

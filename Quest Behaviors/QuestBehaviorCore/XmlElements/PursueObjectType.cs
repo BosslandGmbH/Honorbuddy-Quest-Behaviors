@@ -8,6 +8,12 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
+
+#region Summary and Documentation
+// Documentation is in QuestBehaviorBase
+#endregion
+
+
 #region Usings
 using System;
 using System.Collections.Generic;
@@ -50,7 +56,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 {
                     if (Id == 0)
                     {
-                        QBCLog.Error("PursueWhen is required when no Id is specified");
+                        QBCLog.Error("Either Id, PursueWhen, or both must be specified.");
                         IsAttributeProblem = true; 
                     }
                     else
