@@ -295,6 +295,32 @@ namespace Honorbuddy.QuestBehaviorCore
 				// These attributes are accepted, but not used.  They are here to help the profile writer document without
 				// causing "unknown attribute" warnings to be emitted.
 				GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);
+
+                // XML types
+
+                // Add temporary avoid mobs, if any were specified...
+                // NB: ConfigMemento will restore the orginal list in OnFinished 
+                var temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
+                if (temporaryAvoidMobs != null)
+                {
+                    foreach (var avoidMobId in temporaryAvoidMobs.GetAvoidMobIds())
+                    {
+                        // NB: ProfileManager.CurrentProfile.AvoidMobs will never be null
+                        if (!ProfileManager.CurrentProfile.AvoidMobs.Contains(avoidMobId))
+                        {
+                            ProfileManager.CurrentProfile.AvoidMobs.Add(avoidMobId);
+                        }
+                    }
+                }
+
+                // Add temporary blackspots, if any were specified...
+                // NB: Ideally, we'd save and restore the original blackspot list.  However,
+                // BlackspotManager does not currently give us a way to "see" what is currently
+                // on the list.
+                _temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
+                BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
+
+                PursuitList = PursuitListType.GetOrCreate(Element, "PursuitList");
 			}
 
 			catch (Exception except)
@@ -519,30 +545,6 @@ namespace Honorbuddy.QuestBehaviorCore
 
 				Query.InCompetitionReset();
 				Utility.BlacklistsReset();
-
-				// Add temporary avoid mobs, if any were specified...
-				// NB: ConfigMemento will restore the orginal list in OnFinished 
-				var temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
-                if (temporaryAvoidMobs != null )
-                {
-                    foreach (var avoidMobId in temporaryAvoidMobs.GetAvoidMobIds())
-                    {
-                        // NB: ProfileManager.CurrentProfile.AvoidMobs will never be null
-                        if (!ProfileManager.CurrentProfile.AvoidMobs.Contains(avoidMobId))
-                        {
-                            ProfileManager.CurrentProfile.AvoidMobs.Add(avoidMobId);
-                        }
-                    }
-                }
-
-				// Add temporary blackspots, if any were specified...
-				// NB: Ideally, we'd save and restore the original blackspot list.  However,
-				// BlackspotManager does not currently give us a way to "see" what is currently
-				// on the list.
-				_temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
-				BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
-
-			    PursuitList = PursuitListType.GetOrCreate(Element, "PursuitList");
 
 				_behaviorTreeHook_CombatMain = BehaviorHookInstall("Combat_Main", CreateBehavior_CombatMain());
 				_behaviorTreeHook_CombatOnly = BehaviorHookInstall("Combat_Only", CreateBehavior_CombatOnly());

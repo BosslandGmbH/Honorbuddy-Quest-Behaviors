@@ -465,6 +465,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null);
 				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
 				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                _waitTimerAfterInteracting = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
 
 				// Deprecated attributes...
 				InteractByBuyingItemInSlotNum =
@@ -484,6 +485,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 								? MovementByType.NavigatorPreferred
 								: MovementByType.None;
 				}
+
+                // Hunting ground processing...
+                HuntingGrounds = HuntingGroundsType.GetOrCreate(Element,
+                                                                "HuntingGrounds",
+                                                                new WaypointType(HuntingGroundCenter, "hunting ground center"));
+                IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
 				// Pre-processing into a form we can use directly...
 				for (int i = 0; i < InteractByGossipOptions.Length; ++i)
@@ -639,7 +646,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private bool _closeFrames;
 		private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 		private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
-		private WaitTimer _waitTimerAfterInteracting = null;
+		private readonly WaitTimer _waitTimerAfterInteracting;
 		private WaitTimer _watchdogTimerToReachDestination = null;
 		private readonly WaitTimer _moveCloserTimerAfterSpellLosFailed = new WaitTimer(TimeSpan.FromSeconds(1));
 		private BindingEventStateType BindingEventState { get; set; }
@@ -703,13 +710,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		public override void OnStart()
 		{
-			// Hunting ground processing...
-			// NB: We had to defer this processing from the constructor, because XElement isn't available
-			// to parse child XML nodes until OnStart() is called.
-			HuntingGrounds = HuntingGroundsType.GetOrCreate(Element,
-															"HuntingGrounds",
-															new WaypointType(HuntingGroundCenter, "hunting ground center"));
-			IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
 			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
 			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
@@ -731,8 +731,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				{
 					LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
 				}
-
-				_waitTimerAfterInteracting = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
 
 				Targeting.Instance.IncludeTargetsFilter += Targeting_IncludeTargetsFilter;
 

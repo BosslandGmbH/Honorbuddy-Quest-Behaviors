@@ -229,6 +229,15 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 										 Navigator.PathPrecision);
 					DefaultArrivalTolerance = Navigator.PathPrecision;
 				}
+
+                // 'Destination choices' processing...
+                PotentialDestinations =
+                    HuntingGroundsType.GetOrCreate(Element,
+                                                   "DestinationChoices",
+                                                   (DefaultDestination.HasValue
+                                                    ? new WaypointType(DefaultDestination.Value, DefaultDestinationName, DefaultAllowedVariance, DefaultArrivalTolerance)
+                                                    : null));
+                IsAttributeProblem |= PotentialDestinations.IsAttributeProblem;
 			}
 
 			catch (Exception except)
@@ -290,17 +299,6 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 
 		public override void OnStart()
 		{
-			// 'Destination choices' processing...
-			// NB: We had to defer this processing from the constructor, because XElement isn't available
-			// to parse child XML nodes until OnStart() is called.
-			PotentialDestinations =
-				HuntingGroundsType.GetOrCreate(Element,
-											   "DestinationChoices",
-											   (DefaultDestination.HasValue
-												? new WaypointType(DefaultDestination.Value, DefaultDestinationName, DefaultAllowedVariance, DefaultArrivalTolerance)
-												: null));
-			IsAttributeProblem |= PotentialDestinations.IsAttributeProblem;
-
 			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
 			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
 			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();

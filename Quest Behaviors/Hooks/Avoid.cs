@@ -56,20 +56,11 @@
 //      If both edges are blocked then the algorthim will either ignore the avoided area if IgnoreIfBlocking is true
 //      or move to the edge of the avoided area and wait for effect to disapear or move out of the way.
 //      
-//      One of the first thoughts that might have popped into your mind when you learned of this behavior is that 
-//      this would be a great feature to use for avoiding the aggro of high level or elite mobs.
-//          You're free to try this but do not complain/file a bug report when the toon gets stuck because it can't find a path around
-//      the mob due to obstacles found at the edges, it will fall on deaf ears because this is not what this QB is designed for. 
-//      There only needs to be a very small rock encounterd on both sides for it to get stuck. 
-//      The bigger the area being avoided the more likely it'll encounter some obstacle along the edges.
-//      Aggro range usualy has a much higher radius then normal harmful effects (20 to 25 vs 3 to 10) and elite mobs generally
-//      stay around for awhile unlike harmful effects so attempting to use this to avoid elite mobs has a much higher chance 
-//      of causing stucks.
+//      Use a blackspot for avoiding mob aggro if mob is stationary, otherwise bot could get stuck when 
+//      the avoidance system is unable to find a path around the mob.
 //      
 //      This can only avoid ciruclar areas but it's posible to cover cone areas by using the AvoidLocationProducer 
 //      tunable to place avoid location in the center of the cone area
-//      
-// * A cat has 32 muscles in each ear. All the better for them to eavesdrop on your conversations and plot your demise.
 //
 #endregion
 
@@ -141,7 +132,7 @@ namespace Honorbuddy.Quest_Behaviors
                     Radius = GetAttributeAsNullable<float>(
                         "Radius",
                         true,
-                        new ConstrainTo.Domain<float>(0.5f, 30f),
+                        new ConstrainTo.Domain<float>(0.5f, 50f),
                         null) ?? 5;
 
                     ObjectId = GetAttributeAsNullable<int>("ObjectId", false, ConstrainAs.ObjectId, null) ?? 0;

@@ -125,6 +125,10 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 			    GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null);
 
 			    TerminationChecksQuestProgress = false;
+
+                // RidingPath processing...
+                RidingPath = HuntingGroundsType.GetOrCreate(Element, "RidingPath");
+                IsAttributeProblem |= RidingPath.IsAttributeProblem;
 			}
 
 			catch (Exception except)
@@ -300,12 +304,6 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
 		public override void OnStart()
 		{
-            // RidingPath processing...
-            // NB: We had to defer this processing from the constructor, because XElement isn't available
-            // to parse child XML nodes until OnStart() is called.
-            RidingPath = HuntingGroundsType.GetOrCreate(Element, "RidingPath");
-            IsAttributeProblem |= RidingPath.IsAttributeProblem;
-
             if (RidingPath.Waypoints.Count <= 0)
             {
                 QBCLog.Fatal("<RidingPath> sub-element is not defined, or has no waypoints.");

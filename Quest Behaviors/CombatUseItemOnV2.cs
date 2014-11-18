@@ -288,6 +288,15 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 				RecallPetAtMobPercentHealth = GetAttributeAsNullable<double>("RecallPetAtMobPercentHealth", false, ConstrainAs.Percent, null) ?? UseWhenMobHasHealthPercent;
 				UseItemStrategy = GetAttributeAsNullable<UseItemStrategyType>("UseItemStrategy", false, null, null) ?? UseItemStrategyType.UseItemOncePerTarget;
 				WaitTimeAfterItemUse = GetAttributeAsNullable<int>("WaitTimeAfterItemUse", false, ConstrainAs.Milliseconds, null) ?? 0;
+
+                // Hunting ground processing...
+                HuntingGrounds =
+                    HuntingGroundsType.GetOrCreate(Element,
+                                                   "HuntingGrounds",
+                                                   (HuntingGroundCenter.HasValue
+                                                        ? new WaypointType(HuntingGroundCenter.Value, "hunting ground center")
+                                                        : null));
+                IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 			}
 
 			catch (Exception except)
@@ -374,17 +383,6 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
 		#region Overrides of CustomForcedBehavior
 		public override void OnStart()
 		{
-			// Hunting ground processing...
-			// NB: We had to defer this processing from the constructor, because XElement isn't available
-			// to parse child XML nodes until OnStart() is called.
-			HuntingGrounds =
-				HuntingGroundsType.GetOrCreate(Element,
-											   "HuntingGrounds",
-											   (HuntingGroundCenter.HasValue
-													? new WaypointType(HuntingGroundCenter.Value, "hunting ground center")
-													: null));
-			IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-
 			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
 			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
 			var isBehaviorShouldRun =

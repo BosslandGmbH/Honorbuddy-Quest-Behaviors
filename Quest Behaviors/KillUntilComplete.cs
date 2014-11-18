@@ -137,6 +137,16 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                 // Tunables...
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
                 ImmediatelySwitchToHighestPriorityTarget = GetAttributeAsNullable<bool>("ImmediatelySwitchToHighestPriorityTarget", false, null, null) ?? true;
+
+                // Hunting ground processing...
+                HuntingGrounds = HuntingGroundsType.GetOrCreate(
+                    Element,
+                    "HuntingGrounds",
+                    new WaypointType(HuntingGroundCenter, "hunting ground center"));
+
+                IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
+
+                AddMobIdsToPersueList(MobIds, PursuitList);   
             }
 			catch (Exception except)
 			{
@@ -181,11 +191,9 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
-            // PursuitList isn't Initialized at this point.
-
-            //UsageCheck_SemanticCoherency(xElement,
-            //    (!PursuitList.PursueObjects.Any()),
-            //    context => "You must specify one or more PursueObject.");
+            UsageCheck_SemanticCoherency(Element,
+                (!PursuitList.PursueObjects.Any()),
+                context => "You must specify one or more MobId or PursueObject.");	 
         }
 
 	    protected override bool IncludeUnitInTargeting(WoWUnit wowUnit)
@@ -201,14 +209,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
 	    public override void OnStart()
 	    {
-	        // Hunting ground processing...
-	        // NB: We had to defer this processing from the constructor, because XElement isn't available
-	        // to parse child XML nodes until OnStart() is called.
-	        HuntingGrounds = HuntingGroundsType.GetOrCreate(
-	            Element,
-	            "HuntingGrounds",
-	            new WaypointType(HuntingGroundCenter, "hunting ground center"));
-	        IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
+
 	        // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
 	        // capture configuration state, install BT hooks, etc.  This will also update the goal text.
 	        var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
@@ -217,11 +218,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 	        // So we don't want to falsely inform the user of things that will be skipped.
 	        if (isBehaviorShouldRun)
 	        {
-                AddMobIdsToPersueList(MobIds, PursuitList);
-     
-                UsageCheck_SemanticCoherency(Element,
-                    (!PursuitList.PursueObjects.Any()),
-                    context => "You must specify one or more MobId or PursueObject.");	           
+       
 	        }
 	    }
 

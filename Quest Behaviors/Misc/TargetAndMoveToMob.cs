@@ -184,6 +184,13 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 				IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
 				MoveWithinMaxRangeOfMob = GetAttributeAsNullable<double>("MoveWithinMaxRangeOfMob", false, null, null) ?? 30.0;
 				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
+
+                // Hunting ground processing...
+                HuntingGrounds =
+                    HuntingGroundsType.GetOrCreate(Element,
+                                                   "HuntingGrounds",
+                                                   new WaypointType(HuntingGroundCenter, "hunting ground center"));
+                IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 			}
 
 			catch (Exception except)
@@ -267,14 +274,6 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 
 		public override void OnStart()
 		{
-			// Acquisition and checking of any sub-elements go here.
-			// A common example:
-			HuntingGrounds =
-				HuntingGroundsType.GetOrCreate(Element,
-											   "HuntingGrounds",
-											   new WaypointType(HuntingGroundCenter, "hunting ground center"));
-			IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-
 			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
 			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
 			var isBehaviorShouldRun = OnStart_QuestBehaviorCore(GoalText);
