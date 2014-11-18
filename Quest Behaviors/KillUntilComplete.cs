@@ -131,9 +131,8 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
 			try
 			{
-				var mobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" }) ?? new int[0];
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" }) ?? new int[0];
                 HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-                AddMobIdsToPersueList(mobIds, PursuitList);
 
                 // Tunables...
                 WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
@@ -155,6 +154,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 		// Attributes provided by caller
         private HuntingGroundsType HuntingGrounds { get; set; }
         private WoWPoint HuntingGroundCenter { get; set; }
+        private int[] MobIds { get; set; }
         private bool WaitForNpcs { get; set; }
         private bool ImmediatelySwitchToHighestPriorityTarget { get; set; }
 		// Private variables for internal state
@@ -216,7 +216,9 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 	        // If the quest is complete, this behavior is already done...
 	        // So we don't want to falsely inform the user of things that will be skipped.
 	        if (isBehaviorShouldRun)
-	        {                
+	        {
+                AddMobIdsToPersueList(MobIds, PursuitList);
+     
                 UsageCheck_SemanticCoherency(Element,
                     (!PursuitList.PursueObjects.Any()),
                     context => "You must specify one or more MobId or PursueObject.");	           

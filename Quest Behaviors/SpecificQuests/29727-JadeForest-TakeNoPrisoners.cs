@@ -30,11 +30,18 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using Bots.DungeonBuddy.Helpers;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -48,7 +55,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
 {
 	[CustomBehaviorFileName(@"SpecificQuests\29727-JadeForest-TakeNoPrisoners")]
-	public class JadeForestTakeNoPrisoners : CustomForcedBehavior
+	public class JadeForestTakeNoPrisoners : QuestBehaviorBase
 	{
 		public JadeForestTakeNoPrisoners(Dictionary<string, string> args)
 			: base(args)
@@ -76,16 +83,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
 
 
 		// Attributes provided by caller
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
 		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
 
 		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
 		private bool _usedTurret;
 
@@ -142,121 +143,109 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
 
 		#region Overrides of CustomForcedBehavior
 
-
-
-		protected Composite CreateBehavior_QuestbotMain()
-		{
-				
-			return _root ?? (_root =
-				new PrioritySelector(
-					new Decorator(ret => !_isBehaviorDone,
-						new PrioritySelector(
-							new Decorator(ret => Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted,
-								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Finished!"),
-									new WaitContinue(120,
-										new Action(delegate
-										{
-											_isBehaviorDone = true;
-											return RunStatus.Success;
-										}))
-									)),
-
-								new Decorator(ret => !Query.IsInVehicle(),
-									new PrioritySelector(
-										new Decorator(ret => Amber == null,
-											new Sequence(
-												new Action(ret => TreeRoot.StatusText = "Moving to Start Amber(Human) Story"),
-												new Action(ret => Navigator.MoveTo(new WoWPoint(-157.5062f, -2659.278f, 1.069468f))),
-												new Action(ret => WoWMovement.MoveStop()),
-												new Sleep(1000)
-											 )),
-
-										new Decorator(ret => Amber != null && !Amber.WithinInteractRange,
-												new Sequence(
-													new Action(ret => Navigator.MoveTo(Amber.Location)),
-													new Action(ret => WoWMovement.MoveStop()),
-													new Sleep(1000)
-													)
-											 ),
-
-										new Decorator(ret => Amber != null && Amber.WithinInteractRange,
-											new Sequence(
-												new Action(ret => WoWMovement.MoveStop()),
-												new Action(ret => Amber.Interact()),
-												new Sleep(400),
-												new Action(ret => Lua.DoString("SelectGossipOption(1,\"gossip\", true)"))
-											 )))),
-
-
-									new Decorator(ret => Query.IsInVehicle(),
-										new PrioritySelector(
-												new Decorator(ret => HozenEnemy != null,
-												new Sequence(
-													new Action(ret => HozenEnemy.Target()), 
-													new Sleep(400),
-													new Action(ret => HozenEnemy.Interact()))),
-
-											new Decorator(ret => OrcEnemy != null, // Orc Has to be Seperate or we will Die
-												new Sequence(
-													new Action(ret => OrcEnemy.Target()),
-													new Sleep(400),
-													new Action(ret => OrcEnemy.Interact()))),
-
-											new Decorator(ret => UsingTurretLocation.Distance(StyxWoW.Me.Location) > 30 && !_usedTurret,
-												new PrioritySelector(
-													new Decorator(ret => TurretLocation.Distance(Me.Location) > 3,
-														new Action(ret => Navigator.MoveTo(TurretLocation))),
-													new Decorator(r => Turret.WithinInteractRange, 
-														new Sequence(
-															new Sleep(450),
-															new Action(r =>
-															{
-																Navigator.PlayerMover.MoveStop();
-																Turret.Interact();
-
-																_usedTurret = true;
-															})))))
-											))
-					))));
-		}
-
-        public override void OnFinished()
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-            base.OnFinished();
         }
 
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+        }
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+	    protected override Composite CreateBehavior_CombatMain()
+	    {
+            return new ActionRunCoroutine(ctx => Coroutine_CombatMain());
+	    }
+
+	    private readonly WoWPoint _vehicleLoc = new WoWPoint(-157.5062f, -2659.278f, 1.069468f);
+
+	    private async Task<bool> Coroutine_CombatMain()
+	    {
+	        if (IsDone )
+	            return false;
+
+	        if (!Query.IsInVehicle())
+	        {
+                // only move to vehicle if doing nothing else
+	            if (!Targeting.Instance.IsEmpty() || BotPoi.Current.Type != PoiType.None)
+	                return false;
+
+	            var amber = Amber;
+
+                if (amber == null || !amber.WithinInteractRange)
+                {
+                    var moveTo = amber != null ? amber.Location : _vehicleLoc;
+                    await UtilityCoroutine.MoveTo(moveTo, "Moving to Start Amber(Human) Story", MovementBy);
+	                return true;
+	            }
+
+                if (await CommonCoroutines.StopMoving())
+	                return true;
+
+	            if (!GossipFrame.Instance.IsVisible)
+	            {
+	                amber.Interact();
+                    await CommonCoroutines.SleepForRandomUiInteractionTime();
+	                return true;
+	            }
+
+	            if (GossipFrame.Instance.GossipOptionEntries != null)
+	            {
+	                GossipFrame.Instance.SelectGossipOption(0);
+                    await CommonCoroutines.SleepForRandomUiInteractionTime();
+                    return true;
+	            }
+	            return true;
+	        }
+
+            if (await InteractWithUnit(HozenEnemy))
+	            return true;
+
+            if (await InteractWithUnit(OrcEnemy))
+                return true;
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+	        if (UsingTurretLocation.DistanceSqr(StyxWoW.Me.Location) > 30 * 30 &&  !_usedTurret)
+	        {
+	            var turret = Turret;
+	            if (TurretLocation.DistanceSqr(Me.Location) > 3*3 )
+	            {
+	                await UtilityCoroutine.MoveTo(TurretLocation, "Turret Location", MovementBy);
+	                return true;
+	            }
+	            if (turret == null)
+	            {
+	                TreeRoot.StatusText = "Waiting for turret to spawn";
+	                return true;
+	            }
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+	            if (!turret.WithinInteractRange)
+	            {
+	                await UtilityCoroutine.MoveTo(TurretLocation, "interact range of turret", MovementBy);
+	                return true;
+	            }
 
-				this.UpdateGoalText(QuestId);
-			}
-		}
+	            if (await CommonCoroutines.StopMoving())
+	                return true;
 
-		#endregion
+                QBCLog.Info("Using turret");
+                Turret.Interact();
+                _usedTurret = true;
+	            return true;
+	        }
+            return false;
+	    }
+
+
+	    private async Task<bool> InteractWithUnit(WoWUnit unit)
+	    {
+	        if (unit == null)
+	            return false;
+
+	        unit.Interact();
+	        await CommonCoroutines.SleepForRandomReactionTime();
+	        return true;
+	    }
+
+	    #endregion
 	}
 }

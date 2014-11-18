@@ -254,6 +254,7 @@
     <Compile Include="SpecificQuests\24910-Tanaris-RocketRescue.cs" />
     <Compile Include="SpecificQuests\29890-JadeForest-FindingYourCenter.cs" />
     <Compile Include="SpecificQuests\30475-FourWinds-AGiftForFung.cs" />
+    <Compile Include="SpecificQuests\33729-Talador-Horde-BorntoShred.cs" />
     <Compile Include="SpecificQuests\Holiday\Brewfest-RamRidingQuests.cs" />
     <Compile Include="SpecificQuests\Holiday\HallowsEnd-CandyBuckets.cs" />
     <Compile Include="SpecificQuests\Kalimdor\Darkshore\13512-StrategicStrikes.cs" />
