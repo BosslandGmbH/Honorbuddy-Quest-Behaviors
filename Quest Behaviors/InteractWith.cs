@@ -1013,8 +1013,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				// Interact by right-click..
 				if (InteractByRightClick)
 				{
-					if (!await UtilityCoroutine.Interact(SelectedTarget))
-						return false;
+					if (await UtilityCoroutine.Interact(SelectedTarget))
+						return true;
 				}
 
 				// Peg tally, if follow-up actions not expected...

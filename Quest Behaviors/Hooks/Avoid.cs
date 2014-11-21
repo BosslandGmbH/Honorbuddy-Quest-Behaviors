@@ -66,9 +66,32 @@
 
 
 #region Examples
-// EXAMPLE:
-//  TODO.. ADD
+// EXAMPLES:
+// 
+//  Add an avoidance for a mob whose Id is 1234. This will try to stay at least 10 yds away from mob.
+//  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" />
+// 
+//  Avoid above mob only when it contains a certain aura
+//  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" AvoidWhen="UNIT.HasAura(54321)" />
+// 
+//  Remove the avoidance that was added above. 
+//  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" Command="Remove" />
 //
+// Add an avoidance for an areaTrigger whose ID is 1337. Similar to the one for a mob except ObjectType needs to be specified
+// <CustomBehavior="Hooks\Avoid" AvoidName="Some AreaTrigger" ObjectId="1337" Radius="7" ObjectType="AreaTrigger" />
+// 
+// Avoid a mob's frontal area. The location that is avoided is moved 5 yds out in front of the mob
+// <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
+//                  AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 5)" />
+//
+// Avoid a mob's rear area. The location that is avoided is moved 5 yds behind the mob
+// <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
+//                  AvoidLocationProducer="WoWMathHelper.CalculatePointBehind(UNIT.Location, UNIT.Rotation, 5)" />
+//
+// Avoid a straight line out in front of a mob that starts at mob's location and ends 15 yds out in front.
+// This is useful for avoiding abilites that do damage in a line or mobs that move fast.
+// <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" 
+//                  AvoidLocationProducer="WoWMathHelper.GetNearestPointOnLineSegment(Me.Location, UNIT.Location, UNIT.Location.RayCast(UNIT.Rotation, 15))" />
 #endregion
 
 
@@ -178,11 +201,6 @@ namespace Honorbuddy.Quest_Behaviors
 
             UsageCheck_SemanticCoherency(
                 xElement,
-                Command == CommandType.Remove && !AvoidDictionary.ContainsKey(AvoidName),
-                context => string.Format("No avoid with name {0} was found", AvoidName));
-
-            UsageCheck_SemanticCoherency(
-                xElement,
                 Command == CommandType.Add && string.IsNullOrEmpty(AvoidWhenExpression) && ObjectId == 0,
                 context => "At least a ObjectId or AvoidWhen must be specified");
         }
@@ -222,6 +240,8 @@ namespace Honorbuddy.Quest_Behaviors
                 {
                     if (AvoidDictionary.ContainsKey(AvoidName))
                     {
+                        QBCLog.DeveloperInfo("Removing \"{0}\" avoid - Radius: {1}, ObjectId: {2}, ObjectType: {3}",
+                            AvoidName, Radius, ObjectId, ObjectType);
                         var avoidInfo = AvoidDictionary[AvoidName];
                         AvoidDictionary.Remove(AvoidName);
                         AvoidanceManager.RemoveAvoid(avoidInfo);
@@ -230,7 +250,8 @@ namespace Honorbuddy.Quest_Behaviors
                 else if (Command == CommandType.Add)
                 {
                     AvoidInfo avoidInfo = BuildAvoidInfo();
-
+                    QBCLog.DeveloperInfo("Adding \"{0}\" avoid - Radius: {1}, ObjectId: {2}, ObjectType: {3}",
+                       AvoidName, Radius, ObjectId, ObjectType);
                     AvoidDictionary[AvoidName] = avoidInfo;
                     AvoidanceManager.AddAvoid(avoidInfo);
                 }

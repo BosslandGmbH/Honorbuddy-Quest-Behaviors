@@ -35,9 +35,9 @@ using Action = Styx.TreeSharp.Action;
 using WaitTimer = Styx.Common.Helpers.WaitTimer;
 #endregion
 
-namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BorntoShred
+namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HordeBorntoShred
 {
-	[CustomBehaviorFileName(@"SpecificQuests\33729-Talador-BorntoShred")]
+    [CustomBehaviorFileName(@"SpecificQuests\33729-Talador-HordeBorntoShred")]
 	public class BorntoShred : CustomForcedBehavior
 	{
 		public uint[] MobIds = new uint[] {75943, 75944, 75945, 75946, 75947, 75948, 77066,};

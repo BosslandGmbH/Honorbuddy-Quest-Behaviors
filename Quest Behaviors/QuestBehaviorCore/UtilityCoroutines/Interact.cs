@@ -56,7 +56,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			// Most of the time this happens, the target is immediately and invisibly replaced with
 			// an identical looking target with a different script.
 			// We must assume our target is no longer available for use after this point.
-			await Coroutine.Sleep((int) Delay.AfterInteraction.TotalMilliseconds);
+			await Coroutine.Sleep(Delay.AfterInteraction);
 
 			// Wait for any casting to complete...
 			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
