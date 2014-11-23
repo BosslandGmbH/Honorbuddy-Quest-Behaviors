@@ -1010,15 +1010,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 									string.Format("Terminating behavior due to missing {0}", Utility.GetItemNameFromId(InteractByUsingItemId))));
 				}
 
+                // We need to check if a frame is expected after interaction before we do any interactions via right-click
+                // due to 'CanLoot' for lootable objects to report 'false' when object is already interacted with.
+                var isFrameExpected = IsFrameExpectedFromInteraction;
+
 				// Interact by right-click..
 				if (InteractByRightClick)
 				{
-					if (await UtilityCoroutine.Interact(SelectedTarget))
-						return true;
+					if (!await UtilityCoroutine.Interact(SelectedTarget))
+						return false;
 				}
 
 				// Peg tally, if follow-up actions not expected...
-				if (!IsFrameExpectedFromInteraction)
+                if (!isFrameExpected)
 				{
 					// NB: Some targets go invalid immediately after interacting with them.
 					// So we must make certain that we don't intend to use such invalid targets
@@ -1776,8 +1780,17 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			get
 			{
-				// NB: InteractByLoot is nothing more than a normal "right click" activity
-				// on something. If something is normally 'lootable', HBcore will deal with it.
+                // if Selected object is lootable then we can expect a lootframe to be opened from interaction.
+                // We will need to loot items from lootframe since sometimes auto-loot is turned off.
+                // We need to check if 'CanLoot' before we perform any interaction otherwise 
+                // 'CanLoot' may report 'false' when object is already interacted with.
+                if (Query.IsViable(SelectedTarget))
+                {
+                    var lootableObj = SelectedTarget as ILootableObject;
+                    if (lootableObj != null && lootableObj.CanLoot)
+                        return true;
+                }
+
 				return
 					(InteractByBuyingItemId > 0)
 					|| (InteractByBuyingItemInSlotNum > -1)

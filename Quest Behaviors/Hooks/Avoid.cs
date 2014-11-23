@@ -80,13 +80,13 @@
 // Add an avoidance for an areaTrigger whose ID is 1337. Similar to the one for a mob except ObjectType needs to be specified
 // <CustomBehavior="Hooks\Avoid" AvoidName="Some AreaTrigger" ObjectId="1337" Radius="7" ObjectType="AreaTrigger" />
 // 
-// Avoid a mob's frontal area. The location that is avoided is moved 5 yds out in front of the mob
+// Avoid a mob's frontal area. The location that is avoided is moved 8 yds out in front of the mob
 // <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
-//                  AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 5)" />
+//                  AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 8)" />
 //
-// Avoid a mob's rear area. The location that is avoided is moved 5 yds behind the mob
+// Avoid a mob's rear area. The location that is avoided is moved 8 yds behind the mob
 // <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
-//                  AvoidLocationProducer="WoWMathHelper.CalculatePointBehind(UNIT.Location, UNIT.Rotation, 5)" />
+//                  AvoidLocationProducer="WoWMathHelper.CalculatePointBehind(UNIT.Location, UNIT.Rotation, 8)" />
 //
 // Avoid a straight line out in front of a mob that starts at mob's location and ends 15 yds out in front.
 // This is useful for avoiding abilites that do damage in a line or mobs that move fast.
