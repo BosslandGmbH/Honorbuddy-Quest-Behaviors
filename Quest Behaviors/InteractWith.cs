@@ -1010,19 +1010,27 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 									string.Format("Terminating behavior due to missing {0}", Utility.GetItemNameFromId(InteractByUsingItemId))));
 				}
 
-                // We need to check if a frame is expected after interaction before we do any interactions via right-click
-                // due to 'CanLoot' for lootable objects to report 'false' when object is already interacted with.
-                var isFrameExpected = IsFrameExpectedFromInteraction;
-
 				// Interact by right-click..
 				if (InteractByRightClick)
 				{
+                    // if Selected object is lootable then we can expect a lootframe to be opened from interaction.
+                    // We will need to loot items from lootframe since sometimes auto-loot is turned off.
+                    // We need to check if 'CanLoot' before we perform any interaction otherwise 
+                    // 'CanLoot' may report 'false' when object is already interacted with.
+                    var lootableObj = SelectedTarget as ILootableObject;
+				    var isLootable = Query.IsViable(SelectedTarget) && lootableObj != null && lootableObj.CanLoot;
+
 					if (!await UtilityCoroutine.Interact(SelectedTarget))
 						return false;
+
+                    // We need to wait for the lootframe if object is lootable right now, 
+                    // otherwise we might miss the loot frame and get stuck infinitely.
+                    if (isLootable && await Coroutine.Wait(2000, () => IsLootFrameVisible))
+                        await SubCoroutine_HandleFrame_Loot();
 				}
 
 				// Peg tally, if follow-up actions not expected...
-                if (!isFrameExpected)
+                if (!IsFrameExpectedFromInteraction)
 				{
 					// NB: Some targets go invalid immediately after interacting with them.
 					// So we must make certain that we don't intend to use such invalid targets
@@ -1323,11 +1331,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private async Task<bool> SubCoroutine_HandleFrame_Loot()
 		{
-			// Nothing really special for us to do here.  HBcore will take care of 'normal' looting.
+			// Nothing really special for us to do here.  WoW will take care of 'normal' looting it auto-loot is enabled.
 			// And looting objects through "interaction" is usually nothing more than right-clicking
 			// on the object and a loot frame is not even produced.  But this is here, just in case
-			// a loot frame is produced, and HBcore doesn't deal with it.
-			if (LootFrame.Instance.IsVisible)
+			// a loot frame is produced, and WoW doesn't automatically loot it
+			if (IsLootFrameVisible)
 			{
 				TreeRoot.StatusText = string.Format("Looting {0}", GetName(SelectedTarget));
 				LootFrame.Instance.LootAll();
@@ -1780,17 +1788,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			get
 			{
-                // if Selected object is lootable then we can expect a lootframe to be opened from interaction.
-                // We will need to loot items from lootframe since sometimes auto-loot is turned off.
-                // We need to check if 'CanLoot' before we perform any interaction otherwise 
-                // 'CanLoot' may report 'false' when object is already interacted with.
-                if (Query.IsViable(SelectedTarget))
-                {
-                    var lootableObj = SelectedTarget as ILootableObject;
-                    if (lootableObj != null && lootableObj.CanLoot)
-                        return true;
-                }
-
+                // NB: InteractByLoot is nothing more than a normal "right click" activity
+                // on something. If something is normally 'lootable', WoW will deal with it 
+                // if Auto-loot is enabled.
 				return
 					(InteractByBuyingItemId > 0)
 					|| (InteractByBuyingItemInSlotNum > -1)
