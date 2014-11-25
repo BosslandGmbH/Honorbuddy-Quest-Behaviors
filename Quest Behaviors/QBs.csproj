@@ -256,6 +256,7 @@
     <Compile Include="SpecificQuests\30475-FourWinds-AGiftForFung.cs" />
     <Compile Include="SpecificQuests\33729-Talador-HordeBorntoShred.cs" />
     <Compile Include="SpecificQuests\34097-Talador-AllianceBorntoShred.cs" />
+    <Compile Include="SpecificQuests\35704-SpiresOfArak-WhenAllIsAligned.cs" />
     <Compile Include="SpecificQuests\Holiday\Brewfest-RamRidingQuests.cs" />
     <Compile Include="SpecificQuests\Holiday\HallowsEnd-CandyBuckets.cs" />
     <Compile Include="SpecificQuests\Kalimdor\Darkshore\13512-StrategicStrikes.cs" />
