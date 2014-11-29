@@ -1142,14 +1142,23 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                                      (string.IsNullOrEmpty(continentName) ? "noContinent" : continentName),
                                      Me.MapId);
                 builder.AppendLine();
+                var zoneName = string.IsNullOrEmpty(Me.ZoneText)
+                    ? "noZone"
+                    : (Me.CurrentMap.IsGarrison ? "Garrison" : Me.ZoneText);
+
                 builder.AppendFormat("{0}     => {1} {2}",
                                      linePrefix,
-                                     ((string.IsNullOrEmpty(Me.ZoneText) ? "noZone" : Me.ZoneText)),
+                                     zoneName,
                                      Utility.WowheadLink(Utility.WowheadSubject.Zone, (int)Me.ZoneId));
                 builder.AppendLine();
+
+                var subZoneName = string.IsNullOrEmpty(Me.SubZoneText)
+                    ? "noSubZone"
+                    : (Me.CurrentMap.IsGarrison ? "Garrison" : Me.SubZoneText);
+
                 builder.AppendFormat("{0}     => {1} (subzone={2})", 
                     linePrefix,
-                    (string.IsNullOrEmpty(Me.SubZoneText) ? "noSubZone" : Me.SubZoneText),
+                    subZoneName,
                     (int)Me.SubZoneId);
                 builder.AppendLine();
                 builder.AppendFormat("{0}     => {1}", linePrefix, Me.Location);
@@ -1292,8 +1301,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     builderDetails.AppendLine();
                 }
 
-			    FilterSensitiveInfo(builderDetails);
-
                 QBCLog.DeveloperInfo(builderDetails.ToString());
 
 			    var builderProblemErrorSummary = new StringBuilder();
@@ -1338,24 +1345,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 			    return reportGenerators.Any(r => r.IsFatalErrorSeen(_allowedProblems));
             }
 		}
-
-        private void FilterSensitiveInfo(StringBuilder data)
-        {
-            data.Replace(Me.Name, Me.SafeName)
-                .Replace(Me.RealmName, "SERVER")
-                .Replace(Me.Guid.ToString(), "GUID")
-                .Replace(GuildName, "GUILD");
-
-            var pet = Me.Pet;
-            if (Query.IsViable(pet))
-                data.Replace(pet.Name, pet.SafeName);
-
-        }
-
-	    private string GuildName
-	    {
-            get { return Lua.GetReturnVal<string>("return GetGuildInfo('player')", 0); }
-	    }
 
         #endregion
 
