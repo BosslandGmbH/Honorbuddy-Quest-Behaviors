@@ -1291,6 +1291,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     report.EmitDetailedInfo(builderDetails, linePrefix);
                     builderDetails.AppendLine();
                 }
+
+			    FilterSensitiveInfo(builderDetails);
+
                 QBCLog.DeveloperInfo(builderDetails.ToString());
 
 			    var builderProblemErrorSummary = new StringBuilder();
@@ -1335,6 +1338,25 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 			    return reportGenerators.Any(r => r.IsFatalErrorSeen(_allowedProblems));
             }
 		}
+
+        private void FilterSensitiveInfo(StringBuilder data)
+        {
+            data.Replace(Me.Name, Me.SafeName)
+                .Replace(Me.RealmName, "SERVER")
+                .Replace(Me.Guid.ToString(), "GUID")
+                .Replace(GuildName, "GUILD");
+
+            var pet = Me.Pet;
+            if (Query.IsViable(pet))
+                data.Replace(pet.Name, pet.SafeName);
+
+        }
+
+	    private string GuildName
+	    {
+            get { return Lua.GetReturnVal<string>("return GetGuildInfo('player')", 0); }
+	    }
+
         #endregion
 
 

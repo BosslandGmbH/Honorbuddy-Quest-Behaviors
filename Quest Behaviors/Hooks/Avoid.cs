@@ -41,6 +41,11 @@
 //          Specifies whether effect should be ignored if it blocks path
 //      AvoidLocationProducer [optional; Default: Location of effect object]
 //          This allows the user to customize the location that needs to be avoided 
+//      LeashRadius [optional; Default 40]
+//          Defines the maximum distance that bot will move from X/Y/Z while avoiding something. 
+//          Only used if a X/Y/Z is specified
+//      X/Y/Z [optional; Default: NONE]
+//          Defines a leash anchor point that is used to prevent bot from leaving an area while avoiding something
 //
 // THINGS TO KNOW:
 // * It is VERY important to remove the Avoid hook behavior when it is no longer needed.
@@ -104,11 +109,13 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy;
 using Bots.DungeonBuddy.Avoidance;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.WoWInternals;
@@ -158,6 +165,14 @@ namespace Honorbuddy.Quest_Behaviors
                         new ConstrainTo.Domain<float>(0.5f, 50f),
                         null) ?? 5;
 
+                    LeashRadius = GetAttributeAsNullable<float>(
+                        "LeashRadius",
+                        false,
+                        new ConstrainTo.Domain<float>(10f, 150f),
+                        null) ?? 40;
+
+                    LeashPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
+
                     ObjectId = GetAttributeAsNullable<int>("ObjectId", false, ConstrainAs.ObjectId, null) ?? 0;
                     ObjectType = GetAttributeAsNullable<AvoidObjectType>("ObjectType", false, null, null) ?? AvoidObjectType.Npc;
 
@@ -203,6 +218,11 @@ namespace Honorbuddy.Quest_Behaviors
                 xElement,
                 Command == CommandType.Add && string.IsNullOrEmpty(AvoidWhenExpression) && ObjectId == 0,
                 context => "At least a ObjectId or AvoidWhen must be specified");
+
+            UsageCheck_SemanticCoherency(
+                xElement,
+                Command == CommandType.Add && LeashPoint.HasValue && LeashRadius - Radius  < 5,
+                context => "LeashRadius MUST be at least 5 more than Radius when X/Y/Z is specified " );
         }
 
         #endregion
@@ -211,6 +231,8 @@ namespace Honorbuddy.Quest_Behaviors
         private string AvoidWhenExpression { get; set; }
         private string AvoidLocationProducerExpression { get; set; }
         private CommandType Command { get; set; }
+        public WoWPoint? LeashPoint { get; private set; }
+        private float LeashRadius { get; set; }
         private float Radius { get; set; }
         private bool IgnoreIfBlocking { get; set; }
         private UserDefinedExpressionBase AvoidWhen { get; set; }
@@ -283,7 +305,24 @@ namespace Honorbuddy.Quest_Behaviors
         private async Task<bool> HookHandler()
         {
             // prevent Combat Routine from getting called when running out of bad stuff since it might resist.
-            return AvoidanceManager.IsRunningOutOfAvoid;
+            if (AvoidanceManager.IsRunningOutOfAvoid)
+                return true;
+            
+            // Special case: Bot will do a lot of fast stop n go when avoiding a mob that moves slowly and trying to
+            // loot something near the mob. To fix, a delay is added to slow down the 'Stop n go' behavior
+            var poiType = BotPoi.Current.Type;
+            if (poiType == PoiType.Loot || poiType == PoiType.Harvest || poiType == PoiType.Skin)
+            {
+                if (!Me.IsActuallyInCombat && AvoidanceManager.Avoids.Any(o => o.IsPointInAvoid(BotPoi.Current.Location)))
+                {
+                    TreeRoot.StatusText = "Waiting for 'avoid' to move before attempting to loot " + BotPoi.Current.Name;
+                    var randomWaitTime = StyxWoW.Random.Next(3000, 8000);
+                    await Coroutine.Wait(randomWaitTime, 
+                        () => Me.IsActuallyInCombat || !AvoidanceManager.Avoids.Any(o => o.IsPointInAvoid(BotPoi.Current.Location)));
+                }
+            }
+
+            return false;
         }
 
         private void InstallHook()
@@ -418,7 +457,14 @@ namespace Honorbuddy.Quest_Behaviors
             else
                 locationProducer = null;
 
-            return new AvoidObjectInfo(ctx => true, pred, o => Radius, ignoreIfBlocking: IgnoreIfBlocking, locationSelector: locationProducer);
+            return new AvoidObjectInfo(
+                ctx => true,
+                pred,
+                o => Radius,
+                ignoreIfBlocking: IgnoreIfBlocking,
+                locationSelector: locationProducer,
+                leashPointSelector: LeashPoint.HasValue ? new Func<WoWPoint>(() => LeashPoint.Value) : null,
+                leashRadius: LeashRadius);
         }
 
         private AvoidLocationInfo BuildAvoidMissileImpact()
@@ -450,8 +496,8 @@ namespace Honorbuddy.Quest_Behaviors
                 ctx => true,
                 locationProducer,
                 o => Radius,
-                null,
-                40,
+                LeashPoint.HasValue ? new Func<WoWPoint>(() => LeashPoint.Value) : null ,
+                LeashRadius,
                 collectionProducer,
                 IgnoreIfBlocking);
         }
