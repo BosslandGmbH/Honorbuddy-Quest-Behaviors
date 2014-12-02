@@ -113,6 +113,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
+using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 using WaitTimer = Styx.Common.Helpers.WaitTimer;
 
@@ -196,16 +197,35 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
                 context => "You must specify one or more MobId or PursueObject.");	 
         }
 
-	    protected override bool IncludeUnitInTargeting(WoWUnit wowUnit)
-	    {
-	        return !Me.IsActuallyInCombat && PursuitList.ShouldPursue(wowUnit);
-	    }
-
 	    protected override float WeightUnitForTargeting(WoWUnit wowUnit)
 	    {
 	        float priority;
 	        return PursuitList.ShouldPursue(wowUnit, out priority) ? priority : 0;
 	    }
+        
+        protected override bool IncludeUnitInTargeting(WoWUnit wowUnit)
+        {
+            if (!PursuitList.ShouldPursue(wowUnit))
+                return false;
+
+            // always add pursued mobs when not dealing with some aggro
+            if (!Me.IsActuallyInCombat)
+                return true;
+
+            // Only add pursued mobs when in combat and it or its owner has threat towards player.
+            if (wowUnit.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable)
+                return true;
+        
+            // if unit is spawned by another unit then check if the owner is in combat with player.
+            var ownedBy  = wowUnit.OwnedByRoot;
+            if (ownedBy != null && ownedBy.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable)
+                return true;
+
+            // Unique case where during the quest 'Darkness Falls' a mob spawns that channels a spell 
+            // onto main quest mob making it immune to damage but the spawn is not in threat table
+            var channelObj = wowUnit.ChannelObject as WoWUnit;
+            return channelObj != null && channelObj.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable;
+        }
 
 	    public override void OnStart()
 	    {

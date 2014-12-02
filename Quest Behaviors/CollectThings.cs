@@ -681,7 +681,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 			new PrioritySelector(
 
 				// If we haven't engaged the mob when the auto-blacklist timer expires, give up on it and move on...
-				new Decorator(ret => ((CurrentTarget != null)
+                new Decorator(ret => ((Query.IsViable(CurrentTarget))
 										&& (_currentTargetAutoBlacklistTimer.Elapsed > _currentTargetAutoBlacklistTime)),
 					new Action(delegate
 					{
@@ -694,8 +694,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 				// If we don't have a current target, select a new one...
 				// Once we select a target, its 'locked in' (unless it gets blacklisted).  This prevents us
 				// from running back and forth between two equidistant targets.
-				new Decorator(ret => ((CurrentTarget == null)
-									  || !CurrentTarget.IsValid
+				new Decorator(ret => (!Query.IsViable(CurrentTarget)
 									  || CurrentTarget.IsLocallyBlacklisted()
 									  || !IsViableTarget(CurrentTarget)),
 					new PrioritySelector(context => CurrentTarget = ViableTargets().FirstOrDefault(),
