@@ -748,7 +748,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							// If no search path, or only one point, just sit at current position and await
 				// for NPCs to arrive...
 							new Decorator(context => _searchPath.Count() <= 1,
-								new CompositeThrottle(TimeSpan.FromSeconds(60),
+								new CompositeThrottleContinue(TimeSpan.FromSeconds(60),
 									new Action(context => { QBCLog.Info("Waiting for NPCs to arrive"); })))
 							)),
 			#endregion
@@ -1285,13 +1285,14 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							new Action(context => { movementState.IsMoveInProgress = false; })),
 
 						// Notify user of progress...
-						new CompositeThrottle(TimeSpan.FromSeconds(1),
-							new Action(context =>
+                        new CompositeThrottle(TimeSpan.FromSeconds(1),
+                            new Action(context =>
 							{
 								string locationName = locationNameDelegate(context) ?? locationDelegate(context).ToString();
 								QBCLog.Info("Moving to {0}", locationName);
 								return RunStatus.Failure; // fall through after notifying user
 							})),
+
 
 						// Conduct movement...
 						new Action(context =>
@@ -1305,10 +1306,8 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							if ((moveResult == MoveResult.Failed) || (moveResult == MoveResult.PathGenerationFailed))
 							{ WoWMovement.ClickToMove(destination); }
 
-							return RunStatus.Failure; // fall through for delay
-						}),
-
-						new WaitContinue(Delay_WoWClientMovementThrottle, ret => false, new ActionAlwaysSucceed())
+							return RunStatus.Success; 
+						})
 					))
 			);
 		}
@@ -1511,9 +1510,9 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
 
 		#region TreeSharp Extensions
-		public class CompositeThrottle : DecoratorContinue
+		public class CompositeThrottleContinue : DecoratorContinue
 		{
-			public CompositeThrottle(TimeSpan throttleTime,
+			public CompositeThrottleContinue(TimeSpan throttleTime,
 									 Composite composite)
 				: base(composite)
 			{
