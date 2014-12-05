@@ -924,6 +924,9 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 					unit.IsAlive
 					&& (unit.DistanceSqr < searchRadiusSqr)
 					&& (FindPlayersNearby(unit.Location, NonCompeteDistance).Count() <= 0)
+                let ownedBy = unit.OwnedByRoot 
+                // skip NPCs that are escorted by other players.
+                where ownedBy == null || ownedBy.Guid == Me.Guid || Me.GroupInfo.PartyMemberGuids.Contains(ownedBy.Guid)
 				orderby unit.DistanceSqr
 				select unit)
 				.Take(EscortCountMax);
