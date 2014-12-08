@@ -74,29 +74,85 @@
 // EXAMPLES:
 // 
 //  Add an avoidance for a mob whose Id is 1234. This will try to stay at least 10 yds away from mob.
-//  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" />
+//  <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" />
 // 
 //  Avoid above mob only when it contains a certain aura
-//  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" AvoidWhen="UNIT.HasAura(54321)" />
+//  <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" AvoidWhen="UNIT.HasAura(54321)" />
 // 
 //  Remove the avoidance that was added above. 
 //  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" Command="Remove" />
 //
 // Add an avoidance for an areaTrigger whose ID is 1337. Similar to the one for a mob except ObjectType needs to be specified
-// <CustomBehavior="Hooks\Avoid" AvoidName="Some AreaTrigger" ObjectId="1337" Radius="7" ObjectType="AreaTrigger" />
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Some AreaTrigger" ObjectId="1337" Radius="7" ObjectType="AreaTrigger" />
 // 
 // Avoid a mob's frontal area. The location that is avoided is moved 8 yds out in front of the mob
-// <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
 //                  AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 8)" />
 //
 // Avoid a mob's rear area. The location that is avoided is moved 8 yds behind the mob
-// <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
 //                  AvoidLocationProducer="WoWMathHelper.CalculatePointBehind(UNIT.Location, UNIT.Rotation, 8)" />
 //
 // Avoid a straight line out in front of a mob that starts at mob's location and ends 15 yds out in front.
 // This is useful for avoiding abilites that do damage in a line or mobs that move fast.
-// <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" 
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" 
 //                  AvoidLocationProducer="WoWMathHelper.GetNearestPointOnLineSegment(Me.Location, UNIT.Location, UNIT.Location.RayCast(UNIT.Rotation, 15))" />
+//
+// If the above example doesn't work for avoiding a straight line then you will need to add multiple avoids lined up to cover the line.
+// This might seem dirty but because each 'avoid' is cicular using this method is sometimes needed to avoid other shapes
+// For Example.
+
+// COMPOSITE AVOID AREA
+// The basic "avoid area" is a circle defined by a center and a radius.  By default, the behavior
+// places the center at the mob's location, and the Radius attribute is provided directly.
+   
+// Alternatively, it is possible to ask the behavior to use a use a different center
+// by providing the AvoidLocationProducer attribute.
+// Defining a AvoidLocationProducer attribute, coupled with the ability to fire multiple
+// Avoid areas using the same trigger, allows us to define avoid areas of different
+// 'shapes' (other than the default basic 'circle').
+   
+// In some encounters, it is important to define the "avoid area" precisely.
+// If we grossly define an avoid area as centered on the mob, and a large radius, this
+// leaves the toon no where to run to get out of the impending attack.
+   
+// For instance, in the example below an Earthrending Slam affects all toons in front of the mob out to 20 feet.
+// The attack is not circular around the mob, but a "fat line" six feet wide in front of the mob.
+// The initial developer instinct will be to define a circle centered on the mob and 20 feet
+// in diameter.  This would be a grave mistake, as it leaves the toon no where it knows it
+// can run to avoid the attack.
+   
+// A better solution would be to define a small set of overlapping circles that cover the path
+// of the attack.  Since our example attack width is six feet wide, we'll use a small series of
+// circles with a 3 foot radius, and place several of them such as the circles overlap.  The result
+// is the "fat line" of the attack (6 feet wide by 20 feet long in front of the mob) as being
+// covered by a set of small circles.  The Avoid behavior effective takes a 'union'
+// of all these overlapping avoid areas to define one large avoid area. When done in this fashion,
+// the toon can see that it has to step no more than three feet to one side or the other
+// to avoid the attack.
+   
+// The profile code that implements this example is shown below.  Note that, we use several
+// Avoid behaviors with the same trigger, but different placements for the "circle".  This is
+// what creates our composite avoid area.
+
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam1" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+//    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 3)" />
+//
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam2" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+//    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 8)" />
+//
+//<CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam3" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+//    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 13)" />
+//
+//<CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam4" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+//    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 18)" /> 
+
+
+//THINGS TO KNOW
+//--------------
+//* This behavior will try to find the quickest escape route from the area to be avoided.
+//  Sometimes, this will be a side-step, sometimes an exit to the rear, or sometimes running
+//  directly through the mob.
 #endregion
 
 
