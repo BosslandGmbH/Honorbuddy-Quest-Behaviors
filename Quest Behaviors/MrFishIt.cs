@@ -282,7 +282,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 	                return false;
 
 	            bobber.Interact();
-	            await Coroutine.Sleep(Delay.AfterInteraction);
 
 	            // Wait for the lootframe
 	            if (!await Coroutine.Wait(5000, () => LootFrame.Instance.IsVisible))
@@ -319,11 +318,13 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 	            }
 
 	            SpellManager.Cast("Fishing");
-	            await Coroutine.Wait(2000, () => Fishing.IsFishing);
-                if (PoolId != 0)
-                     await Coroutine.Wait(2000, () => Fishing.FishingBobber != null);
+
+				// Wait until the bobber appears...
+				await Coroutine.Wait(2000, () => Fishing.FishingBobber != null);
+
 	            return true;
 	        }
+
 	        TreeRoot.StatusText = "[MrFishIt] Waiting for bobber to splash ...";
 	        return true;
         }
