@@ -199,6 +199,8 @@ using Styx.Plugins;
 using Styx.WoWInternals.World;
 using Styx.CommonBot.Coroutines;
 using Buddy.Coroutines;
+using Bots.DungeonBuddy.Helpers;
+using Styx.CommonBot.POI;
 ";
 
         #endregion
