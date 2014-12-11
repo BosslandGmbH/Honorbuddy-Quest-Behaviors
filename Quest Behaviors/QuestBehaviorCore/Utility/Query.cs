@@ -445,9 +445,14 @@ namespace Honorbuddy.QuestBehaviorCore
             if ((wowItem == null) || !wowItem.IsValid)
                 { return false; }
 
+	        ItemInfo itemInfo = wowItem.ItemInfo;
+
+	        if (itemInfo == null)
+		        return false;
+
             return
-                (wowItem.ItemInfo.BeginQuestId != 0)                    // Begins a quest?
-                || (wowItem.ItemInfo.Bond == WoWItemBondType.Quest);    // Objective of quest?
+                (itemInfo.BeginQuestId != 0)                    // Begins a quest?
+                || (itemInfo.Bond == WoWItemBondType.Quest);    // Objective of quest?
         }
 
 
