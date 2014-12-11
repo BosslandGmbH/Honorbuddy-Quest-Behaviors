@@ -14,7 +14,7 @@
 // Shoots a Cannon
 // ##Syntax##
 //		MobIdN: [optional; default: Kill everything that moves] Identifies the mobs to shoot at with cannon
-//		VehicleId: ID of the vehicle
+//		VehicleId: [optional; default: 0] ID of the vehicle. Profile needs to handle getting in vehicle if this is not specified
 //		MaxAngle: [optional; default: 1.5] Maximum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
 //		MinAngle: [optional; default: -1.5] Minimum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
 //		Gravity: [optional; default: 30] The amount of gravity that effects projectile/s. 
@@ -103,7 +103,7 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 				MinAngle = GetAttributeAsNullable<double>("MinAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? -1.5;
 				Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
 				Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.01, 80), null) ?? 30;
-				VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+				VehicleId = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
 				VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 				WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
 				Weapons = Buttons.Select(b => new VehicleWeapon(b, WeaponArticulation, Velocity, Gravity)).ToArray();
@@ -220,11 +220,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 			// move to cannon.
 			if (!Query.IsInVehicle())
 			{
-				return await UtilityCoroutine.MountVehicle(
-					VehicleSearchLocation,
-					MovementBy,
-					u => !Query.IsInCompetition(u, NonCompeteDistance),
-					VehicleId);
+                if (VehicleId == 0)
+                    QBCLog.Fatal("Not in a vehicle. Player must be in a vehicle before CannonControl is called if no VehicleId is specified");
+
+                return await UtilityCoroutine.MountVehicle(
+                    VehicleSearchLocation,
+                    MovementBy,
+                    u => !Query.IsInCompetition(u, NonCompeteDistance),
+                    VehicleId);
 			}
 
 			while (!IsDone && Query.IsInVehicle())
