@@ -139,7 +139,7 @@ namespace Honorbuddy.Quest_Behaviors.Halt
 				if (CloseWoW)
 				{
 					QBCLog.Info("Bot shutdown requested by Halt quest behavior.");
-					TreeRoot.Shutdown(12, true);
+					TreeRoot.Shutdown(HonorbuddyExitCode.DoNotRestart, true);
 				}
 				else
 				{
