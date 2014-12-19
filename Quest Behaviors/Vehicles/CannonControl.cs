@@ -159,8 +159,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 
 		public override void OnStart()
 		{
-			var b = VehicleAbilitiesType.GetOrCreate(Element, "VehicleAbilities");
-
 			// This reports problems, and stops BT processing if there was a problem with attributes...
 			// We had to defer this action, as the 'profile line number' is not available during the element's
 			// constructor call.
@@ -217,11 +215,17 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 
 		async Task<bool> MainCoroutine()
 		{
+			if (IsDone)
+				return false;
+
 			// move to cannon.
 			if (!Query.IsInVehicle())
 			{
                 if (VehicleId == 0)
-                    QBCLog.Fatal("Not in a vehicle. Player must be in a vehicle before CannonControl is called if no VehicleId is specified");
+                {
+					BehaviorDone("Not in a vehicle and no VehicleId is specified");
+	                return false;
+                }
 
                 return await UtilityCoroutine.MountVehicle(
                     VehicleSearchLocation,
