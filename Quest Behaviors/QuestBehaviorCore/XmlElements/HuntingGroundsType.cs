@@ -388,7 +388,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 						return InvalidWaypointIndex;
 
 					// Pick initial waypoint--a random waypoint from those available on the list...
-					return QuestBehaviorBase._random.Next(0, huntingGrounds.Waypoints.Count);
+					return StyxWoW.Random.Next(0, huntingGrounds.Waypoints.Count);
 				}
 
 				// Once waypoint is selected, we continue to use it...
@@ -424,7 +424,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 				int newWaypointIndex;
 				do
 				{
-					newWaypointIndex = QuestBehaviorBase._random.Next(0, huntingGrounds.Waypoints.Count);
+					newWaypointIndex = StyxWoW.Random.Next(0, huntingGrounds.Waypoints.Count);
 				} while ((huntingGrounds.Waypoints.Count > 1) && (currentWaypointIndex == newWaypointIndex));
 
 				return newWaypointIndex;

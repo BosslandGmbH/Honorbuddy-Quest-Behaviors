@@ -639,9 +639,9 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 get
                 {
                     // Variable timing to simulate 'human'...
-                    return (_random.Next(1, 100) < 65)
-                            ? TimeSpan.FromMilliseconds(_random.Next(1700, 2100))
-                            : TimeSpan.FromMilliseconds(_random.Next(1900, 2300));
+					return (StyxWoW.Random.Next(1, 100) < 65)
+							? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1700, 2100))
+							: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1900, 2300));
                 }
             }
 
@@ -650,9 +650,9 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 get
                 {
                     // Variable timing to simulate 'human'...
-                    return (_random.Next(1, 100) < 65)
-                            ? TimeSpan.FromMilliseconds(_random.Next(300, 550))
-                            : TimeSpan.FromMilliseconds(_random.Next(450, 750));
+					return (StyxWoW.Random.Next(1, 100) < 65)
+							? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(300, 550))
+							: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(450, 750));
                 }
             }
 
@@ -780,8 +780,8 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             private readonly RamGaitType _maxSpeedWanted;
 
             // Variable stack counts to simulate 'humans'...
-            private readonly int _stackCountFatigued = _random.Next(70, 77);
-            private readonly int _stackCountFatigueRecovered = _random.Next(50, 60);
+			private readonly int _stackCountFatigued = StyxWoW.Random.Next(70, 77);
+			private readonly int _stackCountFatigueRecovered = StyxWoW.Random.Next(50, 60);
 
             public override async Task<bool> Execute(HuntingGroundsType ridingPath)
             {

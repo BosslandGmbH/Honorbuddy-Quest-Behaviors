@@ -163,7 +163,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 		private const double TargetDistance2DMax = 80.0;
 		private const double TargetDistance2DMin = 60.0;
 		private const double TargetHeightMinimum = 50.0;
-		private double TargetHeightVariance { get { return _random.Next(15); } }
+		private double TargetHeightVariance { get { return StyxWoW.Random.Next(15); } }
 
 		private int AuraId_RideVehicleHardcoded { get; set; }
 		private WoWPoint? StationPoint { get; set; }
@@ -603,7 +603,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 			{ desiredTarget = FindMobToKill(MobId_ScarletBallista); }
 
 			var myLocation = WoWMovement.ActiveMover.Location;
-			var preferredDistance = _random.Next((int)TargetDistance2DMin + 1, (int)TargetDistance2DMax);
+			var preferredDistance = StyxWoW.Random.Next((int)TargetDistance2DMin + 1, (int)TargetDistance2DMax);
 			var targetLocation = desiredTarget.Location;
 
 			// To evade, we just rotate in a (counter-clockwise) circle around our selected target...
@@ -688,7 +688,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 				float.TryParse(xAttribute.Value, out x);
 				float.TryParse(yAttribute.Value, out y);
 				float.TryParse(zAttribute.Value, out z);
-				temp.Add(new WoWPoint(x, y, z).Add(0.0, 0.0, _random.Next(10)));
+				temp.Add(new WoWPoint(x, y, z).Add(0.0, 0.0, StyxWoW.Random.Next(10)));
 			}
 
 			return temp;

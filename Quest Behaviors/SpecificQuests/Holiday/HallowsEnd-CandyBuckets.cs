@@ -150,18 +150,18 @@ namespace Honorbuddy.Quest_Behaviors
         {
             get
             {
-                return (_random.Next(1, 100) < 70)
-                        ? TimeSpan.FromMilliseconds(_random.Next(1000, 2500))
-                        : TimeSpan.FromMilliseconds(_random.Next(1500, 5000));
+				return (StyxWoW.Random.Next(1, 100) < 70)
+						? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1000, 2500))
+						: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1500, 5000));
             }
         }
         private static TimeSpan VariantDelay5Secs
         {
             get
             {
-                return (_random.Next(1, 100) < 70)
-                        ? TimeSpan.FromMilliseconds(_random.Next(2500, 5500))
-                        : TimeSpan.FromMilliseconds(_random.Next(3000, 8000));
+				return (StyxWoW.Random.Next(1, 100) < 70)
+						? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(2500, 5500))
+						: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(3000, 8000));
             }
         }
 
