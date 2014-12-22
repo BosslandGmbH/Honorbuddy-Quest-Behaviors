@@ -239,7 +239,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 		private KeyValuePair<string, int> ButtonEmpty = new KeyValuePair<string, int>(string.Empty, 0);
 		private WoWObject CurrentTarget { get { return (_behavior_HuntingGround.CurrentTarget); } }
 		private TimeSpan Delay_WowClientLagTime { get { return (TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150)); } }
-		private TimeSpan Delay_InputResponse { get { return (TimeSpan.FromMilliseconds((_rand.NextDouble() * InputResponseDelay) + 450)); } }
+		private TimeSpan Delay_InputResponse { get { return (TimeSpan.FromMilliseconds((StyxWoW.Random.NextDouble() * InputResponseDelay) + 450)); } }
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		private string QuestName { get; set; }
 		private readonly Dictionary<string, int> SimpleTextToButtonMap = new Dictionary<string, int>();
@@ -253,7 +253,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 		private bool _isInteracting;
 		private bool _isMonitoringEnabled;
 		private Queue<string> _messagesPending = new Queue<string>();
-		private Random _rand = new Random();
 		private readonly string _wowClientLocale;
 
 		// Private LINQ queries...  
@@ -1184,8 +1183,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 
 	public static class WoWPoint_Extensions
 	{
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
-
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
@@ -1236,7 +1233,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
 				int index;
 				WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
+				candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
 
 				// Build set of tracelines that can evaluate the candidate destination --
 				// We build a cone of lines with the cone's base at the destination's 'feet',

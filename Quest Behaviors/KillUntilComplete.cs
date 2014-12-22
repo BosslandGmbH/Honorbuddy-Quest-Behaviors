@@ -105,6 +105,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 using Bots.DungeonBuddy.Helpers;
+using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
@@ -171,6 +172,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 		// Private variables for internal state
         private Composite _combatMain;
         private Composite _mainBehavior;
+
         private readonly WaitTimer _targetSwitchTimer = new WaitTimer(TimeSpan.FromSeconds(3));
 		// Private properties
         private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
@@ -238,11 +240,12 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 	        // So we don't want to falsely inform the user of things that will be skipped.
 	        if (isBehaviorShouldRun)
 	        {
-       
+				// We need pull/combat enabled to get the job done.
+		        LevelBot.BehaviorFlags |= (BehaviorFlags.Pull & BehaviorFlags.Combat);
 	        }
 	    }
 
-        protected override Composite CreateBehavior_CombatMain()
+		protected override Composite CreateBehavior_CombatMain()
         {
             return _combatMain ?? (_combatMain = new ActionRunCoroutine(ctx => Coroutine_CombatMain()));
         }
@@ -272,7 +275,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
 	    private async Task<bool> MainCoroutine()
 	    {
-	        if (BotPoi.Current.Type != PoiType.None || !Targeting.Instance.IsEmpty())
+	        if (IsDone || BotPoi.Current.Type != PoiType.None || Targeting.Instance.FirstUnit != null)
 	            return false;
 
 	        if (_noMobsAtCurrentWaypoint == null)

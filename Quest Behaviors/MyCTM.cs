@@ -320,23 +320,23 @@ namespace Honorbuddy.Quest_Behaviors.MyCTM
 		private WoWMovement.MovementDirection GetRandomMovementDirection()
 		{
 			// randomly move left or ritht
-			WoWMovement.MovementDirection randomDirection = 
-				(_random.Next(2) == 0)
+			WoWMovement.MovementDirection randomDirection =
+				(StyxWoW.Random.Next(2) == 0)
 				? WoWMovement.MovementDirection.StrafeLeft
 				: WoWMovement.MovementDirection.StrafeRight;
 
 			// randomly choose to go diagonal backwords + left or right
-			if (_random.Next(2) == 0)
+			if (StyxWoW.Random.Next(2) == 0)
 				randomDirection |= WoWMovement.MovementDirection.Backwards;
 
 			// randomly choose to jump (or descend if flying or swimming)
-			if (_random.Next(2) == 0)
+			if (StyxWoW.Random.Next(2) == 0)
 			{
 				var activeMover = WoWMovement.ActiveMover;
 				if (activeMover.IsFlying || activeMover.IsSwimming)
 				{
-					randomDirection |= 
-						(_random.Next(2) == 0)
+					randomDirection |=
+						(StyxWoW.Random.Next(2) == 0)
 						? WoWMovement.MovementDirection.JumpAscend
 						: WoWMovement.MovementDirection.Descend;
 				}

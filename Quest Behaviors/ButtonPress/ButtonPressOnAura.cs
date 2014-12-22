@@ -778,8 +778,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 
 	public static class WoWPoint_Extensions
 	{
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
-
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
@@ -830,7 +828,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
 				int index;
 				WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
+				candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
 
 				// Build set of tracelines that can evaluate the candidate destination --
 				// We build a cone of lines with the cone's base at the destination's 'feet',

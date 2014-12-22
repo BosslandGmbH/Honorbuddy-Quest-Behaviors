@@ -476,9 +476,8 @@ namespace Styx.Bot.Quest_Behaviors {
 		}
 
 		private static int GetRandomRuneforge() {
-			var rand = new Random();
-
-			switch(rand.Next(0, 3)) {
+			switch (StyxWoW.Random.Next(0, 3))
+			{
 				case 0:
 					return 207577; // right runeforge
 				case 1:

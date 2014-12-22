@@ -266,8 +266,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 		#region StuckHandler
 
 		readonly WaitTimer _stuckTimer = new WaitTimer(TimeSpan.FromSeconds(2));
-		private static readonly Random _rnd = new Random();
-
 		protected Composite CreateBehavior_Antistuck()
 		{
 			var prevPosition = WoWPoint.Empty;
@@ -296,21 +294,21 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheBurlapGrind
 		private WoWMovement.MovementDirection GetRandomMovementDirection()
 		{
 			// randomly move left or ritht
-			WoWMovement.MovementDirection ret = _rnd.Next(2) == 0
+			WoWMovement.MovementDirection ret = StyxWoW.Random.Next(2) == 0
 				? WoWMovement.MovementDirection.StrafeLeft
 				: WoWMovement.MovementDirection.StrafeRight;
 
 			// randomly choose to go diagonal backwords + left or right
-			if (_rnd.Next(2) == 0)
+			if (StyxWoW.Random.Next(2) == 0)
 				ret |= WoWMovement.MovementDirection.Backwards;
 
 			// randomly choose to jump (or descend if flying or swimming)
-			if (_rnd.Next(2) == 0)
+			if (StyxWoW.Random.Next(2) == 0)
 			{
 				var activeMover = WoWMovement.ActiveMover;
 				if (activeMover.IsFlying || activeMover.IsSwimming)
 				{
-					ret |= _rnd.Next(2) == 0
+					ret |= StyxWoW.Random.Next(2) == 0
 						? WoWMovement.MovementDirection.JumpAscend
 						: WoWMovement.MovementDirection.Descend;
 				}

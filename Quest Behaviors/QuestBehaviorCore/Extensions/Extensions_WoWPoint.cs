@@ -25,8 +25,6 @@ namespace Honorbuddy.QuestBehaviorCore
 {
 	public static class Extensions_WoWPoint
 	{
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
-
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
@@ -133,15 +131,15 @@ namespace Honorbuddy.QuestBehaviorCore
 					(radiusMaximum) =>
 						{
 							return
-								(_random.Next(101) < 80)
+								(StyxWoW.Random.Next(101) < 80)
 									// We want a large number of the candidate magnitudes to be near the max range.
 									// This encourages toons to 'spread out'.
-									? ((radiusMaximum * 0.70) + (radiusMaximum * 0.30 * _random.NextDouble()))
-									: (radiusMaximum*_random.NextDouble());
+									? ((radiusMaximum * 0.70) + (radiusMaximum * 0.30 * StyxWoW.Random.NextDouble()))
+									: (radiusMaximum * StyxWoW.Random.NextDouble());
 						};
 				var traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = location.AddPolarXY((TAU*_random.NextDouble()), weightedRandomRadius(maxRadius), 0.0);
+				candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), weightedRandomRadius(maxRadius), 0.0);
 
 				// If destination is in the air...
 				if (!IsOverGround(candidateDestination, 3.0))

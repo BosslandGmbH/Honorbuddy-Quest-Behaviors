@@ -429,7 +429,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 			}
 		}
 		private readonly TimeSpan Duration_BlacklistGossip = TimeSpan.FromSeconds(120);
-		private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(_random.Next(800, 1700));
+		private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(StyxWoW.Random.Next(800, 1700));
 		private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
 		private List<WoWUnit> EscortedGroup { get; set; }
 		private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
@@ -447,7 +447,6 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		private bool _isBehaviorDone = false;
 		private MovementState _movementStateForCombat = new MovementState();
 		private MovementState _movementStateForNonCombat = new MovementState();
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
 		private Queue<WoWPoint> _searchPath = null;
 		private WoWPoint _toonStartingPosition = WoWPoint.Empty;
 		#endregion

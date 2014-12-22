@@ -47,6 +47,7 @@ using System.Xml.Linq;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
+using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
@@ -157,7 +158,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (isBehaviorShouldRun)
 			{
-				int waitDuration = WaitTime + (new Random(Environment.TickCount + WaitTime + VariantTime)).Next(VariantTime);
+				int waitDuration = WaitTime + StyxWoW.Random.Next(VariantTime);
 
 				_timer = new Styx.Common.Helpers.WaitTimer(TimeSpan.FromMilliseconds(waitDuration));
 				_waitTimeAsString = Utility.PrettyTime(_timer.WaitTime);

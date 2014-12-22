@@ -123,7 +123,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 		private Composite _behaviorTreeHook_DeathMain = null;
 		private Composite _behaviorTreeHook_Main = null;
 		private bool _isBehaviorDone = false;
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
 		private StateType_Behavior _state_Behavior;
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
@@ -141,7 +140,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 
 		private static TimeSpan VariantTimeSpan(int milliSecondsMin, int milliSecondsMax)
 		{
-			return TimeSpan.FromMilliseconds(_random.Next(milliSecondsMin, milliSecondsMax));
+			return TimeSpan.FromMilliseconds(StyxWoW.Random.Next(milliSecondsMin, milliSecondsMax));
 		}
 
 
@@ -452,8 +451,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 	#region WoWPoint_Extensions
 	public static class WoWPoint_Extensions
 	{
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
-
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
@@ -504,7 +501,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
 				int index;
 				WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
+				candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
 
 				// Build set of tracelines that can evaluate the candidate destination --
 				// We build a cone of lines with the cone's base at the destination's 'feet',

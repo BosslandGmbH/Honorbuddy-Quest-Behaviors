@@ -203,7 +203,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 		private ConfigMemento _configMemento = null;
 		private bool _isBehaviorDone = false;
 		private IEnumerable<int> _preferredMobIds = null;
-		private static Random _random = new Random((int)DateTime.Now.Ticks);
 		#endregion
 
 
@@ -1285,7 +1284,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 				int index;
 				WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = AddPolarXY(location, (TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
+				candidateDestination = AddPolarXY(location, (TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
 
 				// Build set of tracelines that can evaluate the candidate destination --
 				// We build a cone of lines with the cone's base at the destination's 'feet',
@@ -1362,11 +1361,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
 			{ pathDistance += groundPath[i].Distance(groundPath[i + 1]); }
 
 			return (pathDistance);
-		}
-		private static int RandomNumber(int min, int max)
-		{
-			var random = new Random();
-			return random.Next(min, max);
 		}
 	}
 	#endregion

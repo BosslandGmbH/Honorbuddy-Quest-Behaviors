@@ -927,7 +927,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 		{
 			IEnumerable<WoWPointNamed> hotspotsByDistance;
 			IEnumerable<WoWPointNamed> hotspotsStarting;
-			Random random = new Random((int)DateTime.Now.Ticks);
 
 			hotspotsByDistance = (Me.IsSwimming
 								  ? _hotSpots.OrderBy(hotspot => hotspot.Location.Distance(Me.Location))
@@ -944,7 +943,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 						(randomStartingHotspot ? "randomized" : "starting at nearest"));
 
 			WoWPoint startingLocation = (randomStartingHotspot
-												? hotspotsStarting.OrderBy(ret => random.Next()).FirstOrDefault().Location
+												? hotspotsStarting.OrderBy(ret => StyxWoW.Random.Next()).FirstOrDefault().Location
 												: hotspotsStarting.FirstOrDefault().Location);
 
 			// Rotate the hotspot queue such that the nearest hotspot is on top...
@@ -1509,8 +1508,6 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 
 	public static class WoWPoint_Extensions
 	{
-		public static Random _random = new Random((int)DateTime.Now.Ticks);
-
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		public const double TAU = (2 * Math.PI);    // See http://tauday.com/
 
@@ -1561,7 +1558,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 				int index;
 				WorldLine[] traceLines = new WorldLine[CYLINDER_LINE_COUNT + 1];
 
-				candidateDestination = location.AddPolarXY((TAU * _random.NextDouble()), (maxRadius * _random.NextDouble()), 0.0);
+				candidateDestination = location.AddPolarXY((TAU * StyxWoW.Random.NextDouble()), (maxRadius * StyxWoW.Random.NextDouble()), 0.0);
 
 				// Build set of tracelines that can evaluate the candidate destination --
 				// We build a cone of lines with the cone's base at the destination's 'feet',

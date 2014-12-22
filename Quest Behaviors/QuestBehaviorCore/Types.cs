@@ -31,17 +31,15 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			get
 			{
-				return (_random.Next(1, 100) < 70)
-						? TimeSpan.FromMilliseconds(_random.Next(100, 350))
-						: TimeSpan.FromMilliseconds(_random.Next(250, 1200));
+				return (StyxWoW.Random.Next(1, 100) < 70)
+						? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(100, 350))
+						: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(250, 1200));
 			}
 		}
-		public static TimeSpan AfterItemUse { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
-		public static TimeSpan AfterInteraction { get { return TimeSpan.FromMilliseconds(_random.Next(600, 1700)); } }
-		public static TimeSpan BeforeButtonClick { get { return TimeSpan.FromMilliseconds(_random.Next(400, 900)); } }
+		public static TimeSpan AfterItemUse { get { return TimeSpan.FromMilliseconds(StyxWoW.Random.Next(400, 900)); } }
+		public static TimeSpan AfterInteraction { get { return TimeSpan.FromMilliseconds(StyxWoW.Random.Next(600, 1700)); } }
+		public static TimeSpan BeforeButtonClick { get { return TimeSpan.FromMilliseconds(StyxWoW.Random.Next(400, 900)); } }
 		public static readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
-
-		private static readonly Random _random = new Random((int)DateTime.Now.Ticks +1);
 	}
 
 		
