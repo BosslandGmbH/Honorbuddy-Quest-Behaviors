@@ -18,10 +18,11 @@
 // Basic Attributes:
 //      AvoidName [REQUIRED]
 //          Identifies an avoidance definition 
-//      ObjectId  [REQUIRED if Command is "Add" and AvoidWhen not used]
-//          Identifies the object that a harmful effect belongs to. 
-//          This can be an ID for a NPC, game object, area trigger, dynamic object or a missile spell/spellVisual ID
+//      ObjectId#  [REQUIRED if Command is "Add" and AvoidWhen not used]
+//          Identifies the object or objects that a harmful effect belongs to. 
+//          This can be the ID of a NPC, game object, area trigger, dynamic object or a missile spell/spellVisual ID
 //          Missile spell visual Id should only be used if the missile does not have a spell ID which is pretty rare.
+//			Acceptable formats are ObjectId="####" ObjectId1="####" ObjectId2="####" ObjectIds="####,####,####"
 //      AvoidWhen [REQUIRED if Command is "Add" and ObjectId not used]
 //          Defines a predicate that must return a boolean value.  When the predicate
 //          evaluates to 'true', the object is avoided. This should be used when 
@@ -229,7 +230,13 @@ namespace Honorbuddy.Quest_Behaviors
 
                     LeashPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
 
-                    ObjectId = GetAttributeAsNullable<int>("ObjectId", false, ConstrainAs.ObjectId, null) ?? 0;
+					// Primary attributes...
+					var numberedObjectIds = GetAttributeAsArray<int>("ObjectIds", false, ConstrainAs.ObjectId, null, null) ?? new int[0];
+					var objectIdArray = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null) ?? new int[0];
+
+					ObjectIds = numberedObjectIds.Concat(objectIdArray).ToArray();
+
+
                     ObjectType = GetAttributeAsNullable<AvoidObjectType>("ObjectType", false, null, null) ?? AvoidObjectType.Npc;
 
                     AvoidWhenExpression = GetAttributeAs<string>("AvoidWhen", false, ConstrainAs.StringNonEmpty, null) ?? "";
@@ -272,7 +279,7 @@ namespace Honorbuddy.Quest_Behaviors
 
             UsageCheck_SemanticCoherency(
                 xElement,
-                Command == CommandType.Add && string.IsNullOrEmpty(AvoidWhenExpression) && ObjectId == 0,
+                Command == CommandType.Add && string.IsNullOrEmpty(AvoidWhenExpression) && !ObjectIds.Any(),
                 context => "At least a ObjectId or AvoidWhen must be specified");
 
             UsageCheck_SemanticCoherency(
@@ -293,7 +300,7 @@ namespace Honorbuddy.Quest_Behaviors
         private bool IgnoreIfBlocking { get; set; }
         private UserDefinedExpressionBase AvoidWhen { get; set; }
         private UserDefinedExpressionBase AvoidLocationProducer { get; set; }
-        private int ObjectId { get; set; }
+		private int[] ObjectIds { get; set; }
 
         private AvoidObjectType ObjectType { get; set; }
 
@@ -318,8 +325,8 @@ namespace Honorbuddy.Quest_Behaviors
                 {
                     if (AvoidDictionary.ContainsKey(AvoidName))
                     {
-                        QBCLog.DeveloperInfo("Removing \"{0}\" avoid - Radius: {1}, ObjectId: {2}, ObjectType: {3}",
-                            AvoidName, Radius, ObjectId, ObjectType);
+                        QBCLog.DeveloperInfo("Removing \"{0}\" avoid - Radius: {1}, ObjectIds: ({2}), ObjectType: {3}",
+                            AvoidName, Radius, string.Join(", ", ObjectIds), ObjectType);
                         var avoidInfo = AvoidDictionary[AvoidName];
                         AvoidDictionary.Remove(AvoidName);
                         AvoidanceManager.RemoveAvoid(avoidInfo);
@@ -328,8 +335,8 @@ namespace Honorbuddy.Quest_Behaviors
                 else if (Command == CommandType.Add)
                 {
                     AvoidInfo avoidInfo = BuildAvoidInfo();
-                    QBCLog.DeveloperInfo("Adding \"{0}\" avoid - Radius: {1}, ObjectId: {2}, ObjectType: {3}",
-                       AvoidName, Radius, ObjectId, ObjectType);
+                    QBCLog.DeveloperInfo("Adding \"{0}\" avoid - Radius: {1}, ObjectId: ({2}), ObjectType: {3}",
+					   AvoidName, Radius, string.Join(", ", ObjectIds), ObjectType);
                     AvoidDictionary[AvoidName] = avoidInfo;
                     AvoidanceManager.AddAvoid(avoidInfo);
                 }
@@ -357,6 +364,11 @@ namespace Honorbuddy.Quest_Behaviors
         {
             RemoveHook();
         }
+
+		void Profile_OnNewOuterProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
+		{
+			RemoveHook();
+		}
 
         private async Task<bool> HookHandler()
         {
@@ -391,9 +403,11 @@ namespace Honorbuddy.Quest_Behaviors
             TreeHooks.Instance.InsertHook("Combat_Main", 0, _hook);
             ObjectManager.OnObjectListUpdateFinished += ObjectManager_OnObjectListUpdateFinished;
             BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+			BotEvents.Profile.OnNewOuterProfileLoaded += Profile_OnNewOuterProfileLoaded;
 
             QBCLog.Info("Installed avoidance system");
         }
+
 
         private void RemoveHook()
         {
@@ -404,10 +418,14 @@ namespace Honorbuddy.Quest_Behaviors
             _prevNavigator = null;
             _hook = null;
             foreach (var kv in AvoidDictionary)
-                AvoidanceManager.RemoveAvoid(kv.Value);
+            {
+	            AvoidanceManager.RemoveAvoid(kv.Value);
+				QBCLog.DeveloperInfo("Removed the \"{0}\" avoidance definition", kv.Key);
+            }
             AvoidDictionary.Clear();
             ObjectManager.OnObjectListUpdateFinished -= ObjectManager_OnObjectListUpdateFinished;
             BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+			BotEvents.Profile.OnNewOuterProfileLoaded -= Profile_OnNewOuterProfileLoaded;
 
             QBCLog.Info("Uninstalled avoidance system");
         }
@@ -491,16 +509,16 @@ namespace Honorbuddy.Quest_Behaviors
 
         private AvoidObjectInfo BuildAvoidObjectInfo<T>() where T : WoWObject
         {
-            var includeId = ObjectId != 0;
+            var includeId = ObjectIds.Any();
             var includeAvoidWhen = AvoidWhen != null;
             Predicate<WoWObject> pred;
 
             if (includeId)
             {
                 if (includeAvoidWhen)
-                    pred = o => o.Entry == ObjectId && o is T && ((UserDefinedExpression<T, bool>)AvoidWhen).Evaluate((T)o);
+					pred = o => ObjectIds.Contains((int)o.Entry) && o is T && ((UserDefinedExpression<T, bool>)AvoidWhen).Evaluate((T)o);
                 else
-                    pred = o => o.Entry == ObjectId && o is T;
+                    pred = o => ObjectIds.Contains((int)o.Entry) && o is T;
             }
             else
             {
@@ -531,15 +549,14 @@ namespace Honorbuddy.Quest_Behaviors
             if (includeAvoidWhen)
             {
                 collectionProducer = () => WoWMissile.InFlightMissiles
-                    .Where(
-                        m => (m.SpellId != 0 ? m.SpellId == ObjectId : m.SpellVisualId == ObjectId)
+                    .Where(m => (m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId))
                              && ((UserDefinedExpression<WoWMissile, bool>) AvoidWhen).Evaluate(m));
 
             }
             else
             {
                 collectionProducer = () => WoWMissile.InFlightMissiles
-                    .Where(m => m.SpellId != 0 ? m.SpellId == ObjectId : m.SpellVisualId == ObjectId);
+					.Where(m => m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId));
             }
 
             Func<object, WoWPoint> locationProducer;
