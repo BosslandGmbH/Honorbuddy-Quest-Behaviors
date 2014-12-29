@@ -325,8 +325,7 @@ namespace Honorbuddy.Quest_Behaviors
                 {
                     if (AvoidDictionary.ContainsKey(AvoidName))
                     {
-                        QBCLog.DeveloperInfo("Removing \"{0}\" avoid - Radius: {1}, ObjectIds: ({2}), ObjectType: {3}",
-                            AvoidName, Radius, string.Join(", ", ObjectIds), ObjectType);
+                        QBCLog.DeveloperInfo("Removing \"{0}\" avoid", AvoidName);
                         var avoidInfo = AvoidDictionary[AvoidName];
                         AvoidDictionary.Remove(AvoidName);
                         AvoidanceManager.RemoveAvoid(avoidInfo);
