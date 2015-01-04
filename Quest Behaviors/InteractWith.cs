@@ -1479,8 +1479,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			var isActuallyInCombat = Me.IsActuallyInCombat;
 
-			var clearMobsThatWillAggro = ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
-										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro;
+			// No need to clear a path while flying since we can fly right over them!
+			var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
+										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
 
 			var selectedUnit = SelectedTarget as WoWUnit;
 			// If we expect to gossip, and mob in combat and offers no gossip, help mob...
