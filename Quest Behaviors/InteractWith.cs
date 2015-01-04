@@ -1526,17 +1526,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			var removeViableTargets = (InteractAttemptCount == 0) || (Query.FindMobsAttackingMe().Count() <= 1);
 
-			var clearMobsThatWillAggro = ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
-										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro;
+			// No need to clear a path while flying since we can fly right over them!
+			var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
+										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
 
 			var isActuallyInCombat = Me.IsActuallyInCombat;
 
 			units.RemoveAll(
 				o =>
 				{
-					if (Me.IsFlying)
-						return true;
-
 					var unit = (WoWUnit)o;
 
 					if (!isActuallyInCombat)
