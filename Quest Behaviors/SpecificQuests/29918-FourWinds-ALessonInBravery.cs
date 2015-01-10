@@ -87,6 +87,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 		// Private variables for internal state
 		private bool _isBehaviorDone;
 		private Composite _root;
+		private CapabilityState _summonPetOriginalState;
 
 		// Private properties
 		private const int AuraId_Mangle = 105373;
@@ -96,7 +97,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
-
 		
 		#region Overrides of CustomForcedBehavior
 		public Composite DoneYet
@@ -201,6 +201,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
         public override void OnFinished()
         {
             TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+	        RoutineManager.SetCapabilityState(CapabilityFlags.PetSummoning, _summonPetOriginalState);
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
             base.OnFinished();
@@ -231,7 +232,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ALessonInBravery
 				TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
 
 				AuraIds_OccupiedVehicle = QuestBehaviorBase.GetOccupiedVehicleAuraIds();
-
+				// Some CRs will attempt to summon pet (and fail) while riding the bird so lets disallow it.
+				_summonPetOriginalState = RoutineManager.GetCapabilityState(CapabilityFlags.PetSummoning);
+				RoutineManager.SetCapabilityState(CapabilityFlags.PetSummoning, CapabilityState.Disallowed);
 				this.UpdateGoalText(QuestId);
 			}
 		}
