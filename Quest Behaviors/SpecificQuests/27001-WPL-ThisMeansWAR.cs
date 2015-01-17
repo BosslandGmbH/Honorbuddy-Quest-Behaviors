@@ -41,6 +41,8 @@ using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+using WaitTimer = Styx.Common.Helpers.WaitTimer;
+
 #endregion
 
 
@@ -61,7 +63,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 		readonly WoWPoint _spiderSpawnLocation = new WoWPoint(2332.387, -1694.623, 104.5099);
 		private  WoWPoint _spiderScareLoc;
 		private WoWUnit _currentTarget;
-		Stopwatch _blacklistTimer = new Stopwatch();
+		readonly Stopwatch _noMoveBlacklistTimer = new Stopwatch();
+		private WaitTimer _blacklistTimer = new WaitTimer(TimeSpan.FromSeconds(45));
 
 		public override bool IsDone
 		{
@@ -139,7 +142,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 					TreeRoot.StatusText = "Waiting for spiders to spawn";
 					return true;
 				}
-
+				_noMoveBlacklistTimer.Reset();
+				_blacklistTimer.Reset();
 				QBCLog.Info("Locked on a new target. Distance {0}", _currentTarget.Distance);
 			}
 
@@ -151,9 +155,14 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 				return (await CommonCoroutines.MoveTo(moveToPoint)).IsSuccessful();
 
 			// spider not moving? blacklist and find a new target.
-			if (_blacklistTimer.ElapsedMilliseconds > 5000 && _currentTarget.Location.DistanceSqr(_spiderScareLoc) < 1*1)
+			if (_noMoveBlacklistTimer.ElapsedMilliseconds > 20000 && _currentTarget.Location.DistanceSqr(_spiderScareLoc) < 10*10)
 			{
-				Blacklist.Add(_currentTarget, BlacklistFlags.Interact, TimeSpan.FromSeconds(30));
+				Blacklist.Add(_currentTarget, BlacklistFlags.Interact, TimeSpan.FromMinutes(3), "Spider is not moving");
+				_currentTarget = null;
+			}
+			else if (_blacklistTimer.IsFinished)
+			{
+				Blacklist.Add(_currentTarget, BlacklistFlags.Interact, TimeSpan.FromMinutes(3), "Took too long");
 				_currentTarget = null;
 			}
 			else if (!_currentTarget.HasAura("Fear"))
@@ -162,8 +171,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThisMeansWAR
 				Me.SetFacing(_lumberMillLocation);
 				await CommonCoroutines.SleepForLagDuration();
 				await Coroutine.Sleep(200);
-				_spiderScareLoc = _currentTarget.Location;
-				_blacklistTimer.Restart();
+				if (!_noMoveBlacklistTimer.IsRunning || _currentTarget.Location.DistanceSqr(_spiderScareLoc) >= 10 * 10)
+				{
+					_noMoveBlacklistTimer.Restart();
+					_spiderScareLoc = _currentTarget.Location;
+				}
 				Lua.DoString("CastSpellByID(83605)");
 				await Coroutine.Wait(3000, () => Query.IsViable(_currentTarget) && _currentTarget.HasAura("Fear"));
 			}

@@ -48,12 +48,16 @@
 //          If true, then using the item or casting the spell is acceptable to try while flying.
 //      AllowUseWhileMounted [optional; Default: false]
 //          If true, then using the item or casting the spell is acceptable to try while mounted.
+//      AllowExecutionWhileNotAlive [optional; Default: false]
+//			If true, then activity is allowed to execute while not alive 
 //      Command [optional; ONE OF: Disable, Enable, Remove, ShowActivities, Update; Default: Update]
 //          Determines the disposition of the activity that evaluates the item use, spell cast or a custom activity
 //          Please see the examples below, and the purpose will become clear.
 //      StopMovingToConductActivity [optional; Default: false]
 //          Many items and spells do not require the toon to be motionless when performing the actions;
 //          however, some do.
+//		TreeHookName [optional; Default: Questbot_Main]
+//			Specifies the name of the Tree hook that the activity behavior will be attached to.
 //
 // THINGS TO KNOW:
 // * We refer to the item id (or spell cast, or custom activity) and its trigger condition
@@ -217,8 +221,9 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				AllowUseInVehicle = GetAttributeAsNullable<bool>("AllowUseInVehicle", false, null, null) ?? false;
 				AllowUseWhileFlying = GetAttributeAsNullable<bool>("AllowUseWhileFlying", false, null, null) ?? false;
 				AllowUseWhileMounted = GetAttributeAsNullable<bool>("AllowUseWhileMounted", false, null, null) ?? false;
+				AllowExecutionWhileNotAlive = GetAttributeAsNullable<bool>("AllowExecutionWhileNotAlive", false, null, null) ?? false;
                 StopMovingToConductActivity = GetAttributeAsNullable<bool>("StopMovingToConductActivity", false, null, null) ?? false;
-
+				TreeHookName = GetAttributeAs<string>("TreeHookName", false, ConstrainAs.StringNonEmpty, null) ?? "Questbot_Main";
 				CfbContextForHook = this;
 			}
 
@@ -245,6 +250,8 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private bool AllowUseWhileMounted { get; set; }
 		private CommandType Command { get; set; }
         private bool StopMovingToConductActivity { get; set; }
+		private bool AllowExecutionWhileNotAlive { get; set; }
+		private string TreeHookName { get; set; }
         private TimeSpan UseAtInterval { get; set; }
 		private UserDefinedExpression<bool> UseWhen { get; set; }
 
@@ -450,7 +457,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private async Task<bool> MainCoroutine(object context)
 		{
 			// Ignore, while in non-actionable condition...
-			if (Me.IsDead)
+			if (Me.IsDead && !AllowExecutionWhileNotAlive)
 			    return false;
 
 			// Ignore if eating or drinking...
@@ -617,7 +624,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private void DoWhenHookInstall()
 		{
 			if (_persistedDoWhenHookBehavior == null)
-			    _persistedDoWhenHookBehavior = BehaviorHookInstall("Questbot_Main", CreateDoWhenHook());
+			    _persistedDoWhenHookBehavior = BehaviorHookInstall(TreeHookName, CreateDoWhenHook());
 		}
 
 
@@ -644,7 +651,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			QBCLog.DeveloperInfo(CfbContextForHook, "{0}", builder.ToString());
 			PersistedActivities.Clear();
 
-			BehaviorHookRemove("Questbot_Main", ref _persistedDoWhenHookBehavior);
+			BehaviorHookRemove(TreeHookName, ref _persistedDoWhenHookBehavior);
 			_persistedDoWhenHookBehavior = null;
 			_persistedActivityThrottle = null;
 		}
