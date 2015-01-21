@@ -692,6 +692,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		#region Helper Classes - IDoWhenActivity
 		private abstract class IDoWhenActivity
 		{
+
             protected enum ActivityResult
             {
                 Failed,
@@ -709,11 +710,17 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				ActivityIdentifier = activityIdentifier;
 			    IsMovementStopRequired = isMovementStopRequired;
                 UseWhenPredicate = useWhenPredicate;
+				ShouldBreakWhenIndeterminate = true;
 			}
 
             public string ActivityIdentifier { get; private set; }
             public IUseWhenPredicate UseWhenPredicate { get; private set; }
-            public bool IsMovementStopRequired { get; private set; }
+			public bool IsMovementStopRequired { get; private set; }
+
+			/// <summary>
+			/// Gets or sets a value indicating whether execution should break when activity result is indeterminate
+			/// </summary>
+			protected bool ShouldBreakWhenIndeterminate { get; set; }
 
 
 			// Utility methods...
@@ -746,7 +753,8 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
                 var activityResult = await ExecuteSpecificActivity();
                 if (activityResult == ActivityResult.Indeterminate)
-                    return true;
+					return ShouldBreakWhenIndeterminate;
+
                 if (activityResult == ActivityResult.Failed)
                     return false;
 
@@ -916,7 +924,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 				if (BehaviorExecutor.Order.Nodes.Any())
 				{
-					await BehaviorExecutor.ExecuteCoroutine();
+					ShouldBreakWhenIndeterminate = await BehaviorExecutor.ExecuteCoroutine();
 					// return now if we have any nodes left to execute
 					if (BehaviorExecutor.Order.Nodes.Any())
                         return ActivityResult.Indeterminate;
