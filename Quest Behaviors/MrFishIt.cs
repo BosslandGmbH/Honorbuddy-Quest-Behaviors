@@ -1,5 +1,4 @@
 ﻿// Behavior originally contributed by BarryDurex
-// [Quest Behavior] MrFishIt - v1.0.8
 // Credits: [Bot]MrFishIt by Nesox | [Bot]PoolFishingBuddy by Iggi66
 //
 // LICENSE:
@@ -12,12 +11,66 @@
 //   
 
 #region Summary and Documentation
-// DOCUMENTATION: http://www.thebuddyforum.com/honorbuddy-forum/submitted-profiles/neutral/96244-quest-behavior-mrfishit-fishing-some-questitems.html
-//  
+// QUICK DOX:
+// MRFISHIT was designed to fulfill quests where you needed a certain amount
+// of a particular item acquired by fishing.
+//
+// BEHAVIOR ATTRIBUTES:
+//
+// Basic Attributes:
+//      CollectItemId [REQUIRED]
+//          Specifies the Id of the item we want to collect.
+//      PoolId [REQUIRED, if X/Y/Z is not provided;  Default: none]
+//          This Pool will must  faced for each fishing cast,
+//          such that the bobber always falls into the water.
+//      X/Y/Z [REQUIRED, if PoolId is not provided;  Default: none]
+//          This specifies the location that should be faced.  This point
+//          is somewhere on the surface of the water.
+//
+// Tunables:
+//      CollectItemCount [optional;  Default: 1]
+//          Specifies the number of items that must be collected.
+//          The behavior terminates when we have thi snumber of CollectItemId
+//          or more in our inventory
+//      MaxCastRange [optional;  Default: 20]
+//          [Only meaningful if PoolId is specified.]
+//          Specifies the maximum cast range to the pool.  If the toon is not within
+//          this range of PoolId, the behavior will move the toon closer.
+//      MinCastRange [optional;  Default: 15]
+//          [Only meaningful if PoolId is specified.]
+//          Specifies the minimum cast range to the pool.  If the toon is closer than
+//          this range of PoolId, the behavior will move the toon further away.
+//      MoveToPool [optional;  Default: true]
+//          [Only meaningful if PoolId is specified.]
+//          If true, the behavior should find the place to fish.
+//      QuestId [optional; Default: none]
+//          Specifies the QuestId, if the item is the only thing to complete this quest.
+//      
+//
+// THINGS TO KNOW:
+// * The original documenation can be found here:
+//       https://www.thebuddyforum.com/honorbuddy-forum/honorbuddy-profiles/neutral/96244-quest-behavior-mrfishit-fishing-questitems.html
+//
+// * Need to convert this to QBcore-based
+//      We've had several requests to support the TerminateWhen attribute
+// * Need to convert this to coroutines
 #endregion
 
 
 #region Examples
+//    <CustomBehavior File="MrFishIt"
+//                    <!-- one or more of the following attributes must be specified -->
+//                    X="-1972.388" Y="6277.719" Z="56.86252"   <!-- X/Y/Z and PoolId are mutually exclusive -->
+//                    PoolId="212169"                           <!-- X/Y/Z and PoolId are mutually exclusive -->
+//                    CollectItemId="195492"
+//
+//                   <!-- may/may not be optional  -->
+//                    CollectItemCount="6"
+//                    QuestId="14069"  
+//                    MoveToPool="true"
+//                    MaxCastRange="20"
+//                    MinCastRange="15"
+//     />
 #endregion
 
 
@@ -27,16 +80,16 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Media;
+
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
-using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -103,6 +156,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 		// Private variables for internal state
 		private Version _Version { get { return new Version(1, 0, 8); } }
+        private readonly ProfileHelperFunctionsBase _helperFuncs = new ProfileHelperFunctionsBase();
 		public static WoWGuid _PoolGUID;
 		private ConfigMemento _configMemento;
 		private bool _cancelBehavior;
@@ -139,17 +193,16 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		{
 			get
 			{
-				bool ret = ((StyxWoW.Me.BagItems.FirstOrDefault(i => i.Entry == CollectItemId && i.StackCount == CollectItemCount) != null)     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete) || _cancelBehavior);
-				if (ret)
-				{ _root = null; _cancelBehavior = true; }
+				bool ret = (_helperFuncs.GetItemCount(CollectItemId) >= CollectItemCount)     // normal completion
+						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)
+                        || _cancelBehavior;
+			    if (ret)
+			    {
+			        _root = null;
+                    _cancelBehavior = true;
+			    }
 				return ret;
 			}
-		}
-
-		static public WoWItem IteminBag(uint entry)
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(i => i.Entry == entry);
 		}
 
 
@@ -195,7 +248,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 				else
 					this.UpdateGoalText(QuestId, "Fishing Item for [" + quest.Name + "]");
 
-				QBCLog.DeveloperInfo("Fishing Item: {1} - Quantity: {2} - QuestID: {3}", _Version.ToString(), CollectItemId, CollectItemCount, CollectItemId);
+                QBCLog.DeveloperInfo("Fishing Item (for QuestId {0}): {1}({2}) x{3}", QuestId, Utility.GetItemNameFromId(CollectItemId), CollectItemId, CollectItemCount);
 			}
 		}
 
