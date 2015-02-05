@@ -414,6 +414,12 @@ namespace Honorbuddy.Quest_Behaviors
                 return;
             TreeHooks.Instance.RemoveHook("Combat_Main", _hook);
             Navigator.NavigationProvider = _prevNavigator;
+
+			// Make sure maps for the previous navigator are up-to-date
+	        var meshNav = Navigator.NavigationProvider as MeshNavigator;
+			if (meshNav != null)
+				meshNav.UpdateMaps();
+
             _prevNavigator = null;
             _hook = null;
             foreach (var kv in AvoidDictionary)

@@ -133,7 +133,11 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
 			try
 			{
-                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" }) ?? new int[0];
+				// Primary attributes...
+				MobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] {"NpcIds"}, null) ?? new int[0])
+					.Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
+					.ToArray();
+
                 HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
                 // Tunables...
