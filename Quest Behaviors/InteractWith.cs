@@ -438,7 +438,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					false,
 					null,
 					null)
-											?? QuestFrameDisposition.TerminateProfile;
+											?? QuestFrameDisposition.Ignore;
 				InteractByUsingItemId = GetAttributeAsNullable<int>("InteractByUsingItemId", false, ConstrainAs.ItemId, null) ?? 0;
 
 				// Tunables...
