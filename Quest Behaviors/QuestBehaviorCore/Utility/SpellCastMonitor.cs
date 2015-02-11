@@ -1,11 +1,15 @@
 ﻿#region Usings
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Threading.Tasks;
-
+using Bots.Grind;
 using Buddy.Coroutines;
+using Honorbuddy.Quest_Behaviors.WaitTimerBehavior;
 using Styx;
 using Styx.WoWInternals;
+using WaitTimer = Styx.Common.Helpers.WaitTimer;
+
 #endregion
 
 
@@ -132,8 +136,21 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <summary>Waits until a result is available for a spell cast and then retrurn it.</summary>
 		/// <param name="maxTimeoutMs">The maximum timeout in milliseconds.</param>
 		public async Task<SpellCastResult> GetResult(int maxTimeoutMs = 15000)
-		{			
-			await Coroutine.Wait(maxTimeoutMs, () => HasResult);
+		{
+			var timer = new WaitTimer(TimeSpan.FromMilliseconds(StyxWoW.WoWClient.Latency * 2 + 50));
+			timer.Reset();
+			var startedCast = false;
+			Func<bool> beganCast = () =>
+			{
+				startedCast = startedCast || StyxWoW.Me.IsCasting;
+				return startedCast;
+			};
+
+			await Coroutine.Wait(maxTimeoutMs, () => HasResult || timer.IsFinished && !beganCast());
+
+			if (!HasResult && timer.IsFinished && !beganCast())
+				return SpellCastResult.NoCastStarted;
+
 			return Result;
 		}
 
