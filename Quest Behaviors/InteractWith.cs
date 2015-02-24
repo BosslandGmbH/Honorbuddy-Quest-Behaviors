@@ -881,10 +881,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				}
 			}
 
-			// break if we have something else to do.
-			if (!Query.IsPoiIdle(BotPoi.Current))
-				return false;
-
 			// No mobs in immediate vicinity...
 			// NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
 			// this sub-behavior will terminate the overall behavior.
