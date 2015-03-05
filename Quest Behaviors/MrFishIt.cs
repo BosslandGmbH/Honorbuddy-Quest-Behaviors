@@ -177,7 +177,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
             _cancelBehavior = true;
 
             Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
-            Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
+            Lua.Events.DetachEvent("LOOT_CLOSED", HandleLootClosed);
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
 
