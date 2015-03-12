@@ -171,7 +171,6 @@
     <Compile Include="QuestBehaviorCore\Utility\ConfigMemento.cs" />
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
-    <Compile Include="QuestBehaviorCore\Utility\UserDefinedExpression.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Query_Database.cs" />

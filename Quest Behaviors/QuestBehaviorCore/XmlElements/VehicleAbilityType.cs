@@ -14,6 +14,8 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Styx.CommonBot.Bars;
+using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
 #endregion
 
@@ -37,9 +39,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
                 // If there is a problem, an exception will be thrown (and handled here).
                 var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "true";
-                UseWhen = new UserDefinedExpression<bool>("UseWhen", useWhenExpression);
-                if (UseWhen.HasErrors)
-                    IsAttributeProblem = true;
+				UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
 
                 HandleAttributeProblem();
             }
@@ -61,9 +61,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			TargetingType = targetingType;
 			IgnoreLoSToTarget = ignoreLosToTarget;
 			useWhenExpression = string.IsNullOrEmpty(useWhenExpression) ? "true" : useWhenExpression;
-            UseWhen = new UserDefinedExpression<bool>("UseWhen", useWhenExpression);
-            if (UseWhen.HasErrors)
-	            IsAttributeProblem = true;
+			UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
 		}
 
 
@@ -83,13 +81,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			return new XElement(elementName,
 							 new XAttribute("ButtonIndex", ButtonIndex),
 							 new XAttribute("TargetingType", TargetingType),
-							 new XAttribute("UseWhen", UseWhen.ExpressionAsString));
+							 new XAttribute("UseWhen", UseWhen.ExpressionString));
 		}
 
 		public int ButtonIndex { get; private set; }
 		public AbilityTargetingType TargetingType { get; set; }
 		public bool IgnoreLoSToTarget { get; private set; }
-        public UserDefinedExpression<bool> UseWhen { get; private set; }
+		
+		[CompileExpression]
+		public DelayCompiledExpression<Func<bool>> UseWhen { get; private set; }
 
 	    private PerFrameCachedValue<SpellActionButton> _ability;
 	    public SpellActionButton Ability

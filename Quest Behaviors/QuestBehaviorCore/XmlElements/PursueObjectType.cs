@@ -21,6 +21,7 @@ using System.Linq;
 using System.Xml.Linq;
 using Styx;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Patchables;
 using Styx.WoWInternals.WoWObjects;
 
@@ -41,18 +42,20 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
     {
         #region Constructor and Argument Processing
 
-        protected PursueObjectTypeBase(XElement xElement)
+        protected PursueObjectTypeBase(XElement xElement, string parameterName, Type expressionType)
             : base(xElement)
         {
             try
             {
                 Id = GetAttributeAsNullable<int>("Id", false, ConstrainAs.MobId, null) ?? 0;
                 Priority = GetAttributeAsNullable<int>("Priority", false, new ConstrainTo.Domain<int>(-10000, 10000), null) ?? 0;
-                PursueWhenExpression = GetAttributeAs<string>("PursueWhen", false, ConstrainAs.StringNonEmpty, null) ; 
-                ConvertWhenExpression = GetAttributeAs<string>("ConvertWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false"; 
+
+                var pursueWhenExpression = GetAttributeAs<string>("PursueWhen", false, ConstrainAs.StringNonEmpty, null) ; 
+                var convertWhenExpression = GetAttributeAs<string>("ConvertWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
+
                 ConvertBy = GetAttributeAsNullable<ConvertByType>("ConvertBy", false, null, null) ?? ConvertByType.Killing;
 
-                if (string.IsNullOrEmpty(PursueWhenExpression))
+                if (string.IsNullOrEmpty(pursueWhenExpression))
                 {
                     if (Id == 0)
                     {
@@ -61,9 +64,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     }
                     else
                     {
-                        PursueWhenExpression = "true";
+                        pursueWhenExpression = "true";
                     }
                 }
+
+				ConvertWhenDelayCompiledExpression = (DelayCompiledExpression)Activator.CreateInstance(expressionType, parameterName + "=>" + convertWhenExpression);
+				ConvertWhen = ConvertWhenDelayCompiledExpression.CallableExpression;
+
+				PursueWhenDelayCompiledExpression = (DelayCompiledExpression)Activator.CreateInstance(expressionType, parameterName + "=>" + pursueWhenExpression);
+				PursueWhen = PursueWhenDelayCompiledExpression.CallableExpression;
             }
             catch (Exception except)
             {
@@ -75,21 +84,19 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         protected PursueObjectTypeBase(
             int id,
-            string pursueWhenExp,
-            string convertWhenExp,
+			Delegate pursueWhen,
+			Delegate convertWhen,
             ConvertByType convertBy = ConvertByType.Killing)
         {
             Id = id;
-            PursueWhenExpression = pursueWhenExp ?? "true";
-            ConvertWhenExpression = convertWhenExp ?? "false";
+			PursueWhen = pursueWhen;
+			ConvertWhen = convertWhen;
             ConvertBy = convertBy;
         }
 
         #endregion
 
         public int Id { get; private set; }
-        protected string ConvertWhenExpression { get; private set; }
-        protected string PursueWhenExpression { get; private set; }
         protected ConvertByType ConvertBy { get; private set; }
         public float Priority { get; private set; }
 
@@ -106,14 +113,26 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var element = new XElement(elementName,
                              new XAttribute("Id", Id),
                              new XAttribute("Priority", Priority),
-                             new XAttribute("PursueWhen", PursueWhenExpression),
-                             new XAttribute("ConvertWhen", ConvertWhenExpression),
+                             new XAttribute("PursueWhen", PursueWhenDelayCompiledExpression.ExpressionString),
+                             new XAttribute("ConvertWhen", ConvertWhenDelayCompiledExpression.ExpressionString),
                              new XAttribute("ConvertBy", ConvertBy));
          
             return element;
         }
 
         #endregion
+
+		// These DelayCompiledExpression are only needed when an instance of this type is constructed from an XElement,
+		// when the ConvertWhen/PursueWhen expressions are not known at compile time. 
+		[CompileExpression]
+		public DelayCompiledExpression ConvertWhenDelayCompiledExpression { get; protected set; }
+
+		[CompileExpression]
+		public DelayCompiledExpression PursueWhenDelayCompiledExpression { get; protected set; }
+
+		public Delegate ConvertWhen{ get; protected set; }
+
+		public Delegate PursueWhen { get; protected set; }
 
         public abstract bool ShouldPursue(WoWObject obj);
         public abstract bool ShouldPursue(WoWObject obj, out float priority);
@@ -125,15 +144,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #region Constructor and Argument Processing
 
         public PursueObjectType(XElement xElement)
-            : base(xElement)
+			: base(xElement, GetParameterName(), typeof(DelayCompiledExpression<Func<T, bool>>))
         {
             try
             {
-                CompileExpressions();
-                
-                if (PursueWhen.HasErrors || ConvertWhen.HasErrors)
-                    IsAttributeProblem = true;
-
                 HandleAttributeProblem();
             }
 
@@ -147,34 +161,16 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public PursueObjectType(
             int id,
-            string pursueWhenExp = "true",
-            string convertWhenExp = "false",
+			Func<T, bool> pursueWhenExp = null,
+			Func<T, bool> convertWhenExp = null,
             ConvertByType convertBy = ConvertByType.Killing)
-            : base(id, pursueWhenExp, convertWhenExp, convertBy)
+			: base(id, pursueWhenExp ?? (unit => true), convertWhenExp ?? (unit => false), convertBy)
         {
-            CompileExpressions();
-        }
-
-        private void CompileExpressions()
-        {
-            var expressionName = string.Format("PursueWhen Id: {0}", Id);
-            string paramaterName = GetParameterName();
-
-            // We test compile the "PursueWhen" expression to look for problems.
-            // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
-            // If there is a problem, an exception will be thrown (and handled here).
-            PursueWhen = new UserDefinedExpression<T, bool>(expressionName, PursueWhenExpression, paramaterName);
-
-            expressionName = string.Format("ConvertWhen Id: {0}", Id);
-            ConvertWhen = new UserDefinedExpression<T, bool>(expressionName, ConvertWhenExpression, paramaterName);
         }
 
         #endregion
 
-        public UserDefinedExpression<T, bool> ConvertWhen { get; private set; }
-        public UserDefinedExpression<T, bool> PursueWhen { get; private set; }
-
-        private string GetParameterName()
+        private static string GetParameterName()
         {
             if (typeof(T) == typeof(LocalPlayer))
                 return "ME";
@@ -195,17 +191,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public override bool ShouldPursue(WoWObject obj)
         {
-           return (Id == 0 || obj.Entry == Id) &&  obj is T && PursueWhen.Evaluate((T)obj) ;
+           return (Id == 0 || obj.Entry == Id) &&  obj is T && ((Func<T, bool>) PursueWhen)((T)obj) ;
         }
 
         public override bool ShouldPursue(WoWObject obj, out float priority)
         {
             priority = Priority;
-            return (Id == 0 || obj.Entry == Id) && obj is T && PursueWhen.Evaluate((T)obj);
+	        return (Id == 0 || obj.Entry == Id) && obj is T && ((Func<T, bool>) PursueWhen)((T) obj);
         }
         public override bool CanConvert(WoWObject obj, ConvertByType convertBy)
         {
-            return (Id == 0 || obj.Entry == Id) && ConvertBy == convertBy && obj is T && ConvertWhen.Evaluate((T)obj);
+	        return (Id == 0 || obj.Entry == Id) && ConvertBy == convertBy && obj is T 
+				&& ((Func<T, bool>) ConvertWhen)((T) obj);
         }
 
         #endregion

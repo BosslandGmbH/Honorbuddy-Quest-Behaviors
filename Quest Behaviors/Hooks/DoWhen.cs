@@ -175,7 +175,7 @@ using Styx.WoWInternals.WoWObjects;
 namespace Honorbuddy.Quest_Behaviors.DoWhen
 {
 	[CustomBehaviorFileName(@"Hooks\DoWhen")]
-	public class DoWhen : QuestBehaviorBase
+	public class DoWhen : QuestBehaviorBase, INodeContainer
 	{
 		#region Constructor and Argument Processing
 		private enum CommandType
@@ -212,9 +212,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
 				// If there is a problem, an exception will be thrown (and handled here).
                 var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-                UseWhen = new UserDefinedExpression<bool>("UseWhen", useWhenExpression);
-                if (UseWhen.HasErrors)
-			        IsAttributeProblem = true;
+				UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
 
 			    // Tunables...
 				AllowUseDuringCombat = GetAttributeAsNullable<bool>("AllowUseDuringCombat", false, null, null) ?? false;
@@ -224,6 +222,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 				AllowExecutionWhileNotAlive = GetAttributeAsNullable<bool>("AllowExecutionWhileNotAlive", false, null, null) ?? false;
                 StopMovingToConductActivity = GetAttributeAsNullable<bool>("StopMovingToConductActivity", false, null, null) ?? false;
 				TreeHookName = GetAttributeAs<string>("TreeHookName", false, ConstrainAs.StringNonEmpty, null) ?? "Questbot_Main";
+				Nodes = OrderNodeCollection.FromXml(Element);
 				CfbContextForHook = this;
 			}
 
@@ -253,10 +252,12 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		private bool AllowExecutionWhileNotAlive { get; set; }
 		private string TreeHookName { get; set; }
         private TimeSpan UseAtInterval { get; set; }
-		private UserDefinedExpression<bool> UseWhen { get; set; }
+
+		[CompileExpression]
+		public DelayCompiledExpression<Func<bool>> UseWhen { get; set; }
 
 		private static CustomForcedBehavior CfbContextForHook { get; set; }
-
+		private OrderNodeCollection Nodes { get; set; }
 
 		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
 		{
@@ -446,6 +447,15 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		}
 		#endregion
 
+		#region INodeContainer implementation
+
+		public IEnumerable<OrderNode> GetNodes()
+		{
+			return Nodes.GetNodes();
+		}
+
+		#endregion
+
 
 		#region Main Behaviors
 		private Composite CreateDoWhenHook()
@@ -585,7 +595,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			    doWhenActivity = new DoWhenCastSpellActivity(ActivityKey_SpellId, useWhenPredicate, isMovementStopRequired);
 
 			else if (!string.IsNullOrEmpty(ActivityKey_Name))
-                doWhenActivity = new DoWhenNamedActivity(ActivityKey_Name, useWhenPredicate, Element, isMovementStopRequired);
+                doWhenActivity = new DoWhenNamedActivity(ActivityKey_Name, useWhenPredicate, Nodes, isMovementStopRequired);
 
 			if (doWhenActivity != null)
 			{
@@ -893,17 +903,17 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 		{
             public DoWhenNamedActivity(string customActivityName,
                                         IUseWhenPredicate useWhenPredicate, 
-									    XElement element,
+									    OrderNodeCollection nodes,
                                         bool isMovementStopRequired)
                 : base(CreateActivityIdentifier(customActivityName), useWhenPredicate, isMovementStopRequired)
 			{
                 Contract.Requires(!string.IsNullOrEmpty(customActivityName), context => "!string.IsNullOrEmpty(customActivityName)");
-				Contract.Requires(element != null, context => "element != null");
+				Contract.Requires(nodes != null && nodes.GetNodes().Any(), context => "nodes != null && Nodes.GetNodes().Any()");
 
-				Element = element;
+				Nodes = nodes;
 			}
 
-            private XElement Element { get; set; }
+			private OrderNodeCollection Nodes { get; set; }
 			private ForcedBehaviorExecutor BehaviorExecutor { get; set; }
 
 
@@ -917,7 +927,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			{
                 if (BehaviorExecutor == null)
 				{
-					var questOrder = new QuestOrder(OrderNodeCollection.FromXml(Element));
+					var questOrder = new QuestOrder(Nodes);
 					questOrder.UpdateNodes();
 					BehaviorExecutor = new ForcedBehaviorExecutor(questOrder);
 				}
@@ -986,22 +996,22 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
         private class UseWhenPredicate_FuncEval : IUseWhenPredicate
         {
-            public UseWhenPredicate_FuncEval(UserDefinedExpression<bool> useWhen,
+			public UseWhenPredicate_FuncEval(DelayCompiledExpression<Func<bool>> useWhen,
                                                 bool allowUseDuringCombat,
                                                 bool allowUseInVehicle,
                                                 bool allowUseWhileFlying,
                                                 bool allowUseWhileMounted)
-                :base(useWhen.ExpressionAsString,
+                :base(useWhen.ExpressionString,
                       allowUseDuringCombat, allowUseInVehicle, allowUseWhileFlying, allowUseWhileMounted)
             {
                 _predicate = useWhen;
             }
 
-            private readonly UserDefinedExpression<bool> _predicate; 
+			private readonly DelayCompiledExpression<Func<bool>> _predicate; 
 
             public override bool IsReady()
             {
-                return IsReady_Common() && _predicate.Evaluate();
+                return IsReady_Common() && _predicate.CallableExpression();
             }
 
             public override void Reset()
@@ -1046,5 +1056,5 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
             }
         }
         #endregion
-    }
+	}
 }

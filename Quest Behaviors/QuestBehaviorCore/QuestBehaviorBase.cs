@@ -249,6 +249,7 @@ using Styx;
 using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -288,10 +289,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
 				// If there is a problem, an exception will be thrown (and handled here).
                 var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-                TerminateWhen = new UserDefinedExpression<bool>("TerminateWhen", terminateWhenExpression);
-
-			    if (TerminateWhen.HasErrors)
-			        IsAttributeProblem = true;
+                TerminateWhen = DelayCompiledExpression.Condition(terminateWhenExpression);
 
 				TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
 
@@ -350,13 +348,17 @@ namespace Honorbuddy.QuestBehaviorCore
 		public bool IgnoreMobsInBlackspots { get; protected set; }
         public MovementByType MovementBy { get; protected set; }
         public PursuitListType PursuitList { get; protected set; }
+
+
 		public double NonCompeteDistance { get; protected set; }
 		public int QuestId { get; protected set; }
 		public int QuestObjectiveIndex { get; protected set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; protected set; }
 		public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
 		private int TerminateAtMaxRunTimeSecs { get; set; }
-		public UserDefinedExpression<bool> TerminateWhen { get; protected set; }
+		
+		[CompileExpression]
+		public DelayCompiledExpression<Func<bool>> TerminateWhen { get; protected set; }
 		public bool TerminationChecksQuestProgress { get; protected set; }
 
 		public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
@@ -416,7 +418,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			get
 			{
 				return _isBehaviorDone // normal completion
-					   || TerminateWhen.Evaluate() // Specified condition in profile
+					   || TerminateWhen.CallableExpression() // Specified condition in profile
 					   || CheckTermination(); // Quest/objective ID
 			}
 		}

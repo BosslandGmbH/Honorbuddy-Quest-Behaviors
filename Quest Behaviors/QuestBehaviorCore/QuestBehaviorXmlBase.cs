@@ -15,12 +15,14 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Styx;
+using Styx.CommonBot.Profiles;
+
 #endregion
 
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
-    public abstract class QuestBehaviorXmlBase
+    public abstract class QuestBehaviorXmlBase : IXmlObject
     {
         protected QuestBehaviorXmlBase(XElement xElement)
         {

@@ -174,6 +174,7 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -244,12 +245,8 @@ namespace Honorbuddy.Quest_Behaviors
                     IgnoreIfBlocking = GetAttributeAsNullable<bool>("IgnoreIfBlocking", false, null, null) ?? false;
 
                     AvoidWhen = CreateAvoidWhen(AvoidWhenExpression);
-                    if (AvoidWhen != null && AvoidWhen.HasErrors)
-                        IsAttributeProblem = true;
 
                     AvoidLocationProducer = CreateAvoidLocationProducer(AvoidLocationProducerExpression);
-                    if (AvoidLocationProducer != null && AvoidLocationProducer.HasErrors)
-                        IsAttributeProblem = true;
                 }
             }
             catch (Exception except)
@@ -298,8 +295,12 @@ namespace Honorbuddy.Quest_Behaviors
         private float LeashRadius { get; set; }
         private float Radius { get; set; }
         private bool IgnoreIfBlocking { get; set; }
-        private UserDefinedExpressionBase AvoidWhen { get; set; }
-        private UserDefinedExpressionBase AvoidLocationProducer { get; set; }
+
+		[CompileExpression]
+        public DelayCompiledExpression AvoidWhen { get; private set; }
+
+		[CompileExpression]
+		public DelayCompiledExpression AvoidLocationProducer { get; private set; }
 		private int[] ObjectIds { get; set; }
 
         private AvoidObjectType ObjectType { get; set; }
@@ -435,33 +436,28 @@ namespace Honorbuddy.Quest_Behaviors
             QBCLog.Info("Uninstalled avoidance system");
         }
 
-        private UserDefinedExpressionBase CreateAvoidWhen(string expression)
+        private DelayCompiledExpression CreateAvoidWhen(string expression)
         {
             if (string.IsNullOrEmpty(expression))
                 return null;
             switch (ObjectType)
             {
                 case AvoidObjectType.AreaTrigger:
-                    return new UserDefinedExpression<WoWAreaTrigger,bool>(AvoidName, expression, "AREATRIGGER");
-
+					return new DelayCompiledExpression<Func<WoWAreaTrigger, bool>>("AREATRIGGER=>" + expression);
                 case AvoidObjectType.DynamicObject:
-                    return new UserDefinedExpression<WoWDynamicObject, bool>(AvoidName, expression, "DYNAMICOBJECT");
-
+					return new DelayCompiledExpression<Func<WoWDynamicObject, bool>>("DYNAMICOBJECT=>" + expression);
                 case AvoidObjectType.GameObject:
-                    return new UserDefinedExpression<WoWGameObject, bool>(AvoidName, expression, "GAMEOBJECT");
-
+					return new DelayCompiledExpression<Func<WoWGameObject, bool>>("GAMEOBJECT=>" + expression);
                 case AvoidObjectType.Npc:
-                    return new UserDefinedExpression<WoWUnit, bool>(AvoidName, expression, "UNIT");
-
+					return new DelayCompiledExpression<Func<WoWUnit, bool>>("UNIT=>" + expression);
                 case AvoidObjectType.Missile:
-                    return new UserDefinedExpression<WoWMissile, bool>(AvoidName, expression, "MISSILE");
-
+					return new DelayCompiledExpression<Func<WoWMissile, bool>>("MISSILE=>" + expression);
                 default:
                     return null;
             }
         }
 
-        private UserDefinedExpressionBase CreateAvoidLocationProducer(string expression)
+		private DelayCompiledExpression CreateAvoidLocationProducer(string expression)
         {
             if (string.IsNullOrEmpty(expression))
                 return null;
@@ -469,19 +465,19 @@ namespace Honorbuddy.Quest_Behaviors
             switch (ObjectType)
             {
                 case AvoidObjectType.AreaTrigger:
-                    return new UserDefinedExpression<WoWAreaTrigger, WoWPoint>(AvoidName, expression, "AREATRIGGER");
+					return new DelayCompiledExpression<Func<WoWAreaTrigger, WoWPoint>>("AREATRIGGER=>" + expression);
 
                 case AvoidObjectType.DynamicObject:
-                    return new UserDefinedExpression<WoWDynamicObject, WoWPoint>(AvoidName, expression, "DYNAMICOBJECT");
+					return new DelayCompiledExpression<Func<WoWDynamicObject, WoWPoint>>("DYNAMICOBJECT=>"+ expression);
 
                 case AvoidObjectType.GameObject:
-                    return new UserDefinedExpression<WoWGameObject, WoWPoint>(AvoidName, expression, "GAMEOBJECT");
+					return new DelayCompiledExpression<Func<WoWGameObject, WoWPoint>>("GAMEOBJECT=>" + expression);
 
                 case AvoidObjectType.Npc:
-                    return new UserDefinedExpression<WoWUnit, WoWPoint>(AvoidName, expression, "UNIT");
+					return new DelayCompiledExpression<Func<WoWUnit, WoWPoint>>("UNIT=>" + expression);
 
                 case AvoidObjectType.Missile:
-                    return new UserDefinedExpression<WoWMissile, WoWPoint>(AvoidName, expression, "MISSILE");
+					return new DelayCompiledExpression<Func<WoWMissile, WoWPoint>>("MISSILE=>" + expression);
 
                 default:
                     return null;
@@ -521,18 +517,18 @@ namespace Honorbuddy.Quest_Behaviors
             if (includeId)
             {
                 if (includeAvoidWhen)
-					pred = o => ObjectIds.Contains((int)o.Entry) && o is T && ((UserDefinedExpression<T, bool>)AvoidWhen).Evaluate((T)o);
+					pred = o => ObjectIds.Contains((int)o.Entry) && o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
                 else
                     pred = o => ObjectIds.Contains((int)o.Entry) && o is T;
             }
             else
             {
-                pred = o => o is T && ((UserDefinedExpression<T, bool>)AvoidWhen).Evaluate((T)o);
+				pred = o => o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
             }
 
             Func<WoWObject, WoWPoint> locationProducer;
             if (AvoidLocationProducer != null)
-                locationProducer = o => ((UserDefinedExpression<T, WoWPoint>) AvoidLocationProducer).Evaluate((T) o);
+				locationProducer = o => ((DelayCompiledExpression<Func<T, WoWPoint>>)AvoidLocationProducer).CallableExpression((T)o);
             else
                 locationProducer = null;
 
@@ -555,7 +551,7 @@ namespace Honorbuddy.Quest_Behaviors
             {
                 collectionProducer = () => WoWMissile.InFlightMissiles
                     .Where(m => (m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId))
-                             && ((UserDefinedExpression<WoWMissile, bool>) AvoidWhen).Evaluate(m));
+							 && ((DelayCompiledExpression<Func<WoWMissile, bool>>)AvoidWhen).CallableExpression(m));
 
             }
             else
@@ -566,7 +562,7 @@ namespace Honorbuddy.Quest_Behaviors
 
             Func<object, WoWPoint> locationProducer;
             if (AvoidLocationProducer != null)
-                locationProducer = o => ((UserDefinedExpression<WoWMissile, WoWPoint>)AvoidLocationProducer).Evaluate((WoWMissile)o);
+				locationProducer = o => ((DelayCompiledExpression<Func<WoWMissile, WoWPoint>>)AvoidLocationProducer).CallableExpression((WoWMissile)o);
             else
                 locationProducer = o => ((WoWMissile) o).ImpactPosition;
 

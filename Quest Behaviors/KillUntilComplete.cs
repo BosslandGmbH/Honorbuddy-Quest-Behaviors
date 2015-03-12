@@ -313,7 +313,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 	    {
 	        foreach (var mobId in mobIds)
 	        {
-	            var pursueObject = new PursueObjectType<WoWUnit>(mobId);
+				var pursueObject = new PursueObjectType<WoWUnit>(mobId);
                 pursuitList.PursueObjects.Add(pursueObject);
 	        }
 	    }
