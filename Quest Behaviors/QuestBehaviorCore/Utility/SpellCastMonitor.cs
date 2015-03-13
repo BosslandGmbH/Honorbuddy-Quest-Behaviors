@@ -29,17 +29,12 @@ namespace Honorbuddy.QuestBehaviorCore
 			SpellId = spellId;
 			Result = SpellCastResult.Indeterminate;
 
-			Lua.Events.AttachEvent("COMBAT_LOG_EVENT_UNFILTERED", CombatLogEventUnfilteredHandler);
-			Lua.Events.AttachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
-
-			_appliedCombatLogEventUnfilteredFilter = Lua.Events.AddFilter(
+			Lua.Events.AttachEvent(
 				"COMBAT_LOG_EVENT_UNFILTERED",
+				CombatLogEventUnfilteredHandler,
 				"return args[4] == UnitGUID('player') and (args[2] == 'SPELL_MISSED' or args[2] == 'SPELL_CAST_FAILED')");
 
-			// A lot of CRs will apply filters for this event but their filters should be compatible with what we need here
-			// so it's pretty much safe to ignore the warning
-			if (!_appliedCombatLogEventUnfilteredFilter)
-				QBCLog.Warning("Unable to apply event filter for COMBAT_LOG_EVENT_UNFILTERED");
+			Lua.Events.AttachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
 		}
 
 		/// <summary>
@@ -56,8 +51,6 @@ namespace Honorbuddy.QuestBehaviorCore
 		#endregion
 
 		#region Fields
-
-		private readonly bool _appliedCombatLogEventUnfilteredFilter;
 
 		private static readonly Dictionary<string, string> _localizedSymbols = new Dictionary<string, string>();
 
@@ -162,9 +155,6 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			Lua.Events.DetachEvent("COMBAT_LOG_EVENT_UNFILTERED", CombatLogEventUnfilteredHandler);
 			Lua.Events.DetachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
-
-			if (_appliedCombatLogEventUnfilteredFilter)
-				Lua.Events.RemoveFilter("COMBAT_LOG_EVENT_UNFILTERED");
 		}
 
 		#endregion

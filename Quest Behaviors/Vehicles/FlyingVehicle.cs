@@ -378,10 +378,11 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 				await CommonCoroutines.SleepForLagDuration();
 			}
 
+			await Coroutine.Sleep(StyxWoW.Random.Next(5000, 6000));
 			UseVehicleButton(DropPassengerButton);
 
 			await CommonCoroutines.SleepForLagDuration();
-			if (!await Coroutine.Wait(6000, () => !Query.IsViable(passenger) || !UnitIsRidingMyVehicle(passenger)))
+			if (!await Coroutine.Wait(10000, () => !Query.IsViable(passenger) || !UnitIsRidingMyVehicle(passenger)))
 			{
 				QBCLog.Warning("Failed to drop passenger off");
 				return false;

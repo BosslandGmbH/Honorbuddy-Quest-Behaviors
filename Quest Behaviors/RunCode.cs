@@ -13,7 +13,7 @@
 /* 
 	 RunCode has the following characteristics:
 	  * It can run C# statements and coroutines.
-	  * It can define functions, classes or any other types 
+	  * It can define variables, functions, classes or any other types 
 
 	BEHAVIOR LIMITATIONS:
 		Any type, variable and function definition cannot easily be accessed from a <If/While Condition />
@@ -22,7 +22,7 @@
  
 	BEHAVIOR ATTRIBUTES:
 		Type [optional; Default: Statement]
-			This argument specifies whether the code is a statement or a  type/function definition
+			This argument specifies whether the code is a statement or a variable/type/function definition
   
 		Code [optional]
 			This is the CSharp code. This attribute is optional because code can also be placed inside a CDATA node 
@@ -33,6 +33,18 @@
 			Code placed inside this element does not need to be escaped. 
 			The Code attribute must be left out for this element to be used.
 			See the examples.
+	
+	THINGS TO KNOW
+		* All code is placed inside a class that inherits the ProfileHelperFunctionsBase class.
+			For a list of all helpers functions and properties available check the documentation page for 
+			ProfileHelperFunctionsBase here http://docs.honorbuddy.com/html/45e43d39-07f7-5ddf-31ef-213694255be0.htm
+		* Statements (Type="Statement") are placed inside the body of an async Task coroutine. 
+		* Definitions (Type="Definition") are placed inside the body of a class. 
+		* All definitions can be accessed from anywhere in the profile that a C# expression is used
+		* Initialization value (if there is one) for variable definitions are assigned at the time the profile is 
+			loaded and on same thread that ProfileManager.Load is called on no matter where the RunCode is in profile. 
+			If you need a fresh value then delay assignment to the variable until its value needs to be updated and use
+			a normal statement (Type="Statement") to update its value.
  
  */
 
@@ -55,10 +67,13 @@
                 }
             ]]></CustomBehavior>
 
-    The statements are executed inside a Honorbuddy coroutine function so this makes it possible to 
-    create your own coroutine or execute coroutines elsewhere
- 
-    
+	The following shows how define a WaitTimer variable, reset it and loop until it expires.
+
+ 		<CustomBehavior File="RunCode" Code="WaitTimer myTimer = new WaitTimer(TimeSpan.FromSeconds(10));" Type="Definition"/>
+		<CustomBehavior File="RunCode" Code="myTimer.Reset()"/>
+		<While Condition="!myTimer.IsFinished">
+			<!-- Do something useful here -->
+		</While>
   
  */
 
@@ -117,7 +132,7 @@ namespace Honorbuddy.Quest_Behaviors
 			            code = code.Trim();
 						if (code.Last() != ';')
 							code += ";";
-			            CoroutineProducerProducer = new DelayCompiledExpression<Func<Task>>("async () =>{" + code + "}");
+						CoroutineProducer = new DelayCompiledExpression<Func<Task>>("async () =>{" + code + "}");
 		            }
 	            }
 
@@ -151,7 +166,7 @@ namespace Honorbuddy.Quest_Behaviors
 		public string Code { get; private set; }
 
 		[CompileExpression]
-		public DelayCompiledExpression<Func<Task>> CoroutineProducerProducer { get; private set; }
+		public DelayCompiledExpression<Func<Task>> CoroutineProducer { get; private set; }
 
         private CodeType Type { get; set; }
         private int QuestId { get; set; }
@@ -210,7 +225,7 @@ namespace Honorbuddy.Quest_Behaviors
             if (IsDone || Type == CodeType.Definition)
                 return false;
 
-			await CoroutineProducerProducer.CallableExpression();
+			await CoroutineProducer.CallableExpression();
             _isBehaviorDone = true;
             return true;
         }

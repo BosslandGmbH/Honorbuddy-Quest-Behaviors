@@ -30,10 +30,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using Bots.Grind;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -48,7 +52,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.UseTransport
 {
 	[CustomBehaviorFileName(@"UseTransport")]
-	public class UseTransport : CustomForcedBehavior
+	public class UseTransport : QuestBehaviorBase
 	{
 		public UseTransport(Dictionary<string, string> args)
 			: base(args)
@@ -89,18 +93,14 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 		public string DestName { get; private set; }
 		public WoWPoint EndLocation { get; private set; }
 		public WoWPoint GetOffLocation { get; private set; }
-		public int QuestId { get; private set; }
 		public WoWPoint StandLocation { get; private set; }
 		public WoWPoint StartLocation { get; private set; }
 		public int TransportId { get; private set; }
 		public WoWPoint WaitAtLocation { get; private set; }
 
 		// Private variables for internal state
-		private ConfigMemento _configMemento;
-		private bool _isBehaviorDone;
 		private Composite _root;
 		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
@@ -128,82 +128,95 @@ namespace Honorbuddy.Quest_Behaviors.UseTransport
 		#region Overrides of CustomForcedBehavior
 
 		private bool _usedTransport;
-		protected override Composite CreateBehavior()
+		protected override Composite CreateMainBehavior()
 		{
-			return _root ?? (_root =
-				new PrioritySelector(
-					new Decorator(
-						ret => GetOffLocation != WoWPoint.Empty && Me.Location.DistanceSqr(GetOffLocation) < 2*2,
-						new Sequence(
-							new Action(ret => _usedTransport = false),
-							new Action(ret => QBCLog.Info("Successfully used the transport.")),
-							new Action(ret => _isBehaviorDone = true))),
-					new Decorator(
-						ret => Me.IsOnTransport || _usedTransport,
-						new PrioritySelector(
-							 new Decorator(
-								ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(EndLocation) < 1.5*1.5,
-								new Sequence(
-									new Action(ret => QBCLog.Info("Moving out of transport")),
-									new Action(ret => Navigator.PlayerMover.MoveTowards(GetOffLocation)))),
-							new Action(ret =>
-								{
-									_usedTransport = true;
-									QBCLog.Info("Waiting for the end location");
-								})
-						)),
-					new Decorator(
-						ret => !Me.IsMoving,
-						new PrioritySelector(
-							new Decorator(
-								ret => TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(StartLocation) < 1.5*1.5 && WaitAtLocation.DistanceSqr(Me.Location) < 2 * 2,
-								new Sequence(
-									new Action(ret => QBCLog.Info("Moving inside transport")),
-									new Action(ret => Navigator.PlayerMover.MoveTowards(StandLocation)))),
-							new Decorator(
-								ret => WaitAtLocation.DistanceSqr(Me.Location) > 2 * 2,
-								new Sequence(
-									new Action(ret => QBCLog.Info("Moving to wait location")),
-									new Action(ret => Navigator.MoveTo(WaitAtLocation)))),
-							new Sequence(
-								new Mount.ActionLandAndDismount(),
-								new Action(ret => QBCLog.Info("Waiting for transport")))
-							))
-					));
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainLogic()));
 		}
 
-        public override void OnFinished()
-        {
-            if (_configMemento != null)
-            {
-                _configMemento.Dispose();
-                _configMemento = null;
-            }
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-            base.OnFinished();
-        }
-
-
-		public override bool IsDone
+		private async Task<bool> MainLogic()
 		{
-			get { return (_isBehaviorDone); }
+			if (GetOffLocation != WoWPoint.Empty && Me.Location.DistanceSqr(GetOffLocation) < 2*2)
+			{
+				BehaviorDone("Successfully used the transport.");
+				return true;
+			}
+
+			if (Me.IsOnTransport || _usedTransport)
+			{
+
+				if (TransportLocation != WoWPoint.Empty && TransportLocation.DistanceSqr(EndLocation) < 1.5*1.5)
+				{
+					TreeRoot.StatusText = "Moving out of transport";
+					Navigator.PlayerMover.MoveTowards(GetOffLocation);
+					return true;
+				}
+				_usedTransport = true;
+				TreeRoot.StatusText = "Waiting for the end location";
+				return true;
+			}
+
+			if (Me.IsMoving) 
+				return false;
+
+			if (TransportLocation != WoWPoint.Empty 
+				&& TransportLocation.DistanceSqr(StartLocation) < 1.5*1.5
+				&& WaitAtLocation.DistanceSqr(Me.Location) < 2*2)
+			{
+				// don't do anything that can cause toon to move off course
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Vendor | BehaviorFlags.FlightPath | BehaviorFlags.Combat | BehaviorFlags.Loot);
+				TreeRoot.StatusText = "Moving inside transport";
+				Navigator.PlayerMover.MoveTowards(StandLocation);
+				return true;
+			}
+
+			if (WaitAtLocation.DistanceSqr(Me.Location) > 2*2)
+			{
+				await UtilityCoroutine.MoveTo(WaitAtLocation, DestName, MovementBy);
+				return true;
+			}
+			await CommonCoroutines.LandAndDismount();
+			TreeRoot.StatusText = "Waiting for transport";
+			return true;
+		}
+
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//                              Args["Nav"], MovementBy));
+		}
+
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin)); 
 		}
 
 
 		public override void OnStart()
 		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
 			// If the quest is complete, this behavior is already done...
 			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
+			if (isBehaviorShouldRun)
 			{
-				_configMemento = new ConfigMemento();
-
+				_usedTransport = false;
 				// Disable any settings that may cause distractions --
 				// When we use transport, we don't want to be distracted by other things.
 				// We also set PullDistance to its minimum value.

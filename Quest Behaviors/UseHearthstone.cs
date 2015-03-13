@@ -77,11 +77,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
+using System.Xml.Linq;
+using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals.DBC;
@@ -94,7 +97,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 {
 	[CustomBehaviorFileName(@"UseHearthstone")]
-	public class UseHearthstone : CustomForcedBehavior
+	public class UseHearthstone : QuestBehaviorBase
 	{
 		public UseHearthstone(Dictionary<string, string> args)
 			: base(args)
@@ -108,6 +111,7 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 				// ...and also used for IsDone processing.
 
 				WaitOnCd = GetAttributeAsNullable<bool>("WaitForCD", false, null, null) ?? false;
+				UseGarrisonHearthstone = GetAttributeAsNullable<bool>("UseGarrisonHearthstone", false, null, null) ?? false;
 			}
 
 			catch (Exception except)
@@ -122,10 +126,9 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 			}
 		}
 
-
 		// Attributes provided by caller
 		public bool WaitOnCd { get; private set; }
-
+		public bool UseGarrisonHearthstone { get; private set; }
 
 		// Private variables for internal state
 		private bool _isBehaviorDone;
@@ -133,112 +136,120 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 
 		// Private properties
 		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
+		private int _retries;
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 
-//thanks to dungonebuddy
-		private uint CheckId(uint uint_13)
+
+		#region Overrides of CustomForcedBehavior
+
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement) {}
+
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement) {}
+
+		public override void OnStart()
 		{
-			AreaTable table = AreaTable.FromId(uint_13);
-			while (table.ParentAreaId != 0)
-			{
-				table = AreaTable.FromId(table.ParentAreaId);
-			}
-			return table.AreaId;
+			_retries = 0;
+			base.OnStart();
 		}
 
+		protected override Composite CreateMainBehavior()
+		{
+			return new ActionRunCoroutine(ctx => MainBehavior());
+		}
+		#endregion
+
+		private const int ItemId_HearthStoneId = 6948;
+		private const int ItemId_TheInnkeepersDaughter = 64488;
+		private const int ItemId_GarrisonHearthStoneId = 110560;
+		private const int MaxRetries = 5;
+
+		private async Task<bool> MainBehavior()
+		{
+			if (_retries >= MaxRetries)
+			{
+				BehaviorDone(string.Format("We have reached our max number of tries ({0}) without successfully hearthing", MaxRetries));
+				return true;
+			}
+
+			if (IsInHearthStoneArea)
+			{
+				BehaviorDone("Toon is already in hearthstone area");
+				return true;
+			}
+
+			var hearthStones = UseGarrisonHearthstone
+				?  GetHearthStonesByIds(ItemId_GarrisonHearthStoneId)
+				: GetHearthStonesByIds(ItemId_HearthStoneId, ItemId_TheInnkeepersDaughter);
+
+			if (!hearthStones.Any())
+			{
+				BehaviorDone("No hearthstones found in bag.");
+				return true;
+			}
+
+			if (!UseGarrisonHearthstone && Me.HearthstoneAreaId == 0)
+			{
+				// I can only see this occurring if using the Innkeeper's Daughter hearthtone since the normal hearthstone
+				// only shows up in bags if hearth has been set. 
+				QBCLog.DeveloperInfo("Hearth has not been set");
+				return true;
+			}
+
+			var usableHearthstone = hearthStones.FirstOrDefault(i => !i.Effects.First().Spell.Cooldown);
+			if (usableHearthstone == null)
+			{
+				if (WaitOnCd)
+				{
+					TreeRoot.StatusText = "Waiting for hearthstone cooldown";
+					return true;
+				}
+
+				BehaviorDone("Hearthstone is on cooldown");
+				return true;
+			}
+
+			if (await CommonCoroutines.LandAndDismount())
+				return true;
+
+			if (await CommonCoroutines.StopMoving())
+				return true;
+
+			var hearthstoneSpell = usableHearthstone.Effects.First().Spell;
+			using (var castMonitor = SpellCastMonitor.Start(hearthstoneSpell.Id))
+			{
+				TreeRoot.StatusText = string.Format("Using {0} with {1} out of {2} tries left", hearthstoneSpell.Name, ++_retries, MaxRetries);
+				usableHearthstone.UseContainerItem();
+				var castResult = await castMonitor.GetResult(12000);
+				if (castResult == SpellCastResult.Succeeded)
+				{
+					await Coroutine.Wait(2000, () => IsInHearthStoneArea);
+					BehaviorDone("Successfully casted Hearthstone");
+					return true;
+				}
+
+				string reason = castResult == SpellCastResult.UnknownFail ? castMonitor.FailReason : castResult.ToString();
+
+				QBCLog.Warning("Cast of {0} failed. Reason: {1}", hearthstoneSpell.Name, reason);
+			}
+			return false;
+		}
 
 		private bool IsInHearthStoneArea
 		{
 			get
 			{
-				uint hearthstoneAreaId = StyxWoW.Me.HearthstoneAreaId;
-				uint zoneId = Me.ZoneId;
-				if (hearthstoneAreaId == 0)
-				{
-					return false;
-				}
-				if (CheckId(hearthstoneAreaId) != CheckId(zoneId))
-				{
-					QBCLog.DeveloperInfo("Zone: {0}, hearthAreaId: {1}", zoneId, hearthstoneAreaId);
-				}
-				return (CheckId(hearthstoneAreaId) == CheckId(zoneId));
+				if (UseGarrisonHearthstone)
+					return Me.CurrentMap.IsGarrison;
+
+				return Me.HearthstoneAreaId == Me.SubZoneId;
 			}
 		}
 
-
-		#region Overrides of CustomForcedBehavior
-
-		protected override Composite CreateBehavior()
+		private List<WoWItem> GetHearthStonesByIds(params uint[] hearthstoneIds)
 		{
-			return _root ?? (_root = new PrioritySelector(DoneYet,UseHearthstoneComposite, new ActionAlwaysSucceed()));
+			return Me.BagItems.Where(i => i != null && i.ItemInfo != null
+				&& hearthstoneIds.Contains(i.Entry)).ToList();
 		}
-
-
-        public override void OnFinished()
-        {
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-            base.OnFinished();
-        }
-
-		public override bool IsDone
-		{
-			get { return (_isBehaviorDone); }
-		}
-
-
-		public WoWItem Hearthstone
-		{
-			get
-			{
-				return Me.BagItems.FirstOrDefault(r => r.Entry == 6948);
-			}
-		}
-
-		public Composite UseHearthstoneComposite
-		{
-			get
-			{
-				return new PrioritySelector(
-					new Decorator(r => Hearthstone.CooldownTimeLeft.TotalSeconds > 0,new ActionAlwaysSucceed()),
-					new Decorator(r => Hearthstone.CooldownTimeLeft.TotalSeconds <= 0,new Action(r=>Hearthstone.Use()))
-					);
-			}
-		}
-
-		public Composite DoneYet
-		{
-			get
-			{
-				return
-					new Decorator(ret => (IsInHearthStoneArea || Hearthstone == null) || (Hearthstone.CooldownTimeLeft.TotalSeconds > 0 && !WaitOnCd), new Action(delegate
-					{
-						TreeRoot.StatusText = "Finished!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-
-			}
-		}
-
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				TreeRoot.GoalText = "Using hearthstone";
-			}
-		}
-
-
-		#endregion
 	}
 }
 

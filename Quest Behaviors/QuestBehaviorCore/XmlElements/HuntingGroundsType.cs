@@ -83,8 +83,9 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			try
 			{
 				// Acquire the visit strategy...
-				WaypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null)
+				var waypointVisitStrategy = GetAttributeAsNullable<WaypointVisitStrategyType>("WaypointVisitStrategy", false, null, null)
 				                        ?? WaypointVisitStrategyType.Random;
+				SetWaypointStrategy(waypointVisitStrategy, false);
 
 				// Acquire the waypoints...
 				Waypoints = new List<WaypointType>();
@@ -129,27 +130,38 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			} 
 			set
 			{
-				if ((_visitStrategy == null) || (value != _visitStrategy.VisitStrategyType))
-				{
-					if (value == WaypointVisitStrategyType.InOrder)
-						_visitStrategy = new VisitStrategy_InOrder();
-					else if (value == WaypointVisitStrategyType.PickOneAtRandom)
-						_visitStrategy = new VisitStrategy_PickOneAtRandom();
-					else if (value == WaypointVisitStrategyType.Random)
-						_visitStrategy = new VisitStrategy_Random();
-					else
-					{
-						QBCLog.MaintenanceError("Unhandled WaypointVisitStrategy({0})", value);
-						_visitStrategy = null;
-					}
-
-                    if (_visitStrategy != null)
-                        QBCLog.DeveloperInfo("WaypointVisitStrategy set to {0}", _visitStrategy.VisitStrategyType);
-
-					// Strategy change requires current waypoint re-evaluation...
-					ResetWaypoints();
-				}
+				SetWaypointStrategy(value, true);
 			}
+		}
+
+		private void SetWaypointStrategy(WaypointVisitStrategyType visitStrategyType, bool logChanges)
+		{
+			if ((_visitStrategy == null) || (visitStrategyType != _visitStrategy.VisitStrategyType))
+			{
+				_visitStrategy = GetVisitStrategyFromType(visitStrategyType);
+
+				if (_visitStrategy != null && logChanges)
+					QBCLog.DeveloperInfo("WaypointVisitStrategy set to {0}", _visitStrategy.VisitStrategyType);
+
+				// Strategy change requires current waypoint re-evaluation...
+				ResetWaypoints();
+			}
+		}
+
+		private IVisitStrategy GetVisitStrategyFromType(WaypointVisitStrategyType visitStrategyType )
+		{
+			IVisitStrategy visitStrategy = null;
+			if (visitStrategyType == WaypointVisitStrategyType.InOrder)
+				visitStrategy = new VisitStrategy_InOrder();
+			else if (visitStrategyType == WaypointVisitStrategyType.PickOneAtRandom)
+				visitStrategy = new VisitStrategy_PickOneAtRandom();
+			else if (visitStrategyType == WaypointVisitStrategyType.Random)
+				visitStrategy = new VisitStrategy_Random();
+			else
+			{
+				QBCLog.MaintenanceError("Unhandled WaypointVisitStrategy({0})", visitStrategyType);
+			}
+			return visitStrategy;
 		}
 
 		public List<WaypointType> Waypoints { get; set; }

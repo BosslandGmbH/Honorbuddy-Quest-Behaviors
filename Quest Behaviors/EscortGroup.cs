@@ -254,7 +254,7 @@ using Vector3 = Tripper.Tools.Math.Vector3;
 namespace Honorbuddy.Quest_Behaviors.EscortGroup
 {
 	[CustomBehaviorFileName(@"EscortGroup")]
-	public class EscortGroup : CustomForcedBehavior
+	public class EscortGroup : QuestBehaviorBase
 	{
 		public delegate WoWPoint LocationDelegate(object context);
 		public delegate string MessageDelegate(object context);
@@ -430,18 +430,12 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		}
 		private readonly TimeSpan Duration_BlacklistGossip = TimeSpan.FromSeconds(120);
 		private readonly TimeSpan Delay_GossipDialogThrottle = TimeSpan.FromMilliseconds(StyxWoW.Random.Next(800, 1700));
-		private readonly TimeSpan Delay_WoWClientMovementThrottle = TimeSpan.FromMilliseconds(100);
 		private List<WoWUnit> EscortedGroup { get; set; }
 		private readonly TimeSpan LagDuration = TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150);
-		private LocalPlayer Me { get { return StyxWoW.Me; } }
 		private WoWUnit SelectedTarget { get; set; }
 
 		private BehaviorStateType _behaviorState = BehaviorStateType.CheckDone;
-		private Composite _behaviorTreeHook_CombatMain = null;
-		private Composite _behaviorTreeHook_CombatOnly = null;
-		private Composite _behaviorTreeHook_DeathMain = null;
-		private Composite _behaviorTreeHook_Main = null;
-		private ConfigMemento _configMemento = null;
+		private Composite _behaviorTreeHook_Main = null;	
 		private LocalBlacklist _gossipBlacklist = new LocalBlacklist(TimeSpan.FromSeconds(30));
 		private int _gossipOptionIndex;
 		private bool _isBehaviorDone = false;
@@ -454,75 +448,53 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
 		#region Cleanup
 
-        public override void OnFinished()
-        {
-            // Clean up unmanaged resources (if any) here...
-            if (_behaviorTreeHook_CombatMain != null)
-            {
-                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatMain);
-                _behaviorTreeHook_CombatMain = null;
-            }
-
-            if (_behaviorTreeHook_CombatOnly != null)
-            {
-                TreeHooks.Instance.RemoveHook("Combat_Main", _behaviorTreeHook_CombatOnly);
-                _behaviorTreeHook_CombatOnly = null;
-            }
-
-            if (_behaviorTreeHook_DeathMain != null)
-            {
-                TreeHooks.Instance.RemoveHook("Death_Main", _behaviorTreeHook_DeathMain);
-                _behaviorTreeHook_DeathMain = null;
-            }
-
-            // NB: we don't unhook _behaviorTreeHook_Main
-            // This was installed when HB created the behavior, and its up to HB to unhook it
-
-            if (_configMemento != null)
-            {
-                _configMemento.Dispose();
-                _configMemento = null;
-            }
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-            base.OnFinished();
-        }
-
 		#endregion
 
 
 		#region Overrides of CustomForcedBehavior
 
-		protected override Composite CreateBehavior()
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
 		{
-			return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainBehavior());
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//                              Args["Nav"], MovementBy));
 		}
 
-		public override bool IsDone
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
 		{
-			get
-			{
-				return _isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete);
-			}
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin)); 
 		}
 
+		protected override Composite CreateMainBehavior()
+		{
+			return _behaviorTreeHook_Main ?? (_behaviorTreeHook_Main = CreateMainLogic());
+		}
 
 		public override void OnStart()
 		{
-			_searchPath = ParsePath("SearchPath");
 
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
 			// If the quest is complete, this behavior is already done...
 			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
+			if (isBehaviorShouldRun)
 			{
-				_configMemento = new ConfigMemento();
-
+				_searchPath = ParsePath("SearchPath");
 				// Disable any settings that may interfere with the escort --
 				// When we escort, we don't want to be distracted by other things.
 				// NOTE: these settings are restored to their normal values when the behavior completes
@@ -530,33 +502,28 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 				CharacterSettings.Instance.HarvestHerbs = false;
 				CharacterSettings.Instance.HarvestMinerals = false;
 				CharacterSettings.Instance.LootChests = false;
-				ProfileManager.CurrentProfile.LootMobs = false;
-				CharacterSettings.Instance.NinjaSkin = false;
-				CharacterSettings.Instance.SkinMobs = false;
-				CharacterSettings.Instance.PullDistance = 5;    // don't pull anything we don't have to
-				LevelBot.BehaviorFlags &= ~BehaviorFlags.Vendor;
+				// don't pull anything we don't have to
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Vendor | BehaviorFlags.FlightPath | BehaviorFlags.Loot);
+
+				// Disable pulling if targets are selected explicitly
+				if (PriorityTargetIds.Any())
+					LevelBot.BehaviorFlags &= ~BehaviorFlags.Pull;
 
 				// If search path not provided, use our current location...
-				if (_searchPath.Count() <= 0)
-				{ _searchPath.Enqueue(Me.Location); }
+				if (!_searchPath.Any())
+				{
+					_searchPath.Enqueue(Me.Location);
+				}
 
 				_toonStartingPosition = Me.Location;
 
 				BehaviorState = BehaviorStateType.InitialState;
-				_behaviorTreeHook_CombatMain = CreateBehavior_CombatMain();
-				TreeHooks.Instance.InsertHook("Combat_Main", 0, _behaviorTreeHook_CombatMain);
-				_behaviorTreeHook_CombatOnly = CreateBehavior_CombatOnly();
-				TreeHooks.Instance.InsertHook("Combat_Only", 0, _behaviorTreeHook_CombatOnly);
-				_behaviorTreeHook_DeathMain = CreateBehavior_DeathMain();
-				TreeHooks.Instance.InsertHook("Death_Main", 0, _behaviorTreeHook_DeathMain);
-
-				Targeting.Instance.IncludeTargetsFilter += Instance_IncludeTargetsFilter;
 
 				this.UpdateGoalText(QuestId, "Looting and Harvesting are disabled while Escort in progress");
 			}
 		}
 
-		void Instance_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
+		protected override void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
 		{
 			var mobs =
 				ObjectManager.GetObjectsOfType<WoWUnit>()
@@ -567,14 +534,16 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
 			foreach (var m in mobs)
 			{
-				outgoingUnits.Add(m);
+				outgoingWowObjects.Add(m);
 			}
 		}
+
 		#endregion
 
 
 		#region Main Behavior
-		private Composite CreateBehavior_CombatMain()
+
+		protected override Composite CreateBehavior_CombatMain()
 		{
 			return new Decorator(context => (BehaviorState == BehaviorStateType.Escorting) && IsEscortedGroupViable(EscortedGroup),
 				new PrioritySelector(
@@ -633,7 +602,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							{
 								IEnumerable<Tuple<WoWUnit, double>> outOfRangeUnits = FindUnitsOutOfRange(EscortedGroup);
 
-								if (outOfRangeUnits.Count() > 0)
+								if (outOfRangeUnits.Any())
 								{
 									QBCLog.Warning("Some units exceed the EscortMaxFightDistance range ({0} yard): {1}",
 										EscortMaxFightDistance,
@@ -648,14 +617,14 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		}
 
 
-		protected Composite CreateBehavior_CombatOnly()
+		protected override Composite CreateBehavior_CombatOnly()
 		{
 			return new PrioritySelector(
 			);
 		}
 
 
-		protected Composite CreateBehavior_DeathMain()
+		protected override Composite CreateBehavior_DeathMain()
 		{
 			// If toon dies, we need to restart behavior
 			return new Decorator(context => (Me.IsDead || Me.IsGhost) && (BehaviorState != BehaviorStateType.CheckDone),
@@ -666,7 +635,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		// NB: Due to the complexity, this behavior is 'state' based.  All necessary actions are
 		// conducted in the current state.  If the current state is no longer valid, then a state change
 		// is effected.  Ths entry state is "InitialState".
-		private Composite CreateMainBehavior()
+		private Composite CreateMainLogic()
 		{
 			// Let other behaviors deal with toon death and path back to corpse...
 			return new PrioritySelector(

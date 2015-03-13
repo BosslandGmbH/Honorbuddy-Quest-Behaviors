@@ -220,16 +220,6 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 				IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
 				Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
 
-				// Make certain ArrivalTolerance is coherent with Navigator.PathPrecision...
-				if (DefaultArrivalTolerance < Navigator.PathPrecision)
-				{
-					QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than PathPrecision({1:F1})."
-										 + "  Setting ArrivalTolerance to be PathPrecision to prevent navigational issues.",
-										 DefaultArrivalTolerance,
-										 Navigator.PathPrecision);
-					DefaultArrivalTolerance = Navigator.PathPrecision;
-				}
-
                 // 'Destination choices' processing...
                 PotentialDestinations =
                     HuntingGroundsType.GetOrCreate(Element,
@@ -307,6 +297,16 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (isBehaviorShouldRun)
 			{
+				// Make certain ArrivalTolerance is coherent with Navigator.PathPrecision...
+				if (DefaultArrivalTolerance < Navigator.PathPrecision)
+				{
+					QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than PathPrecision({1:F1})."
+										 + "  Setting ArrivalTolerance to be PathPrecision to prevent navigational issues.",
+										 DefaultArrivalTolerance,
+										 Navigator.PathPrecision);
+					DefaultArrivalTolerance = Navigator.PathPrecision;
+				}
+
 				// Disable any settings that may cause us to dismount --
 				// When we mount for travel via FlyTo, we don't want to be distracted by other things.
 				// NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
