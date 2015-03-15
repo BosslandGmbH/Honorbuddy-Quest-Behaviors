@@ -250,6 +250,7 @@ using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
@@ -288,8 +289,9 @@ namespace Honorbuddy.QuestBehaviorCore
 				// Go ahead and compile the "TerminateWhen" expression to look for problems...
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
 				// If there is a problem, an exception will be thrown (and handled here).
-                var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
-                TerminateWhen = DelayCompiledExpression.Condition(terminateWhenExpression);
+                var terminateWhenExpression = GetAttributeAs<string>("TerminateWhen", false, ConstrainAs.StringNonEmpty, null);
+				TerminateWhenCompiledExpression = Utility.ProduceParameterlessCompiledExpression<bool>(terminateWhenExpression);
+				TerminateWhen = Utility.ProduceCachedValueFromCompiledExpression(TerminateWhenCompiledExpression, false);
 
 				TerminationChecksQuestProgress = GetAttributeAsNullable<bool>("TerminationChecksQuestProgress", false, null, null) ?? true;
 
@@ -357,8 +359,12 @@ namespace Honorbuddy.QuestBehaviorCore
 		public QuestInLogRequirement QuestRequirementInLog { get; protected set; }
 		private int TerminateAtMaxRunTimeSecs { get; set; }
 		
+		private PerFrameCachedValue<bool> TerminateWhen { get; set; }
+
 		[CompileExpression]
-		public DelayCompiledExpression<Func<bool>> TerminateWhen { get; protected set; }
+		public DelayCompiledExpression<Func<bool>> TerminateWhenCompiledExpression { get; protected set; }
+
+
 		public bool TerminationChecksQuestProgress { get; protected set; }
 
 		public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
@@ -418,7 +424,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			get
 			{
 				return _isBehaviorDone // normal completion
-					   || TerminateWhen.CallableExpression() // Specified condition in profile
+					   || TerminateWhen // Specified condition in profile
 					   || CheckTermination(); // Quest/objective ID
 			}
 		}

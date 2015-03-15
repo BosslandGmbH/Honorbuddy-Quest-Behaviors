@@ -69,12 +69,16 @@
 // Interaction by Buying Items:
 //      BuyItemCount [optional; Default: 1]
 //          This is the number of items (specified by BuyItemId) that should be
-//          purchased from the Vendor (specified by MobId).
+//          purchased from the Vendor (specified by MobId). 
+//			This can be a math expression e.g. BuyItemCount="10 - GetItemCount(1234)"
 //      InteractByBuyingItemId [optional; Default: none]
 //          This is the ItemId of the item that should be purchased from the
 //          Vendor (specified by MobId).
+//		MissingBuyItemIsFatal [optional; Default: true]
+//			Specifies whether profile will terminate if a vendor that InteractWith is buying an 
+//			item from does not offer the item
 //
-// Interact by Casting Spell:
+//	Interact by Casting Spell:
 //      InteractByCastingSpellId [optional; Default: none]
 //          Specifies an SpellId to use on the specified target.
 //          The spell may be a normal 'one-click-to-use' spell, or it may be
@@ -372,6 +376,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -396,12 +401,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
 				// Primary attributes...
-				MobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null) ?? new int[0])
+				var mobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null) ?? new int[0])
 					.Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
 					.ToArray();
 
 				MobIdIncludesSelf = GetAttributeAsNullable<bool>("MobIdIncludesSelf", false, null, null) ?? false;
-				FactionIds = GetNumberedAttributesAsArray<int>("FactionId", 0, ConstrainAs.MobId, null);
+				var factionIds = GetNumberedAttributesAsArray<int>("FactionId", 0, ConstrainAs.MobId, null);
+
+				PursuitList.AddIds(mobIds, factionIds, MobIdIncludesSelf);
+
 				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
 
 				// Additional target qualifiers...
@@ -443,7 +451,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 				// Tunables...
                 AttemptCountMax = GetAttributeAsNullable<int>("AttemptCountMax", false, new ConstrainTo.Domain<int>(1,100), null) ?? 7;
-				BuyItemCount = GetAttributeAsNullable<int>("BuyItemCount", false, ConstrainAs.CollectionCount, null) ?? 1;
+
+				var buyItemCountExpression = GetAttributeAs<string>("BuyItemCount", false, ConstrainAs.StringNonEmpty, null);
+
+				BuyItemCountCompiledExpression = Utility.ProduceParameterlessCompiledExpression<int>(buyItemCountExpression);
+				BuyItemCount = Utility.ProduceCachedValueFromCompiledExpression(BuyItemCountCompiledExpression, 1);
+
 				CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
 				HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 				IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
@@ -451,6 +464,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				InteractBlacklistTimeInSeconds =
 					GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null) ?? 180;
 				KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
+				MissingBuyItemIsFatal = GetAttributeAsNullable<bool>("MissingBuyItemIsFatal", false, null, null) ?? true;
 				MobHpPercentLeft =
 					GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
 				PreInteractMountStrategy = GetAttributeAsNullable<MountStrategyType>("PreInteractMountStrategy", false, null, null)
@@ -463,7 +477,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 										?? ProactiveCombatStrategyType.ClearAll;
 				RangeMax = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null);
 				RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null);
-				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
+				var waitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null);
 				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
                 _waitTimerAfterInteracting = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
 
@@ -492,6 +506,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                                 new WaypointType(HuntingGroundCenter, "hunting ground center"));
                 IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
+				// Default value for 'WaitForNpcs' is 'true' when no HuntingGrounds sub element is used.
+				if (HuntingGrounds.Waypoints.Count <= 1 && !waitForNpcs.HasValue)
+					waitForNpcs = true;
+
+				if (waitForNpcs.HasValue && waitForNpcs.Value)
+					WaitForNpcs = true;
+
 				// Pre-processing into a form we can use directly...
 				for (int i = 0; i < InteractByGossipOptions.Length; ++i)
 				{
@@ -516,9 +537,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private int AttemptCountMax  { get; set; }
 		private int[] AuraIdsOnMob { get; set; }
 		private int[] AuraIdsMissingFromMob { get; set; }
-		private int BuyItemCount { get; set; }
+		private PerFrameCachedValue<int> BuyItemCount { get; set; }
+
+		[CompileExpression]
+		public DelayCompiledExpression<Func<int>> BuyItemCountCompiledExpression { get; private set; }
+
 		private double CollectionDistance { get; set; }
-		private int[] FactionIds { get; set; }
 		private WoWPoint HuntingGroundCenter { get; set; }
 		private bool IgnoreCombat { get; set; }
 		private bool IgnoreLoSToTarget { get; set; }
@@ -530,8 +554,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private int InteractByUsingItemId { get; set; }
 		private bool InteractByLooting { get; set; }
 		private bool KeepTargetSelected { get; set; }
+		private bool MissingBuyItemIsFatal { get; set; }
 		private double MobHpPercentLeft { get; set; }
-		private int[] MobIds { get; set; }
 		private bool MobIdIncludesSelf { get; set; }
 		private MobStateType MobState { get; set; }
 		private bool NotMoving { get; set; }
@@ -543,6 +567,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private double? RangeMin { get; set; }
 		private bool WaitForNpcs { get; set; }
 		private int WaitTime { get; set; }
+
+
+		
 
 		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
 		{
@@ -586,7 +613,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		{
 			UsageCheck_SemanticCoherency(
 				xElement,
-				!(MobIdIncludesSelf || MobIds.Any() || FactionIds.Any()),
+				!(PursuitList.PursueObjects.Any()),
 				context => "You must specify one or more: MobIdIncludesSelf, MobIdN, FactionIdN");
 
 			UsageCheck_SemanticCoherency(
@@ -719,6 +746,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (isBehaviorShouldRun)
 			{
+				if (WaitForNpcs && HuntingGrounds.Waypoints.Count > 1)
+				{
+					QBCLog.Warning("WaitForNpcs is set to 'true' but a <HuntingGrounds> sub element is used. " +
+								   "If you specify a HuntingGrounds then the intent is to roam looking for " +
+								   "the missing NPCs and not stop at the first hotspot if the NPC is not found." +
+								   "Therefore the value of WaitForNpcs will be ignored when using a HuntingGrounds");
+					WaitForNpcs = false;
+				}
 				// Setup settings to prevent interference with your behavior --
 				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
 				// by Honorbuddy, or the bot is stopped.
@@ -896,7 +931,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 							() =>
 								TargetExclusionAnalysis.Analyze(
 									Element,
-									() => Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds),
+									() => PursuitList.GetPursuitedObjects(),
 									TargetExclusionChecks));
 				}
 
@@ -1146,7 +1181,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					// Time-to-Blacklist
 					((_watchdogTimerToReachDestination != null)
 						? Utility.PrettyTime(_watchdogTimerToReachDestination.TimeLeft)
-						: "\u8734"));
+						: "∞"));
 
 				if (await UtilityCoroutine.MoveTo(SelectedTarget.Location, destinationName, MovementBy))
 					return true;
@@ -1356,29 +1391,30 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 				if (item == null)
 				{
-					if (InteractByBuyingItemId > 0)
-					{
-						QBCLog.ProfileError(
+
+					var msg = InteractByBuyingItemId > 0
+						? string.Format(
 							"{0} does not appear to carry ItemId({1})--abandoning transaction.",
 							GetName(SelectedTarget),
-							InteractByBuyingItemId);
-					}
-					else
-					{
-						QBCLog.ProfileError(
+							InteractByBuyingItemId)
+						: string.Format(
 							"{0} does not have an item to sell in slot #{1}--abandoning transaction.",
 							GetName(SelectedTarget),
 							InteractByBuyingItemInSlotNum);
-					}
+
+					if (MissingBuyItemIsFatal)
+						QBCLog.ProfileError(msg);
+					else
+						BehaviorDone(msg);
 				}
-				else if ((item.BuyPrice * (ulong)BuyItemCount) > Me.Copper)
+				else if ((item.BuyPrice * (ulong)BuyItemCount.Value) > Me.Copper)
 				{
 					QBCLog.ProfileError(
 						"Toon does not have enough money to purchase {0} (qty: {1})"
 						+ "--(requires: {2}, have: {3})--abandoning transaction.",
 						item.Name,
 						BuyItemCount,
-						Utility.PrettyMoney(item.BuyPrice * (ulong)BuyItemCount),
+						Utility.PrettyMoney(item.BuyPrice * (ulong)BuyItemCount.Value),
 						Utility.PrettyMoney(Me.Copper));
 				}
 				else if ((item.NumAvailable != /*unlimited*/ -1) && (item.NumAvailable < BuyItemCount))
@@ -1657,15 +1693,19 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 			using (StyxWoW.Memory.AcquireFrame())
 			{
+				float pursuePriority = 0;
 				var entities =
-					from wowObject in Query.FindMobsAndFactions(MobIds, MobIdIncludesSelf, FactionIds)
+					from wowObject in ObjectManager.ObjectList
 					where
 						Query.IsViable(wowObject)
+						&& PursuitList.ShouldPursue(wowObject, out pursuePriority)
 						&& IsInteractNeeded(wowObject, mobState)
 						&& Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
+					let priority = pursuePriority
 					let objectCollectionDistance = wowObject.Location.CollectionDistance()
 					where
 						objectCollectionDistance <= CollectionDistance
+					orderby priority descending 
 					orderby
 						objectCollectionDistance
 						// Fix for undead-quest (and maybe some more), where the targets can be minions...
@@ -1678,7 +1718,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			}
 		}
 
-
 		private string GetGoalText()
 		{
 			var action =
@@ -1688,11 +1727,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						? string.Format("by casting {0} on", Utility.GetSpellNameFromId(InteractByCastingSpellId))
 						: "with";
 
-			var targetNames = string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct());
+			var targetNames = string.Join(", ",PursuitList.GetNames().Distinct());
+
 			if (MobIdIncludesSelf)
-			{
 				targetNames = string.Join(", ", "Self", targetNames);
-			}
 
 			return string.Format("Interacting {0} {1}", action, targetNames);
 		}
@@ -1859,7 +1897,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private bool IsViableInteractTarget(WoWObject wowObject)
 		{
-			if (!Query.IsMobOrFaction(wowObject, MobIds, MobIdIncludesSelf, FactionIds))
+			if (!PursuitList.ShouldPursue(wowObject))
 				return false;
 
 			if (!IsInteractNeeded(wowObject, MobState))

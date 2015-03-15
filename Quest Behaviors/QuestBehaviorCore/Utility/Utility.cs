@@ -23,6 +23,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
+using Styx.CommonBot.Profiles.Quest.Order;
 using Styx.Helpers;
 using Styx.Pathing;
 using Styx.WoWInternals;
@@ -80,7 +81,6 @@ namespace Honorbuddy.QuestBehaviorCore
 				{ Lua.DoString("VehicleExit()"); }
 		}
 
-
         public static string GetDataFileFullPath(string fileName)
         {
             // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
@@ -115,7 +115,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 ? wowObject.SafeName
 				: string.Format("MobId({0})", wowObjectId);
 		}
-
 
 		public static WoWPoint GetPointToGainDistance(WoWObject target, double minDistanceNeeded)
 		{
@@ -257,6 +256,25 @@ namespace Honorbuddy.QuestBehaviorCore
 				(int)duration.TotalMinutes, (int)duration.TotalSeconds);
 		}
 
+		public static PerFrameCachedValue<T> ProduceCachedValueFromCompiledExpression<T>(
+			DelayCompiledExpression<Func<T>> delayCompiledExpression,
+			T defaultValue)
+		{
+			return delayCompiledExpression != null
+				? new PerFrameCachedValue<T>(delayCompiledExpression.CallableExpression)
+				: new PerFrameCachedValue<T>(() => defaultValue);
+		}
+
+		public static DelayCompiledExpression<Func<T>> ProduceParameterlessCompiledExpression<T>(string expression)
+		{
+			if (expression == null)
+				return null;
+
+			if (typeof(T) == typeof(bool))
+				return (DelayCompiledExpression<Func<T>>)(object)DelayCompiledExpression.Condition(expression);
+
+			return new DelayCompiledExpression<Func<T>>("()=>" + expression);
+		}
 
 		// 30May2013-04:52UTC chinajade
 		public static void Target(WoWObject wowObject, bool doFace = false, PoiType poiType = PoiType.None)

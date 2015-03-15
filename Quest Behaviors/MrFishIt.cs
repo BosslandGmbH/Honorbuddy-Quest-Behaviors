@@ -30,8 +30,9 @@
 // Tunables:
 //      CollectItemCount [optional;  Default: 1]
 //          Specifies the number of items that must be collected.
-//          The behavior terminates when we have thi snumber of CollectItemId
-//          or more in our inventory
+//          The behavior terminates when we have this number of CollectItemId
+//          or more in our inventory.
+//			This can be a math expression e.g. CollectItemCount="10 - GetItemCount(1234)"
 //      MaxCastRange [optional;  Default: 20]
 //          [Only meaningful if PoolId is specified.]
 //          Specifies the maximum cast range to the pool.  If the toon is not within
@@ -80,13 +81,15 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
-
+using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
@@ -104,7 +107,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.MrFishIt
 {
 	[CustomBehaviorFileName(@"MrFishIt")]
-	class MrFishIt : CustomForcedBehavior
+	class MrFishIt : QuestBehaviorBase
 	{
 		public MrFishIt(Dictionary<string, string> args)
 			: base(args)
@@ -113,14 +116,10 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 			try
 			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+				var collectItemCountExpression = GetAttributeAs("CollectItemCount", false, ConstrainAs.StringNonEmpty, null);
+				CollectItemCountCompiledExpression = Utility.ProduceParameterlessCompiledExpression<int>(collectItemCountExpression);
+				CollectItemCount = Utility.ProduceCachedValueFromCompiledExpression(CollectItemCountCompiledExpression, 1);
 
-				CollectItemCount = GetAttributeAsNullable<int>("CollectItemCount", false, ConstrainAs.RepeatCount, null) ?? 1;
 				CollectItemId = GetAttributeAsNullable<int>("CollectItemId", true, ConstrainAs.ItemId, null) ?? 0;
 				PoolFishingBuddy.MaxCastRange = GetAttributeAsNullable<int>("MaxCastRange", false, ConstrainAs.ItemId, null) ?? 20;
 				PoolFishingBuddy.MinCastRange = GetAttributeAsNullable<int>("MinCastRange", false, ConstrainAs.ItemId, null) ?? 15;
@@ -144,13 +143,14 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 
 		// Attributes provided by caller
-		public int CollectItemCount { get; private set; }
+		private PerFrameCachedValue<int> CollectItemCount { get; set; }
+		
+		[CompileExpression]
+		public DelayCompiledExpression<Func<int>> CollectItemCountCompiledExpression { get; private set; }
+
 		public int CollectItemId { get; private set; }
 		public bool MoveToPool { get; private set; }
 		public static int PoolId { get; private set; }
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 		public bool TestFishing { get; private set; }
 		public WoWPoint WaterPoint { get; private set; }
 
@@ -158,89 +158,70 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		private Version _Version { get { return new Version(1, 0, 8); } }
         private readonly ProfileHelperFunctionsBase _helperFuncs = new ProfileHelperFunctionsBase();
 		public static WoWGuid _PoolGUID;
-		private ConfigMemento _configMemento;
-		private bool _cancelBehavior;
 		private Composite _root;
+		private Composite _moveToPoolBehavior = PoolFishingBuddy.CreateMoveToPoolBehavior();
 
 		#region Overrides of CustomForcedBehavior
 
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//                              Args["Nav"], MovementBy));
+		}
+
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin)); 
+		}
+
         public override void OnFinished()
         {
-            TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-            // Clean up unmanaged resources (if any) here...
-            if (_configMemento != null)
-            {
-                _configMemento.Dispose();
-                _configMemento = null;
-            }
-
-            _cancelBehavior = true;
-
             Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
             Lua.Events.DetachEvent("LOOT_CLOSED", HandleLootClosed);
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
 
             if (Fishing.IsFishing)
                 SpellManager.StopCasting();
 
-            // Call parent Dispose() (if it exists) here ...                
             _root = null;
             base.OnFinished();
         }
-		
-		public override bool IsDone
-		{
-			get
-			{
-				bool ret = (_helperFuncs.GetItemCount(CollectItemId) >= CollectItemCount)     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)
-                        || _cancelBehavior;
-			    if (ret)
-			    {
-			        _root = null;
-                    _cancelBehavior = true;
-			    }
-				return ret;
-			}
-		}
-
 
 		public override void OnStart()
 		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
 			// If the quest is complete, this behavior is already done...
 			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
+			if (isBehaviorShouldRun)
 			{
-				_configMemento = new ConfigMemento();
-
 				Lua.Events.AttachEvent("LOOT_OPENED", HandleLootOpened);
 				Lua.Events.AttachEvent("LOOT_CLOSED", HandleLootClosed);
 				LootOpen = false;
 
 				// Disable any settings that may cause us to dismount --
 				// When we mount for travel via FlyTo, we don't want to be distracted by other things.
-				// We also set PullDistance to its minimum value.  If we don't do this, HB will try
-				// to dismount and engage a mob if it is within its normal PullDistance.
 				// NOTE: these settings are restored to their normal values when the behavior completes
 				// or the bot is stopped.
-				CharacterSettings.Instance.HarvestHerbs = false;
-				CharacterSettings.Instance.HarvestMinerals = false;
-				CharacterSettings.Instance.LootChests = false;
-				ProfileManager.CurrentProfile.LootMobs = false;
-				CharacterSettings.Instance.NinjaSkin = false;
-				CharacterSettings.Instance.SkinMobs = false;
-				CharacterSettings.Instance.PullDistance = 1;
-				
+				LevelBot.BehaviorFlags  &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
+
 				// Make sure we don't get logged out
 				GlobalSettings.Instance.LogoutForInactivity = false;
-
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
 				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 				if (quest == null)
@@ -248,7 +229,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 				else
 					this.UpdateGoalText(QuestId, "Fishing Item for [" + quest.Name + "]");
 
-                QBCLog.DeveloperInfo("Fishing Item (for QuestId {0}): {1}({2}) x{3}", QuestId, Utility.GetItemNameFromId(CollectItemId), CollectItemId, CollectItemCount);
+                QBCLog.DeveloperInfo("Fishing Item (for QuestId {0}): {1}({2}) x{3}", QuestId, Utility.GetItemNameFromId(CollectItemId), CollectItemId, CollectItemCount.Value);
 			}
 		}
 
@@ -280,25 +261,39 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			}
 		}
 
-		protected Composite CreateBehavior_QuestbotMain()
+		protected override Composite CreateBehavior_QuestbotMain()
 		{
-			return _root ?? (_root =
-				new Decorator(ret => !IsDone /*&& !LootOpen*/,
-					new PrioritySelector(
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+		}
 
-						// Have we a facing waterpoint or a PoolId and PoolGUID? No, then cancel this behavior!
-						new Decorator(ret => (!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || !_PoolGUID.IsValid)) ||
-						StyxWoW.Me.Combat || StyxWoW.Me.IsDead || StyxWoW.Me.IsGhost,
-							new Action(ret => _cancelBehavior = true)),
+		private async Task<bool> MainCoroutine()
+		{
+			if (IsDone)
+				return false;
 
-						new Decorator(ret => (!Flightor.MountHelper.Mounted || !StyxWoW.Me.IsFlying) && (TestFishing || (WaterPoint != WoWPoint.Empty ||
-							(PoolId != 0 && hasPoolFound && PoolFishingBuddy.saveLocation.Count > 0 &&
-							StyxWoW.Me.Location.Distance(PoolFishingBuddy.saveLocation[0]) <= 2.5 && !PoolFishingBuddy.looking4NewLoc))),
-                            new ActionRunCoroutine(ctx => FishLogic())
-							),
+			if (_helperFuncs.GetItemCount(CollectItemId) >= CollectItemCount)
+			{
+				BehaviorDone();
+				return true;
+			}
 
-						PoolFishingBuddy.CreateMoveToPoolBehavior()                            
-					)));
+			// Have we a facing waterpoint or a PoolId and PoolGUID? No, then cancel this behavior!
+			if ((!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || !_PoolGUID.IsValid)) 
+				|| Me.Combat || Me.IsDead || Me.IsGhost)
+			{
+				BehaviorDone();
+			}
+
+			if ((!Flightor.MountHelper.Mounted || !StyxWoW.Me.IsFlying) 
+				&& (TestFishing || (WaterPoint != WoWPoint.Empty 
+				|| (PoolId != 0 && hasPoolFound && PoolFishingBuddy.saveLocation.Count > 0 
+				&& StyxWoW.Me.Location.Distance(PoolFishingBuddy.saveLocation[0]) <= 2.5
+				&& !PoolFishingBuddy.looking4NewLoc))))
+			{
+				return await FishLogic();
+			}
+
+			return await _moveToPoolBehavior.ExecuteCoroutine();
 		}
 
 		private bool LootOpen { get; set; }

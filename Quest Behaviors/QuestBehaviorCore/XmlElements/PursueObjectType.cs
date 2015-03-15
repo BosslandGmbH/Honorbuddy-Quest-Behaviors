@@ -181,6 +181,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             if (typeof(T) == typeof(WoWGameObject))
                 return "GAMEOBJECT";
 
+			if (typeof(T) == typeof(WoWPlayer))
+				return "PLAYER";
+
+			if (typeof(T) == typeof(WoWAreaTrigger))
+				return "AREATRIGGER";
+
             return "OBJECT";
         }
 
