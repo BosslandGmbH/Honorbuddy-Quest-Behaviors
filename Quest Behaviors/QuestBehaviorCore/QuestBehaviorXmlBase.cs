@@ -11,6 +11,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -615,7 +616,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
             try
-                { return ((T)Convert.ChangeType(attributeValueAsString, concreteType)); }
+                { return ((T)Convert.ChangeType(attributeValueAsString, concreteType, CultureInfo.InvariantCulture)); }
             catch (Exception except)
             {
                 QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
