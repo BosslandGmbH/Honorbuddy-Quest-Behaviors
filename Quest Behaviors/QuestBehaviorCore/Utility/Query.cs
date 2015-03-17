@@ -11,6 +11,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using Honorbuddy.QuestBehaviorCore.XmlElements;
@@ -142,7 +143,7 @@ namespace Honorbuddy.QuestBehaviorCore
             int mountId;
             IEnumerable<Mount.MountWrapper> query;
 
-            if (Int32.TryParse(mountNameOrId, out mountId) && (mountId != 0))
+			if (Int32.TryParse(mountNameOrId, NumberStyles.Integer, CultureInfo.InvariantCulture, out mountId) && (mountId != 0))
             {
                 query =
                     from mount in mountList

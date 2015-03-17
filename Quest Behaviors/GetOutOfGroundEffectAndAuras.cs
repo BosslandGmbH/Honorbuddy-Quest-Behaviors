@@ -198,6 +198,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -1190,21 +1191,21 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 					bool isParseProblem = false;
 
 					double x = 0.0;
-					if (!double.TryParse(xAttribute.Value, out x))
+					if (!double.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x))
 					{
 						QBCLog.Error("Unable to parse X attribute for {0}", elementAsString);
 						isParseProblem = true;
 					}
 
 					double y = 0.0;
-					if (!double.TryParse(yAttribute.Value, out y))
+					if (!double.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y))
 					{
 						QBCLog.Error("Unable to parse Y attribute for {0}", elementAsString);
 						isParseProblem = true;
 					}
 
 					double z = 0.0;
-					if (!double.TryParse(zAttribute.Value, out z))
+					if (!double.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z))
 					{
 						QBCLog.Error("Unable to parse Z attribute for {0}", elementAsString);
 						isParseProblem = true;

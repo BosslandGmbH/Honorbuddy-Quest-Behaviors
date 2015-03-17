@@ -79,6 +79,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
@@ -387,7 +388,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 				return (null);
 			}
 
-			if (!double.TryParse(element.Attribute(attributeName).Value, out tmpDouble))
+			if (!double.TryParse(element.Attribute(attributeName).Value, NumberStyles.Float, CultureInfo.InvariantCulture, out tmpDouble))
 			{
 				QBCLog.Error("Hotspot{0} '{1}' attribute is malformed", location, attributeName);
 				IsAttributeProblem = true;

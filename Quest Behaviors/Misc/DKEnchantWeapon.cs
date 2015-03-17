@@ -31,6 +31,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 
 using Honorbuddy.QuestBehaviorCore;
@@ -504,7 +505,7 @@ namespace Styx.Bot.Quest_Behaviors {
 
 				link = link.Remove(link.IndexOf(':') != -1 ? link.IndexOf(':') : link.IndexOf('|'));
 
-				var id = int.Parse(link);
+				var id = int.Parse(link, CultureInfo.CurrentCulture);
 
 				if(id == SpellID) {
 					return i;

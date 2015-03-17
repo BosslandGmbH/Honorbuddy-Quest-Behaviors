@@ -304,25 +304,13 @@ namespace Honorbuddy.QuestBehaviorCore
 
                 // Add temporary avoid mobs, if any were specified...
                 // NB: ConfigMemento will restore the orginal list in OnFinished 
-                var temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
-                if (temporaryAvoidMobs != null)
-                {
-                    foreach (var avoidMobId in temporaryAvoidMobs.GetAvoidMobIds())
-                    {
-                        // NB: ProfileManager.CurrentProfile.AvoidMobs will never be null
-                        if (!ProfileManager.CurrentProfile.AvoidMobs.Contains(avoidMobId))
-                        {
-                            ProfileManager.CurrentProfile.AvoidMobs.Add(avoidMobId);
-                        }
-                    }
-                }
+                _temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
 
                 // Add temporary blackspots, if any were specified...
                 // NB: Ideally, we'd save and restore the original blackspot list.  However,
                 // BlackspotManager does not currently give us a way to "see" what is currently
                 // on the list.
                 _temporaryBlackspots = BlackspotsType.GetOrCreate(Element, "Blackspots");
-                BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
 
                 PursuitList = PursuitListType.GetOrCreate(Element, "PursuitList");
 			}
@@ -384,6 +372,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		private ConfigMemento _configMemento;
 		private bool _isBehaviorDone;
 		private BlackspotsType _temporaryBlackspots;
+		private AvoidMobsType _temporaryAvoidMobs;
 
 		protected bool IsOnFinishedRun { get; private set; }
 		public static LocalPlayer Me { get { return StyxWoW.Me; } }
@@ -568,6 +557,20 @@ namespace Honorbuddy.QuestBehaviorCore
 				_behaviorTreeHook_CombatOnly = BehaviorHookInstall("Combat_Only", CreateBehavior_CombatOnly());
 				_behaviorTreeHook_DeathMain = BehaviorHookInstall("Death_Main", CreateBehavior_DeathMain());
 				_behaviorTreeHook_QuestbotMain = BehaviorHookInstall("Questbot_Main", CreateBehavior_QuestbotMain());
+
+				BlackspotManager.AddBlackspots(_temporaryBlackspots.GetBlackspots());
+
+				if (_temporaryAvoidMobs != null)
+				{
+					foreach (var avoidMobId in _temporaryAvoidMobs.GetAvoidMobIds())
+					{
+						// NB: ProfileManager.CurrentProfile.AvoidMobs will never be null
+						if (!ProfileManager.CurrentProfile.AvoidMobs.Contains(avoidMobId))
+						{
+							ProfileManager.CurrentProfile.AvoidMobs.Add(avoidMobId);
+						}
+					}
+				}
 
 				return true;    // behavior should run
 			}

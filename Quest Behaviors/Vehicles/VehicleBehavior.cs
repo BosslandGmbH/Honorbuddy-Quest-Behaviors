@@ -34,6 +34,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
@@ -445,9 +446,9 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 				XAttribute zAttribute = element.Attribute("Z");
 
 				float x, y, z;
-				float.TryParse(xAttribute.Value, out x);
-				float.TryParse(yAttribute.Value, out y);
-				float.TryParse(zAttribute.Value, out z);
+				float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x);
+				float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
+				float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z);
 				temp.Add(new WoWPoint(x, y, z));
 			}
 
