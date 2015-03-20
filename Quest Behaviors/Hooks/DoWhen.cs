@@ -927,7 +927,8 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 			{
                 if (BehaviorExecutor == null)
 				{
-					var questOrder = new QuestOrder(Nodes);
+					// We need to create a shadow-copy of Nodes since the executor deletes nodes from collection when done. 
+					var questOrder = new QuestOrder(new OrderNodeCollection(Nodes));
 					questOrder.UpdateNodes();
 					BehaviorExecutor = new ForcedBehaviorExecutor(questOrder);
 				}
@@ -952,6 +953,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                 return UseWhenPredicate.IsReady() || (BehaviorExecutor != null);
             }
 		}
+
 		#endregion
 
         #region Helper Classes - IUseWhenPredicate

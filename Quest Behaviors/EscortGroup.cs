@@ -289,19 +289,12 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 				EscortCompleteWhen = GetAttributeAsNullable<EscortCompleteWhenType>("EscortCompleteWhen", false, null, null) ?? EscortCompleteWhenType.QuestComplete;
 				EscortCompleteLocation = GetAttributeAsNullable<WoWPoint>("EscortComplete", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
-				// Quest handling...
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-				QuestObjectiveIndex = GetAttributeAsNullable<int>("QuestObjectiveIndex", false, new ConstrainTo.Domain<int>(1, 5), null) ?? 0;
-
 				// Tunables...
 				CombatMaxEngagementRangeDistance = GetAttributeAsNullable<double>("CombatMaxEngagementRangeDistance", false, new ConstrainTo.Domain<double>(1.0, 40.0), null) ?? 23.0;
 				DebugReportUnitsOutOfRange = GetAttributeAsNullable<bool>("DebugReportUnitsOutOfRange", false, null, null) ?? false;
 				EscortCompleteMaxRange = GetAttributeAsNullable<double>("EscortCompleteMaxRange", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 10.0;
 				EscortMaxFightDistance = GetAttributeAsNullable<double>("EscortMaxFightDistance", false, new ConstrainTo.Domain<double>(5.0, 100.0), null) ?? 27.0;
 				EscortMaxFollowDistance = GetAttributeAsNullable<double>("EscortMaxFollowDistance", false, new ConstrainTo.Domain<double>(3.0, 100.0), null) ?? 15.0;
-				NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 40.0), null) ?? 0.0;
 				PriorityTargetIds = GetNumberedAttributesAsArray<int>("PriorityTargetId", 0, ConstrainAs.MobId, null);
 				SearchForNpcsRadius = GetAttributeAsNullable<double>("SearchForNpcsRadius", false, new ConstrainTo.Domain<double>(1.0, 100.0), null) ?? 75.0;
 
@@ -383,16 +376,11 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 		public double EscortMaxFightDistance { get; private set; }
 		public double EscortMaxFollowDistance { get; private set; }
 
-		public double NonCompeteDistance { get; private set; }
 		public int[] PriorityTargetIds { get; private set; }
 		public double SearchForNpcsRadius { get; private set; }
 		public int[] StartEventGossipOptions { get; private set; }
 		public int[] StartNpcIds { get; private set; }
 
-		public int QuestId { get; private set; }
-		public int QuestObjectiveIndex { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return "$Id$"; } }
