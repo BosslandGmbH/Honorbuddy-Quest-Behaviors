@@ -158,7 +158,11 @@
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Coroutine.cs" />
     <Compile Include="QuestBehaviorCore\Extensions\Extensions_Generics.cs" />
     <Compile Include="QuestBehaviorCore\QBCLog.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityCoroutines\Transport.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Combat.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityCoroutines\BuyItem.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityCoroutines\Gossip.cs" />
+    <Compile Include="QuestBehaviorCore\UtilityCoroutines\Quest.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Vehicle.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\CastSpell.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Common.cs" />

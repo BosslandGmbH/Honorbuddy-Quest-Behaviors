@@ -21,9 +21,12 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml.Linq;
-
+using Bots.DungeonBuddy.Helpers;
 using Bots.Quest;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
@@ -32,7 +35,12 @@ using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
 using Styx.WoWInternals.WoWObjects;
 using Honorbuddy.Quest_Behaviors.ForceSetVendor;
-
+using Styx.Common.Helpers;
+using Styx.CommonBot.Coroutines;
+using Styx.CommonBot.Frames;
+using Styx.CommonBot.Profiles.Quest.Order;
+using Styx.Pathing;
+using Styx.WoWInternals;
 using Action = Styx.TreeSharp.Action;
 #endregion
 
@@ -52,7 +60,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 		}
 
-		private bool _inserted;
 		private bool _state;
 
 		public override bool IsDone { get { return true; } }
@@ -70,6 +77,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		private const int SuperFlying = 90265;//60
 		private const int FlightMastersLic = 90267;//60
 
+		private readonly ProfileHelperFunctionsBase ProfileHelpers = new ProfileHelperFunctionsBase();
 
 		#region Trainers
 		//Hellfire
@@ -120,54 +128,19 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 
 		//Return the trainer we want based on faction and location and skill.
-		private int TrainerId
+		private int GetTrainerId()
 		{
-			get
+			if (OldWorld)
 			{
-				if (OldWorld)
-				{
-					return Me.IsAlliance ? AllianceLowbie : HordieLowbie;
-				}
-
-				if (Hellfire)
-				{
-					return Me.IsAlliance ? AllianceFlight : HordeFlight;
-				}
-
-				return 0;
+				return Me.IsAlliance ? AllianceLowbie : HordieLowbie;
 			}
-		}
 
+			if (Hellfire)
+			{
+				return Me.IsAlliance ? AllianceFlight : HordeFlight;
+			}
 
-		private Boolean setupQO;
-
-		private void SetupQuestLowbieOrder()
-		{
-			QBCLog.Info(this, "Starting ground quest order.");
-			
-			//Replace with memorystream once profile is finalized    
-			//var reader = new StreamReader(File.OpenRead(@"C:\Users\Dennis\Desktop\New folder\hbx\GroundTraining.XML"));
-			var reader = new StreamReader(new MemoryStream(Convert.FromBase64String(GroundMounts)));
-			XElement xml = XElement.Parse(reader.ReadToEnd());
-			var Profile = new Profile(xml, null);
-			QuestState.Instance.Order.CurrentBehavior = null;
-			QuestState.Instance.Order.Nodes.InsertRange(0, Profile.QuestOrder);
-			QuestState.Instance.Order.UpdateNodes();
-			setupQO = true;
-		}
-
-
-		private void SetupQuestFlyingOrder()
-		{
-			QBCLog.Info(this, "Starting flying quest order.");
-			//var reader = new StreamReader(File.OpenRead(@"C:\Users\Dennis\Desktop\New folder\hbx\GroundTraining.XML"));
-			var reader = new StreamReader(new MemoryStream(Convert.FromBase64String(FlyingMounts)));
-			XElement xml = XElement.Parse(reader.ReadToEnd());
-			var Profile = new Profile(xml, null);
-			QuestState.Instance.Order.CurrentBehavior = null;
-			QuestState.Instance.Order.Nodes.InsertRange(0, Profile.QuestOrder);
-			QuestState.Instance.Order.UpdateNodes();
-			setupQO = true;
+			return 0;
 		}
 
 		//Races that give us problems:
@@ -180,99 +153,16 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		//Worgen -> ???
 
 
-		private Composite PurchaseMount
+		private bool TrainInOldWorld
 		{
 			get
 			{
-				return new PrioritySelector(
-					new Decorator(r => FlightLevel == 1 && !Mount.GroundMounts.Any() && !setupQO,
-						new Action(r => SetupQuestLowbieOrder())),
-					new Decorator(r => FlightLevel == 1 && Mount.GroundMounts.Any() && setupQO,
-						new Action(r => setupQO = false)),
-					new Decorator(r => FlightLevel == 2 && !Mount.FlyingMounts.Any() && !setupQO,
-						new Action(r => SetupQuestFlyingOrder())),
-					new Decorator(r => FlightLevel == 2 && Mount.FlyingMounts.Any() && setupQO,
-						new Action(r => setupQO = false))
-					);
+				return OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) 
+						|| (Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2));
 			}
 		}
 
-
-		private void SetupTrainer()
-		{
-			QBCLog.Info(this, "Creating ForceTrainRiding object");
-			var args = new Dictionary<string, string> { { "MobId", TrainerId.ToString() } };
-
-			gooby = new ForceTrainRiding(args);
-			gooby.OnStart();
-			TreeHooks.Instance.ReplaceHook("GoobyHook", gooby.Branch);
-		}
-
-
-		private void CleanUpCustomForcedBehavior()
-		{
-
-			if (gooby.GetType() == typeof(ForceTrainRiding))
-			{
-				QBCLog.Info(this, "Cleaning up ForceTrainRiding object");
-			}
-			else
-			{
-				QBCLog.Info(this, "Cleaning up InteractWith object");
-			}
-
-			TreeHooks.Instance.RemoveHook("GoobyHook", gooby.Branch);
-			gooby.OnFinished();
-			gooby = null;
-		}
-
-
-		//Composites
-		private static CustomForcedBehavior gooby = null;
-		private Composite RunOtherComposite
-		{
-			get
-			{
-				return new Decorator(r => gooby != null,
-				new PrioritySelector(
-					new Decorator(r => gooby.IsDone, new Action(r => CleanUpCustomForcedBehavior())),
-					new Decorator(r => !gooby.IsDone, new HookExecutor("GoobyHook"))
-			));
-			}
-		}
-
-
-		private Composite HellfireComposite
-		{
-			get
-			{
-				return new Decorator(r => Hellfire && Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2,
-					new Action(r => SetupTrainer()));
-			}
-		}
-
-
-		private Composite OldWordComposite
-		{
-			get
-			{
-				return new Decorator(r => OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) || (Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2)),
-					new Action(r => SetupTrainer()));
-			}
-		}
-
-
-		public static Composite _myHook;
-		public Composite CreateHook()
-		{
-			return new Decorator(r => !Me.Combat && Me.IsAlive,
-				new PrioritySelector(
-					RunOtherComposite,
-					PurchaseMount,
-					OldWordComposite,
-					HellfireComposite));
-		}
-
+		private bool TrainInOutland { get { return Hellfire && Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2; } }
 
 		public override void OnStart()
 		{
@@ -284,23 +174,19 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 				{
 					QBCLog.Info("Inserting hook");
 					_myHook = CreateHook();
-					TreeHooks.Instance.InsertHook("Questbot_Main", 0, _myHook);
-					BotEvents.OnBotStarted += BotEvents_OnBotStarted;
+					TreeHooks.Instance.InsertHook("Questbot_Profile", 0, _myHook);
 				}
 				else
 				{
 					QBCLog.Info("Insert was requested, but was already present");
 				}
-
-				_inserted = true;
 			}
 			else
 			{
 				if (_myHook != null)
 				{
 					QBCLog.Info("Removing hook");
-					TreeHooks.Instance.RemoveHook("Questbot_Main", _myHook);
-					BotEvents.OnBotStarted -= BotEvents_OnBotStarted;
+					TreeHooks.Instance.RemoveHook("Questbot_Profile", _myHook);
 					_myHook = null;
 				}
 				else
@@ -308,21 +194,498 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 					QBCLog.Info("Remove was requested, but hook was not present");
 				}
 
-				_inserted = false;
 			}
 		}
 
-		void BotEvents_OnBotStarted(EventArgs args)
+
+		public static Composite _myHook;
+		public Composite CreateHook()
 		{
-			// we need to set this to false on bot start so the mount buy questorder is re-inserted when needed.
-			setupQO = false;
+			return new ActionRunCoroutine(ctx => MainCoroutine());
 		}
 
+		private async Task<bool> MainCoroutine()
+		{
+			if (await TrainMount())
+				return true;
 
-		#region Profiles
-		// Use http://www.freeformatter.com/base64-encoder.html for simple base64 decode/encode
-		private const string GroundMounts = "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4NCjxIQlByb2ZpbGU+DQogICA8TmFtZT5NYXN0YWhnIE1vdW50IFRyYWluaW5nPC9OYW1lPg0KICAgPE1pbkxldmVsPjE8L01pbkxldmVsPg0KICAgPE1heExldmVsPjEwMTwvTWF4TGV2ZWw+DQogICA8TWluRHVyYWJpbGl0eT4wLjM8L01pbkR1cmFiaWxpdHk+DQogICA8TWluRnJlZUJhZ1Nsb3RzPjM8L01pbkZyZWVCYWdTbG90cz4NCiAgIDxNYWlsR3JleT5GYWxzZTwvTWFpbEdyZXk+DQogICA8TWFpbFdoaXRlPkZhbHNlPC9NYWlsV2hpdGU+DQogICA8TWFpbEdyZWVuPlRydWU8L01haWxHcmVlbj4NCiAgIDxNYWlsQmx1ZT5UcnVlPC9NYWlsQmx1ZT4NCiAgIDxNYWlsUHVycGxlPlRydWU8L01haWxQdXJwbGU+DQogICA8U2VsbEdyZXk+VHJ1ZTwvU2VsbEdyZXk+DQogICA8U2VsbFdoaXRlPlRydWU8L1NlbGxXaGl0ZT4NCiAgIDxTZWxsR3JlZW4+VHJ1ZTwvU2VsbEdyZWVuPg0KICAgPFNlbGxCbHVlPlRydWU8L1NlbGxCbHVlPg0KICAgPFNlbGxQdXJwbGU+RmFsc2U8L1NlbGxQdXJwbGU+DQogICA8TWFpbGJveGVzPg0KICAgICAgPCEtLSBFbXB0eSBvbiBQdXJwb3NlIC0tPg0KICAgPC9NYWlsYm94ZXM+DQogICA8QmxhY2tzcG90cyAvPg0KICAgPFF1ZXN0T3JkZXIgSWdub3JlQ2hlY2tQb2ludHM9ImZhbHNlIj4NCiAgICAgIDxJZiBDb25kaXRpb249IiFNZS5Jc0hvcmRlIj4NCiAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNZXNzYWdlIiBUZXh0PSJDb21waWxpbmcgQWxsaWFuY2UgTW91bnQiIExvZ0NvbG9yPSJPcmFuZ2UiIC8+DQogICAgICAgICA8SWYgQ29uZGl0aW9uPSJNZS5IZWFydGhzdG9uZUFyZWFJZCAhPSA1MTQ4Ij4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNZXNzYWdlIiBUZXh0PSJNb3ZpbmcgdG8gc2V0IGhlYXJ0aCB0byBTVyBJbm5rZWVwZXIiIExvZ0NvbG9yPSJSZWQiIC8+DQogICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iNjc0MCIgR29zc2lwT3B0aW9ucz0iMSIgWD0iLTg4NjcuNzg2IiBZPSI2NzMuNjcyOSIgWj0iOTcuOTAzMjQiIC8+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iTWUuUmFjZSA9PSBXb1dSYWNlLkh1bWFuIj4NCiAgICAgICAgICAgIDxSdW5UbyBYPSItOTQ0Mi43NDIiIFk9Ii0xMzkwLjY2NiIgWj0iNDYuODcwNDUiIC8+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSJIYXNRdWVzdCgzMjYxOCkiPg0KICAgICAgICAgICAgICAgPFR1cm5JbiBRdWVzdE5hbWU9IkxlYXJuIHRvIFJpZGUiIFF1ZXN0SWQ9IjMyNjE4IiBUdXJuSW5OYW1lPSJSYW5kYWwgSHVudGVyIiBUdXJuSW5JZD0iNDczMiIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iMzg0IiBCdXlJdGVtSWQ9IjI0MTQiIFdhaXRUaW1lPSI1MDAwIiBDb2xsZWN0aW9uRGlzdGFuY2U9IjUwIiBYPSItOTQ1NS4zNjUiIFk9Ii0xMzg1LjMyNyIgWj0iNDcuMTI4MTgiIC8+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIoSGFzSXRlbSgyNDE0KSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoMjQxNCkiIC8+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249Ik1lLlJhY2UgPT0gV29XUmFjZS5QYW5kYXJlbiI+DQogICAgICAgICAgICA8UnVuVG8gWD0iLTgyMTIuMjIxIiBZPSI1NDcuNTY5IiBaPSIxMTcuMTk0NyIgLz4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249Ikhhc1F1ZXN0KDMyNjY1KSI+DQogICAgICAgICAgICAgICA8VHVybkluIFF1ZXN0TmFtZT0iTGVhcm4gdG8gUmlkZSIgUXVlc3RJZD0iMzI2NjUiIFR1cm5Jbk5hbWU9Ik1laSBMaW4iIFR1cm5JbklkPSI3MDI5NiIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iNjUwNjgiIEJ1eUl0ZW1JZD0iODc3OTUiIFdhaXRUaW1lPSI1MDAwIiBDb2xsZWN0aW9uRGlzdGFuY2U9IjUwIiBYPSItODIwOS4zNzkiIFk9IjU0Ni4wMjYxIiBaPSIxMTcuNzY4NCIgLz4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IihIYXNJdGVtKDg3Nzk1KSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoODc3OTUpIiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgIDwvSWY+DQogICAgICAgICA8SWYgQ29uZGl0aW9uPSJNZS5SYWNlID09IFdvV1JhY2UuR25vbWUiPg0KICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IlVzZXJTZXR0aW5ncyIgTG9vdE1vYnM9IlRydWUiIFVzZUZsaWdodFBhdGhzPSJUcnVlIiBQdWxsRGlzdGFuY2U9IjI1IiAvPg0KICAgICAgICAgICAgPFJ1blRvIFg9Ii01NDU0LjE3MSIgWT0iLTYyMS4wNDgiIFo9IjM5My4zOTY4IiAvPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iSGFzUXVlc3QoMzI2NjMpIj4NCiAgICAgICAgICAgICAgIDxUdXJuSW4gUXVlc3ROYW1lPSJMZWFybiB0byBSaWRlIiBRdWVzdElkPSIzMjY2MyIgVHVybkluTmFtZT0iQmluankgRmVhdGhlcndoaXN0bGUiIFR1cm5JbklkPSI3OTU0IiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSI3OTU1IiBCdXlJdGVtSWQ9Ijg1OTUiIFdhaXRUaW1lPSI1MDAwIiBYPSItNTQ1NC4xNzEiIFk9Ii02MjEuMDQ4IiBaPSIzOTMuMzk2OCIgLz4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IihIYXNJdGVtKDg1OTUpKSI+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWlzY1xSdW5MdWEiIEx1YT0iVXNlSXRlbUJ5TmFtZSg4NTk1KSIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iTWUuUmFjZSA9PSBXb1dSYWNlLkR3YXJmIj4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJVc2VyU2V0dGluZ3MiIExvb3RNb2JzPSJUcnVlIiBVc2VGbGlnaHRQYXRocz0iVHJ1ZSIgUHVsbERpc3RhbmNlPSIyNSIgLz4NCiAgICAgICAgICAgIDxSdW5UbyBYPSItNTUyNC4zNTQiIFk9Ii0xMzQ5Ljg2OCIgWj0iMzk4LjY2NDEiIC8+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSJIYXNRdWVzdCgzMjY2MikiPg0KICAgICAgICAgICAgICAgPFR1cm5JbiBRdWVzdE5hbWU9IkxlYXJuIHRvIFJpZGUiIFF1ZXN0SWQ9IjMyNjYyIiBUdXJuSW5OYW1lPSJVbHRoYW0gSXJvbmhvcm4iIFR1cm5JbklkPSI0NzcyIiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSIxMjYxIiBCdXlJdGVtSWQ9IjU4NzMiIFdhaXRUaW1lPSI1MDAwIiBYPSItNTUzOS41NSIgWT0iLTEzMjIuNTUiIFo9IjM5OC44NjUzIiAvPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKEhhc0l0ZW0oNTg3MykpIj4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNaXNjXFJ1bkx1YSIgTHVhPSJVc2VJdGVtQnlOYW1lKDU4NzMpIiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgIDwvSWY+DQogICAgICAgICA8SWYgQ29uZGl0aW9uPSJNZS5SYWNlID09IFdvV1JhY2UuTmlnaHRFbGYiPg0KICAgICAgICAgICAgPCEtLSBHZXQgb24gYXQgU1csIG9mZiBhdCBSdXQndGhlcmFuIFZpbGxhZ2UgKERhcm5hc3N1cykgLS0+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIoTWUuTWFwSWQgPT0gMCkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IlVzZVRyYW5zcG9ydCIgVHJhbnNwb3J0SWQ9IjE3NjMxMCIgV2FpdEF0WD0iLTg2NDAuNTU2IiBXYWl0QXRZPSIxMzMwLjgyOSIgV2FpdEF0Wj0iNS4yMzMyMDciIEdldE9mZlg9IjgxNzcuNTQiIEdldE9mZlk9IjEwMDMuMDc5IiBHZXRPZmZaPSI2LjY0NjE2NCIgU3RhbmRPblg9Ii04NjQ0Ljk1MiIgU3RhbmRPblk9IjEzNDguMTEiIFN0YW5kT25aPSI2LjE0MzA5NCIgVHJhbnNwb3J0U3RhcnRYPSItODY1MC43MTkiIFRyYW5zcG9ydFN0YXJ0WT0iMTM0Ni4wNTEiIFRyYW5zcG9ydFN0YXJ0Wj0iLTAuMDM4MjMzNCIgVHJhbnNwb3J0RW5kWD0iODE2Mi41ODciIFRyYW5zcG9ydEVuZFk9IjEwMDUuMzY1IiBUcmFuc3BvcnRFbmRaPSIwLjA0NzQwMjMiIC8+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgICAgPCEtLSBUbyBnZXQgaW5zaWRlIG9mIERhcm5hc3N1cyAtLT4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IihNZS5NYXBJZCA9PSAxKSI+DQogICAgICAgICAgICAgICA8V2hpbGUgQ29uZGl0aW9uPSIoTWUuWiAmbHQ7IDEwMCkiPg0KICAgICAgICAgICAgICAgICAgPFJ1blRvIFg9IjgzNzUuNTc5IiBZPSI5OTcuNjUxNyIgWj0iMjcuNDU3NjgiIC8+DQogICAgICAgICAgICAgICAgICA8IS0tIFJlZCBwb3J0YWwgdXAgdG8gRGFybmFzc3VzIC0tPg0KICAgICAgICAgICAgICAgICAgPFJ1blRvIFg9IjgzODYuOTQzIiBZPSI5OTkuNjI1NiIgWj0iMjkuODAxMTQiIC8+DQogICAgICAgICAgICAgICAgICA8IS0tIEluc2lkZSBwb3J0YWwgLS0+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNTAwMCIgR29hbFRleHQ9IldhaXRpbmcgZm9yIHBvcnQgdXAge1RpbWVSZW1haW5pbmd9IiAvPg0KICAgICAgICAgICAgICAgPC9XaGlsZT4NCiAgICAgICAgICAgICAgIDxJZiBDb25kaXRpb249IihNZS5aICZndDsgMTAwMCkiPg0KICAgICAgICAgICAgICAgICAgPFJ1blRvIFg9IjEwMTI5Ljc4IiBZPSIyNTI2LjU5NSIgWj0iMTMyNC44MjgiIC8+DQogICAgICAgICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSJIYXNRdWVzdCgzMjY2NCkiPg0KICAgICAgICAgICAgICAgICAgICAgPFR1cm5JbiBRdWVzdE5hbWU9IkxlYXJuIHRvIFJpZGUiIFF1ZXN0SWQ9IjMyNjY0IiBUdXJuSW5OYW1lPSJKYXJ0c2FtIiBUdXJuSW5JZD0iNDc1MyIgLz4NCiAgICAgICAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iNDczMCIgQnV5SXRlbUlkPSI4NjI5IiBXYWl0VGltZT0iNTAwMCIgWD0iMTAxMjkuOTEiIFk9IjI1MzMuMjQ1IiBaPSIxMzIzLjI3MSIgLz4NCiAgICAgICAgICAgICAgICAgIDwhLS08Q3VzdG9tQmVoYXZpb3IgRmlsZT0iRm9yY2VUcmFpblJpZGluZyIgTW9iSWQ9IjQ3NTMiIC8+IC0tPg0KICAgICAgICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKEhhc0l0ZW0oODYyOSkpIj4NCiAgICAgICAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNaXNjXFJ1bkx1YSIgTHVhPSJVc2VJdGVtQnlOYW1lKDg2MjkpIiAvPg0KICAgICAgICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249Ik1lLlJhY2UgPT0gV29XUmFjZS5EcmFlbmVpIj4NCiAgICAgICAgICAgIDwhLS0gR2V0IG9uIGF0IFNXLCBvZmYgYXQgUnV0J3RoZXJhbiBWaWxsYWdlIChEYXJuYXNzdXMpIC0tPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKE1lLk1hcElkID09IDApIj4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJVc2VUcmFuc3BvcnQiIFRyYW5zcG9ydElkPSIxNzYzMTAiIFdhaXRBdFg9Ii04NjQwLjU1NiIgV2FpdEF0WT0iMTMzMC44MjkiIFdhaXRBdFo9IjUuMjMzMjA3IiBHZXRPZmZYPSI4MTc3LjU0IiBHZXRPZmZZPSIxMDAzLjA3OSIgR2V0T2ZmWj0iNi42NDYxNjQiIFN0YW5kT25YPSItODY0NC45NTIiIFN0YW5kT25ZPSIxMzQ4LjExIiBTdGFuZE9uWj0iNi4xNDMwOTQiIFRyYW5zcG9ydFN0YXJ0WD0iLTg2NTAuNzE5IiBUcmFuc3BvcnRTdGFydFk9IjEzNDYuMDUxIiBUcmFuc3BvcnRTdGFydFo9Ii0wLjAzODIzMzQiIFRyYW5zcG9ydEVuZFg9IjgxNjIuNTg3IiBUcmFuc3BvcnRFbmRZPSIxMDA1LjM2NSIgVHJhbnNwb3J0RW5kWj0iMC4wNDc0MDIzIiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDwhLS0gVG8gZ2V0IGluc2lkZSBvZiBEYXJuYXNzdXMgLS0+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIoTWUuTWFwSWQgPT0gMSkiPg0KICAgICAgICAgICAgICAgPFdoaWxlIENvbmRpdGlvbj0iKE1lLlogJmx0OyAxMDApICZhbXA7JmFtcDsgKE1lLlogJmd0OyAwKSI+DQogICAgICAgICAgICAgICAgICA8UnVuVG8gWD0iODM3NS41NzkiIFk9Ijk5Ny42NTE3IiBaPSIyNy40NTc2OCIgLz4NCiAgICAgICAgICAgICAgICAgIDwhLS0gUmVkIHBvcnRhbCB1cCB0byBEYXJuYXNzdXMgLS0+DQogICAgICAgICAgICAgICAgICA8UnVuVG8gWD0iODM4Ni45NDMiIFk9Ijk5OS42MjU2IiBaPSIyOS44MDExNCIgLz4NCiAgICAgICAgICAgICAgICAgIDwhLS0gSW5zaWRlIHBvcnRhbCAtLT4NCiAgICAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJXYWl0VGltZXIiIFdhaXRUaW1lPSI1MDAwIiBHb2FsVGV4dD0iV2FpdGluZyBmb3IgcG9ydCB1cCB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICAgICAgICA8L1doaWxlPg0KICAgICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iTWUuWm9uZUlkID09IDE2NTciPg0KICAgICAgICAgICAgICAgICAgPCEtLSBEYXJuYXNzdXMgLS0+DQogICAgICAgICAgICAgICAgICA8UnVuVG8gWD0iOTY1NS4yNTIiIFk9IjI1MDkuMzMiIFo9IjEzMzEuNTk4IiAvPg0KICAgICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjIwNzk5NSIgT2JqZWN0VHlwZT0iR2FtZU9iamVjdCIgUmFuZ2U9IjUiIFg9Ijk2NTUuMjUyIiBZPSIyNTA5LjMzIiBaPSIxMzMxLjU5OCIgLz4NCiAgICAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJXYWl0VGltZXIiIFdhaXRUaW1lPSI4MDAwIiBHb2FsVGV4dD0iV2FpdGluZyBmb3IgIHtUaW1lUmVtYWluaW5nfSIgLz4NCiAgICAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSJNZS5ab25lSWQgPT0gMzU1NyI+DQogICAgICAgICAgICAgICAgICA8IS0tIEV4b2RhciAtLT4NCiAgICAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNZXNzYWdlIiBUZXh0PSJMZWFybmluZyBEcmFlbmVpIE1vdW50IiBMb2dDb2xvcj0iT3JhbmdlIiAvPg0KICAgICAgICAgICAgICAgICAgPFJ1blRvIFg9Ii0zOTgxLjc2OSIgWT0iLTExOTI5LjE0IiBaPSItMC4yNDE5NDEyIiAvPg0KICAgICAgICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKChIYXNRdWVzdCgzMjY2MSkpICZhbXA7JmFtcDsgKElzUXVlc3RDb21wbGV0ZWQoMzI2NjEpKSkiPg0KICAgICAgICAgICAgICAgICAgICAgPFR1cm5JbiBRdWVzdE5hbWU9IkxlYXJuIFRvIFJpZGUiIFF1ZXN0SWQ9IjMyNjYxIiBUdXJuSW5OYW1lPSJBYWx1biIgVHVybkluSWQ9IjIwOTE0IiBYPSItMzk4MS43NjkiIFk9Ii0xMTkyOS4xNCIgWj0iLTAuMjQxOTQxMiIgLz4NCiAgICAgICAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIoKEhhc1F1ZXN0KDE0MDgyKSkgJmFtcDsmYW1wOyAoSXNRdWVzdENvbXBsZXRlZCgxNDA4MikpKSI+DQogICAgICAgICAgICAgICAgICAgICA8VHVybkluIFF1ZXN0TmFtZT0iTGVhcm4gVG8gUmlkZSIgUXVlc3RJZD0iMTQwODIiIFR1cm5Jbk5hbWU9IkFhbHVuIiBUdXJuSW5JZD0iMjA5MTQiIFg9Ii0zOTgxLjc2OSIgWT0iLTExOTI5LjE0IiBaPSItMC4yNDE5NDEyIiAvPg0KICAgICAgICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgICAgICAgIDxSdW5UbyBYPSItMzk4MS43NjkiIFk9Ii0xMTkyOS4xNCIgWj0iLTAuMjQxOTQxMiIgLz4NCiAgICAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSIxNzU4NCIgQnV5SXRlbUlkPSIyODQ4MSIgV2FpdFRpbWU9IjUwMDAiIENvbGxlY3Rpb25EaXN0YW5jZT0iNTAiIFg9Ii0zOTgxLjc2OSIgWT0iLTExOTI5LjE0IiBaPSItMC4yNDE5NDEyIiAvPg0KICAgICAgICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKEhhc0l0ZW0oMjg0ODEpKSI+DQogICAgICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWlzY1xSdW5MdWEiIEx1YT0iVXNlSXRlbUJ5TmFtZSgyODQ4MSkiIC8+DQogICAgICAgICAgICAgICAgICA8L0lmPg0KICAgICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IlVzZXJTZXR0aW5ncyIgVXNlTW91bnQ9IlRydWUiIExvb3RNb2JzPSJUcnVlIiBQdWxsRGlzdGFuY2U9IjI1IiAvPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1lc3NhZ2UiIFRleHQ9IlVzaW5nIEhlYXJ0aHN0b25lIiBMb2dDb2xvcj0iT3JhbmdlIiAvPg0KCQk8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iVXNlSGVhcnRoc3RvbmUiIFdhaXRGb3JDRD0idHJ1ZSIgLz4NCiAgICAgIDwvSWY+DQogICAgICA8SWYgQ29uZGl0aW9uPSJNZS5Jc0hvcmRlIj4NCiAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNZXNzYWdlIiBUZXh0PSJDb21waWxpbmcgSG9yZGUgTW91bnQiIExvZ0NvbG9yPSJPcmFuZ2UiIC8+DQogICAgICAgICA8SWYgQ29uZGl0aW9uPSJNZS5IZWFydGhzdG9uZUFyZWFJZCAhPSA1MTcwIj4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJNZXNzYWdlIiBUZXh0PSJNb3ZpbmcgdG8gc2V0IGhlYXJ0aCB0byBPcmcgSW5ua2VlcGVyIiBMb2dDb2xvcj0iUmVkIiAvPg0KICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjY5MjkiIEdvc3NpcE9wdGlvbnM9IjEiIFg9IjE1NzMuMjY2IiBZPSItNDQzOS4xNTgiIFo9IjE2LjA1NjMxIiAvPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249Ik1lLlJhY2UgPT0gV29XUmFjZS5PcmMiPg0KICAgICAgICAgICAgPFdoaWxlIENvbmRpdGlvbj0iIUhhc0l0ZW0oNTY2NSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjMzNjIiIEJ1eUl0ZW1JZD0iNTY2NSIgR29zc2lwT3B0aW9ucz0iMSIgV2FpdFRpbWU9IjUwMDAiIFg9IjIwNzYuNjAyIiBZPSItNDU2OC42MzIiIFo9IjQ5LjI1MzE5IiAvPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IldhaXRUaW1lciIgV2FpdFRpbWU9IjUwMDAiIEdvYWxUZXh0PSJXYWl0aW5nIGZvciAge1RpbWVSZW1haW5pbmd9IiAvPg0KICAgICAgICAgICAgPC9XaGlsZT4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249Ikhhc0l0ZW0oNTY2NSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoNTY2NSkiIFdhaXRUaW1lPSIxMDAwIiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgIDwvSWY+DQogICAgICAgICA8SWYgQ29uZGl0aW9uPSJNZS5SYWNlID09IFdvV1JhY2UuR29ibGluIj4NCiAgICAgICAgICAgIDxXaGlsZSBDb25kaXRpb249IiFIYXNJdGVtKDYyNDYxKSI+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iNDg1MTAiIEJ1eUl0ZW1JZD0iNjI0NjEiIEdvc3NpcE9wdGlvbnM9IjEiIFdhaXRUaW1lPSI1MDAwIiBYPSIxNDc1LjMyIiBZPSItNDE0MC45OCIgWj0iNTIuNTEiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNTAwMCIgR29hbFRleHQ9IldhaXRpbmcgZm9yICB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICAgICA8L1doaWxlPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iSGFzSXRlbSg2MjQ2MSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoNjI0NjEpIiBXYWl0VGltZT0iMTAwMCIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iTWUuUmFjZSA9PSBXb1dSYWNlLlRyb2xsIj4NCiAgICAgICAgICAgIDxXaGlsZSBDb25kaXRpb249IiFIYXNJdGVtKDg1ODgpIj4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSI3OTUyIiBCdXlJdGVtSWQ9Ijg1ODgiIEdvc3NpcE9wdGlvbnM9IjEiIFdhaXRUaW1lPSI1MDAwIiBYPSItODUyLjc4IiBZPSItNDg4NS40MCIgWj0iMjIuMDMiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNTAwMCIgR29hbFRleHQ9IldhaXRpbmcgZm9yICB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICAgICA8L1doaWxlPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iSGFzSXRlbSg4NTg4KSI+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWlzY1xSdW5MdWEiIEx1YT0iVXNlSXRlbUJ5TmFtZSg4NTg4KSIgV2FpdFRpbWU9IjEwMDAiIC8+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249Ik1lLlJhY2UgPT0gV29XUmFjZS5UYXVyZW4iPg0KICAgICAgICAgICAgPFdoaWxlIENvbmRpdGlvbj0iIUhhc0l0ZW0oMTUyNzcpIj4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSIzNjg1IiBCdXlJdGVtSWQ9IjE1Mjc3IiBHb3NzaXBPcHRpb25zPSIxIiBXYWl0VGltZT0iNTAwMCIgUmFuZ2U9IjIiIFg9Ii0yMjc5Ljc5NiIgWT0iLTM5Mi4wNjk3IiBaPSItOS4zOTY4NjMiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNTAwMCIgR29hbFRleHQ9IldhaXRpbmcgZm9yICB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICAgICA8L1doaWxlPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iSGFzSXRlbSgxNTI3NykiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoMTUyNzcpIiBXYWl0VGltZT0iMTAwMCIgLz4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJXYWl0VGltZXIiIFdhaXRUaW1lPSI1MDAwIiBHb2FsVGV4dD0iV2FpdGluZyBmb3IgIHtUaW1lUmVtYWluaW5nfSIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iTWUuUmFjZSA9PSBXb1dSYWNlLlVuZGVhZCI+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIoTWUuTWFwSWQgPT0gMSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IlVzZVRyYW5zcG9ydCIgVHJhbnNwb3J0SWQ9IjE2NDg3MSIgV2FpdEF0WD0iMTg0NS4xODciIFdhaXRBdFk9Ii00Mzk1LjU1NSIgV2FpdEF0Wj0iMTM1LjIzMDYiIFRyYW5zcG9ydFN0YXJ0WD0iMTgzMy41MDkiIFRyYW5zcG9ydFN0YXJ0WT0iLTQzOTEuNTQzIiBUcmFuc3BvcnRTdGFydFo9IjE1Mi43Njc5IiBUcmFuc3BvcnRFbmRYPSIyMDYyLjM3NiIgVHJhbnNwb3J0RW5kWT0iMjkyLjk5OCIgVHJhbnNwb3J0RW5kWj0iMTE0Ljk3MyIgU3RhbmRPblg9IjE4MzUuNTA5IiBTdGFuZE9uWT0iLTQzODUuNzg1IiBTdGFuZE9uWj0iMTM1LjA0MzYiIEdldE9mZlg9IjIwNjUuMDQ5IiBHZXRPZmZZPSIyODMuMTM4MSIgR2V0T2ZmWj0iOTcuMDMxNTYiIC8+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKE1lLk1hcElkID09IDApIj4NCiAgICAgICAgICAgICAgIDxXaGlsZSBDb25kaXRpb249IiFIYXNJdGVtKDQ2MzA4KSI+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iNDczMSIgQnV5SXRlbUlkPSI0NjMwOCIgR29zc2lwT3B0aW9ucz0iMSIgV2FpdFRpbWU9IjUwMDAiIFg9IjIyNzUuMDgiIFk9IjIzNy4wMCIgWj0iMzMuNjkiIC8+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNTAwMCIgR29hbFRleHQ9IldhaXRpbmcgZm9yICB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICAgICAgICA8L1doaWxlPg0KICAgICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iSGFzSXRlbSg0NjMwOCkiPg0KICAgICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoNDYzMDgpIiBXYWl0VGltZT0iMTAwMCIgLz4NCiAgICAgICAgICAgICAgIDwvSWY+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249Ik1lLlJhY2UgPT0gV29XUmFjZS5CbG9vZEVsZiI+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIoTWUuTWFwSWQgPT0gMSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IlVzZVRyYW5zcG9ydCIgVHJhbnNwb3J0SWQ9IjE2NDg3MSIgV2FpdEF0WD0iMTg0NS4xODciIFdhaXRBdFk9Ii00Mzk1LjU1NSIgV2FpdEF0Wj0iMTM1LjIzMDYiIFRyYW5zcG9ydFN0YXJ0WD0iMTgzMy41MDkiIFRyYW5zcG9ydFN0YXJ0WT0iLTQzOTEuNTQzIiBUcmFuc3BvcnRTdGFydFo9IjE1Mi43Njc5IiBUcmFuc3BvcnRFbmRYPSIyMDYyLjM3NiIgVHJhbnNwb3J0RW5kWT0iMjkyLjk5OCIgVHJhbnNwb3J0RW5kWj0iMTE0Ljk3MyIgU3RhbmRPblg9IjE4MzUuNTA5IiBTdGFuZE9uWT0iLTQzODUuNzg1IiBTdGFuZE9uWj0iMTM1LjA0MzYiIEdldE9mZlg9IjIwNjUuMDQ5IiBHZXRPZmZZPSIyODMuMTM4MSIgR2V0T2ZmWj0iOTcuMDMxNTYiIC8+DQogICAgICAgICAgICA8L0lmPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKE1lLk1hcElkID09IDApIj4NCiAgICAgICAgICAgICAgIDxSdW5UbyBYPSIxODA1Ljg3NyIgWT0iMzQ1LjAwMDYiIFo9IjcwLjc5MDAyIiAvPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IldhaXRUaW1lciIgV2FpdFRpbWU9IjIwMDAiIEdvYWxUZXh0PSJXYWl0aW5nIGZvciAge1RpbWVSZW1haW5pbmd9IiAvPg0KICAgICAgICAgICAgICAgPFdoaWxlIENvbmRpdGlvbj0iKE1lLlpvbmVJZCA9PSAxNDk3KSI+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iMTg0NTAzIiBPYmplY3RUeXBlPSJHYW1lT2JqZWN0IiBQcmVJbnRlcmFjdE1vdW50U3RyYXRlZ3k9IkRpc21vdW50IiBSYW5nZT0iOCIgV2FpdFRpbWU9IjUwMDAiIFg9IjE4MDUuODc3IiBZPSIzNDUuMDAwNiIgWj0iNzAuNzkwMDIiIC8+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iMTAwMDAiIEdvYWxUZXh0PSJXYWl0aW5nIGZvciAge1RpbWVSZW1haW5pbmd9IiAvPg0KICAgICAgICAgICAgICAgPC9XaGlsZT4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSIxNjI2NCIgQnV5SXRlbUlkPSIyOTIyMSIgR29zc2lwT3B0aW9ucz0iMSIgV2FpdFRpbWU9IjUwMDAiIFg9IjkyNDQuNTkiIFk9Ii03NDkxLjU2NiIgWj0iMzYuOTE0MDEiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNTAwMCIgR29hbFRleHQ9IldhaXRpbmcgZm9yICB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSJIYXNJdGVtKDI5MjIxKSI+DQogICAgICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWlzY1xSdW5MdWEiIEx1YT0iVXNlSXRlbUJ5TmFtZSgyOTIyMSkiIFdhaXRUaW1lPSIxMDAwIiAvPg0KICAgICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1lc3NhZ2UiIFRleHQ9IkNvbXBsZXRlZCB0cmFpbmluZyBzZXNzaW9uIiBMb2dDb2xvcj0iT3JhbmdlIiAvPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1lc3NhZ2UiIFRleHQ9IlVzaW5nIEhlYXJ0aHN0b25lIiBMb2dDb2xvcj0iT3JhbmdlIiAvPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IlVzZUhlYXJ0aHN0b25lIiBXYWl0Rm9yQ0Q9InRydWUiIC8+DQogICAgICA8L0lmPg0KICAgPC9RdWVzdE9yZGVyPg0KPC9IQlByb2ZpbGU+DQo=";
-		private const string FlyingMounts = "PD94bWwgdmVyc2lvbj0iMS4wIiBlbmNvZGluZz0iVVRGLTgiPz4NCjxIQlByb2ZpbGU+DQogICA8TmFtZT5NYXN0YWhnIEZseWluZyBNb3VudCBUcmFpbmluZzwvTmFtZT4NCiAgIDxNaW5MZXZlbD4xPC9NaW5MZXZlbD4NCiAgIDxNYXhMZXZlbD4xMDE8L01heExldmVsPg0KICAgPE1pbkR1cmFiaWxpdHk+MC4zPC9NaW5EdXJhYmlsaXR5Pg0KICAgPE1pbkZyZWVCYWdTbG90cz4zPC9NaW5GcmVlQmFnU2xvdHM+DQogICA8TWFpbEdyZXk+RmFsc2U8L01haWxHcmV5Pg0KICAgPE1haWxXaGl0ZT5GYWxzZTwvTWFpbFdoaXRlPg0KICAgPE1haWxHcmVlbj5UcnVlPC9NYWlsR3JlZW4+DQogICA8TWFpbEJsdWU+VHJ1ZTwvTWFpbEJsdWU+DQogICA8TWFpbFB1cnBsZT5UcnVlPC9NYWlsUHVycGxlPg0KICAgPFNlbGxHcmV5PlRydWU8L1NlbGxHcmV5Pg0KICAgPFNlbGxXaGl0ZT5UcnVlPC9TZWxsV2hpdGU+DQogICA8U2VsbEdyZWVuPlRydWU8L1NlbGxHcmVlbj4NCiAgIDxTZWxsQmx1ZT5UcnVlPC9TZWxsQmx1ZT4NCiAgIDxTZWxsUHVycGxlPkZhbHNlPC9TZWxsUHVycGxlPg0KICAgPE1haWxib3hlcz4NCiAgICAgIDwhLS0gRW1wdHkgb24gUHVycG9zZSAtLT4NCiAgIDwvTWFpbGJveGVzPg0KICAgPEJsYWNrc3BvdHMgLz4NCiAgIDxRdWVzdE9yZGVyIElnbm9yZUNoZWNrUG9pbnRzPSJmYWxzZSI+DQogICAgICA8SWYgQ29uZGl0aW9uPSIhTWUuSXNIb3JkZSI+DQogICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWVzc2FnZSIgVGV4dD0iQ29tcGlsaW5nIEFsbGlhbmNlIE1vdW50IiBMb2dDb2xvcj0iT3JhbmdlIiAvPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iU3R5eFdvVy5NZS5NYXBJZCA9PSA1MzAiPg0KICAgICAgICAgICAgPElmIENvbmRpdGlvbj0iKCFIYXNJdGVtKDI1NDcyKSkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjM1MTAxIiBCdXlJdGVtSWQ9IjI1NDcyIiBXYWl0VGltZT0iNTAwMCIgSWdub3JlTW9ic0luQmxhY2tzcG90cz0idHJ1ZSIgIFg9Ii02NzQuNDc3NCIgWT0iMjc0My4xMjgiIFo9IjkzLjkxNzMiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNDAwMCIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPElmIENvbmRpdGlvbj0iU3R5eFdvVy5NZS5NYXBJZCA9PSAwIj4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IighSGFzSXRlbSgyNTQ3MikpIj4NCiAgICAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJJbnRlcmFjdFdpdGgiIE1vYklkPSI0Mzc2OCIgQnV5SXRlbUlkPSIyNTQ3MiIgV2FpdFRpbWU9IjUwMDAiIElnbm9yZU1vYnNJbkJsYWNrc3BvdHM9InRydWUiIFg9Ii04ODI5LjE4IiBZPSI0ODIuMzQiIFo9IjEwOS42MTYiIC8+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iV2FpdFRpbWVyIiBXYWl0VGltZT0iNDAwMCIgLz4NCiAgICAgICAgICAgIDwvSWY+DQogICAgICAgICA8L0lmPg0KICAgICAgICAgPFdoaWxlIENvbmRpdGlvbj0iSGFzSXRlbSgyNTQ3MikiPg0KICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1pc2NcUnVuTHVhIiBMdWE9IlVzZUl0ZW1CeU5hbWUoMjU0NzIpIiBXYWl0VGltZT0iMTAwMCIgLz4NCiAgICAgICAgICAgIDxDdXN0b21CZWhhdmlvciBGaWxlPSJXYWl0VGltZXIiIFdhaXRUaW1lPSIyMDAwIiBHb2FsVGV4dD0iVXNpbmcgaXRlbSB7VGltZVJlbWFpbmluZ30iIC8+DQogICAgICAgICA8L1doaWxlPg0KICAgICAgPC9JZj4NCiAgICAgIDxJZiBDb25kaXRpb249Ik1lLklzSG9yZGUiPg0KICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9Ik1lc3NhZ2UiIFRleHQ9IkNvbXBpbGluZyBIb3JkZSBNb3VudCIgTG9nQ29sb3I9Ik9yYW5nZSIgLz4NCiAgICAgICAgIDxJZiBDb25kaXRpb249IlN0eXhXb1cuTWUuTWFwSWQgPT0gNTMwIj4NCiAgICAgICAgICAgIDxJZiBDb25kaXRpb249IiFIYXNJdGVtKDI1NDc0KSI+DQogICAgICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iSW50ZXJhY3RXaXRoIiBNb2JJZD0iMzUwOTkiIEJ1eUl0ZW1JZD0iMjU0NzQiIFdhaXRUaW1lPSI0MDAwIiBYPSI0Ny43NjE1MyIgWT0iMjc0Mi4wMjIiIFo9Ijg1LjI3MTE5IiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgICAgIDxSdW5UbyBYPSI4MC45MzgyNiIgWT0iMjcxMy4wMjkiIFo9Ijg1LjY5NzIxIiAvPg0KICAgICAgICAgPC9JZj4NCiAgICAgICAgIDxJZiBDb25kaXRpb249IlN0eXhXb1cuTWUuTWFwSWQgPT0gMSI+DQogICAgICAgICAgICA8SWYgQ29uZGl0aW9uPSIhSGFzSXRlbSgyNTQ3NCkiPg0KICAgICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IkludGVyYWN0V2l0aCIgTW9iSWQ9IjQ0OTE4IiBCdXlJdGVtSWQ9IjI1NDc0IiBXYWl0VGltZT0iNDAwMCIgWD0iMTgwNi45NCIgWT0iLTQzNDAuNjciIFo9IjEwMi4wNTA2IiAvPg0KICAgICAgICAgICAgPC9JZj4NCiAgICAgICAgIDwvSWY+DQogICAgICAgICA8V2hpbGUgQ29uZGl0aW9uPSJIYXNJdGVtKDI1NDc0KSI+DQogICAgICAgICAgICA8Q3VzdG9tQmVoYXZpb3IgRmlsZT0iTWlzY1xSdW5MdWEiIEx1YT0iVXNlSXRlbUJ5TmFtZSgyNTQ3NCkiIFdhaXRUaW1lPSIxMDAwIiAvPg0KICAgICAgICAgICAgPEN1c3RvbUJlaGF2aW9yIEZpbGU9IldhaXRUaW1lciIgV2FpdFRpbWU9IjIwMDAiIEdvYWxUZXh0PSJVc2luZyBpdGVtIHtUaW1lUmVtYWluaW5nfSIgLz4NCiAgICAgICAgIDwvV2hpbGU+DQogICAgICA8L0lmPg0KICAgPC9RdWVzdE9yZGVyPg0KPC9IQlByb2ZpbGU+DQo=";
+			if (await PurchaseMount())
+				return true;
+
+			return false;
+		}
+
+		#region PurchaseMountBehavior
+
+		private readonly WaitTimer _purchasedMountTimer = new WaitTimer(TimeSpan.FromMinutes(5));
+
+		private bool _purchaseMount;
+		private async Task<bool> PurchaseMount()
+		{
+			// Worgens have a ground mount from racial, paladin and warlock have class based mounts so
+			// they do not need to purchase any ground mounts
+			if (FlightLevel == 1 && Me.Race != WoWRace.Worgen && Me.Class != WoWClass.Paladin && Me.Class != WoWClass.Warlock )
+			{
+				// _purchasedMountTimer pervents double purchasing multiple mounts because Mount.GroundMounts is cached.
+				if (!Mount.GroundMounts.Any() && _purchasedMountTimer.IsFinished)
+				{
+					_purchaseMount = true;
+					return await PurchaseGroundMount();
+				}
+
+				// we need to hearth after purchasing our mount
+				if (_purchaseMount)
+				{
+					var onCooldown = false;
+					await UtilityCoroutine.UseHearthStone(
+						hearthOnCooldownAction: () => onCooldown = true,
+						hearthCastedAction: () => _purchaseMount = false,
+						inHearthAreaAction: () => _purchaseMount = false);
+
+					if (onCooldown)
+					{
+						TreeRoot.StatusText = "Waiting on Hearthstone cooldown";
+						return true;
+					}
+				}
+			}
+
+			// Druids have flightform so do not need to purchase a flying mount.
+			if (FlightLevel == 2 && Me.Class != WoWClass.Druid && !Mount.FlyingMounts.Any() && _purchasedMountTimer.IsFinished)
+				return await PurchaseFlyingMount();
+
+			return false;
+		}
+
+		private async Task<bool> PurchaseGroundMount()
+		{
+			return await (Me.IsAlliance ? PurchaseGroundMount_Alliance() : PurchaseGroundMount_Horde());
+		}
+
+		private async Task<bool> PurchaseFlyingMount()
+		{
+			return await (Me.IsAlliance ? PurchaseFlyingMount_Alliance() : PurchaseFlyingMount_Horde());
+		}
+
+	
+		#region Alliance
+
+		private const int AreaId_StormwindInnkeeper = 5148;
+
+		private const int QuestId_LearnToRide_Human = 32618;
+		private const int QuestId_LearnToRide_Pandaren = 32665;
+		private const int QuestId_LearnToRide_Gnome = 32663;
+		private const int QuestId_LearnToRide_Dwarf = 32662;
+		private const int QuestId_LearnToRide_NightElf = 32664;
+		private const int QuestId_LearnToRide_Draenei = 32664;
+		private const int QuestId_LearnToRideAtTheExodar = 14082;
+
+		private const int ItemId_PintoBridle = 2414;
+		private const int ItemId_ReinsoftheBlackDragonTurtle = 87795;
+		private const int ItemId_BlueMechanostrider = 8595;
+		private const int ItemId_WhiteRam = 5873;
+		private const int ItemId_ReinsOfTheStripedNightsaber = 8629;
+		private const int ItemId_BrownElekk = 28481;
+		private const int ItemId_SnowyGryphon = 25472;
+
+		private const int MobId_InnkeeperAllison = 6740;
+		private const int MobId_RandalHunter = 4732;
+		private const int MobId_KatieHunter = 384;
+		private const int MobId_MeiLin = 70296;
+		private const int MobId_OldWhitenose = 65068;
+		private const int MobId_BinjyFeatherwhistle = 7954;
+		private const int MobId_MilliFeatherwhistle = 7955;
+		private const int MobId_UlthamIronhorn = 4772;
+		private const int MobId_VeronAmberstill = 1261;
+		private const int MobId_Jartsam = 4753;
+		private const int MobId_Lelanai = 4730;
+		private const int MobId_Aalun = 20914;
+		private const int MobId_ToralliusThePackHandler = 17584;
+		private const int MobId_GrundaBronzewing = 35101;
+		private const int MobId_TannecStonebeak = 43768;
+
+		private const int GameObjectId_Ship_TheBravery = 176310;
+		private const int GameObjectId_PortalToExodar = 207995; 
+
+		private readonly WoWPoint _stormwindInnkeeperLoc = new WoWPoint(-8867.786, 673.6729, 97.90324);
+		private readonly WoWPoint _randalHunterLoc = new WoWPoint(-9442.742, -1390.666, 46.87045);
+		private readonly WoWPoint _katieHunterLoc = new WoWPoint(-9455.365, -1385.327, 47.12818);
+		private readonly WoWPoint _meiLinLoc = new WoWPoint(-8212.221, 547.569, 117.1947);
+		private readonly WoWPoint _oldWhitenoseLoc = new WoWPoint(-8209.379, 546.0261, 117.7684);
+		private readonly WoWPoint _binjyFeatherwhistleLoc = new WoWPoint(-5454.171, -621.048, 393.3968);
+		private readonly WoWPoint _milliFeatherwhistleLoc = new WoWPoint(-5454.171, -621.048, 393.3968);
+		private readonly WoWPoint _ulthamIronhornLoc = new WoWPoint(-5524.354, -1349.868, 398.6641);
+		private readonly WoWPoint _veronAmberstillLoc = new WoWPoint(-5539.55, -1322.55, 398.8653);
+		private readonly WoWPoint _jartsamLoc = new WoWPoint(10129.78, 2526.595, 1324.828);
+		private readonly WoWPoint _lelanaiLoc = new WoWPoint(10129.91, 2533.245, 1323.271);
+		private readonly WoWPoint _aalunLoc = new WoWPoint(-3981.769, -11929.14, -0.2419412);
+		private readonly WoWPoint _toralliusThePackHandlerLoc = new WoWPoint(-3981.769, -11929.14, -0.2419412);
+		private readonly WoWPoint _grundaBronzewingLoc = new WoWPoint(-674.4774,2743.128,93.9173);
+		private readonly WoWPoint _tannecStonebeakLoc = new WoWPoint(-8829.18,482.34,109.616);
+
+		private readonly WoWPoint _theBraveryStartLoc = new WoWPoint(-8650.719, 1346.051, -0.0382334);
+		private readonly WoWPoint _theBraveryEndLoc = new WoWPoint(8162.587, 1005.365, 0.0474023);
+		private readonly WoWPoint _theBraveryWaitAtLoc = new WoWPoint(-8640.556, 1330.829, 5.233207);
+		private readonly WoWPoint _theBraveryStandAtLoc = new WoWPoint(-8644.952, 1348.11, 6.143094);
+		private readonly WoWPoint _theBraveryGetOffAtLoc = new WoWPoint(8177.54, 1003.079, 6.646164);
+
+		private readonly WoWPoint _exodarPortalLoc = new WoWPoint(9655.252, 2509.33, 1331.598);
+
+		private async Task<bool> PurchaseGroundMount_Alliance()
+		{
+			if (Me.HearthstoneAreaId != AreaId_StormwindInnkeeper)
+			{
+				TreeRoot.StatusText = "Moving to set hearth at SW Innkeeper";
+				await UtilityCoroutine.Gossip(MobId_InnkeeperAllison, _stormwindInnkeeperLoc);
+				return true;
+			}
+			switch (Me.Race)
+			{
+				case WoWRace.Human:
+					return await TurninQuestAndBuyMount(
+								MobId_RandalHunter,
+								_randalHunterLoc,
+								QuestId_LearnToRide_Human,
+								MobId_KatieHunter,
+								_katieHunterLoc,
+								ItemId_PintoBridle);
+				case WoWRace.Pandaren:
+					return await TurninQuestAndBuyMount(
+								MobId_MeiLin,
+								_meiLinLoc,
+								QuestId_LearnToRide_Pandaren,
+								MobId_OldWhitenose,
+								_oldWhitenoseLoc,
+								ItemId_ReinsoftheBlackDragonTurtle);
+				case WoWRace.Gnome:
+					return await TurninQuestAndBuyMount(
+								MobId_BinjyFeatherwhistle,
+								_binjyFeatherwhistleLoc,
+								QuestId_LearnToRide_Gnome,
+								MobId_MilliFeatherwhistle,
+								_milliFeatherwhistleLoc,
+								ItemId_BlueMechanostrider);
+				case WoWRace.Dwarf:
+					return await TurninQuestAndBuyMount(
+								MobId_UlthamIronhorn,
+								_ulthamIronhornLoc,
+								QuestId_LearnToRide_Dwarf,
+								MobId_VeronAmberstill,
+								_veronAmberstillLoc,
+								ItemId_WhiteRam);
+				case WoWRace.NightElf:
+					if (Me.MapId == 0)
+					{
+						return await UtilityCoroutine.UseTransport(
+									GameObjectId_Ship_TheBravery,
+									_theBraveryStartLoc,
+									_theBraveryEndLoc,
+									_theBraveryWaitAtLoc,
+									_theBraveryStandAtLoc,
+									_theBraveryGetOffAtLoc);
+					}
+
+					if (Me.MapId != 1)
+						return false;
+				
+					return await TurninQuestAndBuyMount(
+								MobId_Jartsam,
+								_jartsamLoc,
+								QuestId_LearnToRide_NightElf,
+								MobId_Lelanai,
+								_lelanaiLoc,
+								ItemId_ReinsOfTheStripedNightsaber);
+
+				case WoWRace.Draenei:
+					if (Me.MapId == 0)
+					{
+						return await UtilityCoroutine.UseTransport(
+									GameObjectId_Ship_TheBravery,
+									_theBraveryStartLoc,
+									_theBraveryEndLoc,
+									_theBraveryWaitAtLoc,
+									_theBraveryStandAtLoc,
+									_theBraveryGetOffAtLoc);
+					}
+
+					// port over to Exodar
+					if (Me.MapId == 1 && Me.ZoneId != 3557)
+					{
+						var portal = ObjectManager.GetObjectsOfType<WoWGameObject>()
+							.FirstOrDefault(g => g.Entry == GameObjectId_PortalToExodar);
+
+						if (portal == null || !portal.WithinInteractRange)
+							return await (UtilityCoroutine.MoveTo(portal != null ? portal.Location : _exodarPortalLoc, "Exodar portal"));
+
+						portal.Interact();
+						await CommonCoroutines.SleepForLagDuration();
+						return true;
+					}
+					if (Me.ZoneId != 3557)
+						return false;
+
+					// Turnin the 'Learn To Ride At The Exodar' quest if in log
+					if (ProfileHelpers.HasQuest(QuestId_LearnToRideAtTheExodar) && ProfileHelpers.IsQuestCompleted(QuestId_LearnToRideAtTheExodar))
+						return await UtilityCoroutine.TurninQuest(MobId_Aalun, _aalunLoc, QuestId_LearnToRideAtTheExodar);
+
+					return await TurninQuestAndBuyMount(
+						MobId_Aalun,
+						_aalunLoc,
+						QuestId_LearnToRide_Draenei,
+						MobId_ToralliusThePackHandler,
+						_toralliusThePackHandlerLoc,
+						ItemId_BrownElekk);
+			}
+
+			return false;
+		}
+
+		private async Task<bool> PurchaseFlyingMount_Alliance()
+		{
+			if (Me.MapId == 530)
+				return await BuyMount(MobId_GrundaBronzewing, _grundaBronzewingLoc, ItemId_SnowyGryphon);
+			
+			if (Me.MapId == 0)
+				return await BuyMount(MobId_TannecStonebeak, _tannecStonebeakLoc, ItemId_SnowyGryphon);
+
+			return false;
+		}
+
+		#endregion
+
+		#region Horde
+		private const int QuestId_LearnToRide_Undead = 32672;
+		private const int QuestId_LearnToRide_HordePanda = 32667;
+
+		private const int AreaId_OrgrimmarInnkeeper = 5170;
+		private const int ZoneId_SilverMoonCity = 3487;
+		private const int ZoneId_EversongWoods = 3430;
+
+		private const int MobId_InnkeeperGryshka = 6929;
+		private const int MobId_OgunaroWolfrunner = 3362;
+		private const int MobId_KallWorthaton = 48510;
+		private const int MobId_Zjolnir = 7952;
+		private const int MobId_HarbClawhoof = 3685;
+		private const int MobId_ZachariahPost = 4731;
+		private const int MobId_Winaestra = 16264;
+		private const int MobId_VelmaWarnam = 4773;
+		private const int MobId_Softpaws = 70301;
+		private const int MobId_TurtlemasterOdai = 66022;
+		private const int MobId_BanaWildmane = 35099;
+		private const int MobId_Drakma = 44918;
+
+		private const int ItemId_HornOfTheDireWolf = 5665;
+		private const int ItemId_GoblinTrikeKey = 62461;
+		private const int ItemId_WhistleOfTheEmeraldRaptor = 8588;
+		private const int ItemId_GrayKodo = 15277;
+		private const int ItemId_BlackSkeletalHorse = 46308;
+		private const int ItemId_BlackHawkstrider = 29221;
+		private const int ItemId_ReinsOfTheGreenDragonTurtle = 91004;
+		private const int ItemId_TawnyWindRider = 25474;
+
+		private readonly WoWPoint _orgrimmarInnkeeperLoc = new WoWPoint(1573.266, -4439.158, 16.05631);
+		private readonly WoWPoint _ogunaroWolfrunnerLoc = new WoWPoint(2076.602, -4568.632, 49.25319);
+		private readonly WoWPoint _kallWorthatonLoc = new WoWPoint(1475.32, -4140.98, 52.51);
+		private readonly WoWPoint _zjolnirLoc = new WoWPoint(-852.78, -4885.40, 22.03);
+		private readonly WoWPoint _harbClawhoofLoc = new WoWPoint(-2279.796, -392.0697, -9.396863);
+		private readonly WoWPoint _zachariahPostLoc = new WoWPoint(2275.08, 237.00, 33.69);
+		private readonly WoWPoint _winaestraLoc = new WoWPoint(9244.59, -7491.566, 36.91401);
+		private readonly WoWPoint _velmaWarnamLoc = new WoWPoint(2275.08, 236.997, 33.69074);
+		private readonly WoWPoint _softpawsLoc = new WoWPoint(2010.891, -4722.866, 29.3442);
+		private readonly WoWPoint _turtlemasterOdaiLoc = new WoWPoint(2009.267, -4721.249, 29.51483);
+		private readonly WoWPoint _banaWildmaneLoc = new WoWPoint(47.76153, 2742.022, 85.27119);
+		private readonly WoWPoint _drakmaLoc = new WoWPoint(1806.94, -4340.67, 102.0506);
+
+		private readonly WoWPoint _theThundercallerStartLoc = new WoWPoint(1833.509, -4391.543, 152.7679);
+		private readonly WoWPoint _theThundercallerEndLoc = new WoWPoint(2062.376, 292.998, 114.973);
+		private readonly WoWPoint _theThundercallerWaitAtLoc = new WoWPoint(1845.187, -4395.555, 135.2306);
+		private readonly WoWPoint _theThundercallerStandAtLoc = new WoWPoint(1835.509, -4385.785, 135.0436);
+		private readonly WoWPoint _theThundercallerGetOffAtLoc = new WoWPoint(2065.049, 283.1381, 97.03156);
+		private readonly WoWPoint _silvermoonCityPortalLoc = new WoWPoint(1805.877, 345.0006, 70.79002);
+
+		const int GameObjectId_Ship_TheThundercaller = 164871;
+		const uint GameObjectId_OrbofTranslocation = 184503;
+
+		private async Task<bool> PurchaseGroundMount_Horde()
+		{
+			if (Me.HearthstoneAreaId != AreaId_OrgrimmarInnkeeper)
+			{
+				TreeRoot.StatusText = "Moving to set hearth at Org Innkeeper";
+				await UtilityCoroutine.Gossip(MobId_InnkeeperGryshka, _orgrimmarInnkeeperLoc);
+				return true;
+			}
+
+			switch (Me.Race)
+			{
+				case WoWRace.Orc:
+					return await BuyMount(MobId_OgunaroWolfrunner, _ogunaroWolfrunnerLoc, ItemId_HornOfTheDireWolf);
+				case WoWRace.Goblin:
+					return await BuyMount(MobId_KallWorthaton, _kallWorthatonLoc, ItemId_GoblinTrikeKey);
+				case WoWRace.Troll:
+					return await BuyMount(MobId_Zjolnir, _zjolnirLoc, ItemId_WhistleOfTheEmeraldRaptor);
+				case WoWRace.Tauren:
+					return await BuyMount(MobId_HarbClawhoof, _harbClawhoofLoc, ItemId_GrayKodo);
+				case WoWRace.Pandaren:
+					return await TurninQuestAndBuyMount(
+						MobId_Softpaws,
+						_softpawsLoc,
+						QuestId_LearnToRide_HordePanda,
+						MobId_TurtlemasterOdai,
+						_turtlemasterOdaiLoc,
+						ItemId_ReinsOfTheGreenDragonTurtle);
+				case WoWRace.Undead:
+					if (Me.MapId == 1)
+					{
+						return await UtilityCoroutine.UseTransport(
+									GameObjectId_Ship_TheThundercaller,
+									_theThundercallerStartLoc,
+									_theThundercallerEndLoc,
+									_theThundercallerWaitAtLoc,
+									_theThundercallerStandAtLoc,
+									_theThundercallerGetOffAtLoc);
+					}
+
+					if (Me.MapId != 0)
+						return false;
+
+					return await TurninQuestAndBuyMount(
+								MobId_VelmaWarnam,
+								_velmaWarnamLoc,
+								QuestId_LearnToRide_Undead,
+								MobId_ZachariahPost,
+								_zachariahPostLoc,
+								ItemId_BlackSkeletalHorse);
+				case WoWRace.BloodElf:
+					if (Me.MapId == 1)
+					{
+						return await UtilityCoroutine.UseTransport(
+									GameObjectId_Ship_TheThundercaller,
+									_theThundercallerStartLoc,
+									_theThundercallerEndLoc,
+									_theThundercallerWaitAtLoc,
+									_theThundercallerStandAtLoc,
+									_theThundercallerGetOffAtLoc);
+					}
+
+					if (Me.MapId == 0)
+					{
+						var portal = ObjectManager.GetObjectsOfType<WoWGameObject>()
+							.FirstOrDefault(g => g.Entry == GameObjectId_OrbofTranslocation);
+
+						if (portal == null || !portal.WithinInteractRange)
+							return await (UtilityCoroutine.MoveTo(portal != null ? portal.Location : _silvermoonCityPortalLoc, "Silvermoon City portal"));
+
+						await CommonCoroutines.StopMoving();
+						portal.Interact();
+						await Coroutine.Sleep(3000);
+						return true;
+					}
+
+					if (Me.ZoneId != ZoneId_SilverMoonCity && Me.ZoneId != ZoneId_EversongWoods)
+						return false;
+
+					return await BuyMount(MobId_Winaestra, _winaestraLoc, ItemId_BlackHawkstrider);
+			}
+
+			return false;
+		}
+
+		private async Task<bool> PurchaseFlyingMount_Horde()
+		{
+			if (Me.MapId == 530)
+				return await BuyMount(MobId_BanaWildmane, _banaWildmaneLoc, ItemId_TawnyWindRider);
+
+			if (Me.MapId == 1)
+				return await BuyMount(MobId_Drakma, _drakmaLoc, ItemId_TawnyWindRider);
+
+			return false;
+		}
+
+		#endregion
+
+		#endregion
+
+		#region Utility
+
+		private async Task<bool> TurninQuestAndBuyMount(
+			int turninId,
+			WoWPoint turninLoc,
+			uint questId,
+			int vendorId,
+			WoWPoint vendorLocation,
+			int itemId)
+		{
+			// Turnin the 'Learn to Ride' quest if in log
+			if (ProfileHelpers.HasQuest(questId))
+				return await UtilityCoroutine.TurninQuest(turninId, turninLoc, questId);
+
+			// buy the mount
+			return await BuyMount(vendorId, vendorLocation, itemId);
+		}
+
+		private async Task<bool> TrainMount()
+		{
+			if (!TrainInOutland && !TrainInOldWorld)
+				return false;
+
+			var trainerId = GetTrainerId();
+			if (trainerId == 0)
+				return false;
+
+			var trainer =  ObjectManager.GetObjectsOfType<WoWUnit>()
+								 .Where(u => u.Entry == trainerId && !u.IsDead)
+								 .OrderBy(u => u.DistanceSqr).FirstOrDefault();
+			WoWPoint trainerLoc;
+			string trainerName;
+			if (trainer == null)
+			{
+				var traderEntry = Styx.CommonBot.ObjectDatabase.Query.GetNpcById((uint) trainerId);
+				if (traderEntry == null)
+					return false;
+				trainerLoc = traderEntry.Location;
+				trainerName = traderEntry.Name;
+			}
+			else
+			{
+				trainerLoc = trainer.Location;
+				trainerName = trainer.SafeName;
+			}
+
+			if (trainer == null || !trainer.WithinInteractRange)
+				return (await UtilityCoroutine.MoveTo(trainerLoc, trainerName));
+
+			if (!TrainerFrame.Instance.IsVisible)
+			{
+				trainer.Interact();
+				await CommonCoroutines.SleepForLagDuration();
+				return false;
+			}
+
+			TrainerFrame.Instance.BuyAll();
+			await CommonCoroutines.SleepForRandomUiInteractionTime();
+			return true;
+		}
+
+		private async Task<bool> BuyMount(int vendorId, WoWPoint vendorLocation, int itemId)
+		{
+			var item = Me.BagItems.FirstOrDefault(i => i.Entry == itemId);
+
+			if (item == null)
+			{
+				return await UtilityCoroutine.BuyItem(
+							vendorId,
+							vendorLocation,
+							itemId,
+							1,
+							noVendorFrameAction: () => QBCLog.Fatal("Npc ({0}) does not offer a vendor frame", vendorId),
+							itemNotFoundAction: () => QBCLog.Fatal("Npc ({0}) does not sell the item with ID: {1}", vendorId, itemId),
+							insufficientFundsAction: () => QBCLog.Fatal("Toon does not have enough funds to buy {0} from {1}", itemId, vendorId));
+			}
+			item.Use();
+			_purchasedMountTimer.Reset();
+			await CommonCoroutines.SleepForRandomUiInteractionTime();
+			return true;
+		}
 
 		#endregion
 	}

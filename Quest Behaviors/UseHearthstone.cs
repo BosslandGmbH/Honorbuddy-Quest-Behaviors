@@ -130,12 +130,6 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 		public bool WaitOnCd { get; private set; }
 		public bool UseGarrisonHearthstone { get; private set; }
 
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
-
-		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 		private int _retries;
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 
@@ -158,98 +152,37 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 		}
 		#endregion
 
-		private const int ItemId_HearthStoneId = 6948;
-		private const int ItemId_TheInnkeepersDaughter = 64488;
-		private const int ItemId_GarrisonHearthStoneId = 110560;
 		private const int MaxRetries = 5;
 
 		private async Task<bool> MainBehavior()
 		{
+			QBCLog.Info("Using hearthstone; {0} out of {1} tries", ++_retries, MaxRetries);
+			bool onCooldown = false;
+	        await UtilityCoroutine.UseHearthStone(
+						UseGarrisonHearthstone,
+						hearthOnCooldownAction: () => onCooldown = true,
+						hearthCastFailedAction: reason =>
+												{
+													QBCLog.Warning("Hearth failed. Reason: {0}", reason);
+													_retries++;
+												});
+
 			if (_retries >= MaxRetries)
 			{
 				BehaviorDone(string.Format("We have reached our max number of tries ({0}) without successfully hearthing", MaxRetries));
 				return true;
 			}
 
-			if (IsInHearthStoneArea)
+			if (onCooldown && WaitOnCd)
 			{
-				BehaviorDone("Toon is already in hearthstone area");
+				TreeRoot.StatusText = "Waiting for hearthstone cooldown";
 				return true;
 			}
 
-			var hearthStones = UseGarrisonHearthstone
-				?  GetHearthStonesByIds(ItemId_GarrisonHearthStoneId)
-				: GetHearthStonesByIds(ItemId_HearthStoneId, ItemId_TheInnkeepersDaughter);
-
-			if (!hearthStones.Any())
-			{
-				BehaviorDone("No hearthstones found in bag.");
-				return true;
-			}
-
-			if (!UseGarrisonHearthstone && Me.HearthstoneAreaId == 0)
-			{
-				// I can only see this occurring if using the Innkeeper's Daughter hearthtone since the normal hearthstone
-				// only shows up in bags if hearth has been set. 
-				QBCLog.DeveloperInfo("Hearth has not been set");
-				return true;
-			}
-
-			var usableHearthstone = hearthStones.FirstOrDefault(i => !i.Effects.First().Spell.Cooldown);
-			if (usableHearthstone == null)
-			{
-				if (WaitOnCd)
-				{
-					TreeRoot.StatusText = "Waiting for hearthstone cooldown";
-					return true;
-				}
-
-				BehaviorDone("Hearthstone is on cooldown");
-				return true;
-			}
-
-			if (await CommonCoroutines.LandAndDismount())
-				return true;
-
-			if (await CommonCoroutines.StopMoving())
-				return true;
-
-			var hearthstoneSpell = usableHearthstone.Effects.First().Spell;
-			using (var castMonitor = SpellCastMonitor.Start(hearthstoneSpell.Id))
-			{
-				TreeRoot.StatusText = string.Format("Using {0} with {1} out of {2} tries left", hearthstoneSpell.Name, ++_retries, MaxRetries);
-				usableHearthstone.UseContainerItem();
-				var castResult = await castMonitor.GetResult(12000);
-				if (castResult == SpellCastResult.Succeeded)
-				{
-					await Coroutine.Wait(2000, () => IsInHearthStoneArea);
-					BehaviorDone("Successfully casted Hearthstone");
-					return true;
-				}
-
-				string reason = castResult == SpellCastResult.UnknownFail ? castMonitor.FailReason : castResult.ToString();
-
-				QBCLog.Warning("Cast of {0} failed. Reason: {1}", hearthstoneSpell.Name, reason);
-			}
-			return false;
+			BehaviorDone();
+			return true;
 		}
-
-		private bool IsInHearthStoneArea
-		{
-			get
-			{
-				if (UseGarrisonHearthstone)
-					return Me.CurrentMap.IsGarrison;
-
-				return Me.HearthstoneAreaId == Me.SubZoneId;
-			}
-		}
-
-		private List<WoWItem> GetHearthStonesByIds(params uint[] hearthstoneIds)
-		{
-			return Me.BagItems.Where(i => i != null && i.ItemInfo != null
-				&& hearthstoneIds.Contains(i.Entry)).ToList();
-		}
+	
 	}
 }
 
