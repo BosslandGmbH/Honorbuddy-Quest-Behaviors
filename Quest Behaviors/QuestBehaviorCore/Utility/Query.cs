@@ -35,6 +35,31 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public static class Query
     {
+	    /// <summary>Determines if toon is within a tolerable proximity of <paramref name="location" />.</summary>
+	    /// <param name="location">The location.</param>
+		/// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
+		/// <returns></returns>
+	    public static bool AtLocation(WoWPoint location, float? tolerance)
+		{
+			return AtLocation((WoWMovement.ActiveMover ?? StyxWoW.Me).Location, location, tolerance);
+		}
+
+	    /// <summary>Determines whether <paramref name="myLoc" /> is within a tolerable proximity of <paramref name="location" />.</summary>
+	    /// <param name="myLoc">My loc.</param>
+	    /// <param name="location">The location.</param>
+	    /// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
+	    /// <returns></returns>
+	    public static bool AtLocation(WoWPoint myLoc, WoWPoint location, float? tolerance)
+	    {
+		    var tol = tolerance ?? Navigator.PathPrecision;
+			// We are checking if point is in an upright cylinder whose center is positioned at 'location', 
+			// radius set to 'tolerance' and height set to max(4.5, 'tolerance') x 2.
+			// This is the most suitable method when using mesh navigation because the mesh is often above or below the 
+			// actual ingame terrain so there's a need to clamp the tolerance along the Z axis to an amount that 
+			// is greater then the maximum terrain/mesh Z coord difference
+			return myLoc.Distance2DSqr(location) <= tol * tol && Math.Abs(myLoc.Z - location.Z) <= Math.Max(4.5f, tol);  
+	    }
+
         public static IEnumerable<Blackspot> FindCoveringBlackspots(WoWPoint location)
         {
             return

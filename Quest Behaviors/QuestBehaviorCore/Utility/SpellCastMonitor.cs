@@ -35,6 +35,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				"return args[4] == UnitGUID('player') and (args[2] == 'SPELL_MISSED' or args[2] == 'SPELL_CAST_FAILED')");
 
 			Lua.Events.AttachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
+			Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", UnitSpellcastInterruptedHandler);
 		}
 
 		/// <summary>
@@ -104,6 +105,16 @@ namespace Honorbuddy.QuestBehaviorCore
 
 		private void UnitSpellcastSucceededHandler(object sender, LuaEventArgs args)
 		{
+			UnitSpellcastHandler(args, SpellCastResult.Succeeded);
+		}
+
+		private void UnitSpellcastInterruptedHandler(object sender, LuaEventArgs args)
+		{
+			UnitSpellcastHandler(args, SpellCastResult.Interrupted);
+		}
+
+		private void UnitSpellcastHandler(LuaEventArgs args, SpellCastResult result)
+		{
 			if (HasResult)
 				return;
 
@@ -112,13 +123,13 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			if (SpellId.HasValue)
 			{
-				var spellId = (int) (double) args.Args[4];
+				var spellId = (int)(double)args.Args[4];
 				if (spellId != SpellId.Value)
 					return;
 			}
 
-			Result = SpellCastResult.Succeeded;
-			HasResult = true;			
+			Result = result;
+			HasResult = true;
 		}
 
 		#endregion
@@ -155,6 +166,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		{
 			Lua.Events.DetachEvent("COMBAT_LOG_EVENT_UNFILTERED", CombatLogEventUnfilteredHandler);
 			Lua.Events.DetachEvent("UNIT_SPELLCAST_SUCCEEDED", UnitSpellcastSucceededHandler);
+			Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", UnitSpellcastInterruptedHandler);
 		}
 
 		#endregion

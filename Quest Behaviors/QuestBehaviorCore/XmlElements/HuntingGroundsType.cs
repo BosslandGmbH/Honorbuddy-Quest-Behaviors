@@ -215,7 +215,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 			// If we haven't arrived at the current waypoint, still use it...
 			var currentWaypoint = FindWaypointAtIndex(_indexOfCurrentWaypoint);
-			if (currentLocation.Value.Distance(currentWaypoint.Location) >= currentWaypoint.ArrivalTolerance)
+			if (!Query.AtLocation(currentLocation.Value, currentWaypoint.Location, (float)currentWaypoint.ArrivalTolerance))
 				return currentWaypoint;
 
 			// Otherwise, find next waypoint index, and return new waypoint...
