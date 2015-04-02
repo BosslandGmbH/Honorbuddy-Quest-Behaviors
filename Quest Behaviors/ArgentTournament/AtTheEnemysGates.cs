@@ -285,7 +285,7 @@ namespace Styx.Bot.Quest_Behaviors
 																		 if (Me.CurrentTarget.Entry == 33550)
 																		 {
 
-																			 if (Me.CurrentTarget.Distance2D < 7)
+																			 if (Me.CurrentTarget.Distance2D < 10)
 																			 {
 																				 //WoWMovement.MoveStop();
 																				 //WoWMovement.StopFace();
@@ -293,6 +293,7 @@ namespace Styx.Bot.Quest_Behaviors
 																				 WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
 																				 Me.CurrentTarget.Face();
 																				 UsePetSkill("Shield-Breaker");
+																				 UsePetSkill("Thrust");
 																			 }
 																			 else if (Me.CurrentTarget.Distance2D < 20)
 																			 {
@@ -300,7 +301,7 @@ namespace Styx.Bot.Quest_Behaviors
 																				 //WoWMovement.StopFace();
 																				 WoWMovement.ClickToMove(Me.Location);
 																				 Me.CurrentTarget.Face();
-																				 UsePetSkill("Shield-Breaker");
+																				 UsePetSkill("Shield-Breaker");		
 																			 }
 																			 else
 																			 {

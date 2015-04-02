@@ -58,6 +58,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms.VisualStyles;
 using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -216,7 +217,17 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.FlyingVehicle
 				return false;
 
 			if (!Query.IsInVehicle())
+			{
+				// Enable combat while not in a vehicle
+				if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0)
+					LevelBot.BehaviorFlags |= BehaviorFlags.Combat;
+
 				return await GetInVehicleLogic();
+			}
+
+			// Disable combat while in a vehicle
+			if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0)
+				LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
 
 			var vehicleLoc = Vehicle.Location;
 			var target = FindTarget(vehicleLoc);

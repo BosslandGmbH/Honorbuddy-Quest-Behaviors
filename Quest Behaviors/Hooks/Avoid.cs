@@ -175,6 +175,7 @@ using Styx.CommonBot;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Profiles.Quest.Order;
+using Styx.CommonBot.Routines;
 using Styx.Pathing;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -372,8 +373,14 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> HookHandler()
         {
-            // prevent Combat Routine from getting called when running out of bad stuff since it might resist.
-            if (AvoidanceManager.IsRunningOutOfAvoid)
+	        var supportsCapabilities = RoutineManager.Current.SupportedCapabilities != CapabilityFlags.None;
+
+            // Prevent Combat Routine from getting called when running out of bad stuff and CR doesn't use 
+			// the CombatRoutine Capabilities since it might resist.
+			// The AvoidanceManager will disallow the Movement capability when running out of bad stuff.
+			// For more info on CombatRoutine Capabilities see http://wiki.thebuddyforum.com/index.php?title=Honorbuddy:Developer_Notebook:Combat_Routine_Capabilities
+
+			if (AvoidanceManager.IsRunningOutOfAvoid && !supportsCapabilities)
                 return true;
             
             // Special case: Bot will do a lot of fast stop n go when avoiding a mob that moves slowly and trying to

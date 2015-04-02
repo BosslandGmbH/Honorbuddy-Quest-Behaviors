@@ -73,7 +73,7 @@ namespace Styx.Bot.Quest_Behaviors
 			}
 		}
 
-		uint[] Mounts = new uint[]{33798,33796,33799,33842,33791};
+		uint[] Mounts = new uint[] { 33798, 33796, 33799, 33842, 33791, 33792 };
 		private uint[] Enemy;// = new uint[] { 33384, 33306,33285,33382,33383};
 		private uint[] EnemyDebuff;// = new uint[] { 64816, 64811, 64812, 64813, 64815 };
 

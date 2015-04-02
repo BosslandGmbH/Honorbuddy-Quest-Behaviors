@@ -64,6 +64,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -227,12 +228,20 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 	                return false;
                 }
 
+				// enable combat while not in a vehicle
+				if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0)
+					LevelBot.BehaviorFlags |= BehaviorFlags.Combat;
+
                 return await UtilityCoroutine.MountVehicle(
                     VehicleSearchLocation,
                     MovementBy,
                     u => !Query.IsInCompetition(u, NonCompeteDistance),
                     VehicleId);
 			}
+
+			// Disable combat while in a vehicle
+			if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0)
+				LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
 
 			while (!IsDone && Query.IsInVehicle())
 			{

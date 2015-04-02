@@ -38,6 +38,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -125,6 +126,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 		private bool _isInitialized;
 		private int _pathIndex;
 		private Composite _root;
+		private BehaviorFlags _originalBehaviorFlags;
 
 		// Private properties
 		private int Counter { get; set; }
@@ -217,6 +219,14 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 
 							new Decorator(ret => !_isInitialized && VehicleType == 2,
 							new Action(ret => ParsePaths())),
+
+						// Enable combat while not in a vehicle
+						new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
+							new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
+
+						// Disable combat while in a vehicle
+						new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
+							new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
 
 						new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count == 0,
 							new Action(c =>
@@ -475,6 +485,7 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
         {
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
+			LevelBot.BehaviorFlags = _originalBehaviorFlags;
             base.OnFinished();
         }
 
@@ -493,6 +504,8 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 			// We had to defer this action, as the 'profile line number' is not available during the element's
 			// constructor call.
 			OnStart_HandleAttributeProblem();
+
+			_originalBehaviorFlags = LevelBot.BehaviorFlags;
 
 			// If the quest is complete, this behavior is already done...
 			// So we don't want to falsely inform the user of things that will be skipped.

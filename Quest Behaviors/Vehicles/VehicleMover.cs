@@ -156,7 +156,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
-
+using Bots.Grind;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -358,6 +358,14 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 							new Decorator(context => DidSuccessfullyMount && !IsInVehicle()
 														&& (WoWMovement.ActiveMover.Location.Distance(FinalDestination) < 15.0),
 								new Action(context => { BehaviorDone(); })),
+
+							// Enable combat while not in a vehicle
+							new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
+								new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
+
+							// Disable combat while in a vehicle
+							new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
+								new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
 
 							// If we're not in a vehicle, go fetch one...
 							new Decorator(context => !IsInVehicle() && Query.IsViable(VehicleUnoccupied),
