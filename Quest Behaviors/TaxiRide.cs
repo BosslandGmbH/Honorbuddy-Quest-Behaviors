@@ -70,9 +70,11 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Levelbot.Actions.General;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.Profiles;
@@ -158,6 +160,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
 		private int _tryNumber;
 		private Stopwatch _doingQuestTimer;
+		private Composite _taxiCheckHook;
 
 		#endregion
 
@@ -250,6 +253,11 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 			{
 				// QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
 				base.OnFinished();
+
+				if (_taxiCheckHook != null)
+					TreeHooks.Instance.RemoveHook("Taxi_Check", _taxiCheckHook);
+
+				_taxiCheckHook = null;
 				_isOnFinishedRun = true;
 			}
 		}
@@ -266,6 +274,9 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (!IsDone)
 			{
+				_taxiCheckHook = new ActionRunCoroutine(ctx => TaxiCheckHandler() );
+				TreeHooks.Instance.InsertHook("Taxi_Check", 0, _taxiCheckHook);
+
 				_doingQuestTimer = Stopwatch.StartNew();
 				this.UpdateGoalText(QuestId, "TaxiRide started");
 			}
@@ -273,6 +284,12 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 
 		#endregion
 
+		private async Task<bool> TaxiCheckHandler()
+		{
+			if (Me.OnTaxi)
+				_isBehaviorDone = true;
+			return false;
+		}
 
 		#region Helpers
 

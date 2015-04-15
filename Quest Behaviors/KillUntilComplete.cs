@@ -35,7 +35,7 @@
 // Tunables:
 //      ImmediatelySwitchToHighestPriorityTarget [optional; default: true]
 //          If a higher-priority target becomes available, the behavior will immediately switch
-//          to killing it, rather than waiting for the current mob to die.
+//          to killing it if toon is in combat, rather than waiting for the current mob to die
 //      WaitForNpcs [optional; Default: true]
 //          This value affects what happens if there are no MobIds in the immediate area.
 //          If true, the behavior will move to the next hunting ground waypoint, or if there
@@ -256,7 +256,7 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
         private async Task<bool> Coroutine_CombatMain()
         {
-            if (!_targetSwitchTimer.IsFinished || BotPoi.Current.Type != PoiType.Kill || !ImmediatelySwitchToHighestPriorityTarget)
+            if (!_targetSwitchTimer.IsFinished || BotPoi.Current.Type != PoiType.Kill || !ImmediatelySwitchToHighestPriorityTarget || !Me.Combat)
                 return false;
 
             var firstUnit = Targeting.Instance.FirstUnit;

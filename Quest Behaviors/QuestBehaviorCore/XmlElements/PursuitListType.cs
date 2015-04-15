@@ -161,14 +161,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 			{
 				if (pursueObject.Id != 0)
 					yield return Utility.GetObjectNameFromId(pursueObject.Id);
-
-				if (pursueObject is PursueObjectType<LocalPlayer>)
+				else if (pursueObject is PursueObjectType<LocalPlayer>)
 					yield return "Me";
-
-				if (pursueObject.PursueWhenDelayCompiledExpression != null)
+				else if (pursueObject.PursueWhenDelayCompiledExpression != null)
 					yield return pursueObject.PursueWhenDelayCompiledExpression.ExpressionString;
-
-				yield return "Unknown";
+				else 
+					yield return "Unknown";
 			}
 		}
 
