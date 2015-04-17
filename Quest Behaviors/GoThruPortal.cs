@@ -273,15 +273,13 @@ namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 				return true;
 
 			// Move to portal starting position...
-			if (await UtilityCoroutine.MoveTo(StartingPoint, "Portal", MovementBy))
-				return true;
-
-			// If we're not at StartingPoint then something seriously went wrong.
 			if (!Navigator.AtLocation(StartingPoint))
 			{
-				QBCLog.Fatal("Unable to Navigate to StartingPoint");
+				if (!await UtilityCoroutine.MoveTo(StartingPoint, "Portal", MovementBy))
+					QBCLog.Fatal("Unable to Navigate to StartingPoint");
 				return true;
 			}
+
 
 			if (await EnterPortal())
 				return true;

@@ -67,6 +67,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 		public double ArrivalTolerance { get; set; }
 		public double AllowedVariance { get; set; }
 
+	    public bool AtLocation(WoWPoint location)
+	    {
+		    return Query.AtLocation(location, Location, (float) ArrivalTolerance);
+	    }
+
         /// <summary>
         /// This is the original location with which the <see cref="WaypointType"/> was defined.
         /// This location is not affected by <see cref="AllowedVariance"/>.

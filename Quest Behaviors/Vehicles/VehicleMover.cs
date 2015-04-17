@@ -163,6 +163,7 @@ using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
+using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -407,11 +408,12 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 									 new Decorator(context => !DidSuccessfullyMount,
 										new Action(context => { DidSuccessfullyMount = true; })),
 
-                                    new ActionRunCoroutine(
-									    interactUnitContext => UtilityCoroutine.MoveTo(
-									        FinalDestination,
-									        FinalDestinationName,
-									        MovementBy)),
+									new Decorator(context => !Navigator.AtLocation(FinalDestination),
+										new ActionRunCoroutine(
+											interactUnitContext => UtilityCoroutine.MoveTo(
+												FinalDestination,
+												FinalDestinationName,
+												MovementBy))),
 
 									new Decorator(context => WoWMovement.ActiveMover.IsMoving,
 										new Action(context => { WoWMovement.MoveStop(); })),

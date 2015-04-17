@@ -281,8 +281,8 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 				}
 
 				// No vehicle found, move to staging area...
-				if (await UtilityCoroutine.MoveTo(VehicleStagingArea, "Vehicle Staging Area", MovementBy))
-				{return true;}
+				if (!Navigator.AtLocation(VehicleStagingArea))
+					return await UtilityCoroutine.MoveTo(VehicleStagingArea, "Vehicle Staging Area", MovementBy);
 
 				await (_updateUser_MountingVehicle_waitingForSpawn ?? (_updateUser_MountingVehicle_waitingForSpawn =
 					new ThrottleCoroutineTask(

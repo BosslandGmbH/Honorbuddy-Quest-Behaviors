@@ -286,11 +286,12 @@ namespace Honorbuddy.Quest_Behaviors.Uldum.Battlezone_24910
 						}),
 
 						// No vehicle found, move to staging area...
-						new ActionRunCoroutine(
-						    interactUnitContext => UtilityCoroutine.MoveTo(
-						        Location_VehicleStagingArea,
-						        "Vehicle Staging Area",
-                                MovementBy)),
+						new Decorator(ctx => !Navigator.AtLocation(Location_VehicleStagingArea),
+							new ActionRunCoroutine(
+								interactUnitContext => UtilityCoroutine.MoveTo(
+									Location_VehicleStagingArea,
+									"Vehicle Staging Area",
+									MovementBy))),
 
 						// Wait for vehicle to respawn...
 						new CompositeThrottle(Throttle.UserUpdate,

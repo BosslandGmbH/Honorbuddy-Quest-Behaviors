@@ -432,11 +432,12 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 								new ActionFail(context => { Utility.Target(Mob_ToMoveNear); }),
 
 								// Move to mob...
-                                new ActionRunCoroutine(
-                                    context => UtilityCoroutine.MoveTo(
-                                        Mob_ToMoveNear.Location,
-                                        Mob_ToMoveNear.SafeName, 
-                                        MovementBy))
+								new Decorator(ctx => !Navigator.AtLocation(Mob_ToMoveNear.Location),
+									new ActionRunCoroutine(
+										context => UtilityCoroutine.MoveTo(
+											Mob_ToMoveNear.Location,
+											Mob_ToMoveNear.SafeName, 
+											MovementBy)))
 							)),
 
 						// Need to wait for Mob to respawn...
@@ -448,7 +449,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.WaitForPatrol
 					)),
 
 				// No "Move Near" mob, so use the provided Safe spot coordinates...
-				new Decorator(context => MobIdToMoveNear <= 0,
+				new Decorator(context => MobIdToMoveNear <= 0 && !Navigator.AtLocation(SafespotLocation),
                     new ActionRunCoroutine(
                         context => UtilityCoroutine.MoveTo(
                             SafespotLocation,

@@ -77,42 +77,39 @@ namespace Honorbuddy.QuestBehaviorCore
 				TreeRoot.StatusText = "Moving to " + destinationName;
 			}
 
-			if (!Navigator.AtLocation(destination))
+			switch (movementBy)
 			{
-				switch (movementBy)
-				{
-					case MovementByType.FlightorPreferred:
-						if (await TryFlightor(destination))	
-							return true;
+				case MovementByType.FlightorPreferred:
+					if (await TryFlightor(destination))	
+						return true;
 
-						if (await TryNavigator(destination, destinationName))
-							return true;
+					if (await TryNavigator(destination, destinationName))
+						return true;
 
-						if (await TryClickToMove(destination, NavType.Fly))
-							return true;
-						break;
-					case MovementByType.NavigatorPreferred:
-						if (await TryNavigator(destination, destinationName))
-							return true;
+					if (await TryClickToMove(destination, NavType.Fly))
+						return true;
+					break;
+				case MovementByType.NavigatorPreferred:
+					if (await TryNavigator(destination, destinationName))
+						return true;
 
-						if (await TryClickToMove(destination, NavType.Run))
-							return true;
-						break;
-					case MovementByType.NavigatorOnly:
-						if (await TryNavigator(destination, destinationName))
-							return true;
-						break;
-					case MovementByType.ClickToMoveOnly:
-						var navType = activeMover.MovementInfo.CanFly ? NavType.Fly : NavType.Run;
-						if (await TryClickToMove(destination, navType))
-							return true;
-						break;
-					case MovementByType.None:
-						break;
-					default:
-						QBCLog.MaintenanceError("Unhandled MovementByType of {0}", movementBy);
-						break;
-				}
+					if (await TryClickToMove(destination, NavType.Run))
+						return true;
+					break;
+				case MovementByType.NavigatorOnly:
+					if (await TryNavigator(destination, destinationName))
+						return true;
+					break;
+				case MovementByType.ClickToMoveOnly:
+					var navType = activeMover.MovementInfo.CanFly ? NavType.Fly : NavType.Run;
+					if (await TryClickToMove(destination, navType))
+						return true;
+					break;
+				case MovementByType.None:
+					break;
+				default:
+					QBCLog.MaintenanceError("Unhandled MovementByType of {0}", movementBy);
+					break;
 			}
 			return false;
 		}
@@ -225,16 +222,23 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			public override async Task<bool> Run()
 			{
+				var huntingGrounds = HuntingGroundsProvider();
+				
+				// Only one hunting ground waypoint to move to and at that waywpoint?
+				if (huntingGrounds.Waypoints.Count == 1 && huntingGrounds.CurrentWaypoint().AtLocation(WoWMovement.ActiveMover.Location))
+				{
+					await (_messageThrottle ?? (_messageThrottle = new ThrottleCoroutineTask(TimeSpan.FromSeconds(10), LogMessage)));
+
+					// Terminate of no targets available?
+					if (TerminateBehaviorIfNoTargetsProvider != null)
+						TerminateBehaviorIfNoTargetsProvider();
+					return false;
+				}
+
 				// Move to next hunting ground waypoint...
-				if (await MoveTo(HuntingGroundsProvider(), MovementByDelegate()))
+				if (await MoveTo(huntingGrounds, MovementByDelegate()))
 					return true;
 
-				// Only one hunting ground waypoint to move to?
-				await (_messageThrottle ?? (_messageThrottle = new ThrottleCoroutineTask(TimeSpan.FromSeconds(10), LogMessage)));
-
-				// Terminate of no targets available?
-				if (TerminateBehaviorIfNoTargetsProvider != null)
-					TerminateBehaviorIfNoTargetsProvider();
 
 				return false;
 			}

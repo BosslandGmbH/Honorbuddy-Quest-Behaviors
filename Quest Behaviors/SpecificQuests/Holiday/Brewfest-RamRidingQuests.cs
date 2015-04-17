@@ -605,8 +605,8 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                     return true;
                 }
 
-                if (await UtilityCoroutine.MoveTo(questGiver.Location, questGiver.Name))
-                    return true;
+	            if (!Navigator.AtLocation(questGiver.Location))
+		            return await UtilityCoroutine.MoveTo(questGiver.Location, questGiver.Name);
 
                 await ScriptHelpers.PickupQuest(questGiver, (uint) QuestId);
                 await Coroutine.Wait(Delay.LagDuration, () => HasQuest(QuestId));
