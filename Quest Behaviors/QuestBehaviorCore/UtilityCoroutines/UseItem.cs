@@ -93,36 +93,46 @@ namespace Honorbuddy.QuestBehaviorCore
 			QBCLog.DeveloperInfo("Attempting use of '{0}'", itemName);
 
 			// Set up 'interrupted use' detection, and use item...
-			// MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
-			// Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
-			// UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
-			InterruptDetection_Hook();
-			IsInterrupted = false;
-			itemToUse.Use();
-
-			// NB: The target or the item may not be valid after this point...
-			// Some targets will go 'invalid' immediately afer interacting with them.
-			// Most of the time this happens, the target is immediately and invisibly replaced with
-			// an identical looking target with a different script.
-			// Some items are consumed when used.
-			// We must assume our target and item is no longer available for use after this point.
-			await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
-
-			// Wait for any casting to complete...
-			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
-			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
-			InterruptDectection_Unhook();
-
-			if (IsInterrupted)
+			using (var castMonitor = SpellCastMonitor.Start(null))
 			{
-				QBCLog.Warning("Use of {0} interrupted.", itemName);
-				// Give whatever issue encountered a chance to settle...
-				// NB: --we want the Sequence to fail when delay completes.
-				await Coroutine.Sleep(1500);
-				if (actionOnFailedItemUseDelegate != null)
-					{ actionOnFailedItemUseDelegate(); }
-				return false;
+				itemToUse.Use();
+				// NB: The target or the item may not be valid after this point...
+				// Some targets will go 'invalid' immediately afer interacting with them.
+				// Most of the time this happens, the target is immediately and invisibly replaced with
+				// an identical looking target with a different script.
+				// Some items are consumed when used.
+				// We must assume our target and item is no longer available for use after this point.
+				await Coroutine.Sleep((int)Delay.AfterItemUse.TotalMilliseconds);
+
+				// Wait for any casting to complete...
+				// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+				// NB: We can't test for IsCasting or IsChanneling--we must instead look for a valid spell being cast.
+				//      There are some quests that require actions where the WoWclient returns 'true' for IsCasting,
+				//      but there is no valid spell being cast.  We want the behavior to move on immediately in these
+				//      conditions.  An example of such an interaction is removing 'tangler' vines in the Tillers
+				//      daily quest area.
+				var castResult = await castMonitor.GetResult();
+
+				if (castResult != SpellCastResult.Succeeded && castResult != SpellCastResult.NoCastStarted)
+				{
+					string reason = castResult == SpellCastResult.UnknownFail ? castMonitor.FailReason : castResult.ToString();
+
+					QBCLog.Warning("Use of {0} interrupted. Reason: {1}", itemName, reason);
+					// Give whatever issue encountered a chance to settle...
+					// NB: --we want the Sequence to fail when delay completes.
+					if (castResult != SpellCastResult.LineOfSight
+						&& castResult != SpellCastResult.OutOfRange
+						&& castResult != SpellCastResult.TooClose)
+					{
+						await Coroutine.Sleep(1500);
+					}
+
+					if (actionOnFailedItemUseDelegate != null)
+						actionOnFailedItemUseDelegate();
+					return false;
+				}
 			}
+
 			QBCLog.DeveloperInfo("Use of '{0}' succeeded.", itemName);
 
 			if (actionOnSuccessfulItemUseDelegate != null)
@@ -248,34 +258,50 @@ namespace Honorbuddy.QuestBehaviorCore
 			// MAINTAINER'S NOTE: Once these handlers are installed, make sure all possible exit paths from the outer
 			// Sequence unhook these handlers.  I.e., if you plan on returning RunStatus.Failure, be sure to call
 			// UtilityBehaviorSeq_UseItemOn_HandlersUnhook() first.
-			InterruptDetection_Hook();
-			IsInterrupted = false;
-			itemToUse.Use(selectedTarget.Guid);
 
-			// NB: The target or the item may not be valid after this point...
-			// Some targets will go 'invalid' immediately afer interacting with them.
-			// Most of the time this happens, the target is immediately and invisibly replaced with
-			// an identical looking target with a different script.
-			// Some items are consumed when used.
-			// We must assume our target and item is no longer available for use after this point.
-			await Coroutine.Sleep((int) Delay.AfterItemUse.TotalMilliseconds);
-
-			await CastPendingSpell(selectedTarget);
-
-			// Wait for any casting to complete...
-			// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
-			await Coroutine.Wait(15000, () => !(Me.IsCasting || Me.IsChanneling));
-			InterruptDectection_Unhook();
-
-			if (IsInterrupted)
+			// Set up 'interrupted use' detection, and use item...
+			using (var castMonitor = SpellCastMonitor.Start(null))
 			{
-				QBCLog.Warning("Use of {0} interrupted.", itemName);
-				// Give whatever issue encountered a chance to settle...
-				// NB: --we want the Sequence to fail when delay completes.
-				await Coroutine.Sleep(1500);
-				if (actionOnFailedItemUseDelegate != null)
-					{ actionOnFailedItemUseDelegate(); }
-				return false;
+				itemToUse.Use(selectedTarget.Guid);
+
+				// NB: The target or the item may not be valid after this point...
+				// Some targets will go 'invalid' immediately afer interacting with them.
+				// Most of the time this happens, the target is immediately and invisibly replaced with
+				// an identical looking target with a different script.
+				// Some items are consumed when used.
+				// We must assume our target and item is no longer available for use after this point.
+				await Coroutine.Sleep((int) Delay.AfterItemUse.TotalMilliseconds);
+
+				await CastPendingSpell(selectedTarget);
+
+
+				// Wait for any casting to complete...
+				// NB: Some interactions or item usages take time, and the WoWclient models this as spellcasting.
+				// NB: We can't test for IsCasting or IsChanneling--we must instead look for a valid spell being cast.
+				//      There are some quests that require actions where the WoWclient returns 'true' for IsCasting,
+				//      but there is no valid spell being cast.  We want the behavior to move on immediately in these
+				//      conditions.  An example of such an interaction is removing 'tangler' vines in the Tillers
+				//      daily quest area.
+				var castResult = await castMonitor.GetResult();
+
+				if (castResult != SpellCastResult.Succeeded && castResult != SpellCastResult.NoCastStarted)
+				{
+					string reason = castResult == SpellCastResult.UnknownFail ? castMonitor.FailReason : castResult.ToString();
+
+					QBCLog.Warning("Use of {0} interrupted. Reason: {1}", itemName, reason);
+					// Give whatever issue encountered a chance to settle...
+					// NB: --we want the Sequence to fail when delay completes.
+					if (castResult != SpellCastResult.LineOfSight
+						&& castResult != SpellCastResult.OutOfRange
+						&& castResult != SpellCastResult.TooClose)
+					{
+						await Coroutine.Sleep(1500);
+					}
+
+					if (actionOnFailedItemUseDelegate != null)
+						actionOnFailedItemUseDelegate();
+					return false;
+				}
 			}
 
 			QBCLog.DeveloperInfo("Use of '{0}' on '{1}' succeeded.", itemName, targetName);

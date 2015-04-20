@@ -128,46 +128,6 @@ namespace Honorbuddy.QuestBehaviorCore
 			}
 		}
 
-		#region Legacy interruption detection. Remove once nothing uses this anymore.
-
-		// I realize this isn't thread safe but should not be a problem since behaviors are generally run on same thread..
-		// if it is a problem then we need to wrap CastSpell in a class instance
-		private static bool IsInterrupted { get; set; }
-
-		private static void InterruptDetection_Hook()
-		{
-			Lua.Events.AttachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
-			Lua.Events.AttachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);
-		}
-
-		private static void InterruptDectection_Unhook()
-		{
-			Lua.Events.DetachEvent("UNIT_SPELLCAST_FAILED", HandleInterrupted);
-			Lua.Events.DetachEvent("UNIT_SPELLCAST_INTERRUPTED", HandleInterrupted);
-		}
-
-		private static void HandleInterrupted(object sender, LuaEventArgs args)
-		{
-			var unitId = args.Args[0].ToString();
-
-			if (unitId != "player") return;
-			// If it was a channeled spell, and still casting
-
-			var spellName = args.Args[1].ToString();
-			//var rank = args.Args[2].ToString();
-			//var lineId = args.Args[3].ToString();
-			var spellId = args.Args[4].ToString();
-
-			QBCLog.DeveloperInfo(
-				"\"{0}\"({1}) interrupted via {2} Event.",
-				spellName,
-				spellId,
-				args.EventName);
-			IsInterrupted = true;
-		}
-
-		#endregion
-
 		public static async Task CastPendingSpell(WoWObject selectedTarget)
 		{
 			if (StyxWoW.Me.CurrentPendingCursorSpell != null)
