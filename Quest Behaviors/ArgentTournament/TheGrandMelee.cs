@@ -21,11 +21,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Helpers;
 using Styx.Pathing;
@@ -73,25 +74,42 @@ namespace Styx.Bot.Quest_Behaviors
 			}
 		}
 
-		uint[] Mounts = new uint[] { 33798, 33796, 33799, 33842, 33791, 33792 };
+		private HashSet<uint> MobIds_HordeMounts = new HashSet<uint> {33791, // Stabled Silvermoon Hawkstrider
+																		33792, // Stabled Thunder Bluff Kodo
+																		33796, // Stabled Darkspear Raptor
+																		33798, // Stabled Forsaken Warhorse
+																		33799, // Stabled Orgrimmar Wolf
+																		};
+
+		private HashSet<uint> MobIds_AllianceMounts = new HashSet<uint> {33790, // Stabled Exodar Elekk
+																			33793, // Stabled Gnomeregan Mechanostrider
+																			33794, // Stabled Darnassian Nightsaber
+																			33795, // Stabled Ironforge Ram
+																			33800, // Stabled Stormwind Steed
+																		};
+
+		private HashSet<uint> MobIds_NeutralMounts = new HashSet<uint> {33842, // Stabled Sunreaver Hawkstrider
+																		33843, // Stabled Quel'dorei Steed
+																		};
+
+
 		private uint[] Enemy;// = new uint[] { 33384, 33306,33285,33382,33383};
 		private uint[] EnemyDebuff;// = new uint[] { 64816, 64811, 64812, 64813, 64815 };
 
-		WoWItem HordeLance()
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46070);
-		}
-		WoWItem ArgentLance()
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46106);
-		}
+		private const uint ItemId_AllianceLance = 46069;
+		private const uint ItemId_HordeLance = 46070;
+		private const uint ItemId_ArgentLance = 46106;
+		private readonly HashSet<uint> ItemIds_Lances = new HashSet<uint> { ItemId_AllianceLance, ItemId_HordeLance, ItemId_ArgentLance };
 
-		WoWItem BestLance()
-		{
-			return HordeLance() ?? ArgentLance();
-		}
+		private WoWItem AllianceLance { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId_AllianceLance); } }
 
-		// Attributes provided by caller
+		private WoWItem HordeLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_HordeLance); } }
+
+		private WoWItem ArgentLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_ArgentLance); } }
+
+		private WoWItem BestLance { get { return (Me.IsHorde ? HordeLance : AllianceLance) ?? ArgentLance; } }
+
+	// Attributes provided by caller
 		public int QuestId { get; private set; }
 		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
 		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
@@ -122,11 +140,11 @@ namespace Styx.Bot.Quest_Behaviors
 					{
 						Lua.DoString("RunMacroText(\"/leavevehicle\")");
 
-						mainhand.UseContainerItem();
-						if (offhand != null)
-						{
-							offhand.UseContainerItem();
-						}
+						if (Query.IsViable(_mainhand) && Me.Inventory.Equipped.MainHand != _mainhand)
+							_mainhand.UseContainerItem();
+
+						if (Query.IsViable(_offhand) && Me.Inventory.Equipped.OffHand != _offhand)
+							_offhand.UseContainerItem();
 
 						TreeRoot.StatusText = "Finished!";
 						_isBehaviorDone = true;
@@ -146,14 +164,14 @@ namespace Styx.Bot.Quest_Behaviors
 			Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
 		}
 
-		WoWUnit Mount
+		private WoWUnit Mount { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(IsUsableMount); } }
+
+		private bool IsUsableMount(WoWUnit unit)
 		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(
-						x => Mounts.Contains(x.Entry) && x.NpcFlags == 16777216);
-			}
+			var isMount = (Me.IsHorde ? MobIds_HordeMounts.Contains(unit.Entry) : MobIds_AllianceMounts.Contains(unit.Entry)) 
+						  || MobIds_NeutralMounts.Contains(unit.Entry);
+
+			return isMount && unit.NpcFlags == 0x1000000;
 		}
 
 		//WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
@@ -193,7 +211,9 @@ namespace Styx.Bot.Quest_Behaviors
 		{
 			get
 			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => Debuffs.ContainsKey(x.Entry) && !Me.HasAura((int)Debuffs[x.Entry])).OrderBy(u=>u.Distance).FirstOrDefault();
+				return ObjectManager.GetObjectsOfType<WoWUnit>()
+					.Where(x => x.IsAlive && Debuffs.ContainsKey(x.Entry) && !Me.HasAura((int)Debuffs[x.Entry]))
+					.OrderBy(u=>u.DistanceSqr).FirstOrDefault();
 			}
 		}
 
@@ -231,73 +251,79 @@ namespace Styx.Bot.Quest_Behaviors
 
 
 
-		private Composite Fight
+		private async Task<bool> Fight()
 		{
-			get
+			if (!Me.Combat)
+				return false;
+			var currentTarget = Me.CurrentTarget;
+			if (currentTarget == null)
+				return false;
+
+			if (currentTarget.IsDead )
 			{
-				return
-					new Decorator(r => Me.Combat, new Action(r =>
-																 {
-
-
-																	 //Me.CurrentTarget.Face();
-																	 //if (Me.CurrentTarget.Distance > 10)
-																	 //   Navigator.MoveTo(Me.CurrentTarget.Location);
-
-																	 //var moveTo = WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, StyxWoW.Me.CurrentTarget.Location, -15f);
-																	 //var moveTo = WoWMathHelper.CalculatePointBehind(StyxWoW.Me.CurrentTarget.Location,Me.CurrentTarget.Rotation, -15f);
-																	 var moveTo = WoWMathHelper.CalculatePointAtSide(StyxWoW.Me.CurrentTarget.Location, Me.CurrentTarget.Rotation, 20f,false);
-																	 //var moveTo = WoWMathHelper.GetPointAt(Me.Location, 20,Me.Rotation,0);
-																	 if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
-																	 {
-																		
-																		 Navigator.MoveTo(moveTo);
-																	 }
-																	/* if (Me.CurrentTarget.Distance < 10)
-																	 {
-																		 Navigator.PlayerMover.Move(
-																			 WoWMovement.MovementDirection.Backwards);
-																	 }
-																	 else
-																	 {
-																		 Navigator.PlayerMover.MoveStop();
-																	 }*/
-
-
-																	 if (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 3))
-																	 {
-																		 //Me.CurrentTarget.Face();
-																		 UsePetSkill("Defend");
-																		 UsePetSkill("Charge");
-																	 }
-																	 else
-																	 {
-																		 if (Me.CurrentTarget.Distance > 8)
-																				Me.CurrentTarget.Face();
-																		 using (StyxWoW.Memory.AcquireFrame())
-																		 {
-																			 UsePetSkill("Thrust");
-																			 UsePetSkill("Charge");
-																			 UsePetSkill("Shield-Breaker");
-																		 }
-																	 }
-																 }
-						))
-
-
-
-					;
+				Me.ClearTarget();
+				return true;
 			}
+			//Me.CurrentTarget.Face();
+			//if (Me.CurrentTarget.Distance > 10)
+			//   Navigator.MoveTo(Me.CurrentTarget.Location);
+
+			//var moveTo = WoWMathHelper.CalculatePointFrom(StyxWoW.Me.Location, StyxWoW.Me.CurrentTarget.Location, -15f);
+			//var moveTo = WoWMathHelper.CalculatePointBehind(StyxWoW.Me.CurrentTarget.Location,Me.CurrentTarget.Rotation, -15f);
+			var moveTo = WoWMathHelper.CalculatePointAtSide(currentTarget.Location, Me.CurrentTarget.Rotation, 20f, false);
+			//var moveTo = WoWMathHelper.GetPointAt(Me.Location, 20,Me.Rotation,0);
+			if (Navigator.CanNavigateFully(StyxWoW.Me.Location, moveTo))
+			{
+																		
+				Navigator.MoveTo(moveTo);
+			}
+			/* if (Me.CurrentTarget.Distance < 10)
+			{
+				Navigator.PlayerMover.Move(
+					WoWMovement.MovementDirection.Backwards);
+			}
+			else
+			{
+				Navigator.PlayerMover.MoveStop();
+			}*/
+
+
+			if (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 3))
+			{
+				//Me.CurrentTarget.Face();
+				UsePetSkill("Defend");
+				UsePetSkill("Charge");
+				await CommonCoroutines.SleepForRandomReactionTime();
+			}
+			else
+			{
+				if (currentTarget.Distance > 8)
+					currentTarget.Face();
+				using (StyxWoW.Memory.AcquireFrame())
+				{
+					UsePetSkill("Thrust");
+					UsePetSkill("Charge");
+					UsePetSkill("Shield-Breaker");
+					await CommonCoroutines.SleepForRandomReactionTime();
+				}
+			}
+			return true;
 		}
 
 		Dictionary<uint,uint> Debuffs = new Dictionary<uint, uint>();
 		 
-		Composite LanceUp
+		private async Task<bool> LanceUp()
 		{
-			get
-			{
-				return new Decorator(r => Me.Inventory.Equipped.MainHand.ItemInfo.Id != 46106 && Me.Inventory.Equipped.MainHand.ItemInfo.Id != 46070, new Action(r => BestLance().UseContainerItem()));
-			}
+			var mainHand = Me.Inventory.Equipped.MainHand;
+			if (mainHand != null && ItemIds_Lances.Contains(mainHand.Entry))
+				return false;
+
+			var bestLance = BestLance;
+			if (bestLance == null)
+				QBCLog.Fatal("No lance in bags");
+			else
+				bestLance.UseContainerItem();
+			return true;
 		}
 
 		Composite HealUp
@@ -313,7 +339,15 @@ namespace Styx.Bot.Quest_Behaviors
 			return _root ??
 				   (_root =
 					new Decorator(ret => !_isBehaviorDone,
-								  new PrioritySelector(DoneYet, LanceUp, MountUp, BuffUp, HealUp,BarkNpc,Fight, new ActionAlwaysSucceed())));
+						new PrioritySelector(
+							DoneYet,
+							new ActionRunCoroutine(ctx => LanceUp()),
+							MountUp,
+							BuffUp,
+							HealUp,
+							BarkNpc,
+							new ActionRunCoroutine(ctx => Fight()),
+							new ActionAlwaysSucceed())));
 		}
 
         public override void OnFinished()
@@ -332,8 +366,8 @@ namespace Styx.Bot.Quest_Behaviors
 						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
 			}
 		}
-		private WoWItem mainhand;
-		private WoWItem offhand;
+		private WoWItem _mainhand;
+		private WoWItem _offhand;
 
 		public override void OnStart()
 		{
@@ -347,13 +381,8 @@ namespace Styx.Bot.Quest_Behaviors
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (!IsDone)
 			{
-				mainhand = Me.Inventory.Equipped.MainHand;
-
-				if (mainhand.ItemInfo.EquipSlot != InventoryType.TwoHandWeapon)
-				{
-					offhand = Me.Inventory.Equipped.OffHand;
-				}
-
+				_mainhand = Me.Inventory.Equipped.MainHand;
+				_offhand = Me.Inventory.Equipped.OffHand;
 
 				for (int i = 0; i < Enemy.Count(); i++)
 				{

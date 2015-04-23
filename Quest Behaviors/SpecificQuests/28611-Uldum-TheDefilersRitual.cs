@@ -222,6 +222,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SpecificQuests.TheDefilersRi
 						spell = "Shoot";
 					if (SpellManager.CanCast("Throw"))
 						spell = "Throw";
+					if (SpellManager.CanCast("Heroic Throw"))
+						spell = "Heroic Throw";
 					break;
 				case WoWClass.Rogue:
 					if (SpellManager.CanCast("Shoot"))

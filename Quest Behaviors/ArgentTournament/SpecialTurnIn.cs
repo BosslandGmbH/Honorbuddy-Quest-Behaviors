@@ -78,16 +78,6 @@ namespace Styx.Bot.Quest_Behaviors
 			}
 		}
 
-		private WoWItem HordeLance()
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46070);
-		}
-
-		private WoWItem ArgentLance()
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46106);
-		}
-
 		// Attributes provided by caller
 		public int TurnInId { get; private set; }
 		public int QuestId { get; private set; }

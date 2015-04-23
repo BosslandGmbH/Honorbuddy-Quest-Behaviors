@@ -21,7 +21,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx.Common;
@@ -73,20 +73,19 @@ namespace Styx.Bot.Quest_Behaviors
 
 		uint[] Mounts = new uint[]{34125};
 
-		WoWItem HordeLance()
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46070);
-		}
 
-		WoWItem ArgentLance()
-		{
-			return StyxWoW.Me.BagItems.FirstOrDefault(x => x.Entry == 46106);
-		}
+		private const uint ItemId_AllianceLance = 46069;
+		private const uint ItemId_HordeLance = 46070;
+		private const uint ItemId_ArgentLance = 46106;
+		private readonly HashSet<uint> ItemIds_Lances = new HashSet<uint> { ItemId_AllianceLance, ItemId_HordeLance, ItemId_ArgentLance };
 
-		WoWItem BestLance()
-		{
-			return HordeLance() ?? ArgentLance();
-		}
+		private WoWItem AllianceLance { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId_AllianceLance); } }
+
+		private WoWItem HordeLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_HordeLance); } }
+
+		private WoWItem ArgentLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_ArgentLance); } }
+
+		private WoWItem BestLance { get { return (Me.IsHorde ? HordeLance : AllianceLance) ?? ArgentLance; } }
 
 		// Attributes provided by caller
 		public int QuestId { get; private set; }
@@ -120,11 +119,11 @@ namespace Styx.Bot.Quest_Behaviors
 							{
 								Lua.DoString("RunMacroText(\"/leavevehicle\")");
 
-								mainhand.UseContainerItem();
-								if (offhand != null)
-								{
-									offhand.UseContainerItem();
-								}
+								if (Query.IsViable(_mainhand) && Me.Inventory.Equipped.MainHand != _mainhand)
+									_mainhand.UseContainerItem();
+
+								if (Query.IsViable(_offhand) && Me.Inventory.Equipped.OffHand != _offhand)
+									_offhand.UseContainerItem();
 								TreeRoot.StatusText = "Finished!";
 								_isBehaviorDone = true;
 								return RunStatus.Success;
@@ -420,13 +419,19 @@ namespace Styx.Bot.Quest_Behaviors
 
 		Dictionary<uint,uint> Debuffs = new Dictionary<uint, uint>();
 		WoWPoint[] Spots = new WoWPoint[] { new WoWPoint(6393.416, 2356.46, 469.2245), new WoWPoint(6448.314, 2181.319, 489.4585), new WoWPoint(6391.853, 2146.777, 494.4465) };
-		
-		Composite LanceUp
+
+		private async Task<bool> LanceUp()
 		{
-			get
-			{
-				return new Decorator(r => Me.Inventory.Equipped.MainHand.ItemInfo.Id != 46106 && Me.Inventory.Equipped.MainHand.ItemInfo.Id != 46070, new Action(r => BestLance().UseContainerItem()));
-			}
+			var mainHand = Me.Inventory.Equipped.MainHand;
+			if (mainHand != null && ItemIds_Lances.Contains(mainHand.Entry))
+				return false;
+
+			var bestLance = BestLance;
+			if (bestLance == null)
+				QBCLog.Fatal("No lance in bags");
+			else
+				bestLance.UseContainerItem();
+			return true;
 		}
 
 		Composite HealUp
@@ -499,8 +504,17 @@ namespace Styx.Bot.Quest_Behaviors
 		{
 			return _root ??
 				   (_root =
-					new Decorator(ret => !_isBehaviorDone,
-								  new PrioritySelector(DoneYet, LanceUp, MountUp, BuffUp, HealUp,PickFight,Fight, new ActionAlwaysSucceed())));
+					   new Decorator(
+						   ret => !_isBehaviorDone,
+						   new PrioritySelector(
+							   DoneYet,
+							   new ActionRunCoroutine(ctx => LanceUp()),
+							   MountUp,
+							   BuffUp,
+							   HealUp,
+							   PickFight,
+							   Fight,
+							   new ActionAlwaysSucceed())));
 		}
 
         public override void OnFinished()
@@ -520,8 +534,8 @@ namespace Styx.Bot.Quest_Behaviors
 			}
 		}
 
-		private WoWItem mainhand;
-		private WoWItem offhand;
+		private WoWItem _mainhand;
+		private WoWItem _offhand;
 		public override void OnStart()
 		{
 
@@ -537,12 +551,8 @@ namespace Styx.Bot.Quest_Behaviors
 
 				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-				mainhand = Me.Inventory.Equipped.MainHand;
-				
-				if (mainhand.ItemInfo.EquipSlot != InventoryType.TwoHandWeapon)
-				{
-					offhand = Me.Inventory.Equipped.OffHand;
-				}
+				_mainhand = Me.Inventory.Equipped.MainHand;
+				_offhand = Me.Inventory.Equipped.OffHand;
 
 				this.UpdateGoalText(QuestId);
 			}

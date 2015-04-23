@@ -158,20 +158,6 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
 		}
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				this.UpdateGoalText(QuestId);
-			}
-		}
 
 		public override void OnFinished()
 		{
