@@ -34,6 +34,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -41,6 +43,7 @@ using Styx;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
+using Styx.Helpers;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
@@ -52,7 +55,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 {
 	[CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BearsUpThere")]
-	public class BearsUpThere : CustomForcedBehavior
+	public class BearsUpThere : QuestBehaviorBase
 	{
 		public BearsUpThere(Dictionary<string, string> args)
 			: base(args)
@@ -61,15 +64,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
 			try
 			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-				/* */
-				GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      // (doc only - not used)
-
                 // Make certain quest is one of the ones we know how to do...
 			    if (QuestId == QuestId_BearsUpThere)
 			        _mobId_bearTargets = MobId_Bear;
@@ -81,6 +75,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                         QuestId_BearsUpThere, QuestId_ThoseBearsUpThere, QuestId);
                     IsAttributeProblem = true;
                 }
+				TerminationChecksQuestProgress = false;
 			}
 
 			catch (Exception except)
@@ -97,20 +92,15 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
 
 		// Attributes provided by caller
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 		public bool RunningBehavior = true;
 
 		// Private variables for internal state
 
 
-		private bool _isBehaviorDone;
 	    private readonly int _mobId_bearTargets;
 		private Composite _root;
 
 		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
@@ -329,8 +319,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
 			foreach (WoWUnit bear in bears)
 			{
-				StyxWoW.SleepForLagDuration();
-
+				await CommonCoroutines.SleepForLagDuration();
 				bear.Target();  // target so we can use LUA func
 				bool bChkLua = Lua.GetReturnVal<bool>("return CheckInteractDistance(\"target\", 1)", 0);
 
@@ -376,12 +365,12 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 
 		#region Overrides of CustomForcedBehavior
 
-		protected override Composite CreateBehavior()
+		protected override Composite CreateMainBehavior()
 		{
-            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
 		}
 
-	    private async Task<bool> MainCoroutine()
+		private async Task<bool> MainCoroutine()
 	    {
 
 	        if (Me.IsCasting || SpellManager.GlobalCooldown)
@@ -390,7 +379,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 	        // check if we left tree/vehicle
 	        if (!InTree)
 	        {
-	            _isBehaviorDone = true;
+				BehaviorDone();
 	            return true;
 	        }
 
@@ -469,46 +458,60 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 	        return false;
 	    }
 
-		public override bool IsDone
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
 		{
-			get
-			{
-				return (!RunningBehavior && (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete)));
-			}
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//                              Args["Nav"], MovementBy));
 		}
 
-
-        public override void OnFinished()
-        {
-            // Clean up unmanaged resources (if any) here...
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-        }
-
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin)); 
+		}
 
 		public override void OnStart()
 		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+			// Acquisition and checking of any sub-elements go here.
+			// A common example:
+			//     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+			//     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
+
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
 			// If the quest is complete, this behavior is already done...
 			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
+			if (isBehaviorShouldRun )
 			{
-				if (DoWeHaveQuest && !Me.IsQuestComplete(QuestId) && !InTree)
+				if (!InTree)
 				{
 					QBCLog.Fatal("==================================================================\n"
 								+ "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
 								+ "==================================================================");
 				}
-
 				else
 				{
 					this.UpdateGoalText(QuestId);
 				}
+				// Setup settings to prevent interference with your behavior --
+				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+				// by Honorbuddy, or the bot is stopped.
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Vendor);
 			}
 		}
 
