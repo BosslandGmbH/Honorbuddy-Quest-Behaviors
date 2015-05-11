@@ -13,6 +13,8 @@ using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.CommonBot.Coroutines;
+using Styx.WoWInternals.WoWObjects;
+
 #endregion
 
 
@@ -36,10 +38,14 @@ namespace Honorbuddy.QuestBehaviorCore
 			}
 		}
 
+		[Obsolete("Use CommonCoroutines.StopMoving() instead")]
 		public static async Task MoveStop()
 		{
+			if (!(WoWMovement.ActiveMover ?? Me).IsMoving)
+				return;
+
 			Navigator.PlayerMover.MoveStop();
-			await Coroutine.Wait((int) Delay.LagDuration.TotalMilliseconds, () => !WoWMovement.ActiveMover.IsMoving);
+			await Coroutine.Wait((int) Delay.LagDuration.TotalMilliseconds * 2 + 50, () => !WoWMovement.ActiveMover.IsMoving);
 		}
 
 		public static async Task<bool> MoveTo(

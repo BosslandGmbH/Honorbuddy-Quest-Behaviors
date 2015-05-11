@@ -53,6 +53,7 @@ using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
@@ -254,7 +255,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
 						return await UtilityCoroutine.MoveTo(_combatContext.Kobai.Location, "Kobai", MovementByType.NavigatorOnly);
 
 					if (Me.IsMoving)
-						await UtilityCoroutine.MoveStop();
+						await CommonCoroutines.StopMoving();
 
 					if (!Me.IsSafelyFacing(_combatContext.Kobai))
 					{

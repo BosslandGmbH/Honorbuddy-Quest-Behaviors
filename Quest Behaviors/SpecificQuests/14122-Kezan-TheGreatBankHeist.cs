@@ -22,27 +22,31 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
-using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
+using Styx.Helpers;
 using Styx.Pathing;
 using Styx.TreeSharp;
 using Styx.WoWInternals;
 using Styx.WoWInternals.WoWObjects;
 
 using Action = Styx.TreeSharp.Action;
+using Extensions = Styx.Common.Extensions;
+
 #endregion
 
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 {
 	[CustomBehaviorFileName(@"SpecificQuests\14122-Kezan-TheGreatBankHeist")]
-	public class _14122 : CustomForcedBehavior
+	public class _14122 : QuestBehaviorBase
 	{
 		public _14122(Dictionary<string, string> args)
 			: base(args)
@@ -52,10 +56,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 			QuestId = 14122;
 		}
 
-		private int QuestId { get; set; }
-
-		private bool IsBehaviorDone;
-		private WoWPoint wp = new WoWPoint(-8361.689, 1726.248, 39.94792);
+		private WoWPoint wp = new WoWPoint(-8373.504, 1725.106, 39.94993);
 		private int _petAbilityIndex;
 
 		private readonly string[] _bossWhisperIcons =
@@ -72,6 +73,69 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 			"INV_Weapon_ShortBlade_21.blp"
 		};
 
+		#region Overrides of QuestBehaviorBase
+
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+		{
+			//// EXAMPLE: 
+			//UsageCheck_DeprecatedAttribute(xElement,
+			//    Args.Keys.Contains("Nav"),
+			//    "Nav",
+			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+			//                              + "  Please update profile to use MovementBy, instead.",
+			//                              Args["Nav"], MovementBy));
+		}
+
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+		{
+			//// EXAMPLE:
+			//UsageCheck_SemanticCoherency(xElement,
+			//    (!MobIds.Any() && !FactionIds.Any()),
+			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+			//
+			//const double rangeEpsilon = 3.0;
+			//UsageCheck_SemanticCoherency(xElement,
+			//    ((RangeMax - RangeMin) < rangeEpsilon),
+			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+			//                  RangeMax, rangeEpsilon, RangeMin)); 
+		}
+
+		public override void OnStart()
+		{
+			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
+			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+
+			// If the quest is complete, this behavior is already done...
+			// So we don't want to falsely inform the user of things that will be skipped.
+			if (isBehaviorShouldRun)
+			{
+				Lua.Events.AttachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
+
+				// Disable anything that can interfer with behavior.
+				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+				// by Honorbuddy, or the bot is stopped.
+				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.FlightPath | BehaviorFlags.Vendor);
+			}
+		}
+
+
+		public override void OnFinished()
+		{
+			Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
+
+			if (StyxWoW.Me.HasAura("Vault Cracking Toolset"))
+				Lua.DoString("VehicleExit()");
+
+			base.OnFinished();
+		}
+
+		protected override Composite CreateMainBehavior()
+		{
+			return new ActionRunCoroutine(ctx => MainCoroutine());
+		}
+
+		#endregion
 
 		public WoWGameObject Bank
 		{
@@ -82,28 +146,13 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 					.OrderBy(ctx => ctx.DistanceSqr).FirstOrDefault();
 			}
 		}
-		private Composite _root;
 
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
-		}
+		private const int AuraId_VaultCrackingToolset = 67476;
 
 		async Task<bool> MainCoroutine()
 		{
-			if (IsBehaviorDone)
-			{
+			if (IsDone)
 				return false;
-			}
-
-			var quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-			if (quest.IsCompleted)
-			{
-				if (StyxWoW.Me.HasAura("Vault Cracking Toolset"))
-					Lua.DoString("VehicleExit()");
-				IsBehaviorDone = true;
-				return true;
-			}
 
 			if (StyxWoW.Me.Location.DistanceSqr(wp) > 5 * 5)
 			{
@@ -112,7 +161,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 				return true;
 			}
 
-			if (!StyxWoW.Me.HasAura("Vault Cracking Toolset"))
+			if (!StyxWoW.Me.HasAura(AuraId_VaultCrackingToolset))
 			{
 				Bank.Interact();
 				await Coroutine.Sleep((int)Delay.LagDuration.TotalMilliseconds);
@@ -130,32 +179,11 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 			return false;
 		}
 
-		public override bool IsDone
-		{
-			get { return (IsBehaviorDone); }
-		}
-
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
-			{
-				Lua.Events.AttachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
-				this.UpdateGoalText(QuestId);
-			}
-		}
-
-		public override void OnFinished()
-		{
-			Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
-			base.OnFinished();
-		}
-
 		public void BossWhisperHandler(object sender, LuaEventArgs arg)
 		{
 			var msg = arg.Args[0].ToString();
 			var match = _bossWhisperIcons.FirstOrDefault(msg.Contains);
-			_petAbilityIndex = match != null ? (_bossWhisperIcons.IndexOf(match) + 1) : 0;
+			_petAbilityIndex = match != null ? (Extensions.IndexOf(_bossWhisperIcons, match) + 1) : 0;
 		}
 	}
 }

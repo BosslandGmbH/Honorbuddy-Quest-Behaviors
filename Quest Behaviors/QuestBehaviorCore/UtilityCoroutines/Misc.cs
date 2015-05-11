@@ -172,7 +172,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				QBCLog.DeveloperInfo("Using hearthstone: {0}", hearthstoneSpell.Name);
 
-				usableHearthstone.UseContainerItem();
+				usableHearthstone.Use();
 				var castResult = await castMonitor.GetResult(12000);
 				if (castResult == SpellCastResult.Succeeded)
 				{

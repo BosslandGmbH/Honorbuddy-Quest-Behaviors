@@ -45,6 +45,7 @@ using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
 using Styx.TreeSharp;
@@ -304,7 +305,7 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 			}
 
 			if (Me.IsMoving)
-				await UtilityCoroutine.MoveStop();
+				await CommonCoroutines.StopMoving();
 
 			if (Me.Mounted && await UtilityCoroutine.ExecuteMountStrategy(
 				MountStrategyType.DismountOrCancelShapeshift))

@@ -443,7 +443,7 @@ namespace Honorbuddy.Quest_Behaviors
                 return true;
 
             // Get quest from candy bucket...
-            await UtilityCoroutine.MoveStop();
+			await CommonCoroutines.StopMoving();
             if (!QuestFrame.Instance.IsVisible)
             {
                 await UtilityCoroutine.Interact(SelectedCandyBucket);
@@ -660,7 +660,7 @@ namespace Honorbuddy.Quest_Behaviors
             // Sometimes it doesn't work, and we don't want to get gummed up retrying.
             // It may be because the player is wearing a costume, or is cross-realm.
             QBCLog.Info("Advancing \"Check Your Head\" achievement with a {0} target.", selectedPlayer.Race);
-            await UtilityCoroutine.MoveStop();
+			await CommonCoroutines.StopMoving();
             weightedJackOLantern.Use();
             selectedPlayer.BlacklistForInteracting(TimeSpan.FromMinutes(5));
             await Coroutine.Sleep(Delay.AfterItemUse);

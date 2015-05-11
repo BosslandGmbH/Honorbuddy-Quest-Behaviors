@@ -11,11 +11,12 @@
 
 #region Summary and Documentation
 // <summary>
-// Allows you to load a profile, it needs to be in the same folder as your current profile.
+// Loads a profile that is on the Local file system or on the Buddy Store.
 // ##Syntax##
 // ProfileName: 
 //     The name of the profile with or without the ".xml" extension.
-// 
+//	   If profile is not in same directory as current profile then this needs to be a relative path to profile
+//	   unless it's a store profile, then an absolute path to store profile can be used.
 // RememberProfile [optional; Default: False] 
 //     Set this to True if Honorbuddy should remember and load the profile the next time it's started. Default (False)
 // </summary>
@@ -86,7 +87,6 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 
 		// Private properties
 		private String CurrentProfile { get { return (ProfileManager.XmlLocation); } }
-		private bool IsStoreProfile { get { return CurrentProfile.StartsWith("store://"); } }
 		private String NewProfilePath { get; set; }
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
@@ -105,7 +105,7 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 
 				// If file does not exist, notify of problem...
 				// Support for store profiles. They are handled by HB when there is no profile with given path
-				new Decorator(ret => !IsStoreProfile && !File.Exists(NewProfilePath),
+				new Decorator(ret => !IsStoreProfile(NewProfilePath) && !File.Exists(NewProfilePath),
 					new Action(delegate
 					{
 						QBCLog.Fatal("Profile '{0}' does not exist.  Download or unpack problem with profile?", NewProfilePath);
@@ -156,10 +156,17 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 			{
 				this.UpdateGoalText(0);
 
-				// Support for store profiles
-				if (IsStoreProfile)
+				// Support for store profiles.
+				// Absolute path to a store profile. 
+				if (IsStoreProfile(ProfileName))
 				{
-					NewProfilePath = CurrentProfile + "/../" + ProfileName;
+					NewProfilePath = Slashify(ProfileName);
+					return;
+				}
+				// Relative path to a store profile
+				if (IsStoreProfile(CurrentProfile) )
+				{
+					NewProfilePath = Slashify(CurrentProfile + "/../" + ProfileName);
 					return;
 				}
 
@@ -167,10 +174,22 @@ namespace Honorbuddy.Quest_Behaviors.LoadProfile
 				var absolutePath = Path.Combine(Path.GetDirectoryName(CurrentProfile), ProfileName);
 				absolutePath = Path.GetFullPath(absolutePath);
 				var canonicalPath = new Uri(absolutePath).LocalPath;
-				NewProfilePath = canonicalPath;
+				NewProfilePath = Slashify(canonicalPath);
 			}
 		}
 
 		#endregion
+
+		private bool IsStoreProfile(string path)
+		{
+			return path.StartsWith("store://");
+		}
+
+		// Converts all slashes to back-slashes if path is local; otherwise converts all back-slashes to slashes
+		private string Slashify(string path)
+		{
+			return IsStoreProfile(path) ? path.Replace(@"\", "/") : path.Replace("/", @"\");
+		}
+
 	}
 }

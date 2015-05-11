@@ -373,6 +373,7 @@ using Honorbuddy.QuestBehaviorCore.XmlElements;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Frames;
 using Styx.CommonBot.POI;
 using Styx.CommonBot.Profiles;
@@ -1191,7 +1192,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			}
 
 			// Prep to interact...
-			await UtilityCoroutine.MoveStop();
+			await CommonCoroutines.StopMoving();
 			if (await UtilityCoroutine.ExecuteMountStrategy(PreInteractMountStrategy))
 				return true;
 			_watchdogTimerToReachDestination = null;

@@ -758,8 +758,8 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
                 if (!IsSpecificExecutionNeeded())
                     return false;
 
-                if (IsMovementStopRequired && Me.IsMoving)
-                    await UtilityCoroutine.MoveStop();
+	            if (IsMovementStopRequired && Me.IsMoving)
+		            await CommonCoroutines.StopMoving();
 
                 var activityResult = await ExecuteSpecificActivity();
                 if (activityResult == ActivityResult.Indeterminate)

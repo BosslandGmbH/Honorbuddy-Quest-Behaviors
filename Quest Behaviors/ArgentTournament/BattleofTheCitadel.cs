@@ -74,18 +74,9 @@ namespace Styx.Bot.Quest_Behaviors
 		uint[] Mounts = new uint[]{34125};
 
 
-		private const uint ItemId_AllianceLance = 46069;
-		private const uint ItemId_HordeLance = 46070;
 		private const uint ItemId_ArgentLance = 46106;
-		private readonly HashSet<uint> ItemIds_Lances = new HashSet<uint> { ItemId_AllianceLance, ItemId_HordeLance, ItemId_ArgentLance };
-
-		private WoWItem AllianceLance { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId_AllianceLance); } }
-
-		private WoWItem HordeLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_HordeLance); } }
 
 		private WoWItem ArgentLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_ArgentLance); } }
-
-		private WoWItem BestLance { get { return (Me.IsHorde ? HordeLance : AllianceLance) ?? ArgentLance; } }
 
 		// Attributes provided by caller
 		public int QuestId { get; private set; }
@@ -417,20 +408,24 @@ namespace Styx.Bot.Quest_Behaviors
 			}
 		}
 
-		Dictionary<uint,uint> Debuffs = new Dictionary<uint, uint>();
-		WoWPoint[] Spots = new WoWPoint[] { new WoWPoint(6393.416, 2356.46, 469.2245), new WoWPoint(6448.314, 2181.319, 489.4585), new WoWPoint(6391.853, 2146.777, 494.4465) };
+
+		private readonly WoWPoint[] Spots = {
+									   new WoWPoint(6393.416, 2356.46, 469.2245), new WoWPoint(6448.314, 2181.319, 489.4585),
+									   new WoWPoint(6391.853, 2146.777, 494.4465),new WoWPoint(6270.915, 2245.348, 487.9521),
+									   new WoWPoint(6199.627, 2223.347, 503.8197),
+								   };
 
 		private async Task<bool> LanceUp()
 		{
 			var mainHand = Me.Inventory.Equipped.MainHand;
-			if (mainHand != null && ItemIds_Lances.Contains(mainHand.Entry))
+			if (mainHand != null && mainHand.Entry == ItemId_ArgentLance)
 				return false;
 
-			var bestLance = BestLance;
-			if (bestLance == null)
-				QBCLog.Fatal("No lance in bags");
+			var lance = ArgentLance;
+			if (lance == null)
+				QBCLog.Fatal("No Argent Lance in bags");
 			else
-				bestLance.UseContainerItem();
+				lance.UseContainerItem();
 			return true;
 		}
 
@@ -471,7 +466,7 @@ namespace Styx.Bot.Quest_Behaviors
 																							if (Me.Location.Distance(Spots[spot]) < 10)
 																							{
 																								spot++;
-																								if (spot > 2)
+																								if (spot >= Spots.Length)
 																									spot = 0;
 																							}
 																						}
