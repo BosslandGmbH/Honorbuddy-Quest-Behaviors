@@ -654,12 +654,20 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			if (trainer == null || !trainer.WithinInteractRange)
 				return (await UtilityCoroutine.MoveTo(trainerLoc, trainerName));
 
+			if (await CommonCoroutines.StopMoving())
+				return true;
+
+			// Turnin any quests since they can interfer with training. 
+			if (trainer.HasQuestTurnin())
+				return await UtilityCoroutine.TurninQuest(trainer, trainer.Location);
+
 			if (!TrainerFrame.Instance.IsVisible)
 			{
 				trainer.Interact();
 				await CommonCoroutines.SleepForLagDuration();
 				return false;
 			}
+
 
 			TrainerFrame.Instance.BuyAll();
 			await CommonCoroutines.SleepForRandomUiInteractionTime();

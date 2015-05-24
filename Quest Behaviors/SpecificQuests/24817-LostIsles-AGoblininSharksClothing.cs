@@ -20,10 +20,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Xml.Linq;
+using Bots.Grind;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.CommonBot;
 using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.Pathing;
@@ -38,7 +41,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
 {
 	[CustomBehaviorFileName(@"SpecificQuests\24817-LostIsles-AGoblininSharksClothing")]
-	public class _24817:CustomForcedBehavior
+	public class _24817:QuestBehaviorBase
 	{
 		public _24817(Dictionary<string, string> Args)
 			: base(Args)
@@ -51,86 +54,109 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
 		public int QuestId { get; set; }
 		private bool IsBehaviorDone = false;
 		private Composite _root;
-		public List<WoWGameObject> q24817controller
+		public WoWGameObject Controller
 		{
 			get
 			{
-				return ObjectManager.GetObjectsOfType<WoWGameObject>().Where(ret => (ret.Entry == 202108 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
+				return
+					ObjectManager.GetObjectsOfType<WoWGameObject>()
+						.Where(ret => (ret.Entry == 202108 ))
+						.OrderBy(ret => ret.DistanceSqr)
+						.FirstOrDefault();
 			}
 		}
-		public List<WoWUnit> q24817_hammer
+
+		public WoWUnit Hammer
 		{
 			get
 			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>().Where(ret => (ret.Entry == 36682 && !StyxWoW.Me.IsDead)).OrderBy(ret => ret.Distance).ToList();
+				return
+					ObjectManager.GetObjectsOfType<WoWUnit>()
+						.Where(ret => (ret.Entry == 36682 ))
+						.OrderBy(ret => ret.DistanceSqr)
+						.FirstOrDefault();
 			}
 		}
-		public override bool IsDone
+
+		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement) {}
+
+		protected override void EvaluateUsage_SemanticCoherency(XElement xElement) {}
+
+		protected override Composite CreateMainBehavior()
 		{
-			get
+			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+		}
+
+		private const int AuraId_MechasharkXSteam = 71661;
+
+		protected async Task<bool> MainCoroutine()
+		{
+			if (IsDone)
+				return false;
+			if (!StyxWoW.Me.HasAura(AuraId_MechasharkXSteam))
 			{
-				return (IsBehaviorDone);
+				var controler = Controller;
+				if (controler == null)
+				{
+					QBCLog.Fatal("Controler could not be found in ObjectManager");
+					return true;
+				}
+				if (!controler.WithinInteractRange)
+					return (await CommonCoroutines.MoveTo(controler.Location)).IsSuccessful();
+
+				if (await CommonCoroutines.StopMoving())
+					return true;
+
+				controler.Interact();
+				await Coroutine.Sleep(5000);
+				return true;
 			}
-		}
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
+
+			var hammer = Hammer;
+			if (hammer == null)
 			{
-				this.UpdateGoalText(QuestId);
+				QBCLog.Fatal("Hammer could not be found in ObjectManager");
+				return true;
 			}
+			if (hammer.IsAlive && StyxWoW.Me.CurrentTarget != hammer)
+			{
+				await DoQuest(hammer);
+				return true;
+			}
+			if (StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted)
+			{
+				Lua.DoString("VehicleExit()");
+				IsBehaviorDone = true;
+				return true;
+			}
+			return false;
 		}
-		protected override Composite CreateBehavior()
+
+	    private async Task DoQuest(WoWUnit hammer)
 		{
-			return _root ?? (_root =
-				new PrioritySelector(
-					new Decorator(
-						ret => !StyxWoW.Me.HasAura("Mechashark X-Steam"),
-								new Sequence(
-									new Action(ret => Navigator.MoveTo(q24817controller[0].Location)),
-									new Action(ret => q24817controller[0].Interact()),
-									new Sleep(5000)
-									)),
-					new Decorator(
-						ret => q24817_hammer[0].IsAlive,
-						new PrioritySelector(
-							new Decorator(
-								ret => StyxWoW.Me.CurrentTarget != q24817_hammer[0],
-								new ActionRunCoroutine(ctx => DoQuest())))),
-					 new Decorator(
-						 ret => StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted,
-						 new Sequence(
-							 new Action(ret => Lua.DoString("VehicleExit()")),
-							 new Action(ret => IsBehaviorDone = true)))
-					));
+			// make sure bot does not try to handle combat or anything else that can interrupt with quest behavior.
+			LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.FlightPath | BehaviorFlags.Vendor);
 
-		}
-
-	    private async Task DoQuest()
-	    {
-	        var target = q24817_hammer.FirstOrDefault();
-	        if (target == null) 
-                return;
-
-            if (target.Distance  > 45)
+			if (hammer.DistanceSqr > 45 * 45)
             {
-                Navigator.MoveTo(target.Location);
+				Navigator.MoveTo(hammer.Location);
                 await Coroutine.Sleep(100);
             }
             else
             {
-                while (!StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted && StyxWoW.Me.IsAlive && Query.IsViable(target))
+				while (!StyxWoW.Me.QuestLog.GetQuestById(24817).IsCompleted && StyxWoW.Me.IsAlive && Query.IsViable(hammer))
                 {
-                    if (StyxWoW.Me.CurrentTargetGuid != target.Guid)
+					if (StyxWoW.Me.CurrentTargetGuid != hammer.Guid)
                     {
-                        target.Target();
+						hammer.Target();
                         await CommonCoroutines.SleepForLagDuration();
                         continue;
                     }
 
-                    if (!StyxWoW.Me.IsSafelyFacing(target))
+					if (!StyxWoW.Me.IsSafelyFacing(hammer))
                     {
-                        target.Face();
+						hammer.Face();
+	                    await Coroutine.Wait(2000, () =>!Query.IsViable(hammer) || StyxWoW.Me.IsSafelyFacing(hammer));
                     } 
 
                     try
@@ -142,12 +168,20 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.AGoblininSharksClothing
                     {
                         WoWMovement.MoveStop(WoWMovement.MovementDirection.Backwards);
                     }
-                    Lua.DoString("CastPetAction(3)");
-                    Lua.DoString("CastPetAction(2)");
-                    Lua.DoString("CastPetAction(1)");
+
+	                if (CastPetAction(3) || CastPetAction(2) || CastPetAction(1))
+		                await CommonCoroutines.SleepForRandomReactionTime();
+
                     await Coroutine.Yield();
+	                hammer = Hammer;
                 }
             }
 	    }
+
+		private bool CastPetAction(int buttonSlot)
+		{
+			var lua = string.Format("if GetPetActionCooldown({0}) == 0 then CastPetAction({0}) return true end return false", buttonSlot);
+			return Lua.GetReturnVal<bool>(lua, 0);
+		}
 	}
 }
