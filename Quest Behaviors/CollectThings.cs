@@ -316,7 +316,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 		}
 
 
-		private void ParseHuntingGroundHotspots(bool randomizeStartingHotspot)
+		private List<WoWPointNamed> ParseHuntingGroundHotspots()
 		{
 			List<WoWPointNamed> huntingGroundHotspots = new List<WoWPointNamed>();
 
@@ -335,7 +335,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 				huntingGroundHotspots.Add(new WoWPointNamed(new WoWPoint(x.Value, y.Value, z.Value), name, isStarting));
 			}
 
-			_behavior_HuntingGround.UseHotspots(huntingGroundHotspots, randomizeStartingHotspot);
+		    return huntingGroundHotspots;
 		}
 
 
@@ -524,7 +524,7 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 			// So we had to defer some final parsing that really should've happened in the constructor
 			// to the OnStart() method.  This will parse the final arguments, and set IsAttributeProblem
 			// correctly, for normal processing.
-			ParseHuntingGroundHotspots(RandomizeStartingHotspot);
+			var huntingGroundHotspots = ParseHuntingGroundHotspots();
 
 			// This reports problems, and stops BT processing if there was a problem with attributes...
 			// We had to defer this action, as the 'profile line number' is not available during the element's
@@ -535,6 +535,8 @@ namespace Honorbuddy.Quest_Behaviors.CollectThings
 			// So we don't want to falsely inform the user of things that will be skipped.
 			if (!IsDone)
 			{
+                _behavior_HuntingGround.UseHotspots(huntingGroundHotspots, RandomizeStartingHotspot);
+
 				// Disable the AntiDrown plugin if present, as it interferes with our anti-drown prevention...
 				_pluginAntiDrown = PluginManager.Plugins.FirstOrDefault(plugin => (plugin.Name == "Anti-Drown"));
 				if (_pluginAntiDrown != null)
