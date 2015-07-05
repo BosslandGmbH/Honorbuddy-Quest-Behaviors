@@ -665,9 +665,8 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			{
 				trainer.Interact();
 				await CommonCoroutines.SleepForLagDuration();
-				return false;
+				return true;
 			}
-
 
 			TrainerFrame.Instance.BuyAll();
 			await CommonCoroutines.SleepForRandomUiInteractionTime();
