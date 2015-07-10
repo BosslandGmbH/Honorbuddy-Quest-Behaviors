@@ -173,6 +173,7 @@
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\Movement.cs" />
     <Compile Include="QuestBehaviorCore\UtilityCoroutines\UseItem.cs" />
     <Compile Include="QuestBehaviorCore\Utility\ConfigMemento.cs" />
+    <Compile Include="QuestBehaviorCore\Utility\HookHelpers.cs" />
     <Compile Include="QuestBehaviorCore\Utility\QBCDebug.cs" />
     <Compile Include="QuestBehaviorCore\Utility\PetControl.cs" />
     <Compile Include="QuestBehaviorCore\Utility\Utility.cs" />

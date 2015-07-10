@@ -406,7 +406,7 @@ namespace Honorbuddy.Quest_Behaviors
             var avoidNavigator = new AvoidanceNavigationProvider();;
             Navigator.NavigationProvider = avoidNavigator;
             avoidNavigator.UpdateMaps();
-            _hook = new ActionRunCoroutine(ctx => HookHandler());
+            _hook = new ActionRunCoroutine(ctx => HookHelpers.ExecuteHook(this, HookHandler));
             TreeHooks.Instance.InsertHook("Combat_Main", 0, _hook);
             ObjectManager.OnObjectListUpdateFinished += ObjectManager_OnObjectListUpdateFinished;
             BotEvents.OnBotStopped += BotEvents_OnBotStopped;

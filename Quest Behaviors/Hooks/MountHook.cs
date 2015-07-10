@@ -60,6 +60,11 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 		}
 
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
 		private bool _state;
 
 		public override bool IsDone { get { return true; } }
@@ -70,11 +75,13 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		}
 
 
-		private const int ApprenticeRiding = 33388;//20
-		private const int JourneyManRiding = 33391;//40
-		private const int ExpertRiding = 34090;//60
+        private const int SpellId_ApprenticeRiding = 33388;//20
+        private const int SpellId_JourneyManRiding = 33391;//40
+        private const int SpellId_ExpertRiding = 34090;//60
+        private const int SpellId_ArtisanRiding = 34091; // 70
+        private const int SpellId_MasterFlying = 90265;// 80
+
 		private const int ColdWeatherFlying = 54197;//68
-		private const int SuperFlying = 90265;//60
 		private const int FlightMastersLic = 90267;//60
 
 		private readonly ProfileHelperFunctionsBase ProfileHelpers = new ProfileHelperFunctionsBase();
@@ -90,24 +97,10 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		private const int HordieLowbie = 44919;
 		#endregion
 
-
-		private int FlightLevel
-		{
-			get
-			{
-				if (SpellManager.HasSpell(ColdWeatherFlying))
-					return 3;
-
-				if (SpellManager.HasSpell(ExpertRiding) || SpellManager.HasSpell(SuperFlying))
-					return 2;
-
-				if (SpellManager.HasSpell(ApprenticeRiding) || SpellManager.HasSpell(JourneyManRiding))
-					return 1;
-
-				return 0;
-			}
-		}
-
+	    private RidingLevelType RidingLevel
+	    {
+	        get { return (RidingLevelType) Me.GetSkill(SkillLine.Riding).CurrentValue; }
+	    }
 
 		private bool Hellfire
 		{
@@ -157,12 +150,14 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		{
 			get
 			{
-				return OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && FlightLevel < 1) 
-						|| (Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2));
+			    var ridingLevel = RidingLevel;
+                return OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && ridingLevel < RidingLevelType.ApprenticeRiding)
+                    || (Me.Level >= 40 && Me.Gold >= 55 && ridingLevel < RidingLevelType.JourneyManRiding) 
+					|| (Me.Level >= 60 && Me.Gold >= 278 && ridingLevel < RidingLevelType.ExpertRiding));
 			}
 		}
 
-		private bool TrainInOutland { get { return Hellfire && Me.Level >= 60 && Me.Gold >= 278 && FlightLevel < 2; } }
+        private bool TrainInOutland { get { return Hellfire && Me.Level >= 60 && Me.Gold >= 278 && RidingLevel < RidingLevelType.ExpertRiding; } }
 
 		public override void OnStart()
 		{
@@ -201,7 +196,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		public static Composite _myHook;
 		public Composite CreateHook()
 		{
-			return new ActionRunCoroutine(ctx => MainCoroutine());
+			return new ActionRunCoroutine(ctx => HookHelpers.ExecuteHook(this, MainCoroutine));
 		}
 
 		private async Task<bool> MainCoroutine()
@@ -224,7 +219,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		{
 			// Worgens have a ground mount from racial, paladin and warlock have class based mounts so
 			// they do not need to purchase any ground mounts
-			if (FlightLevel == 1 && Me.Race != WoWRace.Worgen && Me.Class != WoWClass.Paladin && Me.Class != WoWClass.Warlock )
+			if (RidingLevel > RidingLevelType.None && Me.Race != WoWRace.Worgen && Me.Class != WoWClass.Paladin && Me.Class != WoWClass.Warlock )
 			{
 				// _purchasedMountTimer pervents double purchasing multiple mounts because Mount.GroundMounts is cached.
 				if (!Mount.GroundMounts.Any() && _purchasedMountTimer.IsFinished)
@@ -251,7 +246,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			}
 
 			// Druids have flightform so do not need to purchase a flying mount.
-			if (FlightLevel == 2 && Me.Class != WoWClass.Druid && !Mount.FlyingMounts.Any() && _purchasedMountTimer.IsFinished)
+			if (RidingLevel >= RidingLevelType.ExpertRiding && Me.Class != WoWClass.Druid && !Mount.FlyingMounts.Any() && _purchasedMountTimer.IsFinished)
 				return await PurchaseFlyingMount();
 
 			return false;
@@ -652,7 +647,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			}
 
 			if (trainer == null || !trainer.WithinInteractRange)
-				return (await UtilityCoroutine.MoveTo(trainerLoc, trainerName));
+				return (await UtilityCoroutine.MoveTo(trainerLoc, "Riding Trainer: " + trainerName));
 
 			if (await CommonCoroutines.StopMoving())
 				return true;
@@ -695,5 +690,20 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		}
 
 		#endregion
+
+        private enum RidingLevelType
+        {
+            None = 0,
+            // 60% ground speed @ level 20
+            ApprenticeRiding = 75,
+            // 100% ground speed @ level 40
+            JourneyManRiding = 150,
+            // 150% flying speed @ level 60
+            ExpertRiding = 225,
+            // 280% flying speed @ level 70
+            ArtisanRiding = 300,
+            // 310% flying speed @ level 80
+            MasterFlying = 375,
+        }
 	}
 }
