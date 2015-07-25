@@ -356,17 +356,17 @@ namespace Honorbuddy.Quest_Behaviors
 
         #endregion
 
-        void ObjectManager_OnObjectListUpdateFinished(object context)
+        private void BotEvents_OnPulse(object sender, EventArgs args)
         {
             AvoidanceManager.Pulse();
         }
 
-        void BotEvents_OnBotStopped(EventArgs args)
+        private void BotEvents_OnBotStopped(EventArgs args)
         {
             RemoveHook();
         }
 
-		void Profile_OnNewOuterProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
+		private void Profile_OnNewOuterProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
 		{
 			RemoveHook();
 		}
@@ -408,7 +408,7 @@ namespace Honorbuddy.Quest_Behaviors
             avoidNavigator.UpdateMaps();
             _hook = new ActionRunCoroutine(ctx => HookHelpers.ExecuteHook(this, HookHandler));
             TreeHooks.Instance.InsertHook("Combat_Main", 0, _hook);
-            ObjectManager.OnObjectListUpdateFinished += ObjectManager_OnObjectListUpdateFinished;
+	        BotEvents.OnPulse += BotEvents_OnPulse;
             BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 			BotEvents.Profile.OnNewOuterProfileLoaded += Profile_OnNewOuterProfileLoaded;
 
@@ -436,7 +436,7 @@ namespace Honorbuddy.Quest_Behaviors
 				QBCLog.DeveloperInfo("Removed the \"{0}\" avoidance definition", kv.Key);
             }
             AvoidDictionary.Clear();
-            ObjectManager.OnObjectListUpdateFinished -= ObjectManager_OnObjectListUpdateFinished;
+			BotEvents.OnPulse -= BotEvents_OnPulse;
             BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
 			BotEvents.Profile.OnNewOuterProfileLoaded -= Profile_OnNewOuterProfileLoaded;
 
