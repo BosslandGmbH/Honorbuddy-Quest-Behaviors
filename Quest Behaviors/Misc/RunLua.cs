@@ -62,6 +62,8 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
 				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+
+				GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Running Lua";
 			}
 
 			catch (Exception except)
@@ -79,6 +81,7 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 
 		// Attributes provided by caller
 		private string LuaCommand { get; set; }
+		public string GoalText { get; set; }
 		private int NumOfTimes { get; set; }
 		private int QuestId { get; set; }
 		private QuestCompleteRequirement QuestRequirementComplete { get; set; }
@@ -119,12 +122,12 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 			);
 		}
 
-        public override void OnFinished()
-        {
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-            base.OnFinished();
-        }
+		public override void OnFinished()
+		{
+			TreeRoot.GoalText = string.Empty;
+			TreeRoot.StatusText = string.Empty;
+			base.OnFinished();
+		}
 
 		public override bool IsDone
 		{
@@ -142,6 +145,8 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 			// We had to defer this action, as the 'profile line number' is not available during the element's
 			// constructor call.
 			OnStart_HandleAttributeProblem();
+
+			this.UpdateGoalText(QuestId, GoalText);
 
 			// If the quest is complete, this behavior is already done...
 			// So we don't want to falsely inform the user of things that will be skipped.

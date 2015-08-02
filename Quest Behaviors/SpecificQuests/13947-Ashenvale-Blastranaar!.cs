@@ -24,6 +24,7 @@ using System.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
+using Styx.Common;
 using Styx.CommonBot;
 using Styx.CommonBot.Profiles;
 using Styx.TreeSharp;
@@ -126,7 +127,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Blastranaar
 					new Action(r =>
 					{
 						Lua.DoString("CastPetAction(1)");
-						SpellManager.ClickRemoteLocation(Sentinels[0].Location);
+
+						var sentinel = Sentinels.FirstOrDefault();
+						if (sentinel != null)
+							SpellManager.ClickRemoteLocation(sentinel.Location);
 					}));
 			}
 		}
@@ -137,7 +141,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Blastranaar
 				return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2), new Action(r =>
 				{
 					Lua.DoString("CastPetAction(1)");
-					SpellManager.ClickRemoteLocation(Throwers[0].Location);
+
+					var thrower = Throwers.FirstOrDefault();
+					if (thrower != null)
+						SpellManager.ClickRemoteLocation(thrower.Location);
 				}));
 			}
 		}

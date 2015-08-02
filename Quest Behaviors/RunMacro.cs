@@ -118,6 +118,8 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
 			// We had to defer this action, as the 'profile line number' is not available during the element's
 			// constructor call.
 			OnStart_HandleAttributeProblem();
+
+			this.UpdateGoalText(QuestId, GoalText);
 		}
 
 	    private Composite _root;
