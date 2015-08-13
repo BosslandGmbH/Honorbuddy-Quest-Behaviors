@@ -89,7 +89,15 @@
 //      InteractByGossipOptions [optional; Default: none]
 //          Defines a comma-separated list of (1-based) numbers that specifies
 //          which Gossip option to select in each dialog frame when chatting with an NPC.
-//          This value should be separated with commas. ie. InteractByGossipOptions="1,1,4,2".
+//          This value should be separated with commas. ie. InteractByGossipOptions="1,1,4,2"
+//          Each gossip option is unique per page only.
+//
+//      InteractByServerGossipIndices [optional; Default: none]
+//          Defines a comma-separated list of (0-based) indices that specifies
+//          which server-based Gossip index to select in each dialog frame when chatting with an NPC.
+//          This value should be separated with commas. ie. InteractByServerGossipOptions="0,4,6,13".
+//          Each server index is unique per NPC and this attribute should be used instead of InteractByGossipOptions
+//          when the NPC doesn't always present the same gossip option.
 //
 // Interaction by Looting:
 //      InteractByLooting [optional; Default: false]
@@ -235,11 +243,11 @@
 // * As a design choice, this behavior waits a variant amount of time when 'clicking on things'.
 //      We try to simulate an attentive human as much as possible.
 //
-// * The InteractByGossipOptions and InteractByBuyingItemId attributes can be combined to get to
+// * The InteractByGossipOptions/InteractByServerGossipIndices and InteractByBuyingItemId attributes can be combined to get to
 //      Innkeeper goods.  Innkeepers require you to select one of their gossip options before they
 //      will show you their wares for sale.
 //
-// * If the InteractByGossipOptions selects a "bind to this location" option, then InteractWith
+// * If the InteractByGossipOptions/InteractByServerGossipIndices selects a "bind to this location" option, then InteractWith
 //      will automatically confirm the request to bind at the location.  After the binding is complete
 //      InteractWith displays a confirmation message of the new bind location.
 //
@@ -439,7 +447,12 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 						new[] { "GossipOption" },
 						null);
 				} /*Legacy name--don't use */
-				InteractByLooting = GetAttributeAsNullable<bool>("InteractByLooting", false, null, null)
+
+                InteractByServerGossipIndices = GetAttributeAsArray("InteractByServerGossipIndices", false,
+			        new ConstrainTo.Domain<int>(-1, 100), null, null)
+			                                    ?? new int[0];
+
+                InteractByLooting = GetAttributeAsNullable<bool>("InteractByLooting", false, null, null)
 									?? GetAttributeAsNullable<bool>("Loot", false, null, null) /* Legacy name--don't use*/
 									?? false;
 				InteractByQuestFrameAction = GetAttributeAsNullable<QuestFrameDisposition>(
@@ -463,7 +476,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
 				IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
 				InteractBlacklistTimeInSeconds =
-					GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null) ?? 180;
+					GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null);
 				KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
 				MissingBuyItemIsFatal = GetAttributeAsNullable<bool>("MissingBuyItemIsFatal", false, null, null) ?? true;
 				MobHpPercentLeft =
@@ -547,12 +560,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		private WoWPoint HuntingGroundCenter { get; set; }
 		private bool IgnoreCombat { get; set; }
 		private bool IgnoreLoSToTarget { get; set; }
-		private int InteractBlacklistTimeInSeconds { get; set; }
+		private int? InteractBlacklistTimeInSeconds { get; set; }
 		private int InteractByBuyingItemId { get; set; }
 		private int InteractByBuyingItemInSlotNum { get; set; }
 		private int InteractByCastingSpellId { get; set; }
 		private int[] InteractByGossipOptions { get; set; }
-		private int InteractByUsingItemId { get; set; }
+		private int[] InteractByServerGossipIndices { get; set; }
+        private int InteractByUsingItemId { get; set; }
 		private bool InteractByLooting { get; set; }
 		private bool KeepTargetSelected { get; set; }
 		private bool MissingBuyItemIsFatal { get; set; }
@@ -617,7 +631,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				!(PursuitList.PursueObjects.Any()),
 				context => "You must specify one or more: MobIdIncludesSelf, MobIdN, FactionIdN");
 
-			UsageCheck_SemanticCoherency(
+            if (InteractByGossip)
+            {
+                UsageCheck_SemanticCoherency(
+                    xElement,
+                    InteractByGossipOptions.Any() && InteractByServerGossipIndices.Any(),
+                    context => "InteractByGossipOptions and InteractByServerGossipIndices are mutually exclusive.");
+            }
+
+            UsageCheck_SemanticCoherency(
 				xElement,
 				RangeMax.HasValue && RangeMin.HasValue && ((RangeMax.Value - RangeMin.Value) < RangeMinMaxEpsilon),
 				context => string.Format(
@@ -669,8 +691,9 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		#endregion
 
 		#region Private and Convenience variables
-
-		private const double RangeMinMaxEpsilon = 3.0;
+        private const int DefaultInteractBlacklistTimeInSeconds = 180;
+        private const int ShortBlacklistTimeInSeconds = 30;
+        private const double RangeMinMaxEpsilon = 3.0;
 		private bool _closeFrames;
 		private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 		private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
@@ -1241,23 +1264,29 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		    if (!IsGossipFrameVisible)
 		        return false;
 
-		    if (InteractByGossipOptions.Length > 0)
-		    {
-		        TreeRoot.StatusText = string.Format("Gossiping with {0}", GetName(SelectedTarget));
+            if (InteractByGossip)
+            {
+		        var usingServerIndices = InteractByServerGossipIndices.Any();
+		        var options = usingServerIndices
+                    ? InteractByServerGossipIndices
+		            : InteractByGossipOptions;
+
+                TreeRoot.StatusText = string.Format("Gossiping with {0}", GetName(SelectedTarget));
 		        BindingEventState = BindingEventStateType.BindingEventUnhooked;
 		        GossipPageIndex = 0;
-		        while (!IsDone && GossipPageIndex < InteractByGossipOptions.Length)
+		        while (!IsDone && GossipPageIndex < options.Length)
 		        {
 		            GossipEntry gossipEntry;
 		            if (!TryGetGossipEntry(out gossipEntry))
 		            {
 		                QBCLog.Error(
-		                    "{0} is not offering gossip option {1} on page {2}."
+		                    "{0} is not offering {1} {2} on page {3}."
 		                    + "  Did competing player alter NPC state?"
 		                    + "  Did you stop/start Honorbuddy?"
 		                    + "  Terminating behavior.",
 		                    GetName(SelectedTarget),
-		                    InteractByGossipOptions[GossipPageIndex] + 1,
+                            usingServerIndices ? "server gossip index" : "gossip option",
+                            usingServerIndices ? options[GossipPageIndex] : options[GossipPageIndex] + 1,
 		                    GossipPageIndex + 1);
 		                CloseOpenFrames();
 		                Me.ClearTarget();
@@ -1267,9 +1296,10 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		            // Log the gossip option we're about to take...
 		            QBCLog.DeveloperInfo(
-		                "Selecting Gossip Option({0}) on page {1}: \"{2}\"",
-		                gossipEntry.Index + 1,
-		                GossipPageIndex + 1,
+		                "Selecting {0}({1}) on page {2}: \"{3}\"",
+                        usingServerIndices ? "Server Index" : "Gossip Option",
+                        usingServerIndices ? gossipEntry.ServerIndex: gossipEntry.Index + 1,
+                        GossipPageIndex + 1,
 		                gossipEntry.Text);
 
 		            // If Innkeeper 'binding option', arrange to confirm ensuing popup...
@@ -1279,14 +1309,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		                Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
 		            }
 
-		            GossipFrame.Instance.SelectGossipOption(InteractByGossipOptions[GossipPageIndex]);
+		            GossipFrame.Instance.SelectGossipOption(gossipEntry.Index);
 		            ++GossipPageIndex;
 
 		            // If gossip is complete, claim credit...
 		            // Frequently, the last gossip option in a chain will start a fight.  If this happens,
 		            // and we don't claim credit, the behavior will hang trying to re-try a gossip with the NPC,
 		            // and the NPC doesn't want to gossip any more.
-		            if (GossipPageIndex >= InteractByGossipOptions.Length)
+		            if (GossipPageIndex >= options.Length)
 		            {
 		                QBCLog.DeveloperInfo("Gossip with {0} complete.", GetName(SelectedTarget));
 
@@ -1333,7 +1363,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 		    }
 
 		    // Only a problem if Gossip frame, and not also another frame type...
-		    if ((InteractByGossipOptions.Length <= 0) && IsGossipFrameVisible && !IsMultipleFramesVisible())
+		    if (!InteractByGossip && IsGossipFrameVisible && !IsMultipleFramesVisible())
 		    {
 		        QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring.");
 		    }
@@ -1411,16 +1441,6 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					else
 						BehaviorDone(msg);
 				}
-				else if ((item.BuyPrice * (ulong)BuyItemCount.Value) > Me.Copper)
-				{
-					QBCLog.ProfileError(
-						"Toon does not have enough money to purchase {0} (qty: {1})"
-						+ "--(requires: {2}, have: {3})--abandoning transaction.",
-						item.Name,
-						BuyItemCount,
-						Utility.PrettyMoney(item.BuyPrice * (ulong)BuyItemCount.Value),
-						Utility.PrettyMoney(Me.Copper));
-				}
 				else if ((item.NumAvailable != /*unlimited*/ -1) && (item.NumAvailable < BuyItemCount))
 				{
 					QBCLog.ProfileError(
@@ -1433,7 +1453,32 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				else
 				{
 					QBCLog.Info("Buying {0} (qty: {1}) from {2}", item.Name, BuyItemCount, GetName(SelectedTarget));
-					MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount);
+				    if (MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount))
+				    {
+				        await CommonCoroutines.SleepForRandomUiInteractionTime();
+				    }
+                    else
+				    {
+                        var altCurrency = item.BuyPrice == 0;
+                        if (altCurrency)
+				        {
+                            QBCLog.ProfileError(
+                                "Toon does not have enough {0} to purchase {1} (qty: {2})",
+                                item.CurrencyInfo.Name,
+                                item.Name,
+                                BuyItemCount);
+                        }
+				        else
+				        {
+                            QBCLog.ProfileError(
+                                "Toon does not have enough gold to purchase {0} (qty: {1})"
+                                + "--(requires: {2}, have: {3})--abandoning transaction.",
+                                item.Name,
+                                BuyItemCount,
+                                Utility.PrettyMoney(item.BuyPrice * (ulong)BuyItemCount.Value),
+                                Utility.PrettyMoney(Me.Copper));
+                        }
+                    }
 				}
 				// NB: We do not blacklist merchants.
 				++Counter;
@@ -1522,7 +1567,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			var selectedUnit = SelectedTarget as WoWUnit;
 			// If we expect to gossip, and mob in combat and offers no gossip, help mob...
 			// NB: Mobs frequently will not offer their gossip options while they are in combat.
-			if (InteractByGossipOptions.Length > 0 && Query.IsViable(selectedUnit) && selectedUnit.Combat)
+            if (InteractByGossip && Query.IsViable(selectedUnit) && selectedUnit.Combat)
 			{
 				var selectedTarget = selectedUnit.CurrentTarget;
 				if (selectedTarget != null && selectedTarget.Attackable && selectedTarget.IsHostile)
@@ -1666,13 +1711,18 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			}
 
 			var wowUnit = selectedTarget as WoWUnit;
-			bool isShortBlacklist = (wowUnit != null) && ((wowUnit == Me) || Query.IsSharedWorldResource(wowUnit));
-			TimeSpan blacklistDuration = TimeSpan.FromSeconds(isShortBlacklist ? 30 : InteractBlacklistTimeInSeconds);
+		    var blacklistTime = InteractBlacklistTimeInSeconds ??
+		                        (UseShortBlacklist(wowUnit) ? ShortBlacklistTimeInSeconds : DefaultInteractBlacklistTimeInSeconds);
+            TimeSpan blacklistDuration = TimeSpan.FromSeconds(blacklistTime);
 
 			selectedTarget.BlacklistForInteracting(blacklistDuration);
 			return blacklistDuration;
 		}
 
+	    private bool UseShortBlacklist(WoWUnit wowUnit)
+	    {
+	        return Query.IsViable(wowUnit) && (wowUnit.IsMe || Query.IsSharedWorldResource(wowUnit));
+	    }
 
 		private void CloseOpenFrames(bool forceClose = false)
 		{
@@ -1831,8 +1881,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				return
 					(InteractByBuyingItemId > 0)
 					|| (InteractByBuyingItemInSlotNum > -1)
-					|| (InteractByGossipOptions.Length > 0)
-					|| (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
+					|| InteractByGossip
+                    || (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
 					|| (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
 					|| (InteractByQuestFrameAction == QuestFrameDisposition.Continue);
 			}
@@ -1846,7 +1896,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				if (InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > -1)
 					return IsGossipFrameVisible || IsMerchantFrameVisible;
 
-				if (InteractByGossipOptions.Length > 0)
+				if (InteractByGossip)
 					return IsGossipFrameVisible;
 
 				if (InteractByQuestFrameAction != QuestFrameDisposition.Ignore)
@@ -1856,8 +1906,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 			}
 		}
 
+	    private bool InteractByGossip
+	    {
+	        get { return InteractByGossipOptions.Any() || InteractByServerGossipIndices.Any(); }
+	    }
 
-		// 24Feb2013-08:11UTC chinajade
+
+	    // 24Feb2013-08:11UTC chinajade
 		private bool IsInteractNeeded(WoWObject wowObject, MobStateType mobState)
 		{
 			if (wowObject == null)
@@ -1880,7 +1935,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				&& Query.IsStateMatch_NotMoving(wowUnit, NotMoving)
 				// Many times, units can't gossip unti they're out of combat.  So, assume they can gossip if they are in combat...
 				// Once out of combat, we can re-evaluate whether this was a good choice or not.w
-				&& ((InteractByGossipOptions.Length <= 0) || wowUnit.Combat || wowUnit.CanGossip)
+				&& (!InteractByGossip || wowUnit.Combat || wowUnit.CanGossip)
 				&& Query.IsStateMatch_AurasWanted(wowUnit, AuraIdsOnMob)
 				&& Query.IsStateMatch_AurasMissing(wowUnit, AuraIdsMissingFromMob)
 				&& Query.IsStateMatch_MobState(wowObject, mobState, MobHpPercentLeft);
@@ -1997,7 +2052,7 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					exclusionReasons.Add("Moving");
 				}
 
-				if ((InteractByGossipOptions.Length > 0) && !wowUnit.CanGossip)
+				if (InteractByGossip && !wowUnit.CanGossip)
 				{
 					exclusionReasons.Add("NoGossip");
 				}
@@ -2020,8 +2075,14 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 					throw new InvalidOperationException();
 				}
 
-				gossipEntry = GossipFrame.Instance.GossipOptionEntries
-					.First(o => o.Index == InteractByGossipOptions[GossipPageIndex]);
+			    var useServerIndex = InteractByServerGossipIndices.Any();
+
+                var index = useServerIndex
+                    ? InteractByServerGossipIndices[GossipPageIndex]
+			        : InteractByGossipOptions[GossipPageIndex];
+
+                gossipEntry = GossipFrame.Instance.GossipOptionEntries
+					.First(o => (useServerIndex ? o.ServerIndex : o.Index) == index);
 			}
 			catch (InvalidOperationException)
 			{

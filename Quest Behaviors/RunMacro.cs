@@ -24,6 +24,7 @@
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -39,7 +40,7 @@ using Styx.WoWInternals;
 namespace Honorbuddy.Quest_Behaviors.RunMacro
 {
 	[CustomBehaviorFileName(@"RunMacro")]
-	public class RunMacro : CustomForcedBehavior
+	public class RunMacro : QuestBehaviorBase
 	{
 		public RunMacro(Dictionary<string, string> args)
 			: base(args)
@@ -48,15 +49,9 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
 
 			try
 			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
 				GoalText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "";
 				Macro = GetAttributeAs<string>("Macro", true, ConstrainAs.StringNonEmpty, null) ?? "";
 				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
 
 				if (string.IsNullOrEmpty(GoalText))
@@ -80,39 +75,16 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
 		public string GoalText { get; private set; }
 		public string Macro { get; private set; }
 		public int NumOfTimes { get; private set; }
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 		public int WaitTime { get; private set; }
-
-		// Private variables for internal state
-		private bool _isBehaviorDone;
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of QuestBehaviorBase
 
-        public override void OnFinished()
-        {
-            TreeRoot.GoalText = string.Empty;
-            TreeRoot.StatusText = string.Empty;
-            base.OnFinished();
-        }
-
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
-
-
-		public override void OnStart()
+        public override void OnStart()
 		{
 			// This reports problems, and stops BT processing if there was a problem with attributes...
 			// We had to defer this action, as the 'profile line number' is not available during the element's
@@ -122,10 +94,34 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
 			this.UpdateGoalText(QuestId, GoalText);
 		}
 
-	    private Composite _root;
-	    protected override Composite CreateBehavior()
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+
+	    protected override Composite CreateMainBehavior()
 	    {
-	        return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+	        return new ActionRunCoroutine(ctx => MainCoroutine());
 	    }
 
         private async Task<bool>MainCoroutine()
@@ -142,7 +138,7 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
                 await Coroutine.Sleep(WaitTime);
             }
 
-            _isBehaviorDone = true;
+            BehaviorDone();
             return true;
         }
 

@@ -27,7 +27,7 @@
 #region Usings
 using System;
 using System.Collections.Generic;
-
+using System.Xml.Linq;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -44,7 +44,7 @@ using Action = Styx.TreeSharp.Action;
 namespace Honorbuddy.Quest_Behaviors.RunLua
 {
 	[CustomBehaviorFileName(@"Misc\RunLua")]
-	public class RunLua : CustomForcedBehavior
+	public class RunLua : QuestBehaviorBase
 	{
 		public RunLua(Dictionary<string, string> args)
 			: base(args)
@@ -53,14 +53,8 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 
 			try
 			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
 				LuaCommand = GetAttributeAs<string>("Lua", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 
 				GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Running Lua";
@@ -83,75 +77,79 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
 		private string LuaCommand { get; set; }
 		public string GoalText { get; set; }
 		private int NumOfTimes { get; set; }
-		private int QuestId { get; set; }
-		private QuestCompleteRequirement QuestRequirementComplete { get; set; }
-		private QuestInLogRequirement QuestRequirementInLog { get; set; }
 		private int WaitTime { get; set; }
 
 		// Private variables for internal state
 		private int _counter;
-		private bool _isBehaviorDone;
-		private Composite _root;
 		private readonly WaitTimer _waitTimer = new WaitTimer(TimeSpan.Zero);
 
 		// DON'T EDIT THESE--they are auto-populated by Subversion
 		public override string SubversionId { get { return ("$Id$"); } }
 		public override string SubversionRevision { get { return ("$Revision$"); } }
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of QuestBehaviorBase
 
-		protected override Composite CreateBehavior()
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+
+        protected override Composite CreateMainBehavior()
 		{
-			return _root ?? (_root = new PrioritySelector(
-				// Wait for post-LUA timer to expire...
-				new Decorator(context => !_waitTimer.IsFinished,
-					new ActionAlwaysSucceed()),
+		    return new PrioritySelector(
+		        // Wait for post-LUA timer to expire...
+		        new Decorator(context => !_waitTimer.IsFinished,
+		            new ActionAlwaysSucceed()),
 
-				// If we've met our completion count, we're done...
-				new Decorator(context => _counter >= NumOfTimes,
-					new Action(context => { _isBehaviorDone = true; })),
+		        // If we've met our completion count, we're done...
+		        new Decorator(context => _counter >= NumOfTimes,
+		            new Action(context => { BehaviorDone(); })),
 
-				// Run the LUA command...
-				new Action(c =>
-				{
-					Lua.DoString(LuaCommand);
-					_counter++;
-					_waitTimer.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
-					_waitTimer.Reset();
-				}))
-			);
+		        // Run the LUA command...
+		        new Action(c =>
+		        {
+		            Lua.DoString(LuaCommand);
+		            _counter++;
+		            _waitTimer.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
+		            _waitTimer.Reset();
+		        }));
 		}
-
-		public override void OnFinished()
-		{
-			TreeRoot.GoalText = string.Empty;
-			TreeRoot.StatusText = string.Empty;
-			base.OnFinished();
-		}
-
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
-
 
 		public override void OnStart()
 		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+            // Acquisition and checking of any sub-elements go here.
+            // A common example:
+            //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+            //     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
-			this.UpdateGoalText(QuestId, GoalText);
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
 				this.UpdateGoalText(QuestId);
 				TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
 													GetType().Name, LuaCommand, NumOfTimes, WaitTime);
