@@ -49,31 +49,42 @@ namespace Honorbuddy.QuestBehaviorCore
 
 		public static string VersionedBehaviorName { get; private set; }
 
-
-		// 30Apr2013-06:20UTC chinajade
-		public static string BuildLogMessage(string messageType, string format, params object[] args)
-		{                           
+		public static string BuildLogMessage(string messageType, string message)
+		{
 			return string.Format("[{0}({1})] {2}",
 				VersionedBehaviorName,
 				messageType,
-				BuildMessageWithContext(null, format, args));           
+				BuildMessageWithContext(null, message));
 		}
 
-
 		// 30Apr2013-06:20UTC chinajade
-		public static string BuildMessageWithContext(XElement xElement, string format, params object[] args)
+		public static string BuildLogMessage(string messageType, string format, params object[] args)
+		{
+			return string.Format("[{0}({1})] {2}",
+				VersionedBehaviorName,
+				messageType,
+				BuildMessageWithContext(null, format, args));
+		}
+
+		public static string BuildMessageWithContext(XElement xElement, string message)
 		{
 			var context =
 				(xElement != null)
 				? string.Format("{0}    {1}", Environment.NewLine, GetXmlFileReference(xElement))
 				: string.Empty;
-									
-			return string.Format("{0}{1}", string.Format(format, args), context);           
+
+			return string.Format("{0}{1}", message, context);
+		}
+
+		// 30Apr2013-06:20UTC chinajade
+		public static string BuildMessageWithContext(XElement xElement, string format, params object[] args)
+		{
+			return BuildMessageWithContext(xElement, string.Format(format, args));
 		}
 
 
 		// 25Apr2013-11:42UTC chinajade
-        static readonly Regex RegexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
+		static readonly Regex RegexSvnDecoration = new Regex("^\\$[^:]+:[:]?[ \t]*([^$]+)[ \t]*\\$$");
 		private static string BuildVersionedBehaviorName(CustomForcedBehavior cfb)
 		{
 			Func<string, string> utilStripSubversionDecorations =
@@ -116,11 +127,20 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <summary>
 		/// <para>For DEBUG USE ONLY--don't use in production code!</para>
 		/// </summary>
+		/// <param name="message"></param>
+		public static void Debug(string message)
+		{
+			Logging.Write(Colors.Fuchsia, BuildLogMessage("debug", message));
+		}
+
+		/// <summary>
+		/// <para>For DEBUG USE ONLY--don't use in production code!</para>
+		/// </summary>
 		/// <param name="format"></param>
 		/// <param name="args"></param>
 		public static void Debug(string format, params object[] args)
 		{
-			Logging.Write(Colors.Fuchsia, BuildLogMessage("debug", format, args));
+			Debug(string.Format(format, args));
 		}
 
 		public static void Debug(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -133,7 +153,16 @@ namespace Honorbuddy.QuestBehaviorCore
 			BehaviorLoggingContext = originalCfbContext;
 		}
 
-		
+
+		/// <summary>
+		/// <para>For chasing longer-term (i.e., sporadic) issues.  These messages are only emitted to the log--not the scrolly window,
+		/// and are acceptable to leave in production code.</para>
+		/// </summary>
+		public static void DeveloperInfo(string message)
+		{
+			Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", message));
+		}
+
 		/// <summary>
 		/// <para>For chasing longer-term (i.e., sporadic) issues.  These messages are only emitted to the log--not the scrolly window,
 		/// and are acceptable to leave in production code.</para>
@@ -142,7 +171,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <param name="args"></param>
 		public static void DeveloperInfo(string format, params object[] args)
 		{
-			Logging.WriteDiagnostic(Colors.LimeGreen, BuildLogMessage("debug", format, args));
+			DeveloperInfo(string.Format(format, args));
 		}
 
 		public static void DeveloperInfo(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -154,8 +183,15 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			BehaviorLoggingContext = originalCfbContext;
 		}
-		
-		
+
+		/// <summary>
+		/// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+		/// </summary>
+		public static void Error(string message)
+		{
+			Logging.Write(Colors.Red, BuildLogMessage("error", message));
+		}
+
 		/// <summary>
 		/// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
 		/// </summary>
@@ -163,7 +199,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <param name="args"></param>
 		public static void Error(string format, params object[] args)
 		{
-			Logging.Write(Colors.Red, BuildLogMessage("error", format, args));
+			Error(string.Format(format, args));
 		}
 
 		public static void Error(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -206,8 +242,16 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			BehaviorLoggingContext = originalCfbContext;
 		}
-		   
-		
+
+		/// <summary>
+		/// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
+		/// </summary>
+		public static void Fatal(string message)
+		{
+			Logging.Write(Colors.Red, BuildLogMessage("fatal", message));
+			TreeRoot.Stop("Fatal error in quest behavior, or profile.");
+		}
+
 		/// <summary>
 		/// <para>Error situations occur when bad data/input is provided, and no corrective actions can be taken.</para>
 		/// </summary>
@@ -215,8 +259,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <param name="args"></param>
 		public static void Fatal(string format, params object[] args)
 		{
-			Logging.Write(Colors.Red, BuildLogMessage("fatal", format, args));
-			TreeRoot.Stop("Fatal error in quest behavior, or profile.");
+			Fatal(string.Format(format, args));
 		}
 
 		public static void Fatal(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -228,8 +271,15 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			BehaviorLoggingContext = originalCfbContext;
 		}
-		
-		
+
+		/// <summary>
+		/// <para>Normal information to keep user informed.</para>
+		/// </summary>
+		public static void Info(string message)
+		{
+			Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", message));
+		}
+
 		/// <summary>
 		/// <para>Normal information to keep user informed.</para>
 		/// </summary>
@@ -237,7 +287,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <param name="args"></param>
 		public static void Info(string format, params object[] args)
 		{
-			Logging.Write(Colors.CornflowerBlue, BuildLogMessage("info", format, args));
+			Info(string.Format(format, args));
 		}
 
 		public static void Info(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -249,8 +299,18 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			BehaviorLoggingContext = originalCfbContext;
 		}
-		
-		
+
+		/// <summary>
+		/// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
+		/// action a user can perform in the field for these types of errors.
+		/// </summary>
+		///  30Jun2012-15:58UTC chinajade
+		public static void MaintenanceError(string message)
+		{
+			var trace = new StackTrace(1);
+			Error("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", message, trace.ToString());
+		}
+
 		/// <summary>
 		/// MaintenanceErrors occur as a result of incorrect code maintenance.  There is usually no corrective
 		/// action a user can perform in the field for these types of errors.
@@ -260,10 +320,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		///  30Jun2012-15:58UTC chinajade
 		public static void MaintenanceError(string format, params object[] args)
 		{
-			string formattedMessage = string.Format(format, args);
-			var trace = new StackTrace(1);
-
-			Error("[MAINTENANCE ERROR] {0}\nFROM HERE:\n{1}", formattedMessage, trace.ToString());
+			MaintenanceError(string.Format(format, args));
 		}
 
 		public static void MaintenanceError(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -297,6 +354,19 @@ namespace Honorbuddy.QuestBehaviorCore
 			});
 		}
 
+		/// <summary>
+		/// ProfileErrors occur as a result of the profile attempting to use a behavior in a manner for which
+		/// it was not intended.  Such errors also occur because behavior entry criteria are not met.
+		/// For instance, the behavior was asked to use an item in the backpack on a mob, but the item is not
+		/// present in the backpack.
+		/// There is no corrective action a user or the behavior can perform to work around these types
+		/// of errors; thus, they are always considered fatal.
+		/// </summary>
+		///  30Jun2012-15:58UTC chinajade
+		public static void ProfileError(string message)
+		{
+			Fatal("[PROFILE ERROR] {0}", message);
+		}
 
 		/// <summary>
 		/// ProfileErrors occur as a result of the profile attempting to use a behavior in a manner for which
@@ -311,7 +381,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		///  30Jun2012-15:58UTC chinajade
 		public static void ProfileError(string format, params object[] args)
 		{
-			Fatal("[PROFILE ERROR] {0}", string.Format(format, args));
+			ProfileError(string.Format(format, args));
 		}
 
 		public static void ProfileError(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -323,8 +393,15 @@ namespace Honorbuddy.QuestBehaviorCore
 
 			BehaviorLoggingContext = originalCfbContext;
 		}
-		
-		
+
+		/// <summary>
+		/// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
+		/// </summary>
+		public static void Warning(string message)
+		{
+			Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", message));
+		}
+
 		/// <summary>
 		/// <para>Used to notify of problems where corrective (fallback) actions are possible.</para>
 		/// </summary>
@@ -332,7 +409,7 @@ namespace Honorbuddy.QuestBehaviorCore
 		/// <param name="args"></param>
 		public static void Warning(string format, params object[] args)
 		{
-			Logging.Write(Colors.DarkOrange, BuildLogMessage("warning", format, args));
+			Warning(string.Format(format, args));
 		}
 
 		public static void Warning(CustomForcedBehavior cfbContext, string format, params object[] args)
@@ -345,7 +422,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			BehaviorLoggingContext = originalCfbContext;
 		}
 
-		
+
 		//  1May2013-07:49UTC chinajade
 		public static string GetXmlFileReference(XElement xElement)
 		{
