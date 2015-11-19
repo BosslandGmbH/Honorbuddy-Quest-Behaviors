@@ -32,6 +32,8 @@
 //          is somewhere on the surface of the water.
 //
 // Tunables:
+//      BaitId [optional;  Default: none]
+//          Specifies the bait item id. If not specified then any bait in bags is used. 
 //      CollectItemCount [optional;  Default: 1]
 //          Specifies the number of items that must be collected.
 //          The behavior terminates when we have this number of CollectItemId
@@ -134,6 +136,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 				TestFishing = GetAttributeAsNullable<bool>("TestFishing", false, null, null) ?? false;
 				WaterPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 				UseFishingGear = GetAttributeAsNullable<bool>("UseFishingGear", false, null, null) ?? false;
+				BaitId = GetAttributeAsNullable<int>("BaitId", false, null, null);
 			}
 
 			catch (Exception except)
@@ -160,10 +163,11 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		public static int PoolId { get; private set; }
 		public bool TestFishing { get; private set; }
 		public WoWPoint WaterPoint { get; private set; }
-		public bool UseFishingGear { get; private set; }
+		private bool UseFishingGear { get; set; }
+		private int? BaitId { get; set; }
 
 		// Private variables for internal state
-        private readonly ProfileHelperFunctionsBase _helperFuncs = new ProfileHelperFunctionsBase();
+		private readonly ProfileHelperFunctionsBase _helperFuncs = new ProfileHelperFunctionsBase();
 		public static WoWGuid _PoolGUID;
 		private Composite _root;
 		private Composite _moveToPoolBehavior = PoolFishingBuddy.CreateMoveToPoolBehavior();
@@ -171,9 +175,11 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 		private WoWGuid? _offHandItemGuid;
 		readonly WaitTimer _lureTimer = WaitTimer.FiveSeconds;
 		readonly WaitTimer _baitTimer = WaitTimer.FiveSeconds;
+		readonly WaitTimer _buffTimer = WaitTimer.FiveSeconds;
 
 		private const uint ItemId_SavageFishingPool = 116825;
 		private const uint ItemId_DraenicFishingPool = 116826;
+		private const uint ItemId_BladeboneHook = 122742;
 
 		private static readonly List<Lure> Lures = new List<Lure>
 													{
@@ -202,6 +208,11 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 																	   {110292, "Sea Scorpion Bait"},
 																	   {116755, "Nat's Hookshot Bait"},
 																	   {128229, "Felmouth Frenzy Bait"},
+																   };
+
+		private static readonly Dictionary<uint, string> BuffItems = new Dictionary<uint, string>
+																   {
+																	   {122742, "Bladebone Hook"},
 																   };
 
 		// Hats are listed in best to worst order.
@@ -243,15 +254,23 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
         public override void OnFinished()
         {
-            Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
-            Lua.Events.DetachEvent("LOOT_CLOSED", HandleLootClosed);
+	        try
+	        {
+		        Lua.Events.DetachEvent("LOOT_OPENED", HandleLootOpened);
+		        Lua.Events.DetachEvent("LOOT_CLOSED", HandleLootClosed);
 
-            if (Fishing.IsFishing)
-                SpellManager.StopCasting();
+		        if (Fishing.IsFishing)
+			        SpellManager.StopCasting();
 
-            _root = null;
-            base.OnFinished();
-        }
+		        // Make sure our weapons are equipped when done. 
+		        EquipWeapons();
+		        _root = null;
+	        }
+	        finally
+	        {
+				base.OnFinished();
+			}
+		}
 
 		public override void OnStart()
 		{
@@ -345,9 +364,6 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			if ((!TestFishing && WaterPoint == WoWPoint.Empty && (PoolId == 0 || !_PoolGUID.IsValid)) 
 				|| Me.Combat || Me.IsDead || Me.IsGhost)
 			{
-				// AutoEquip does not run while in combat so we need to equip weapons before exiting behavior.
-				if (Me.Combat)
-					await EquipWeapons();
 				BehaviorDone();
 				return true;
 			}
@@ -420,7 +436,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 				{
 					QBCLog.DeveloperInfo("no FishingBobber found!?");
 
-					if (await ApplyLure() || await ApplyBait())
+					if (await ApplyLure() || await ApplyBait() || await ApplyItemBuff())
 						return true;
 
 					if (UseFishingGear && (await EquipHat() || await EquipPole()))
@@ -499,12 +515,45 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 			_baitTimer.Reset();
 
-			var bait = StyxWoW.Me.BagItems.FirstOrDefault(i => Baits.ContainsKey(i.Entry));
+			var bait = StyxWoW.Me.BagItems.FirstOrDefault(
+					i => HasRequiredSkillLevel(i.ItemInfo) && (BaitId.HasValue ? BaitId.Value == i.Entry : Baits.ContainsKey(i.Entry)));
+
 			if (bait == null)
 				return false;
 			QBCLog.Info("Attaching bait: {0} to pole", bait.SafeName);
 			bait.Use();
 			await Coroutine.Wait(2000, () => GotBaitOnPole);
+			return true;
+		}
+
+		private async Task<bool> ApplyItemBuff()
+		{
+			if (!_buffTimer.IsFinished)
+				return false;
+
+			if (StyxWoW.Me.IsCasting)
+				return false;
+
+			_baitTimer.Reset();
+
+			string buffName = null;
+			var buffItem = Me.BagItems.FirstOrDefault(i =>
+			{
+				if (!HasRequiredSkillLevel(i.ItemInfo))
+					return false;
+
+				if (!BuffItems.TryGetValue(i.Entry, out buffName))
+					return false;
+
+				return !Me.HasAura(buffName);
+			});
+
+			if (buffItem == null)
+				return false;
+
+			QBCLog.Info($"Activating item buff: {buffItem.SafeName}");
+			buffItem.Use();
+			await Coroutine.Wait(2000, () => Me.HasAura(buffName));
 			return true;
 		}
 
@@ -525,7 +574,8 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			if (pole == null || (mainHand != null && pole.Entry == mainHand.Entry))
 				return false;
 
-			await EquipItem(pole, WoWInventorySlot.MainHand);
+			EquipItem(pole, WoWInventorySlot.MainHand);
+			await CommonCoroutines.SleepForLagDuration();
 			return true;
 		}
 
@@ -547,17 +597,19 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			if (equippedHat != null && equippedHat.Entry == hat.Entry)
 				return false;
 
-			await EquipItem(hat, WoWInventorySlot.Head);
+			await CommonCoroutines.SleepForLagDuration();
+			EquipItem(hat, WoWInventorySlot.Head);
 			return true;
 		}
 
 		private static WoWItem GetBestLure()
 		{
 			return (from item in StyxWoW.Me.BagItems
-							let lure = Lures.FirstOrDefault(l => l.ItemId == item.Entry)
-							where lure != null
-							orderby lure.BonusSkill descending
-							select item).FirstOrDefault();
+					where HasRequiredSkillLevel(item.ItemInfo)
+					let lure = Lures.FirstOrDefault(l => l.ItemId == item.Entry)
+					where lure != null
+					orderby lure.BonusSkill descending
+					select item).FirstOrDefault();
 		}
 
 		private static bool GotBaitOnPole
@@ -613,7 +665,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 
 		private static bool HasUsableEffect(WoWItem item)
 		{
-			return item.Effects != null
+			return item.Usable && item.CooldownTimeLeft.TotalSeconds <= 0 && item.Effects != null
 			       && item.Effects.Any(e => e.TriggerType == ItemEffectTriggerType.OnUse && e.Spell != null && !e.Spell.Cooldown);
 		}
 
@@ -626,27 +678,23 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			}
 		}
 
-		public async Task<bool> EquipWeapons()
+		public void EquipWeapons()
 		{
-			bool success = false;
 			if (_mainHandItemGuid.HasValue)
 			{
 				var equippedWeapon = StyxWoW.Me.Inventory.Equipped.MainHand;
-				success = await FindAndEquipWeaponInBags(equippedWeapon, _mainHandItemGuid.Value, WoWInventorySlot.MainHand);
+				FindAndEquipWeaponInBags(equippedWeapon, _mainHandItemGuid.Value, WoWInventorySlot.MainHand);
 			}
 
 			// equip left hand weapon
 			if (_offHandItemGuid.HasValue)
 			{
 				var equippedWeapon = StyxWoW.Me.Inventory.Equipped.OffHand;
-				success |= await FindAndEquipWeaponInBags(equippedWeapon, _offHandItemGuid.Value, WoWInventorySlot.OffHand);
+				FindAndEquipWeaponInBags(equippedWeapon, _offHandItemGuid.Value, WoWInventorySlot.OffHand);
 			}
-
-			return success;
 		}
 
-
-		private async Task<bool> FindAndEquipWeaponInBags(WoWItem equippedItem, WoWGuid weaponGuid, WoWInventorySlot slot)
+		private bool FindAndEquipWeaponInBags(WoWItem equippedItem, WoWGuid weaponGuid, WoWInventorySlot slot)
 		{
 			if (equippedItem != null && equippedItem.Guid == weaponGuid)
 				return false;
@@ -662,12 +710,7 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			if (equippedItem != null && equippedItem.Guid == wantedWeapon.Guid)
 				return false;
 
-			if (StyxWoW.Me.ChanneledCastingSpellId != 0)
-			{
-				SpellManager.StopCasting();
-				await CommonCoroutines.SleepForLagDuration();
-			}
-			await EquipItem(wantedWeapon, slot);
+			EquipItem(wantedWeapon, slot);
 			return true;
 		}
 
@@ -718,13 +761,21 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 			return offHand.Guid;
 		}
 
-		private static async Task EquipItem(WoWItem item, WoWInventorySlot slot)
+		//private static async Task EquipItem(WoWItem item, WoWInventorySlot slot)
+		//{
+		//	QBCLog.Info($"Equipping {item.SafeName} in {slot} slot");
+		//	Lua.DoString("ClearCursor()");
+		//	item.PickUp();
+		//	Lua.DoString($"PickupInventoryItem({(int) slot + 1})");
+		//	await CommonCoroutines.SleepForLagDuration();
+		//}
+
+		private static void EquipItem(WoWItem item, WoWInventorySlot slot)
 		{
 			QBCLog.Info($"Equipping {item.SafeName} in {slot} slot");
 			Lua.DoString("ClearCursor()");
 			item.PickUp();
-			Lua.DoString($"PickupInventoryItem({(int) slot + 1})");
-			await CommonCoroutines.SleepForLagDuration();
+			Lua.DoString($"PickupInventoryItem({(int)slot + 1})");
 		}
 
 		#endregion Utilities

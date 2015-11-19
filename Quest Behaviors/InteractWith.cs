@@ -1606,13 +1606,13 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 
 		private void Targeting_RemoveTargetsFilter(List<WoWObject> units)
 		{
-			var removeViableTargets = (InteractAttemptCount == 0) || (Query.FindMobsAttackingMe().Count() <= 1);
-
 			// No need to clear a path while flying since we can fly right over them!
 			var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
 										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
 
 			var isActuallyInCombat = Me.IsActuallyInCombat;
+			var removeViableTargets = (IgnoreCombat || !isActuallyInCombat)
+				&& (InteractAttemptCount == 0) || (Query.FindMobsAttackingMe().Count() <= 1);
 
 			units.RemoveAll(
 				o =>

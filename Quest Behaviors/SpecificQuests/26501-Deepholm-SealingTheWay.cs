@@ -20,12 +20,15 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-
+using System.Threading.Tasks;
 using Bots.Grind;
+using Buddy.Coroutines;
+using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
 using Styx.Common;
 using Styx.CommonBot;
+using Styx.CommonBot.Coroutines;
 using Styx.CommonBot.Profiles;
 using Styx.CommonBot.Routines;
 using Styx.Pathing;
@@ -180,7 +183,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 				new Decorator(r => !Me.Combat && Bad(Spots[0]) != null, DoPull),
 				new Decorator(r => Me.Combat && Bad(Spots[0]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
 					new Decorator(r => Bad(Spots[0]) == null,
-						UseItem(0))));
+						new ActionRunCoroutine(ctx => UseItem(0)))));
 		}
 
 
@@ -199,7 +202,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 				new Decorator(r => !Me.Combat && Bad(Spots[1]) != null, DoPull),
 				new Decorator(r => Me.Combat && Bad(Spots[1]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
 					new Decorator(r => Bad(Spots[1]) == null,
-						UseItem(1))));
+						new ActionRunCoroutine(ctx => UseItem(1)))));
 		}
 
 
@@ -218,7 +221,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 				new Decorator(r => !Me.Combat && Bad(Spots[2]) != null, DoPull),
 				new Decorator(r => Me.Combat && Bad(Spots[2]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
 					new Decorator(r => Bad(Spots[2]) == null,
-						UseItem(2))));
+						new ActionRunCoroutine(ctx => UseItem(2)))));
 		}
 
 
@@ -237,7 +240,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 				new Decorator(r => !Me.Combat && Bad(Spots[3]) != null, DoPull),
 				new Decorator(r => Me.Combat && Bad(Spots[3]) != null && !Me.CurrentTarget.IsFriendly, DoDps),
 					new Decorator(r => Bad(Spots[3]) == null,
-						UseItem(3))));
+						new ActionRunCoroutine (ctx => UseItem(3)))));
 		}
 
 
@@ -247,18 +250,26 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.SealingTheWay
 		}
 
 
-		private Composite UseItem(int x)
+		private async Task UseItem(int x)
 		{
+			var g = Geomancer(Spots[x]);
+			if (!Query.IsViable(g))
+				return;
 
-			return new Action(delegate
+			if (g.DistanceSqr > 5 * 5)
 			{
-				var g = Geomancer(Spots[x]);
-				if (g.Distance > 5)
-					Navigator.MoveTo(g.Location);
-				g.Target();
-				Rock.Use();
-			});
+				await CommonCoroutines.MoveTo(g.Location);
+				return;
+			}
 
+			if (Me.CurrentTarget != g)
+			{
+				g.Target();
+				return;
+			}
+
+			await CommonCoroutines.Dismount();
+			Rock.Use();
 		}
 
 
