@@ -40,6 +40,8 @@
 //          Identifies that type of object that needs to be avoided. 
 //      IgnoreIfBlocking [optional; Default: false]
 //          Specifies whether effect should be ignored if it blocks path
+//		IgnoreLootInAvoid [optional; Default: false]
+//			Specifies whether loot should be ignored if it's inside an avoided area.
 //      AvoidLocationProducer [optional; Default: Location of effect object]
 //          This allows the user to customize the location that needs to be avoided 
 //      LeashRadius [optional; Default 40]
@@ -106,23 +108,23 @@
 // COMPOSITE AVOID AREA
 // The basic "avoid area" is a circle defined by a center and a radius.  By default, the behavior
 // places the center at the mob's location, and the Radius attribute is provided directly.
-   
+
 // Alternatively, it is possible to ask the behavior to use a use a different center
 // by providing the AvoidLocationProducer attribute.
 // Defining a AvoidLocationProducer attribute, coupled with the ability to fire multiple
 // Avoid areas using the same trigger, allows us to define avoid areas of different
 // 'shapes' (other than the default basic 'circle').
-   
+
 // In some encounters, it is important to define the "avoid area" precisely.
 // If we grossly define an avoid area as centered on the mob, and a large radius, this
 // leaves the toon no where to run to get out of the impending attack.
-   
+
 // For instance, in the example below an Earthrending Slam affects all toons in front of the mob out to 20 feet.
 // The attack is not circular around the mob, but a "fat line" six feet wide in front of the mob.
 // The initial developer instinct will be to define a circle centered on the mob and 20 feet
 // in diameter.  This would be a grave mistake, as it leaves the toon no where it knows it
 // can run to avoid the attack.
-   
+
 // A better solution would be to define a small set of overlapping circles that cover the path
 // of the attack.  Since our example attack width is six feet wide, we'll use a small series of
 // circles with a 3 foot radius, and place several of them such as the circles overlap.  The result
@@ -131,7 +133,7 @@
 // of all these overlapping avoid areas to define one large avoid area. When done in this fashion,
 // the toon can see that it has to step no more than three feet to one side or the other
 // to avoid the attack.
-   
+
 // The profile code that implements this example is shown below.  Note that, we use several
 // Avoid behaviors with the same trigger, but different placements for the "circle".  This is
 // what creates our composite avoid area.
@@ -244,8 +246,8 @@ namespace Honorbuddy.Quest_Behaviors
                     AvoidWhenExpression = GetAttributeAs<string>("AvoidWhen", false, ConstrainAs.StringNonEmpty, null) ?? "";
                     AvoidLocationProducerExpression = GetAttributeAs<string>("AvoidLocationProducer", false, ConstrainAs.StringNonEmpty, null) ?? "";
                     IgnoreIfBlocking = GetAttributeAsNullable<bool>("IgnoreIfBlocking", false, null, null) ?? false;
-
-                    AvoidWhen = CreateAvoidWhen(AvoidWhenExpression);
+					IgnoreLootInAvoid = GetAttributeAsNullable<bool>("IgnoreLootInAvoid", false, null, null) ?? false;
+					AvoidWhen = CreateAvoidWhen(AvoidWhenExpression);
 
                     AvoidLocationProducer = CreateAvoidLocationProducer(AvoidLocationProducerExpression);
                 }
@@ -296,6 +298,7 @@ namespace Honorbuddy.Quest_Behaviors
         private float LeashRadius { get; set; }
         private float Radius { get; set; }
         private bool IgnoreIfBlocking { get; set; }
+		private bool IgnoreLootInAvoid { get; set; }
 
 		[CompileExpression]
         public DelayCompiledExpression AvoidWhen { get; private set; }
@@ -371,7 +374,19 @@ namespace Honorbuddy.Quest_Behaviors
 			RemoveHook();
 		}
 
-        private async Task<bool> HookHandler()
+		private void Instance_RemoveTargetsFilter(List<WoWObject> woWObjects)
+		{
+			if (!IgnoreLootInAvoid)
+				return;
+
+			woWObjects.RemoveAll(woWObject =>
+			{
+				var loc = woWObject.Location;
+				return AvoidanceManager.Avoids.Any(a => a.IsPointInAvoid(loc));
+			});
+		}
+
+		private async Task<bool> HookHandler()
         {
 	        var supportsCapabilities = RoutineManager.Current.SupportedCapabilities != CapabilityFlags.None;
 
@@ -411,12 +426,11 @@ namespace Honorbuddy.Quest_Behaviors
 	        BotEvents.OnPulse += BotEvents_OnPulse;
             BotEvents.OnBotStopped += BotEvents_OnBotStopped;
 			BotEvents.Profile.OnNewOuterProfileLoaded += Profile_OnNewOuterProfileLoaded;
-
+			LootTargeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
             QBCLog.Info("Installed avoidance system");
         }
 
-
-        private void RemoveHook()
+		private void RemoveHook()
         {
             if (_hook == null)
                 return;
@@ -439,8 +453,8 @@ namespace Honorbuddy.Quest_Behaviors
 			BotEvents.OnPulse -= BotEvents_OnPulse;
             BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
 			BotEvents.Profile.OnNewOuterProfileLoaded -= Profile_OnNewOuterProfileLoaded;
-
-            QBCLog.Info("Uninstalled avoidance system");
+			LootTargeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+			QBCLog.Info("Uninstalled avoidance system");
         }
 
         private DelayCompiledExpression CreateAvoidWhen(string expression)

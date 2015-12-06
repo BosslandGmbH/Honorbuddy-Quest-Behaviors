@@ -1461,11 +1461,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
 				    {
                         var altCurrency = item.BuyPrice == 0;
                         if (altCurrency)
-				        {
+				        {							
                             QBCLog.ProfileError(
-                                "Toon does not have enough {0} to purchase {1} (qty: {2})",
-                                item.CurrencyInfo.Name,
-                                item.Name,
+                                "Toon does not have enough ({0}) to purchase {1} (qty: {2})",
+								string.Join(", ", item.ExtendedCost.RequiredCurrencyIds.Select(id => WoWCurrency.GetCurrencyById(id).Name)),
+								item.Name,
                                 BuyItemCount);
                         }
 				        else
