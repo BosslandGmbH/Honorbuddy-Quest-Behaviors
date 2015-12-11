@@ -281,22 +281,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
 				// Tunables...
 				IgnoreMobsInBlackspots = GetAttributeAsNullable<bool>("IgnoreMobsInBlackspots", false, null, null) ?? true;
-
-				MovementByType? movementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null);
-
-				switch (movementBy)
-				{
-					case MovementByType.FlightorPreferred:
-						NavType = Styx.NavType.Fly;
-						break;
-					case MovementByType.NavigatorOnly:
-					case MovementByType.NavigatorPreferred:
-						NavType = Styx.NavType.Run;
-						break;
-				}
-
-                MovementBy = movementBy ?? MovementByType.FlightorPreferred;
-
+                MovementBy = GetAttributeAsNullable<MovementByType>("MovementBy", false, null, null) ?? MovementByType.FlightorPreferred;
 				NonCompeteDistance = GetAttributeAsNullable<double>("NonCompeteDistance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? 20.0;
 
 				TerminateAtMaxRunTimeSecs = GetAttributeAsNullable<int>("TerminateAtMaxRunTimeSecs", false, new ConstrainTo.Domain<int>(0, int.MaxValue), null) ?? int.MaxValue;
@@ -397,7 +382,22 @@ namespace Honorbuddy.QuestBehaviorCore
 
 		#region Overrides of CustomForcedBehavior
 
-		public override NavType? NavType { get; }
+		public override NavType? NavType
+		{
+			get
+			{
+				switch (MovementBy)
+				{
+					case MovementByType.FlightorPreferred:
+						return Styx.NavType.Fly;
+					case MovementByType.NavigatorOnly:
+					case MovementByType.NavigatorPreferred:
+						return Styx.NavType.Run;
+					default:
+						return null;
+				}
+			}
+		}
 
 		protected sealed override Composite CreateBehavior()
 		{
