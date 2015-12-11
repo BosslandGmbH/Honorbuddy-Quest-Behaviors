@@ -16,7 +16,7 @@ using System.IO;
 using System.Linq;
 using System.Xml;
 using System.Xml.Linq;
-
+using Bots.Quest.QuestOrder;
 using Styx;
 using Styx.Common.Helpers;
 using Styx.CommonBot;
@@ -297,7 +297,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				// accept targets that are within targeting collection range.
 				if (wowUnit.Distance < Targeting.CollectionRange)
-					{ BotPoi.Current = new BotPoi(wowUnit, poiType); }
+					{ BotPoi.Current = new BotPoi(wowUnit, poiType, QuestOrder.Instance.NavType); }
 
 				else
 				{

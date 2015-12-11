@@ -230,6 +230,7 @@ using System.Linq;
 using System.Xml.Linq;
 
 using Bots.Grind;
+using Bots.Quest.QuestOrder;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
 using Styx;
@@ -540,7 +541,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 								SelectedTarget = (WoWUnit)priorityUnitContext;
 
                                 QBCLog.Info("Switching to priority target {0}", SelectedTarget.SafeName);
-								BotPoi.Current = new BotPoi(SelectedTarget, PoiType.Kill);
+								BotPoi.Current = new BotPoi(SelectedTarget, PoiType.Kill, QuestOrder.Instance.NavType);
 								SelectedTarget.Target();
 								return RunStatus.Failure; // fall through
 							}))
@@ -555,7 +556,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							new Decorator(context => BotPoi.Current.Type != PoiType.Kill,
 								new Action(context =>
 								{
-									BotPoi.Current = new BotPoi(SelectedTarget, PoiType.Kill);
+									BotPoi.Current = new BotPoi(SelectedTarget, PoiType.Kill, QuestOrder.Instance.NavType);
 									SelectedTarget.Target();
 									return RunStatus.Failure;   // fall through
 								})),
@@ -1317,7 +1318,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 							new Sequence(
 								new Action(targetContext =>
 								{
-									BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill);
+									BotPoi.Current = new BotPoi((WoWUnit)targetContext, PoiType.Kill, QuestOrder.Instance.NavType);
 									((WoWUnit)targetContext).Target();
 								}),
 								new Mount.ActionLandAndDismount())),

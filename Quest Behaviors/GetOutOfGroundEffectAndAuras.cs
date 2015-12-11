@@ -202,6 +202,7 @@ using System.Globalization;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using Bots.Quest.QuestOrder;
 using Buddy.Coroutines;
 using CommonBehaviors.Actions;
 using Honorbuddy.QuestBehaviorCore;
@@ -588,7 +589,7 @@ namespace Honorbuddy.Quest_Behaviors.GetOutOfGroundEffectAndAuras
 						new Action(preferredUnitContext =>
 						{
                             QBCLog.Info("Reprioritizing target to '{0}'", ((WoWUnit)preferredUnitContext).SafeName);
-							BotPoi.Current = new BotPoi((WoWUnit)preferredUnitContext, PoiType.Kill);
+							BotPoi.Current = new BotPoi((WoWUnit)preferredUnitContext, PoiType.Kill, QuestOrder.Instance.NavType);
 						}))
 					)
 				);
