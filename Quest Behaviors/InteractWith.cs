@@ -1078,6 +1078,15 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                     var lootableObj = SelectedTarget as ILootableObject;
 				    var isLootable = Query.IsViable(SelectedTarget) && lootableObj != null && lootableObj.CanLoot;
 
+					// Fixes #HB-2729 (InteractWith stuck while bot is flying and trying to interact with a hostile mob)
+					var selectedUnit = SelectedTarget as WoWUnit;
+					if (selectedUnit != null && selectedUnit.IsAlive
+						&& (isLootable || selectedUnit.IsHostile) && Me.Mounted && Me.IsFlying)
+					{
+						return await CommonCoroutines.Dismount(
+							$"Dismounting before interacting with {(isLootable ? "lootable" : "hostile")} NPC");
+					}
+
 					if (!await UtilityCoroutine.Interact(SelectedTarget))
 						return false;
 
