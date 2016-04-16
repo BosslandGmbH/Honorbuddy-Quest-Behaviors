@@ -162,7 +162,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 		private WoWUnit GetAttackTarget()
 		{
 			var target = Me.CurrentTarget;
-			if (target != null && target.IsHostile && target.Attackable && target.IsAlive && target.DistanceSqr < 25 * 25)
+			if (target != null && target.IsHostile && target.Attackable && target.IsAlive && target.DistanceSqr < 15 * 15)
 			{
 				return target;
 			}
@@ -203,18 +203,18 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MrDsWildRide
 							new ActionSetActivity("Moving to Attack"),
 							new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid,
 								new ActionFail(ctx => attackTarget.Target())),
-							new Decorator(ctx => !Me.IsSafelyFacing(attackTarget),
+							new Decorator(ctx => !WoWMovement.ActiveMover.IsSafelyFacing(attackTarget, 30),
 								new ActionFail(ctx => attackTarget.Face())),
 
 							// cast 'Incinerate' ability on melee range target.
 							new Decorator(
-								ctx => Me.Location.DistanceSqr(attackTarget.Location) <= 35 * 35,
+								ctx => Me.Location.DistanceSqr(attackTarget.Location) <= 15 * 15,
 								new PrioritySelector(
 									new Decorator(
-										ctx => Me.Location.DistanceSqr(attackTarget.Location) <= 35 * 35 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
+										ctx => Me.Location.DistanceSqr(attackTarget.Location) <= 15 * 15 && (Me.IsMoving || Me.CharmedUnit.IsMoving),
 										new ActionFail(ctx => WoWMovement.ClickToMove(Me.CharmedUnit.Location))),
 									new Action(ctx => Lua.DoString("CastPetAction(1)")))),
-							new Decorator(ctx => Me.Location.DistanceSqr(attackTarget.Location) > 35 * 35,
+							new Decorator(ctx => Me.Location.DistanceSqr(attackTarget.Location) > 15 * 15,
 								new Action(ctx => Navigator.MoveTo(attackTarget.Location))))),
 					new Decorator(
 						ctx => attackTarget == null,
