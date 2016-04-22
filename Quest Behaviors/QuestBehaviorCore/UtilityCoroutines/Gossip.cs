@@ -127,8 +127,7 @@ namespace Honorbuddy.QuestBehaviorCore
 					if (await MoveTo(searchLocation, "Gossip object search area", movementBy)) 
 						return true;
 
-					if (navigationFailedAction != null)
-						navigationFailedAction();
+					navigationFailedAction?.Invoke();
 					return false;
 				}
 
@@ -144,8 +143,7 @@ namespace Honorbuddy.QuestBehaviorCore
 				if (await MoveTo(wowObject.Location, wowObject.SafeName, movementBy)) 
 					return true;
 
-				if (navigationFailedAction != null)
-					navigationFailedAction();
+				navigationFailedAction?.Invoke();
 				return false;
 			}
 
@@ -171,8 +169,7 @@ namespace Honorbuddy.QuestBehaviorCore
 			if (!openedGossipFrame)
 			{
 				QBCLog.Warning("No gossip frame was opened after interacting with {0}", wowObject.SafeName);
-				if (noGossipFrameAction != null)
-					noGossipFrameAction();
+				noGossipFrameAction?.Invoke();
 
 				return false;
 			}
@@ -183,16 +180,19 @@ namespace Honorbuddy.QuestBehaviorCore
 			{
 				var index = gossipIndexes[i] - 1;
 
-				var gossipEntry = GossipFrame.Instance.GossipOptionEntries.FirstOrDefault(g => g.Index == index);
-				if (gossipEntry.Type == GossipEntry.GossipEntryType.Unknown)
+				var gossipEntry =
+					GossipFrame.Instance.GossipOptionEntries.Where(g => g.Index == index)
+					           .Select(g => (GossipEntry?)g)
+					           .FirstOrDefault();
+
+				if (!gossipEntry.HasValue || gossipEntry.Value.Type == GossipEntry.GossipEntryType.Unknown)
 				{
 					QBCLog.Warning("{0} does not provide a gossip at index {1} on page {2}", wowObject.SafeName, index + 1, gossipPage);
-					if (noMatchingGossipOptionAction != null)
-						noMatchingGossipOptionAction();
+					noMatchingGossipOptionAction?.Invoke();
 					return false;
 				}
 
-				await ClickGossipOption(gossipEntry, gossipPage);
+				await ClickGossipOption(gossipEntry.Value, gossipPage);
 
 				// make sure frame didn't close before we're done.
 				if (!isFrameReadyForInput() && (i < gossipIndexes.Length - 1 || gossipEntryType != GossipEntry.GossipEntryType.Unknown))
@@ -223,8 +223,7 @@ namespace Honorbuddy.QuestBehaviorCore
 						if (gossipEntry.Type == GossipEntry.GossipEntryType.Unknown)
 						{
 							QBCLog.Warning("{0} does not provide a {0} gossip type", wowObject.SafeName, gossipEntryType);
-							if (noMatchingGossipOptionAction != null)
-								noMatchingGossipOptionAction();
+							noMatchingGossipOptionAction?.Invoke();
 							return false;
 						}
 
@@ -247,19 +246,24 @@ namespace Honorbuddy.QuestBehaviorCore
 			}
 
 			// Set hearthstone automatically
-			if (IsConfirmBinderPopupVisible)
+			const string setHsPopupName = "CONFIRM_BINDER";
+			if (Lua.GetReturnVal<bool>($"return StaticPopup_Visible('{setHsPopupName}')", 0))
 			{
-				Lua.DoString("ConfirmBinder(); StaticPopup_Hide('CONFIRM_BINDER')");
-				// NB: We give the WoWclient a little time to register our new location
-				// before asking it "where is our hearthstone set?"
-				await Coroutine.Sleep(1000);
-				var boundLocation = Lua.GetReturnVal<string>("return GetBindLocation()", 0);
+				uint hsId = StyxWoW.Me.HearthstoneAreaId;
+				Lua.DoString(
+					$"local _,frame = StaticPopup_Visible('{setHsPopupName}') if frame then StaticPopup_OnClick(frame, 1) end");
 
-				QBCLog.Info(
-					"You are now bound at {0} Inn in {1}({2})",
-					(Query.IsViable(wowObject) ? wowObject.SafeName : "the"),
-					boundLocation,
-					Me.HearthstoneAreaId);
+				if (await Coroutine.Wait(5000, () => StyxWoW.Me.HearthstoneAreaId != hsId))
+				{
+					await CommonCoroutines.SleepForRandomReactionTime();
+					var boundLocation = Lua.GetReturnVal<string>("return GetBindLocation()", 0);
+
+					QBCLog.Info(
+						"You are now bound at {0} Inn in {1}({2})",
+						(Query.IsViable(wowObject) ? wowObject.SafeName : "the"),
+						boundLocation,
+						Me.HearthstoneAreaId);
+				}
 			}
 			return true;
 		}
@@ -277,11 +281,5 @@ namespace Honorbuddy.QuestBehaviorCore
 			await CommonCoroutines.SleepForLagDuration();
 			await CommonCoroutines.SleepForRandomUiInteractionTime();
 		}
-
-		private static bool IsConfirmBinderPopupVisible
-		{
-			get { return Lua.GetReturnVal<bool>("return StaticPopup_Visible('CONFIRM_BINDER')", 0); }
-		}
-
 	}
 }
