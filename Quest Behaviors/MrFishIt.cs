@@ -568,6 +568,9 @@ namespace Honorbuddy.Quest_Behaviors.MrFishIt
 				   && i.ItemInfo.WeaponClass == WoWItemWeaponClass.FishingPole && HasRequiredSkillLevel(i.ItemInfo))
 				.OrderByDescending(GetBonusFishingSkillOnEquip)
 				.ThenByDescending(i => i.ItemInfo.Level)
+				// If these match then make sure we get poles in a consistent order; previously the order of poles
+				// could be swapped after we equipped one, in which case we would swap equipped poles endlessly
+				.ThenBy(i => i.Entry)
 				.FirstOrDefault();
 
 			// We are comparing Entry rather then the WoWItems instance since there can be multiple of the same item
