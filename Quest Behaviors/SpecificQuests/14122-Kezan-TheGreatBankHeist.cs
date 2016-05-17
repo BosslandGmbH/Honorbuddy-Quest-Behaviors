@@ -124,7 +124,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 		{
 			Lua.Events.DetachEvent("CHAT_MSG_RAID_BOSS_WHISPER", BossWhisperHandler);
 
-			if (StyxWoW.Me.HasAura("Vault Cracking Toolset"))
+			if (StyxWoW.Me.HasAura(AuraId_VaultCrackingToolset))
 				Lua.DoString("VehicleExit()");
 
 			base.OnFinished();
@@ -154,7 +154,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheGreatBankHeist
 			if (IsDone)
 				return false;
 
-			if (StyxWoW.Me.Location.DistanceSqr(wp) > 5 * 5)
+			if (StyxWoW.Me.Location.DistanceSqr(wp) > 5 * 5 && !StyxWoW.Me.HasAura(AuraId_VaultCrackingToolset)) 
 			{
 				TreeRoot.StatusText = "Moving to location";
 				Navigator.MoveTo(wp);
