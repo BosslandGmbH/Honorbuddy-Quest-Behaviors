@@ -81,44 +81,44 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		private const int HordeFlight = 35093;
 		private const int AllianceFlight = 35100;
 
-		//Stormwind
-		private const int AllianceLowbie = 43769;
-		//Orgimar
-		private const int HordieLowbie = 44919;
+		private const int StormwindTrainer = 43769;
+		private const int OrgrimmarTrainer = 44919;
+		private const int UndercityTrainer = 4773;
 		#endregion
 
-	    private RidingLevelType RidingLevel
-	    {
-	        get { return (RidingLevelType) Me.GetSkill(SkillLine.Riding).CurrentValue; }
-	    }
+	    private RidingLevelType RidingLevel => (RidingLevelType) Me.GetSkill(SkillLine.Riding).CurrentValue;
 
-		private bool Hellfire
-		{
-			get
-			{
-				return StyxWoW.Me.MapId == 530;
-			}
-		}
+		private const int HellfirePeninsulaId = 530;
+		private const int KalimdorId = 1;
+		private const int EasternKingdomsId = 0;
 
+		private bool InHellfire => Me.MapId == HellfirePeninsulaId;
 
-		private bool OldWorld
-		{
-			get
-			{
-				return (StyxWoW.Me.MapId == 0 || StyxWoW.Me.MapId == 1);
-			}
-		}
+		private bool InKalimdor => Me.MapId == KalimdorId;
 
+		private bool InEasternKingdoms => Me.MapId == EasternKingdomsId;
+
+		private bool InOldWorld => InKalimdor || InEasternKingdoms;
 
 		//Return the trainer we want based on faction and location and skill.
 		private int GetTrainerId()
 		{
-			if (OldWorld)
+			if (InKalimdor)
 			{
-				return Me.IsAlliance ? AllianceLowbie : HordieLowbie;
+				return Me.IsAlliance ? 0 : OrgrimmarTrainer;
 			}
 
-			if (Hellfire)
+			if (InEasternKingdoms)
+			{
+				// Horde can train ground mounts in Undercity
+				bool isGround = RidingLevel < RidingLevelType.JourneyManRiding;
+				if (isGround && Me.IsHorde)
+					return UndercityTrainer;
+
+				return Me.IsAlliance ? StormwindTrainer : 0;
+			}
+
+			if (InHellfire)
 			{
 				return Me.IsAlliance ? AllianceFlight : HordeFlight;
 			}
@@ -141,13 +141,13 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 			get
 			{
 			    var ridingLevel = RidingLevel;
-                return OldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && ridingLevel < RidingLevelType.ApprenticeRiding)
+                return InOldWorld && ((Me.Level >= 20 && Me.Gold >= 5 && ridingLevel < RidingLevelType.ApprenticeRiding)
                     || (Me.Level >= 40 && Me.Gold >= 55 && ridingLevel < RidingLevelType.JourneyManRiding) 
 					|| (Me.Level >= 60 && Me.Gold >= 278 && ridingLevel < RidingLevelType.ExpertRiding));
 			}
 		}
 
-        private bool TrainInOutland { get { return Hellfire && Me.Level >= 60 && Me.Gold >= 278 && RidingLevel < RidingLevelType.ExpertRiding; } }
+        private bool TrainInOutland { get { return InHellfire && Me.Level >= 60 && Me.Gold >= 278 && RidingLevel < RidingLevelType.ExpertRiding; } }
 
 		public override void OnStart()
 		{
@@ -318,14 +318,6 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 
 		private async Task<bool> PurchaseGroundMount_Alliance()
 		{
-			if (Me.HearthstoneAreaId != AreaId_StormwindInnkeeper)
-			{
-				TreeRoot.StatusText = "Moving to set hearth at SW Innkeeper";
-				await
-					UtilityCoroutine.Gossip(MobId_InnkeeperAllison, _stormwindInnkeeperLoc,
-					                        gossipEntryType: GossipEntry.GossipEntryType.Binder);
-				return true;
-			}
 			switch (Me.Race)
 			{
 				case WoWRace.Human:
@@ -361,7 +353,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 								_veronAmberstillLoc,
 								ItemId_WhiteRam);
 				case WoWRace.NightElf:
-					if (Me.MapId == 0)
+					if (InEasternKingdoms)
 					{
 						return await UtilityCoroutine.UseTransport(
 									GameObjectId_Ship_TheBravery,
@@ -372,7 +364,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 									_theBraveryGetOffAtLoc);
 					}
 
-					if (Me.MapId != 1)
+					if (!InKalimdor)
 						return false;
 				
 					return await TurninQuestAndBuyMount(
@@ -384,7 +376,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 								ItemId_ReinsOfTheStripedNightsaber);
 
 				case WoWRace.Draenei:
-					if (Me.MapId == 0)
+					if (InEasternKingdoms)
 					{
 						return await UtilityCoroutine.UseTransport(
 									GameObjectId_Ship_TheBravery,
@@ -396,7 +388,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 					}
 
 					// port over to Exodar
-					if (Me.MapId == 1 && Me.ZoneId != 3557)
+					if (InKalimdor && Me.ZoneId != 3557)
 					{
 						var portal = ObjectManager.GetObjectsOfType<WoWGameObject>()
 							.FirstOrDefault(g => g.Entry == GameObjectId_PortalToExodar);
@@ -483,110 +475,174 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
 		private readonly WoWPoint _banaWildmaneLoc = new WoWPoint(47.76153, 2742.022, 85.27119);
 		private readonly WoWPoint _drakmaLoc = new WoWPoint(1806.94, -4340.67, 102.0506);
 
-		private readonly WoWPoint _theThundercallerStartLoc = new WoWPoint(1833.509, -4391.543, 152.7679);
-		private readonly WoWPoint _theThundercallerEndLoc = new WoWPoint(2062.376, 292.998, 114.973);
-		private readonly WoWPoint _theThundercallerWaitAtLoc = new WoWPoint(1845.187, -4395.555, 135.2306);
-		private readonly WoWPoint _theThundercallerStandAtLoc = new WoWPoint(1835.509, -4385.785, 135.0436);
-		private readonly WoWPoint _theThundercallerGetOffAtLoc = new WoWPoint(2065.049, 283.1381, 97.03156);
+		private readonly WoWPoint _theThundercallerKalimdorLoc = new WoWPoint(1833.509, -4391.543, 152.7679);
+		private readonly WoWPoint _theThundercallerKalimdorWaitLoc = new WoWPoint(1845.187, -4395.555, 135.2306);
+		private readonly WoWPoint _theThundercallerKalimdorBoardLoc = new WoWPoint(1835.509, -4385.785, 135.0436);
+		private readonly WoWPoint _theThundercallerEKLoc = new WoWPoint(2062.376, 292.998, 114.973);
+		private readonly WoWPoint _theThundercallerEKWaitLoc = new WoWPoint(2065.049, 283.1381, 97.03156);
+		private readonly WoWPoint _theThundercallerEKBoardLoc = new WoWPoint(2067.672f, 294.2617f, 97.20473f);
+
 		private readonly WoWPoint _silvermoonCityPortalLoc = new WoWPoint(1805.877, 345.0006, 70.79002);
 
 		const int GameObjectId_Ship_TheThundercaller = 164871;
-		const uint GameObjectId_OrbofTranslocation = 184503;
+		const uint GameObjectId_OrbOfTranslocation = 184503;
 
 		private async Task<bool> PurchaseGroundMount_Horde()
 		{
-			if (Me.HearthstoneAreaId != AreaId_OrgrimmarInnkeeper)
-			{
-				TreeRoot.StatusText = "Moving to set hearth at Org Innkeeper";
-				await UtilityCoroutine.Gossip(MobId_InnkeeperGryshka, _orgrimmarInnkeeperLoc,
-				                              gossipEntryType: GossipEntry.GossipEntryType.Binder);
-				return true;
-			}
+			Func<Task<MoveToAreaResult>> moveToArea;
+			Func<Task<bool>> buyMount;
 
 			switch (Me.Race)
 			{
 				case WoWRace.Orc:
-					return await BuyMount(MobId_OgunaroWolfrunner, _ogunaroWolfrunnerLoc, ItemId_HornOfTheDireWolf);
+					moveToArea = MoveToKalimdorHorde;
+					buyMount = () => BuyMount(MobId_OgunaroWolfrunner, _ogunaroWolfrunnerLoc, ItemId_HornOfTheDireWolf);
+					break;
 				case WoWRace.Goblin:
-					return await BuyMount(MobId_KallWorthaton, _kallWorthatonLoc, ItemId_GoblinTrikeKey);
+					moveToArea = MoveToKalimdorHorde;
+					buyMount = () => BuyMount(MobId_KallWorthaton, _kallWorthatonLoc, ItemId_GoblinTrikeKey);
+					break;
 				case WoWRace.Troll:
-					return await BuyMount(MobId_Zjolnir, _zjolnirLoc, ItemId_WhistleOfTheEmeraldRaptor);
+					moveToArea = MoveToKalimdorHorde;
+					buyMount = () => BuyMount(MobId_Zjolnir, _zjolnirLoc, ItemId_WhistleOfTheEmeraldRaptor);
+					break;
 				case WoWRace.Tauren:
-					return await BuyMount(MobId_HarbClawhoof, _harbClawhoofLoc, ItemId_GrayKodo);
+					moveToArea = MoveToKalimdorHorde;
+					buyMount = () => BuyMount(MobId_HarbClawhoof, _harbClawhoofLoc, ItemId_GrayKodo);
+					break;
 				case WoWRace.Pandaren:
-					return await TurninQuestAndBuyMount(
+					moveToArea = MoveToKalimdorHorde;
+
+					buyMount = () => TurninQuestAndBuyMount(
 						MobId_Softpaws,
 						_softpawsLoc,
 						QuestId_LearnToRide_HordePanda,
 						MobId_TurtlemasterOdai,
 						_turtlemasterOdaiLoc,
 						ItemId_ReinsOfTheGreenDragonTurtle);
+
+					break;
 				case WoWRace.Undead:
-					if (Me.MapId == 1)
-					{
-						return await UtilityCoroutine.UseTransport(
-									GameObjectId_Ship_TheThundercaller,
-									_theThundercallerStartLoc,
-									_theThundercallerEndLoc,
-									_theThundercallerWaitAtLoc,
-									_theThundercallerStandAtLoc,
-									_theThundercallerGetOffAtLoc);
-					}
+					moveToArea = MoveToEasternKingdomsHorde;
 
-					if (Me.MapId != 0)
-						return false;
+					buyMount = () => TurninQuestAndBuyMount(
+						MobId_VelmaWarnam,
+						_velmaWarnamLoc,
+						QuestId_LearnToRide_Undead,
+						MobId_ZachariahPost,
+						_zachariahPostLoc,
+						ItemId_BlackSkeletalHorse);
 
-					return await TurninQuestAndBuyMount(
-								MobId_VelmaWarnam,
-								_velmaWarnamLoc,
-								QuestId_LearnToRide_Undead,
-								MobId_ZachariahPost,
-								_zachariahPostLoc,
-								ItemId_BlackSkeletalHorse);
+					break;
 				case WoWRace.BloodElf:
-					if (Me.MapId == 1)
-					{
-						return await UtilityCoroutine.UseTransport(
-									GameObjectId_Ship_TheThundercaller,
-									_theThundercallerStartLoc,
-									_theThundercallerEndLoc,
-									_theThundercallerWaitAtLoc,
-									_theThundercallerStandAtLoc,
-									_theThundercallerGetOffAtLoc);
-					}
-
-					if (Me.MapId == 0)
-					{
-						var portal = ObjectManager.GetObjectsOfType<WoWGameObject>()
-							.FirstOrDefault(g => g.Entry == GameObjectId_OrbofTranslocation);
-
-						if (portal == null || !portal.WithinInteractRange)
-							return await (UtilityCoroutine.MoveTo(portal != null ? portal.Location : _silvermoonCityPortalLoc, "Silvermoon City portal"));
-
-						await CommonCoroutines.StopMoving();
-						portal.Interact();
-						await Coroutine.Sleep(3000);
-						return true;
-					}
-
-					if (Me.ZoneId != ZoneId_SilverMoonCity && Me.ZoneId != ZoneId_EversongWoods)
-						return false;
-
-					return await BuyMount(MobId_Winaestra, _winaestraLoc, ItemId_BlackHawkstrider);
+					moveToArea = MoveToSilvermoonCityHorde;
+					buyMount = () => BuyMount(MobId_Winaestra, _winaestraLoc, ItemId_BlackHawkstrider);
+					break;
+				default:
+					return false;
 			}
+
+			MoveToAreaResult result = await moveToArea();
+			if (result == MoveToAreaResult.Moving)
+				return true;
+
+			if (result == MoveToAreaResult.InArea)
+				return await buyMount();
 
 			return false;
 		}
 
 		private async Task<bool> PurchaseFlyingMount_Horde()
 		{
-			if (Me.MapId == 530)
+			if (InHellfire)
 				return await BuyMount(MobId_BanaWildmane, _banaWildmaneLoc, ItemId_TawnyWindRider);
 
-			if (Me.MapId == 1)
+			if (InKalimdor)
 				return await BuyMount(MobId_Drakma, _drakmaLoc, ItemId_TawnyWindRider);
 
 			return false;
+		}
+
+		private enum MoveToAreaResult
+		{
+			InArea,
+			Moving,
+			Failure,
+		}
+
+		private async Task<MoveToAreaResult> MoveToEasternKingdomsHorde()
+		{
+			if (InKalimdor)
+			{
+				return await MoveFromKalimdorToEKHorde() ? MoveToAreaResult.Moving : MoveToAreaResult.Failure;
+			}
+
+			return InEasternKingdoms ? MoveToAreaResult.InArea : MoveToAreaResult.Failure;
+		}
+
+		private async Task<MoveToAreaResult> MoveToKalimdorHorde()
+		{
+			if (InEasternKingdoms)
+			{
+				return await MoveFromEKToKalimdorHorde() ? MoveToAreaResult.Moving : MoveToAreaResult.Failure;
+			}
+
+			return InKalimdor ? MoveToAreaResult.InArea : MoveToAreaResult.Failure;
+		}
+
+		private async Task<MoveToAreaResult> MoveToSilvermoonCityHorde()
+		{
+			if (InKalimdor)
+			{
+				return await MoveFromKalimdorToEKHorde() ? MoveToAreaResult.Moving : MoveToAreaResult.Failure;
+			}
+
+			if (InEasternKingdoms)
+			{
+				return await MoveFromEKToSilvermoonCityHorde() ? MoveToAreaResult.Moving : MoveToAreaResult.Failure;
+			}
+
+			if (Me.ZoneId != ZoneId_SilverMoonCity && Me.ZoneId != ZoneId_EversongWoods)
+				return MoveToAreaResult.Failure;
+
+			return MoveToAreaResult.InArea;
+		}
+
+		private async Task<bool> MoveFromKalimdorToEKHorde()
+		{
+			return await UtilityCoroutine.UseTransport(
+				GameObjectId_Ship_TheThundercaller,
+				_theThundercallerKalimdorLoc,
+				_theThundercallerEKLoc,
+				_theThundercallerKalimdorWaitLoc,
+				_theThundercallerKalimdorBoardLoc,
+				_theThundercallerEKWaitLoc);
+		}
+
+		private async Task<bool> MoveFromEKToKalimdorHorde()
+		{
+			return await UtilityCoroutine.UseTransport(
+				GameObjectId_Ship_TheThundercaller,
+				_theThundercallerEKLoc,
+				_theThundercallerKalimdorLoc,
+				_theThundercallerEKWaitLoc,
+				_theThundercallerEKBoardLoc,
+				_theThundercallerKalimdorWaitLoc);
+		}
+
+		private async Task<bool> MoveFromEKToSilvermoonCityHorde()
+		{
+			var portal = ObjectManager.GetObjectsOfType<WoWGameObject>()
+			                          .FirstOrDefault(g => g.Entry == GameObjectId_OrbOfTranslocation);
+
+			if (portal == null || !portal.WithinInteractRange)
+				return await (UtilityCoroutine.MoveTo(portal?.Location ?? _silvermoonCityPortalLoc,
+				                                      "Silvermoon City portal"));
+
+			await CommonCoroutines.StopMoving();
+			portal.Interact();
+			await Coroutine.Sleep(3000);
+			return true;
 		}
 
 		#endregion
