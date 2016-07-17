@@ -56,3 +56,6 @@ it will automatically apply our indentation settings (spaces) when you open the 
 Otherwise you can [download a plugin](http://editorconfig.org/) for your favorite IDE.
 This is optional but is very useful if you are switching between projects with different
 indentation settings.
+
+## Discuss
+You can discuss Honorbuddy in our Discord channel which can be found [here](https://discordapp.com/invite/0q6seK1er9pqFZkZ).
