@@ -79,203 +79,203 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 {
-	[CustomBehaviorFileName(@"Vehicles\CannonControl")]
-	public class CannonControl : QuestBehaviorBase
-	{
-		private Composite _root;
-		private WoWUnit _target;
+    [CustomBehaviorFileName(@"Vehicles\CannonControl")]
+    public class CannonControl : QuestBehaviorBase
+    {
+        private Composite _root;
+        private WoWUnit _target;
 
-		public CannonControl(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				// Primary attributes...
-				MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
-				if (MobIds != null && !MobIds.Any())
-					MobIds = GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null);
-				Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(1, 12), null, null);
-				ExitButton = GetAttributeAsNullable<int>("ExitButton", false, ConstrainAs.HotbarButton, null) ?? 0;
-				MaxAngle = GetAttributeAsNullable<double>("MaxAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 1.5;
-				MinAngle = GetAttributeAsNullable<double>("MinAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? -1.5;
-				Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
-				Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.01, 80), null) ?? 30;
-				VehicleId = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
-				VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-				WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
-				Weapons = Buttons.Select(b => new VehicleWeapon(b, WeaponArticulation, Velocity, Gravity)).ToArray();
-			}
+        public CannonControl(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                // Primary attributes...
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" });
+                if (MobIds != null && !MobIds.Any())
+                    MobIds = GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null);
+                Buttons = GetAttributeAsArray<int>("Buttons", true, new ConstrainTo.Domain<int>(1, 12), null, null);
+                ExitButton = GetAttributeAsNullable<int>("ExitButton", false, ConstrainAs.HotbarButton, null) ?? 0;
+                MaxAngle = GetAttributeAsNullable<double>("MaxAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? 1.5;
+                MinAngle = GetAttributeAsNullable<double>("MinAngle", false, new ConstrainTo.Domain<double>(-1.5, 1.5), null) ?? -1.5;
+                Velocity = GetAttributeAsNullable<double>("Velocity", false, new ConstrainTo.Domain<double>(2.0, 1000), null) ?? 70;
+                Gravity = GetAttributeAsNullable<double>("Gravity", false, new ConstrainTo.Domain<double>(0.01, 80), null) ?? 30;
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", false, ConstrainAs.VehicleId, null) ?? 0;
+                VehicleSearchLocation = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                WeaponArticulation = new WeaponArticulation(MinAngle, MaxAngle);
+                Weapons = Buttons.Select(b => new VehicleWeapon(b, WeaponArticulation, Velocity, Gravity)).ToArray();
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		private int[] Buttons { get; set; }
-		private int[] MobIds { get; set; }
-		private int ExitButton { get; set; }
-		private double MaxAngle { get; set; }
-		private double MinAngle { get; set; }
-		private double? Gravity { get; set; }
-		private double? Velocity { get; set; }
-		private int VehicleId { get; set; }
-		private WoWPoint VehicleSearchLocation { get; set; }
-
-		// Private variables for internal state
-
-		// Private properties
-		private VehicleWeapon[] Weapons { get; set; }
-		private WeaponArticulation WeaponArticulation { get; set; }
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId
-		{
-			get { return ("$Id$"); }
-		}
-
-		public override string SubversionRevision
-		{
-			get { return ("$Revision$"); }
-		}
-
-		#region Overrides of QuestBehaviorBase
-
-		protected override Composite CreateMainBehavior()
-		{
-			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		public override void OnFinished()
-		{
-			if (IsDone && Query.IsInVehicle())
-			{
-				if (ExitButton > 0)
-					CastPetAction(ExitButton);
-				else
-					Lua.DoString("VehicleExit()");
-			}
-			base.OnFinished();
-		}
+        // Attributes provided by caller
+        private int[] Buttons { get; set; }
+        private int[] MobIds { get; set; }
+        private int ExitButton { get; set; }
+        private double MaxAngle { get; set; }
+        private double MinAngle { get; set; }
+        private double? Gravity { get; set; }
+        private double? Velocity { get; set; }
+        private int VehicleId { get; set; }
+        private WoWPoint VehicleSearchLocation { get; set; }
 
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//  
-		}
+        // Private variables for internal state
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			//// EXAMPLE:
-			//UsageCheck_SemanticCoherency(xElement,
-			//    (!MobIds.Any() && !FactionIds.Any()),
-			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-			//
-			//const double rangeEpsilon = 3.0;
-			//UsageCheck_SemanticCoherency(xElement,
-			//    ((RangeMax - RangeMin) < rangeEpsilon),
-			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-			//                  RangeMax, rangeEpsilon, RangeMin));
-		}
+        // Private properties
+        private VehicleWeapon[] Weapons { get; set; }
+        private WeaponArticulation WeaponArticulation { get; set; }
 
-		#endregion
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId
+        {
+            get { return ("$Id$"); }
+        }
 
-		#region Logic
+        public override string SubversionRevision
+        {
+            get { return ("$Revision$"); }
+        }
 
-		async Task<bool> MainCoroutine()
-		{
-			if (IsDone)
-				return false;
+        #region Overrides of QuestBehaviorBase
 
-			// move to cannon.
-			if (!Query.IsInVehicle())
-			{
+        protected override Composite CreateMainBehavior()
+        {
+            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+        }
+
+
+        public override void OnFinished()
+        {
+            if (IsDone && Query.IsInVehicle())
+            {
+                if (ExitButton > 0)
+                    CastPetAction(ExitButton);
+                else
+                    Lua.DoString("VehicleExit()");
+            }
+            base.OnFinished();
+        }
+
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //  
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin));
+        }
+
+        #endregion
+
+        #region Logic
+
+        private async Task<bool> MainCoroutine()
+        {
+            if (IsDone)
+                return false;
+
+            // move to cannon.
+            if (!Query.IsInVehicle())
+            {
                 if (VehicleId == 0)
                 {
-					BehaviorDone("Not in a vehicle and no VehicleId is specified");
-	                return false;
+                    BehaviorDone("Not in a vehicle and no VehicleId is specified");
+                    return false;
                 }
 
-				// enable combat while not in a vehicle
-				if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0)
-					LevelBot.BehaviorFlags |= BehaviorFlags.Combat;
+                // enable combat while not in a vehicle
+                if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0)
+                    LevelBot.BehaviorFlags |= BehaviorFlags.Combat;
 
                 return await UtilityCoroutine.MountVehicle(
                     VehicleSearchLocation,
                     MovementBy,
                     u => !Query.IsInCompetition(u, NonCompeteDistance),
                     VehicleId);
-			}
+            }
 
-			// Disable combat while in a vehicle
-			if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0)
-				LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
+            // Disable combat while in a vehicle
+            if ((LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0)
+                LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
 
-			while (!IsDone && Query.IsInVehicle())
-			{
-				// find the first weapon that is ready.
-				var weapon = Weapons.FirstOrDefault(w => w.IsWeaponReady());
-				if (weapon != null)
-				{
-					//_target = StyxWoW.Me.CurrentTarget;
-					if (!Query.IsViable(_target) || _target.IsDead
-						|| !weapon.WeaponAim(_target))
-					{
-						// acquire a target that is within shooting range
-						_target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n));
-						await Coroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
-						return true;
-					}
-					// fire away.
-					if (Query.IsViable(_target) && weapon.WeaponAim(_target) && weapon.WeaponFire())
-					{
-						await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
-					}
-				}
-				await Coroutine.Yield();
-			}
-			return false;
-		}
+            while (!IsDone && Query.IsInVehicle())
+            {
+                // find the first weapon that is ready.
+                var weapon = Weapons.FirstOrDefault(w => w.IsWeaponReady());
+                if (weapon != null)
+                {
+                    //_target = StyxWoW.Me.CurrentTarget;
+                    if (!Query.IsViable(_target) || _target.IsDead
+                        || !weapon.WeaponAim(_target))
+                    {
+                        // acquire a target that is within shooting range
+                        _target = Npcs.FirstOrDefault(n => weapon.WeaponAim(n));
+                        await Coroutine.Sleep((int)Delay.BeforeButtonClick.TotalMilliseconds);
+                        return true;
+                    }
+                    // fire away.
+                    if (Query.IsViable(_target) && weapon.WeaponAim(_target) && weapon.WeaponFire())
+                    {
+                        await Coroutine.Sleep((int)Delay.AfterWeaponFire.TotalMilliseconds);
+                    }
+                }
+                await Coroutine.Yield();
+            }
+            return false;
+        }
 
-		public IEnumerable<WoWUnit> Npcs
-		{
-			get
-			{
-				var killEverything = MobIds == null || !MobIds.Any();
-				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.IsAlive
-					&& (killEverything && o.Attackable && o.CanSelect && o.IsHostile || MobIds.Contains((int)o.Entry))).
-					OrderBy(o => o.DistanceSqr);
-			}
-		}
+        public IEnumerable<WoWUnit> Npcs
+        {
+            get
+            {
+                var killEverything = MobIds == null || !MobIds.Any();
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(o => o.IsAlive
+                    && (killEverything && o.Attackable && o.CanSelect && o.IsHostile || MobIds.Contains((int)o.Entry))).
+                    OrderBy(o => o.DistanceSqr);
+            }
+        }
 
-		/// <summary>
-		/// Casts the pet action.
-		/// </summary>
-		/// <param name="index">The index.</param>
-		/// <returns>Returns true if cast was successful; false otherwise</returns>
-		bool CastPetAction(int index)
-		{
-			return Lua.GetReturnVal<bool>(string.Format("if GetPetActionCooldown({0}) ~= 0 then return false end CastPetAction({0}) return true", index), 0);
-		}
+        /// <summary>
+        /// Casts the pet action.
+        /// </summary>
+        /// <param name="index">The index.</param>
+        /// <returns>Returns true if cast was successful; false otherwise</returns>
+        private bool CastPetAction(int index)
+        {
+            return Lua.GetReturnVal<bool>(string.Format("if GetPetActionCooldown({0}) ~= 0 then return false end CastPetAction({0}) return true", index), 0);
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

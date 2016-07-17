@@ -74,6 +74,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -96,93 +97,92 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.UseHearthstone
 {
-	[CustomBehaviorFileName(@"UseHearthstone")]
-	public class UseHearthstone : QuestBehaviorBase
-	{
-		public UseHearthstone(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"UseHearthstone")]
+    public class UseHearthstone : QuestBehaviorBase
+    {
+        public UseHearthstone(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
 
-				WaitOnCd = GetAttributeAsNullable<bool>("WaitForCD", false, null, null) ?? false;
-				UseGarrisonHearthstone = GetAttributeAsNullable<bool>("UseGarrisonHearthstone", false, null, null) ?? false;
-			}
+                WaitOnCd = GetAttributeAsNullable<bool>("WaitForCD", false, null, null) ?? false;
+                UseGarrisonHearthstone = GetAttributeAsNullable<bool>("UseGarrisonHearthstone", false, null, null) ?? false;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		// Attributes provided by caller
-		public bool WaitOnCd { get; private set; }
-		public bool UseGarrisonHearthstone { get; private set; }
+        // Attributes provided by caller
+        public bool WaitOnCd { get; private set; }
+        public bool UseGarrisonHearthstone { get; private set; }
 
-		private int _retries;
-		// DON'T EDIT THESE--they are auto-populated by Subversion
+        private int _retries;
+        // DON'T EDIT THESE--they are auto-populated by Subversion
 
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement) {}
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement) { }
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement) {}
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement) { }
 
-		public override void OnStart()
-		{
-			_retries = 0;
-			base.OnStart();
-		}
+        public override void OnStart()
+        {
+            _retries = 0;
+            base.OnStart();
+        }
 
-		protected override Composite CreateMainBehavior()
-		{
-			return new ActionRunCoroutine(ctx => MainBehavior());
-		}
-		#endregion
+        protected override Composite CreateMainBehavior()
+        {
+            return new ActionRunCoroutine(ctx => MainBehavior());
+        }
+        #endregion
 
-		private const int MaxRetries = 5;
+        private const int MaxRetries = 5;
 
-		private async Task<bool> MainBehavior()
-		{
-			QBCLog.Info("Using hearthstone; {0} out of {1} tries", ++_retries, MaxRetries);
-			bool onCooldown = false;
-	        await UtilityCoroutine.UseHearthStone(
-						UseGarrisonHearthstone,
-						hearthOnCooldownAction: () => onCooldown = true,
-						hearthCastFailedAction: reason =>
-												{
-													QBCLog.Warning("Hearth failed. Reason: {0}", reason);
-													_retries++;
-												});
+        private async Task<bool> MainBehavior()
+        {
+            QBCLog.Info("Using hearthstone; {0} out of {1} tries", ++_retries, MaxRetries);
+            bool onCooldown = false;
+            await UtilityCoroutine.UseHearthStone(
+                        UseGarrisonHearthstone,
+                        hearthOnCooldownAction: () => onCooldown = true,
+                        hearthCastFailedAction: reason =>
+                                                {
+                                                    QBCLog.Warning("Hearth failed. Reason: {0}", reason);
+                                                    _retries++;
+                                                });
 
-			if (_retries >= MaxRetries)
-			{
-				BehaviorDone(string.Format("We have reached our max number of tries ({0}) without successfully hearthing", MaxRetries));
-				return true;
-			}
+            if (_retries >= MaxRetries)
+            {
+                BehaviorDone(string.Format("We have reached our max number of tries ({0}) without successfully hearthing", MaxRetries));
+                return true;
+            }
 
-			if (onCooldown && WaitOnCd)
-			{
-				TreeRoot.StatusText = "Waiting for hearthstone cooldown";
-				return true;
-			}
+            if (onCooldown && WaitOnCd)
+            {
+                TreeRoot.StatusText = "Waiting for hearthstone cooldown";
+                return true;
+            }
 
-			BehaviorDone();
-			return true;
-		}
-	
-	}
+            BehaviorDone();
+            return true;
+        }
+    }
 }
 

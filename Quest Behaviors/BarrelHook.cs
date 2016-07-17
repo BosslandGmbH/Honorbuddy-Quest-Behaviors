@@ -17,6 +17,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 
@@ -28,13 +29,13 @@ using Styx.CommonBot.Profiles;
 
 namespace Honorbuddy.Quest_Behaviors.BarrelHook
 {
-	[CustomBehaviorFileName(@"BarrelHook")]
-	[Obsolete(@"Use Hooks\BarrelHook instead")]
-	public class BarrelHook : Hooks.BarrelHook
-	{
-		public BarrelHook(Dictionary<string, string> args) : base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
-		}
-	}
+    [CustomBehaviorFileName(@"BarrelHook")]
+    [Obsolete(@"Use Hooks\BarrelHook instead")]
+    public class BarrelHook : Hooks.BarrelHook
+    {
+        public BarrelHook(Dictionary<string, string> args) : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+        }
+    }
 }

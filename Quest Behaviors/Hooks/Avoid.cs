@@ -189,9 +189,9 @@ namespace Honorbuddy.Quest_Behaviors
     [CustomBehaviorFileName(@"Hooks\Avoid")]
     public class Avoid : QuestBehaviorBase
     {
-        private readonly static Dictionary<string, AvoidInfo> AvoidDictionary = new Dictionary<string, AvoidInfo>();
-        private static NavigationProvider _prevNavigator ;
-        private static ActionRunCoroutine _hook;
+        private readonly static Dictionary<string, AvoidInfo> s_avoidDictionary = new Dictionary<string, AvoidInfo>();
+        private static NavigationProvider s_prevNavigator;
+        private static ActionRunCoroutine s_hook;
 
         #region Constructor and Argument Processing
 
@@ -234,11 +234,11 @@ namespace Honorbuddy.Quest_Behaviors
 
                     LeashPoint = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
 
-					// Primary attributes...
-					var numberedObjectIds = GetAttributeAsArray<int>("ObjectIds", false, ConstrainAs.ObjectId, null, null) ?? new int[0];
-					var objectIdArray = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null) ?? new int[0];
+                    // Primary attributes...
+                    var numberedObjectIds = GetAttributeAsArray<int>("ObjectIds", false, ConstrainAs.ObjectId, null, null) ?? new int[0];
+                    var objectIdArray = GetNumberedAttributesAsArray<int>("ObjectId", 0, ConstrainAs.ObjectId, null) ?? new int[0];
 
-					ObjectIds = numberedObjectIds.Concat(objectIdArray).ToArray();
+                    ObjectIds = numberedObjectIds.Concat(objectIdArray).ToArray();
 
 
                     ObjectType = GetAttributeAsNullable<AvoidObjectType>("ObjectType", false, null, null) ?? AvoidObjectType.Npc;
@@ -246,8 +246,8 @@ namespace Honorbuddy.Quest_Behaviors
                     AvoidWhenExpression = GetAttributeAs<string>("AvoidWhen", false, ConstrainAs.StringNonEmpty, null) ?? "";
                     AvoidLocationProducerExpression = GetAttributeAs<string>("AvoidLocationProducer", false, ConstrainAs.StringNonEmpty, null) ?? "";
                     IgnoreIfBlocking = GetAttributeAsNullable<bool>("IgnoreIfBlocking", false, null, null) ?? false;
-					IgnoreLootInAvoid = GetAttributeAsNullable<bool>("IgnoreLootInAvoid", false, null, null) ?? false;
-					AvoidWhen = CreateAvoidWhen(AvoidWhenExpression);
+                    IgnoreLootInAvoid = GetAttributeAsNullable<bool>("IgnoreLootInAvoid", false, null, null) ?? false;
+                    AvoidWhen = CreateAvoidWhen(AvoidWhenExpression);
 
                     AvoidLocationProducer = CreateAvoidLocationProducer(AvoidLocationProducerExpression);
                 }
@@ -274,7 +274,7 @@ namespace Honorbuddy.Quest_Behaviors
         {
             UsageCheck_SemanticCoherency(
                 xElement,
-                Command == CommandType.Add && AvoidDictionary.ContainsKey(AvoidName),
+                Command == CommandType.Add && s_avoidDictionary.ContainsKey(AvoidName),
                 context => string.Format("An avoid with name {0} has already been added", AvoidName));
 
             UsageCheck_SemanticCoherency(
@@ -284,8 +284,8 @@ namespace Honorbuddy.Quest_Behaviors
 
             UsageCheck_SemanticCoherency(
                 xElement,
-                Command == CommandType.Add && LeashPoint.HasValue && LeashRadius - Radius  < 5,
-                context => "LeashRadius MUST be at least 5 more than Radius when X/Y/Z is specified " );
+                Command == CommandType.Add && LeashPoint.HasValue && LeashRadius - Radius < 5,
+                context => "LeashRadius MUST be at least 5 more than Radius when X/Y/Z is specified ");
         }
 
         #endregion
@@ -298,14 +298,14 @@ namespace Honorbuddy.Quest_Behaviors
         private float LeashRadius { get; set; }
         private float Radius { get; set; }
         private bool IgnoreIfBlocking { get; set; }
-		private bool IgnoreLootInAvoid { get; set; }
+        private bool IgnoreLootInAvoid { get; set; }
 
-		[CompileExpression]
+        [CompileExpression]
         public DelayCompiledExpression AvoidWhen { get; private set; }
 
-		[CompileExpression]
-		public DelayCompiledExpression AvoidLocationProducer { get; private set; }
-		private int[] ObjectIds { get; set; }
+        [CompileExpression]
+        public DelayCompiledExpression AvoidLocationProducer { get; private set; }
+        private int[] ObjectIds { get; set; }
 
         private AvoidObjectType ObjectType { get; set; }
 
@@ -328,11 +328,11 @@ namespace Honorbuddy.Quest_Behaviors
             {
                 if (Command == CommandType.Remove)
                 {
-                    if (AvoidDictionary.ContainsKey(AvoidName))
+                    if (s_avoidDictionary.ContainsKey(AvoidName))
                     {
                         QBCLog.DeveloperInfo("Removing \"{0}\" avoid", AvoidName);
-                        var avoidInfo = AvoidDictionary[AvoidName];
-                        AvoidDictionary.Remove(AvoidName);
+                        var avoidInfo = s_avoidDictionary[AvoidName];
+                        s_avoidDictionary.Remove(AvoidName);
                         AvoidanceManager.RemoveAvoid(avoidInfo);
                     }
                 }
@@ -340,17 +340,17 @@ namespace Honorbuddy.Quest_Behaviors
                 {
                     AvoidInfo avoidInfo = BuildAvoidInfo();
                     QBCLog.DeveloperInfo("Adding \"{0}\" avoid - Radius: {1}, ObjectId: ({2}), ObjectType: {3}",
-					   AvoidName, Radius, string.Join(", ", ObjectIds), ObjectType);
-                    AvoidDictionary[AvoidName] = avoidInfo;
+                       AvoidName, Radius, string.Join(", ", ObjectIds), ObjectType);
+                    s_avoidDictionary[AvoidName] = avoidInfo;
                     AvoidanceManager.AddAvoid(avoidInfo);
                 }
             }
 
-            if (_hook == null && AvoidDictionary.Any())
+            if (s_hook == null && s_avoidDictionary.Any())
             {
                 InstallHook();
             } // remove hook if no avoid definitions are active
-            else if (_hook != null && !AvoidDictionary.Any())
+            else if (s_hook != null && !s_avoidDictionary.Any())
             {
                 RemoveHook();
             }
@@ -369,35 +369,35 @@ namespace Honorbuddy.Quest_Behaviors
             RemoveHook();
         }
 
-		private void Profile_OnNewOuterProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
-		{
-			RemoveHook();
-		}
-
-		private void Instance_RemoveTargetsFilter(List<WoWObject> woWObjects)
-		{
-			if (!IgnoreLootInAvoid)
-				return;
-
-			woWObjects.RemoveAll(woWObject =>
-			{
-				var loc = woWObject.Location;
-				return AvoidanceManager.Avoids.Any(a => a.IsPointInAvoid(loc));
-			});
-		}
-
-		private async Task<bool> HookHandler()
+        private void Profile_OnNewOuterProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
         {
-	        var supportsCapabilities = RoutineManager.Current.SupportedCapabilities != CapabilityFlags.None;
+            RemoveHook();
+        }
+
+        private void Instance_RemoveTargetsFilter(List<WoWObject> woWObjects)
+        {
+            if (!IgnoreLootInAvoid)
+                return;
+
+            woWObjects.RemoveAll(woWObject =>
+            {
+                var loc = woWObject.Location;
+                return AvoidanceManager.Avoids.Any(a => a.IsPointInAvoid(loc));
+            });
+        }
+
+        private async Task<bool> HookHandler()
+        {
+            var supportsCapabilities = RoutineManager.Current.SupportedCapabilities != CapabilityFlags.None;
 
             // Prevent Combat Routine from getting called when running out of bad stuff and CR doesn't use 
-			// the CombatRoutine Capabilities since it might resist.
-			// The AvoidanceManager will disallow the Movement capability when running out of bad stuff.
-			// For more info on CombatRoutine Capabilities see http://wiki.thebuddyforum.com/index.php?title=Honorbuddy:Developer_Notebook:Combat_Routine_Capabilities
+            // the CombatRoutine Capabilities since it might resist.
+            // The AvoidanceManager will disallow the Movement capability when running out of bad stuff.
+            // For more info on CombatRoutine Capabilities see http://wiki.thebuddyforum.com/index.php?title=Honorbuddy:Developer_Notebook:Combat_Routine_Capabilities
 
-			if (AvoidanceManager.IsRunningOutOfAvoid && !supportsCapabilities)
+            if (AvoidanceManager.IsRunningOutOfAvoid && !supportsCapabilities)
                 return true;
-            
+
             // Special case: Bot will do a lot of fast stop n go when avoiding a mob that moves slowly and trying to
             // loot something near the mob. To fix, a delay is added to slow down the 'Stop n go' behavior
             var poiType = BotPoi.Current.Type;
@@ -407,7 +407,7 @@ namespace Honorbuddy.Quest_Behaviors
                 {
                     TreeRoot.StatusText = "Waiting for 'avoid' to move before attempting to loot " + BotPoi.Current.Name;
                     var randomWaitTime = StyxWoW.Random.Next(3000, 8000);
-                    await Coroutine.Wait(randomWaitTime, 
+                    await Coroutine.Wait(randomWaitTime,
                         () => Me.IsActuallyInCombat || !AvoidanceManager.Avoids.Any(o => o.IsPointInAvoid(BotPoi.Current.Location)));
                 }
             }
@@ -417,44 +417,44 @@ namespace Honorbuddy.Quest_Behaviors
 
         private void InstallHook()
         {
-            _prevNavigator = Navigator.NavigationProvider;
-            var avoidNavigator = new AvoidanceNavigationProvider();;
+            s_prevNavigator = Navigator.NavigationProvider;
+            var avoidNavigator = new AvoidanceNavigationProvider(); ;
             Navigator.NavigationProvider = avoidNavigator;
             avoidNavigator.UpdateMaps();
-            _hook = new ActionRunCoroutine(ctx => HookHelpers.ExecuteHook(this, HookHandler));
-            TreeHooks.Instance.InsertHook("Combat_Main", 0, _hook);
-	        BotEvents.OnPulse += BotEvents_OnPulse;
+            s_hook = new ActionRunCoroutine(ctx => HookHelpers.ExecuteHook(this, HookHandler));
+            TreeHooks.Instance.InsertHook("Combat_Main", 0, s_hook);
+            BotEvents.OnPulse += BotEvents_OnPulse;
             BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-			BotEvents.Profile.OnNewOuterProfileLoaded += Profile_OnNewOuterProfileLoaded;
-			LootTargeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
+            BotEvents.Profile.OnNewOuterProfileLoaded += Profile_OnNewOuterProfileLoaded;
+            LootTargeting.Instance.RemoveTargetsFilter += Instance_RemoveTargetsFilter;
             QBCLog.Info("Installed avoidance system");
         }
 
-		private void RemoveHook()
+        private void RemoveHook()
         {
-            if (_hook == null)
+            if (s_hook == null)
                 return;
-            TreeHooks.Instance.RemoveHook("Combat_Main", _hook);
-            Navigator.NavigationProvider = _prevNavigator;
+            TreeHooks.Instance.RemoveHook("Combat_Main", s_hook);
+            Navigator.NavigationProvider = s_prevNavigator;
 
-			// Make sure maps for the previous navigator are up-to-date
-	        var meshNav = Navigator.NavigationProvider as MeshNavigator;
-			if (meshNav != null)
-				meshNav.UpdateMaps();
+            // Make sure maps for the previous navigator are up-to-date
+            var meshNav = Navigator.NavigationProvider as MeshNavigator;
+            if (meshNav != null)
+                meshNav.UpdateMaps();
 
-            _prevNavigator = null;
-            _hook = null;
-            foreach (var kv in AvoidDictionary)
+            s_prevNavigator = null;
+            s_hook = null;
+            foreach (var kv in s_avoidDictionary)
             {
-	            AvoidanceManager.RemoveAvoid(kv.Value);
-				QBCLog.DeveloperInfo("Removed the \"{0}\" avoidance definition", kv.Key);
+                AvoidanceManager.RemoveAvoid(kv.Value);
+                QBCLog.DeveloperInfo("Removed the \"{0}\" avoidance definition", kv.Key);
             }
-            AvoidDictionary.Clear();
-			BotEvents.OnPulse -= BotEvents_OnPulse;
+            s_avoidDictionary.Clear();
+            BotEvents.OnPulse -= BotEvents_OnPulse;
             BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-			BotEvents.Profile.OnNewOuterProfileLoaded -= Profile_OnNewOuterProfileLoaded;
-			LootTargeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
-			QBCLog.Info("Uninstalled avoidance system");
+            BotEvents.Profile.OnNewOuterProfileLoaded -= Profile_OnNewOuterProfileLoaded;
+            LootTargeting.Instance.RemoveTargetsFilter -= Instance_RemoveTargetsFilter;
+            QBCLog.Info("Uninstalled avoidance system");
         }
 
         private DelayCompiledExpression CreateAvoidWhen(string expression)
@@ -464,21 +464,21 @@ namespace Honorbuddy.Quest_Behaviors
             switch (ObjectType)
             {
                 case AvoidObjectType.AreaTrigger:
-					return new DelayCompiledExpression<Func<WoWAreaTrigger, bool>>("AREATRIGGER=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWAreaTrigger, bool>>("AREATRIGGER=>" + expression);
                 case AvoidObjectType.DynamicObject:
-					return new DelayCompiledExpression<Func<WoWDynamicObject, bool>>("DYNAMICOBJECT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWDynamicObject, bool>>("DYNAMICOBJECT=>" + expression);
                 case AvoidObjectType.GameObject:
-					return new DelayCompiledExpression<Func<WoWGameObject, bool>>("GAMEOBJECT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWGameObject, bool>>("GAMEOBJECT=>" + expression);
                 case AvoidObjectType.Npc:
-					return new DelayCompiledExpression<Func<WoWUnit, bool>>("UNIT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWUnit, bool>>("UNIT=>" + expression);
                 case AvoidObjectType.Missile:
-					return new DelayCompiledExpression<Func<WoWMissile, bool>>("MISSILE=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWMissile, bool>>("MISSILE=>" + expression);
                 default:
                     return null;
             }
         }
 
-		private DelayCompiledExpression CreateAvoidLocationProducer(string expression)
+        private DelayCompiledExpression CreateAvoidLocationProducer(string expression)
         {
             if (string.IsNullOrEmpty(expression))
                 return null;
@@ -486,19 +486,19 @@ namespace Honorbuddy.Quest_Behaviors
             switch (ObjectType)
             {
                 case AvoidObjectType.AreaTrigger:
-					return new DelayCompiledExpression<Func<WoWAreaTrigger, WoWPoint>>("AREATRIGGER=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWAreaTrigger, WoWPoint>>("AREATRIGGER=>" + expression);
 
                 case AvoidObjectType.DynamicObject:
-					return new DelayCompiledExpression<Func<WoWDynamicObject, WoWPoint>>("DYNAMICOBJECT=>"+ expression);
+                    return new DelayCompiledExpression<Func<WoWDynamicObject, WoWPoint>>("DYNAMICOBJECT=>" + expression);
 
                 case AvoidObjectType.GameObject:
-					return new DelayCompiledExpression<Func<WoWGameObject, WoWPoint>>("GAMEOBJECT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWGameObject, WoWPoint>>("GAMEOBJECT=>" + expression);
 
                 case AvoidObjectType.Npc:
-					return new DelayCompiledExpression<Func<WoWUnit, WoWPoint>>("UNIT=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWUnit, WoWPoint>>("UNIT=>" + expression);
 
                 case AvoidObjectType.Missile:
-					return new DelayCompiledExpression<Func<WoWMissile, WoWPoint>>("MISSILE=>" + expression);
+                    return new DelayCompiledExpression<Func<WoWMissile, WoWPoint>>("MISSILE=>" + expression);
 
                 default:
                     return null;
@@ -510,10 +510,10 @@ namespace Honorbuddy.Quest_Behaviors
             switch (ObjectType)
             {
                 case AvoidObjectType.AreaTrigger:
-                    return BuildAvoidObjectInfo <WoWAreaTrigger>();
+                    return BuildAvoidObjectInfo<WoWAreaTrigger>();
 
                 case AvoidObjectType.DynamicObject:
-                    return BuildAvoidObjectInfo <WoWDynamicObject>();
+                    return BuildAvoidObjectInfo<WoWDynamicObject>();
 
                 case AvoidObjectType.GameObject:
                     return BuildAvoidObjectInfo<WoWGameObject>();
@@ -538,18 +538,18 @@ namespace Honorbuddy.Quest_Behaviors
             if (includeId)
             {
                 if (includeAvoidWhen)
-					pred = o => ObjectIds.Contains((int)o.Entry) && o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
+                    pred = o => ObjectIds.Contains((int)o.Entry) && o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
                 else
                     pred = o => ObjectIds.Contains((int)o.Entry) && o is T;
             }
             else
             {
-				pred = o => o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
+                pred = o => o is T && ((DelayCompiledExpression<Func<T, bool>>)AvoidWhen).CallableExpression((T)o);
             }
 
             Func<WoWObject, WoWPoint> locationProducer;
             if (AvoidLocationProducer != null)
-				locationProducer = o => ((DelayCompiledExpression<Func<T, WoWPoint>>)AvoidLocationProducer).CallableExpression((T)o);
+                locationProducer = o => ((DelayCompiledExpression<Func<T, WoWPoint>>)AvoidLocationProducer).CallableExpression((T)o);
             else
                 locationProducer = null;
 
@@ -572,26 +572,25 @@ namespace Honorbuddy.Quest_Behaviors
             {
                 collectionProducer = () => WoWMissile.InFlightMissiles
                     .Where(m => (m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId))
-							 && ((DelayCompiledExpression<Func<WoWMissile, bool>>)AvoidWhen).CallableExpression(m));
-
+                             && ((DelayCompiledExpression<Func<WoWMissile, bool>>)AvoidWhen).CallableExpression(m));
             }
             else
             {
                 collectionProducer = () => WoWMissile.InFlightMissiles
-					.Where(m => m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId));
+                    .Where(m => m.SpellId != 0 ? ObjectIds.Contains(m.SpellId) : ObjectIds.Contains(m.SpellVisualId));
             }
 
             Func<object, WoWPoint> locationProducer;
             if (AvoidLocationProducer != null)
-				locationProducer = o => ((DelayCompiledExpression<Func<WoWMissile, WoWPoint>>)AvoidLocationProducer).CallableExpression((WoWMissile)o);
+                locationProducer = o => ((DelayCompiledExpression<Func<WoWMissile, WoWPoint>>)AvoidLocationProducer).CallableExpression((WoWMissile)o);
             else
-                locationProducer = o => ((WoWMissile) o).ImpactPosition;
+                locationProducer = o => ((WoWMissile)o).ImpactPosition;
 
             return new AvoidLocationInfo(
                 ctx => true,
                 locationProducer,
                 o => Radius,
-                LeashPoint.HasValue ? new Func<WoWPoint>(() => LeashPoint.Value) : null ,
+                LeashPoint.HasValue ? new Func<WoWPoint>(() => LeashPoint.Value) : null,
                 LeashRadius,
                 collectionProducer,
                 IgnoreIfBlocking);

@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Text;
 
@@ -20,53 +21,53 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-	public class QBCDebug
-	{
-		public static string DumpTargetList()
-		{
-			var buffer = new StringBuilder();
-			var newLine = Environment.NewLine;
-			const ulong guidMask = 0x0ffff;
+    public class QBCDebug
+    {
+        public static string DumpTargetList()
+        {
+            var buffer = new StringBuilder();
+            var newLine = Environment.NewLine;
+            const ulong guidMask = 0x0ffff;
 
-			buffer.AppendFormat("Target List ({1} entries):{0}", newLine, Targeting.Instance.TargetList.Count);
-			foreach (var target in Targeting.Instance.TargetList)
-			{
-				buffer.AppendFormat("    {1}.{2:X4}{0}", newLine, target.SafeName, (target.Guid.Lowest & guidMask));
-			}
+            buffer.AppendFormat("Target List ({1} entries):{0}", newLine, Targeting.Instance.TargetList.Count);
+            foreach (var target in Targeting.Instance.TargetList)
+            {
+                buffer.AppendFormat("    {1}.{2:X4}{0}", newLine, target.SafeName, (target.Guid.Lowest & guidMask));
+            }
 
-			return buffer.ToString();
-		}
+            return buffer.ToString();
+        }
 
 
-		public static void ShowVehicleArticulationChain(WoWUnit wowUnit)
-		{
-			var tmp = new StringBuilder();
-			var indentLevel = 4;
+        public static void ShowVehicleArticulationChain(WoWUnit wowUnit)
+        {
+            var tmp = new StringBuilder();
+            var indentLevel = 4;
 
-			do
-			{
-				var indent = string.Empty.PadLeft(indentLevel);
-				var fieldSeparator = string.Format("\n  {0}", indent);
+            do
+            {
+                var indent = string.Empty.PadLeft(indentLevel);
+                var fieldSeparator = string.Format("\n  {0}", indent);
 
                 tmp.Append(wowUnit.SafeName);
 
-				var worldMatrix = wowUnit.GetWorldMatrix();
-				var pitch = StyxWoW.Memory.Read<float>(wowUnit.BaseAddress + 0x820 + 0x24);
-				tmp.AppendFormat("{0}{1} (pitch: {2}): {3}",
-					fieldSeparator,
+                var worldMatrix = wowUnit.GetWorldMatrix();
+                var pitch = StyxWoW.Memory.Read<float>(wowUnit.BaseAddress + 0x820 + 0x24);
+                tmp.AppendFormat("{0}{1} (pitch: {2}): {3}",
+                    fieldSeparator,
                     wowUnit.SafeName,
-					pitch,
-					worldMatrix.ToString_FullInfo(false, indentLevel));
+                    pitch,
+                    worldMatrix.ToString_FullInfo(false, indentLevel));
 
-				wowUnit = wowUnit.Transport as WoWUnit;
+                wowUnit = wowUnit.Transport as WoWUnit;
 
-				if (wowUnit != null)
-					{ tmp.AppendFormat("{0} => ", fieldSeparator); }
+                if (wowUnit != null)
+                { tmp.AppendFormat("{0} => ", fieldSeparator); }
 
-				indentLevel += 4;
-			} while (wowUnit != null);
+                indentLevel += 4;
+            } while (wowUnit != null);
 
-			QBCLog.Debug("Articulation chain: {0}", tmp.ToString());
-		}
-	}
+            QBCLog.Debug("Articulation chain: {0}", tmp.ToString());
+        }
+    }
 }

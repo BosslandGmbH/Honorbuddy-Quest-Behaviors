@@ -17,6 +17,7 @@
 #endregion
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,198 +41,195 @@ using WaitTimer = Styx.Common.Helpers.WaitTimer;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePrideofKezan
 {
-	[CustomBehaviorFileName(@"SpecificQuests\25066-LostIsles-ThePrideofKezan")]
-	public class ThePrideofKezan : CustomForcedBehavior
-	{
-		private WoWPoint StartAndEndPoint = new WoWPoint(1624.326, 2693.647, 89.21473);
-		private WoWPoint WaitPoint = new WoWPoint(1782.963, 2884.958, 157.274);
+    [CustomBehaviorFileName(@"SpecificQuests\25066-LostIsles-ThePrideofKezan")]
+    public class ThePrideofKezan : CustomForcedBehavior
+    {
+        private WoWPoint _startAndEndPoint = new WoWPoint(1624.326, 2693.647, 89.21473);
+        private WoWPoint _waitPoint = new WoWPoint(1782.963, 2884.958, 157.274);
 
-		private bool _isBehaviorDone;
+        private bool _isBehaviorDone;
 
-		private Composite _root;
+        private Composite _root;
 
-		#region Cleanup
+        #region Cleanup
 
-        	public override void OnFinished()
-        	{
-        	   TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
-         	   TreeRoot.GoalText = string.Empty;
-         	   TreeRoot.StatusText = string.Empty;
-         	   base.OnFinished();
-        	}
+        public override void OnFinished()
+        {
+            TreeHooks.Instance.RemoveHook("Combat_Main", CreateBehavior_MainCombat());
+            TreeRoot.GoalText = string.Empty;
+            TreeRoot.StatusText = string.Empty;
+            base.OnFinished();
+        }
 
-		#endregion
+        #endregion
 
-		public ThePrideofKezan(Dictionary<string, string> args) : base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+        public ThePrideofKezan(Dictionary<string, string> args) : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				QuestId = 25066; //GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-			}
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            try
+            {
+                QuestId = 25066; //GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+            }
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		public int QuestId { get; set; }
+        public int QuestId { get; set; }
 
-		public override bool IsDone
-		{
-			get { return _isBehaviorDone; }
-		}
+        public override bool IsDone
+        {
+            get { return _isBehaviorDone; }
+        }
 
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
-		
-		public List<WoWUnit> GnomereganStealthFighter
-		{
-			get
-			{
-				var myLoc = Me.Location;
-				return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
-					where u.Entry == 39039 && !u.IsDead
-					let loc = u.Location
-					orderby loc.DistanceSqr(myLoc)
-					select u).ToList();
-			}
-		}
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
-		public Composite CreateBehavior_CheckCompletion()
-		{
+        public List<WoWUnit> GnomereganStealthFighter
+        {
+            get
+            {
+                var myLoc = Me.Location;
+                return (from u in ObjectManager.GetObjectsOfType<WoWUnit>()
+                        where u.Entry == 39039 && !u.IsDead
+                        let loc = u.Location
+                        orderby loc.DistanceSqr(myLoc)
+                        select u).ToList();
+            }
+        }
 
-			return new Decorator(r => Me.IsQuestComplete(QuestId),
-				new PrioritySelector(
-					new Decorator(r => Me.Location.Distance(StartAndEndPoint) > 10,
-						new Action(r => WoWMovement.ClickToMove(StartAndEndPoint))
-					),
-					new Decorator(r => Me.Location.Distance(StartAndEndPoint) <= 10,
-                             			new Action(delegate
-						{
-							TreeRoot.StatusText = "Finished!";
-							Lua.DoString("VehicleExit()");
-							_isBehaviorDone = true;
-							return RunStatus.Success;
-						}))));
+        public Composite CreateBehavior_CheckCompletion()
+        {
+            return new Decorator(r => Me.IsQuestComplete(QuestId),
+                new PrioritySelector(
+                    new Decorator(r => Me.Location.Distance(_startAndEndPoint) > 10,
+                        new Action(r => WoWMovement.ClickToMove(_startAndEndPoint))
+                    ),
+                    new Decorator(r => Me.Location.Distance(_startAndEndPoint) <= 10,
+                                         new Action(delegate
+                        {
+                            TreeRoot.StatusText = "Finished!";
+                            Lua.DoString("VehicleExit()");
+                            _isBehaviorDone = true;
+                            return RunStatus.Success;
+                        }))));
+        }
 
-		}
+        public WoWUnit SassyHardwrench
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(u => u.Entry == 38387 && u.Location.DistanceSqr(_startAndEndPoint) < 10 * 10);
+            }
+        }
 
-		public WoWUnit SassyHardwrench
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>()
-					.FirstOrDefault(u => u.Entry == 38387 && u.Location.DistanceSqr(StartAndEndPoint) < 10*10);
-			}
-		}
+        public WoWUnit PrideofKezan
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .FirstOrDefault(u => u.Entry == 39074);
+            }
+        }
 
-		public WoWUnit PrideofKezan
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>()
-					.FirstOrDefault(u => u.Entry == 39074);
-			}
-		}
+        public Composite CreateBehavior_KillGnomereganStealthFighter()
+        {
+            WoWUnit attackTarget = null;
+            WoWUnit PrideofKezan = null;
+            WaitTimer WildWeaselRocketsTimer = WaitTimer.FiveSeconds;
 
-		public Composite CreateBehavior_KillGnomereganStealthFighter()
-		{
-			WoWUnit attackTarget = null;
-			WoWUnit PrideofKezan = null;
-			WaitTimer WildWeaselRocketsTimer = WaitTimer.FiveSeconds;
+            return new Decorator(r => !Me.IsQuestComplete(QuestId) && Query.IsInVehicle() && (PrideofKezan = Me.CharmedUnit) != null,
+                new PrioritySelector(ctx => attackTarget = GetAttackTarget(),
+                    new Decorator(ctx => attackTarget != null,
+                        new PrioritySelector(
+                            new ActionSetActivity("Moving to Attack"),
+                            new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid,
+                                new ActionFail(ctx => attackTarget.Target())),
+                            new Decorator(ctx => !Me.IsSafelyFacing(attackTarget) || !PrideofKezan.IsSafelyFacing(attackTarget),
+                                new ActionFail(ctx => attackTarget.Face())),
 
-			return new Decorator(r => !Me.IsQuestComplete(QuestId) && Query.IsInVehicle() && (PrideofKezan = Me.CharmedUnit) != null,
-				new PrioritySelector(ctx => attackTarget = GetAttackTarget(),
-					new Decorator(ctx => attackTarget != null,
-						new PrioritySelector(
-							new ActionSetActivity("Moving to Attack"),
-							new Decorator(ctx => Me.CurrentTargetGuid != attackTarget.Guid,
-								new ActionFail(ctx => attackTarget.Target())),
-							new Decorator(ctx => !Me.IsSafelyFacing(attackTarget) || !PrideofKezan.IsSafelyFacing(attackTarget),
-								new ActionFail(ctx => attackTarget.Face())),
+                            // cast 'Wild Weasel Rockets' ability
+                            new Decorator(
+                                ctx => PrideofKezan.Location.DistanceSqr(attackTarget.Location) < 25 * 25 && WildWeaselRocketsTimer.IsFinished,
+                                new Sequence(
+                                    new Action(ctx => Lua.DoString("CastPetAction(2)")),
+                                    new Action(ctx => WildWeaselRocketsTimer.Reset()))),
 
-							// cast 'Wild Weasel Rockets' ability
-							new Decorator(
-								ctx => PrideofKezan.Location.DistanceSqr(attackTarget.Location) < 25*25 && WildWeaselRocketsTimer.IsFinished,
-								new Sequence(
-									new Action(ctx => Lua.DoString("CastPetAction(2)")),
-									new Action(ctx => WildWeaselRocketsTimer.Reset()))),
+                            // cast 'Machine Gun' ability
+                            new Decorator(
+                                ctx => PrideofKezan.Location.DistanceSqr(attackTarget.Location) <= 25 * 25,
+                                new Sequence(
+                                    new Action(ctx => Lua.DoString("CastPetAction(1)")))),
 
-							// cast 'Machine Gun' ability
-							new Decorator(
-								ctx => PrideofKezan.Location.DistanceSqr(attackTarget.Location) <= 25*25,
-								new Sequence(
-									new Action(ctx => Lua.DoString("CastPetAction(1)")))),
+                            new Decorator(ctx => PrideofKezan.Location.DistanceSqr(attackTarget.Location) > 25 * 25,
+                                new Action(ctx => WoWMovement.ClickToMove(attackTarget.Location))))),
+                    new Decorator(
+                        ctx => attackTarget == null,
+                        new PrioritySelector(
+                            new Decorator(
+                                ctx => PrideofKezan.Location.DistanceSqr(_waitPoint) > 10 * 10,
+                                new Sequence(
+                                    new Action(ctx => WoWMovement.ClickToMove(_waitPoint)))),
+                            new ActionSetActivity("No viable targets, waiting."))),
+                    new ActionAlwaysSucceed()));
+        }
 
-							new Decorator(ctx => PrideofKezan.Location.DistanceSqr(attackTarget.Location) > 25*25,
-								new Action(ctx => WoWMovement.ClickToMove(attackTarget.Location))))),
-					new Decorator(
-						ctx => attackTarget == null,
-						new PrioritySelector(
-							new Decorator(
-								ctx => PrideofKezan.Location.DistanceSqr(WaitPoint) > 10*10,
-								new Sequence(									
-									new Action(ctx => WoWMovement.ClickToMove(WaitPoint)))),
-							new ActionSetActivity("No viable targets, waiting."))),
-					new ActionAlwaysSucceed()));
-		}
-
-		public Composite CreateBehavior_GetIn()
-		{
-			return new Decorator(r => !Query.IsInVehicle(),
-				new PrioritySelector(
-					new Decorator(r => SassyHardwrench == null || SassyHardwrench.Distance > 10, new Action(r => Navigator.MoveTo(StartAndEndPoint))),
-					new Decorator(r => SassyHardwrench != null,
-						new Sequence(
-							new Action(r => SassyHardwrench.Interact()),
-							new Sleep(1000),
-							new Action(ret => Lua.DoString("SelectGossipOption(1)")),
-							new Sleep(2000)))));
-		}
+        public Composite CreateBehavior_GetIn()
+        {
+            return new Decorator(r => !Query.IsInVehicle(),
+                new PrioritySelector(
+                    new Decorator(r => SassyHardwrench == null || SassyHardwrench.Distance > 10, new Action(r => Navigator.MoveTo(_startAndEndPoint))),
+                    new Decorator(r => SassyHardwrench != null,
+                        new Sequence(
+                            new Action(r => SassyHardwrench.Interact()),
+                            new Sleep(1000),
+                            new Action(ret => Lua.DoString("SelectGossipOption(1)")),
+                            new Sleep(2000)))));
+        }
 
 
 
-		private WoWUnit GetAttackTarget()
-		{
-			var target = Me.CurrentTarget;
-			if (target != null && target.IsHostile && target.Attackable && target.IsAlive)
-			{
-				return target;
-			}
+        private WoWUnit GetAttackTarget()
+        {
+            var target = Me.CurrentTarget;
+            if (target != null && target.IsHostile && target.Attackable && target.IsAlive)
+            {
+                return target;
+            }
 
-			return GnomereganStealthFighter.FirstOrDefault();
-		}
+            return GnomereganStealthFighter.FirstOrDefault();
+        }
 
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
-				this.UpdateGoalText(QuestId);
-			}
-		}
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_MainCombat());
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
 
-		protected Composite CreateBehavior_MainCombat()
-		{
-			return _root ?? (_root = 
-				new Decorator(ret => !_isBehaviorDone,
-					new PrioritySelector(
-						CreateBehavior_CheckCompletion(), 
-						CreateBehavior_GetIn(), 
-						CreateBehavior_KillGnomereganStealthFighter())));
-		}
-
-	}
+        protected Composite CreateBehavior_MainCombat()
+        {
+            return _root ?? (_root =
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+                        CreateBehavior_CheckCompletion(),
+                        CreateBehavior_GetIn(),
+                        CreateBehavior_KillGnomereganStealthFighter())));
+        }
+    }
 }

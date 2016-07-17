@@ -17,6 +17,7 @@
 
 
 #region Usings
+
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.InteropServices;
@@ -39,111 +40,111 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.Hooks
 {
-	[CustomBehaviorFileName(@"Hooks\TheEndlessFlowHook")]
-	public class TheEndlessFlowHook : CustomForcedBehavior
-	{
-		public TheEndlessFlowHook(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
-		}
+    [CustomBehaviorFileName(@"Hooks\TheEndlessFlowHook")]
+    public class TheEndlessFlowHook : CustomForcedBehavior
+    {
+        public TheEndlessFlowHook(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+        }
 
-		public override bool IsDone { get { return true; } }
+        public override bool IsDone { get { return true; } }
 
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
-		private Composite _myHook;
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			
-			if (_myHook == null)
-				InstallHook();
-			else
-				RemoveHook();
-		}
+        private Composite _myHook;
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
 
-		void InstallHook()
-		{
-			if (_myHook != null)
-				return;
-			_myHook = new ActionRunCoroutine(ctx => MainLogic());
-			TreeHooks.Instance.InsertHook("Questbot_Main", 0, _myHook);
-			BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-			BotEvents.Profile.OnNewProfileLoaded += Profile_OnNewProfileLoaded;
-			QBCLog.Debug(this, "Installed hook");
-		}
+            if (_myHook == null)
+                InstallHook();
+            else
+                RemoveHook();
+        }
 
-		void RemoveHook()
-		{
-			if (_myHook == null)
-				return;
-			TreeHooks.Instance.RemoveHook("Questbot_Main", _myHook);
-			_myHook = null;
-			BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-			BotEvents.Profile.OnNewProfileLoaded -= Profile_OnNewProfileLoaded;
-			QBCLog.Debug(this, "Removed hook");
-		}
+        private void InstallHook()
+        {
+            if (_myHook != null)
+                return;
+            _myHook = new ActionRunCoroutine(ctx => MainLogic());
+            TreeHooks.Instance.InsertHook("Questbot_Main", 0, _myHook);
+            BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+            BotEvents.Profile.OnNewProfileLoaded += Profile_OnNewProfileLoaded;
+            QBCLog.Debug(this, "Installed hook");
+        }
 
-		void Profile_OnNewProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
-		{
-			RemoveHook();
-		}
+        private void RemoveHook()
+        {
+            if (_myHook == null)
+                return;
+            TreeHooks.Instance.RemoveHook("Questbot_Main", _myHook);
+            _myHook = null;
+            BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+            BotEvents.Profile.OnNewProfileLoaded -= Profile_OnNewProfileLoaded;
+            QBCLog.Debug(this, "Removed hook");
+        }
 
-		void BotEvents_OnBotStopped(System.EventArgs args)
-		{
-			RemoveHook();
-		}
+        private void Profile_OnNewProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
+        {
+            RemoveHook();
+        }
 
-		private async Task<bool> MainLogic()
-		{
-			if (!Me.IsAlive)
-				return false;
+        private void BotEvents_OnBotStopped(System.EventArgs args)
+        {
+            RemoveHook();
+        }
 
-			var bomb = Me.BagItems.FirstOrDefault(i => Query.IsViable(i) && i.Entry == 60849 || i.Entry == 60678);
-			var bunny = ObjectManager.GetObjectsOfType<WoWUnit>()
-				.Where(r => r.Entry == 44360)
-				.OrderBy(r=>r.Distance2D)
-				.FirstOrDefault();
+        private async Task<bool> MainLogic()
+        {
+            if (!Me.IsAlive)
+                return false;
 
-			//Remove hook once were done with the quest
-			if (bomb == null)
-			{
-				RemoveHook();
-				return true;
-			}
+            var bomb = Me.BagItems.FirstOrDefault(i => Query.IsViable(i) && i.Entry == 60849 || i.Entry == 60678);
+            var bunny = ObjectManager.GetObjectsOfType<WoWUnit>()
+                .Where(r => r.Entry == 44360)
+                .OrderBy(r => r.Distance2D)
+                .FirstOrDefault();
 
-			if (bunny != null)
-			{
-				var bunnyDist = bunny.DistanceSqr;
-				if (bunnyDist < 5*5)
-				{
-					bomb.Use();
-					SpellManager.ClickRemoteLocation(bunny.Location);
-					await Coroutine.Sleep(Delay.AfterItemUse.Milliseconds);
-					return true;
-				}
-				if (bunnyDist < 35*35)
-				{
-					return await UtilityCoroutine.MoveTo(bunny.Location, "Bunny", MovementByType.NavigatorOnly);
-				}
-			}
-								
-			var stickbone = ObjectManager.GetObjectsOfType<WoWUnit>()
-				.Where(r => r.Entry == 44329 && r.IsAlive)
-				.OrderBy(r => r.Distance2D)
-				.FirstOrDefault();
-			if (stickbone != null && stickbone.DistanceSqr < 5*5)
-			{
-				bomb.Use();
-				SpellManager.ClickRemoteLocation(stickbone.Location);
-				await Coroutine.Sleep(Delay.AfterItemUse.Milliseconds);
-				return true;
-			}
-			return false;
-		}
-	}
+            //Remove hook once were done with the quest
+            if (bomb == null)
+            {
+                RemoveHook();
+                return true;
+            }
+
+            if (bunny != null)
+            {
+                var bunnyDist = bunny.DistanceSqr;
+                if (bunnyDist < 5 * 5)
+                {
+                    bomb.Use();
+                    SpellManager.ClickRemoteLocation(bunny.Location);
+                    await Coroutine.Sleep(Delay.AfterItemUse.Milliseconds);
+                    return true;
+                }
+                if (bunnyDist < 35 * 35)
+                {
+                    return await UtilityCoroutine.MoveTo(bunny.Location, "Bunny", MovementByType.NavigatorOnly);
+                }
+            }
+
+            var stickbone = ObjectManager.GetObjectsOfType<WoWUnit>()
+                .Where(r => r.Entry == 44329 && r.IsAlive)
+                .OrderBy(r => r.Distance2D)
+                .FirstOrDefault();
+            if (stickbone != null && stickbone.DistanceSqr < 5 * 5)
+            {
+                bomb.Use();
+                SpellManager.ClickRemoteLocation(stickbone.Location);
+                await Coroutine.Sleep(Delay.AfterItemUse.Milliseconds);
+                return true;
+            }
+            return false;
+        }
+    }
 }

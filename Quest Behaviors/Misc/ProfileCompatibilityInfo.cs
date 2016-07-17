@@ -50,6 +50,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -75,41 +76,41 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 {
-	[CustomBehaviorFileName(@"Misc\ProfileCompatibilityInfo")]
-	public class ProfileCompatibilityInfo : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
-		public ProfileCompatibilityInfo(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"Misc\ProfileCompatibilityInfo")]
+    public class ProfileCompatibilityInfo : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
+        public ProfileCompatibilityInfo(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Behavior-specific attributes...
+                // Behavior-specific attributes...
                 _allowedProblems.AllowBrokenAddOns = GetAttributeAsNullable<bool>("AllowBrokenAddOns", false, null, null) ?? false;
                 _allowedProblems.AllowBrokenPlugIns = GetAttributeAsNullable<bool>("AllowBrokenPlugIns", false, null, null) ?? false;
                 _allowedProblems.AllowMixedModeBot = GetAttributeAsNullable<bool>("AllowMixedModeBot", false, null, null) ?? false;
 
-			    _cfbContextForHook = this;
-			}
+                s_cfbContextForHook = this;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		// Variables for Attributes provided by caller
+        // Variables for Attributes provided by caller
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
@@ -120,10 +121,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         {
             // For examples, see Development/TEMPLATE_QB.cs
         }
-		#endregion
+        #endregion
 
 
-		#region Private and Convenience variables
+        #region Private and Convenience variables
         private class AllowedProblems
         {
             public bool AllowBrokenAddOns { get; set; }
@@ -132,41 +133,41 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
         }
 
         private readonly AllowedProblems _allowedProblems = new AllowedProblems();
-	    private readonly static BehaviorDatabase _behaviorDatabase = new BehaviorDatabase("ProfileCompatibilityInfo");
-        private static bool _isBotStopHooked;
-	    private static CustomForcedBehavior _cfbContextForHook;
+        private readonly static BehaviorDatabase s_behaviorDatabase = new BehaviorDatabase("ProfileCompatibilityInfo");
+        private static bool s_isBotStopHooked;
+        private static CustomForcedBehavior s_cfbContextForHook;
 
 
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
-		#endregion
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
+        #endregion
 
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
-
-
-		// Dispose provided by QuestBehaviorBase.
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
 
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
-		public override void OnStart()
-		{
-			QBCLog.BehaviorLoggingContext = this;
+        // Dispose provided by QuestBehaviorBase.
 
-            _behaviorDatabase.RereadDatabaseIfFileChanged();
 
-			// Install bot stop handler only once...
-			if (!_isBotStopHooked)
-			{
-				BotEvents.OnBotStopped += BotEvents_OnBotStopped;
-				_isBotStopHooked = true;
-			}
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+        public override void OnStart()
+        {
+            QBCLog.BehaviorLoggingContext = this;
+
+            s_behaviorDatabase.RereadDatabaseIfFileChanged();
+
+            // Install bot stop handler only once...
+            if (!s_isBotStopHooked)
+            {
+                BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+                s_isBotStopHooked = true;
+            }
 
             var isFatalErrorsEncountered = EmitStateInfo();
 
@@ -179,9 +180,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 return;
             }
 
-		    BehaviorDone();
-		}
-		#endregion
+            BehaviorDone();
+        }
+        #endregion
 
 
         #region Report Generators
@@ -248,7 +249,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                         _totalSlotsFreeSpeciality += bagInfo.SlotsFree;
 
                     _totalSlots += bagInfo.SlotsTotal;
-                }         
+                }
             }
 
             private class BagInfo
@@ -264,13 +265,13 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                         return null;
 
                     return new BagInfo()
-                        {
-                            Id = null,
-                            Name = wowBag.Name,
-                            SlotsTotal = (int)wowBag.Slots,
-                            SlotsFree = (int)wowBag.FreeSlots,
-                            Type = BagType.NormalBag,
-                        };
+                    {
+                        Id = null,
+                        Name = wowBag.Name,
+                        SlotsTotal = (int)wowBag.Slots,
+                        SlotsFree = (int)wowBag.FreeSlots,
+                        Type = BagType.NormalBag,
+                    };
                 }
 
                 public static BagInfo From(WoWContainer wowContainer)
@@ -279,13 +280,13 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                         return null;
 
                     return new BagInfo()
-                        {
-                            Id = (int)wowContainer.Entry,
-                            Name = wowContainer.SafeName,
-                            SlotsTotal = (int)wowContainer.Slots,
-                            SlotsFree = (int)wowContainer.FreeSlots,
-                            Type = wowContainer.BagType,
-                        };
+                    {
+                        Id = (int)wowContainer.Entry,
+                        Name = wowContainer.SafeName,
+                        SlotsTotal = (int)wowContainer.Slots,
+                        SlotsFree = (int)wowContainer.FreeSlots,
+                        Type = wowContainer.BagType,
+                    };
                 }
 
                 public string PrettyInfo()
@@ -443,7 +444,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     ? "noBot"
                     : string.IsNullOrEmpty(botBase.Name)
                             ? "unnamedBot"
-                            : botBase.Name;               
+                            : botBase.Name;
 
                 var currentCombatRoutine = RoutineManager.Current;
                 CombatRoutineClass =
@@ -454,7 +455,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 CombatRoutineName =
                     (currentCombatRoutine == null)
                     ? "noCombatRoutine"
-                    :  string.IsNullOrEmpty(currentCombatRoutine.Name)
+                    : string.IsNullOrEmpty(currentCombatRoutine.Name)
                         ? currentCombatRoutine.ToString()
                         : currentCombatRoutine.Name;
 
@@ -493,10 +494,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
             public readonly string ProfilePath;
 
 
-		    private bool IsMixedModeBot(string botBaseName)
-		    {
-			    return !string.IsNullOrEmpty(botBaseName) && botBaseName.StartsWith("mixed", true, CultureInfo.InvariantCulture);
-		    }
+            private bool IsMixedModeBot(string botBaseName)
+            {
+                return !string.IsNullOrEmpty(botBaseName) && botBaseName.StartsWith("mixed", true, CultureInfo.InvariantCulture);
+            }
 
 
             public override void EmitDetailedInfo(StringBuilder builder, string linePrefix = "")
@@ -523,8 +524,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
             public override void EmitProblemList(StringBuilder builder, string linePrefix = "")
             {
-                var minimumFpsWarningThreshold = _behaviorDatabase.Threshold_FpsMinimum.Value;
-                var maximumLatencyWarningThreshold = _behaviorDatabase.Threshold_LatencyMaximum.Value;
+                var minimumFpsWarningThreshold = s_behaviorDatabase.Threshold_FpsMinimum.Value;
+                var maximumLatencyWarningThreshold = s_behaviorDatabase.Threshold_LatencyMaximum.Value;
 
                 if (Fps < minimumFpsWarningThreshold)
                 {
@@ -653,7 +654,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
             private static bool IsKnownProblemName(string name)
             {
-                return _behaviorDatabase.ProblemAddOns.AddOns.Any(o => name.StartsWith(o.Name, true, CultureInfo.InvariantCulture));
+                return s_behaviorDatabase.ProblemAddOns.AddOns.Any(o => name.StartsWith(o.Name, true, CultureInfo.InvariantCulture));
             }
 
 
@@ -734,8 +735,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 return !allowedProblems.AllowBrokenAddOns && _addOnInfos.Any(a => a.IsProblem && a.IsEnabled);
             }
         }
-    
-        
+
+
         private class ReportGen_Mounts : ReportGenBase
         {
             public ReportGen_Mounts()
@@ -754,7 +755,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 builder.AppendFormat("{0}Ground Mount: {1} {2} {3}",
                     linePrefix,
                     ((_groundMount == null)
-                        ? "UNSPECIFIED" 
+                        ? "UNSPECIFIED"
                         : _groundMount.Name),
                     ((_groundMount == null)
                         ? string.Empty
@@ -767,8 +768,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     ((_flyingMount == null)
                         ? "UNSPECIFIED"
                         : _flyingMount.Name),
-                    ((_flyingMount == null) 
-                        ? string.Empty 
+                    ((_flyingMount == null)
+                        ? string.Empty
                         : Utility.WowheadLink(Utility.WowheadSubject.Spell, _flyingMount.CreatureSpellId)),
                     problemText);
                 builder.AppendLine();
@@ -805,13 +806,13 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
                     Name = string.IsNullOrEmpty(plugIn.Name) ? "UnnamedPlugin" : plugIn.Name;
                     IsBosslandPlugIn =
-                        _behaviorDatabase.BosslandGmbHPlugins.PlugIns
+                        s_behaviorDatabase.BosslandGmbHPlugins.PlugIns
                         .Any(o => Name.StartsWith(o.Name, true, CultureInfo.InvariantCulture));
                     IsEnabled = plugIn.Enabled;
                     IsProblemPlugIn =
-                        _behaviorDatabase.ProblemPlugIns.PlugIns
+                        s_behaviorDatabase.ProblemPlugIns.PlugIns
                         .Any(o => Name.StartsWith(o.Name, true, CultureInfo.InvariantCulture));
-	                PluginAuthor = plugIn.Author ?? "unknown";
+                    PluginAuthor = plugIn.Author ?? "unknown";
                     PlugInVersion = plugIn.Version;
                 }
 
@@ -820,7 +821,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 public readonly bool IsEnabled;
                 public readonly bool IsProblemPlugIn;
                 public readonly Version PlugInVersion;
-	            public readonly string PluginAuthor;
+                public readonly string PluginAuthor;
             };
 
             private readonly List<PlugInInfo> _plugIns;
@@ -842,7 +843,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 return string.Empty;
             }
 
- 
+
             public override void EmitDetailedInfo(StringBuilder builder, string linePrefix = "")
             {
                 builder.AppendFormat("{0}PlugIns:", linePrefix);
@@ -861,7 +862,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                                          ((plugIn.IsEnabled && plugIn.IsProblemPlugIn) ? "*** " : "    "),
                                          plugIn.Name,
                                          plugIn.PlugInVersion,
-										 plugIn.PluginAuthor,
+                                         plugIn.PluginAuthor,
                                          GetPlugInState(plugIn));
                     builder.AppendLine();
                 }
@@ -995,10 +996,10 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     .ToList();
             }
 
-            private readonly List<WoWItem> _questItems; 
+            private readonly List<WoWItem> _questItems;
 
 
-            class WoWItemIdComparer : IEqualityComparer<WoWItem>
+            private class WoWItemIdComparer : IEqualityComparer<WoWItem>
             {
                 public bool Equals(WoWItem x, WoWItem y)
                 {
@@ -1092,8 +1093,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 {
                     builder.AppendFormat("{0}    {1}.{2}: {3}",
                                          linePrefix,
-                                         talent.Tier +1,
-                                         talent.Index +1,
+                                         talent.Tier + 1,
+                                         talent.Index + 1,
                                          talent.Name);
                     builder.AppendLine();
                 }
@@ -1159,7 +1160,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     ? "noSubZone"
                     : (Me.CurrentMap.IsGarrison ? "Garrison" : Me.SubZoneText);
 
-                builder.AppendFormat("{0}     => {1} (subzone={2})", 
+                builder.AppendFormat("{0}     => {1} (subzone={2})",
                     linePrefix,
                     subZoneName,
                     (int)Me.SubZoneId);
@@ -1205,7 +1206,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 SkillLine.Riding,
                 SkillLine.Skinning,
                 SkillLine.Tailoring,
-            }; 
+            };
 
             private void BuildSkillInfo(StringBuilder builder, string linePrefix, SkillLine skillLine)
             {
@@ -1237,8 +1238,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     builder.AppendFormat("{0}    NONE", linePrefix);
                     builder.AppendLine();
                     return;
-                } 
-                
+                }
+
                 foreach (var skillLine in _skillLinesOfInterest)
                     BuildSkillInfo(builder, linePrefix, skillLine);
             }
@@ -1260,28 +1261,28 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
         #region Helpers
         private void BotEvents_OnBotStopped(EventArgs args)
-		{
-			EmitStateInfo();
+        {
+            EmitStateInfo();
 
-			// Unhook the bot stop handler...
-			BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
-			_isBotStopHooked = false;
-		}
+            // Unhook the bot stop handler...
+            BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+            s_isBotStopHooked = false;
+        }
 
 
         // Return 'true', if fatal error encounterd; otherwise, false.
-		private bool EmitStateInfo()
-		{
+        private bool EmitStateInfo()
+        {
             // Need to establish logging context, since this may be called from OnBotStopped...
-		    QBCLog.BehaviorLoggingContext = _cfbContextForHook;
+            QBCLog.BehaviorLoggingContext = s_cfbContextForHook;
 
-			using (StyxWoW.Memory.AcquireFrame(true))
-			{
-				var linePrefix = new String(' ', 4);
+            using (StyxWoW.Memory.AcquireFrame(true))
+            {
+                var linePrefix = new String(' ', 4);
 
-				// Build compatibility info...
-			    var reportGenerators = new List<ReportGenBase>()
-			    {
+                // Build compatibility info...
+                var reportGenerators = new List<ReportGenBase>()
+                {
                     new ReportGen_ExecutionEnvironment(),
                     new ReportGen_ToonState(),
                     new ReportGen_TradeSkills(),
@@ -1292,7 +1293,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     new ReportGen_Mounts(),
                     new ReportGen_GameClientAddOns(),
                     new ReportGen_Plugins(),
-			    };
+                };
 
 
                 var builderDetails = new StringBuilder();
@@ -1306,7 +1307,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
                 QBCLog.DeveloperInfo(builderDetails.ToString());
 
-			    var builderProblemErrorSummary = new StringBuilder();
+                var builderProblemErrorSummary = new StringBuilder();
                 var builderProblemWarningSummary = new StringBuilder();
 
                 foreach (var report in reportGenerators)
@@ -1342,12 +1343,12 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 }
 
                 // Emit end demark...
-				QBCLog.DeveloperInfo(this, "---------- END: Profile Compatibility Info ----------");
+                QBCLog.DeveloperInfo(this, "---------- END: Profile Compatibility Info ----------");
 
-				// Return value indicating whether or not fatal errors encountered...
-			    return reportGenerators.Any(r => r.IsFatalErrorSeen(_allowedProblems));
+                // Return value indicating whether or not fatal errors encountered...
+                return reportGenerators.Any(r => r.IsFatalErrorSeen(_allowedProblems));
             }
-		}
+        }
 
         #endregion
 
@@ -1451,7 +1452,6 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
                 return root;
             }
-
         }
         #endregion
 

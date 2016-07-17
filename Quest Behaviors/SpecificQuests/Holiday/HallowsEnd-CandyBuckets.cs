@@ -51,6 +51,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -81,50 +82,50 @@ using Styx.WoWInternals.WoWObjects;
 namespace Honorbuddy.Quest_Behaviors
 {
     [CustomBehaviorFileName(@"Holiday\HallowsEnd-CandyBuckets")]
-	public class HallowsEnd_CandyBuckets : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
+    public class HallowsEnd_CandyBuckets : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
         public HallowsEnd_CandyBuckets(Dictionary<string, string> args)
-			: base(args)
-		{
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+            : base(args)
+        {
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
                 // Although the QuestId is harvested by our QuestBehaviorBase parent, it is REQUIRED for this behavior.
                 // So we enforce that constraint here.
-			    GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null);
+                GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null);
 
-			    TerminationChecksQuestProgress = false;
-			}
+                TerminationChecksQuestProgress = false;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-				// resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
+                // resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		// Variables for Attributes provided by caller
+        // Variables for Attributes provided by caller
         // none, atm.
 
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
             // For an example, see TEMPLATE_QB.cs
-		}
+        }
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
             // For an example, see TEMPLATE_QB.cs
-		}
-		#endregion
+        }
+        #endregion
 
 
-		#region Private and Convenience variables
+        #region Private and Convenience variables
 
         private const int AchievementId_CheckYourHead = 291; // http://wowhead.com/achievement=291
         private const int AchievementId_OutWithIt = 288; // http://wowhead.com/achievement=288
@@ -150,52 +151,52 @@ namespace Honorbuddy.Quest_Behaviors
         {
             get
             {
-				return (StyxWoW.Random.Next(1, 100) < 70)
-						? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1000, 2500))
-						: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1500, 5000));
+                return (StyxWoW.Random.Next(1, 100) < 70)
+                        ? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1000, 2500))
+                        : TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1500, 5000));
             }
         }
         private static TimeSpan VariantDelay5Secs
         {
             get
             {
-				return (StyxWoW.Random.Next(1, 100) < 70)
-						? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(2500, 5500))
-						: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(3000, 8000));
+                return (StyxWoW.Random.Next(1, 100) < 70)
+                        ? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(2500, 5500))
+                        : TimeSpan.FromMilliseconds(StyxWoW.Random.Next(3000, 8000));
             }
         }
 
-        private readonly TimeSpan ThrottleTime_CheckYourHead = TimeSpan.FromMilliseconds(3300);
+        private readonly TimeSpan _throttleTime_CheckYourHead = TimeSpan.FromMilliseconds(3300);
 
         private const string TrickAuraName = "Trick";
 
-        private static readonly BehaviorDatabase _behaviorDatabase = new BehaviorDatabase();
-        private static readonly ProfileHelperFunctionsBase _helpers = new ProfileHelperFunctionsBase();
+        private static readonly BehaviorDatabase s_behaviorDatabase = new BehaviorDatabase();
+        private static readonly ProfileHelperFunctionsBase s_helpers = new ProfileHelperFunctionsBase();
         private readonly Stopwatch _throttleTimer_CheckYourHead = new Stopwatch();
         #endregion
 
 
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: HallowsEnd_CandyBuckets.cs 1728 2014-10-13 23:25:24Z chinajade $"; } }
-		public override string SubversionRevision { get { return "$Rev: 1728 $"; } }
+        public override string SubversionRevision { get { return "$Rev: 1728 $"; } }
 
 
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
-		// Dispose provided by QuestBehaviorBase.
+        // Dispose provided by QuestBehaviorBase.
 
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
-		public override void OnStart()
-		{
-            _behaviorDatabase.RereadDatabaseIfFileChanged();
+        public override void OnStart()
+        {
+            s_behaviorDatabase.RereadDatabaseIfFileChanged();
 
-		    IsAttributeProblem |= _behaviorDatabase.CandyBuckets.IsAttributeProblem;
+            IsAttributeProblem |= s_behaviorDatabase.CandyBuckets.IsAttributeProblem;
 
-            CandyBucketInfo = _behaviorDatabase.CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == QuestId);
+            CandyBucketInfo = s_behaviorDatabase.CandyBuckets.CandyBuckets.FirstOrDefault(qd => qd.QuestId == QuestId);
             if (CandyBucketInfo == null)
             {
                 CandyBucketInfo = CandyBucketType.Empty;
@@ -211,11 +212,11 @@ namespace Honorbuddy.Quest_Behaviors
 
             // These quests will never make it to our log--they complete immediately...
             QuestRequirementInLog = QuestInLogRequirement.NotInLog;
-		    QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-		    TerminationChecksQuestProgress = false;
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
-		    if (!isBehaviorShouldRun)
-		        return;
+            QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+            TerminationChecksQuestProgress = false;
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+            if (!isBehaviorShouldRun)
+                return;
 
 
             // If we're on the wrong map, we're done...
@@ -239,50 +240,50 @@ namespace Honorbuddy.Quest_Behaviors
                                             Me.FactionGroup);
                 QBCLog.Fatal(message);
                 BehaviorDone(message);
-                return;                
+                return;
             }
 
-			// Setup settings to prevent interference with your behavior --
-			// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-			// by Honorbuddy, or the bot is stopped.
-			CharacterSettings.Instance.HarvestHerbs = false;
-			CharacterSettings.Instance.HarvestMinerals = false;
-			CharacterSettings.Instance.LootChests = false;
-			CharacterSettings.Instance.SkinMobs = false;
+            // Setup settings to prevent interference with your behavior --
+            // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+            // by Honorbuddy, or the bot is stopped.
+            CharacterSettings.Instance.HarvestHerbs = false;
+            CharacterSettings.Instance.HarvestMinerals = false;
+            CharacterSettings.Instance.LootChests = false;
+            CharacterSettings.Instance.SkinMobs = false;
 
             // Disable the learning of flightpaths until after we get quest from Candy Bucket...
             // We need to be able to 'see' CandyBucket in ObjectManager.  We position the landing area
             // near enough to the CandyBucket that this will always happen.  However, harvesting and
             // Flightpath learning can take us far enough away that the Candy Bucket is no longer visible
             // to the ObjectManager, and this will cause exceptions to be thrown.
-		    LevelBot.BehaviorFlags &= ~BehaviorFlags.FlightPath;
+            LevelBot.BehaviorFlags &= ~BehaviorFlags.FlightPath;
 
             QBCLog.Info("Pursuing Candy Bucket: \"{0}\"", CandyBucketInfo.CandyBucketLocationName);
-		}
-		#endregion
+        }
+        #endregion
 
 
         #region Profile Helpers
         // Used by profiles...
         public static bool HaveAnyQuestsOnMap(int mapId)
         {
-            _behaviorDatabase.RereadDatabaseIfFileChanged();
+            s_behaviorDatabase.RereadDatabaseIfFileChanged();
 
             return
-                _behaviorDatabase.CandyBuckets.CandyBuckets
+                s_behaviorDatabase.CandyBuckets.CandyBuckets
                     .Any(q => (mapId == q.MapId)
                               && (Me.FactionGroup == q.FactionGroup)
                               && (Me.Level >= q.LevelRequirement)
-                              && !Me.IsQuestComplete(q.QuestId));            
+                              && !Me.IsQuestComplete(q.QuestId));
         }
         #endregion
 
 
         #region Main Behaviors
         protected override Composite CreateMainBehavior()
-		{
+        {
             return new ActionRunCoroutine(ctx => MainCoroutine());
-		}
+        }
 
 
         private async Task<bool> MainCoroutine()
@@ -330,7 +331,7 @@ namespace Honorbuddy.Quest_Behaviors
             await PostQuestWrapUp();
             return true;
         }
-		#endregion
+        #endregion
 
 
         #region Helper Coroutines
@@ -363,7 +364,7 @@ namespace Honorbuddy.Quest_Behaviors
             }
 
             // If we can't "see" the Candy Bucket, move to the landing area...
-            if ((SelectedCandyBucket == null)  &&  !Navigator.AtLocation(SelectedLandingArea.Location))
+            if ((SelectedCandyBucket == null) && !Navigator.AtLocation(SelectedLandingArea.Location))
             {
                 if (await PreferMount_MagicBroom())
                     return true;
@@ -443,7 +444,7 @@ namespace Honorbuddy.Quest_Behaviors
                 return true;
 
             // Get quest from candy bucket...
-			await CommonCoroutines.StopMoving();
+            await CommonCoroutines.StopMoving();
             if (!QuestFrame.Instance.IsVisible)
             {
                 await UtilityCoroutine.Interact(SelectedCandyBucket);
@@ -452,9 +453,9 @@ namespace Honorbuddy.Quest_Behaviors
 
             await Coroutine.Sleep(Delay.AfterInteraction);
             // At the time of this writing, "CompeteQuest()" is correct...
-			// QuestFrame.Instance.AcceptQuest();
-			QuestFrame.Instance.CompleteQuest();
-			//QuestFrame.Instance.ClickContinue();
+            // QuestFrame.Instance.AcceptQuest();
+            QuestFrame.Instance.CompleteQuest();
+            //QuestFrame.Instance.ClickContinue();
 
             await CommonCoroutines.SleepForLagDuration();
 
@@ -485,7 +486,6 @@ namespace Honorbuddy.Quest_Behaviors
 
                 if (await HandleItems_ToDiscard())
                     return true;
-
             }
 
             // Establish take off area, and move to it...
@@ -517,7 +517,7 @@ namespace Honorbuddy.Quest_Behaviors
                  where
                      aura.Cancellable
                      && (aura.Name.EndsWith(" Costume")
-                         || _behaviorDatabase.DispelAuras.NameAndIds.Any(d => d.Id == aura.SpellId)
+                         || s_behaviorDatabase.DispelAuras.NameAndIds.Any(d => d.Id == aura.SpellId)
                          // Jack-o'-Lanterned explicitly included since part of "Check Your Head" achievement...
                          || (aura.SpellId == AuraId_JackOLanterned))
                  select aura)
@@ -550,7 +550,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> HandleItems_ToOpen()
         {
-            var itemToOpen = Me.CarriedItems.FirstOrDefault(i => _behaviorDatabase.ItemsToOpen.NameAndIds.Any(o => i.Entry == o.Id));
+            var itemToOpen = Me.CarriedItems.FirstOrDefault(i => s_behaviorDatabase.ItemsToOpen.NameAndIds.Any(o => i.Entry == o.Id));
 
             if (itemToOpen == null)
                 return false;
@@ -565,7 +565,7 @@ namespace Honorbuddy.Quest_Behaviors
 
         private async Task<bool> HandleItems_ToDiscard()
         {
-            var unwantedItem = Me.CarriedItems.FirstOrDefault(i => _behaviorDatabase.ItemsToDiscard.NameAndIds.Any(o => i.Entry == o.Id));
+            var unwantedItem = Me.CarriedItems.FirstOrDefault(i => s_behaviorDatabase.ItemsToDiscard.NameAndIds.Any(o => i.Entry == o.Id));
 
             if (unwantedItem == null)
                 return false;
@@ -608,7 +608,7 @@ namespace Honorbuddy.Quest_Behaviors
 
             // If we're still in throttle, nothing to do...
             // If timer is not running, we'll start it below, once we've tried to advance the achievement.
-            if (_throttleTimer_CheckYourHead.IsRunning && (_throttleTimer_CheckYourHead.Elapsed < ThrottleTime_CheckYourHead))
+            if (_throttleTimer_CheckYourHead.IsRunning && (_throttleTimer_CheckYourHead.Elapsed < _throttleTime_CheckYourHead))
                 return false;
 
             // If no Weighted Jack-o'-Lanterns, then nothing to do...
@@ -618,8 +618,8 @@ namespace Honorbuddy.Quest_Behaviors
 
             // See if we can find a viable target nearby...
             var neededRaces =
-                _behaviorDatabase.AchievementGoals_CheckYourHead.SubGoals
-                    .Where(s => !_helpers.IsAchievementCompleted(AchievementId_CheckYourHead, s.Index))
+                s_behaviorDatabase.AchievementGoals_CheckYourHead.SubGoals
+                    .Where(s => !s_helpers.IsAchievementCompleted(AchievementId_CheckYourHead, s.Index))
                     .Select(s => s.Race)
                     .ToList();
 
@@ -660,7 +660,7 @@ namespace Honorbuddy.Quest_Behaviors
             // Sometimes it doesn't work, and we don't want to get gummed up retrying.
             // It may be because the player is wearing a costume, or is cross-realm.
             QBCLog.Info("Advancing \"Check Your Head\" achievement with a {0} target.", selectedPlayer.Race);
-			await CommonCoroutines.StopMoving();
+            await CommonCoroutines.StopMoving();
             weightedJackOLantern.Use();
             selectedPlayer.BlacklistForInteracting(TimeSpan.FromMinutes(5));
             await Coroutine.Sleep(Delay.AfterItemUse);
@@ -681,7 +681,7 @@ namespace Honorbuddy.Quest_Behaviors
             if (Me.HasAura(AuraId_UpsetTummy))
                 return false;
 
-            var trickyTreatCount = _helpers.GetItemCount(ItemId_TrickyTreat);
+            var trickyTreatCount = s_helpers.GetItemCount(ItemId_TrickyTreat);
             if ((trickyTreatCount < 20) && !Me.HasAura(AuraId_TrickyTreat))
                 return false;
 
@@ -740,7 +740,6 @@ namespace Honorbuddy.Quest_Behaviors
 
             public void RereadDatabaseIfFileChanged()
             {
-
                 // NB: We use the absolute path here.  If we don't, then QBs get confused if there are additional
                 // QBs supplied in the Honorbuddy/Default Profiles/. directory.
                 var dataFileFullPath = Utility.GetDataFileFullPath(_databaseName);
@@ -808,7 +807,6 @@ namespace Honorbuddy.Quest_Behaviors
 
                 return root;
             }
-            
         }
         #endregion
 
@@ -1043,7 +1041,7 @@ namespace Honorbuddy.Quest_Behaviors
             public readonly List<CandyBucketType> CandyBuckets;
 
             private const string DefaultElementName = "CandyBuckets";
- 
+
             public override XElement ToXml(string elementName = null)
             {
                 elementName = string.IsNullOrEmpty(elementName) ? DefaultElementName : elementName;

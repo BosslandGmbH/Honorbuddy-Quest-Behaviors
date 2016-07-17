@@ -32,6 +32,7 @@
 #endregion
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -56,216 +57,209 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
 {
-	[CustomBehaviorFileName(@"Vehicles\VehicleBehavior")]
-	[CustomBehaviorFileName(@"VehicleBehavior")]  // Deprecated location--do not use
-	public class VehicleBehavior : CustomForcedBehavior
-	{
-		public VehicleBehavior(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"Vehicles\VehicleBehavior")]
+    [CustomBehaviorFileName(@"VehicleBehavior")]  // Deprecated location--do not use
+    public class VehicleBehavior : CustomForcedBehavior
+    {
+        public VehicleBehavior(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-				AttackButton = GetAttributeAsNullable("AttackButton", true, ConstrainAs.HotbarButton, new[] { "SpellIndex" }) ?? 0;
-				FirePoint = GetAttributeAsNullable("FireLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				FireHeight = GetAttributeAsNullable("FireHeight", false, new ConstrainTo.Domain<int>(1, 999), null) ?? 1;
-				FireUntilFinished = GetAttributeAsNullable<bool>("FireUntilFinished", false, null, new[] { "FireTillFinish" }) ?? false;
-				PreviousLocation = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
-				TargetPoint = GetAttributeAsNullable("TargetLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				VehicleId = GetAttributeAsNullable("VehicleId", true, ConstrainAs.VehicleId, new[] { "VehicleID" }) ?? 0;
-				VehicleMountId = GetAttributeAsNullable("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 0;
+                AttackButton = GetAttributeAsNullable("AttackButton", true, ConstrainAs.HotbarButton, new[] { "SpellIndex" }) ?? 0;
+                FirePoint = GetAttributeAsNullable("FireLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                FireHeight = GetAttributeAsNullable("FireHeight", false, new ConstrainTo.Domain<int>(1, 999), null) ?? 1;
+                FireUntilFinished = GetAttributeAsNullable<bool>("FireUntilFinished", false, null, new[] { "FireTillFinish" }) ?? false;
+                PreviousLocation = GetAttributeAsNullable("PreviousFireLocation", false, ConstrainAs.WoWPointNonEmpty, null);
+                TargetPoint = GetAttributeAsNullable("TargetLocation", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                VehicleId = GetAttributeAsNullable("VehicleId", true, ConstrainAs.VehicleId, new[] { "VehicleID" }) ?? 0;
+                VehicleMountId = GetAttributeAsNullable("VehicleMountId", true, ConstrainAs.VehicleId, new[] { "NpcMountId", "NpcMountID" }) ?? 0;
 
-				StartObjectivePoint = GetAttributeAsNullable("StartObjectivePoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				NPCIds = GetNumberedAttributesAsArray("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" });
-				EndPoint = GetAttributeAsNullable("EndPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				StartPoint = GetAttributeAsNullable("StartPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                StartObjectivePoint = GetAttributeAsNullable("StartObjectivePoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                NPCIds = GetNumberedAttributesAsArray("MobId", 0, ConstrainAs.MobId, new[] { "NpcID" });
+                EndPoint = GetAttributeAsNullable("EndPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                StartPoint = GetAttributeAsNullable("StartPoint", false, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
-				VehicleType = GetAttributeAsNullable("VehicleType", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 0;
-				Counter = 0;
-			}
+                VehicleType = GetAttributeAsNullable("VehicleType", false, new ConstrainTo.Domain<int>(0, 4), null) ?? 0;
+                Counter = 0;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		public int AttackButton { get; set; }
-		public int FireHeight { get; private set; }
-		public WoWPoint FirePoint { get; private set; }
-		public bool FireUntilFinished { get; set; }
-		public WoWPoint? PreviousLocation { get; private set; }
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-		public WoWPoint TargetPoint { get; private set; }
-		public int VehicleId { get; set; }
-		public int[] NPCIds { get; set; }
-		public int VehicleMountId { get; private set; }
-		public WoWPoint StartObjectivePoint { get; private set; }
-		public int VehicleType { get; set; }
-
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private bool _isInitialized;
-		private int _pathIndex;
-		private Composite _root;
-		private BehaviorFlags _originalBehaviorFlags;
-
-		// Private properties
-		private int Counter { get; set; }
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-		private List<WoWUnit> NpcAttackList
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>()
-									 .Where(ret => (NPCIds.Contains((int)ret.Entry)) && !ret.IsDead)
-									 .OrderBy(u => u.Distance)
-									 .ToList();
-			}
-		}
-
-		private List<WoWUnit> NpcVehicleList
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>()
-									 .Where(ret => (ret.Entry == VehicleMountId) && !ret.IsDead)
-									 .OrderBy(u => u.Distance)
-									 .ToList();
-			}
-		}
-		
-		private WoWPoint[] Path { get; set; }
-		private CircularQueue<WoWPoint> PathCircle { get; set; }
-		private WoWPoint StartPoint { get; set; }    // Start point Where Mount Is
-		private WoWPoint EndPoint { get; set; }
-		private WoWUnit _vehicle;
-		
-		private List<WoWUnit> VehicleList
-		{
-			get
-			{
-				if (PreviousLocation.HasValue)
-				{
-					return ObjectManager.GetObjectsOfType<WoWUnit>()
-										.Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
-										.OrderBy(u => u.Location.Distance(PreviousLocation.Value))
-										.ToList();
-				}
-				return ObjectManager.GetObjectsOfType<WoWUnit>()
-					.Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
-					.OrderBy(u => u.Distance)
-					.ToList();
-			}
-		}
-
-		// Styx.Logic.Profiles.Quest.ProfileHelperFunctionsBase
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-		WoWPoint MoveToLocation
-		{
-			get
-			{
-
-				Path = Navigator.GeneratePath(_vehicle.Location, FirePoint);
-				_pathIndex = 0;
-
-				while (Path[_pathIndex].Distance(_vehicle.Location) <= 3 && _pathIndex < Path.Length - 1)
-					_pathIndex++;
-				return Path[_pathIndex];
-
-			}
-		}
-
-		#region Overrides of CustomForcedBehavior
-
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root =
-				new PrioritySelector(
-
-							new Decorator(ret => (Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
-								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Finished!"),
-									new WaitContinue(120,
-										new Action(delegate
-										{
-											_isBehaviorDone = true;
-											return RunStatus.Success;
-										}))
-									)),
-
-							new Decorator(ret => !_isInitialized && VehicleType == 2,
-							new Action(ret => ParsePaths())),
-
-						// Enable combat while not in a vehicle
-						new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
-							new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
-
-						// Disable combat while in a vehicle
-						new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
-							new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
-
-						new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count == 0,
-							new Action(c =>
-							{
-
-								Navigator.MoveTo(StartPoint);
-								TreeRoot.StatusText = "Moving To Vehicle Location - " + " Yards Away: " + StartPoint.Distance(Me.Location);
-								return RunStatus.Success;
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-							})
-						),
+        // Attributes provided by caller
+        public int AttackButton { get; set; }
+        public int FireHeight { get; private set; }
+        public WoWPoint FirePoint { get; private set; }
+        public bool FireUntilFinished { get; set; }
+        public WoWPoint? PreviousLocation { get; private set; }
+        public int QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public WoWPoint TargetPoint { get; private set; }
+        public int VehicleId { get; set; }
+        public int[] NPCIds { get; set; }
+        public int VehicleMountId { get; private set; }
+        public WoWPoint StartObjectivePoint { get; private set; }
+        public int VehicleType { get; set; }
 
-						   new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count > 0,
-							new Action(c =>
-							{
-								if (!NpcVehicleList[0].WithinInteractRange)
-								{
-									Navigator.MoveTo(NpcVehicleList[0].Location);
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private bool _isInitialized;
+        private int _pathIndex;
+        private Composite _root;
+        private BehaviorFlags _originalBehaviorFlags;
+
+        // Private properties
+        private int Counter { get; set; }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+        private List<WoWUnit> NpcAttackList
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(ret => (NPCIds.Contains((int)ret.Entry)) && !ret.IsDead)
+                                     .OrderBy(u => u.Distance)
+                                     .ToList();
+            }
+        }
+
+        private List<WoWUnit> NpcVehicleList
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(ret => (ret.Entry == VehicleMountId) && !ret.IsDead)
+                                     .OrderBy(u => u.Distance)
+                                     .ToList();
+            }
+        }
+
+        private WoWPoint[] Path { get; set; }
+        private CircularQueue<WoWPoint> PathCircle { get; set; }
+        private WoWPoint StartPoint { get; set; }    // Start point Where Mount Is
+        private WoWPoint EndPoint { get; set; }
+        private WoWUnit _vehicle;
+
+        private List<WoWUnit> VehicleList
+        {
+            get
+            {
+                if (PreviousLocation.HasValue)
+                {
+                    return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                        .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
+                                        .OrderBy(u => u.Location.Distance(PreviousLocation.Value))
+                                        .ToList();
+                }
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                    .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead)
+                    .OrderBy(u => u.Distance)
+                    .ToList();
+            }
+        }
+
+        // Styx.Logic.Profiles.Quest.ProfileHelperFunctionsBase
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+        private WoWPoint MoveToLocation
+        {
+            get
+            {
+                Path = Navigator.GeneratePath(_vehicle.Location, FirePoint);
+                _pathIndex = 0;
+
+                while (Path[_pathIndex].Distance(_vehicle.Location) <= 3 && _pathIndex < Path.Length - 1)
+                    _pathIndex++;
+                return Path[_pathIndex];
+            }
+        }
+
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+
+                            new Decorator(ret => (Counter > 0 && !FireUntilFinished) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isBehaviorDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
+
+                            new Decorator(ret => !_isInitialized && VehicleType == 2,
+                            new Action(ret => ParsePaths())),
+
+                        // Enable combat while not in a vehicle
+                        new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
+                            new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
+
+                        // Disable combat while in a vehicle
+                        new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
+                            new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
+
+                        new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count == 0,
+                            new Action(c =>
+                            {
+                                Navigator.MoveTo(StartPoint);
+                                TreeRoot.StatusText = "Moving To Vehicle Location - " + " Yards Away: " + StartPoint.Distance(Me.Location);
+                                return RunStatus.Success;
+                            })
+                        ),
+
+                           new Decorator(c => !Query.IsInVehicle() && NpcVehicleList.Count > 0,
+                            new Action(c =>
+                            {
+                                if (!NpcVehicleList[0].WithinInteractRange)
+                                {
+                                    Navigator.MoveTo(NpcVehicleList[0].Location);
                                     TreeRoot.StatusText = "Moving To Vehicle - " + NpcVehicleList[0].SafeName + " Yards Away: " + NpcVehicleList[0].Location.Distance(Me.Location);
-								}
-								else
-								{
-									Flightor.MountHelper.Dismount();
+                                }
+                                else
+                                {
+                                    Flightor.MountHelper.Dismount();
 
-									NpcVehicleList[0].Interact();
-									PreviousLocation = Me.Location;
+                                    NpcVehicleList[0].Interact();
+                                    PreviousLocation = Me.Location;
+                                }
 
-								}
-
-								return RunStatus.Success;
-
-							})
-						),
-						new Decorator(c => Query.IsInVehicle() && VehicleType == 0, new ActionRunCoroutine(ctx => TypeZeroVehicleBehavior())),
-						new Decorator(c => Query.IsInVehicle() && VehicleType == 1, new ActionRunCoroutine(ctx => TypeOneVehicleBehavior())),
-						new Decorator(c => Query.IsInVehicle() && VehicleType == 2, new ActionRunCoroutine(ctx => TypeTwoVehicleBehavior()))
-					));
-		}
+                                return RunStatus.Success;
+                            })
+                        ),
+                        new Decorator(c => Query.IsInVehicle() && VehicleType == 0, new ActionRunCoroutine(ctx => TypeZeroVehicleBehavior())),
+                        new Decorator(c => Query.IsInVehicle() && VehicleType == 1, new ActionRunCoroutine(ctx => TypeOneVehicleBehavior())),
+                        new Decorator(c => Query.IsInVehicle() && VehicleType == 2, new ActionRunCoroutine(ctx => TypeTwoVehicleBehavior()))
+                    ));
+        }
 
         private async Task<bool> TypeZeroVehicleBehavior()
         {
@@ -445,76 +439,76 @@ namespace Honorbuddy.Quest_Behaviors.VehicleBehavior
             return false;
         }
 
-		public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
-		{
-			var temp = new List<WoWPoint>();
+        public IEnumerable<WoWPoint> ParseWoWPoints(IEnumerable<XElement> elements)
+        {
+            var temp = new List<WoWPoint>();
 
-			foreach (XElement element in elements)
-			{
-				XAttribute xAttribute = element.Attribute("X");
-				XAttribute yAttribute = element.Attribute("Y");
-				XAttribute zAttribute = element.Attribute("Z");
+            foreach (XElement element in elements)
+            {
+                XAttribute xAttribute = element.Attribute("X");
+                XAttribute yAttribute = element.Attribute("Y");
+                XAttribute zAttribute = element.Attribute("Z");
 
-				float x, y, z;
-				float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x);
-				float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
-				float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z);
-				temp.Add(new WoWPoint(x, y, z));
-			}
+                float x, y, z;
+                float.TryParse(xAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out x);
+                float.TryParse(yAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out y);
+                float.TryParse(zAttribute.Value, NumberStyles.Float, CultureInfo.InvariantCulture, out z);
+                temp.Add(new WoWPoint(x, y, z));
+            }
 
-			return temp;
-		}
+            return temp;
+        }
 
-		private void ParsePaths()
-		{
-			var startPoint = WoWPoint.Empty;
-			var path = new CircularQueue<WoWPoint>();
+        private void ParsePaths()
+        {
+            var startPoint = WoWPoint.Empty;
+            var path = new CircularQueue<WoWPoint>();
 
-			foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
-				startPoint = point;
+            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Start")))
+                startPoint = point;
 
-			foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Path")))
-				path.Enqueue(point);
+            foreach (WoWPoint point in ParseWoWPoints(Element.Elements().Where(elem => elem.Name == "Path")))
+                path.Enqueue(point);
 
-			StartPoint = startPoint;
-			PathCircle = path;
-			_isInitialized = true;
-		}
+            StartPoint = startPoint;
+            PathCircle = path;
+            _isInitialized = true;
+        }
 
         public override void OnFinished()
         {
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
-			LevelBot.BehaviorFlags = _originalBehaviorFlags;
+            LevelBot.BehaviorFlags = _originalBehaviorFlags;
             base.OnFinished();
         }
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			_originalBehaviorFlags = LevelBot.BehaviorFlags;
+            _originalBehaviorFlags = LevelBot.BehaviorFlags;
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				this.UpdateGoalText(QuestId);
-			}
-		}
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

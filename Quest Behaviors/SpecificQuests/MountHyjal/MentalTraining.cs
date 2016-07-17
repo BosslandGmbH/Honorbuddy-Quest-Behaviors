@@ -28,6 +28,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,129 +48,130 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
 {
-	[CustomBehaviorFileName(@"SpecificQuests\MountHyjal\MentalTraining")]
-	public class MentalTraining : CustomForcedBehavior
-	{
-		public MentalTraining(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\MentalTraining")]
+    public class MentalTraining : CustomForcedBehavior
+    {
+        public MentalTraining(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-				/* */
-				GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);            // (doc only - not used)
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-			}
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                /* */
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);            // (doc only - not used)
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
-
-		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		public bool HasAura(WoWUnit unit, int auraId)
-		{
-			WoWAura aura = (from a in unit.Auras
-							where a.Value.SpellId == auraId
-							select a.Value).FirstOrDefault();
-			return aura != null;
-		}
+        // Attributes provided by caller
+        public int QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private Composite _root;
+
+        // Private properties
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-		#region Overrides of CustomForcedBehavior
+        public bool HasAura(WoWUnit unit, int auraId)
+        {
+            WoWAura aura = (from a in unit.Auras
+                            where a.Value.SpellId == auraId
+                            select a.Value).FirstOrDefault();
+            return aura != null;
+        }
 
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root =
-				new PrioritySelector(
 
-					// check if we have finished 10 questions (marked complete)
-					new Decorator(ret => Me.IsQuestComplete(QuestId),
-						new PrioritySelector(
-							new Decorator(ret => Me.HasAura("Mental Training"),
-								new Sequence(
-									new Action( ret => QBCLog.Info("Mental Training complete - exiting Orb")),
-									new Action( ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")")),
-									CreateWaitForLagDuration()
-									)
-								),
-							new Action(ret => _isBehaviorDone = true)
-						)
-					),
+        #region Overrides of CustomForcedBehavior
 
-					// if we don't have vehicle buff, use Orb of Ascension
-					new Decorator(ret => !Me.HasAura("Mental Training"),
-						new Sequence( 
-							new Action( delegate {
-								QBCLog.Info("Using Orb of Ascension");
-								WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
-								if (orb == null)
-									{ QBCLog.Fatal("Quest item \"Orb of Ascension\" not in inventory."); }
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
 
-								orb.Use(true);
-								return RunStatus.Success;
-								}),
-							new WaitContinue( 1, ret => Me.HasAura("Mental Training"), new ActionAlwaysSucceed())
-							)
-						),
+                    // check if we have finished 10 questions (marked complete)
+                    new Decorator(ret => Me.IsQuestComplete(QuestId),
+                        new PrioritySelector(
+                            new Decorator(ret => Me.HasAura("Mental Training"),
+                                new Sequence(
+                                    new Action(ret => QBCLog.Info("Mental Training complete - exiting Orb")),
+                                    new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")")),
+                                    CreateWaitForLagDuration()
+                                    )
+                                ),
+                            new Action(ret => _isBehaviorDone = true)
+                        )
+                    ),
 
-					// if we have YES aura 74008, then click yes
-					new Decorator(ret => HasAura(Me, 74008),
-						new Sequence(
-							new Action(ret => QBCLog.Info("Answering YES")),
-							new WaitContinue( TimeSpan.FromMilliseconds(500), ret => false, new ActionAlwaysSucceed()),
-							new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")")),
-							new WaitContinue( 1, ret => !HasAura(Me, 74008), new ActionAlwaysSucceed())
-							)
-						),
+                    // if we don't have vehicle buff, use Orb of Ascension
+                    new Decorator(ret => !Me.HasAura("Mental Training"),
+                        new Sequence(
+                            new Action(delegate
+                            {
+                                QBCLog.Info("Using Orb of Ascension");
+                                WoWItem orb = ObjectManager.GetObjectsOfType<WoWItem>().Where(u => u.Entry == 52828).FirstOrDefault();
+                                if (orb == null)
+                                { QBCLog.Fatal("Quest item \"Orb of Ascension\" not in inventory."); }
 
-					// if we have NO aura 74009, then click no
-					new Decorator(ret => HasAura(Me, 74009),
-						new Sequence(
-							new Action(ret => QBCLog.Info("Answering NO")),
-							new WaitContinue(TimeSpan.FromMilliseconds(500), ret => false, new ActionAlwaysSucceed()),
-							new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")")),
-							new WaitContinue(1, ret => !HasAura(Me, 74009), new ActionAlwaysSucceed())
-							)
-						),
+                                orb.Use(true);
+                                return RunStatus.Success;
+                            }),
+                            new WaitContinue(1, ret => Me.HasAura("Mental Training"), new ActionAlwaysSucceed())
+                            )
+                        ),
 
-					new Action(delegate
-					{
-						return RunStatus.Success;
-					})
-				)
-			);
-		}
+                    // if we have YES aura 74008, then click yes
+                    new Decorator(ret => HasAura(Me, 74008),
+                        new Sequence(
+                            new Action(ret => QBCLog.Info("Answering YES")),
+                            new WaitContinue(TimeSpan.FromMilliseconds(500), ret => false, new ActionAlwaysSucceed()),
+                            new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")")),
+                            new WaitContinue(1, ret => !HasAura(Me, 74008), new ActionAlwaysSucceed())
+                            )
+                        ),
+
+                    // if we have NO aura 74009, then click no
+                    new Decorator(ret => HasAura(Me, 74009),
+                        new Sequence(
+                            new Action(ret => QBCLog.Info("Answering NO")),
+                            new WaitContinue(TimeSpan.FromMilliseconds(500), ret => false, new ActionAlwaysSucceed()),
+                            new Action(ret => Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")")),
+                            new WaitContinue(1, ret => !HasAura(Me, 74009), new ActionAlwaysSucceed())
+                            )
+                        ),
+
+                    new Action(delegate
+                    {
+                        return RunStatus.Success;
+                    })
+                )
+            );
+        }
 
 
         public override void OnFinished()
@@ -180,40 +182,39 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
         }
 
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				this.UpdateGoalText(QuestId);
-			}
-		}
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
-		#endregion
+        #endregion
 
-		/// <summary>
-		/// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
-		/// </summary>
-		/// <returns></returns>
-		public static Composite CreateWaitForLagDuration()
-		{
-			return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
-		}
-
-	}
+        /// <summary>
+        /// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
+        /// </summary>
+        /// <returns></returns>
+        public static Composite CreateWaitForLagDuration()
+        {
+            return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
+        }
+    }
 }

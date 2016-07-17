@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -21,72 +22,72 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-	// NB: The HBcore's blacklist will preserve 'blacklist state' between profile calls to this behavior.
-	// The 'blacklist state' will also be preserved if Honorbuddy is stop/startedby the user.
-	// We don't want either of these to happen--we want the blacklist state to be pristine between profile
-	// calls to this behavior, or if Honorbuddy is stop/started.  Thus, we roll our own blacklist
-	// which will be disposed along with the behavior.
-	public class LocalBlacklist
-	{
-		public LocalBlacklist()
-			: this(TimeSpan.FromSeconds(30))
-		{
-		}
+    // NB: The HBcore's blacklist will preserve 'blacklist state' between profile calls to this behavior.
+    // The 'blacklist state' will also be preserved if Honorbuddy is stop/startedby the user.
+    // We don't want either of these to happen--we want the blacklist state to be pristine between profile
+    // calls to this behavior, or if Honorbuddy is stop/started.  Thus, we roll our own blacklist
+    // which will be disposed along with the behavior.
+    public class LocalBlacklist
+    {
+        public LocalBlacklist()
+            : this(TimeSpan.FromSeconds(30))
+        {
+        }
 
-		public LocalBlacklist(TimeSpan maxSweepTime)
-		{
-			_sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
-		}
+        public LocalBlacklist(TimeSpan maxSweepTime)
+        {
+            _sweepTimer = new WaitTimer(maxSweepTime) { WaitTime = maxSweepTime };
+        }
 
         private readonly Dictionary<WoWGuid, DateTime> _blackList = new Dictionary<WoWGuid, DateTime>();
-		private readonly WaitTimer _sweepTimer = null;
+        private readonly WaitTimer _sweepTimer = null;
 
 
         public void Add(WoWGuid guid, TimeSpan timeSpan)
-		{
-			RemoveExpired();
-			_blackList[guid] = DateTime.Now.Add(timeSpan);
-		}
+        {
+            RemoveExpired();
+            _blackList[guid] = DateTime.Now.Add(timeSpan);
+        }
 
 
-		public void Add(WoWObject wowObject, TimeSpan timeSpan)
-		{
-			if (wowObject != null)
-				{ Add(wowObject.Guid, timeSpan); }
-		}
+        public void Add(WoWObject wowObject, TimeSpan timeSpan)
+        {
+            if (wowObject != null)
+            { Add(wowObject.Guid, timeSpan); }
+        }
 
 
         public bool Contains(WoWGuid guid)
-		{
-			DateTime expiry;
-			if (_blackList.TryGetValue(guid, out expiry))
-				{ return (expiry > DateTime.Now); }
+        {
+            DateTime expiry;
+            if (_blackList.TryGetValue(guid, out expiry))
+            { return (expiry > DateTime.Now); }
 
-			return false;
-		}
-
-
-		public bool Contains(WoWObject wowObject)
-		{
-			return (wowObject != null) && Contains(wowObject.Guid);
-		}
+            return false;
+        }
 
 
-		public void RemoveExpired()
-		{
-			if (_sweepTimer.IsFinished)
-			{
-				DateTime now = DateTime.Now;
+        public bool Contains(WoWObject wowObject)
+        {
+            return (wowObject != null) && Contains(wowObject.Guid);
+        }
+
+
+        public void RemoveExpired()
+        {
+            if (_sweepTimer.IsFinished)
+            {
+                DateTime now = DateTime.Now;
 
                 List<WoWGuid> expiredEntries = (from key in _blackList.Keys
-												where (_blackList[key] < now)
-												select key).ToList();
+                                                where (_blackList[key] < now)
+                                                select key).ToList();
 
                 foreach (WoWGuid entry in expiredEntries)
-					{ _blackList.Remove(entry); }
+                { _blackList.Remove(entry); }
 
-				_sweepTimer.Reset();
-			}
-		}
-	}
+                _sweepTimer.Reset();
+            }
+        }
+    }
 }

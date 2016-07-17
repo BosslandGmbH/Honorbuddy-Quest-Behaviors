@@ -57,152 +57,152 @@ using Styx.TreeSharp;
 
 namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a conflict with the new Styx.Common.Helpers.WaitTimer
 {
-	[CustomBehaviorFileName(@"WaitTimer")]
-	public class WaitTimer : QuestBehaviorBase
-	{
-		public WaitTimer(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"WaitTimer")]
+    public class WaitTimer : QuestBehaviorBase
+    {
+        public WaitTimer(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Behavior-specific attributes...
-				StatusText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null)
-					?? "Wait time remaining... {TimeRemaining} of {TimeDuration}.";
-				VariantTime = GetAttributeAsNullable<int>("VariantTime", false, ConstrainAs.Milliseconds, null) ?? 0;
-				WaitTime = GetAttributeAsNullable<int>("WaitTime", true, ConstrainAs.Milliseconds, null) ?? 1000;
-			}
+                // Behavior-specific attributes...
+                StatusText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null)
+                    ?? "Wait time remaining... {TimeRemaining} of {TimeDuration}.";
+                VariantTime = GetAttributeAsNullable<int>("VariantTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", true, ConstrainAs.Milliseconds, null) ?? 1000;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		// Attributes provided by caller
-		private string StatusText { get; set; }
-		private int WaitTime { get; set; }
-		private int VariantTime { get; set; }
-
-
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
-		}
-
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			//// EXAMPLE:
-			//UsageCheck_SemanticCoherency(xElement,
-			//    (!MobIds.Any() && !FactionIds.Any()),
-			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-			//
-			//const double rangeEpsilon = 3.0;
-			//UsageCheck_SemanticCoherency(xElement,
-			//    ((RangeMax - RangeMin) < rangeEpsilon),
-			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-			//                  RangeMax, rangeEpsilon, RangeMin)); 
-		}
-
-		#region Private and Convenience variables
-		private Styx.Common.Helpers.WaitTimer _timer;
-		private string _waitTimeAsString;
-		#endregion
+        // Attributes provided by caller
+        private string StatusText { get; set; }
+        private int WaitTime { get; set; }
+        private int VariantTime { get; set; }
 
 
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+
+        #region Private and Convenience variables
+        private Styx.Common.Helpers.WaitTimer _timer;
+        private string _waitTimeAsString;
+        #endregion
 
 
-		protected override Composite CreateMainBehavior()
-		{
-			return new ActionRunCoroutine(ctx => MainCoroutine());
-		}
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-		public override void OnFinished()
-		{
-			// Defend against being called multiple times (just in case)...
-			if (!IsOnFinishedRun)
-			{
-				// QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
-				base.OnFinished();
-			}
-		}
+        protected override Composite CreateMainBehavior()
+        {
+            return new ActionRunCoroutine(ctx => MainCoroutine());
+        }
 
 
-		public override void OnStart()
-		{
-			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				int waitDuration = WaitTime + StyxWoW.Random.Next(VariantTime);
-
-				_timer = new Styx.Common.Helpers.WaitTimer(TimeSpan.FromMilliseconds(waitDuration));
-				_waitTimeAsString = Utility.PrettyTime(_timer.WaitTime);
-
-				_timer.Reset();
-
-				this.UpdateGoalText(QuestId, "Waiting for " + _waitTimeAsString);
-			}
-		}
-		#endregion
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (!IsOnFinishedRun)
+            {
+                // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+                base.OnFinished();
+            }
+        }
 
 
-		#region Main Behaviors
-		private async Task<bool> MainCoroutine()
-		{
-			// If timer is finished, we're done...
-			if ((_timer == null) || _timer.IsFinished)
-			{
-				BehaviorDone();
-				return false;
-			}
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
-			// Update the status text...
-			await Coroutine.Sleep(250);  // throttle updates
-			TreeRoot.StatusText = UtilSubstituteInMessage(StatusText);
-			return true;
-		}
-		#endregion
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                int waitDuration = WaitTime + StyxWoW.Random.Next(VariantTime);
 
+                _timer = new Styx.Common.Helpers.WaitTimer(TimeSpan.FromMilliseconds(waitDuration));
+                _waitTimeAsString = Utility.PrettyTime(_timer.WaitTime);
 
-		#region Helpers
-		private string UtilSubstituteInMessage(string message)
-		{
-			if (!string.IsNullOrEmpty(message))
-			{
-				message = message.Replace("{TimeRemaining}", Utility.PrettyTime(_timer.TimeLeft));
-				message = message.Replace("{TimeDuration}", _waitTimeAsString);
-			}
+                _timer.Reset();
 
-			return (message ?? "");
-		}
-		#endregion
+                this.UpdateGoalText(QuestId, "Waiting for " + _waitTimeAsString);
+            }
+        }
+        #endregion
 
 
+        #region Main Behaviors
+        private async Task<bool> MainCoroutine()
+        {
+            // If timer is finished, we're done...
+            if ((_timer == null) || _timer.IsFinished)
+            {
+                BehaviorDone();
+                return false;
+            }
 
-	}
+            // Update the status text...
+            await Coroutine.Sleep(250);  // throttle updates
+            TreeRoot.StatusText = UtilSubstituteInMessage(StatusText);
+            return true;
+        }
+        #endregion
+
+
+        #region Helpers
+        private string UtilSubstituteInMessage(string message)
+        {
+            if (!string.IsNullOrEmpty(message))
+            {
+                message = message.Replace("{TimeRemaining}", Utility.PrettyTime(_timer.TimeLeft));
+                message = message.Replace("{TimeDuration}", _waitTimeAsString);
+            }
+
+            return (message ?? "");
+        }
+        #endregion
+
+
+
+    }
 }

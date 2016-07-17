@@ -17,6 +17,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,105 +38,105 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
 {
-	[CustomBehaviorFileName(@"SpecificQuests\26649-Stranglethorn-DriveByPiracy")]
-	public class q26649 : CustomForcedBehavior
-	{
-		private const double WeaponAzimuthMax = 1.134464;
-		private const double WeaponAzimuthMin = -0.348367;
-		private const double CannonballMuzzleVelocity = 80;
-		private const double CannonballGravity = 19.29;
-		private const uint VentureCoOilWorkerId = 43596;
+    [CustomBehaviorFileName(@"SpecificQuests\26649-Stranglethorn-DriveByPiracy")]
+    public class q26649 : CustomForcedBehavior
+    {
+        private const double WeaponAzimuthMax = 1.134464;
+        private const double WeaponAzimuthMin = -0.348367;
+        private const double CannonballMuzzleVelocity = 80;
+        private const double CannonballGravity = 19.29;
+        private const uint VentureCoOilWorkerId = 43596;
 
-		private readonly WeaponArticulation _weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
+        private readonly WeaponArticulation _weaponArticulation = new WeaponArticulation(WeaponAzimuthMin, WeaponAzimuthMax);
 
-		private int QuestId = 26649;
-		private bool _isBehaviorDone;
-		private Composite _root;
-		public q26649(Dictionary<string, string> args) : base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
-		}
+        private int _questId = 26649;
+        private bool _isBehaviorDone;
+        private Composite _root;
+        public q26649(Dictionary<string, string> args) : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
+        }
 
 
-		public override bool IsDone
-		{
-			get { return _isBehaviorDone; }
-		}
+        public override bool IsDone
+        {
+            get { return _isBehaviorDone; }
+        }
 
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
-		private WoWUnit BestTarget
-		{
-			get
-			{
-				var myLoc = Me.Location;
-				return
-					ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
-						.Where(u => u.Entry == VentureCoOilWorkerId && u.IsAlive)
-						.OrderBy(u => u.Location.DistanceSqr(myLoc))
-						.FirstOrDefault();
-			}
-		}
+        private WoWUnit BestTarget
+        {
+            get
+            {
+                var myLoc = Me.Location;
+                return
+                    ObjectManager.GetObjectsOfTypeFast<WoWUnit>()
+                        .Where(u => u.Entry == VentureCoOilWorkerId && u.IsAlive)
+                        .OrderBy(u => u.Location.DistanceSqr(myLoc))
+                        .FirstOrDefault();
+            }
+        }
 
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Combat_Main", 0, CreateBehavior_CombatMain());
 
-				this.UpdateGoalText(QuestId);
-			}
-		}
+                this.UpdateGoalText(_questId);
+            }
+        }
 
-		protected Composite CreateBehavior_CombatMain()
-		{
-			return _root ??
-				   (_root =
-					   new Decorator(
-						   ctx => !IsDone,
-						   new PrioritySelector(CreateBehavior_CheckCompletion(), CreateBehavior_ShootPirates())));
-		}
+        protected Composite CreateBehavior_CombatMain()
+        {
+            return _root ??
+                   (_root =
+                       new Decorator(
+                           ctx => !IsDone,
+                           new PrioritySelector(CreateBehavior_CheckCompletion(), CreateBehavior_ShootPirates())));
+        }
 
-		public Composite CreateBehavior_ShootPirates()
-		{
-			var cannon = new VehicleWeapon(3, _weaponArticulation, CannonballMuzzleVelocity, CannonballGravity);
-			const int readyAuraId = 81513;
-			const int aimAuraId = 81514;
-			WoWUnit charmedUnit = null;
+        public Composite CreateBehavior_ShootPirates()
+        {
+            var cannon = new VehicleWeapon(3, _weaponArticulation, CannonballMuzzleVelocity, CannonballGravity);
+            const int readyAuraId = 81513;
+            const int aimAuraId = 81514;
+            WoWUnit charmedUnit = null;
 
-			WoWUnit selectedTarget = null;
-			return new PrioritySelector(
-				ctx => selectedTarget = BestTarget,
-				new Decorator(
-					r => selectedTarget != null,
-					new PrioritySelector(
-						ctx => charmedUnit = Me.CharmedUnit,
-						new Decorator(
-							ctx => !charmedUnit.HasAura(readyAuraId),
-							new Action(ctx => Lua.DoString("CastPetAction({0})", 1))),
-						// aim weapon and fire.
-						new Decorator(
-							ctx => cannon.WeaponAim(selectedTarget),
-							new Sequence(
-								new Action(ctx => Lua.DoString("CastPetAction({0})", 2)),
-								new WaitContinue(2, ctx => charmedUnit.HasAura(aimAuraId), new ActionAlwaysSucceed()),
-								new Action(ctx => cannon.WeaponFire()))))));
-		}
+            WoWUnit selectedTarget = null;
+            return new PrioritySelector(
+                ctx => selectedTarget = BestTarget,
+                new Decorator(
+                    r => selectedTarget != null,
+                    new PrioritySelector(
+                        ctx => charmedUnit = Me.CharmedUnit,
+                        new Decorator(
+                            ctx => !charmedUnit.HasAura(readyAuraId),
+                            new Action(ctx => Lua.DoString("CastPetAction({0})", 1))),
+                        // aim weapon and fire.
+                        new Decorator(
+                            ctx => cannon.WeaponAim(selectedTarget),
+                            new Sequence(
+                                new Action(ctx => Lua.DoString("CastPetAction({0})", 2)),
+                                new WaitContinue(2, ctx => charmedUnit.HasAura(aimAuraId), new ActionAlwaysSucceed()),
+                                new Action(ctx => cannon.WeaponFire()))))));
+        }
 
-		public Composite CreateBehavior_CheckCompletion()
-		{
-			return new Decorator(ret => !_isBehaviorDone && Me.IsQuestComplete(QuestId),
-				new Sequence(
-					new ActionSetActivity("Finished!"),
-					new Action(ctx => Lua.DoString("CastPetAction({0})", 5)),
-					new Action(ctx => _isBehaviorDone = true)));
-		}
+        public Composite CreateBehavior_CheckCompletion()
+        {
+            return new Decorator(ret => !_isBehaviorDone && Me.IsQuestComplete(_questId),
+                new Sequence(
+                    new ActionSetActivity("Finished!"),
+                    new Action(ctx => Lua.DoString("CastPetAction({0})", 5)),
+                    new Action(ctx => _isBehaviorDone = true)));
+        }
 
-		#region Cleanup
+        #region Cleanup
 
         public override void OnFinished()
         {
@@ -145,6 +146,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DriveByPiracy
             base.OnFinished();
         }
 
-		#endregion
-	}
+        #endregion
+    }
 }

@@ -176,6 +176,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -199,26 +200,26 @@ using Styx.WoWInternals;
 
 namespace Honorbuddy.Quest_Behaviors.FlyTo
 {
-	[CustomBehaviorFileName(@"FlyTo")]
-	class FlyTo : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
-		public FlyTo(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"FlyTo")]
+    internal class FlyTo : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
+        public FlyTo(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				DefaultAllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null)
-					?? 0.0;
+            try
+            {
+                DefaultAllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null)
+                    ?? 0.0;
                 DefaultArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, new ConstrainTo.Domain<double>(1.5, 30.0), new string[] { "Distance" })
-					?? 1.5;
-				DefaultDestination = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
-				DefaultDestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" })
-										 ?? ((DefaultDestination != null) ? DefaultDestination.ToString() : string.Empty);
-				IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
-				Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
+                    ?? 1.5;
+                DefaultDestination = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null);
+                DefaultDestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, new[] { "Name" })
+                                         ?? ((DefaultDestination != null) ? DefaultDestination.ToString() : string.Empty);
+                IgnoreIndoors = GetAttributeAsNullable<bool>("IgnoreIndoors", false, null, null) ?? false;
+                Land = GetAttributeAsNullable<bool>("Land", false, null, null) ?? false;
 
                 // 'Destination choices' processing...
                 PotentialDestinations =
@@ -228,207 +229,207 @@ namespace Honorbuddy.Quest_Behaviors.FlyTo
                                                     ? new WaypointType(DefaultDestination.Value, DefaultDestinationName, DefaultAllowedVariance, DefaultArrivalTolerance)
                                                     : null));
                 IsAttributeProblem |= PotentialDestinations.IsAttributeProblem;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			// For examples, see Development/TEMPLATE_QB.cs
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			// For examples, see Development/TEMPLATE_QB.cs
-		}
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            // For examples, see Development/TEMPLATE_QB.cs
+        }
 
 
-		// Attributes provided by caller
-		private double DefaultArrivalTolerance { get; set; }
-		private WoWPoint? DefaultDestination { get; set; }
-		private string DefaultDestinationName { get; set; }
-		private double DefaultAllowedVariance { get; set; }
-		private bool Land { get; set; }
-		private bool IgnoreIndoors { get; set; }
-		#endregion
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            // For examples, see Development/TEMPLATE_QB.cs
+        }
 
 
-		#region Private and Convenience variables
-		private WoWPoint? FinalDestination { get; set; }
-		private WaypointType RoughDestination { get; set; }
-		private HuntingGroundsType PotentialDestinations { get; set; }
-		#endregion
+        // Attributes provided by caller
+        private double DefaultArrivalTolerance { get; set; }
+        private WoWPoint? DefaultDestination { get; set; }
+        private string DefaultDestinationName { get; set; }
+        private double DefaultAllowedVariance { get; set; }
+        private bool Land { get; set; }
+        private bool IgnoreIndoors { get; set; }
+        #endregion
 
 
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
-
-		// Dispose provided by QuestBehaviorBase.
-
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
-
-		// OnFinished provided by QuestBehaviorBase.
-
-		public override void OnStart()
-		{
-			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				// Make certain ArrivalTolerance is coherent with Navigator.PathPrecision...
-				if (DefaultArrivalTolerance < Navigator.PathPrecision)
-				{
-					QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than PathPrecision({1:F1})."
-										 + "  Setting ArrivalTolerance to be PathPrecision to prevent navigational issues.",
-										 DefaultArrivalTolerance,
-										 Navigator.PathPrecision);
-					DefaultArrivalTolerance = Navigator.PathPrecision;
-				}
-
-				// Disable any settings that may cause us to dismount --
-				// When we mount for travel via FlyTo, we don't want to be distracted by other things.
-				// NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
-				// normal values when OnFinished() is called.
-				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
-
-				// Clear any existing POI (after we've disabled Pull/Loot behaviors)...
-				// Otherwise, FlyTo can get stuck trying to pursue the previous POI, if one was
-				// set immediately before the behavior was launched.  This is a boundary condition,
-				// and it happens frequently enough to be really annoying.
-				BotPoi.Clear();
-
-				// Pick our destination proper...
-				PotentialDestinations.WaypointVisitStrategy = HuntingGroundsType.WaypointVisitStrategyType.PickOneAtRandom;
-				RoughDestination = PotentialDestinations.CurrentWaypoint();
-
-				var actionDescription = string.Format("Flying to '{0}' ({1})", RoughDestination.Name, RoughDestination.Location);
-				this.UpdateGoalText(QuestId, actionDescription);
-				TreeRoot.StatusText = actionDescription;
-			}
-		}
-		#endregion
+        #region Private and Convenience variables
+        private WoWPoint? FinalDestination { get; set; }
+        private WaypointType RoughDestination { get; set; }
+        private HuntingGroundsType PotentialDestinations { get; set; }
+        #endregion
 
 
-		#region Main Behaviors
-		protected override Composite CreateMainBehavior()
-		{
-			return new ActionRunCoroutine(ctx => MainCoroutine());
-		}
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
+
+        // Dispose provided by QuestBehaviorBase.
+
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+
+        // OnFinished provided by QuestBehaviorBase.
+
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                // Make certain ArrivalTolerance is coherent with Navigator.PathPrecision...
+                if (DefaultArrivalTolerance < Navigator.PathPrecision)
+                {
+                    QBCLog.DeveloperInfo("ArrivalTolerance({0:F1}) is less than PathPrecision({1:F1})."
+                                         + "  Setting ArrivalTolerance to be PathPrecision to prevent navigational issues.",
+                                         DefaultArrivalTolerance,
+                                         Navigator.PathPrecision);
+                    DefaultArrivalTolerance = Navigator.PathPrecision;
+                }
+
+                // Disable any settings that may cause us to dismount --
+                // When we mount for travel via FlyTo, we don't want to be distracted by other things.
+                // NOTE: the ConfigMemento in QuestBehaviorBase restores these settings to their
+                // normal values when OnFinished() is called.
+                LevelBot.BehaviorFlags &= ~(BehaviorFlags.Loot | BehaviorFlags.Pull);
+
+                // Clear any existing POI (after we've disabled Pull/Loot behaviors)...
+                // Otherwise, FlyTo can get stuck trying to pursue the previous POI, if one was
+                // set immediately before the behavior was launched.  This is a boundary condition,
+                // and it happens frequently enough to be really annoying.
+                BotPoi.Clear();
+
+                // Pick our destination proper...
+                PotentialDestinations.WaypointVisitStrategy = HuntingGroundsType.WaypointVisitStrategyType.PickOneAtRandom;
+                RoughDestination = PotentialDestinations.CurrentWaypoint();
+
+                var actionDescription = string.Format("Flying to '{0}' ({1})", RoughDestination.Name, RoughDestination.Location);
+                this.UpdateGoalText(QuestId, actionDescription);
+                TreeRoot.StatusText = actionDescription;
+            }
+        }
+        #endregion
 
 
-		private async Task<bool> MainCoroutine()
-		{
-			var activeMover = WoWMovement.ActiveMover;
-			if (activeMover == null)
-				return false;
+        #region Main Behaviors
+        protected override Composite CreateMainBehavior()
+        {
+            return new ActionRunCoroutine(ctx => MainCoroutine());
+        }
 
-			var immediateDestination = FindImmediateDestination();
 
-			// If we've no way to reach destination, inform user and quit...
+        private async Task<bool> MainCoroutine()
+        {
+            var activeMover = WoWMovement.ActiveMover;
+            if (activeMover == null)
+                return false;
+
+            var immediateDestination = FindImmediateDestination();
+
+            // If we've no way to reach destination, inform user and quit...
             if (!Flightor.CanFly && !Navigator.CanNavigateWithin(Me.Location, immediateDestination, (float)DefaultArrivalTolerance))
-			{
-				QBCLog.Fatal("Toon doesn't have flying capability in this area, and there is no ground path to the destination."
-							 + " Please learn the flying skill appropriate for this area.");
-				BehaviorDone();
-				return false;
-			}
+            {
+                QBCLog.Fatal("Toon doesn't have flying capability in this area, and there is no ground path to the destination."
+                             + " Please learn the flying skill appropriate for this area.");
+                BehaviorDone();
+                return false;
+            }
 
-			// Arrived at destination?
-			if (AtLocation(activeMover.Location, immediateDestination))
-			{
-				var completionMessage = string.Format("Arrived at destination '{0}'", RoughDestination.Name);
+            // Arrived at destination?
+            if (AtLocation(activeMover.Location, immediateDestination))
+            {
+                var completionMessage = string.Format("Arrived at destination '{0}'", RoughDestination.Name);
 
-				// Land if we need to...
-				// NB: The act of landing may cause us to exceed the ArrivalTolerance specified.
-				if (Land && Me.Mounted)
-				{
-					await UtilityCoroutine.LandAndDismount(string.Format("Landing at destination '{0}'", RoughDestination.Name));
-					BehaviorDone(completionMessage);
-					return true;
-				}
+                // Land if we need to...
+                // NB: The act of landing may cause us to exceed the ArrivalTolerance specified.
+                if (Land && Me.Mounted)
+                {
+                    await UtilityCoroutine.LandAndDismount(string.Format("Landing at destination '{0}'", RoughDestination.Name));
+                    BehaviorDone(completionMessage);
+                    return true;
+                }
 
-				// Done...
-				BehaviorDone(completionMessage);
-				return false;
-			}
+                // Done...
+                BehaviorDone(completionMessage);
+                return false;
+            }
 
-			// Do not run FlyTo when there is a PoI set...
-			if (BotPoi.Current.Type != PoiType.None)
-			{
-				await Coroutine.Sleep(TimeSpan.FromSeconds(10));
-				QBCLog.DeveloperInfo("FlyTo temporarily suspended due to {0}", BotPoi.Current);
-				return true;
-			}
+            // Do not run FlyTo when there is a PoI set...
+            if (BotPoi.Current.Type != PoiType.None)
+            {
+                await Coroutine.Sleep(TimeSpan.FromSeconds(10));
+                QBCLog.DeveloperInfo("FlyTo temporarily suspended due to {0}", BotPoi.Current);
+                return true;
+            }
 
-			// Move closer to destination...
-			Flightor.MoveTo(immediateDestination, !IgnoreIndoors);
-			return true;
-		}
-		#endregion
+            // Move closer to destination...
+            Flightor.MoveTo(immediateDestination, !IgnoreIndoors);
+            return true;
+        }
+        #endregion
 
 
-		#region Helpers
-		// NB: We cannot calculate our final (variant) destination early on, because we may be traveling
-		// large distances.  FanOutRandom() needs to be able to 'see' terrain features, WMOs, etc
-		// that need to be considered when calculating the final (variant) point.
-		// WMOs in particular need to be 'visible' for FanOutRandom() to take them into proper consideration.
-		// This means we must be reasonably near the destination before the FanOutRandom() is called.
-		private WoWPoint FindImmediateDestination()
-		{
-			// If we have our final destination, use it...
-			if (FinalDestination.HasValue)
-			{
-				return FinalDestination.Value;
-			}
+        #region Helpers
+        // NB: We cannot calculate our final (variant) destination early on, because we may be traveling
+        // large distances.  FanOutRandom() needs to be able to 'see' terrain features, WMOs, etc
+        // that need to be considered when calculating the final (variant) point.
+        // WMOs in particular need to be 'visible' for FanOutRandom() to take them into proper consideration.
+        // This means we must be reasonably near the destination before the FanOutRandom() is called.
+        private WoWPoint FindImmediateDestination()
+        {
+            // If we have our final destination, use it...
+            if (FinalDestination.HasValue)
+            {
+                return FinalDestination.Value;
+            }
 
-			var distanceToPickVariantDestinationSqr = Math.Max(50.0, RoughDestination.ArrivalTolerance + 10.0);
-			distanceToPickVariantDestinationSqr *= distanceToPickVariantDestinationSqr;
+            var distanceToPickVariantDestinationSqr = Math.Max(50.0, RoughDestination.ArrivalTolerance + 10.0);
+            distanceToPickVariantDestinationSqr *= distanceToPickVariantDestinationSqr;
 
-			// If we're close enough to 'see' final destination...
-			// Pick the final destination, and use it...
-			if (WoWMovement.ActiveMover.Location.DistanceSqr(RoughDestination.Location) <= distanceToPickVariantDestinationSqr)
-			{
-				FinalDestination = RoughDestination.Location.FanOutRandom(RoughDestination.AllowedVariance);
-				return FinalDestination.Value;
-			}
+            // If we're close enough to 'see' final destination...
+            // Pick the final destination, and use it...
+            if (WoWMovement.ActiveMover.Location.DistanceSqr(RoughDestination.Location) <= distanceToPickVariantDestinationSqr)
+            {
+                FinalDestination = RoughDestination.Location.FanOutRandom(RoughDestination.AllowedVariance);
+                return FinalDestination.Value;
+            }
 
-			// Otherwise, maintain our pursuit of rough destination...
-			return RoughDestination.Location;
-		}
+            // Otherwise, maintain our pursuit of rough destination...
+            return RoughDestination.Location;
+        }
 
-		/// <summary>Determines if <paramref name="myPos"/> is at <paramref name="otherPos"/></summary>
-		private bool AtLocation(WoWPoint myPos, WoWPoint otherPos)
-		{
-			// We are using cylinder distance comparison because often times we want faily high precision 
-			// but need an increased tolerance in the z coord due to 'otherPos' sometimes being below terrain.
-			if (myPos.Distance2DSqr(otherPos) > RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance)
-				return false;
+        /// <summary>Determines if <paramref name="myPos"/> is at <paramref name="otherPos"/></summary>
+        private bool AtLocation(WoWPoint myPos, WoWPoint otherPos)
+        {
+            // We are using cylinder distance comparison because often times we want faily high precision 
+            // but need an increased tolerance in the z coord due to 'otherPos' sometimes being below terrain.
+            if (myPos.Distance2DSqr(otherPos) > RoughDestination.ArrivalTolerance * RoughDestination.ArrivalTolerance)
+                return false;
 
-			var zTolerance = Math.Max(4.5f, RoughDestination.ArrivalTolerance);
+            var zTolerance = Math.Max(4.5f, RoughDestination.ArrivalTolerance);
             return Math.Abs(otherPos.Z - myPos.Z) < zTolerance;
-		}
-		#endregion
-	}
+        }
+        #endregion
+    }
 }

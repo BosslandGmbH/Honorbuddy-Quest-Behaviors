@@ -111,33 +111,33 @@ namespace Honorbuddy.Quest_Behaviors
             try
             {
                 // Parameters dealing with 'starting' the behavior...
-				var code  = GetAttributeAs<string>("Code", false, null, null);
-				if (code == null)
-				{
-					var cData = Element.DescendantNodes().OfType<XCData>().FirstOrDefault();
-					if (cData != null)
-						code = cData.Value;
-				}
+                var code = GetAttributeAs<string>("Code", false, null, null);
+                if (code == null)
+                {
+                    var cData = Element.DescendantNodes().OfType<XCData>().FirstOrDefault();
+                    if (cData != null)
+                        code = cData.Value;
+                }
 
-				Type = GetAttributeAsNullable<CodeType>("Type", false, null, null) ?? CodeType.Statement;
+                Type = GetAttributeAsNullable<CodeType>("Type", false, null, null) ?? CodeType.Statement;
 
-				if (!string.IsNullOrEmpty(code))
-	            {
-		            if (Type == CodeType.Definition)
-		            {
-			            Code = code;
-		            }
-		            else
-		            {
-			            code = code.Trim();
-						if (code.Last() != ';')
-							code += ";";
-						CoroutineProducer = new DelayCompiledExpression<Func<Task>>("async () =>{" + code + "}");
-		            }
-	            }
+                if (!string.IsNullOrEmpty(code))
+                {
+                    if (Type == CodeType.Definition)
+                    {
+                        Code = code;
+                    }
+                    else
+                    {
+                        code = code.Trim();
+                        if (code.Last() != ';')
+                            code += ";";
+                        CoroutineProducer = new DelayCompiledExpression<Func<Task>>("async () =>{" + code + "}");
+                    }
+                }
 
 
-	            QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
                 QuestRequirementComplete =
                     GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ??
                     QuestCompleteRequirement.NotComplete;
@@ -161,12 +161,12 @@ namespace Honorbuddy.Quest_Behaviors
                 IsAttributeProblem = true;
             }
         }
-		// Variables for Attributes provided by caller
-		[CompileString]
-		public string Code { get; private set; }
+        // Variables for Attributes provided by caller
+        [CompileString]
+        public string Code { get; private set; }
 
-		[CompileExpression]
-		public DelayCompiledExpression<Func<Task>> CoroutineProducer { get; private set; }
+        [CompileExpression]
+        public DelayCompiledExpression<Func<Task>> CoroutineProducer { get; private set; }
 
         private CodeType Type { get; set; }
         private int QuestId { get; set; }
@@ -194,7 +194,6 @@ namespace Honorbuddy.Quest_Behaviors
 
         public override void OnStart()
         {
-
             if (Type == CodeType.Definition)
             {
                 _isBehaviorDone = true;
@@ -225,7 +224,7 @@ namespace Honorbuddy.Quest_Behaviors
             if (IsDone || Type == CodeType.Definition)
                 return false;
 
-			await CoroutineProducer.CallableExpression();
+            await CoroutineProducer.CallableExpression();
             _isBehaviorDone = true;
             return true;
         }

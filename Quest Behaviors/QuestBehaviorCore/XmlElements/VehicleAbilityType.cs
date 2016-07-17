@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Linq;
 using System.Xml.Linq;
@@ -22,7 +23,6 @@ using Styx.Helpers;
 
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
-
     public class VehicleAbilityType : QuestBehaviorXmlBase
     {
         #region Constructor and Argument Processing
@@ -31,15 +31,15 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         {
             try
             {
-				ButtonIndex = GetAttributeAsNullable<int>("ButtonIndex", true, new ConstrainTo.Domain<int>(1, 12), null) ?? 1;
-				TargetingType = GetAttributeAsNullable<AbilityTargetingType>("TargetingType", false, null, null) ?? AbilityTargetingType.Vehicle;
-				IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
+                ButtonIndex = GetAttributeAsNullable<int>("ButtonIndex", true, new ConstrainTo.Domain<int>(1, 12), null) ?? 1;
+                TargetingType = GetAttributeAsNullable<AbilityTargetingType>("TargetingType", false, null, null) ?? AbilityTargetingType.Vehicle;
+                IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
 
                 // We test compile the "UseWhen" expression to look for problems.
                 // Doing this in the constructor allows us to catch 'blind change'problems when ProfileDebuggingMode is turned on.
                 // If there is a problem, an exception will be thrown (and handled here).
                 var useWhenExpression = GetAttributeAs<string>("UseWhen", false, ConstrainAs.StringNonEmpty, null) ?? "true";
-				UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
+                UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
 
                 HandleAttributeProblem();
             }
@@ -51,61 +51,61 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
         }
 
-	    public VehicleAbilityType(
-		    int abilityIndex,
-			AbilityTargetingType targetingType = AbilityTargetingType.Vehicle,
-			bool ignoreLosToTarget = false,
-			string useWhenExpression = "true")
-		{
-			ButtonIndex = abilityIndex;
-			TargetingType = targetingType;
-			IgnoreLoSToTarget = ignoreLosToTarget;
-			useWhenExpression = string.IsNullOrEmpty(useWhenExpression) ? "true" : useWhenExpression;
-			UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
-		}
+        public VehicleAbilityType(
+            int abilityIndex,
+            AbilityTargetingType targetingType = AbilityTargetingType.Vehicle,
+            bool ignoreLosToTarget = false,
+            string useWhenExpression = "true")
+        {
+            ButtonIndex = abilityIndex;
+            TargetingType = targetingType;
+            IgnoreLoSToTarget = ignoreLosToTarget;
+            useWhenExpression = string.IsNullOrEmpty(useWhenExpression) ? "true" : useWhenExpression;
+            UseWhen = DelayCompiledExpression.Condition(useWhenExpression);
+        }
 
 
         #endregion
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "VehicleAbility";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "VehicleAbility";
 
-			return new XElement(elementName,
-							 new XAttribute("ButtonIndex", ButtonIndex),
-							 new XAttribute("TargetingType", TargetingType),
-							 new XAttribute("UseWhen", UseWhen.ExpressionString));
-		}
+            return new XElement(elementName,
+                             new XAttribute("ButtonIndex", ButtonIndex),
+                             new XAttribute("TargetingType", TargetingType),
+                             new XAttribute("UseWhen", UseWhen.ExpressionString));
+        }
 
-		public int ButtonIndex { get; private set; }
-		public AbilityTargetingType TargetingType { get; set; }
-		public bool IgnoreLoSToTarget { get; private set; }
-		
-		[CompileExpression]
-		public DelayCompiledExpression<Func<bool>> UseWhen { get; private set; }
+        public int ButtonIndex { get; private set; }
+        public AbilityTargetingType TargetingType { get; set; }
+        public bool IgnoreLoSToTarget { get; private set; }
 
-	    private PerFrameCachedValue<SpellActionButton> _ability;
-	    public SpellActionButton Ability
-	    {
-			get
-			{
-				return _ability ?? (_ability = new PerFrameCachedValue<SpellActionButton>(
-					() =>
-					{
-						if (!Query.IsVehicleActionBarShowing())
-							return null;
-						return ActionBar.Active.Buttons.FirstOrDefault(b => b.Index == ButtonIndex) as SpellActionButton;
-					}));
-			}
-	    }
+        [CompileExpression]
+        public DelayCompiledExpression<Func<bool>> UseWhen { get; private set; }
 
-		#endregion
+        private PerFrameCachedValue<SpellActionButton> _ability;
+        public SpellActionButton Ability
+        {
+            get
+            {
+                return _ability ?? (_ability = new PerFrameCachedValue<SpellActionButton>(
+                    () =>
+                    {
+                        if (!Query.IsVehicleActionBarShowing())
+                            return null;
+                        return ActionBar.Active.Buttons.FirstOrDefault(b => b.Index == ButtonIndex) as SpellActionButton;
+                    }));
+            }
+        }
+
+        #endregion
     }
 }

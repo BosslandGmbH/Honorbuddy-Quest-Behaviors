@@ -30,6 +30,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -54,19 +55,19 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 {
-	[CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BearsUpThere")]
-	public class BearsUpThere : QuestBehaviorBase
-	{
-		public BearsUpThere(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BearsUpThere")]
+    public class BearsUpThere : QuestBehaviorBase
+    {
+        public BearsUpThere(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
+            try
+            {
                 // Make certain quest is one of the ones we know how to do...
-			    if (QuestId == QuestId_BearsUpThere)
-			        _mobId_bearTargets = MobId_Bear;
+                if (QuestId == QuestId_BearsUpThere)
+                    _mobId_bearTargets = MobId_Bear;
                 else if (QuestId == QuestId_ThoseBearsUpThere)
                     _mobId_bearTargets = MobId_DailyBear;
                 else
@@ -75,189 +76,188 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
                         QuestId_BearsUpThere, QuestId_ThoseBearsUpThere, QuestId);
                     IsAttributeProblem = true;
                 }
-				TerminationChecksQuestProgress = false;
-			}
+                TerminationChecksQuestProgress = false;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		public bool RunningBehavior = true;
-
-		// Private variables for internal state
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-	    private readonly int _mobId_bearTargets;
-		private Composite _root;
+        // Attributes provided by caller
+        public bool RunningBehavior = true;
 
-		// Private properties
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        // Private variables for internal state
 
 
-		//  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest
-		const int LEVEL_BOTTOM = 1;
-		const int LEVEL_TOP = 5;
-		const int LEVEL_UNKNOWN = 0;
-		int _lvlCurrent = LEVEL_UNKNOWN;
+        private readonly int _mobId_bearTargets;
+        private Composite _root;
 
-		const int AURA_CLIMBING_TREE = 74920;
-		const int AURA_IN_TREE = 46598;
-		const int CLIMB_UP = 74922;
-		const int CLIMB_DOWN_AT_TOP = 75070;
-		const int CLIMB_DOWN = 74974;
-		const int CHUCK_A_BEAR = 75139;
+        // Private properties
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
+
+
+        //  LEVEL: -1=unknown, 0=tree top, 1=highest, 2=middle, 3=lowest
+        private const int LEVEL_BOTTOM = 1;
+        private const int LEVEL_TOP = 5;
+        private const int LEVEL_UNKNOWN = 0;
+        private int _lvlCurrent = LEVEL_UNKNOWN;
+
+        private const int AURA_CLIMBING_TREE = 74920;
+        private const int AURA_IN_TREE = 46598;
+        private const int CLIMB_UP = 74922;
+        private const int CLIMB_DOWN_AT_TOP = 75070;
+        private const int CLIMB_DOWN = 74974;
+        private const int CHUCK_A_BEAR = 75139;
 
         private const int MobId_Bear = 40240;                   // Bear mobs for main-line quest
         private const int MobId_DailyBear = 52688;              // Bear mobs for daily quest
         private const int QuestId_BearsUpThere = 25462;         // Main-line quest
         private const int QuestId_ThoseBearsUpThere = 29161;    // Daily
 
-		/*
+        /*
 			RIGHT SIDE:  isontransport:True, rotation:1.356836,  degrees:77.741
 			LEFT SIDE:  isontransport:True, rotation:1.612091,  degrees:92.366
 			ENTRY:  isontransport:True, rotation:0.1570796,  degrees:9
 		 */
-		// these are values recorded from tree @ 14:33
-		//  ..  when taking the right ladder (while facing tree)
-		//  ..  angle while on tree level other than top is always 9
-		//  ..  if you are on correct tree and correct side
+        // these are values recorded from tree @ 14:33
+        //  ..  when taking the right ladder (while facing tree)
+        //  ..  angle while on tree level other than top is always 9
+        //  ..  if you are on correct tree and correct side
 
-		const double AIM_ANGLE = -0.97389394044876;
-		const double TRAMP_RIGHT_SIDE = 77.741;
-		const double TRAMP_LEFT_SIDE = 92.366;
+        private const double AIM_ANGLE = -0.97389394044876;
+        private const double TRAMP_RIGHT_SIDE = 77.741;
+        private const double TRAMP_LEFT_SIDE = 92.366;
 
 
-		private async Task WaitForCurrentSpell()
-		{
+        private async Task WaitForCurrentSpell()
+        {
             await Coroutine.Wait(2000, () => !SpellManager.GlobalCooldown);
             await Coroutine.Wait(12000, () => !StyxWoW.Me.IsCasting);
-		}
+        }
 
 
-		private async Task ClimbUp()
-		{
-			// bool canCast = CanCastNow(CLIMB_UP);
-			WoWPoint lastPos = Me.Location;
-			// Lua.DoString("CastSpellByID({0})", CLIMB_UP);
-			Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
-			await WaitForCurrentSpell();
-			await Coroutine.Sleep(2000);
+        private async Task ClimbUp()
+        {
+            // bool canCast = CanCastNow(CLIMB_UP);
+            WoWPoint lastPos = Me.Location;
+            // Lua.DoString("CastSpellByID({0})", CLIMB_UP);
+            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton1\")");
+            await WaitForCurrentSpell();
+            await Coroutine.Sleep(2000);
 
-			if (Me.Location.Distance(lastPos) != 0)
-			{
-				QBCLog.DeveloperInfo("(Climb Up) moved +{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
-				if (!IsClimbingTheTree)
-					_lvlCurrent = LEVEL_TOP;
-				else
-					_lvlCurrent++;
-			}
-			else
-				QBCLog.DeveloperInfo("(Climb Up) no movement UP occurred");
+            if (Me.Location.Distance(lastPos) != 0)
+            {
+                QBCLog.DeveloperInfo("(Climb Up) moved +{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
+                if (!IsClimbingTheTree)
+                    _lvlCurrent = LEVEL_TOP;
+                else
+                    _lvlCurrent++;
+            }
+            else
+                QBCLog.DeveloperInfo("(Climb Up) no movement UP occurred");
+        }
 
-		}
+        private async Task ClimbDown()
+        {
+            int spellId;
 
-		private async Task ClimbDown()
-		{
-			int spellId;
+            // spell id to move down is different if you are at top of tree
+            if (IsClimbingTheTree)
+                spellId = CLIMB_DOWN;
+            else
+                spellId = CLIMB_DOWN_AT_TOP;
 
-			// spell id to move down is different if you are at top of tree
-			if (IsClimbingTheTree)
-				spellId = CLIMB_DOWN;
-			else
-				spellId = CLIMB_DOWN_AT_TOP;
+            WoWPoint lastPos = Me.Location;
+            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
+            await WaitForCurrentSpell();
 
-			WoWPoint lastPos = Me.Location;
-			Lua.DoString("RunMacroText(\"/click OverrideActionBarButton2\")");
-			await WaitForCurrentSpell();
+            // wait longer if at top due to UI skin change
+            await Coroutine.Sleep(spellId == CLIMB_DOWN_AT_TOP ? 3000 : 2000);
 
-			// wait longer if at top due to UI skin change
-			await Coroutine.Sleep(spellId == CLIMB_DOWN_AT_TOP ? 3000 : 2000);
+            if (Me.Location.Distance(lastPos) != 0)
+            {
+                _lvlCurrent--;
+                QBCLog.DeveloperInfo("(Climb Down) moved -{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
+            }
+            else
+                QBCLog.DeveloperInfo("(Climb Down) no movement DOWN occurred");
+        }
 
-			if (Me.Location.Distance(lastPos) != 0)
-			{
-				_lvlCurrent--;
-				QBCLog.DeveloperInfo("(Climb Down) moved -{0:F1} yds, pos: {1}", Me.Location.Distance(lastPos), Me.Location);
-			}
-			else
-				QBCLog.DeveloperInfo("(Climb Down) no movement DOWN occurred");
-		}
+        private double GetAimAngle()
+        {
+            return Lua.GetReturnVal<double>("return VehicleAimGetAngle()", 0);
+        }
 
-		private double GetAimAngle()
-		{
-			return Lua.GetReturnVal<double>("return VehicleAimGetAngle()", 0);
-		}
+        private double GetAimAdjustment()
+        {
+            return GetAimAngle() - AIM_ANGLE;
+        }
 
-		private double GetAimAdjustment()
-		{
-			return GetAimAngle() - AIM_ANGLE;
-		}
+        private bool NeedAimAngle { get { return Math.Abs(GetAimAdjustment()) > 0.0001; } }
 
-	    private bool NeedAimAngle { get { return Math.Abs(GetAimAdjustment()) > 0.0001; } }
+        private async Task AimAngle()
+        {
+            double angleAdjust = GetAimAdjustment();
+            QBCLog.DeveloperInfo("(Aim Angle) adjusting current angle {0} by {1} to {2}", GetAimAngle(), angleAdjust, AIM_ANGLE);
 
-	    private async Task AimAngle()
-		{
-			double angleAdjust = GetAimAdjustment();
-			QBCLog.DeveloperInfo("(Aim Angle) adjusting current angle {0} by {1} to {2}", GetAimAngle(), angleAdjust, AIM_ANGLE);
+            Lua.DoString("VehicleAimDecrement({0})", angleAdjust);
 
-			Lua.DoString("VehicleAimDecrement({0})", angleAdjust);
+            await CommonCoroutines.SleepForLagDuration();
+        }
 
-			await CommonCoroutines.SleepForLagDuration();
-		}
+        private bool NeedAimDirection
+        {
+            get
+            {
+                double normRotation = TRAMP_LEFT_SIDE > TRAMP_RIGHT_SIDE ? 0 : 360;
+                if (Me.Transport.RotationDegrees < TRAMP_RIGHT_SIDE)
+                    return true;
 
-	    private bool NeedAimDirection
-	    {
-	        get
-	        {
-	            double normRotation = TRAMP_LEFT_SIDE > TRAMP_RIGHT_SIDE ? 0 : 360;
-	            if (Me.Transport.RotationDegrees < TRAMP_RIGHT_SIDE)
-	                return true;
+                if ((Me.Transport.RotationDegrees + normRotation) > (TRAMP_LEFT_SIDE + normRotation))
+                    return true;
 
-	            if ((Me.Transport.RotationDegrees + normRotation) > (TRAMP_LEFT_SIDE + normRotation))
-	                return true;
+                return false;
+            }
+        }
 
-	            return false;
-	        }
-	    }
+        private async Task<bool> AimDirection()
+        {
+            const double normRotation = TRAMP_LEFT_SIDE > TRAMP_RIGHT_SIDE ? 0 : 360;
+            QBCLog.DeveloperInfo("(AimRotation) Trampoline Boundary - Left Edge: {0}  Right Edge: {1}", TRAMP_LEFT_SIDE, TRAMP_RIGHT_SIDE);
 
-	    private async Task<bool> AimDirection()
-		{
-			const double normRotation = TRAMP_LEFT_SIDE > TRAMP_RIGHT_SIDE ? 0 : 360;
-			QBCLog.DeveloperInfo("(AimRotation) Trampoline Boundary - Left Edge: {0}  Right Edge: {1}", TRAMP_LEFT_SIDE, TRAMP_RIGHT_SIDE);
+            WoWMovement.MovementDirection whichWay;
+            string dirCmd;
 
-			WoWMovement.MovementDirection whichWay;
-			string dirCmd;
+            // left/right - get current direction and turn until on trampoline
+            if (Me.Transport.RotationDegrees < TRAMP_RIGHT_SIDE)
+            {
+                whichWay = WoWMovement.MovementDirection.TurnLeft;
+                dirCmd = "TurnLeft";
+            }
+            else if ((Me.Transport.RotationDegrees + normRotation) > (TRAMP_LEFT_SIDE + normRotation))
+            {
+                whichWay = WoWMovement.MovementDirection.TurnRight;
+                dirCmd = "TurnRight";
+            }
+            else // if (whichWay == WoWMovement.MovementDirection.None)
+            {
+                QBCLog.DeveloperInfo("(AimRotation) Done, Ending Rotation: {0}", Me.Transport.RotationDegrees);
+                return false;
+            }
 
-			// left/right - get current direction and turn until on trampoline
-			if (Me.Transport.RotationDegrees < TRAMP_RIGHT_SIDE)
-			{
-				whichWay = WoWMovement.MovementDirection.TurnLeft;
-				dirCmd = "TurnLeft";
-			}
-			else if ((Me.Transport.RotationDegrees + normRotation) > (TRAMP_LEFT_SIDE + normRotation))
-			{
-				whichWay = WoWMovement.MovementDirection.TurnRight;
-				dirCmd = "TurnRight";
-			}
-			else // if (whichWay == WoWMovement.MovementDirection.None)
-			{
-				QBCLog.DeveloperInfo("(AimRotation) Done, Ending Rotation: {0}", Me.Transport.RotationDegrees);
-				return false;
-			}
-
-			QBCLog.DeveloperInfo("(AimRotation) Current Rotation: {0} - {1}", Me.Transport.RotationDegrees, whichWay.ToString().ToUpper());
+            QBCLog.DeveloperInfo("(AimRotation) Current Rotation: {0} - {1}", Me.Transport.RotationDegrees, whichWay.ToString().ToUpper());
 #if WOWMOVEMENT_TIMED_TURNS_STOPFAILING
 			WoWMovement.Move(whichWay, TimeSpan.FromMilliseconds( 10));
 			WoWMovement.MoveStop(whichWay);
@@ -273,249 +273,248 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
 			   await CommonCoroutines.SleepForLagDuration();
 #else
             // doing LUA calls these because WoWMovement API doesn't stop turning quickly enough
-			Lua.DoString(dirCmd + "Start()");
-		    await Coroutine.Sleep(10);
-			Lua.DoString(dirCmd + "Stop()");
+            Lua.DoString(dirCmd + "Start()");
+            await Coroutine.Sleep(10);
+            Lua.DoString(dirCmd + "Stop()");
 #endif
-		    return true;
-		}
+            return true;
+        }
 
-		private async Task ChuckBear()
-		{
-			QBCLog.DeveloperInfo("(Chuck-A-Bear) threw bear at trampoline");
-			// bool canCast = CanCastNow(CHUCK_A_BEAR);
-			// Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
-			Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")");
-			await WaitForCurrentSpell();
-			await Coroutine.Sleep(4000);
-		}
+        private async Task ChuckBear()
+        {
+            QBCLog.DeveloperInfo("(Chuck-A-Bear) threw bear at trampoline");
+            // bool canCast = CanCastNow(CHUCK_A_BEAR);
+            // Lua.DoString("CastSpellByID({0})", CHUCK_A_BEAR);
+            Lua.DoString("RunMacroText(\"/click OverrideActionBarButton4\")");
+            await WaitForCurrentSpell();
+            await Coroutine.Sleep(4000);
+        }
 
-	    private bool IsBearCubInBags
-	    {
-	        get
-	        {
+        private bool IsBearCubInBags
+        {
+            get
+            {
 #if USE_OM
 			    WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().Find(unit => unit.Entry == 54439);
 #else
-	            WoWItem item = Me.BagItems.Find(unit => unit.Entry == 54439);
+                WoWItem item = Me.BagItems.Find(unit => unit.Entry == 54439);
 #endif
-	            return item != null;
-	        }
-	    }
+                return item != null;
+            }
+        }
 
-	    private async Task<bool> LootClosestBear()
-		{
-			List<WoWUnit> bears =
-				   (from o in ObjectManager.ObjectList
-					where o is WoWUnit
-					let unit = o.ToUnit()
-					where
+        private async Task<bool> LootClosestBear()
+        {
+            List<WoWUnit> bears =
+                   (from o in ObjectManager.ObjectList
+                    where o is WoWUnit
+                    let unit = o.ToUnit()
+                    where
                         unit.Entry == _mobId_bearTargets
-						&& (15 < unit.WorldLocation.Distance(Me.Transport.WorldLocation))
-					orderby
-						unit.WorldLocation.Distance(Me.Transport.WorldLocation) ascending
-					select unit
-						).ToList();
+                        && (15 < unit.WorldLocation.Distance(Me.Transport.WorldLocation))
+                    orderby
+                        unit.WorldLocation.Distance(Me.Transport.WorldLocation) ascending
+                    select unit
+                        ).ToList();
 
-			foreach (WoWUnit bear in bears)
-			{
-				await CommonCoroutines.SleepForLagDuration();
-				bear.Target();  // target so we can use LUA func
-				bool bChkLua = Lua.GetReturnVal<bool>("return CheckInteractDistance(\"target\", 1)", 0);
+            foreach (WoWUnit bear in bears)
+            {
+                await CommonCoroutines.SleepForLagDuration();
+                bear.Target();  // target so we can use LUA func
+                bool bChkLua = Lua.GetReturnVal<bool>("return CheckInteractDistance(\"target\", 1)", 0);
 
-				bool bChkInt = bear.WithinInteractRange;
-				if (!bChkLua && !bChkInt)
-					continue;
+                bool bChkInt = bear.WithinInteractRange;
+                if (!bChkLua && !bChkInt)
+                    continue;
 
-				bear.Interact();
-				await WaitForCurrentSpell();
-				await CommonCoroutines.SleepForLagDuration();
+                bear.Interact();
+                await WaitForCurrentSpell();
+                await CommonCoroutines.SleepForLagDuration();
 
-				if (IsBearCubInBags)
-				{
-					QBCLog.Info("(Loot Bear) grabbed a bear to throw");
-					return true;
-				}
-			    await Coroutine.Yield();
-			}
+                if (IsBearCubInBags)
+                {
+                    QBCLog.Info("(Loot Bear) grabbed a bear to throw");
+                    return true;
+                }
+                await Coroutine.Yield();
+            }
 
-			QBCLog.DeveloperInfo("(Loot Bear) no bear at level {0}", _lvlCurrent);
-			return false;
-		}
+            QBCLog.DeveloperInfo("(Loot Bear) no bear at level {0}", _lvlCurrent);
+            return false;
+        }
 
-	    public bool InTree
-	    {
-	        get
-	        {
-	            RunningBehavior = Me.Transport != null;
-	            return Me.Transport != null || IsClimbingTheTree;
-	        }
-	    }
+        public bool InTree
+        {
+            get
+            {
+                RunningBehavior = Me.Transport != null;
+                return Me.Transport != null || IsClimbingTheTree;
+            }
+        }
 
         public bool IsClimbingTheTree { get { return Me.HasAura(AURA_CLIMBING_TREE); } }
 
-	    public bool DoWeHaveQuest
-	    {
-	        get
-	        {
-	            PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint) QuestId);
-	            return quest != null;
-	        }
-	    }
+        public bool DoWeHaveQuest
+        {
+            get
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+                return quest != null;
+            }
+        }
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
-		protected override Composite CreateMainBehavior()
-		{
-			return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
-		}
+        protected override Composite CreateMainBehavior()
+        {
+            return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
+        }
 
-		private async Task<bool> MainCoroutine()
-	    {
+        private async Task<bool> MainCoroutine()
+        {
+            if (Me.IsCasting || SpellManager.GlobalCooldown)
+                return true;
 
-	        if (Me.IsCasting || SpellManager.GlobalCooldown)
-	            return true;
+            // check if we left tree/vehicle
+            if (!InTree)
+            {
+                BehaviorDone();
+                return true;
+            }
 
-	        // check if we left tree/vehicle
-	        if (!InTree)
-	        {
-				BehaviorDone();
-	            return true;
-	        }
+            // is quest abandoned or complete?
+            //  ..  move down until we auto-exit vehicle
+            if (!DoWeHaveQuest || Me.IsQuestComplete(QuestId))
+            {
+                await ClimbDown();
+                return true;
+            }
 
-	        // is quest abandoned or complete?
-	        //  ..  move down until we auto-exit vehicle
-	        if (!DoWeHaveQuest || Me.IsQuestComplete(QuestId))
-	        {
-	            await ClimbDown();
-	            return true;
-	        }
+            // level unknown and already at top?  set to top then
+            if (_lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree)
+            {
+                _lvlCurrent = LEVEL_TOP;
+                return true;
+            }
 
-	        // level unknown and already at top?  set to top then
-	        if (_lvlCurrent == LEVEL_UNKNOWN && !IsClimbingTheTree)
-	        {
-	            _lvlCurrent = LEVEL_TOP;
-	            return true;
-	        }
+            // level unknown?
+            //  ..  move to top and establish known level
+            if (_lvlCurrent == LEVEL_UNKNOWN)
+            {
+                await ClimbUp();
+                return true;
+            }
 
-	        // level unknown?
-	        //  ..  move to top and establish known level
-	        if (_lvlCurrent == LEVEL_UNKNOWN)
-	        {
-	            await ClimbUp();
-	            return true;
-	        }
+            // have a bear in inventory?
+            if (IsBearCubInBags)
+            {
+                //  ..  below top?  move up
+                if (_lvlCurrent != LEVEL_TOP)
+                {
+                    await ClimbUp();
+                    return true;
+                }
+                //  ..  aim trajectory angle
+                if (NeedAimAngle)
+                {
+                    await AimAngle();
+                    return true;
+                }
+                //  ..  aim direction (left/right)
+                if (NeedAimDirection && await AimDirection())
+                    return true;
+                //  ..  throw                           
+                await ChuckBear();
+                return true;
+            }
 
-	        // have a bear in inventory?
-	        if (IsBearCubInBags)
-	        {
-	            //  ..  below top?  move up
-	            if (_lvlCurrent != LEVEL_TOP)
-	            {
-	                await ClimbUp();
-	                return true;
-	            }
-	            //  ..  aim trajectory angle
-	            if (NeedAimAngle)
-	            {
-	                await AimAngle();
-	                return true;
-	            }
-	            //  ..  aim direction (left/right)
-	            if (NeedAimDirection && await AimDirection())
-	                return true;
-	            //  ..  throw                           
-	            await ChuckBear();
-	            return true;
-	        }
+            // at top with no bear?
+            //  ..  move down
+            if (_lvlCurrent == LEVEL_TOP)
+            {
+                await ClimbDown();
+                return true;
+            }
 
-	        // at top with no bear?
-	        //  ..  move down
-	        if (_lvlCurrent == LEVEL_TOP)
-	        {
-	            await ClimbDown();
-	            return true;
-	        }
+            // lootable bears here?
+            //  ..  loot a bear
+            if (!IsBearCubInBags && await LootClosestBear())
+                return true;
 
-	        // lootable bears here?
-	        //  ..  loot a bear
-	        if (!IsBearCubInBags && await LootClosestBear())
-	            return true;
+            // can we move down without leaving vehicle?
+            if (_lvlCurrent > LEVEL_BOTTOM)
+            {
+                await ClimbDown();
+                return true;
+            }
 
-	        // can we move down without leaving vehicle?
-	        if (_lvlCurrent > LEVEL_BOTTOM)
-	        {
-	            await ClimbDown();
-	            return true;
-	        }
+            // move up
+            if (_lvlCurrent < LEVEL_TOP)
+            {
+                await ClimbUp();
+                return true;
+            }
+            return false;
+        }
 
-	        // move up
-	        if (_lvlCurrent < LEVEL_TOP)
-	        {
-	            await ClimbUp();
-	            return true;
-	        }
-	        return false;
-	    }
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
 
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
-		}
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			//// EXAMPLE:
-			//UsageCheck_SemanticCoherency(xElement,
-			//    (!MobIds.Any() && !FactionIds.Any()),
-			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-			//
-			//const double rangeEpsilon = 3.0;
-			//UsageCheck_SemanticCoherency(xElement,
-			//    ((RangeMax - RangeMin) < rangeEpsilon),
-			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-			//                  RangeMax, rangeEpsilon, RangeMin)); 
-		}
+        public override void OnStart()
+        {
+            // Acquisition and checking of any sub-elements go here.
+            // A common example:
+            //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+            //     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
-		public override void OnStart()
-		{
-			// Acquisition and checking of any sub-elements go here.
-			// A common example:
-			//     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
-			//     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
-			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                if (!InTree)
+                {
+                    QBCLog.Fatal("==================================================================\n"
+                                + "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
+                                + "==================================================================");
+                }
+                else
+                {
+                    this.UpdateGoalText(QuestId);
+                }
+                // Setup settings to prevent interference with your behavior --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
+                LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Vendor);
+            }
+        }
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun )
-			{
-				if (!InTree)
-				{
-					QBCLog.Fatal("==================================================================\n"
-								+ "NOT IN TREE!!!  ENTER TREE TO USE CUSTOM BEHAVIOR\n"
-								+ "==================================================================");
-				}
-				else
-				{
-					this.UpdateGoalText(QuestId);
-				}
-				// Setup settings to prevent interference with your behavior --
-				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-				// by Honorbuddy, or the bot is stopped.
-				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Vendor);
-			}
-		}
-
-		#endregion
-	}
+        #endregion
+    }
 }
 

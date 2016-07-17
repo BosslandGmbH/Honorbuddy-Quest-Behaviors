@@ -26,6 +26,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using Bots.Grind;
@@ -44,115 +45,114 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.NoCombatMoveTo
 {
-	[CustomBehaviorFileName(@"NoCombatMoveTo")]
-	public class NoCombatMoveTo : CustomForcedBehavior
-	{
-		public NoCombatMoveTo(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"NoCombatMoveTo")]
+    public class NoCombatMoveTo : CustomForcedBehavior
+    {
+        public NoCombatMoveTo(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-				Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
+                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                DestinationName = GetAttributeAs<string>("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "";
 
-				if (string.IsNullOrEmpty(DestinationName))
-					{ DestinationName = Destination.ToString(); }
-			}
+                if (string.IsNullOrEmpty(DestinationName))
+                { DestinationName = Destination.ToString(); }
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		public string DestinationName { get; private set; }
-		public WoWPoint Destination { get; private set; }
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
-		private BehaviorFlags? _orginalBehaviorFlags;
-
-		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-		#region Overrides of CustomForcedBehavior
-
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root =
-				new PrioritySelector(
-
-						   new Decorator(ret => Destination.Distance(Me.Location) <= 3,
-								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Finished!"),
-									new Action(ctx =>_isBehaviorDone = true))),
-
-						  new Action(ctx => Navigator.MoveTo(Destination))
-					));
-		}
-
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        // Attributes provided by caller
+        public string DestinationName { get; private set; }
+        public WoWPoint Destination { get; private set; }
+        public int QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				this.UpdateGoalText(QuestId, "Moving to " + (string.IsNullOrEmpty(DestinationName) ? "Unspecified destination" : DestinationName));
-				_orginalBehaviorFlags = LevelBot.BehaviorFlags;
-				LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Vendor);
-			}
-		}
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private Composite _root;
+        private BehaviorFlags? _orginalBehaviorFlags;
 
-		public override void OnFinished()
-		{
-			if (_orginalBehaviorFlags.HasValue)
-				LevelBot.BehaviorFlags = _orginalBehaviorFlags.Value;
-			this.UpdateGoalText(QuestId);
-			TreeRoot.StatusText = string.Empty;
-		}
+        // Private properties
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
 
-		#endregion
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-	}
+        #region Overrides of CustomForcedBehavior
+
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+
+                           new Decorator(ret => Destination.Distance(Me.Location) <= 3,
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new Action(ctx => _isBehaviorDone = true))),
+
+                          new Action(ctx => Navigator.MoveTo(Destination))
+                    ));
+        }
+
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
+
+
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                this.UpdateGoalText(QuestId, "Moving to " + (string.IsNullOrEmpty(DestinationName) ? "Unspecified destination" : DestinationName));
+                _orginalBehaviorFlags = LevelBot.BehaviorFlags;
+                LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot | BehaviorFlags.Vendor);
+            }
+        }
+
+        public override void OnFinished()
+        {
+            if (_orginalBehaviorFlags.HasValue)
+                LevelBot.BehaviorFlags = _orginalBehaviorFlags.Value;
+            this.UpdateGoalText(QuestId);
+            TreeRoot.StatusText = string.Empty;
+        }
+
+        #endregion
+    }
 }
 

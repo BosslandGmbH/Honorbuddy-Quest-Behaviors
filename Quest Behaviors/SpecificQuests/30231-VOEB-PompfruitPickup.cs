@@ -17,6 +17,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,33 +40,33 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
 {
-	[CustomBehaviorFileName(@"SpecificQuests\30231-VOEB-PompfruitPickup")]
-	public class Blastranaar : QuestBehaviorBase
-	{
-		public Blastranaar(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"SpecificQuests\30231-VOEB-PompfruitPickup")]
+    public class Blastranaar : QuestBehaviorBase
+    {
+        public Blastranaar(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				QuestId = 30231;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
-			    QuestObjectiveIndex = 1;
-			}
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-		public int MobIdPomfruit = 58767;
-		public int PomharvestFireworkId = 79344;
-		private Composite _root;
+            try
+            {
+                QuestId = 30231;//GetAttributeAsQuestId("QuestId", true, null) ?? 0;
+                QuestObjectiveIndex = 1;
+            }
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
+        public int MobIdPomfruit = 58767;
+        public int PomharvestFireworkId = 79344;
+        private Composite _root;
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
@@ -92,30 +93,30 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
             //                  RangeMax, rangeEpsilon, RangeMin)); 
         }
 
-		public List<WoWUnit> Pomfruit
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdPomfruit && !u.IsDead && u.Distance < 10000).OrderBy(u => u.Distance).ToList();
-			}
-		}
+        public List<WoWUnit> Pomfruit
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>().Where(u => u.Entry == MobIdPomfruit && !u.IsDead && u.Distance < 10000).OrderBy(u => u.Distance).ToList();
+            }
+        }
 
-		public WoWItem PomharvestFirework { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == PomharvestFireworkId)); } }
+        public WoWItem PomharvestFirework { get { return (StyxWoW.Me.CarriedItems.FirstOrDefault(i => i.Entry == PomharvestFireworkId)); } }
 
-	    protected override Composite CreateBehavior_CombatMain()
-	    {
+        protected override Composite CreateBehavior_CombatMain()
+        {
             return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
-	    }
+        }
 
-	    public async Task<bool> MainCoroutine ()
-		{
-		    if (IsDone)
-		        return false;
+        public async Task<bool> MainCoroutine()
+        {
+            if (IsDone)
+                return false;
 
-		    var pomFruit = Pomfruit.FirstOrDefault();
-		    if (pomFruit == null)
-		        return false;
-            
+            var pomFruit = Pomfruit.FirstOrDefault();
+            if (pomFruit == null)
+                return false;
+
             if (pomFruit.Distance < 25 && PomharvestFirework.Cooldown == 0)
             {
                 PomharvestFirework.UseContainerItem();
@@ -128,6 +129,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.PompfruitPickup
             pomFruit.Interact();
 
             return true;
-		}
-	}
+        }
+    }
 }

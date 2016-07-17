@@ -152,6 +152,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -174,372 +175,373 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.Vehicles.VehicleMover
 {
-	[CustomBehaviorFileName(@"Vehicles\VehicleMover")]
-	public class VehicleMover : QuestBehaviorBase
-	{
-		#region Consructor and Argument Processing
-		public VehicleMover(Dictionary<string, string> args)
-			: base(args)
-		{
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+    [CustomBehaviorFileName(@"Vehicles\VehicleMover")]
+    public class VehicleMover : QuestBehaviorBase
+    {
+        #region Consructor and Argument Processing
+        public VehicleMover(Dictionary<string, string> args)
+            : base(args)
+        {
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Primary attributes...
-				AuraId_ProxyVehicle = GetAttributeAsNullable<int>("AuraId_ProxyVehicle", false, ConstrainAs.SpellId, null) ?? 0;
-				MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "MobID", "NpcId" });
-				SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, new[] { "SpellID" }) ?? 0;
-				VehicleIds = GetNumberedAttributesAsArray<int>("VehicleId", 1, ConstrainAs.VehicleId, new[] { "VehicleID" });
-				Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                // Primary attributes...
+                AuraId_ProxyVehicle = GetAttributeAsNullable<int>("AuraId_ProxyVehicle", false, ConstrainAs.SpellId, null) ?? 0;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "MobID", "NpcId" });
+                SpellId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, new[] { "SpellID" }) ?? 0;
+                VehicleIds = GetNumberedAttributesAsArray<int>("VehicleId", 1, ConstrainAs.VehicleId, new[] { "VehicleID" });
+                Destination = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
-				// Tunables...
-				NumOfTimes = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
-				CastTime = GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null) ?? 1500;
-				Hop = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
-				IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
-				/*unused*/ GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null);
+                // Tunables...
+                NumOfTimes = GetAttributeAsNullable<int>("CastNum", false, ConstrainAs.RepeatCount, null) ?? 1;
+                CastTime = GetAttributeAsNullable<int>("CastTime", false, new ConstrainTo.Domain<int>(0, 30000), null) ?? 1500;
+                Hop = GetAttributeAsNullable<bool>("Hop", false, null, null) ?? false;
+                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? true;
+                /*unused*/
+                GetAttributeAsNullable<double>("Precision", false, new ConstrainTo.Domain<double>(2.0, 100.0), null);
 
-				var useNavigator = GetAttributeAsNullable<bool>("UseNavigator", false, null, null);
-				if (useNavigator.HasValue)
-					{ MovementBy = useNavigator.Value ? MovementByType.NavigatorPreferred : MovementByType.ClickToMoveOnly; }
+                var useNavigator = GetAttributeAsNullable<bool>("UseNavigator", false, null, null);
+                if (useNavigator.HasValue)
+                { MovementBy = useNavigator.Value ? MovementByType.NavigatorPreferred : MovementByType.ClickToMoveOnly; }
 
-				WaitForVehicle = GetAttributeAsNullable<bool>("WaitForVehicle", false, null, null) ?? true;
+                WaitForVehicle = GetAttributeAsNullable<bool>("WaitForVehicle", false, null, null) ?? true;
 
-				// For backward compatibility, we do not error off on an invalid SpellId, but merely warn the user...
-				if ((1 <= SpellId) && (SpellId <= 12))
-				{
-					QBCLog.Error("SpellId of {0} is not valid--did you accidently provde an ActionBarIndex instead?", SpellId);
-				}
-			}
+                // For backward compatibility, we do not error off on an invalid SpellId, but merely warn the user...
+                if ((1 <= SpellId) && (SpellId <= 12))
+                {
+                    QBCLog.Error("SpellId of {0} is not valid--did you accidently provde an ActionBarIndex instead?", SpellId);
+                }
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			UsageCheck_DeprecatedAttribute(xElement,
-				Args.Keys.Contains("UseNavigator"),
-				"UseNavigator",
-				context => string.Format("Automatically converted UseNavigator=\"{0}\" attribute into MovementBy=\"{1}\"."
-										+ "  Please update profile to use MovementBy, instead.",
-										Args["UseNavigator"], MovementBy));
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			// empty, for now...
-		}
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            UsageCheck_DeprecatedAttribute(xElement,
+                Args.Keys.Contains("UseNavigator"),
+                "UseNavigator",
+                context => string.Format("Automatically converted UseNavigator=\"{0}\" attribute into MovementBy=\"{1}\"."
+                                        + "  Please update profile to use MovementBy, instead.",
+                                        Args["UseNavigator"], MovementBy));
+        }
 
 
-		// Attributes provided by caller
-		public int AuraId_ProxyVehicle { get; private set; }
-		public int CastTime { get; private set; }
-		public WoWPoint Destination { get; private set; }
-		public bool Hop { get; private set; }
-		public bool IgnoreCombat { get; private set; }
-		public int[] MobIds { get; private set; }
-		public int NumOfTimes { get; private set; }
-		public int SpellId { get; private set; }
-		public int[] VehicleIds { get; private set; }
-		private bool WaitForVehicle { get; set; }
-		#endregion
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            // empty, for now...
+        }
 
 
-		#region Private and Convenience variables
-		private IEnumerable<int> AuraIds_OccupiedVehicle { get; set; }
-		private int CastCounter { get; set; }
-		private WoWPoint FinalDestination { get; set; }
-		private string FinalDestinationName { get; set; }
-		private bool DidSuccessfullyMount { get; set; }
-		private WoWUnit VehicleUnoccupied { get; set; }
+        // Attributes provided by caller
+        public int AuraId_ProxyVehicle { get; private set; }
+        public int CastTime { get; private set; }
+        public WoWPoint Destination { get; private set; }
+        public bool Hop { get; private set; }
+        public bool IgnoreCombat { get; private set; }
+        public int[] MobIds { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int SpellId { get; private set; }
+        public int[] VehicleIds { get; private set; }
+        private bool WaitForVehicle { get; set; }
+        #endregion
 
-		#endregion
+
+        #region Private and Convenience variables
+        private IEnumerable<int> AuraIds_OccupiedVehicle { get; set; }
+        private int CastCounter { get; set; }
+        private WoWPoint FinalDestination { get; set; }
+        private string FinalDestinationName { get; set; }
+        private bool DidSuccessfullyMount { get; set; }
+        private WoWUnit VehicleUnoccupied { get; set; }
+
+        #endregion
 
 
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
-		// Dispose provided by QuestBehaviorBase.
+        // Dispose provided by QuestBehaviorBase.
 
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
-		// OnFinished provided by QuestBehaviorBase.
+        // OnFinished provided by QuestBehaviorBase.
 
-		public override void OnStart()
-		{       
-			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun =
-				OnStart_QuestBehaviorCore(
-					string.Format("Returning {0} to {1}",
-						string.Join(", ", VehicleIds.Select(o => Utility.GetObjectNameFromId(o)).Distinct()),
-						Destination));
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun =
+                OnStart_QuestBehaviorCore(
+                    string.Format("Returning {0} to {1}",
+                        string.Join(", ", VehicleIds.Select(o => Utility.GetObjectNameFromId(o)).Distinct()),
+                        Destination));
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				// Disable any settings that may interfere with the escort --
-				// When we escort, we don't want to be distracted by other things.
-				// NOTE: these settings are restored to their normal values when the behavior completes
-				// or the bot is stopped.
-				CharacterSettings.Instance.HarvestHerbs = false;
-				CharacterSettings.Instance.HarvestMinerals = false;
-				CharacterSettings.Instance.LootChests = false;
-				CharacterSettings.Instance.NinjaSkin = false;
-				CharacterSettings.Instance.SkinMobs = false;
-				CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                // Disable any settings that may interfere with the escort --
+                // When we escort, we don't want to be distracted by other things.
+                // NOTE: these settings are restored to their normal values when the behavior completes
+                // or the bot is stopped.
+                CharacterSettings.Instance.HarvestHerbs = false;
+                CharacterSettings.Instance.HarvestMinerals = false;
+                CharacterSettings.Instance.LootChests = false;
+                CharacterSettings.Instance.NinjaSkin = false;
+                CharacterSettings.Instance.SkinMobs = false;
+                CharacterSettings.Instance.PullDistance = 1;    // don't pull anything unless we absolutely must
 
-				AuraIds_OccupiedVehicle = GetOccupiedVehicleAuraIds();
-			}
-		}
-		#endregion
+                AuraIds_OccupiedVehicle = GetOccupiedVehicleAuraIds();
+            }
+        }
+        #endregion
 
-		
-		#region Main Behaviors
-		protected override Composite CreateBehavior_CombatMain()
-		{
-			return new Decorator(context => !IsDone,
-				new PrioritySelector(
 
-					// Update values for this BT node visit...
-					new Action(context =>
-					{
-						VehicleUnoccupied = FindUnoccupiedVehicle();
+        #region Main Behaviors
+        protected override Composite CreateBehavior_CombatMain()
+        {
+            return new Decorator(context => !IsDone,
+                new PrioritySelector(
 
-						// Figure out our final destination (i.e., a location or a mob)...
-						// NB: this can change as we travel.  If our destination is a mob,
-						// We can't "see" distant mobs until we get within 100 yards or so of them.
-						// Until we close that distance, we'll head towards the provided location.
-						// As soon as we "see" the mob, we'll switch to the mob as the destination.
-						FinalDestination = Destination;
-						FinalDestinationName = "destination";
-					
-						if (MobIds.Count() > 0)
-						{
-							// If we can see our destination mob, calculate a path to it...
-							var nearestMob = Query.FindMobsAndFactions(MobIds).OrderBy(u => u.Distance).FirstOrDefault() as WoWUnit;
-							if (nearestMob != null)
-							{
-								// Target destination mob as feedback to the user...
-								Utility.Target(nearestMob);
+                    // Update values for this BT node visit...
+                    new Action(context =>
+                    {
+                        VehicleUnoccupied = FindUnoccupiedVehicle();
 
-								FinalDestination = nearestMob.Location;
+                        // Figure out our final destination (i.e., a location or a mob)...
+                        // NB: this can change as we travel.  If our destination is a mob,
+                        // We can't "see" distant mobs until we get within 100 yards or so of them.
+                        // Until we close that distance, we'll head towards the provided location.
+                        // As soon as we "see" the mob, we'll switch to the mob as the destination.
+                        FinalDestination = Destination;
+                        FinalDestinationName = "destination";
+
+                        if (MobIds.Count() > 0)
+                        {
+                            // If we can see our destination mob, calculate a path to it...
+                            var nearestMob = Query.FindMobsAndFactions(MobIds).OrderBy(u => u.Distance).FirstOrDefault() as WoWUnit;
+                            if (nearestMob != null)
+                            {
+                                // Target destination mob as feedback to the user...
+                                Utility.Target(nearestMob);
+
+                                FinalDestination = nearestMob.Location;
                                 FinalDestinationName = nearestMob.SafeName;
-							}
-						}
+                            }
+                        }
 
-						return RunStatus.Failure;   // fall thru
-					}),
+                        return RunStatus.Failure;   // fall thru
+                    }),
 
 
-					// Proceed if we're not in combat, or are ignoring it...
-					new Decorator(context => !Me.Combat || IgnoreCombat,
-						new PrioritySelector(
-							// If we were successfully mounted...
-							// and within a few yards of our destination when we were dismounted, we must
-							// assume we were auto-dismounted, and the behavior is complete...
-							new Decorator(context => DidSuccessfullyMount && !IsInVehicle()
-														&& (WoWMovement.ActiveMover.Location.Distance(FinalDestination) < 15.0),
-								new Action(context => { BehaviorDone(); })),
+                    // Proceed if we're not in combat, or are ignoring it...
+                    new Decorator(context => !Me.Combat || IgnoreCombat,
+                        new PrioritySelector(
+                            // If we were successfully mounted...
+                            // and within a few yards of our destination when we were dismounted, we must
+                            // assume we were auto-dismounted, and the behavior is complete...
+                            new Decorator(context => DidSuccessfullyMount && !IsInVehicle()
+                                                        && (WoWMovement.ActiveMover.Location.Distance(FinalDestination) < 15.0),
+                                new Action(context => { BehaviorDone(); })),
 
-							// Enable combat while not in a vehicle
-							new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
-								new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
+                            // Enable combat while not in a vehicle
+                            new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
+                                new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
 
-							// Disable combat while in a vehicle
-							new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
-								new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
+                            // Disable combat while in a vehicle
+                            new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
+                                new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
 
-							// If we're not in a vehicle, go fetch one...
-							new Decorator(context => !IsInVehicle() && Query.IsViable(VehicleUnoccupied),
-								new Sequence(
-									new CompositeThrottleContinue(
-										Throttle.UserUpdate,
-										new Action(context =>
-										{
-											TreeRoot.StatusText = string.Format("Moving to {0} {1}",
+                            // If we're not in a vehicle, go fetch one...
+                            new Decorator(context => !IsInVehicle() && Query.IsViable(VehicleUnoccupied),
+                                new Sequence(
+                                    new CompositeThrottleContinue(
+                                        Throttle.UserUpdate,
+                                        new Action(context =>
+                                        {
+                                            TreeRoot.StatusText = string.Format("Moving to {0} {1}",
                                                                                 VehicleUnoccupied.SafeName,
-																				Me.Combat ? "(ignoring combat)" : "");
-										})),
-									new DecoratorContinue(context => VehicleUnoccupied.WithinInteractRange,
-										new Action(context => { VehicleUnoccupied.Interact(); })),
-									new ActionRunCoroutine(
-									    interactUnitContext => UtilityCoroutine.MoveTo(
-									        VehicleUnoccupied.Location,
-									        VehicleUnoccupied.SafeName,
-									        MovementBy))
-								)),
+                                                                                Me.Combat ? "(ignoring combat)" : "");
+                                        })),
+                                    new DecoratorContinue(context => VehicleUnoccupied.WithinInteractRange,
+                                        new Action(context => { VehicleUnoccupied.Interact(); })),
+                                    new ActionRunCoroutine(
+                                        interactUnitContext => UtilityCoroutine.MoveTo(
+                                            VehicleUnoccupied.Location,
+                                            VehicleUnoccupied.SafeName,
+                                            MovementBy))
+                                )),
 
-							// If we can't find a vehicle, terminate if requested...
-							new CompositeThrottle(
-								context => !IsInVehicle() && !Query.IsViable(VehicleUnoccupied),
-								Throttle.UserUpdate,
-								new Action(context =>
-								{
-									if (!WaitForVehicle)
-										{ BehaviorDone(string.Format("No Vehicle, and WaitForVehicle=\"{0}\"", WaitForVehicle)); }
-									else
-										{ TreeRoot.StatusText = "No vehicles in area--waiting for vehicle to become available."; }
-								})),
-
-
-							// Move vehicle to destination...
-							new Decorator(context => IsInVehicle(),
-								new PrioritySelector(
-								   // If we successfully mounted the vehicle, record the fact...
-									 new Decorator(context => !DidSuccessfullyMount,
-										new Action(context => { DidSuccessfullyMount = true; })),
-
-									new Decorator(context => !Navigator.AtLocation(FinalDestination),
-										new ActionRunCoroutine(
-											interactUnitContext => UtilityCoroutine.MoveTo(
-												FinalDestination,
-												FinalDestinationName,
-												MovementBy))),
-
-									new Decorator(context => WoWMovement.ActiveMover.IsMoving,
-										new Action(context => { WoWMovement.MoveStop(); })),
-
-									// Arrived at destination, use spell if necessary...
-									// NB: We want to make certain movement is settled before we attempt
-									// to cast spell, so we won't be interrupted.
-									new SleepForLagDuration(),
-									CreateSpellBehavior()
-								))
-						)),
-
-					// Squelch combat, if requested...
-					new Decorator(context => IgnoreCombat,
-						new ActionAlwaysSucceed())
-				));
-		}
+                            // If we can't find a vehicle, terminate if requested...
+                            new CompositeThrottle(
+                                context => !IsInVehicle() && !Query.IsViable(VehicleUnoccupied),
+                                Throttle.UserUpdate,
+                                new Action(context =>
+                                {
+                                    if (!WaitForVehicle)
+                                    { BehaviorDone(string.Format("No Vehicle, and WaitForVehicle=\"{0}\"", WaitForVehicle)); }
+                                    else
+                                    { TreeRoot.StatusText = "No vehicles in area--waiting for vehicle to become available."; }
+                                })),
 
 
-		protected override Composite CreateBehavior_CombatOnly()
-		{
-			return new PrioritySelector(
-				// empty, for now
-				);
-		}
+                            // Move vehicle to destination...
+                            new Decorator(context => IsInVehicle(),
+                                new PrioritySelector(
+                                     // If we successfully mounted the vehicle, record the fact...
+                                     new Decorator(context => !DidSuccessfullyMount,
+                                        new Action(context => { DidSuccessfullyMount = true; })),
+
+                                    new Decorator(context => !Navigator.AtLocation(FinalDestination),
+                                        new ActionRunCoroutine(
+                                            interactUnitContext => UtilityCoroutine.MoveTo(
+                                                FinalDestination,
+                                                FinalDestinationName,
+                                                MovementBy))),
+
+                                    new Decorator(context => WoWMovement.ActiveMover.IsMoving,
+                                        new Action(context => { WoWMovement.MoveStop(); })),
+
+                                    // Arrived at destination, use spell if necessary...
+                                    // NB: We want to make certain movement is settled before we attempt
+                                    // to cast spell, so we won't be interrupted.
+                                    new SleepForLagDuration(),
+                                    CreateSpellBehavior()
+                                ))
+                        )),
+
+                    // Squelch combat, if requested...
+                    new Decorator(context => IgnoreCombat,
+                        new ActionAlwaysSucceed())
+                ));
+        }
 
 
-		protected override Composite CreateBehavior_DeathMain()
-		{
-			return new PrioritySelector(
-				// empty, for now
-				);
-		}
+        protected override Composite CreateBehavior_CombatOnly()
+        {
+            return new PrioritySelector(
+                // empty, for now
+                );
+        }
 
 
-		protected override Composite CreateMainBehavior()
-		{
-			return new PrioritySelector(
-				// If quest is done, behavior is done...
-				new Decorator(context => IsDone,
-					new Action(context => { BehaviorDone(); })),
-
-				// If we've cast the spell the expected number of times, we're done...
-				new Decorator(context => CastCounter >= NumOfTimes,
-					new Action(context => { BehaviorDone(); }))
-			);
-		}
-		#endregion
-
-		
-		#region Helpers
-
-		private Composite CreateSpellBehavior()
-		{
-			string luaCastSpellCommand = string.Format("CastSpellByID({0})", SpellId);
-			string luaCooldownCommand = string.Format("return GetSpellCooldown({0})", SpellId);
-			string luaRetrieveSpellInfoCommand = string.Format("return GetSpellInfo({0})", SpellId);
-
-			// If we have a spell to cast, one or more times...
-			// NB: Since the spell we want to cast is associated with the vehicle, if we get auto-ejected
-			// from the vehicle after we arrive at our destination, then there is no way to cast the spell.
-			// If we get auto-ejected, we don't try to cast.
-			return new Decorator(context => IsInVehicle() && (SpellId > 0),
-				new PrioritySelector(
-					// Stop moving so we can cast...
-					new Decorator(context => WoWMovement.ActiveMover.IsMoving,
-						new Action(context => { WoWMovement.MoveStop(); })),
-						
-					// If we cannot retrieve the spell info, its a bad SpellId...
-					new Decorator(context => string.IsNullOrEmpty(Lua.GetReturnVal<string>(luaRetrieveSpellInfoCommand, 0)),
-						new Action(context =>
-						{
-							QBCLog.Warning("SpellId({0}) is not known--ignoring the cast", SpellId);
-							CastCounter = NumOfTimes +1; // force 'done'
-						})),
-
-					// If the spell is on cooldown, we need to wait...
-					new Decorator(context => Lua.GetReturnVal<double>(luaCooldownCommand, 1) > 0.0,
-						new Action(context => { TreeRoot.StatusText = "Waiting for cooldown"; } )),
-
-					// Cast the required spell...
-					new Sequence(
-						new Action(context =>
-						{
-							WoWSpell wowSpell = WoWSpell.FromId(SpellId);
-							TreeRoot.StatusText = string.Format("Casting {0}", (wowSpell != null) ? wowSpell.Name : string.Format("SpellId({0})", SpellId));
-
-							// NB: we use LUA to cast the spell.  As some vehicle abilities cause
-							// a "Spell not learned" error.  Apparently, HB only keeps up with
-							// permanent spells known by the toon, and not transient spells that become
-							// available in vehicles.
-							Lua.DoString(luaCastSpellCommand);
-							++CastCounter;
-
-							// If we're objective bound, the objective needs to complete regardless of the counter...
-							if ((QuestObjectiveIndex <= 0) && (CastCounter >= NumOfTimes))
-								{ BehaviorDone(); }
-						}),
-						new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
-					)
-				));
-		}
+        protected override Composite CreateBehavior_DeathMain()
+        {
+            return new PrioritySelector(
+                // empty, for now
+                );
+        }
 
 
-		private WoWUnit FindUnoccupiedVehicle()
-		{
-			return
-				(from wowObject in Query.FindMobsAndFactions(VehicleIds)
-				 let wowUnit = wowObject as WoWUnit
-				 where
-					Query.IsViable(wowUnit)
-					&& !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
-					&& !Query.IsInCompetition(wowUnit, NonCompeteDistance)
-					&& wowUnit.IsUntagged()
-				 orderby wowUnit.Distance
-				 select wowUnit)
-				 .FirstOrDefault();
-		}
+        protected override Composite CreateMainBehavior()
+        {
+            return new PrioritySelector(
+                // If quest is done, behavior is done...
+                new Decorator(context => IsDone,
+                    new Action(context => { BehaviorDone(); })),
+
+                // If we've cast the spell the expected number of times, we're done...
+                new Decorator(context => CastCounter >= NumOfTimes,
+                    new Action(context => { BehaviorDone(); }))
+            );
+        }
+        #endregion
 
 
-		private bool IsInVehicle()
-		{
-			return
-				Query.IsInVehicle()
-				|| Me.HasAura(AuraId_ProxyVehicle);
-		}
-		#endregion
-	}
+        #region Helpers
+
+        private Composite CreateSpellBehavior()
+        {
+            string luaCastSpellCommand = string.Format("CastSpellByID({0})", SpellId);
+            string luaCooldownCommand = string.Format("return GetSpellCooldown({0})", SpellId);
+            string luaRetrieveSpellInfoCommand = string.Format("return GetSpellInfo({0})", SpellId);
+
+            // If we have a spell to cast, one or more times...
+            // NB: Since the spell we want to cast is associated with the vehicle, if we get auto-ejected
+            // from the vehicle after we arrive at our destination, then there is no way to cast the spell.
+            // If we get auto-ejected, we don't try to cast.
+            return new Decorator(context => IsInVehicle() && (SpellId > 0),
+                new PrioritySelector(
+                    // Stop moving so we can cast...
+                    new Decorator(context => WoWMovement.ActiveMover.IsMoving,
+                        new Action(context => { WoWMovement.MoveStop(); })),
+
+                    // If we cannot retrieve the spell info, its a bad SpellId...
+                    new Decorator(context => string.IsNullOrEmpty(Lua.GetReturnVal<string>(luaRetrieveSpellInfoCommand, 0)),
+                        new Action(context =>
+                        {
+                            QBCLog.Warning("SpellId({0}) is not known--ignoring the cast", SpellId);
+                            CastCounter = NumOfTimes + 1; // force 'done'
+                        })),
+
+                    // If the spell is on cooldown, we need to wait...
+                    new Decorator(context => Lua.GetReturnVal<double>(luaCooldownCommand, 1) > 0.0,
+                        new Action(context => { TreeRoot.StatusText = "Waiting for cooldown"; })),
+
+                    // Cast the required spell...
+                    new Sequence(
+                        new Action(context =>
+                        {
+                            WoWSpell wowSpell = WoWSpell.FromId(SpellId);
+                            TreeRoot.StatusText = string.Format("Casting {0}", (wowSpell != null) ? wowSpell.Name : string.Format("SpellId({0})", SpellId));
+
+                            // NB: we use LUA to cast the spell.  As some vehicle abilities cause
+                            // a "Spell not learned" error.  Apparently, HB only keeps up with
+                            // permanent spells known by the toon, and not transient spells that become
+                            // available in vehicles.
+                            Lua.DoString(luaCastSpellCommand);
+                            ++CastCounter;
+
+                            // If we're objective bound, the objective needs to complete regardless of the counter...
+                            if ((QuestObjectiveIndex <= 0) && (CastCounter >= NumOfTimes))
+                            { BehaviorDone(); }
+                        }),
+                        new WaitContinue(TimeSpan.FromMilliseconds(CastTime), context => false, new ActionAlwaysSucceed())
+                    )
+                ));
+        }
+
+
+        private WoWUnit FindUnoccupiedVehicle()
+        {
+            return
+                (from wowObject in Query.FindMobsAndFactions(VehicleIds)
+                 let wowUnit = wowObject as WoWUnit
+                 where
+                    Query.IsViable(wowUnit)
+                    && !wowUnit.Auras.Values.Any(aura => AuraIds_OccupiedVehicle.Contains(aura.SpellId))
+                    && !Query.IsInCompetition(wowUnit, NonCompeteDistance)
+                    && wowUnit.IsUntagged()
+                 orderby wowUnit.Distance
+                 select wowUnit)
+                 .FirstOrDefault();
+        }
+
+
+        private bool IsInVehicle()
+        {
+            return
+                Query.IsInVehicle()
+                || Me.HasAura(AuraId_ProxyVehicle);
+        }
+        #endregion
+    }
 }

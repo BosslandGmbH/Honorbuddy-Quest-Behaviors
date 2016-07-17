@@ -68,6 +68,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -95,325 +96,324 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.GoThruPortal
 {
-	[CustomBehaviorFileName(@"GoThruPortal")]
-	public class GoThruPortal : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
-		public GoThruPortal(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"GoThruPortal")]
+    public class GoThruPortal : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
+        public GoThruPortal(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Behavior-specific attributes...
-				MovePoint = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                // Behavior-specific attributes...
+                MovePoint = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
 
-				// Tunables...
-				StartingPoint = GetAttributeAsNullable<WoWPoint>("Initial", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-				MaxRetryCount = GetAttributeAsNullable<int>("MaxRetryCount", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 3;
-				int retryDelay = GetAttributeAsNullable<int>("RetryDelay", false, new ConstrainTo.Domain<int>(0, 300000), null) ?? 90000;
-				int zoningMaxWaitTime = GetAttributeAsNullable<int>("Timeout", false, new ConstrainTo.Domain<int>(1, 60000), null) ?? 10000;
+                // Tunables...
+                StartingPoint = GetAttributeAsNullable<WoWPoint>("Initial", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MaxRetryCount = GetAttributeAsNullable<int>("MaxRetryCount", false, new ConstrainTo.Domain<int>(1, 10), null) ?? 3;
+                int retryDelay = GetAttributeAsNullable<int>("RetryDelay", false, new ConstrainTo.Domain<int>(0, 300000), null) ?? 90000;
+                int zoningMaxWaitTime = GetAttributeAsNullable<int>("Timeout", false, new ConstrainTo.Domain<int>(1, 60000), null) ?? 10000;
 
-				MovePoint = WoWMathHelper.CalculatePointFrom(StartingPoint, MovePoint, -15.0f);
-				RetryDelay = TimeSpan.FromMilliseconds(retryDelay);
-				MaxTimeToPortalEntry = TimeSpan.FromMilliseconds(zoningMaxWaitTime);
-			}
+                MovePoint = WoWMathHelper.CalculatePointFrom(StartingPoint, MovePoint, -15.0f);
+                RetryDelay = TimeSpan.FromMilliseconds(retryDelay);
+                MaxTimeToPortalEntry = TimeSpan.FromMilliseconds(zoningMaxWaitTime);
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		private WoWPoint MovePoint { get; set; }
-		private int MaxRetryCount { get; set; }
-		private TimeSpan RetryDelay { get; set; }
-		private WoWPoint StartingPoint { get; set; }
-		private TimeSpan MaxTimeToPortalEntry { get; set; }
-
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
-		}
-
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			//// EXAMPLE:
-			//UsageCheck_SemanticCoherency(xElement,
-			//    (!MobIds.Any() && !FactionIds.Any()),
-			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-			//
-			//const double rangeEpsilon = 3.0;
-			//UsageCheck_SemanticCoherency(xElement,
-			//    ((RangeMax - RangeMin) < rangeEpsilon),
-			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-			//                  RangeMax, rangeEpsilon, RangeMin)); 
-		}
-		#endregion
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		#region Private and Convenience variables
-		private bool SawLoadingScreen { get; set; }
+        // Attributes provided by caller
+        private WoWPoint MovePoint { get; set; }
+        private int MaxRetryCount { get; set; }
+        private TimeSpan RetryDelay { get; set; }
+        private WoWPoint StartingPoint { get; set; }
+        private TimeSpan MaxTimeToPortalEntry { get; set; }
 
-		private bool _tookPortal;
-		// Private properties
-		private bool TookPortal
-		{
-			get
-			{
-				_tookPortal |= BigChangeInPosition | SawLoadingScreen;
-				return _tookPortal;
-			}
-		}
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
 
-		private PerFrameCachedValue<bool> _bigChangeInPosition;
-
-		private readonly TimeSpan PostZoningDelay = TimeSpan.FromMilliseconds(1250);
-
-		private Stopwatch RetryDelayTimer { get; set; }
-		private WoWPoint LastLocation { get; set; }
-		private float LastForwardSpeed { get; set; }
-		private Stopwatch PulseTimer { get; set; }
-		private int _retryCount = 1;
-		private Composite _behaviorTreeHook_InGameCheck;
-
-		#endregion
-
-
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
-
-
-		public override void OnFinished()
-		{
-			// Defend against being called multiple times (just in case)...
-			if (!IsOnFinishedRun)
-			{
-				TreeHooks.Instance.RemoveHook("InGame_Check", CreateBehavior_InGameCheck());
-				// QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
-				base.OnFinished();
-			}
-		}
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+        #endregion
 
 
-		public override void OnStart()
-		{
-			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore("Moving through Portal");
+        #region Private and Convenience variables
+        private bool SawLoadingScreen { get; set; }
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				TreeHooks.Instance.InsertHook("InGame_Check", 0, CreateBehavior_InGameCheck());
-				LastLocation = Me.Location;
-				PulseTimer = Stopwatch.StartNew();
-				LastForwardSpeed = GetFowardSpeed();
-			}
-		}
-		#endregion
+        private bool _tookPortal;
+        // Private properties
+        private bool TookPortal
+        {
+            get
+            {
+                _tookPortal |= BigChangeInPosition | SawLoadingScreen;
+                return _tookPortal;
+            }
+        }
 
+        private PerFrameCachedValue<bool> _bigChangeInPosition;
 
-		#region Main Behaviors
+        private readonly TimeSpan _postZoningDelay = TimeSpan.FromMilliseconds(1250);
 
-		private Composite CreateBehavior_InGameCheck()
-		{
-			return _behaviorTreeHook_InGameCheck ?? (_behaviorTreeHook_InGameCheck = new Action(
-				context =>
-				{
-					if (!SawLoadingScreen && !StyxWoW.IsInWorld)
-					{
-						QBCLog.DeveloperInfo("Detected a loading screen.");
-						SawLoadingScreen = true;
-					}
-					return RunStatus.Failure;
-				}));
-		}
+        private Stopwatch RetryDelayTimer { get; set; }
+        private WoWPoint LastLocation { get; set; }
+        private float LastForwardSpeed { get; set; }
+        private Stopwatch PulseTimer { get; set; }
+        private int _retryCount = 1;
+        private Composite _behaviorTreeHook_InGameCheck;
 
-		protected override Composite CreateMainBehavior()
-		{
-			return new ActionRunCoroutine(ctx => MainCoroutine());
-		}
-
-		private async Task<bool> MainCoroutine()
-		{
-			if (IsDone)
-				return false;
-
-			if (TookPortal)
-			{
-				if (Me.IsMoving)
-					await CommonCoroutines.StopMoving();
-				await Coroutine.Sleep(PostZoningDelay);
-				BehaviorDone("Zoned into portal");
-				return true;
-			}
-
-			if (Navigator.AtLocation(StartingPoint) && await WaitToRetry())
-				return true;
-
-			// Move to portal starting position...
-			if (!Navigator.AtLocation(StartingPoint))
-			{
-				if (!await UtilityCoroutine.MoveTo(StartingPoint, "Portal", MovementBy))
-					QBCLog.Fatal("Unable to Navigate to StartingPoint");
-				return true;
-			}
+        #endregion
 
 
-			if (await EnterPortal())
-				return true;
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-			// Zoning failed, do we have any retries left?
-			_retryCount += 1;
-			if (_retryCount > MaxRetryCount)
-			{
-				var message = string.Format("Unable to go through portal in {0} attempts.", MaxRetryCount);
 
-				// NB: Posting a 'fatal' message will stop the bot--which is what we want.
-				QBCLog.Fatal(message);
-				BehaviorDone(message);
-				return true;
-			}
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (!IsOnFinishedRun)
+            {
+                TreeHooks.Instance.RemoveHook("InGame_Check", CreateBehavior_InGameCheck());
+                // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+                base.OnFinished();
+            }
+        }
 
-			RetryDelayTimer = new Stopwatch();
-			return true;
-		}
 
-		private async Task<bool> EnterPortal()
-		{
-			var portalEntryTimer = new WaitTimer(MaxTimeToPortalEntry);
-			portalEntryTimer.Reset();
-			QBCLog.DeveloperInfo("Portal Entry Timer Started");
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore("Moving through Portal");
 
-			while (true)
-			{
-				if (TookPortal)
-					return true;
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                TreeHooks.Instance.InsertHook("InGame_Check", 0, CreateBehavior_InGameCheck());
+                LastLocation = Me.Location;
+                PulseTimer = Stopwatch.StartNew();
+                LastForwardSpeed = GetFowardSpeed();
+            }
+        }
+        #endregion
 
-				// If portal entry timer expired, deal with it...
-				if (portalEntryTimer.IsFinished)
-				{
-					QBCLog.Warning(
-						"Unable to enter portal within allotted time of {0}",
-						Utility.PrettyTime(MaxTimeToPortalEntry));
-					break;
-				}
 
-				// If we are within 2 yards of calculated end point we should never reach...
-				if (Me.Location.Distance(MovePoint) < 2)
-				{
-					QBCLog.Warning("Seems we missed the portal. Is Portal activated? Profile needs to pick better alignment?");
-					break;
-				}
+        #region Main Behaviors
 
-				// If we're not moving toward portal, get busy...
-				if (!StyxWoW.Me.IsMoving || Navigator.AtLocation(StartingPoint))
-				{
-					QBCLog.DeveloperInfo("Entering portal via {0}", MovePoint);
-					WoWMovement.ClickToMove(MovePoint);
-				}
-				await Coroutine.Yield();
-			}
-			return false;
-		}
+        private Composite CreateBehavior_InGameCheck()
+        {
+            return _behaviorTreeHook_InGameCheck ?? (_behaviorTreeHook_InGameCheck = new Action(
+                context =>
+                {
+                    if (!SawLoadingScreen && !StyxWoW.IsInWorld)
+                    {
+                        QBCLog.DeveloperInfo("Detected a loading screen.");
+                        SawLoadingScreen = true;
+                    }
+                    return RunStatus.Failure;
+                }));
+        }
 
-		private async Task<bool> WaitToRetry()
-		{
-			if (RetryDelayTimer == null) 
-				return false;
+        protected override Composite CreateMainBehavior()
+        {
+            return new ActionRunCoroutine(ctx => MainCoroutine());
+        }
 
-			if (!RetryDelayTimer.IsRunning)
-			{
-				QBCLog.Info(
-					"Last portal entry attempt failed.  Will try re-entering portal again in {0} (try #{1}).",
-					Utility.PrettyTime(RetryDelay),
-					_retryCount);
+        private async Task<bool> MainCoroutine()
+        {
+            if (IsDone)
+                return false;
 
-				RetryDelayTimer.Start();
-			}
+            if (TookPortal)
+            {
+                if (Me.IsMoving)
+                    await CommonCoroutines.StopMoving();
+                await Coroutine.Sleep(_postZoningDelay);
+                BehaviorDone("Zoned into portal");
+                return true;
+            }
 
-			// if the retry timer is running wait for it to expire.
-			if (RetryDelayTimer.Elapsed < RetryDelay)
-			{
-				TreeRoot.StatusText =
-					string.Format(
-						"Retrying portal entry in {0} of {1}.",
-						Utility.PrettyTime(RetryDelay - RetryDelayTimer.Elapsed),
-						Utility.PrettyTime(RetryDelay));
-				return true;
-			}
-			RetryDelayTimer = null;
-			return false;
-		}
+            if (Navigator.AtLocation(StartingPoint) && await WaitToRetry())
+                return true;
 
-		#endregion
+            // Move to portal starting position...
+            if (!Navigator.AtLocation(StartingPoint))
+            {
+                if (!await UtilityCoroutine.MoveTo(StartingPoint, "Portal", MovementBy))
+                    QBCLog.Fatal("Unable to Navigate to StartingPoint");
+                return true;
+            }
 
-		#region Helpers
 
-		private static float GetFowardSpeed()
-		{
-			if (Me.IsFlying)
-				return Me.MovementInfo.FlyingForwardSpeed;
-			if (Me.IsSwimming)
-				return Me.MovementInfo.SwimmingForwardSpeed;
-			return Me.MovementInfo.ForwardSpeed;
-		}
+            if (await EnterPortal())
+                return true;
 
-		private bool BigChangeInPosition
-		{
-			get
-			{
-				return _bigChangeInPosition ?? (_bigChangeInPosition = new PerFrameCachedValue<bool>(
-				() =>
-				{
-					var myLoc = Me.Location;
-					var distToPrevLoc = myLoc.Distance(LastLocation);
-					var secondsSinceLastPulse = PulseTimer.ElapsedMilliseconds / 1000f;
-					LastLocation = myLoc;
-					PulseTimer.Restart();
-					// ignore small changes in distance.
-					if (distToPrevLoc < 50)
-						return false;
+            // Zoning failed, do we have any retries left?
+            _retryCount += 1;
+            if (_retryCount > MaxRetryCount)
+            {
+                var message = string.Format("Unable to go through portal in {0} attempts.", MaxRetryCount);
 
-					var distPerSecond = distToPrevLoc / secondsSinceLastPulse;
-					// The fastest travel speed is about 34.44 with highest riding skill level and guild bonuses.
-					// Check if player moved further then the speed would have allowed him/her to travel, indicating that player 
-					// was ported.
-					var result = distPerSecond * 1.5 > LastForwardSpeed;
-					PulseTimer.Reset();
-					LastForwardSpeed = GetFowardSpeed();
+                // NB: Posting a 'fatal' message will stop the bot--which is what we want.
+                QBCLog.Fatal(message);
+                BehaviorDone(message);
+                return true;
+            }
 
-					if (result)
-						QBCLog.DeveloperInfo("Detected a big change in position");
+            RetryDelayTimer = new Stopwatch();
+            return true;
+        }
 
-					return result;
-				}));
-			}
-		}
+        private async Task<bool> EnterPortal()
+        {
+            var portalEntryTimer = new WaitTimer(MaxTimeToPortalEntry);
+            portalEntryTimer.Reset();
+            QBCLog.DeveloperInfo("Portal Entry Timer Started");
 
-		#endregion
+            while (true)
+            {
+                if (TookPortal)
+                    return true;
 
-	}
+                // If portal entry timer expired, deal with it...
+                if (portalEntryTimer.IsFinished)
+                {
+                    QBCLog.Warning(
+                        "Unable to enter portal within allotted time of {0}",
+                        Utility.PrettyTime(MaxTimeToPortalEntry));
+                    break;
+                }
+
+                // If we are within 2 yards of calculated end point we should never reach...
+                if (Me.Location.Distance(MovePoint) < 2)
+                {
+                    QBCLog.Warning("Seems we missed the portal. Is Portal activated? Profile needs to pick better alignment?");
+                    break;
+                }
+
+                // If we're not moving toward portal, get busy...
+                if (!StyxWoW.Me.IsMoving || Navigator.AtLocation(StartingPoint))
+                {
+                    QBCLog.DeveloperInfo("Entering portal via {0}", MovePoint);
+                    WoWMovement.ClickToMove(MovePoint);
+                }
+                await Coroutine.Yield();
+            }
+            return false;
+        }
+
+        private async Task<bool> WaitToRetry()
+        {
+            if (RetryDelayTimer == null)
+                return false;
+
+            if (!RetryDelayTimer.IsRunning)
+            {
+                QBCLog.Info(
+                    "Last portal entry attempt failed.  Will try re-entering portal again in {0} (try #{1}).",
+                    Utility.PrettyTime(RetryDelay),
+                    _retryCount);
+
+                RetryDelayTimer.Start();
+            }
+
+            // if the retry timer is running wait for it to expire.
+            if (RetryDelayTimer.Elapsed < RetryDelay)
+            {
+                TreeRoot.StatusText =
+                    string.Format(
+                        "Retrying portal entry in {0} of {1}.",
+                        Utility.PrettyTime(RetryDelay - RetryDelayTimer.Elapsed),
+                        Utility.PrettyTime(RetryDelay));
+                return true;
+            }
+            RetryDelayTimer = null;
+            return false;
+        }
+
+        #endregion
+
+        #region Helpers
+
+        private static float GetFowardSpeed()
+        {
+            if (Me.IsFlying)
+                return Me.MovementInfo.FlyingForwardSpeed;
+            if (Me.IsSwimming)
+                return Me.MovementInfo.SwimmingForwardSpeed;
+            return Me.MovementInfo.ForwardSpeed;
+        }
+
+        private bool BigChangeInPosition
+        {
+            get
+            {
+                return _bigChangeInPosition ?? (_bigChangeInPosition = new PerFrameCachedValue<bool>(
+                () =>
+                {
+                    var myLoc = Me.Location;
+                    var distToPrevLoc = myLoc.Distance(LastLocation);
+                    var secondsSinceLastPulse = PulseTimer.ElapsedMilliseconds / 1000f;
+                    LastLocation = myLoc;
+                    PulseTimer.Restart();
+                    // ignore small changes in distance.
+                    if (distToPrevLoc < 50)
+                        return false;
+
+                    var distPerSecond = distToPrevLoc / secondsSinceLastPulse;
+                    // The fastest travel speed is about 34.44 with highest riding skill level and guild bonuses.
+                    // Check if player moved further then the speed would have allowed him/her to travel, indicating that player 
+                    // was ported.
+                    var result = distPerSecond * 1.5 > LastForwardSpeed;
+                    PulseTimer.Reset();
+                    LastForwardSpeed = GetFowardSpeed();
+
+                    if (result)
+                        QBCLog.DeveloperInfo("Detected a big change in position");
+
+                    return result;
+                }));
+            }
+        }
+
+        #endregion
+    }
 }
 

@@ -65,7 +65,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WhenAllIsAligned
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
 
-        public uint[] Mobs = {82803, 82806, 83487, 86287, 82804, 82817, 88648, 88250};
+        public uint[] Mobs = { 82803, 82806, 83487, 86287, 82804, 82817, 88648, 88250 };
 
         private Composite _root;
 
@@ -112,7 +112,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.WhenAllIsAligned
 
         private async Task<bool> HandleQuestCompletion()
         {
-            if (!Me.IsQuestComplete(QuestId)) 
+            if (!Me.IsQuestComplete(QuestId))
                 return false;
             // Exit vehicle after quest is completed
             QBCLog.Info("Finished!");

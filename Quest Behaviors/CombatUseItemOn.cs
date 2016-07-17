@@ -51,6 +51,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -73,202 +74,201 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
 {
-	[CustomBehaviorFileName(@"CombatUseItemOn")]
-	public class CombatUseItemOn : CustomForcedBehavior
-	{
-		public CombatUseItemOn(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"CombatUseItemOn")]
+    public class CombatUseItemOn : CustomForcedBehavior
+    {
+        public CombatUseItemOn(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				CastingSpellId = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
-				MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
-				HasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
-				ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
-				Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-				MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
-				MobHasAuraId = GetAttributeAsNullable<int>("MobHasAuraId", false, ConstrainAs.AuraId, new[] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
-				MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
-				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				UseOnce = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true;
-				BlacklistMob = GetAttributeAsNullable<bool>("BlacklistMob", false, null, null) ?? false;
-				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 500;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            try
+            {
+                CastingSpellId = GetAttributeAsNullable<int>("CastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                MaxRange = GetAttributeAsNullable<double>("MaxRange", false, ConstrainAs.Range, null) ?? 25;
+                HasAuraId = GetAttributeAsNullable<int>("HasAuraId", false, ConstrainAs.AuraId, new[] { "HasAura" }) ?? 0;
+                ItemId = GetAttributeAsNullable<int>("ItemId", true, ConstrainAs.ItemId, null) ?? 0;
+                Location = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, new[] { "NpcId" });
+                MobHasAuraId = GetAttributeAsNullable<int>("MobHasAuraId", false, ConstrainAs.AuraId, new[] { "NpcHasAuraId", "NpcHasAura" }) ?? 0;
+                MobHpPercentLeft = GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "NpcHpLeft", "NpcHPLeft" }) ?? 0;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                UseOnce = GetAttributeAsNullable<bool>("UseOnce", false, null, null) ?? true;
+                BlacklistMob = GetAttributeAsNullable<bool>("BlacklistMob", false, null, null) ?? false;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 500;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-				// semantic coherency checks --
-				if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0.0))
-				{
-					QBCLog.Error("One or more of the following attributes must be specified:\n"
-								+ "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
-					IsAttributeProblem = true;
-				}
+                // semantic coherency checks --
+                if ((CastingSpellId == 0) && (HasAuraId == 0) && (MobHasAuraId == 0) && (MobHpPercentLeft == 0.0))
+                {
+                    QBCLog.Error("One or more of the following attributes must be specified:\n"
+                                + "CastingSpellId, HasAuraId, MobHasAuraId, MobHpPercentLeft");
+                    IsAttributeProblem = true;
+                }
 
-				QuestBehaviorBase.DeprecationWarning_Behavior(this, "CombatUseItemOnV2", BuildReplacementArguments());
+                QuestBehaviorBase.DeprecationWarning_Behavior(this, "CombatUseItemOnV2", BuildReplacementArguments());
+            }
 
-			}
-
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		private List<Tuple<string, string>> BuildReplacementArguments()
-		{
-			var replacementArgs = new List<Tuple<string, string>>();
 
-			QuestBehaviorBase.BuildReplacementArgs_QuestSpec(replacementArgs, QuestId, QuestRequirementComplete, QuestRequirementInLog);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, ItemId, "ItemId", 0);
-			QuestBehaviorBase.BuildReplacementArgs_Ids(replacementArgs, "MobId", MobIds, true);
+        private List<Tuple<string, string>> BuildReplacementArguments()
+        {
+            var replacementArgs = new List<Tuple<string, string>>();
 
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, CastingSpellId, "UseWhenMobCastingSpellId", 0);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, HasAuraId, "UseWhenMeHasAuraId", 0);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobHasAuraId, "UseWhenMobHasAuraId", 0);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobHpPercentLeft, "UseWhenMobHasHealthPercent", 0);
+            QuestBehaviorBase.BuildReplacementArgs_QuestSpec(replacementArgs, QuestId, QuestRequirementComplete, QuestRequirementInLog);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, ItemId, "ItemId", 0);
+            QuestBehaviorBase.BuildReplacementArgs_Ids(replacementArgs, "MobId", MobIds, true);
 
-			var useItemStrategy =
-				(UseOnce && !BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget
-				: (UseOnce && BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTargetDontDefend
-				: (!UseOnce && !BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemContinuouslyOnTarget
-				: CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend;
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, useItemStrategy, "UseItemStrategy",
-				CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, CastingSpellId, "UseWhenMobCastingSpellId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, HasAuraId, "UseWhenMeHasAuraId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobHasAuraId, "UseWhenMobHasAuraId", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MobHpPercentLeft, "UseWhenMobHasHealthPercent", 0);
 
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimesToUseItem", 1);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, MaxRange, "MaxRangeToUseItem", 25.0);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTimeAfterItemUse", 0);
-			QuestBehaviorBase.BuildReplacementArg(replacementArgs, Location, "", Me.Location);
+            var useItemStrategy =
+                (UseOnce && !BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget
+                : (UseOnce && BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTargetDontDefend
+                : (!UseOnce && !BlacklistMob) ? CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemContinuouslyOnTarget
+                : CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemContinuouslyOnTargetDontDefend;
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, useItemStrategy, "UseItemStrategy",
+                CombatUseItemOnV2.CombatUseItemOnV2.UseItemStrategyType.UseItemOncePerTarget);
 
-			return replacementArgs;
-		}
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, NumOfTimes, "NumOfTimesToUseItem", 1);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, MaxRange, "MaxRangeToUseItem", 25.0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, WaitTime, "WaitTimeAfterItemUse", 0);
+            QuestBehaviorBase.BuildReplacementArg(replacementArgs, Location, "", Me.Location);
+
+            return replacementArgs;
+        }
 
 
-		// Attributes provided by caller
-		public int CastingSpellId { get; private set; }
-		public double MaxRange { get; private set; }
-		public int HasAuraId { get; private set; }
-		public int ItemId { get; private set; }
-		public WoWPoint Location { get; private set; }
-		public int MobHasAuraId { get; private set; }
-		public double MobHpPercentLeft { get; private set; }
-		public int[] MobIds { get; private set; }
-		public int NumOfTimes { get; private set; }
-		public int QuestId { get; private set; }
-		public bool UseOnce { get; private set; }
-		public bool BlacklistMob { get; private set; }
-		public int WaitTime { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        // Attributes provided by caller
+        public int CastingSpellId { get; private set; }
+        public double MaxRange { get; private set; }
+        public int HasAuraId { get; private set; }
+        public int ItemId { get; private set; }
+        public WoWPoint Location { get; private set; }
+        public int MobHasAuraId { get; private set; }
+        public double MobHpPercentLeft { get; private set; }
+        public int[] MobIds { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int QuestId { get; private set; }
+        public bool UseOnce { get; private set; }
+        public bool BlacklistMob { get; private set; }
+        public int WaitTime { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private Composite _root;
 
-		// Private properties
-		private int Counter { get; set; }
-		public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-		public WoWUnit Mob
-		{
-			get
-			{
-				return (ObjectManager.GetObjectsOfType<WoWUnit>()
-									 .Where(u => MobIds.Contains((int)u.Entry) && !u.IsDead && !BehaviorBlacklist.Contains(u.Guid))
-									 .OrderBy(u => u.Distance).FirstOrDefault());
-			}
-		}
+        // Private properties
+        private int Counter { get; set; }
+        public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId && i.Cooldown == 0); } }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+        public WoWUnit Mob
+        {
+            get
+            {
+                return (ObjectManager.GetObjectsOfType<WoWUnit>()
+                                     .Where(u => MobIds.Contains((int)u.Entry) && !u.IsDead && !BehaviorBlacklist.Contains(u.Guid))
+                                     .OrderBy(u => u.Distance).FirstOrDefault());
+            }
+        }
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         private WoWGuid _lastMobGuid;
-		private Composite RootCompositeOverride()
-		{
-			return
-				new PrioritySelector(
-					new Decorator(
-						ret => !_isBehaviorDone && Me.IsAlive,
-						new PrioritySelector(
-							new Decorator(ret => (Counter >= NumOfTimes) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
-								new Sequence(
-									new Action(ret => TreeRoot.StatusText = "Finished!"),
-									new WaitContinue(120,
-										new Action(delegate
-										{
-											_isBehaviorDone = true;
-											return RunStatus.Success;
-										}))
-									)),
+        private Composite RootCompositeOverride()
+        {
+            return
+                new PrioritySelector(
+                    new Decorator(
+                        ret => !_isBehaviorDone && Me.IsAlive,
+                        new PrioritySelector(
+                            new Decorator(ret => (Counter >= NumOfTimes) || (Me.QuestLog.GetQuestById((uint)QuestId) != null && Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
+                                new Sequence(
+                                    new Action(ret => TreeRoot.StatusText = "Finished!"),
+                                    new WaitContinue(120,
+                                        new Action(delegate
+                                        {
+                                            _isBehaviorDone = true;
+                                            return RunStatus.Success;
+                                        }))
+                                    )),
 
-							new Decorator(
-								ret => Me.CurrentTarget != null && Item != null && (!UseOnce || Me.CurrentTarget.Guid != _lastMobGuid),
-								new PrioritySelector(
-									new Sequence(
-									new Decorator(
-										ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
-											   (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
-											   (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
-											   (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name)),
-										new PrioritySelector(
-											new Decorator(
+                            new Decorator(
+                                ret => Me.CurrentTarget != null && Item != null && (!UseOnce || Me.CurrentTarget.Guid != _lastMobGuid),
+                                new PrioritySelector(
+                                    new Sequence(
+                                    new Decorator(
+                                        ret => (CastingSpellId != 0 && Me.CurrentTarget.CastingSpellId == CastingSpellId) ||
+                                               (MobHasAuraId != 0 && Me.CurrentTarget.Auras.Values.Any(a => a.SpellId == MobHasAuraId)) ||
+                                               (MobHpPercentLeft != 0 && Me.CurrentTarget.HealthPercent <= MobHpPercentLeft) ||
+                                               (HasAuraId != 0 && Me.HasAura(WoWSpell.FromId(HasAuraId).Name)),
+                                        new PrioritySelector(
+                                            new Decorator(
 
-											new Sequence(
-												new Action(ret => Navigator.PlayerMover.MoveStop()),
-												new SleepForLagDuration(),
-												new Action(ret => TreeRoot.StatusText = "Using item"),
-												new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
-												new Action(ret => Item.UseContainerItem()),
-												new Sleep(WaitTime),
-												new DecoratorContinue(
-													ret => QuestId == 0,
-													new Action(ret => Counter++)),
-												new DecoratorContinue(ret => BlacklistMob,
-													new Action(ret => BehaviorBlacklist.Add(_lastMobGuid, TimeSpan.FromSeconds(30))))))))))
+                                            new Sequence(
+                                                new Action(ret => Navigator.PlayerMover.MoveStop()),
+                                                new SleepForLagDuration(),
+                                                new Action(ret => TreeRoot.StatusText = "Using item"),
+                                                new Action(ret => _lastMobGuid = Me.CurrentTarget.Guid),
+                                                new Action(ret => Item.UseContainerItem()),
+                                                new Sleep(WaitTime),
+                                                new DecoratorContinue(
+                                                    ret => QuestId == 0,
+                                                    new Action(ret => Counter++)),
+                                                new DecoratorContinue(ret => BlacklistMob,
+                                                    new Action(ret => BehaviorBlacklist.Add(_lastMobGuid, TimeSpan.FromSeconds(30))))))))))
 
-					))));
-		}
+                    ))));
+        }
 
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
-		protected Composite CreateBehavior_QuestbotMain()
-		{
-			return _root ?? (_root =
-				new PrioritySelector(
-					new Decorator(
-						ret => !Me.Combat && Me.IsAlive,
-							new PrioritySelector( ctx => Mob,
-								new Decorator(
-									ret => ret == null,
-									new Sequence(
-										new Action(ret => TreeRoot.StatusText = "Moving to location"),
-										new Action(ret => Navigator.MoveTo(Location)))),
-								new Decorator(
-									ret => ret != null && ((WoWUnit)ret).Distance > MaxRange,
-									new Action(ret => Navigator.MoveTo(Mob.Location))),
-								new Decorator(
-									ret => !Me.GotTarget && Mob.Distance <= MaxRange,
-									new Action(ret => ((WoWUnit)ret).Target())),
-								new Decorator(
-									ret => RoutineManager.Current.PullBehavior != null,
-									RoutineManager.Current.PullBehavior),
-								new Action(ret => RoutineManager.Current.Pull()))),
-					RootCompositeOverride()
-				));
-		}
+        protected Composite CreateBehavior_QuestbotMain()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+                    new Decorator(
+                        ret => !Me.Combat && Me.IsAlive,
+                            new PrioritySelector(ctx => Mob,
+                                new Decorator(
+                                    ret => ret == null,
+                                    new Sequence(
+                                        new Action(ret => TreeRoot.StatusText = "Moving to location"),
+                                        new Action(ret => Navigator.MoveTo(Location)))),
+                                new Decorator(
+                                    ret => ret != null && ((WoWUnit)ret).Distance > MaxRange,
+                                    new Action(ret => Navigator.MoveTo(Mob.Location))),
+                                new Decorator(
+                                    ret => !Me.GotTarget && Mob.Distance <= MaxRange,
+                                    new Action(ret => ((WoWUnit)ret).Target())),
+                                new Decorator(
+                                    ret => RoutineManager.Current.PullBehavior != null,
+                                    RoutineManager.Current.PullBehavior),
+                                new Action(ret => RoutineManager.Current.Pull()))),
+                    RootCompositeOverride()
+                ));
+        }
 
         public override void OnFinished()
         {
@@ -278,72 +278,72 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOn
             base.OnFinished();
         }
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-				this.UpdateGoalText(QuestId);
-			}
-		}
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 
-	class BehaviorBlacklist
-	{
-        static readonly Dictionary<WoWGuid, BlacklistTime> SpellBlacklistDict = new Dictionary<WoWGuid, BlacklistTime>();
-		private BehaviorBlacklist()
-		{
-		}
+    internal class BehaviorBlacklist
+    {
+        private static readonly Dictionary<WoWGuid, BlacklistTime> s_spellBlacklistDict = new Dictionary<WoWGuid, BlacklistTime>();
+        private BehaviorBlacklist()
+        {
+        }
 
-		class BlacklistTime
-		{
-			public BlacklistTime(DateTime time, TimeSpan span)
-			{
-				TimeStamp = time;
-				Duration = span;
-			}
-			public DateTime TimeStamp { get; private set; }
-			public TimeSpan Duration { get; private set; }
-		}
+        private class BlacklistTime
+        {
+            public BlacklistTime(DateTime time, TimeSpan span)
+            {
+                TimeStamp = time;
+                Duration = span;
+            }
+            public DateTime TimeStamp { get; private set; }
+            public TimeSpan Duration { get; private set; }
+        }
 
         static public bool Contains(WoWGuid id)
-		{
-			RemoveIfExpired(id);
-			return SpellBlacklistDict.ContainsKey(id);
-		}
+        {
+            RemoveIfExpired(id);
+            return s_spellBlacklistDict.ContainsKey(id);
+        }
 
         static public void Add(WoWGuid id, TimeSpan duration)
-		{
-			SpellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
-		}
+        {
+            s_spellBlacklistDict[id] = new BlacklistTime(DateTime.Now, duration);
+        }
 
-        static void RemoveIfExpired(WoWGuid id)
-		{
-			if (SpellBlacklistDict.ContainsKey(id) &&
-				SpellBlacklistDict[id].TimeStamp + SpellBlacklistDict[id].Duration <= DateTime.Now)
-			{
-				SpellBlacklistDict.Remove(id);
-			}
-		}
-	}
+        private static void RemoveIfExpired(WoWGuid id)
+        {
+            if (s_spellBlacklistDict.ContainsKey(id) &&
+                s_spellBlacklistDict[id].TimeStamp + s_spellBlacklistDict[id].Duration <= DateTime.Now)
+            {
+                s_spellBlacklistDict.Remove(id);
+            }
+        }
+    }
 }

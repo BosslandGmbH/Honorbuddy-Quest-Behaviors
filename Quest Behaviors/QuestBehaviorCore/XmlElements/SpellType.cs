@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Xml.Linq;
 #endregion
@@ -17,7 +18,7 @@ using System.Xml.Linq;
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class SpellType : QuestBehaviorXmlBase
-    {        
+    {
         public SpellType(XElement xElement)
             : base(xElement)
         {
@@ -27,7 +28,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 SpellId = GetAttributeAsNullable<int>("SpellId", true, ConstrainAs.SpellId, null) ?? 0;
 
                 if (string.IsNullOrEmpty(Name))
-                    { Name = GetDefaultName(SpellId); }
+                { Name = GetDefaultName(SpellId); }
 
                 HandleAttributeProblem();
             }
@@ -35,7 +36,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             catch (Exception except)
             {
                 if (Query.IsExceptionReportingNeeded(except))
-                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+                { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
                 IsAttributeProblem = true;
             }
         }
@@ -50,25 +51,25 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public int SpellId { get; set; }
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "Spell";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "Spell";
 
-			return
-				new XElement(elementName,
-				             new XAttribute("Name", Name),
-				             new XAttribute("SpellId", SpellId));
-		}
-		#endregion
+            return
+                new XElement(elementName,
+                             new XAttribute("Name", Name),
+                             new XAttribute("SpellId", SpellId));
+        }
+        #endregion
 
 
-		private string GetDefaultName(int spellId)
+        private string GetDefaultName(int spellId)
         {
             return string.Format("SpellId({0})", spellId);
         }

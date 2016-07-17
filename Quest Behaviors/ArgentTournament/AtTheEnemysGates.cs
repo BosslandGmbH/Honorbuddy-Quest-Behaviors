@@ -18,6 +18,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,306 +39,301 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Styx.Bot.Quest_Behaviors
 {
-	[CustomBehaviorFileName(@"ArgentTournament\AtTheEnemysGates")]
-	public class EnemysGate : CustomForcedBehavior
-	{
-		public EnemysGate(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"ArgentTournament\AtTheEnemysGates")]
+    public class EnemysGate : CustomForcedBehavior
+    {
+        public EnemysGate(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ??WoWPoint.Empty;
-				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = QuestInLogRequirement.InLog;
-			}
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                Location = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = QuestInLogRequirement.InLog;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		uint[] Mounts = new uint[]{34125};
+        private uint[] _mounts = new uint[] { 34125 };
 
-		private const uint ItemId_AllianceLance = 46069;
-		private const uint ItemId_HordeLance = 46070;
-		private const uint ItemId_ArgentLance = 46106;
-		private readonly HashSet<uint> ItemIds_Lances = new HashSet<uint> { ItemId_AllianceLance, ItemId_HordeLance, ItemId_ArgentLance };
+        private const uint ItemId_AllianceLance = 46069;
+        private const uint ItemId_HordeLance = 46070;
+        private const uint ItemId_ArgentLance = 46106;
+        private readonly HashSet<uint> _itemIds_Lances = new HashSet<uint> { ItemId_AllianceLance, ItemId_HordeLance, ItemId_ArgentLance };
 
-		private WoWItem AllianceLance { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId_AllianceLance); } }
+        private WoWItem AllianceLance { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == ItemId_AllianceLance); } }
 
-		private WoWItem HordeLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_HordeLance); } }
+        private WoWItem HordeLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_HordeLance); } }
 
-		private WoWItem ArgentLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_ArgentLance); } }
+        private WoWItem ArgentLance { get { return Me.CarriedItems.FirstOrDefault(x => x.Entry == ItemId_ArgentLance); } }
 
-		private WoWItem BestLance { get { return (Me.IsHorde ? HordeLance : AllianceLance) ?? ArgentLance; } }
+        private WoWItem BestLance { get { return (Me.IsHorde ? HordeLance : AllianceLance) ?? ArgentLance; } }
 
-		// Attributes provided by caller
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-		public WoWPoint Location { get; private set; }
+        // Attributes provided by caller
+        public int QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public WoWPoint Location { get; private set; }
 
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
-
-
-		// Private properties
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
-
-		#region Overrides of CustomForcedBehavior
-
-		public Composite DoneYet
-		{
-			get
-			{
-				return
-					new Decorator(r=> Me.IsQuestComplete(QuestId),new PrioritySelector(
-						new Decorator(r=>Me.Location.Distance(Location) > 3, new Action(r=>Navigator.MoveTo(Location))),
-						new Decorator(ret => Me.Location.Distance(Location) < 3,
-							new Action(delegate
-							{
-								Lua.DoString(
-									"RunMacroText(\"/leavevehicle\")");
-
-								if (Query.IsViable(_mainhand) && Me.Inventory.Equipped.MainHand != _mainhand)
-									_mainhand.UseContainerItem();
-
-								if (Query.IsViable(_offhand) && Me.Inventory.Equipped.OffHand != _offhand)
-									_offhand.UseContainerItem();
-
-								TreeRoot.StatusText = "Finished!";
-								_isBehaviorDone = true;
-								return RunStatus.Success;
-							}))));
-			}
-		}
-
-		private async Task<bool> LanceUp()
-		{
-			var mainHand = Me.Inventory.Equipped.MainHand;
-			if (mainHand != null && ItemIds_Lances.Contains(mainHand.Entry))
-				return false;
-
-			var bestLance = BestLance;
-			if (bestLance == null)
-				QBCLog.Fatal("No lance in bags");
-			else
-				bestLance.UseContainerItem();
-			return true;
-		}
-
-		public void UsePetSkill(string action)
-		{
-
-			var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
-			if (spell == null)
-				return;
-			QBCLog.Info("[Pet] Casting {0}", action);
-			Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
-		}
-
-		WoWUnit Mount
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().Where(
-						x => Mounts.Contains(x.Entry) && x.NpcFlags == 16777216).OrderBy(x=>x.Distance).FirstOrDefault();
-			}
-		}
-
-		//WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
-		// WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
-		//WoWPoint MountSpot = new WoWPoint(8426.872,711.7554,547.294);
-		
-		Composite GetNearMounts
-		{
-			get
-			{
-				return new PrioritySelector(
-					new Decorator(r => Me.Location.Distance(Location) > 15, new Action(r => Navigator.MoveTo(Location))),
-					 new Decorator(r => Me.Location.Distance(Location) < 15, new Action(r => Mount.Interact()))   
-						
-						
-						);
-			}
-		}
-		 
-		Composite MountUp
-		{
-			get
-			{
-				return new Decorator(r=>!Me.IsOnTransport,GetNearMounts);
-			}
-		}
-
-		WoWUnit MyMount
-		{
-			get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.CreatedByUnitGuid == Me.Guid); }
-		}
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private Composite _root;
 
 
+        // Private properties
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
-		Composite BuffUp
-		{
-			get
-			{
-				return new Decorator(r =>!Me.Combat && (!MyMount.ActiveAuras.ContainsKey("Defend") || ( MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 3)), new Action(r=>UsePetSkill("Defend")));
-			}
-		}
+        #region Overrides of CustomForcedBehavior
 
+        public Composite DoneYet
+        {
+            get
+            {
+                return
+                    new Decorator(r => Me.IsQuestComplete(QuestId), new PrioritySelector(
+                        new Decorator(r => Me.Location.Distance(Location) > 3, new Action(r => Navigator.MoveTo(Location))),
+                        new Decorator(ret => Me.Location.Distance(Location) < 3,
+                            new Action(delegate
+                            {
+                                Lua.DoString(
+                                    "RunMacroText(\"/leavevehicle\")");
 
-		//33429 = lt.
-		//33438 = boneguard
-		//34127 = commander
-		WoWUnit HostileScout
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x=>x.Entry == 33550 && x.GotTarget && x.CurrentTarget == MyMount &&x.IsAlive);
-			}
-		}
-		WoWUnit Lt
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 33429 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
-			}
-		}
+                                if (Query.IsViable(_mainhand) && Me.Inventory.Equipped.MainHand != _mainhand)
+                                    _mainhand.UseContainerItem();
 
-		WoWUnit Scout
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 33550 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
-			}
-		}
+                                if (Query.IsViable(_offhand) && Me.Inventory.Equipped.OffHand != _offhand)
+                                    _offhand.UseContainerItem();
 
-		WoWUnit HostileCm
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 34127 && x.IsAlive && (x.GetThreatInfoFor(MyMount).ThreatValue > 0  || (x.TaggedByMe) || (x.GotTarget && (x.CurrentTarget == MyMount || x.CurrentTarget == Me))));
-			}
-		}
+                                TreeRoot.StatusText = "Finished!";
+                                _isBehaviorDone = true;
+                                return RunStatus.Success;
+                            }))));
+            }
+        }
 
-		WoWUnit HostileBg
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 33438 && x.GotTarget && x.CurrentTarget == MyMount && x.IsAlive);
-			}
-		}
+        private async Task<bool> LanceUp()
+        {
+            var mainHand = Me.Inventory.Equipped.MainHand;
+            if (mainHand != null && _itemIds_Lances.Contains(mainHand.Entry))
+                return false;
 
-		WoWUnit HostileLt
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 33429 && x.GotTarget && x.CurrentTarget == MyMount && x.IsAlive);
-			}
-		}
+            var bestLance = BestLance;
+            if (bestLance == null)
+                QBCLog.Fatal("No lance in bags");
+            else
+                bestLance.UseContainerItem();
+            return true;
+        }
 
-		private Composite Fight
-		{
-			
-			get
-			{
-				return
-					new Decorator(r => Me.Combat, new Action(r =>
-																 {
-																	 ObjectManager.Update();
-																	 if (HostileCm != null)
-																	 {
-																		 Navigator.MoveTo(Location);
-																		 if (Location.Distance(Me.Location) < 3)
-																		 {
-																			 WoWMovement.MoveStop();
-																			 Lua.DoString("RunMacroText(\"/leavevehicle\")");
-																		 }
-																		 return;
-																	 }
+        public void UsePetSkill(string action)
+        {
+            var spell = StyxWoW.Me.PetSpells.FirstOrDefault(p => p.ToString() == action);
+            if (spell == null)
+                return;
+            QBCLog.Info("[Pet] Casting {0}", action);
+            Lua.DoString("CastPetAction({0})", spell.ActionBarIndex + 1);
+        }
+
+        private WoWUnit Mount
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(
+                        x => _mounts.Contains(x.Entry) && x.NpcFlags == 16777216).OrderBy(x => x.Distance).FirstOrDefault();
+            }
+        }
+
+        //WoWPoint endspot = new WoWPoint(1076.7,455.7638,-44.20478);
+        // WoWPoint spot = new WoWPoint(1109.848,462.9017,-45.03053);
+        //WoWPoint MountSpot = new WoWPoint(8426.872,711.7554,547.294);
+
+        private Composite GetNearMounts
+        {
+            get
+            {
+                return new PrioritySelector(
+                    new Decorator(r => Me.Location.Distance(Location) > 15, new Action(r => Navigator.MoveTo(Location))),
+                     new Decorator(r => Me.Location.Distance(Location) < 15, new Action(r => Mount.Interact()))
 
 
-																	 if (Me.GotTarget)
-																	 {
+                        );
+            }
+        }
+
+        private Composite MountUp
+        {
+            get
+            {
+                return new Decorator(r => !Me.IsOnTransport, GetNearMounts);
+            }
+        }
+
+        private WoWUnit MyMount
+        {
+            get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.CreatedByUnitGuid == Me.Guid); }
+        }
 
 
-																		 if (Me.CurrentTarget.Entry != 33550 && (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 2)))
-																		 {
-																			 UsePetSkill("Defend");
-																		 }
 
-																		 
-																		 var loc = Me.CurrentTarget.Location;
-																		 //Scouts
-																		 if (Me.CurrentTarget.Entry == 33550)
-																		 {
+        private Composite BuffUp
+        {
+            get
+            {
+                return new Decorator(r => !Me.Combat && (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 3)), new Action(r => UsePetSkill("Defend")));
+            }
+        }
 
-																			 if (Me.CurrentTarget.Distance2D < 10)
-																			 {
-																				 //WoWMovement.MoveStop();
-																				 //WoWMovement.StopFace();
-																				 //WoWMovement.ClickToMove(Me.Location);
-																				 WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
-																				 Me.CurrentTarget.Face();
-																				 UsePetSkill("Shield-Breaker");
-																				 UsePetSkill("Thrust");
-																			 }
-																			 else if (Me.CurrentTarget.Distance2D < 20)
-																			 {
-																				 WoWMovement.MoveStop();
-																				 //WoWMovement.StopFace();
-																				 WoWMovement.ClickToMove(Me.Location);
-																				 Me.CurrentTarget.Face();
-																				 UsePetSkill("Shield-Breaker");		
-																			 }
-																			 else
-																			 {
-																				 Navigator.MoveTo(loc);
-																			 }
-																		 }
-																		 else if (Me.CurrentTarget.Entry == 33429) //Lt
-																		 {
-																			 if (Me.CurrentTarget.Distance2D < 20)
-																			 {
-																				 WoWMovement.MoveStop();
-																				 //WoWMovement.StopFace();
-																				 //WoWMovement.ClickToMove(Me.Location);
-																				 UsePetSkill("Shield-Breaker");
-																				 UsePetSkill("Thrust");
-																				 WoWMovement.ClickToMove(loc);
-																			 }
-																			 else
-																			 {
-																				 Navigator.MoveTo(loc);
-																			 }
-																		 }
-																		 else if (Me.CurrentTarget.Entry == 33438) //boneguard soldier
-																		 {
-																			 /*if (Me.CurrentTarget.Distance2D )
+
+        //33429 = lt.
+        //33438 = boneguard
+        //34127 = commander
+        private WoWUnit HostileScout
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 33550 && x.GotTarget && x.CurrentTarget == MyMount && x.IsAlive);
+            }
+        }
+        private WoWUnit Lt
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 33429 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
+            }
+        }
+
+        private WoWUnit Scout
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().Where(x => x.Entry == 33550 && x.IsAlive).OrderBy(u => u.Distance).FirstOrDefault();
+            }
+        }
+
+        private WoWUnit HostileCm
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 34127 && x.IsAlive && (x.GetThreatInfoFor(MyMount).ThreatValue > 0 || (x.TaggedByMe) || (x.GotTarget && (x.CurrentTarget == MyMount || x.CurrentTarget == Me))));
+            }
+        }
+
+        private WoWUnit HostileBg
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 33438 && x.GotTarget && x.CurrentTarget == MyMount && x.IsAlive);
+            }
+        }
+
+        private WoWUnit HostileLt
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(x => x.Entry == 33429 && x.GotTarget && x.CurrentTarget == MyMount && x.IsAlive);
+            }
+        }
+
+        private Composite Fight
+        {
+            get
+            {
+                return
+                    new Decorator(r => Me.Combat, new Action(r =>
+                                                                 {
+                                                                     ObjectManager.Update();
+                                                                     if (HostileCm != null)
+                                                                     {
+                                                                         Navigator.MoveTo(Location);
+                                                                         if (Location.Distance(Me.Location) < 3)
+                                                                         {
+                                                                             WoWMovement.MoveStop();
+                                                                             Lua.DoString("RunMacroText(\"/leavevehicle\")");
+                                                                         }
+                                                                         return;
+                                                                     }
+
+
+                                                                     if (Me.GotTarget)
+                                                                     {
+                                                                         if (Me.CurrentTarget.Entry != 33550 && (!MyMount.ActiveAuras.ContainsKey("Defend") || (MyMount.ActiveAuras.ContainsKey("Defend") && MyMount.ActiveAuras["Defend"].StackCount < 2)))
+                                                                         {
+                                                                             UsePetSkill("Defend");
+                                                                         }
+
+
+                                                                         var loc = Me.CurrentTarget.Location;
+                                                                         //Scouts
+                                                                         if (Me.CurrentTarget.Entry == 33550)
+                                                                         {
+                                                                             if (Me.CurrentTarget.Distance2D < 10)
+                                                                             {
+                                                                                 //WoWMovement.MoveStop();
+                                                                                 //WoWMovement.StopFace();
+                                                                                 //WoWMovement.ClickToMove(Me.Location);
+                                                                                 WoWMovement.Move(WoWMovement.MovementDirection.Backwards);
+                                                                                 Me.CurrentTarget.Face();
+                                                                                 UsePetSkill("Shield-Breaker");
+                                                                                 UsePetSkill("Thrust");
+                                                                             }
+                                                                             else if (Me.CurrentTarget.Distance2D < 20)
+                                                                             {
+                                                                                 WoWMovement.MoveStop();
+                                                                                 //WoWMovement.StopFace();
+                                                                                 WoWMovement.ClickToMove(Me.Location);
+                                                                                 Me.CurrentTarget.Face();
+                                                                                 UsePetSkill("Shield-Breaker");
+                                                                             }
+                                                                             else
+                                                                             {
+                                                                                 Navigator.MoveTo(loc);
+                                                                             }
+                                                                         }
+                                                                         else if (Me.CurrentTarget.Entry == 33429) //Lt
+                                                                         {
+                                                                             if (Me.CurrentTarget.Distance2D < 20)
+                                                                             {
+                                                                                 WoWMovement.MoveStop();
+                                                                                 //WoWMovement.StopFace();
+                                                                                 //WoWMovement.ClickToMove(Me.Location);
+                                                                                 UsePetSkill("Shield-Breaker");
+                                                                                 UsePetSkill("Thrust");
+                                                                                 WoWMovement.ClickToMove(loc);
+                                                                             }
+                                                                             else
+                                                                             {
+                                                                                 Navigator.MoveTo(loc);
+                                                                             }
+                                                                         }
+                                                                         else if (Me.CurrentTarget.Entry == 33438) //boneguard soldier
+                                                                         {
+                                                                             /*if (Me.CurrentTarget.Distance2D )
 																			 {
 																				 WoWMovement.MoveStop();
 																				 //WoWMovement.StopFace();
@@ -347,190 +343,178 @@ namespace Styx.Bot.Quest_Behaviors
 																			 }
 																			 else
 																			 {*/
-																				 //Navigator.MoveTo(loc);
-																			 WoWMovement.ClickToMove(loc);
-																			 //}
-																		 }
-
-
-																	 }
-																	 else
-																	 {
-																		 
-																		 if (HostileScout != null)
-																			 HostileScout.Target();
-																		 else if (HostileLt != null)
-																			 HostileLt.Target();
-																		 else if (HostileBg != null)
-																			 HostileBg.Target();
-
-																	 }
-												 
-																 }
-						))
+                                                                             //Navigator.MoveTo(loc);
+                                                                             WoWMovement.ClickToMove(loc);
+                                                                             //}
+                                                                         }
+                                                                     }
+                                                                     else
+                                                                     {
+                                                                         if (HostileScout != null)
+                                                                             HostileScout.Target();
+                                                                         else if (HostileLt != null)
+                                                                             HostileLt.Target();
+                                                                         else if (HostileBg != null)
+                                                                             HostileBg.Target();
+                                                                     }
+                                                                 }
+                        ))
 
 
 
-					;
-			}
-		}
+                    ;
+            }
+        }
 
-		Dictionary<uint,uint> Debuffs = new Dictionary<uint, uint>();
-		
-
-		Composite HealUp
-		{
-			get
-			{
-				return new Decorator(r => !Me.Combat && MyMount.HealthPercent < 50, new Action(r => UsePetSkill("Refresh Mount")));
-			}
-		}
-		
-		WoWPoint Area = new WoWPoint(6289.036,2335.079,482.9755);
-		Composite PickFight
-		{
-			get
-			{
-				return new Decorator(r=>!Me.Combat && !MyMount.Combat,new PrioritySelector(
-		   new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2), new Action(r =>
-																				{
-
-																					ObjectManager.Update();
-																					if (!Me.GotTarget || (Me.GotTarget && !Me.CurrentTarget.IsHostile))
-																					{
-
-																						if (Scout != null)
-																						{
-																							Navigator.PlayerMover.MoveStop();
-																							Scout.Target();
-																							if (Scout.Distance > 20)
-																							{
-																								Navigator.MoveTo(Scout.Location);
-																							}
-																						}
-																						else
-																						{
-																							//Move to where we can find scouts
-																							Navigator.MoveTo(Area);
-																						}
-																					}
-																					else
-																					{
-																						//We have a target, get in range and pull with shield breaker
-																						if (Me.CurrentTarget.Distance > 20)
-																						{
-																							Navigator.MoveTo(Me.CurrentTarget.Location);
-																						}
-																						else
-																						{
-																							QBCLog.Info("in range");
-																							Navigator.PlayerMover.MoveStop();
-																							Me.CurrentTarget.Face();
-																							UsePetSkill("Shield-Breaker");
-																						}
-																					}
+        private Dictionary<uint, uint> _debuffs = new Dictionary<uint, uint>();
 
 
-																				})),
-		   new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 3), new Action(r =>
-																				{
-																					if (!Me.GotTarget || (Me.GotTarget && !Me.CurrentTarget.IsHostile))
-																					{
-																						if (Lt != null)
-																						{
-																							Navigator.PlayerMover.MoveStop();
-																							Lt.Target();
-																							if (Lt.Distance > 20)
-																							{
-																								Navigator.MoveTo(
-																									Lt.Location);
-																							}
-																						}
-																						else
-																						{
-																							//Move to where we can find scouts
-																							Navigator.MoveTo(Area);
-																						}
-																					}
-																					else
-																					{
-																						//We have a target, get in range and pull with shield breaker
-																						if (Me.CurrentTarget.Distance > 20)
-																						{
-																							Navigator.MoveTo(Me.CurrentTarget.Location);
-																						}
-																						else
-																						{
-																							Navigator.PlayerMover.MoveStop();
-																							Me.CurrentTarget.Face();
-																							UsePetSkill("Shield-Breaker");
-																						}
-																					}
+        private Composite HealUp
+        {
+            get
+            {
+                return new Decorator(r => !Me.Combat && MyMount.HealthPercent < 50, new Action(r => UsePetSkill("Refresh Mount")));
+            }
+        }
+
+        private WoWPoint _area = new WoWPoint(6289.036, 2335.079, 482.9755);
+        private Composite PickFight
+        {
+            get
+            {
+                return new Decorator(r => !Me.Combat && !MyMount.Combat, new PrioritySelector(
+           new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2), new Action(r =>
+                                                                                {
+                                                                                    ObjectManager.Update();
+                                                                                    if (!Me.GotTarget || (Me.GotTarget && !Me.CurrentTarget.IsHostile))
+                                                                                    {
+                                                                                        if (Scout != null)
+                                                                                        {
+                                                                                            Navigator.PlayerMover.MoveStop();
+                                                                                            Scout.Target();
+                                                                                            if (Scout.Distance > 20)
+                                                                                            {
+                                                                                                Navigator.MoveTo(Scout.Location);
+                                                                                            }
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            //Move to where we can find scouts
+                                                                                            Navigator.MoveTo(_area);
+                                                                                        }
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        //We have a target, get in range and pull with shield breaker
+                                                                                        if (Me.CurrentTarget.Distance > 20)
+                                                                                        {
+                                                                                            Navigator.MoveTo(Me.CurrentTarget.Location);
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            QBCLog.Info("in range");
+                                                                                            Navigator.PlayerMover.MoveStop();
+                                                                                            Me.CurrentTarget.Face();
+                                                                                            UsePetSkill("Shield-Breaker");
+                                                                                        }
+                                                                                    }
+                                                                                })),
+           new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 3), new Action(r =>
+                                                                                {
+                                                                                    if (!Me.GotTarget || (Me.GotTarget && !Me.CurrentTarget.IsHostile))
+                                                                                    {
+                                                                                        if (Lt != null)
+                                                                                        {
+                                                                                            Navigator.PlayerMover.MoveStop();
+                                                                                            Lt.Target();
+                                                                                            if (Lt.Distance > 20)
+                                                                                            {
+                                                                                                Navigator.MoveTo(
+                                                                                                    Lt.Location);
+                                                                                            }
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            //Move to where we can find scouts
+                                                                                            Navigator.MoveTo(_area);
+                                                                                        }
+                                                                                    }
+                                                                                    else
+                                                                                    {
+                                                                                        //We have a target, get in range and pull with shield breaker
+                                                                                        if (Me.CurrentTarget.Distance > 20)
+                                                                                        {
+                                                                                            Navigator.MoveTo(Me.CurrentTarget.Location);
+                                                                                        }
+                                                                                        else
+                                                                                        {
+                                                                                            Navigator.PlayerMover.MoveStop();
+                                                                                            Me.CurrentTarget.Face();
+                                                                                            UsePetSkill("Shield-Breaker");
+                                                                                        }
+                                                                                    }
+                                                                                }))
+
+                        ));
+            }
+        }
 
 
-																				}))
+        protected Composite CreateBehavior_QuestbotMain()
+        {
+            return _root ??
+                   (_root =
+                       new Decorator(
+                           ret => !_isBehaviorDone,
+                           new PrioritySelector(
+                               DoneYet,
+                               new ActionRunCoroutine(ctx => LanceUp()),
+                               MountUp,
+                               BuffUp,
+                               HealUp,
+                               PickFight,
+                               Fight,
+                               new ActionAlwaysSucceed())));
+        }
 
-						));
-			}
-		}
-
-
-		protected Composite CreateBehavior_QuestbotMain()
-		{
-			return _root ??
-				   (_root =
-					   new Decorator(
-						   ret => !_isBehaviorDone,
-						   new PrioritySelector(
-							   DoneYet,
-							   new ActionRunCoroutine(ctx => LanceUp()),
-							   MountUp,
-							   BuffUp,
-							   HealUp,
-							   PickFight,
-							   Fight,
-							   new ActionAlwaysSucceed())));
-		}
-
-	    public override void OnFinished()
-	    {
+        public override void OnFinished()
+        {
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
             TreeHooks.Instance.RemoveHook("Questbot_Main", CreateBehavior_QuestbotMain());
-	        base.OnFinished();
-	    }
+            base.OnFinished();
+        }
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
-		private WoWItem _mainhand;
-		private WoWItem _offhand;
-		public override void OnStart()
-		{
+        private WoWItem _mainhand;
+        private WoWItem _offhand;
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+                _mainhand = Me.Inventory.Equipped.MainHand;
+                _offhand = Me.Inventory.Equipped.OffHand;
 
-				_mainhand = Me.Inventory.Equipped.MainHand;               
-				_offhand = Me.Inventory.Equipped.OffHand;
-
-				this.UpdateGoalText(QuestId);
-			}
-		}
-		#endregion
-	}
+                this.UpdateGoalText(QuestId);
+            }
+        }
+        #endregion
+    }
 }

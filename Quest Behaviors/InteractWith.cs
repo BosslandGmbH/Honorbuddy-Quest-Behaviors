@@ -397,122 +397,122 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.InteractWith
 {
-	[CustomBehaviorFileName(@"InteractWith")]
-	public class InteractWith : QuestBehaviorBase
-	{
-		#region Constructor and argument processing
+    [CustomBehaviorFileName(@"InteractWith")]
+    public class InteractWith : QuestBehaviorBase
+    {
+        #region Constructor and argument processing
 
-		public InteractWith(Dictionary<string, string> args)
-			: base(args)
-		{
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+        public InteractWith(Dictionary<string, string> args)
+            : base(args)
+        {
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Primary attributes...
-				var mobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null) ?? new int[0])
-					.Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
-					.ToArray();
+                // Primary attributes...
+                var mobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null) ?? new int[0])
+                    .Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
+                    .ToArray();
 
-				MobIdIncludesSelf = GetAttributeAsNullable<bool>("MobIdIncludesSelf", false, null, null) ?? false;
-				var factionIds = GetNumberedAttributesAsArray<int>("FactionId", 0, ConstrainAs.MobId, null);
+                MobIdIncludesSelf = GetAttributeAsNullable<bool>("MobIdIncludesSelf", false, null, null) ?? false;
+                var factionIds = GetNumberedAttributesAsArray<int>("FactionId", 0, ConstrainAs.MobId, null);
 
-				PursuitList.AddIds(mobIds, factionIds, MobIdIncludesSelf);
+                PursuitList.AddIds(mobIds, factionIds, MobIdIncludesSelf);
 
-				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
 
-				// Additional target qualifiers...
-				AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.AuraId, null);
-				AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.AuraId, null);
-				MobState = GetAttributeAsNullable<MobStateType>("MobState", false, null, new[] { "NpcState" }) ?? MobStateType.DontCare;
-				NotMoving = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
+                // Additional target qualifiers...
+                AuraIdsOnMob = GetNumberedAttributesAsArray<int>("AuraIdOnMob", 0, ConstrainAs.AuraId, null);
+                AuraIdsMissingFromMob = GetNumberedAttributesAsArray<int>("AuraIdMissingFromMob", 0, ConstrainAs.AuraId, null);
+                MobState = GetAttributeAsNullable<MobStateType>("MobState", false, null, new[] { "NpcState" }) ?? MobStateType.DontCare;
+                NotMoving = GetAttributeAsNullable<bool>("NotMoving", false, null, null) ?? false;
 
-				// InteractionBy attributes...
-				InteractByBuyingItemId = GetAttributeAsNullable("InteractByBuyingItemId", false, ConstrainAs.ItemId, null)
-										?? GetAttributeAsNullable<int>("BuyItemId", false, ConstrainAs.ItemId, null) /*Legacy name--don't use */
-										?? 0;
-				InteractByCastingSpellId = GetAttributeAsNullable("InteractByCastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
-				InteractByGossipOptions = GetAttributeAsArray<int>(
-					"InteractByGossipOptions",
-					false,
-					new ConstrainTo.Domain<int>(-1, 10),
-					null,
-					null);
-				if (InteractByGossipOptions.Length <= 0)
-				{
-					InteractByGossipOptions = GetAttributeAsArray<int>(
-						"GossipOptions",
-						false,
-						new ConstrainTo.Domain<int>(-1, 10),
-						new[] { "GossipOption" },
-						null);
-				} /*Legacy name--don't use */
+                // InteractionBy attributes...
+                InteractByBuyingItemId = GetAttributeAsNullable("InteractByBuyingItemId", false, ConstrainAs.ItemId, null)
+                                        ?? GetAttributeAsNullable<int>("BuyItemId", false, ConstrainAs.ItemId, null) /*Legacy name--don't use */
+                                        ?? 0;
+                InteractByCastingSpellId = GetAttributeAsNullable("InteractByCastingSpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                InteractByGossipOptions = GetAttributeAsArray<int>(
+                    "InteractByGossipOptions",
+                    false,
+                    new ConstrainTo.Domain<int>(-1, 10),
+                    null,
+                    null);
+                if (InteractByGossipOptions.Length <= 0)
+                {
+                    InteractByGossipOptions = GetAttributeAsArray<int>(
+                        "GossipOptions",
+                        false,
+                        new ConstrainTo.Domain<int>(-1, 10),
+                        new[] { "GossipOption" },
+                        null);
+                } /*Legacy name--don't use */
 
                 InteractByServerGossipIndices = GetAttributeAsArray("InteractByServerGossipIndices", false,
-			        new ConstrainTo.Domain<int>(-1, 100), null, null)
-			                                    ?? new int[0];
+                    new ConstrainTo.Domain<int>(-1, 100), null, null)
+                                                ?? new int[0];
 
                 InteractByLooting = GetAttributeAsNullable<bool>("InteractByLooting", false, null, null)
-									?? GetAttributeAsNullable<bool>("Loot", false, null, null) /* Legacy name--don't use*/
-									?? false;
-				InteractByQuestFrameAction = GetAttributeAsNullable<QuestFrameDisposition>(
-					"InteractByQuestFrameDisposition",
-					false,
-					null,
-					null)
-											?? QuestFrameDisposition.Ignore;
-				InteractByUsingItemId = GetAttributeAsNullable<int>("InteractByUsingItemId", false, ConstrainAs.ItemId, null) ?? 0;
+                                    ?? GetAttributeAsNullable<bool>("Loot", false, null, null) /* Legacy name--don't use*/
+                                    ?? false;
+                InteractByQuestFrameAction = GetAttributeAsNullable<QuestFrameDisposition>(
+                    "InteractByQuestFrameDisposition",
+                    false,
+                    null,
+                    null)
+                                            ?? QuestFrameDisposition.Ignore;
+                InteractByUsingItemId = GetAttributeAsNullable<int>("InteractByUsingItemId", false, ConstrainAs.ItemId, null) ?? 0;
 
-				// Tunables...
-                AttemptCountMax = GetAttributeAsNullable<int>("AttemptCountMax", false, new ConstrainTo.Domain<int>(1,100), null) ?? 7;
+                // Tunables...
+                AttemptCountMax = GetAttributeAsNullable<int>("AttemptCountMax", false, new ConstrainTo.Domain<int>(1, 100), null) ?? 7;
 
-				var buyItemCountExpression = GetAttributeAs<string>("BuyItemCount", false, ConstrainAs.StringNonEmpty, null);
+                var buyItemCountExpression = GetAttributeAs<string>("BuyItemCount", false, ConstrainAs.StringNonEmpty, null);
 
-				BuyItemCountCompiledExpression = Utility.ProduceParameterlessCompiledExpression<int>(buyItemCountExpression);
-				BuyItemCount = Utility.ProduceCachedValueFromCompiledExpression(BuyItemCountCompiledExpression, 1);
+                BuyItemCountCompiledExpression = Utility.ProduceParameterlessCompiledExpression<int>(buyItemCountExpression);
+                BuyItemCount = Utility.ProduceCachedValueFromCompiledExpression(BuyItemCountCompiledExpression, 1);
 
-				CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
-				HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-				IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
-				IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
-				InteractBlacklistTimeInSeconds =
-					GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null);
-				KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
-				MissingBuyItemIsFatal = GetAttributeAsNullable<bool>("MissingBuyItemIsFatal", false, null, null) ?? true;
-				MobHpPercentLeft =
-					GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
-				PreInteractMountStrategy = GetAttributeAsNullable<MountStrategyType>("PreInteractMountStrategy", false, null, null)
-											?? MountStrategyType.None;
-				ProactiveCombatStrategy = GetAttributeAsNullable<ProactiveCombatStrategyType>(
-					"ProactiveCombatStrategy",
-					false,
-					null,
-					null)
-										?? ProactiveCombatStrategyType.ClearAll;
-				RangeMax = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null);
-				RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null);
-				var waitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null);
-				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+                CollectionDistance = GetAttributeAsNullable<double>("CollectionDistance", false, ConstrainAs.Range, null) ?? 100;
+                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                IgnoreCombat = GetAttributeAsNullable<bool>("IgnoreCombat", false, null, null) ?? false;
+                IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
+                InteractBlacklistTimeInSeconds =
+                    GetAttributeAsNullable<int>("InteractBlacklistTimeInSeconds", false, ConstrainAs.CollectionCount, null);
+                KeepTargetSelected = GetAttributeAsNullable<bool>("KeepTargetSelected", false, null, null) ?? false;
+                MissingBuyItemIsFatal = GetAttributeAsNullable<bool>("MissingBuyItemIsFatal", false, null, null) ?? true;
+                MobHpPercentLeft =
+                    GetAttributeAsNullable<double>("MobHpPercentLeft", false, ConstrainAs.Percent, new[] { "HpLeftAmount" }) ?? 100.0;
+                PreInteractMountStrategy = GetAttributeAsNullable<MountStrategyType>("PreInteractMountStrategy", false, null, null)
+                                            ?? MountStrategyType.None;
+                ProactiveCombatStrategy = GetAttributeAsNullable<ProactiveCombatStrategyType>(
+                    "ProactiveCombatStrategy",
+                    false,
+                    null,
+                    null)
+                                        ?? ProactiveCombatStrategyType.ClearAll;
+                RangeMax = GetAttributeAsNullable<double>("Range", false, ConstrainAs.Range, null);
+                RangeMin = GetAttributeAsNullable<double>("MinRange", false, ConstrainAs.Range, null);
+                var waitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null);
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
                 _waitTimerAfterInteracting = new WaitTimer(TimeSpan.FromMilliseconds(WaitTime));
 
-				// Deprecated attributes...
-				InteractByBuyingItemInSlotNum =
-					GetAttributeAsNullable<int>(
-						"InteractByBuyingItemInSlotNum",
-						false,
-						new ConstrainTo.Domain<int>(-1, 100),
-						new[] { "BuySlot" }) ?? -1;
-				GetAttributeAsNullable<Deprecated_MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
-				var navigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" });
-				if (navigationMode != null)
-				{
-					MovementBy =
-						(navigationMode == NavigationModeType.CTM)
-							? MovementByType.ClickToMoveOnly
-							: (navigationMode == NavigationModeType.Mesh)
-								? MovementByType.NavigatorPreferred
-								: MovementByType.None;
-				}
+                // Deprecated attributes...
+                InteractByBuyingItemInSlotNum =
+                    GetAttributeAsNullable<int>(
+                        "InteractByBuyingItemInSlotNum",
+                        false,
+                        new ConstrainTo.Domain<int>(-1, 100),
+                        new[] { "BuySlot" }) ?? -1;
+                GetAttributeAsNullable<Deprecated_MobType>("ObjectType", false, null, new[] { "MobType" }); // Deprecated--no longer used
+                var navigationMode = GetAttributeAsNullable<NavigationModeType>("Nav", false, null, new[] { "Navigation" });
+                if (navigationMode != null)
+                {
+                    MovementBy =
+                        (navigationMode == NavigationModeType.CTM)
+                            ? MovementByType.ClickToMoveOnly
+                            : (navigationMode == NavigationModeType.Mesh)
+                                ? MovementByType.NavigatorPreferred
+                                : MovementByType.None;
+                }
 
                 // Hunting ground processing...
                 HuntingGrounds = HuntingGroundsType.GetOrCreate(Element,
@@ -520,116 +520,116 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                                                 new WaypointType(HuntingGroundCenter, "hunting ground center"));
                 IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
-				// Default value for 'WaitForNpcs' is 'true' when no HuntingGrounds sub element is used.
-				if (HuntingGrounds.Waypoints.Count <= 1 && !waitForNpcs.HasValue)
-					waitForNpcs = true;
+                // Default value for 'WaitForNpcs' is 'true' when no HuntingGrounds sub element is used.
+                if (HuntingGrounds.Waypoints.Count <= 1 && !waitForNpcs.HasValue)
+                    waitForNpcs = true;
 
-				if (waitForNpcs.HasValue && waitForNpcs.Value)
-					WaitForNpcs = true;
+                if (waitForNpcs.HasValue && waitForNpcs.Value)
+                    WaitForNpcs = true;
 
-				// Pre-processing into a form we can use directly...
-				for (int i = 0; i < InteractByGossipOptions.Length; ++i)
-				{
-					InteractByGossipOptions[i] -= 1;
-				}
-			}
+                // Pre-processing into a form we can use directly...
+                for (int i = 0; i < InteractByGossipOptions.Length; ++i)
+                {
+                    InteractByGossipOptions[i] -= 1;
+                }
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		// Attributes provided by caller
-		private int AttemptCountMax  { get; set; }
-		private int[] AuraIdsOnMob { get; set; }
-		private int[] AuraIdsMissingFromMob { get; set; }
-		private PerFrameCachedValue<int> BuyItemCount { get; set; }
+        // Attributes provided by caller
+        private int AttemptCountMax { get; set; }
+        private int[] AuraIdsOnMob { get; set; }
+        private int[] AuraIdsMissingFromMob { get; set; }
+        private PerFrameCachedValue<int> BuyItemCount { get; set; }
 
-		[CompileExpression]
-		public DelayCompiledExpression<Func<int>> BuyItemCountCompiledExpression { get; private set; }
+        [CompileExpression]
+        public DelayCompiledExpression<Func<int>> BuyItemCountCompiledExpression { get; private set; }
 
-		private double CollectionDistance { get; set; }
-		private WoWPoint HuntingGroundCenter { get; set; }
-		private bool IgnoreCombat { get; set; }
-		private bool IgnoreLoSToTarget { get; set; }
-		private int? InteractBlacklistTimeInSeconds { get; set; }
-		private int InteractByBuyingItemId { get; set; }
-		private int InteractByBuyingItemInSlotNum { get; set; }
-		private int InteractByCastingSpellId { get; set; }
-		private int[] InteractByGossipOptions { get; set; }
-		private int[] InteractByServerGossipIndices { get; set; }
+        private double CollectionDistance { get; set; }
+        private WoWPoint HuntingGroundCenter { get; set; }
+        private bool IgnoreCombat { get; set; }
+        private bool IgnoreLoSToTarget { get; set; }
+        private int? InteractBlacklistTimeInSeconds { get; set; }
+        private int InteractByBuyingItemId { get; set; }
+        private int InteractByBuyingItemInSlotNum { get; set; }
+        private int InteractByCastingSpellId { get; set; }
+        private int[] InteractByGossipOptions { get; set; }
+        private int[] InteractByServerGossipIndices { get; set; }
         private int InteractByUsingItemId { get; set; }
-		private bool InteractByLooting { get; set; }
-		private bool KeepTargetSelected { get; set; }
-		private bool MissingBuyItemIsFatal { get; set; }
-		private double MobHpPercentLeft { get; set; }
-		private bool MobIdIncludesSelf { get; set; }
-		private MobStateType MobState { get; set; }
-		private bool NotMoving { get; set; }
-		private int NumOfTimes { get; set; }
-		private QuestFrameDisposition InteractByQuestFrameAction { get; set; }
-		private MountStrategyType PreInteractMountStrategy { get; set; }
-		private ProactiveCombatStrategyType ProactiveCombatStrategy { get; set; }
-		private double? RangeMax { get; set; }
-		private double? RangeMin { get; set; }
-		private bool WaitForNpcs { get; set; }
-		private int WaitTime { get; set; }
+        private bool InteractByLooting { get; set; }
+        private bool KeepTargetSelected { get; set; }
+        private bool MissingBuyItemIsFatal { get; set; }
+        private double MobHpPercentLeft { get; set; }
+        private bool MobIdIncludesSelf { get; set; }
+        private MobStateType MobState { get; set; }
+        private bool NotMoving { get; set; }
+        private int NumOfTimes { get; set; }
+        private QuestFrameDisposition InteractByQuestFrameAction { get; set; }
+        private MountStrategyType PreInteractMountStrategy { get; set; }
+        private ProactiveCombatStrategyType ProactiveCombatStrategy { get; set; }
+        private double? RangeMax { get; set; }
+        private double? RangeMin { get; set; }
+        private bool WaitForNpcs { get; set; }
+        private int WaitTime { get; set; }
 
 
-		
-
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			UsageCheck_DeprecatedAttribute(
-				xElement,
-				(InteractByBuyingItemInSlotNum != -1),
-				"InteractByBuyingItemInSlotNum/BuySlot",
-				context => "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
-							+ "Please replace them with InteractByBuyingItemId attribute."
-							+ "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
-							+ " if the vendor is offering seasonal or other such items.");
-
-			UsageCheck_DeprecatedAttribute(
-				xElement,
-				Args.Keys.Contains("Nav"),
-				"Nav",
-				context => string.Format(
-					"Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-					+ "  Please update profile to use MovementBy, instead.",
-					Args["Nav"],
-					MovementBy));
-
-			UsageCheck_DeprecatedAttribute(
-				xElement,
-				Args.Keys.Contains("ObjectType"),
-				"ObjectType",
-				context => "The ObjectType attribute is no longer used by InteractWith."
-							+ "  You may safely remove it from the profile call to the InteractWith behavior.");
-
-			UsageCheck_DeprecatedAttribute(
-				xElement,
-				MobState == MobStateType.BelowHp,
-				"MobState=\"BelowHp\"",
-				context => "Please remove the 'MobState=\"BelowHp\"' attribute."
-							+ "  The \"BelowHp\" value is no longer used, and has been deprecated."
-							+ "  The \"MobHpPercentLeft\" attribute alone is sufficient to capture intent.");
-		}
 
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			UsageCheck_SemanticCoherency(
-				xElement,
-				!(PursuitList.PursueObjects.Any()),
-				context => "You must specify one or more: MobIdIncludesSelf, MobIdN, FactionIdN");
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            UsageCheck_DeprecatedAttribute(
+                xElement,
+                (InteractByBuyingItemInSlotNum != -1),
+                "InteractByBuyingItemInSlotNum/BuySlot",
+                context => "The InteractByBuyingItemInSlotNum/BuySlot attributes have been deprecated.\n"
+                            + "Please replace them with InteractByBuyingItemId attribute."
+                            + "Your InteractByBuyingItemInSlotNum/BuySlot attribute will still be honored, but it may yield unexpected surprises,"
+                            + " if the vendor is offering seasonal or other such items.");
+
+            UsageCheck_DeprecatedAttribute(
+                xElement,
+                Args.Keys.Contains("Nav"),
+                "Nav",
+                context => string.Format(
+                    "Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+                    + "  Please update profile to use MovementBy, instead.",
+                    Args["Nav"],
+                    MovementBy));
+
+            UsageCheck_DeprecatedAttribute(
+                xElement,
+                Args.Keys.Contains("ObjectType"),
+                "ObjectType",
+                context => "The ObjectType attribute is no longer used by InteractWith."
+                            + "  You may safely remove it from the profile call to the InteractWith behavior.");
+
+            UsageCheck_DeprecatedAttribute(
+                xElement,
+                MobState == MobStateType.BelowHp,
+                "MobState=\"BelowHp\"",
+                context => "Please remove the 'MobState=\"BelowHp\"' attribute."
+                            + "  The \"BelowHp\" value is no longer used, and has been deprecated."
+                            + "  The \"MobHpPercentLeft\" attribute alone is sufficient to capture intent.");
+        }
+
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            UsageCheck_SemanticCoherency(
+                xElement,
+                !(PursuitList.PursueObjects.Any()),
+                context => "You must specify one or more: MobIdIncludesSelf, MobIdN, FactionIdN");
 
             if (InteractByGossip)
             {
@@ -640,26 +640,26 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             }
 
             UsageCheck_SemanticCoherency(
-				xElement,
-				RangeMax.HasValue && RangeMin.HasValue && ((RangeMax.Value - RangeMin.Value) < RangeMinMaxEpsilon),
-				context => string.Format(
-					"Range({0}) must be at least {1} greater than MinRange({2}).",
-					RangeMax.Value,
-					RangeMinMaxEpsilon,
-					RangeMin.Value));
+                xElement,
+                RangeMax.HasValue && RangeMin.HasValue && ((RangeMax.Value - RangeMin.Value) < RangeMinMaxEpsilon),
+                context => string.Format(
+                    "Range({0}) must be at least {1} greater than MinRange({2}).",
+                    RangeMax.Value,
+                    RangeMinMaxEpsilon,
+                    RangeMin.Value));
 
-			UsageCheck_SemanticCoherency(
-				xElement,
-				MobIdIncludesSelf && !((InteractByCastingSpellId > 0) || (InteractByUsingItemId > 0)),
-				context => "When \"MobIdIncludesSelf\" is specified, one of the following attributes must also be specified:"
-							+ "InteractByCastingSpellId, InteractByUsingItemId");
+            UsageCheck_SemanticCoherency(
+                xElement,
+                MobIdIncludesSelf && !((InteractByCastingSpellId > 0) || (InteractByUsingItemId > 0)),
+                context => "When \"MobIdIncludesSelf\" is specified, one of the following attributes must also be specified:"
+                            + "InteractByCastingSpellId, InteractByUsingItemId");
 
-		    var interactSpell = GetInteractSpell();
+            var interactSpell = GetInteractSpell();
 
             UsageCheck_SemanticCoherency(
                 xElement,
                 interactSpell != null && interactSpell.HasRange && RangeMin.HasValue && RangeMin.Value < interactSpell.MinRange,
-                context => string.Format("RangeMin({0}) must be equal to or greater than the spell's minimum cast range({1})", 
+                context => string.Format("RangeMin({0}) must be equal to or greater than the spell's minimum cast range({1})",
                     RangeMin.Value, interactSpell.MinRange));
 
             UsageCheck_SemanticCoherency(
@@ -667,818 +667,815 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                 interactSpell != null && interactSpell.HasRange && RangeMax.HasValue && RangeMax.Value > interactSpell.MaxRange,
                 context => string.Format("RangeMax({0}) must be equal to or less than the spell's maximum cast range({1})",
                     RangeMax.Value, interactSpell.MaxRange));
+        }
 
-		}
+        private enum NavigationModeType
+        {
+            Mesh,
+            CTM,
+            [UsedImplicitly]
+            None,
+        }
 
-		private enum NavigationModeType
-		{
-			Mesh,
-			CTM,
-			[UsedImplicitly]
-			None,
-		}
+        private enum QuestFrameDisposition
+        {
+            Accept,
+            Complete,
+            Continue,
+            Ignore,
+            TerminateBehavior,
+            TerminateProfile
+        }
 
-		private enum QuestFrameDisposition
-		{
-			Accept,
-			Complete,
-			Continue,
-			Ignore,
-			TerminateBehavior,
-			TerminateProfile
-		}
+        #endregion
 
-		#endregion
-
-		#region Private and Convenience variables
+        #region Private and Convenience variables
         private const int DefaultInteractBlacklistTimeInSeconds = 180;
         private const int ShortBlacklistTimeInSeconds = 30;
         private const double RangeMinMaxEpsilon = 3.0;
-		private bool _closeFrames;
-		private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
-		private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
-		private readonly WaitTimer _waitTimerAfterInteracting;
-		private WaitTimer _watchdogTimerToReachDestination = null;
-		private readonly WaitTimer _moveCloserTimerAfterSpellLosFailed = new WaitTimer(TimeSpan.FromSeconds(1));
-		private BindingEventStateType BindingEventState { get; set; }
-		private int Counter { get; set; }
-		private int GossipPageIndex { get; set; }
-		private HuntingGroundsType HuntingGrounds { get; set; }
-		private int InteractAttemptCount { get; set; }
+        private bool _closeFrames;
+        private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
+        private UtilityCoroutine.WaitForInventoryItem _waitForInventoryItem;
+        private readonly WaitTimer _waitTimerAfterInteracting;
+        private WaitTimer _watchdogTimerToReachDestination = null;
+        private readonly WaitTimer _moveCloserTimerAfterSpellLosFailed = new WaitTimer(TimeSpan.FromSeconds(1));
+        private BindingEventStateType BindingEventState { get; set; }
+        private int Counter { get; set; }
+        private int GossipPageIndex { get; set; }
+        private HuntingGroundsType HuntingGrounds { get; set; }
+        private int InteractAttemptCount { get; set; }
 
-		private bool InteractByRightClick
-		{
-			get { return (InteractByUsingItemId == 0) && (InteractByCastingSpellId == 0); }
-		}
+        private bool InteractByRightClick
+        {
+            get { return (InteractByUsingItemId == 0) && (InteractByCastingSpellId == 0); }
+        }
 
-		private WoWItem ItemToUse { get; set; }
-		private WoWUnit SelectedAliveTarget { get; set; }
-		private WoWObject SelectedTarget { get; set; }
+        private WoWItem ItemToUse { get; set; }
+        private WoWUnit SelectedAliveTarget { get; set; }
+        private WoWObject SelectedTarget { get; set; }
 
-		public override string SubversionId
-		{
-			get { return ("$Id$"); }
-		}
+        public override string SubversionId
+        {
+            get { return ("$Id$"); }
+        }
 
-		public override string SubversionRevision
-		{
-			get { return ("$Revision$"); }
-		}
+        public override string SubversionRevision
+        {
+            get { return ("$Revision$"); }
+        }
 
-		private enum BindingEventStateType
-		{
-			BindingEventUnhooked,
-			BindingEventHooked,
-			BindingEventFired,
-		}
+        private enum BindingEventStateType
+        {
+            BindingEventUnhooked,
+            BindingEventHooked,
+            BindingEventFired,
+        }
 
-		#endregion
+        #endregion
 
-		#region Cleanup
+        #region Cleanup
 
-		public override void OnFinished()
-		{
-			Targeting.Instance.IncludeTargetsFilter -= Targeting_IncludeTargetsFilter;
-			Targeting.Instance.RemoveTargetsFilter -= Targeting_RemoveTargetsFilter;
-			Targeting.Instance.WeighTargetsFilter -= Targeting_OnWeighTargetsFilter;
-			base.OnFinished();
-		}
+        public override void OnFinished()
+        {
+            Targeting.Instance.IncludeTargetsFilter -= Targeting_IncludeTargetsFilter;
+            Targeting.Instance.RemoveTargetsFilter -= Targeting_RemoveTargetsFilter;
+            Targeting.Instance.WeighTargetsFilter -= Targeting_OnWeighTargetsFilter;
+            base.OnFinished();
+        }
 
-		#endregion
+        #endregion
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
-		// Dispose supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
+        // Dispose supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
-		// OnFinished provided by QuestBehaviorBase.
+        // OnFinished provided by QuestBehaviorBase.
 
-		public override void OnStart()
-		{
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore(GetGoalText());
 
-			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore(GetGoalText());
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                if (WaitForNpcs && HuntingGrounds.Waypoints.Count > 1)
+                {
+                    QBCLog.Warning("WaitForNpcs is set to 'true' but a <HuntingGrounds> sub element is used. " +
+                                   "If you specify a HuntingGrounds then the intent is to roam looking for " +
+                                   "the missing NPCs and not stop at the first hotspot if the NPC is not found." +
+                                   "Therefore the value of WaitForNpcs will be ignored when using a HuntingGrounds");
+                    WaitForNpcs = false;
+                }
+                // Setup settings to prevent interference with your behavior --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				if (WaitForNpcs && HuntingGrounds.Waypoints.Count > 1)
-				{
-					QBCLog.Warning("WaitForNpcs is set to 'true' but a <HuntingGrounds> sub element is used. " +
-								   "If you specify a HuntingGrounds then the intent is to roam looking for " +
-								   "the missing NPCs and not stop at the first hotspot if the NPC is not found." +
-								   "Therefore the value of WaitForNpcs will be ignored when using a HuntingGrounds");
-					WaitForNpcs = false;
-				}
-				// Setup settings to prevent interference with your behavior --
-				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-				// by Honorbuddy, or the bot is stopped.
+                // We need to disable 'pull distance' while this behavior in progress.
+                // If we don't, HBcore tends to retarget things and pull them while we are in the middle of
+                // an activity.
 
-				// We need to disable 'pull distance' while this behavior in progress.
-				// If we don't, HBcore tends to retarget things and pull them while we are in the middle of
-				// an activity.
+                if (IgnoreCombat)
+                {
+                    LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
+                }
 
-				if (IgnoreCombat)
-				{
-					LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;
-				}
+                Targeting.Instance.IncludeTargetsFilter += Targeting_IncludeTargetsFilter;
 
-				Targeting.Instance.IncludeTargetsFilter += Targeting_IncludeTargetsFilter;
+                Targeting.Instance.RemoveTargetsFilter += Targeting_RemoveTargetsFilter;
 
-				Targeting.Instance.RemoveTargetsFilter += Targeting_RemoveTargetsFilter;
+                Targeting.Instance.WeighTargetsFilter += Targeting_OnWeighTargetsFilter;
 
-				Targeting.Instance.WeighTargetsFilter += Targeting_OnWeighTargetsFilter;
+                // NB: With the post-.557 HB releases, Honorbuddy will keep the NPC dialog boxes up
+                // after a <PickUp> directive.  This looks more human like, and is a good thing.
+                // Unfortunately, a <PickUp> immediate followed by an <InteractWith> will cause InteractWith
+                // to see an unexpected quest dialog frame. To prevent problems, we close all dialogs
+                // when InteractWith is started.
+                _closeFrames = true;
 
-				// NB: With the post-.557 HB releases, Honorbuddy will keep the NPC dialog boxes up
-				// after a <PickUp> directive.  This looks more human like, and is a good thing.
-				// Unfortunately, a <PickUp> immediate followed by an <InteractWith> will cause InteractWith
-				// to see an unexpected quest dialog frame. To prevent problems, we close all dialogs
-				// when InteractWith is started.
-				_closeFrames = true;
+                // If toon doesn't know any of the prescribed spells, we're done...
+                if ((InteractByCastingSpellId > 0) && !SpellManager.HasSpell(InteractByCastingSpellId))
+                {
+                    var message = string.Format("Toon doesn't know: {0}", Utility.GetSpellNameFromId(InteractByCastingSpellId));
+                    QBCLog.ProfileError(message);
+                    BehaviorDone(message);
+                }
+            }
+        }
 
-				// If toon doesn't know any of the prescribed spells, we're done...
-				if ((InteractByCastingSpellId > 0) && !SpellManager.HasSpell(InteractByCastingSpellId))
-				{
-					var message = string.Format("Toon doesn't know: {0}", Utility.GetSpellNameFromId(InteractByCastingSpellId));
-					QBCLog.ProfileError(message);
-					BehaviorDone(message);
-				}
-			}
-		}
+        #endregion
 
-		#endregion
+        #region Main Behaviors
 
-		#region Main Behaviors
+        //protected override Composite CreateBehavior_CombatMain()
+        //{
+        //	return new Decorator(context => !IsDone, new PrioritySelector());
+        //}
 
-		//protected override Composite CreateBehavior_CombatMain()
-		//{
-		//	return new Decorator(context => !IsDone, new PrioritySelector());
-		//}
+        protected override Composite CreateBehavior_CombatOnly()
+        {
+            return new PrioritySelector(
+                new Action(
+                    context =>
+                    {
+                        // Force recalculation of time to reach destination after combat completes...
+                        _watchdogTimerToReachDestination = null;
 
-		protected override Composite CreateBehavior_CombatOnly()
-		{
-			return new PrioritySelector(
-				new Action(
-					context =>
-					{
-						// Force recalculation of time to reach destination after combat completes...
-						_watchdogTimerToReachDestination = null;
+                        // If current target is not attackable, blacklist it...
+                        if ((Me.CurrentTarget != null) && !Me.CurrentTarget.Attackable)
+                        {
+                            Me.CurrentTarget.BlacklistForCombat(TimeSpan.FromSeconds(120));
+                            Me.ClearTarget();
+                        }
 
-						// If current target is not attackable, blacklist it...
-						if ((Me.CurrentTarget != null) && !Me.CurrentTarget.Attackable)
-						{
-							Me.CurrentTarget.BlacklistForCombat(TimeSpan.FromSeconds(120));
-							Me.ClearTarget();
-						}
-
-						return RunStatus.Failure;
-					})
-				);
-		}
+                        return RunStatus.Failure;
+                    })
+                );
+        }
 
 
-		protected override Composite CreateBehavior_DeathMain()
-		{
-			return new Action(
-				ctx =>
-				{
-					if (Me.IsDead)
-						SelectedTarget = null;
-					return RunStatus.Failure;
-				});
-		}
+        protected override Composite CreateBehavior_DeathMain()
+        {
+            return new Action(
+                ctx =>
+                {
+                    if (Me.IsDead)
+                        SelectedTarget = null;
+                    return RunStatus.Failure;
+                });
+        }
 
-		protected override Composite CreateMainBehavior()
-		{
-			return new ActionRunCoroutine(ctx => MainCoroutine());
-		}
+        protected override Composite CreateMainBehavior()
+        {
+            return new ActionRunCoroutine(ctx => MainCoroutine());
+        }
 
-		private async Task<bool> MainCoroutine()
-		{
-			if (_closeFrames)
-			{
-				await CloseOpenFramesAndWait();
-				_closeFrames = false;
-			}
+        private async Task<bool> MainCoroutine()
+        {
+            if (_closeFrames)
+            {
+                await CloseOpenFramesAndWait();
+                _closeFrames = false;
+            }
 
-			// return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
-			bool shouldFight = Targeting.Instance.FirstUnit != null
-				&& LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat)
-				&& (Me.IsActuallyInCombat || LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Pull));
+            // return if behavior is considered done or if targeting is not empty meaning we have something to kill and killing takes priority over any interaction
+            bool shouldFight = Targeting.Instance.FirstUnit != null
+                && LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Combat)
+                && (Me.IsActuallyInCombat || LevelBot.BehaviorFlags.HasFlag(BehaviorFlags.Pull));
 
-			if (IsDone || shouldFight)
-				return false;
+            if (IsDone || shouldFight)
+                return false;
 
-			// Delay, if necessary...
-			// NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
-			// that don't have an associated quest, and put the behavior in a <While> loop will not behave
-			// as the profile writer expects.  They expect the delay to be executed if the interaction
-			// succeeded.
-			if (!_waitTimerAfterInteracting.IsFinished)
-			{
-				TreeRoot.StatusText = string.Format(
-					"Completing {0} wait of {1}",
-					Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterInteracting.TimeLeft.TotalSeconds)),
-					Utility.PrettyTime(_waitTimerAfterInteracting.WaitTime));
-				return true;
-			}
+            // Delay, if necessary...
+            // NB: We must do this prior to checking for 'behavior done'.  Otherwise, profiles
+            // that don't have an associated quest, and put the behavior in a <While> loop will not behave
+            // as the profile writer expects.  They expect the delay to be executed if the interaction
+            // succeeded.
+            if (!_waitTimerAfterInteracting.IsFinished)
+            {
+                TreeRoot.StatusText = string.Format(
+                    "Completing {0} wait of {1}",
+                    Utility.PrettyTime(TimeSpan.FromSeconds((int)_waitTimerAfterInteracting.TimeLeft.TotalSeconds)),
+                    Utility.PrettyTime(_waitTimerAfterInteracting.WaitTime));
+                return true;
+            }
 
-			// Counter is used to determine 'done'...
-			// NB: If QuestObjectiveIndex was specified, we don't care what counter is.  Instead,
-			// we want the objective to complete.
-			if (QuestObjectiveIndex == 0 && Counter >= NumOfTimes)
-			{
-				BehaviorDone(string.Format("Reached our required count of {0}.", NumOfTimes));
-				return true;
-			}
+            // Counter is used to determine 'done'...
+            // NB: If QuestObjectiveIndex was specified, we don't care what counter is.  Instead,
+            // we want the objective to complete.
+            if (QuestObjectiveIndex == 0 && Counter >= NumOfTimes)
+            {
+                BehaviorDone(string.Format("Reached our required count of {0}.", NumOfTimes));
+                return true;
+            }
 
-			// If WoWclient has not placed items in our bag, wait for it...
-			// NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
-			// WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
-			// for the item to show up, if its going to.
-			if (InteractByUsingItemId > 0 && !Query.IsViable(ItemToUse))
-			{
-				if (_waitForInventoryItem == null)
-					_waitForInventoryItem = new UtilityCoroutine.WaitForInventoryItem(() => InteractByUsingItemId, () => BehaviorDone());
-				// return if waiting for item to show up in bags.
-				if (await _waitForInventoryItem)
-					return true;
-				ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
-			}
+            // If WoWclient has not placed items in our bag, wait for it...
+            // NB: This clumsiness is because Honorbuddy can launch and start using the behavior before the pokey
+            // WoWclient manages to put the item into our bag after accepting a quest.  This delay waits
+            // for the item to show up, if its going to.
+            if (InteractByUsingItemId > 0 && !Query.IsViable(ItemToUse))
+            {
+                if (_waitForInventoryItem == null)
+                    _waitForInventoryItem = new UtilityCoroutine.WaitForInventoryItem(() => InteractByUsingItemId, () => BehaviorDone());
+                // return if waiting for item to show up in bags.
+                if (await _waitForInventoryItem)
+                    return true;
+                ItemToUse = Me.CarriedItems.FirstOrDefault(i => (i.Entry == InteractByUsingItemId));
+            }
 
-			// If interact target no longer meets qualifications, try to find another...
-			if (!IsInteractNeeded(SelectedTarget, MobState))
-			{
-				SelectedTarget = FindViableTargets(MobState).FirstOrDefault();
+            // If interact target no longer meets qualifications, try to find another...
+            if (!IsInteractNeeded(SelectedTarget, MobState))
+            {
+                SelectedTarget = FindViableTargets(MobState).FirstOrDefault();
 
-				if (SelectedTarget != null)
-				{
-					CloseOpenFrames();
-					Me.ClearTarget();
+                if (SelectedTarget != null)
+                {
+                    CloseOpenFrames();
+                    Me.ClearTarget();
 
-					this.UpdateGoalText(QuestId, GetGoalText());
-					InteractAttemptCount = 0;
-					_watchdogTimerToReachDestination = null;
-				}
+                    this.UpdateGoalText(QuestId, GetGoalText());
+                    InteractAttemptCount = 0;
+                    _watchdogTimerToReachDestination = null;
+                }
 
-				// If we're looking for 'dead' targets, and there are none...
-				// But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
-				if ((SelectedTarget == null) && (!Query.IsViable(SelectedAliveTarget) || !SelectedAliveTarget.IsAlive)
-					&& (MobState == MobStateType.Dead))
-				{
-					SelectedAliveTarget = FindViableTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
-					if (SelectedAliveTarget != null)
-						return true;
-				}
-			}
+                // If we're looking for 'dead' targets, and there are none...
+                // But, there are 'alive' targets that fit the bill, go convert the 'alive' ones to 'dead'.
+                if ((SelectedTarget == null) && (!Query.IsViable(SelectedAliveTarget) || !SelectedAliveTarget.IsAlive)
+                    && (MobState == MobStateType.Dead))
+                {
+                    SelectedAliveTarget = FindViableTargets(MobStateType.Alive).FirstOrDefault() as WoWUnit;
+                    if (SelectedAliveTarget != null)
+                        return true;
+                }
+            }
 
-			// No mobs in immediate vicinity...
-			// NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
-			// this sub-behavior will terminate the overall behavior.
-			if (!Query.IsViable(SelectedTarget))
-			{
-				if (_noMobsAtCurrentWaypoint == null)
-				{
-					_noMobsAtCurrentWaypoint =
-						new UtilityCoroutine.NoMobsAtCurrentWaypoint(
-							() => HuntingGrounds,
-							() => MovementBy,
-							() => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
-							() =>
-								TargetExclusionAnalysis.Analyze(
-									Element,
-									() => PursuitList.GetPursuitedObjects(),
-									TargetExclusionChecks));
-				}
+            // No mobs in immediate vicinity...
+            // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
+            // this sub-behavior will terminate the overall behavior.
+            if (!Query.IsViable(SelectedTarget))
+            {
+                if (_noMobsAtCurrentWaypoint == null)
+                {
+                    _noMobsAtCurrentWaypoint =
+                        new UtilityCoroutine.NoMobsAtCurrentWaypoint(
+                            () => HuntingGrounds,
+                            () => MovementBy,
+                            () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
+                            () =>
+                                TargetExclusionAnalysis.Analyze(
+                                    Element,
+                                    () => PursuitList.GetPursuitedObjects(),
+                                    TargetExclusionChecks));
+                }
 
-				if (await _noMobsAtCurrentWaypoint)
-					return true;
-			}
+                if (await _noMobsAtCurrentWaypoint)
+                    return true;
+            }
 
-			#region Deal with mob we've selected for interaction...
+            #region Deal with mob we've selected for interaction...
 
-			if (Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance))
-			{
-				if (await SubCoroutine_HandleFrame_Loot())
-					return true;
+            if (Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance))
+            {
+                if (await SubCoroutine_HandleFrame_Loot())
+                    return true;
 
-				if (await SubCoroutine_HandleFrame_Gossip())
-					return true;
+                if (await SubCoroutine_HandleFrame_Gossip())
+                    return true;
 
-				if (await SubCoroutine_HandleFrame_Merchant())
-					return true;
+                if (await SubCoroutine_HandleFrame_Merchant())
+                    return true;
 
-				if (await SubCoroutine_HandleFrame_Quest())
-					return true;
+                if (await SubCoroutine_HandleFrame_Quest())
+                    return true;
 
-				if (await SubCoroutine_HandleFramesComplete())
-					return true;
+                if (await SubCoroutine_HandleFramesComplete())
+                    return true;
 
-				// If anything in the frame handling made the target no longer viable for interacting,
-				// go find a new target...
-				// NB: This mostly happens when NPCs close the gossip dialog on their end and walk away
-				// or despawn, or outright go 'non viable' after the chat.
-				if (!Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance))
-				{
-					return true;
-				}
+                // If anything in the frame handling made the target no longer viable for interacting,
+                // go find a new target...
+                // NB: This mostly happens when NPCs close the gossip dialog on their end and walk away
+                // or despawn, or outright go 'non viable' after the chat.
+                if (!Query.IsViableForInteracting(SelectedTarget, IgnoreMobsInBlackspots, NonCompeteDistance))
+                {
+                    return true;
+                }
 
-				#region Interact with, or use item on, selected target...
+                #region Interact with, or use item on, selected target...
 
-				// Show user the target that's interesting to us...
-				// NB: If we've been in combat, our current target may remain on a dead body or other object.
-				// This will confuse HB as we try to interact with an object.  So, we either guarantee that
-				// a target is selected if it is a WoWUnit, or clear the target if its an object.
-				var myTarget = Me.CurrentTarget;
-				if (myTarget != SelectedTarget)
-				{
-					var wowUnit = SelectedTarget as WoWUnit;
-					if ((Query.IsViable(wowUnit)) && (wowUnit.CanSelect) && (IsWithinInteractDistance(wowUnit) || Query.IsInLineOfSight(wowUnit)))
-					{
-						Utility.Target(wowUnit);
-					}
-					else if (myTarget != null)
-					{
-						Me.ClearTarget();
-					}
-				}
+                // Show user the target that's interesting to us...
+                // NB: If we've been in combat, our current target may remain on a dead body or other object.
+                // This will confuse HB as we try to interact with an object.  So, we either guarantee that
+                // a target is selected if it is a WoWUnit, or clear the target if its an object.
+                var myTarget = Me.CurrentTarget;
+                if (myTarget != SelectedTarget)
+                {
+                    var wowUnit = SelectedTarget as WoWUnit;
+                    if ((Query.IsViable(wowUnit)) && (wowUnit.CanSelect) && (IsWithinInteractDistance(wowUnit) || Query.IsInLineOfSight(wowUnit)))
+                    {
+                        Utility.Target(wowUnit);
+                    }
+                    else if (myTarget != null)
+                    {
+                        Me.ClearTarget();
+                    }
+                }
 
-				if (await SubCoroutine_DoMoveToTarget())
-					return true;
+                if (await SubCoroutine_DoMoveToTarget())
+                    return true;
 
-				// NB: We do the move before waiting for the cooldown.  The hope is that for most items, the
-				// cooldown will have elapsed by the time we get within range of the next target.
-				if (ItemToUse != null && ItemToUse.CooldownTimeLeft > TimeSpan.Zero)
-				{
-					TreeRoot.StatusText = string.Format(
-						"Waiting for {0} cooldown ({1} remaining)",
+                // NB: We do the move before waiting for the cooldown.  The hope is that for most items, the
+                // cooldown will have elapsed by the time we get within range of the next target.
+                if (ItemToUse != null && ItemToUse.CooldownTimeLeft > TimeSpan.Zero)
+                {
+                    TreeRoot.StatusText = string.Format(
+                        "Waiting for {0} cooldown ({1} remaining)",
                         ItemToUse.SafeName,
-						Utility.PrettyTime(TimeSpan.FromSeconds((int)ItemToUse.CooldownTimeLeft.TotalSeconds)));
-					return true;
-				}
+                        Utility.PrettyTime(TimeSpan.FromSeconds((int)ItemToUse.CooldownTimeLeft.TotalSeconds)));
+                    return true;
+                }
 
-				// If we've exceeded our maximum allowed attempts to interact, blacklist mob for a while...
-				if (++InteractAttemptCount > AttemptCountMax)
-				{
-					var blacklistTime = BlacklistInteractTarget(SelectedTarget);
+                // If we've exceeded our maximum allowed attempts to interact, blacklist mob for a while...
+                if (++InteractAttemptCount > AttemptCountMax)
+                {
+                    var blacklistTime = BlacklistInteractTarget(SelectedTarget);
 
-					QBCLog.Warning(
-						"Exceeded our maximum count({0}) at attempted interactions--blacklisting {1} for {2}",
-						AttemptCountMax,
-						SelectedTarget.SafeName,
-						Utility.PrettyTime(blacklistTime));
-					return false;
-				}
+                    QBCLog.Warning(
+                        "Exceeded our maximum count({0}) at attempted interactions--blacklisting {1} for {2}",
+                        AttemptCountMax,
+                        SelectedTarget.SafeName,
+                        Utility.PrettyTime(blacklistTime));
+                    return false;
+                }
 
-				// Interact by casting spell...
-				if (InteractByCastingSpellId > 0)
-				{
-					var castResult = await UtilityCoroutine.CastSpell(InteractByCastingSpellId, SelectedTarget);
-					if (castResult != SpellCastResult.Succeeded)
-					{
-						// The WoWUnit.InLineOfSpellSight is not always correct so if we get a LOS error we need
-						// to move closer while the _moveCloserTimerAfterSpellLosFailed timer is running.
-						if (castResult == SpellCastResult.LineOfSight)
-						{
-							_moveCloserTimerAfterSpellLosFailed.Reset();
-						}
-						return false;
-					}
-				}
+                // Interact by casting spell...
+                if (InteractByCastingSpellId > 0)
+                {
+                    var castResult = await UtilityCoroutine.CastSpell(InteractByCastingSpellId, SelectedTarget);
+                    if (castResult != SpellCastResult.Succeeded)
+                    {
+                        // The WoWUnit.InLineOfSpellSight is not always correct so if we get a LOS error we need
+                        // to move closer while the _moveCloserTimerAfterSpellLosFailed timer is running.
+                        if (castResult == SpellCastResult.LineOfSight)
+                        {
+                            _moveCloserTimerAfterSpellLosFailed.Reset();
+                        }
+                        return false;
+                    }
+                }
 
-				// Interact by casting spell...
-				if (InteractByUsingItemId > 0)
-				{
-					var succeed = await UtilityCoroutine.UseItemOnTarget(
-							InteractByUsingItemId,
-							SelectedTarget,
-							() =>
-								BehaviorDone(
-									string.Format("Terminating behavior due to missing {0}", Utility.GetItemNameFromId(InteractByUsingItemId))));
+                // Interact by casting spell...
+                if (InteractByUsingItemId > 0)
+                {
+                    var succeed = await UtilityCoroutine.UseItemOnTarget(
+                            InteractByUsingItemId,
+                            SelectedTarget,
+                            () =>
+                                BehaviorDone(
+                                    string.Format("Terminating behavior due to missing {0}", Utility.GetItemNameFromId(InteractByUsingItemId))));
 
-					if (!succeed)
-						return false;
-				}
+                    if (!succeed)
+                        return false;
+                }
 
-				// Interact by right-click..
-				if (InteractByRightClick)
-				{
+                // Interact by right-click..
+                if (InteractByRightClick)
+                {
                     // if Selected object is lootable then we can expect a lootframe to be opened from interaction.
                     // We will need to loot items from lootframe since sometimes auto-loot is turned off.
                     // We need to check if 'CanLoot' before we perform any interaction otherwise 
                     // 'CanLoot' may report 'false' when object is already interacted with.
                     var lootableObj = SelectedTarget as ILootableObject;
-				    var isLootable = Query.IsViable(SelectedTarget) && lootableObj != null && lootableObj.CanLoot;
+                    var isLootable = Query.IsViable(SelectedTarget) && lootableObj != null && lootableObj.CanLoot;
 
-					// Fixes #HB-2729 (InteractWith stuck while bot is flying and trying to interact with a hostile mob)
-					var selectedUnit = SelectedTarget as WoWUnit;
-					if (selectedUnit != null && selectedUnit.IsAlive
-						&& (isLootable || selectedUnit.IsHostile) && Me.Mounted && Me.IsFlying)
-					{
-						return await CommonCoroutines.Dismount(
-							$"Dismounting before interacting with {(isLootable ? "lootable" : "hostile")} NPC");
-					}
+                    // Fixes #HB-2729 (InteractWith stuck while bot is flying and trying to interact with a hostile mob)
+                    var selectedUnit = SelectedTarget as WoWUnit;
+                    if (selectedUnit != null && selectedUnit.IsAlive
+                        && (isLootable || selectedUnit.IsHostile) && Me.Mounted && Me.IsFlying)
+                    {
+                        return await CommonCoroutines.Dismount(
+                            $"Dismounting before interacting with {(isLootable ? "lootable" : "hostile")} NPC");
+                    }
 
-					if (!await UtilityCoroutine.Interact(SelectedTarget))
-						return false;
+                    if (!await UtilityCoroutine.Interact(SelectedTarget))
+                        return false;
 
                     // We need to wait for the lootframe if object is lootable right now, 
                     // otherwise we might miss the loot frame and get stuck infinitely.
                     if (isLootable && await Coroutine.Wait(2000, () => IsLootFrameVisible))
                         await SubCoroutine_HandleFrame_Loot();
-				}
+                }
 
-				// Peg tally, if follow-up actions not expected...
+                // Peg tally, if follow-up actions not expected...
                 if (!IsFrameExpectedFromInteraction)
-				{
-					// NB: Some targets go invalid immediately after interacting with them.
-					// So we must make certain that we don't intend to use such invalid targets
-					// here.
-					BlacklistInteractTarget(SelectedTarget);
-					_waitTimerAfterInteracting.Reset();
-					++Counter;
+                {
+                    // NB: Some targets go invalid immediately after interacting with them.
+                    // So we must make certain that we don't intend to use such invalid targets
+                    // here.
+                    BlacklistInteractTarget(SelectedTarget);
+                    _waitTimerAfterInteracting.Reset();
+                    ++Counter;
 
-					if (IsClearTargetNeeded(SelectedTarget))
-					{
-						Me.ClearTarget();
-					}
+                    if (IsClearTargetNeeded(SelectedTarget))
+                    {
+                        Me.ClearTarget();
+                    }
 
-					SelectedTarget = null;
-				}
+                    SelectedTarget = null;
+                }
 
-				#endregion
-			}
+                #endregion
+            }
 
-			#endregion
+            #endregion
 
-			return false;
-		}
+            return false;
+        }
 
-		#endregion
+        #endregion
 
-		#region Sub-Behaviors
+        #region Sub-Behaviors
 
-		private async Task<bool> SubCoroutine_DoMoveToTarget()
-		{
-			var isViableTarget = Query.IsViable(SelectedTarget);
+        private async Task<bool> SubCoroutine_DoMoveToTarget()
+        {
+            var isViableTarget = Query.IsViable(SelectedTarget);
 
-			if (!isViableTarget)
-			{
-				_watchdogTimerToReachDestination = null;
-			}
-			// Watchdog only runs when not in combat...
-			else if (!Me.Combat)
-			{
-				// If watchdog timer isn't running, start it...
-				// NB: This places upper bound on time allowed to reach destination.  If a mob is bugged
-				// or unreachable for some other reason, this timer will blacklist the mob when it expires.
-				// Also, this timer will be terminated when we get in combat, so we may need to re-establish
-				// it when combat completes.
-				if (_watchdogTimerToReachDestination == null)
-				{
-					_watchdogTimerToReachDestination =
-						new WaitTimer(
-							SelectedTarget.Location.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
-					_watchdogTimerToReachDestination.Reset();
-				}
+            if (!isViableTarget)
+            {
+                _watchdogTimerToReachDestination = null;
+            }
+            // Watchdog only runs when not in combat...
+            else if (!Me.Combat)
+            {
+                // If watchdog timer isn't running, start it...
+                // NB: This places upper bound on time allowed to reach destination.  If a mob is bugged
+                // or unreachable for some other reason, this timer will blacklist the mob when it expires.
+                // Also, this timer will be terminated when we get in combat, so we may need to re-establish
+                // it when combat completes.
+                if (_watchdogTimerToReachDestination == null)
+                {
+                    _watchdogTimerToReachDestination =
+                        new WaitTimer(
+                            SelectedTarget.Location.MaximumTraversalTime(2.5, TimeSpan.FromSeconds(20), TimeSpan.FromSeconds(180)));
+                    _watchdogTimerToReachDestination.Reset();
+                }
 
-				if (_watchdogTimerToReachDestination.IsFinished)
-				{
-					var blacklistTime = BlacklistInteractTarget(SelectedTarget);
-					QBCLog.Warning(
-						"Taking too long to reach {0}--blacklisting for {1}",
-						SelectedTarget.SafeName,
-						Utility.PrettyTime(blacklistTime));
-					_watchdogTimerToReachDestination = null;
-					isViableTarget = false;
-				}
-			}
+                if (_watchdogTimerToReachDestination.IsFinished)
+                {
+                    var blacklistTime = BlacklistInteractTarget(SelectedTarget);
+                    QBCLog.Warning(
+                        "Taking too long to reach {0}--blacklisting for {1}",
+                        SelectedTarget.SafeName,
+                        Utility.PrettyTime(blacklistTime));
+                    _watchdogTimerToReachDestination = null;
+                    isViableTarget = false;
+                }
+            }
 
-			if (!isViableTarget)
-				return false;
+            if (!isViableTarget)
+                return false;
 
-		    double rangeMin;
+            double rangeMin;
             if (IsDistanceGainNeeded(SelectedTarget, out rangeMin))
-			{
-				var destinationName = string.Format(
-					"gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
-					GetName(SelectedTarget),
-					SelectedTarget.Entry,
-					SelectedTarget.Distance,
+            {
+                var destinationName = string.Format(
+                    "gain distance from {0} (id:{1}, dist:{2:F1}/{3:F1})",
+                    GetName(SelectedTarget),
+                    SelectedTarget.Entry,
+                    SelectedTarget.Distance,
                     rangeMin);
 
-				if (await UtilityCoroutine.MoveTo(
+                if (await UtilityCoroutine.MoveTo(
                     Utility.GetPointToGainDistance(SelectedTarget, rangeMin),
-					destinationName,
-					MovementBy))
-				{
-					return true;
-				}
-			}
-			if (IsDistanceCloseNeeded(SelectedTarget))
-			{
-				if (MovementBy == MovementByType.NavigatorOnly
-					&& !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedTarget.Location)
-					&& (!Me.IsFlying || !Me.IsOnTransport))
-				{
-					TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
-					TreeRoot.StatusText = string.Format(
-						"Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
-						GetName(SelectedTarget),
-						SelectedTarget.Distance,
-						blacklistDuration);
-					return true;
-				}
-				if (MovementBy == MovementByType.None)
-				{
-					TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
-					TreeRoot.StatusText = string.Format(
-						"{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
-						GetName(SelectedTarget),
-						SelectedTarget.Distance,
-						blacklistDuration);
-					return true;
-				}
+                    destinationName,
+                    MovementBy))
+                {
+                    return true;
+                }
+            }
+            if (IsDistanceCloseNeeded(SelectedTarget))
+            {
+                if (MovementBy == MovementByType.NavigatorOnly
+                    && !Navigator.CanNavigateFully(StyxWoW.Me.Location, SelectedTarget.Location)
+                    && (!Me.IsFlying || !Me.IsOnTransport))
+                {
+                    TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
+                    TreeRoot.StatusText = string.Format(
+                        "Unable to navigate to {0} (dist: {1:F1})--blacklisting for {2}.",
+                        GetName(SelectedTarget),
+                        SelectedTarget.Distance,
+                        blacklistDuration);
+                    return true;
+                }
+                if (MovementBy == MovementByType.None)
+                {
+                    TimeSpan blacklistDuration = BlacklistInteractTarget(SelectedTarget);
+                    TreeRoot.StatusText = string.Format(
+                        "{0} is out of range (dist: {1:F1})--blacklisting for {2}.",
+                        GetName(SelectedTarget),
+                        SelectedTarget.Distance,
+                        blacklistDuration);
+                    return true;
+                }
 
-				var destinationName = string.Format(
-					"interact with {0} (id: {1}, dist: {2:F1}{3}, TtB: {4})",
-					GetName(SelectedTarget),
-					SelectedTarget.Entry,
-					SelectedTarget.Distance,
-					(Query.IsInLineOfSight(SelectedTarget) ? "" : ", noLoS"),
-					// Time-to-Blacklist
-					((_watchdogTimerToReachDestination != null)
-						? Utility.PrettyTime(_watchdogTimerToReachDestination.TimeLeft)
-						: "∞"));
+                var destinationName = string.Format(
+                    "interact with {0} (id: {1}, dist: {2:F1}{3}, TtB: {4})",
+                    GetName(SelectedTarget),
+                    SelectedTarget.Entry,
+                    SelectedTarget.Distance,
+                    (Query.IsInLineOfSight(SelectedTarget) ? "" : ", noLoS"),
+                    // Time-to-Blacklist
+                    ((_watchdogTimerToReachDestination != null)
+                        ? Utility.PrettyTime(_watchdogTimerToReachDestination.TimeLeft)
+                        : "\u221E"));
 
-				if (await UtilityCoroutine.MoveTo(SelectedTarget.Location, destinationName, MovementBy))
-					return true;
-			}
+                if (await UtilityCoroutine.MoveTo(SelectedTarget.Location, destinationName, MovementBy))
+                    return true;
+            }
 
-			// Prep to interact...
-			await CommonCoroutines.StopMoving();
-			if (await UtilityCoroutine.ExecuteMountStrategy(PreInteractMountStrategy))
-				return true;
-			_watchdogTimerToReachDestination = null;
-			// Face target...
-			Utility.Target(SelectedTarget, true);
-			return false;
-		}
-
-
-		private async Task<bool> SubCoroutine_HandleFramesComplete()
-		{
-			if (IsExpectedFrameOpen)
-			{
-				TreeRoot.StatusText = string.Format("Interaction with {0} complete.", GetName(SelectedTarget));
-				CloseOpenFrames();
-				_waitTimerAfterInteracting.Reset();
-
-				// Some mobs go non-viable immediately after interacting with them...
-				if (Query.IsViable(SelectedTarget))
-				{
-					BlacklistInteractTarget(SelectedTarget);
-					if (IsClearTargetNeeded(SelectedTarget))
-					{
-						Me.ClearTarget();
-					}
-				}
-
-				SelectedTarget = null;
-				return true;
-			}
-
-			// Some mobs go non-viable immediately after interacting with them...
-			// For instance, interacting with mobs that give you automatic taxi rides.
-			// We must guard against trying to interact with them further.
-			if (!Query.IsViable(SelectedTarget))
-			{
-				SelectedTarget = null;
-				return true;
-			}
-			return false;
-		}
+            // Prep to interact...
+            await CommonCoroutines.StopMoving();
+            if (await UtilityCoroutine.ExecuteMountStrategy(PreInteractMountStrategy))
+                return true;
+            _watchdogTimerToReachDestination = null;
+            // Face target...
+            Utility.Target(SelectedTarget, true);
+            return false;
+        }
 
 
-		private async Task<bool> SubCoroutine_HandleFrame_Gossip()
-		{
-		    if (!IsGossipFrameVisible)
-		        return false;
+        private async Task<bool> SubCoroutine_HandleFramesComplete()
+        {
+            if (IsExpectedFrameOpen)
+            {
+                TreeRoot.StatusText = string.Format("Interaction with {0} complete.", GetName(SelectedTarget));
+                CloseOpenFrames();
+                _waitTimerAfterInteracting.Reset();
+
+                // Some mobs go non-viable immediately after interacting with them...
+                if (Query.IsViable(SelectedTarget))
+                {
+                    BlacklistInteractTarget(SelectedTarget);
+                    if (IsClearTargetNeeded(SelectedTarget))
+                    {
+                        Me.ClearTarget();
+                    }
+                }
+
+                SelectedTarget = null;
+                return true;
+            }
+
+            // Some mobs go non-viable immediately after interacting with them...
+            // For instance, interacting with mobs that give you automatic taxi rides.
+            // We must guard against trying to interact with them further.
+            if (!Query.IsViable(SelectedTarget))
+            {
+                SelectedTarget = null;
+                return true;
+            }
+            return false;
+        }
+
+
+        private async Task<bool> SubCoroutine_HandleFrame_Gossip()
+        {
+            if (!IsGossipFrameVisible)
+                return false;
 
             if (InteractByGossip)
             {
-		        var usingServerIndices = InteractByServerGossipIndices.Any();
-		        var options = usingServerIndices
+                var usingServerIndices = InteractByServerGossipIndices.Any();
+                var options = usingServerIndices
                     ? InteractByServerGossipIndices
-		            : InteractByGossipOptions;
+                    : InteractByGossipOptions;
 
                 TreeRoot.StatusText = string.Format("Gossiping with {0}", GetName(SelectedTarget));
-		        BindingEventState = BindingEventStateType.BindingEventUnhooked;
-		        GossipPageIndex = 0;
-		        while (!IsDone && GossipPageIndex < options.Length)
-		        {
-		            GossipEntry gossipEntry;
-		            if (!TryGetGossipEntry(out gossipEntry))
-		            {
-		                QBCLog.Error(
-		                    "{0} is not offering {1} {2} on page {3}."
-		                    + "  Did competing player alter NPC state?"
-		                    + "  Did you stop/start Honorbuddy?"
-		                    + "  Terminating behavior.",
-		                    GetName(SelectedTarget),
+                BindingEventState = BindingEventStateType.BindingEventUnhooked;
+                GossipPageIndex = 0;
+                while (!IsDone && GossipPageIndex < options.Length)
+                {
+                    GossipEntry gossipEntry;
+                    if (!TryGetGossipEntry(out gossipEntry))
+                    {
+                        QBCLog.Error(
+                            "{0} is not offering {1} {2} on page {3}."
+                            + "  Did competing player alter NPC state?"
+                            + "  Did you stop/start Honorbuddy?"
+                            + "  Terminating behavior.",
+                            GetName(SelectedTarget),
                             usingServerIndices ? "server gossip index" : "gossip option",
                             usingServerIndices ? options[GossipPageIndex] : options[GossipPageIndex] + 1,
-		                    GossipPageIndex + 1);
-		                CloseOpenFrames();
-		                Me.ClearTarget();
-		                BehaviorDone();
-		                return false;
-		            }
+                            GossipPageIndex + 1);
+                        CloseOpenFrames();
+                        Me.ClearTarget();
+                        BehaviorDone();
+                        return false;
+                    }
 
-		            // Log the gossip option we're about to take...
-		            QBCLog.DeveloperInfo(
-		                "Selecting {0}({1}) on page {2}: \"{3}\"",
+                    // Log the gossip option we're about to take...
+                    QBCLog.DeveloperInfo(
+                        "Selecting {0}({1}) on page {2}: \"{3}\"",
                         usingServerIndices ? "Server Index" : "Gossip Option",
-                        usingServerIndices ? gossipEntry.ServerIndex: gossipEntry.Index + 1,
+                        usingServerIndices ? gossipEntry.ServerIndex : gossipEntry.Index + 1,
                         GossipPageIndex + 1,
-		                gossipEntry.Text);
+                        gossipEntry.Text);
 
-		            // If Innkeeper 'binding option', arrange to confirm ensuing popup...
-		            if (gossipEntry.Type == GossipEntry.GossipEntryType.Binder)
-		            {
-		                BindingEventState = BindingEventStateType.BindingEventHooked;
-		                Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
-		            }
+                    // If Innkeeper 'binding option', arrange to confirm ensuing popup...
+                    if (gossipEntry.Type == GossipEntry.GossipEntryType.Binder)
+                    {
+                        BindingEventState = BindingEventStateType.BindingEventHooked;
+                        Lua.Events.AttachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
+                    }
 
-		            GossipFrame.Instance.SelectGossipOption(gossipEntry.Index);
-		            ++GossipPageIndex;
+                    GossipFrame.Instance.SelectGossipOption(gossipEntry.Index);
+                    ++GossipPageIndex;
 
-		            // If gossip is complete, claim credit...
-		            // Frequently, the last gossip option in a chain will start a fight.  If this happens,
-		            // and we don't claim credit, the behavior will hang trying to re-try a gossip with the NPC,
-		            // and the NPC doesn't want to gossip any more.
-		            if (GossipPageIndex >= options.Length)
-		            {
-		                QBCLog.DeveloperInfo("Gossip with {0} complete.", GetName(SelectedTarget));
+                    // If gossip is complete, claim credit...
+                    // Frequently, the last gossip option in a chain will start a fight.  If this happens,
+                    // and we don't claim credit, the behavior will hang trying to re-try a gossip with the NPC,
+                    // and the NPC doesn't want to gossip any more.
+                    if (GossipPageIndex >= options.Length)
+                    {
+                        QBCLog.DeveloperInfo("Gossip with {0} complete.", GetName(SelectedTarget));
 
-		                // NB: Some merchants require that we gossip with them before purchase.
-		                // If the caller has also specified a "buy item", then we're not done yet.
-		                if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
-		                {
-		                    BlacklistInteractTarget(SelectedTarget);
-		                    _waitTimerAfterInteracting.Reset();
-		                    ++Counter;
-		                }
-		            }
-		            await Coroutine.Wait((int) Delay.AfterInteraction.TotalMilliseconds, () => !IsGossipFrameVisible);
-		        }
-		        // If the NPC pops down the dialog for us, or goes non-viable after gossip...
-		        // Go ahead and blacklist it, so we don't try to interact again.
+                        // NB: Some merchants require that we gossip with them before purchase.
+                        // If the caller has also specified a "buy item", then we're not done yet.
+                        if ((InteractByBuyingItemId <= 0) && (InteractByBuyingItemInSlotNum <= 0))
+                        {
+                            BlacklistInteractTarget(SelectedTarget);
+                            _waitTimerAfterInteracting.Reset();
+                            ++Counter;
+                        }
+                    }
+                    await Coroutine.Wait((int)Delay.AfterInteraction.TotalMilliseconds, () => !IsGossipFrameVisible);
+                }
+                // If the NPC pops down the dialog for us, or goes non-viable after gossip...
+                // Go ahead and blacklist it, so we don't try to interact again.
 
-		        if (!IsGossipFrameVisible || !Query.IsViable(SelectedTarget))
-		        {
-		            TreeRoot.StatusText = string.Format("Gossip with {0} complete.", GetName(SelectedTarget));
-		            _waitTimerAfterInteracting.Reset();
-		            ++Counter;
+                if (!IsGossipFrameVisible || !Query.IsViable(SelectedTarget))
+                {
+                    TreeRoot.StatusText = string.Format("Gossip with {0} complete.", GetName(SelectedTarget));
+                    _waitTimerAfterInteracting.Reset();
+                    ++Counter;
 
-		            BlacklistInteractTarget(SelectedTarget);
-		            if (IsClearTargetNeeded(SelectedTarget))
-		            {
-		                Me.ClearTarget();
-		            }
-		        }
-		    }
+                    BlacklistInteractTarget(SelectedTarget);
+                    if (IsClearTargetNeeded(SelectedTarget))
+                    {
+                        Me.ClearTarget();
+                    }
+                }
+            }
 
             // If we get the gossip frame while trying to buy something then click through it.
-            if ((InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > 0 ) && GossipFrame.Instance.GossipOptionEntries != null)
-		    {
-		        foreach (var gossip in GossipFrame.Instance.GossipOptionEntries)
-		        {
-		            if (gossip.Type == GossipEntry.GossipEntryType.Vendor)
-		            {
-		                GossipFrame.Instance.SelectGossipOption(gossip.Index);
-		                await Coroutine.Sleep(Delay.AfterInteraction);
-		                return true;
-		            }
-		        }
-		    }
+            if ((InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > 0) && GossipFrame.Instance.GossipOptionEntries != null)
+            {
+                foreach (var gossip in GossipFrame.Instance.GossipOptionEntries)
+                {
+                    if (gossip.Type == GossipEntry.GossipEntryType.Vendor)
+                    {
+                        GossipFrame.Instance.SelectGossipOption(gossip.Index);
+                        await Coroutine.Sleep(Delay.AfterInteraction);
+                        return true;
+                    }
+                }
+            }
 
-		    // Only a problem if Gossip frame, and not also another frame type...
-		    if (!InteractByGossip && IsGossipFrameVisible && !IsMultipleFramesVisible())
-		    {
-		        QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring.");
-		    }
-		    await Coroutine.Sleep((int) Delay.AfterInteraction.TotalMilliseconds);
+            // Only a problem if Gossip frame, and not also another frame type...
+            if (!InteractByGossip && IsGossipFrameVisible && !IsMultipleFramesVisible())
+            {
+                QBCLog.Warning("[PROFILE ERROR]: Gossip frame not expected--ignoring.");
+            }
+            await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
 
-		    // Tell user if he is now bound to a new location...
-			if (BindingEventState != BindingEventStateType.BindingEventUnhooked)
-			{
-				if (await Coroutine.Wait(10000, () => BindingEventState == BindingEventStateType.BindingEventFired))
-				{
-					await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
-					Lua.DoString("ConfirmBinder(); StaticPopup_Hide('CONFIRM_BINDER')");
-					// NB: We give the WoWclient a little time to register our new location
-					// before asking it "where is our hearthstone set?"
-					await Coroutine.Sleep(1000);
-					var boundLocation = Lua.GetReturnVal<string>("return GetBindLocation()", 0);
+            // Tell user if he is now bound to a new location...
+            if (BindingEventState != BindingEventStateType.BindingEventUnhooked)
+            {
+                if (await Coroutine.Wait(10000, () => BindingEventState == BindingEventStateType.BindingEventFired))
+                {
+                    await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+                    Lua.DoString("ConfirmBinder(); StaticPopup_Hide('CONFIRM_BINDER')");
+                    // NB: We give the WoWclient a little time to register our new location
+                    // before asking it "where is our hearthstone set?"
+                    await Coroutine.Sleep(1000);
+                    var boundLocation = Lua.GetReturnVal<string>("return GetBindLocation()", 0);
 
-					QBCLog.Info(
-						"You are now bound at {0} Inn in {1}({2})",
-						(Query.IsViable(SelectedTarget) ? GetName(SelectedTarget) : "the"),
-						boundLocation,
-						Me.HearthstoneAreaId);
+                    QBCLog.Info(
+                        "You are now bound at {0} Inn in {1}({2})",
+                        (Query.IsViable(SelectedTarget) ? GetName(SelectedTarget) : "the"),
+                        boundLocation,
+                        Me.HearthstoneAreaId);
 
-					BindingEventState = BindingEventStateType.BindingEventUnhooked;
-					Lua.Events.DetachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
-				}
-			}
-			return false;
-		}
+                    BindingEventState = BindingEventStateType.BindingEventUnhooked;
+                    Lua.Events.DetachEvent("CONFIRM_BINDER", HandleConfirmForBindingAtInn);
+                }
+            }
+            return false;
+        }
 
-		private async Task<bool> SubCoroutine_HandleFrame_Loot()
-		{
-			// Nothing really special for us to do here.  WoW will take care of 'normal' looting it auto-loot is enabled.
-			// And looting objects through "interaction" is usually nothing more than right-clicking
-			// on the object and a loot frame is not even produced.  But this is here, just in case
-			// a loot frame is produced, and WoW doesn't automatically loot it
-			if (IsLootFrameVisible)
-			{
-				TreeRoot.StatusText = string.Format("Looting {0}", GetName(SelectedTarget));
-				LootFrame.Instance.LootAll();
-				await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
-			}
-			// we want to 'fall through'
-			return false;
-		}
+        private async Task<bool> SubCoroutine_HandleFrame_Loot()
+        {
+            // Nothing really special for us to do here.  WoW will take care of 'normal' looting it auto-loot is enabled.
+            // And looting objects through "interaction" is usually nothing more than right-clicking
+            // on the object and a loot frame is not even produced.  But this is here, just in case
+            // a loot frame is produced, and WoW doesn't automatically loot it
+            if (IsLootFrameVisible)
+            {
+                TreeRoot.StatusText = string.Format("Looting {0}", GetName(SelectedTarget));
+                LootFrame.Instance.LootAll();
+                await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+            }
+            // we want to 'fall through'
+            return false;
+        }
 
-		private async Task<bool> SubCoroutine_HandleFrame_Merchant()
-		{
-			if (!IsMerchantFrameVisible)
-				return false;
+        private async Task<bool> SubCoroutine_HandleFrame_Merchant()
+        {
+            if (!IsMerchantFrameVisible)
+                return false;
 
-			if ((InteractByBuyingItemId > 0) || (InteractByBuyingItemInSlotNum >= 0))
-			{
-				MerchantItem item = (InteractByBuyingItemId > 0)
-					? MerchantFrame.Instance.GetAllMerchantItems().FirstOrDefault(i => i.ItemId == InteractByBuyingItemId)
-					: (InteractByBuyingItemInSlotNum >= 0)
-						? MerchantFrame.Instance.GetMerchantItemByIndex(InteractByBuyingItemInSlotNum)
-						: null;
+            if ((InteractByBuyingItemId > 0) || (InteractByBuyingItemInSlotNum >= 0))
+            {
+                MerchantItem item = (InteractByBuyingItemId > 0)
+                    ? MerchantFrame.Instance.GetAllMerchantItems().FirstOrDefault(i => i.ItemId == InteractByBuyingItemId)
+                    : (InteractByBuyingItemInSlotNum >= 0)
+                        ? MerchantFrame.Instance.GetMerchantItemByIndex(InteractByBuyingItemInSlotNum)
+                        : null;
 
-				if (item == null)
-				{
+                if (item == null)
+                {
+                    var msg = InteractByBuyingItemId > 0
+                        ? string.Format(
+                            "{0} does not appear to carry ItemId({1})--abandoning transaction.",
+                            GetName(SelectedTarget),
+                            InteractByBuyingItemId)
+                        : string.Format(
+                            "{0} does not have an item to sell in slot #{1}--abandoning transaction.",
+                            GetName(SelectedTarget),
+                            InteractByBuyingItemInSlotNum);
 
-					var msg = InteractByBuyingItemId > 0
-						? string.Format(
-							"{0} does not appear to carry ItemId({1})--abandoning transaction.",
-							GetName(SelectedTarget),
-							InteractByBuyingItemId)
-						: string.Format(
-							"{0} does not have an item to sell in slot #{1}--abandoning transaction.",
-							GetName(SelectedTarget),
-							InteractByBuyingItemInSlotNum);
-
-					if (MissingBuyItemIsFatal)
-						QBCLog.ProfileError(msg);
-					else
-						BehaviorDone(msg);
-				}
-				else if ((item.NumAvailable != /*unlimited*/ -1) && (item.NumAvailable < BuyItemCount))
-				{
-					QBCLog.ProfileError(
-						"{0} only has {1} units of {2} (we need {3})--abandoning transaction.",
-						GetName(SelectedTarget),
-						item.NumAvailable,
-						item.Name,
-						BuyItemCount);
-				}
-				else
-				{
-					QBCLog.Info("Buying {0} (qty: {1}) from {2}", item.Name, BuyItemCount, GetName(SelectedTarget));
-				    if (MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount))
-				    {
-				        await CommonCoroutines.SleepForRandomUiInteractionTime();
-				    }
+                    if (MissingBuyItemIsFatal)
+                        QBCLog.ProfileError(msg);
                     else
-				    {
+                        BehaviorDone(msg);
+                }
+                else if ((item.NumAvailable != /*unlimited*/ -1) && (item.NumAvailable < BuyItemCount))
+                {
+                    QBCLog.ProfileError(
+                        "{0} only has {1} units of {2} (we need {3})--abandoning transaction.",
+                        GetName(SelectedTarget),
+                        item.NumAvailable,
+                        item.Name,
+                        BuyItemCount);
+                }
+                else
+                {
+                    QBCLog.Info("Buying {0} (qty: {1}) from {2}", item.Name, BuyItemCount, GetName(SelectedTarget));
+                    if (MerchantFrame.Instance.BuyItem(item.Index, BuyItemCount))
+                    {
+                        await CommonCoroutines.SleepForRandomUiInteractionTime();
+                    }
+                    else
+                    {
                         var altCurrency = item.BuyPrice == 0;
                         if (altCurrency)
-				        {							
+                        {
                             QBCLog.ProfileError(
                                 "Toon does not have enough ({0}) to purchase {1} (qty: {2})",
-								string.Join(", ", item.ExtendedCost.RequiredCurrencyIds.Select(id => WoWCurrency.GetCurrencyById(id).Name)),
-								item.Name,
+                                string.Join(", ", item.ExtendedCost.RequiredCurrencyIds.Select(id => WoWCurrency.GetCurrencyById(id).Name)),
+                                item.Name,
                                 BuyItemCount);
                         }
-				        else
-				        {
+                        else
+                        {
                             QBCLog.ProfileError(
                                 "Toon does not have enough gold to purchase {0} (qty: {1})"
                                 + "--(requires: {2}, have: {3})--abandoning transaction.",
@@ -1488,374 +1485,373 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
                                 Utility.PrettyMoney(Me.Copper));
                         }
                     }
-				}
-				// NB: We do not blacklist merchants.
-				++Counter;
-			}
+                }
+                // NB: We do not blacklist merchants.
+                ++Counter;
+            }
 
-			else if (!IsMultipleFramesVisible())
-			{
-				QBCLog.Warning("[PROFILE ERROR] Merchant frame not expected--ignoring.");
-			}
+            else if (!IsMultipleFramesVisible())
+            {
+                QBCLog.Warning("[PROFILE ERROR] Merchant frame not expected--ignoring.");
+            }
 
-			await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
-			// we want to 'fall through'
-			return false;
-		}
+            await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+            // we want to 'fall through'
+            return false;
+        }
 
-		private async Task<bool> SubCoroutine_HandleFrame_Quest()
-		{
-			if (!IsQuestFrameVisible)
-				return false;
+        private async Task<bool> SubCoroutine_HandleFrame_Quest()
+        {
+            if (!IsQuestFrameVisible)
+                return false;
 
-			if (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
-				QuestFrame.Instance.AcceptQuest();
-			else if (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
-				QuestFrame.Instance.CompleteQuest();
-			else if (InteractByQuestFrameAction == QuestFrameDisposition.Continue)
-				QuestFrame.Instance.ClickContinue();
+            if (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
+                QuestFrame.Instance.AcceptQuest();
+            else if (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
+                QuestFrame.Instance.CompleteQuest();
+            else if (InteractByQuestFrameAction == QuestFrameDisposition.Continue)
+                QuestFrame.Instance.ClickContinue();
 
-			// If the NPC pops down the dialog for us, or goes non-viable after gossip...
-			// Go ahead and blacklist it, so we don't try to interact again.
-			if (!IsQuestFrameVisible || !Query.IsViable(SelectedTarget))
-			{
-				TreeRoot.StatusText = string.Format("Quest accept from {0} complete.", GetName(SelectedTarget));
-				_waitTimerAfterInteracting.Reset();
-				++Counter;
+            // If the NPC pops down the dialog for us, or goes non-viable after gossip...
+            // Go ahead and blacklist it, so we don't try to interact again.
+            if (!IsQuestFrameVisible || !Query.IsViable(SelectedTarget))
+            {
+                TreeRoot.StatusText = string.Format("Quest accept from {0} complete.", GetName(SelectedTarget));
+                _waitTimerAfterInteracting.Reset();
+                ++Counter;
 
-				BlacklistInteractTarget(SelectedTarget);
-				if (IsClearTargetNeeded(SelectedTarget))
-				{
-					Me.ClearTarget();
-				}
-			}
-			if (InteractByQuestFrameAction == QuestFrameDisposition.Ignore)
-				QuestFrame.Instance.Close();
+                BlacklistInteractTarget(SelectedTarget);
+                if (IsClearTargetNeeded(SelectedTarget))
+                {
+                    Me.ClearTarget();
+                }
+            }
+            if (InteractByQuestFrameAction == QuestFrameDisposition.Ignore)
+                QuestFrame.Instance.Close();
 
-			if (!IsMultipleFramesVisible())
-			{
-				if (InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior)
-				{
-					QBCLog.DeveloperInfo(
-						"Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
-						GetName(SelectedTarget));
-					CloseOpenFrames(true);
-					BehaviorDone();
-				}
+            if (!IsMultipleFramesVisible())
+            {
+                if (InteractByQuestFrameAction == QuestFrameDisposition.TerminateBehavior)
+                {
+                    QBCLog.DeveloperInfo(
+                        "Behavior Done--due to {0} providing a quest frame, and InteractByQuestFrameDisposition=TerminateBehavior",
+                        GetName(SelectedTarget));
+                    CloseOpenFrames(true);
+                    BehaviorDone();
+                }
 
-				if (InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile)
-				{
+                if (InteractByQuestFrameAction == QuestFrameDisposition.TerminateProfile)
+                {
+                    QBCLog.ProfileError(
+                        "{0} provided an unexpected Quest frame--terminating profile."
+                        + "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
+                        + " the behavior how to handle this situation. \n\n{1}",
+                        GetName(SelectedTarget), GetOpenQuestFrameInfo());
 
-					QBCLog.ProfileError(
-						"{0} provided an unexpected Quest frame--terminating profile."
-						+ "  Please provide an appropriate InteractByQuestFrameDisposition attribute to instruct"
-						+ " the behavior how to handle this situation. \n\n{1}",
-						GetName(SelectedTarget), GetOpenQuestFrameInfo());
+                    CloseOpenFrames(true);
+                    BehaviorDone();
+                }
+            }
+            await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
+            // we want to 'fall through'
+            return false;
+        }
 
-					CloseOpenFrames(true);
-					BehaviorDone();
-				}
-			}
-			await Coroutine.Sleep((int)Delay.AfterInteraction.TotalMilliseconds);
-			// we want to 'fall through'
-			return false;
-		}
+        #endregion
 
-		#endregion
+        #region Targeting
 
-		#region Targeting
+        private void Targeting_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
+        {
+            var isActuallyInCombat = Me.IsActuallyInCombat;
 
-		private void Targeting_IncludeTargetsFilter(List<WoWObject> incomingUnits, HashSet<WoWObject> outgoingUnits)
-		{
-			var isActuallyInCombat = Me.IsActuallyInCombat;
+            // No need to clear a path while flying since we can fly right over them!
+            var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
+                                        || ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
 
-			// No need to clear a path while flying since we can fly right over them!
-			var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
-										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
-
-			var selectedUnit = SelectedTarget as WoWUnit;
-			// If we expect to gossip, and mob in combat and offers no gossip, help mob...
-			// NB: Mobs frequently will not offer their gossip options while they are in combat.
+            var selectedUnit = SelectedTarget as WoWUnit;
+            // If we expect to gossip, and mob in combat and offers no gossip, help mob...
+            // NB: Mobs frequently will not offer their gossip options while they are in combat.
             if (InteractByGossip && Query.IsViable(selectedUnit) && selectedUnit.Combat)
-			{
-				var selectedTarget = selectedUnit.CurrentTarget;
-				if (selectedTarget != null && selectedTarget.Attackable && selectedTarget.IsHostile)
-					outgoingUnits.Add(selectedTarget);
-			}
+            {
+                var selectedTarget = selectedUnit.CurrentTarget;
+                if (selectedTarget != null && selectedTarget.Attackable && selectedTarget.IsHostile)
+                    outgoingUnits.Add(selectedTarget);
+            }
 
-			// hard to gain distance on a mob that aggroed so kill it.
-			if (RangeMin.HasValue && Query.IsViable(selectedUnit) && selectedUnit.Aggro)
-				outgoingUnits.Add(selectedUnit);
+            // hard to gain distance on a mob that aggroed so kill it.
+            if (RangeMin.HasValue && Query.IsViable(selectedUnit) && selectedUnit.Aggro)
+                outgoingUnits.Add(selectedUnit);
 
-			// if we have a target that needs to be killed before interaction can take place then make it so.
-			if (Query.IsViable(SelectedAliveTarget) && SelectedAliveTarget.IsAlive)
-				outgoingUnits.Add(SelectedAliveTarget);
+            // if we have a target that needs to be killed before interaction can take place then make it so.
+            if (Query.IsViable(SelectedAliveTarget) && SelectedAliveTarget.IsAlive)
+                outgoingUnits.Add(SelectedAliveTarget);
 
-			// we only need to include NPCs while out of combat, clearing NPCs in way and when SelectedTarget is set.
-			if (isActuallyInCombat || !clearMobsThatWillAggro || SelectedTarget == null)
-				return;
+            // we only need to include NPCs while out of combat, clearing NPCs in way and when SelectedTarget is set.
+            if (isActuallyInCombat || !clearMobsThatWillAggro || SelectedTarget == null)
+                return;
 
-			foreach (var unit in incomingUnits.OfType<WoWUnit>())
-			{
-				if (!unit.IsHostile || !unit.Attackable)
-					continue;
+            foreach (var unit in incomingUnits.OfType<WoWUnit>())
+            {
+                if (!unit.IsHostile || !unit.Attackable)
+                    continue;
 
-				if (!unit.IsUntagged())
-					continue;
+                if (!unit.IsUntagged())
+                    continue;
 
-				if (unit.PlayerControlled)
-					continue;
+                if (unit.PlayerControlled)
+                    continue;
 
-				if (unit.Location.PathTraversalCost(unit.Location) > (unit.MyAggroRange + unit.InteractRange))
-					continue;
+                if (unit.Location.PathTraversalCost(unit.Location) > (unit.MyAggroRange + unit.InteractRange))
+                    continue;
 
-				outgoingUnits.Add(unit);
-			}
-		}
+                outgoingUnits.Add(unit);
+            }
+        }
 
-		private void Targeting_RemoveTargetsFilter(List<WoWObject> units)
-		{
-			// No need to clear a path while flying since we can fly right over them!
-			var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
-										|| ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
+        private void Targeting_RemoveTargetsFilter(List<WoWObject> units)
+        {
+            // No need to clear a path while flying since we can fly right over them!
+            var clearMobsThatWillAggro = !Me.IsFlying && (ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearAll
+                                        || ProactiveCombatStrategy == ProactiveCombatStrategyType.ClearMobsThatWillAggro);
 
-			var isActuallyInCombat = Me.IsActuallyInCombat;
-			var removeViableTargets = (IgnoreCombat || !isActuallyInCombat)
-				&& (InteractAttemptCount == 0) || (Query.FindMobsAttackingMe().Count() <= 1);
+            var isActuallyInCombat = Me.IsActuallyInCombat;
+            var removeViableTargets = (IgnoreCombat || !isActuallyInCombat)
+                && (InteractAttemptCount == 0) || (Query.FindMobsAttackingMe().Count() <= 1);
 
-			units.RemoveAll(
-				o =>
-				{
-					var unit = (WoWUnit)o;
+            units.RemoveAll(
+                o =>
+                {
+                    var unit = (WoWUnit)o;
 
-					if (!isActuallyInCombat)
-					{
-						if (unit == SelectedAliveTarget)
-							return false;
+                    if (!isActuallyInCombat)
+                    {
+                        if (unit == SelectedAliveTarget)
+                            return false;
 
-						if (!Query.IsStateMatch_IgnoreMobsInBlackspots(unit, IgnoreMobsInBlackspots))
-							return true;
+                        if (!Query.IsStateMatch_IgnoreMobsInBlackspots(unit, IgnoreMobsInBlackspots))
+                            return true;
 
-						if (Query.IsInCompetition(unit, NonCompeteDistance))
-							return true;
+                        if (Query.IsInCompetition(unit, NonCompeteDistance))
+                            return true;
 
-						if (!clearMobsThatWillAggro)
-							return true;
+                        if (!clearMobsThatWillAggro)
+                            return true;
 
-						// because linear distance check is cheaper than path distance check we eliminate all that fall outside of linear aggro range distance first
-						var aggroRange = unit.MyAggroRange + unit.InteractRange;
-						if (unit.Distance > aggroRange)
-							return true;
+                        // because linear distance check is cheaper than path distance check we eliminate all that fall outside of linear aggro range distance first
+                        var aggroRange = unit.MyAggroRange + unit.InteractRange;
+                        if (unit.Distance > aggroRange)
+                            return true;
 
-						if (unit.Location.PathTraversalCost(Me.Location) > aggroRange)
-							return true;
-					}
+                        if (unit.Location.PathTraversalCost(Me.Location) > aggroRange)
+                            return true;
+                    }
 
-					// exclude any units that are candidates for interacting unless we are attacked by multiple units.
-					if (removeViableTargets && IsViableInteractTarget(unit))
-						return true;
+                    // exclude any units that are candidates for interacting unless we are attacked by multiple units.
+                    if (removeViableTargets && IsViableInteractTarget(unit))
+                        return true;
 
-					return false;
-				});
-		}
+                    return false;
+                });
+        }
 
 
-		private void Targeting_OnWeighTargetsFilter(List<Targeting.TargetPriority> units)
-		{
-			var isActuallyInCombat = Me.IsActuallyInCombat;
-			foreach (var targetPriority in units)
-			{
-				// give viable interact targets lower targeting score while in combat so bot kills non-viable interact targets first
-				if (isActuallyInCombat && MobState != MobStateType.Dead && IsViableInteractTarget(targetPriority.Object))
-				{
-					targetPriority.Score -= 1000;
-				}
-			}
-		}
+        private void Targeting_OnWeighTargetsFilter(List<Targeting.TargetPriority> units)
+        {
+            var isActuallyInCombat = Me.IsActuallyInCombat;
+            foreach (var targetPriority in units)
+            {
+                // give viable interact targets lower targeting score while in combat so bot kills non-viable interact targets first
+                if (isActuallyInCombat && MobState != MobStateType.Dead && IsViableInteractTarget(targetPriority.Object))
+                {
+                    targetPriority.Score -= 1000;
+                }
+            }
+        }
 
-		#endregion
+        #endregion
 
-		#region Helpers
+        #region Helpers
 
-		// cache the 'IsVisible' results for one frame to help increase performance.
-		private bool IsLootFrameVisible
-		{
-			get { return LootFrame.Instance.IsVisible; }
-		}
+        // cache the 'IsVisible' results for one frame to help increase performance.
+        private bool IsLootFrameVisible
+        {
+            get { return LootFrame.Instance.IsVisible; }
+        }
 
-		private bool IsGossipFrameVisible
-		{
-			get { return GossipFrame.Instance.IsVisible; }
-		}
+        private bool IsGossipFrameVisible
+        {
+            get { return GossipFrame.Instance.IsVisible; }
+        }
 
-		private bool IsMerchantFrameVisible
-		{
-			get { return MerchantFrame.Instance.IsVisible; }
-		}
+        private bool IsMerchantFrameVisible
+        {
+            get { return MerchantFrame.Instance.IsVisible; }
+        }
 
-		private bool IsQuestFrameVisible
-		{
-			get { return QuestFrame.Instance.IsVisible; }
-		}
+        private bool IsQuestFrameVisible
+        {
+            get { return QuestFrame.Instance.IsVisible; }
+        }
 
-		private bool IsTaxiFrameVisible
-		{
-			get { return TaxiFrame.Instance.IsVisible; }
-		}
+        private bool IsTaxiFrameVisible
+        {
+            get { return TaxiFrame.Instance.IsVisible; }
+        }
 
-		private bool IsTrainerFrameVisible
-		{
-			get { return TrainerFrame.Instance.IsVisible; }
-		}
+        private bool IsTrainerFrameVisible
+        {
+            get { return TrainerFrame.Instance.IsVisible; }
+        }
 
-		private TimeSpan BlacklistInteractTarget(WoWObject selectedTarget)
-		{
-			// NB: The selectedTarget can sometimes go "non viable" immediately upon interaction.
-			// An example: We gossip with an NPC that results in a forced taxi ride.  Honorbuddy suspends
-			// this behavior while the taxi ride is in progress, and when we land, the selectedTarget
-			// is no longer viable to blacklist.
-			if (!Query.IsViable(selectedTarget))
-			{
-				return TimeSpan.Zero;
-			}
+        private TimeSpan BlacklistInteractTarget(WoWObject selectedTarget)
+        {
+            // NB: The selectedTarget can sometimes go "non viable" immediately upon interaction.
+            // An example: We gossip with an NPC that results in a forced taxi ride.  Honorbuddy suspends
+            // this behavior while the taxi ride is in progress, and when we land, the selectedTarget
+            // is no longer viable to blacklist.
+            if (!Query.IsViable(selectedTarget))
+            {
+                return TimeSpan.Zero;
+            }
 
-			var wowUnit = selectedTarget as WoWUnit;
-		    var blacklistTime = InteractBlacklistTimeInSeconds ??
-		                        (UseShortBlacklist(wowUnit) ? ShortBlacklistTimeInSeconds : DefaultInteractBlacklistTimeInSeconds);
+            var wowUnit = selectedTarget as WoWUnit;
+            var blacklistTime = InteractBlacklistTimeInSeconds ??
+                                (UseShortBlacklist(wowUnit) ? ShortBlacklistTimeInSeconds : DefaultInteractBlacklistTimeInSeconds);
             TimeSpan blacklistDuration = TimeSpan.FromSeconds(blacklistTime);
 
-			selectedTarget.BlacklistForInteracting(blacklistDuration);
-			return blacklistDuration;
-		}
+            selectedTarget.BlacklistForInteracting(blacklistDuration);
+            return blacklistDuration;
+        }
 
-	    private bool UseShortBlacklist(WoWUnit wowUnit)
-	    {
-	        return Query.IsViable(wowUnit) && (wowUnit.IsMe || Query.IsSharedWorldResource(wowUnit));
-	    }
+        private bool UseShortBlacklist(WoWUnit wowUnit)
+        {
+            return Query.IsViable(wowUnit) && (wowUnit.IsMe || Query.IsSharedWorldResource(wowUnit));
+        }
 
-		private void CloseOpenFrames(bool forceClose = false)
-		{
-			if (forceClose || IsClearTargetNeeded(SelectedTarget))
-			{
-				Utility.CloseAllNpcFrames();
-			}
-		}
+        private void CloseOpenFrames(bool forceClose = false)
+        {
+            if (forceClose || IsClearTargetNeeded(SelectedTarget))
+            {
+                Utility.CloseAllNpcFrames();
+            }
+        }
 
-		private async Task CloseOpenFramesAndWait()
-		{
-			CloseOpenFrames(true);
-			await Coroutine.Wait(3000, () => Utility.GetNpcFrames().All(frame => !frame.IsVisible));
-		}
-
-
-		/// <summary> Current object we should interact with.</summary>
-		/// <value> The object.</value>
-		private IEnumerable<WoWObject> FindViableTargets(MobStateType mobState)
-		{
-			const double minionWeighting = 1000;
-
-			using (StyxWoW.Memory.AcquireFrame())
-			{
-				float pursuePriority = 0;
-				var entities =
-					from wowObject in ObjectManager.ObjectList
-					where
-						Query.IsViable(wowObject)
-						&& PursuitList.ShouldPursue(wowObject, out pursuePriority)
-						&& IsInteractNeeded(wowObject, mobState)
-						&& Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
-					let priority = pursuePriority
-					let objectCollectionDistance = wowObject.Location.CollectionDistance()
-					where
-						objectCollectionDistance <= CollectionDistance
-					orderby priority descending 
-					orderby
-						objectCollectionDistance
-						// Fix for undead-quest (and maybe some more), where the targets can be minions...
-						+ (Me.Minions.Contains(wowObject) ? minionWeighting : 1)
-						// Make sure 'self' is always last on the list, otherwise we'll ignore all other Mobs...
-						+ (wowObject.IsMe ? 1000 : 0)
-					select wowObject;
-
-				return entities.ToList();
-			}
-		}
-
-		private string GetGoalText()
-		{
-			var action =
-				(InteractByUsingItemId > 0)
-					? string.Format("by using {0} on", Utility.GetItemNameFromId(InteractByUsingItemId))
-					: (InteractByCastingSpellId > 0)
-						? string.Format("by casting {0} on", Utility.GetSpellNameFromId(InteractByCastingSpellId))
-						: "with";
-
-			var targetNames = string.Join(", ",PursuitList.GetNames().Distinct());
-
-			if (MobIdIncludesSelf)
-				targetNames = string.Join(", ", "Self", targetNames);
-
-			return string.Format("Interacting {0} {1}", action, targetNames);
-		}
+        private async Task CloseOpenFramesAndWait()
+        {
+            CloseOpenFrames(true);
+            await Coroutine.Wait(3000, () => Utility.GetNpcFrames().All(frame => !frame.IsVisible));
+        }
 
 
-		/// <summary>
-		///     The SelectedInteractTarget may no longer be viable after interacting with it.
-		///     For instance, the NPC may disappear, or if the toon was forced on a taxi ride
-		///     as a result of the gossip, the SelectedInteractTarget will no longer be viable
-		///     once we land.
-		/// </summary>
-		private string GetName(WoWObject target)
-		{
-			return Query.IsViable(target)
+        /// <summary> Current object we should interact with.</summary>
+        /// <value> The object.</value>
+        private IEnumerable<WoWObject> FindViableTargets(MobStateType mobState)
+        {
+            const double minionWeighting = 1000;
+
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                float pursuePriority = 0;
+                var entities =
+                    from wowObject in ObjectManager.ObjectList
+                    where
+                        Query.IsViable(wowObject)
+                        && PursuitList.ShouldPursue(wowObject, out pursuePriority)
+                        && IsInteractNeeded(wowObject, mobState)
+                        && Query.IsStateMatch_MeshNavigable(wowObject, MovementBy)
+                    let priority = pursuePriority
+                    let objectCollectionDistance = wowObject.Location.CollectionDistance()
+                    where
+                        objectCollectionDistance <= CollectionDistance
+                    orderby priority descending
+                    orderby
+                        objectCollectionDistance
+                        // Fix for undead-quest (and maybe some more), where the targets can be minions...
+                        + (Me.Minions.Contains(wowObject) ? minionWeighting : 1)
+                        // Make sure 'self' is always last on the list, otherwise we'll ignore all other Mobs...
+                        + (wowObject.IsMe ? 1000 : 0)
+                    select wowObject;
+
+                return entities.ToList();
+            }
+        }
+
+        private string GetGoalText()
+        {
+            var action =
+                (InteractByUsingItemId > 0)
+                    ? string.Format("by using {0} on", Utility.GetItemNameFromId(InteractByUsingItemId))
+                    : (InteractByCastingSpellId > 0)
+                        ? string.Format("by casting {0} on", Utility.GetSpellNameFromId(InteractByCastingSpellId))
+                        : "with";
+
+            var targetNames = string.Join(", ", PursuitList.GetNames().Distinct());
+
+            if (MobIdIncludesSelf)
+                targetNames = string.Join(", ", "Self", targetNames);
+
+            return string.Format("Interacting {0} {1}", action, targetNames);
+        }
+
+
+        /// <summary>
+        ///     The SelectedInteractTarget may no longer be viable after interacting with it.
+        ///     For instance, the NPC may disappear, or if the toon was forced on a taxi ride
+        ///     as a result of the gossip, the SelectedInteractTarget will no longer be viable
+        ///     once we land.
+        /// </summary>
+        private string GetName(WoWObject target)
+        {
+            return Query.IsViable(target)
                 ? target.SafeName
-				: (target == SelectedTarget)
-					? "selected target"
-					: (target.ToUnit() != null)
-						? "unit"
-						: "object";
-		}
+                : (target == SelectedTarget)
+                    ? "selected target"
+                    : (target.ToUnit() != null)
+                        ? "unit"
+                        : "object";
+        }
 
 
-		private void HandleConfirmForBindingAtInn(object sender, LuaEventArgs args)
-		{
-			BindingEventState = BindingEventStateType.BindingEventFired;
-		}
+        private void HandleConfirmForBindingAtInn(object sender, LuaEventArgs args)
+        {
+            BindingEventState = BindingEventStateType.BindingEventFired;
+        }
 
 
-		private bool IsClearTargetNeeded(WoWObject wowObject)
-		{
-			if (!Query.IsViable(wowObject))
-			{
-				return false;
-			}
+        private bool IsClearTargetNeeded(WoWObject wowObject)
+        {
+            if (!Query.IsViable(wowObject))
+            {
+                return false;
+            }
 
-			var wowUnit = wowObject as WoWUnit;
+            var wowUnit = wowObject as WoWUnit;
 
-			return
-				(wowUnit != null)
-				&& (Me.CurrentTargetGuid == wowUnit.Guid)
-				&& !KeepTargetSelected;
-		}
-
-
-		private bool IsDistanceCloseNeeded(WoWObject wowObject)
-		{
-			bool canInteract = IsWithinInteractDistance(wowObject);
-
-			// Item usage and spell casts must be additionally qualified by LoS constraints...
-			if (ItemToUse != null || InteractByCastingSpellId > 0)
-			{
-				canInteract &= (IgnoreLoSToTarget 
-					|| (_moveCloserTimerAfterSpellLosFailed.IsFinished && Query.IsInLineOfSight(wowObject)));
-			}
-
-			return !canInteract;
-		}
+            return
+                (wowUnit != null)
+                && (Me.CurrentTargetGuid == wowUnit.Guid)
+                && !KeepTargetSelected;
+        }
 
 
-		private bool IsDistanceGainNeeded(WoWObject wowObject, out double rangeMin)
-		{
+        private bool IsDistanceCloseNeeded(WoWObject wowObject)
+        {
+            bool canInteract = IsWithinInteractDistance(wowObject);
+
+            // Item usage and spell casts must be additionally qualified by LoS constraints...
+            if (ItemToUse != null || InteractByCastingSpellId > 0)
+            {
+                canInteract &= (IgnoreLoSToTarget
+                    || (_moveCloserTimerAfterSpellLosFailed.IsFinished && Query.IsInLineOfSight(wowObject)));
+            }
+
+            return !canInteract;
+        }
+
+
+        private bool IsDistanceGainNeeded(WoWObject wowObject, out double rangeMin)
+        {
             rangeMin = GetMinRange(wowObject);
             var rangeMax = GetMaxRange(wowObject);
 
@@ -1873,128 +1869,128 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             {
                 QBCLog.Error("RangeMin ({0}) is higher than MaxRange ({1}) of {2}",
                     rangeMin, rangeMax, wowObject.SafeName);
-                return  false;
+                return false;
             }
 
             return distToMob < rangeMin;
-		}
+        }
 
 
-		private bool IsFrameExpectedFromInteraction 
-		{
-			get
-			{
+        private bool IsFrameExpectedFromInteraction
+        {
+            get
+            {
                 // NB: InteractByLoot is nothing more than a normal "right click" activity
                 // on something. If something is normally 'lootable', WoW will deal with it 
                 // if Auto-loot is enabled.
-				return
-					(InteractByBuyingItemId > 0)
-					|| (InteractByBuyingItemInSlotNum > -1)
-					|| InteractByGossip
+                return
+                    (InteractByBuyingItemId > 0)
+                    || (InteractByBuyingItemInSlotNum > -1)
+                    || InteractByGossip
                     || (InteractByQuestFrameAction == QuestFrameDisposition.Accept)
-					|| (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
-					|| (InteractByQuestFrameAction == QuestFrameDisposition.Continue);
-			}
-		}
+                    || (InteractByQuestFrameAction == QuestFrameDisposition.Complete)
+                    || (InteractByQuestFrameAction == QuestFrameDisposition.Continue);
+            }
+        }
 
 
-		private bool IsExpectedFrameOpen
-		{
-			get 
-			{
-				if (InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > -1)
-					return IsGossipFrameVisible || IsMerchantFrameVisible;
+        private bool IsExpectedFrameOpen
+        {
+            get
+            {
+                if (InteractByBuyingItemId > 0 || InteractByBuyingItemInSlotNum > -1)
+                    return IsGossipFrameVisible || IsMerchantFrameVisible;
 
-				if (InteractByGossip)
-					return IsGossipFrameVisible;
+                if (InteractByGossip)
+                    return IsGossipFrameVisible;
 
-				if (InteractByQuestFrameAction != QuestFrameDisposition.Ignore)
-					return IsGossipFrameVisible || IsQuestFrameVisible;
+                if (InteractByQuestFrameAction != QuestFrameDisposition.Ignore)
+                    return IsGossipFrameVisible || IsQuestFrameVisible;
 
-				return false;
-			}
-		}
+                return false;
+            }
+        }
 
-	    private bool InteractByGossip
-	    {
-	        get { return InteractByGossipOptions.Any() || InteractByServerGossipIndices.Any(); }
-	    }
-
-
-	    // 24Feb2013-08:11UTC chinajade
-		private bool IsInteractNeeded(WoWObject wowObject, MobStateType mobState)
-		{
-			if (wowObject == null)
-			{
-				return false;
-			}
-
-			bool isViableForInteracting = Query.IsViableForInteracting(wowObject, IgnoreMobsInBlackspots, NonCompeteDistance);
-			WoWUnit wowUnit = wowObject as WoWUnit;
-
-			// We're done, if not a WoWUnit...
-			if (wowUnit == null)
-			{
-				return isViableForInteracting;
-			}
-
-			// Additional qualifiers for WoWUnits...        
-			return
-				isViableForInteracting
-				&& Query.IsStateMatch_NotMoving(wowUnit, NotMoving)
-				// Many times, units can't gossip unti they're out of combat.  So, assume they can gossip if they are in combat...
-				// Once out of combat, we can re-evaluate whether this was a good choice or not.w
-				&& (!InteractByGossip || wowUnit.Combat || wowUnit.CanGossip)
-				&& Query.IsStateMatch_AurasWanted(wowUnit, AuraIdsOnMob)
-				&& Query.IsStateMatch_AurasMissing(wowUnit, AuraIdsMissingFromMob)
-				&& Query.IsStateMatch_MobState(wowObject, mobState, MobHpPercentLeft);
-		}
+        private bool InteractByGossip
+        {
+            get { return InteractByGossipOptions.Any() || InteractByServerGossipIndices.Any(); }
+        }
 
 
-		private bool IsMultipleFramesVisible()
-		{
-			int score =
-				(IsGossipFrameVisible ? 1 : 0)
-				+ (IsMerchantFrameVisible ? 1 : 0)
-				+ (IsQuestFrameVisible ? 1 : 0)
-				+ (IsTaxiFrameVisible ? 1 : 0)
-				+ (IsTrainerFrameVisible ? 1 : 0);
+        // 24Feb2013-08:11UTC chinajade
+        private bool IsInteractNeeded(WoWObject wowObject, MobStateType mobState)
+        {
+            if (wowObject == null)
+            {
+                return false;
+            }
 
-			return score > 1;
-		}
+            bool isViableForInteracting = Query.IsViableForInteracting(wowObject, IgnoreMobsInBlackspots, NonCompeteDistance);
+            WoWUnit wowUnit = wowObject as WoWUnit;
 
-		private bool IsViableInteractTarget(WoWObject wowObject)
-		{
-			if (!PursuitList.ShouldPursue(wowObject))
-				return false;
+            // We're done, if not a WoWUnit...
+            if (wowUnit == null)
+            {
+                return isViableForInteracting;
+            }
 
-			if (!IsInteractNeeded(wowObject, MobState))
-				return false;
+            // Additional qualifiers for WoWUnits...        
+            return
+                isViableForInteracting
+                && Query.IsStateMatch_NotMoving(wowUnit, NotMoving)
+                // Many times, units can't gossip unti they're out of combat.  So, assume they can gossip if they are in combat...
+                // Once out of combat, we can re-evaluate whether this was a good choice or not.w
+                && (!InteractByGossip || wowUnit.Combat || wowUnit.CanGossip)
+                && Query.IsStateMatch_AurasWanted(wowUnit, AuraIdsOnMob)
+                && Query.IsStateMatch_AurasMissing(wowUnit, AuraIdsMissingFromMob)
+                && Query.IsStateMatch_MobState(wowObject, mobState, MobHpPercentLeft);
+        }
 
-			if (!Query.IsStateMatch_MeshNavigable(wowObject, MovementBy))
-				return false;
 
-			var unit = wowObject as WoWUnit;
-			if (RangeMin.HasValue && unit != null && unit.Aggro)
-				return false;
+        private bool IsMultipleFramesVisible()
+        {
+            int score =
+                (IsGossipFrameVisible ? 1 : 0)
+                + (IsMerchantFrameVisible ? 1 : 0)
+                + (IsQuestFrameVisible ? 1 : 0)
+                + (IsTaxiFrameVisible ? 1 : 0)
+                + (IsTrainerFrameVisible ? 1 : 0);
 
-			return wowObject.Location.CollectionDistance() <= CollectionDistance;
-		}
+            return score > 1;
+        }
+
+        private bool IsViableInteractTarget(WoWObject wowObject)
+        {
+            if (!PursuitList.ShouldPursue(wowObject))
+                return false;
+
+            if (!IsInteractNeeded(wowObject, MobState))
+                return false;
+
+            if (!Query.IsStateMatch_MeshNavigable(wowObject, MovementBy))
+                return false;
+
+            var unit = wowObject as WoWUnit;
+            if (RangeMin.HasValue && unit != null && unit.Aggro)
+                return false;
+
+            return wowObject.Location.CollectionDistance() <= CollectionDistance;
+        }
 
 
-		private bool IsWithinInteractDistance(WoWObject wowObject)
-		{
-		    if (!Query.IsViable(wowObject))
-		        return false;
-		    var maxRange = GetMaxRange(wowObject);
+        private bool IsWithinInteractDistance(WoWObject wowObject)
+        {
+            if (!Query.IsViable(wowObject))
+                return false;
+            var maxRange = GetMaxRange(wowObject);
 
-		    var distToMob = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
+            var distToMob = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
             return distToMob <= maxRange;
-		}
+        }
 
         private double GetMaxRange(WoWObject wowObject)
-	    {
+        {
             if (!Query.IsViable(wowObject))
                 return double.MaxValue;
 
@@ -2006,11 +2002,11 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             if (spell != null && spell.HasRange)
             {
                 var wowUnit = wowObject as WoWUnit;
-                return wowUnit != null ? spell.MaxRange + wowUnit.CombatReach + 4/3f : spell.MaxRange;
+                return wowUnit != null ? spell.MaxRange + wowUnit.CombatReach + 4 / 3f : spell.MaxRange;
             }
 
             return wowObject.InteractRange;
-	    }
+        }
 
         private double GetMinRange(WoWObject wowObject)
         {
@@ -2031,89 +2027,89 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
             return 0;
         }
 
-	    private WoWSpell GetInteractSpell()
-	    {
+        private WoWSpell GetInteractSpell()
+        {
             return Query.IsViable(ItemToUse)
                 ? ItemToUse.Effects.Select(i => i.Spell).FirstOrDefault()
                 : (InteractByCastingSpellId > 0 ? WoWSpell.FromId(InteractByCastingSpellId) : null);
-	    }
+        }
 
-		// 4JUn2013-08:11UTC chinajade
-		private List<string> TargetExclusionChecks(WoWObject wowObject)
-		{
-			var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, this);
+        // 4JUn2013-08:11UTC chinajade
+        private List<string> TargetExclusionChecks(WoWObject wowObject)
+        {
+            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, this);
 
-			TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, AuraIdsOnMob, AuraIdsMissingFromMob);
-			TargetExclusionAnalysis.CheckMobState(exclusionReasons, wowObject, MobState, MobHpPercentLeft);
+            TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, AuraIdsOnMob, AuraIdsMissingFromMob);
+            TargetExclusionAnalysis.CheckMobState(exclusionReasons, wowObject, MobState, MobHpPercentLeft);
 
-			var objectCollectionDistance = wowObject.Location.CollectionDistance();
-			if (objectCollectionDistance > CollectionDistance)
-			{
-				exclusionReasons.Add(
-					string.Format("ExceedsCollectionDistance({0:F1}, saw {1:F1})", CollectionDistance, objectCollectionDistance));
-			}
+            var objectCollectionDistance = wowObject.Location.CollectionDistance();
+            if (objectCollectionDistance > CollectionDistance)
+            {
+                exclusionReasons.Add(
+                    string.Format("ExceedsCollectionDistance({0:F1}, saw {1:F1})", CollectionDistance, objectCollectionDistance));
+            }
 
-			var wowUnit = wowObject as WoWUnit;
-			if (wowUnit != null)
-			{
-				if (!Query.IsStateMatch_NotMoving(wowUnit, NotMoving))
-				{
-					exclusionReasons.Add("Moving");
-				}
+            var wowUnit = wowObject as WoWUnit;
+            if (wowUnit != null)
+            {
+                if (!Query.IsStateMatch_NotMoving(wowUnit, NotMoving))
+                {
+                    exclusionReasons.Add("Moving");
+                }
 
-				if (InteractByGossip && !wowUnit.CanGossip)
-				{
-					exclusionReasons.Add("NoGossip");
-				}
-			}
+                if (InteractByGossip && !wowUnit.CanGossip)
+                {
+                    exclusionReasons.Add("NoGossip");
+                }
+            }
 
-			return exclusionReasons;
-		}
+            return exclusionReasons;
+        }
 
-		private bool TryGetGossipEntry(out GossipEntry gossipEntry)
-		{
-			try
-			{
-				// NB: This clumsiness is because HB defines the default GossipEntry with an
-				// an Index of 0.  Since this is a valid gossip option index, this leaves us with
-				// no way to determine the difference between the 'default' value, and a valid
-				// value. So, we try to get the gossip entry using First() (vs. FirstOrDefault()),
-				// and if an exception gets thrown, we know the entry is not present.
-				if (GossipFrame.Instance.GossipOptionEntries == null)
-				{
-					throw new InvalidOperationException();
-				}
+        private bool TryGetGossipEntry(out GossipEntry gossipEntry)
+        {
+            try
+            {
+                // NB: This clumsiness is because HB defines the default GossipEntry with an
+                // an Index of 0.  Since this is a valid gossip option index, this leaves us with
+                // no way to determine the difference between the 'default' value, and a valid
+                // value. So, we try to get the gossip entry using First() (vs. FirstOrDefault()),
+                // and if an exception gets thrown, we know the entry is not present.
+                if (GossipFrame.Instance.GossipOptionEntries == null)
+                {
+                    throw new InvalidOperationException();
+                }
 
-			    var useServerIndex = InteractByServerGossipIndices.Any();
+                var useServerIndex = InteractByServerGossipIndices.Any();
 
                 var index = useServerIndex
                     ? InteractByServerGossipIndices[GossipPageIndex]
-			        : InteractByGossipOptions[GossipPageIndex];
+                    : InteractByGossipOptions[GossipPageIndex];
 
                 gossipEntry = GossipFrame.Instance.GossipOptionEntries
-					.First(o => (useServerIndex ? o.ServerIndex : o.Index) == index);
-			}
-			catch (InvalidOperationException)
-			{
-				gossipEntry = new GossipEntry();
-				return false;
-			}
-			return true;
-		}
+                    .First(o => (useServerIndex ? o.ServerIndex : o.Index) == index);
+            }
+            catch (InvalidOperationException)
+            {
+                gossipEntry = new GossipEntry();
+                return false;
+            }
+            return true;
+        }
 
-		string GetOpenQuestFrameInfo()
-		{
-			if (!IsQuestFrameVisible)
-				return string.Empty;
+        private string GetOpenQuestFrameInfo()
+        {
+            if (!IsQuestFrameVisible)
+                return string.Empty;
 
-			var shownQuestId = QuestFrame.Instance.CurrentShownQuestId;
-			if (shownQuestId == 0)
-				return "No quest is shown in quest frame";
+            var shownQuestId = QuestFrame.Instance.CurrentShownQuestId;
+            if (shownQuestId == 0)
+                return "No quest is shown in quest frame";
 
-			var quest = Quest.FromId(shownQuestId);
-			return string.Format("The quest: {0} (Id: {1}) is shown in quest frame", quest.Name, quest.Id);
-		}
+            var quest = Quest.FromId(shownQuestId);
+            return string.Format("The quest: {0} (Id: {1}) is shown in quest frame", quest.Name, quest.Id);
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

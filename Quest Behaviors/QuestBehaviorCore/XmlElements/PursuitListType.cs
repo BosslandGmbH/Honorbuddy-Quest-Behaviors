@@ -14,6 +14,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -30,7 +31,7 @@ using Styx.WoWInternals.WoWObjects;
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class PursuitListType : QuestBehaviorXmlBase
-    {        
+    {
         #region Constructor and Argument Processing
         public PursuitListType(XElement xElement)
             : base(xElement)
@@ -98,7 +99,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public bool ShouldPursue(WoWObject woWObject, out float priority)
         {
-            var pursueObject =  PursueObjects.FirstOrDefault(p => p.ShouldPursue(woWObject));
+            var pursueObject = PursueObjects.FirstOrDefault(p => p.ShouldPursue(woWObject));
             if (pursueObject == null)
             {
                 priority = 0;
@@ -113,71 +114,71 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             return PursueObjects.Any(p => p.CanConvert(woWObject, convertBy));
         }
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
                 elementName = "PursuitList";
 
-			var root = new XElement(elementName);
+            var root = new XElement(elementName);
 
             foreach (var pursueObject in PursueObjects)
-				root.Add(pursueObject.ToXml());
+                root.Add(pursueObject.ToXml());
 
-			return root;
-		}
-		#endregion
-		
-		
-		#region Private and Convenience variables
+            return root;
+        }
         #endregion
 
-	    /// <summary>Adds the ids.</summary>
-	    /// <param name="mobIds">The mob ids.</param>
-	    /// <param name="factionIds">The faction ids.</param>
-	    /// <param name="includeSelf">Include self if set to <c>true</c>.</param>
-	    public void AddIds(IEnumerable<int> mobIds, IEnumerable<int> factionIds, bool includeSelf)
-		{
-			foreach (var id in mobIds)
-				PursueObjects.Add(new PursueObjectType<WoWObject>(id));
 
-			foreach (var id in factionIds)
-				PursueObjects.Add(new PursueObjectType<WoWUnit>(0, unit => unit.FactionId == id));
+        #region Private and Convenience variables
+        #endregion
 
-			// there can only be one LocalPlayer object in the objectmanager and that is StyxWoW.Me
-			if (includeSelf)
-				PursueObjects.Add(new PursueObjectType<LocalPlayer>(0, player => true));
-		}
+        /// <summary>Adds the ids.</summary>
+        /// <param name="mobIds">The mob ids.</param>
+        /// <param name="factionIds">The faction ids.</param>
+        /// <param name="includeSelf">Include self if set to <c>true</c>.</param>
+        public void AddIds(IEnumerable<int> mobIds, IEnumerable<int> factionIds, bool includeSelf)
+        {
+            foreach (var id in mobIds)
+                PursueObjects.Add(new PursueObjectType<WoWObject>(id));
 
-	    /// <summary>Gets the names of pursue targets.</summary>
-	    /// <returns></returns>
-	    public IEnumerable<string> GetNames()
-		{
-			foreach (var pursueObject in PursueObjects)
-			{
-				if (pursueObject.Id != 0)
-					yield return Utility.GetObjectNameFromId(pursueObject.Id);
-				else if (pursueObject is PursueObjectType<LocalPlayer>)
-					yield return "Me";
-				else if (pursueObject.PursueWhenDelayCompiledExpression != null)
-					yield return pursueObject.PursueWhenDelayCompiledExpression.ExpressionString;
-				else 
-					yield return "Unknown";
-			}
-		}
+            foreach (var id in factionIds)
+                PursueObjects.Add(new PursueObjectType<WoWUnit>(0, unit => unit.FactionId == id));
+
+            // there can only be one LocalPlayer object in the objectmanager and that is StyxWoW.Me
+            if (includeSelf)
+                PursueObjects.Add(new PursueObjectType<LocalPlayer>(0, player => true));
+        }
+
+        /// <summary>Gets the names of pursue targets.</summary>
+        /// <returns></returns>
+        public IEnumerable<string> GetNames()
+        {
+            foreach (var pursueObject in PursueObjects)
+            {
+                if (pursueObject.Id != 0)
+                    yield return Utility.GetObjectNameFromId(pursueObject.Id);
+                else if (pursueObject is PursueObjectType<LocalPlayer>)
+                    yield return "Me";
+                else if (pursueObject.PursueWhenDelayCompiledExpression != null)
+                    yield return pursueObject.PursueWhenDelayCompiledExpression.ExpressionString;
+                else
+                    yield return "Unknown";
+            }
+        }
 
         public IEnumerable<WoWObject> GetPursuitedObjects()
         {
             return from obj in ObjectManager.ObjectList
-                let pursueObj = PursueObjects.FirstOrDefault(p => p.ShouldPursue(obj))
-                where pursueObj != null
-                orderby pursueObj.Priority descending
-                orderby obj.DistanceSqr
-                select obj;
+                   let pursueObj = PursueObjects.FirstOrDefault(p => p.ShouldPursue(obj))
+                   where pursueObj != null
+                   orderby pursueObj.Priority descending
+                   orderby obj.DistanceSqr
+                   select obj;
         }
 
 
@@ -190,5 +191,5 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                                                 .FirstOrDefault(elem => (elem.Name == elementName)));
             return pursuitListType;
         }
-	}
+    }
 }

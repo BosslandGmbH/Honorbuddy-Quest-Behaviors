@@ -21,6 +21,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -39,60 +40,60 @@ using Styx.WoWInternals;
 
 namespace Honorbuddy.Quest_Behaviors.RunMacro
 {
-	[CustomBehaviorFileName(@"RunMacro")]
-	public class RunMacro : QuestBehaviorBase
-	{
-		public RunMacro(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"RunMacro")]
+    public class RunMacro : QuestBehaviorBase
+    {
+        public RunMacro(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				GoalText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "";
-				Macro = GetAttributeAs<string>("Macro", true, ConstrainAs.StringNonEmpty, null) ?? "";
-				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+            try
+            {
+                GoalText = GetAttributeAs<string>("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "";
+                Macro = GetAttributeAs<string>("Macro", true, ConstrainAs.StringNonEmpty, null) ?? "";
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
 
-				if (string.IsNullOrEmpty(GoalText))
-				{ GoalText = "Running Macro"; }
-			}
+                if (string.IsNullOrEmpty(GoalText))
+                { GoalText = "Running Macro"; }
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		// Attributes provided by caller
-		public string GoalText { get; private set; }
-		public string Macro { get; private set; }
-		public int NumOfTimes { get; private set; }
-		public int WaitTime { get; private set; }
+        // Attributes provided by caller
+        public string GoalText { get; private set; }
+        public string Macro { get; private set; }
+        public int NumOfTimes { get; private set; }
+        public int WaitTime { get; private set; }
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
         #region Overrides of QuestBehaviorBase
 
         public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			this.UpdateGoalText(QuestId, GoalText);
-		}
+            this.UpdateGoalText(QuestId, GoalText);
+        }
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
@@ -119,12 +120,12 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
             //                  RangeMax, rangeEpsilon, RangeMin)); 
         }
 
-	    protected override Composite CreateMainBehavior()
-	    {
-	        return new ActionRunCoroutine(ctx => MainCoroutine());
-	    }
+        protected override Composite CreateMainBehavior()
+        {
+            return new ActionRunCoroutine(ctx => MainCoroutine());
+        }
 
-        private async Task<bool>MainCoroutine()
+        private async Task<bool> MainCoroutine()
         {
             if (IsDone)
                 return false;
@@ -142,6 +143,6 @@ namespace Honorbuddy.Quest_Behaviors.RunMacro
             return true;
         }
 
-	    #endregion
-	}
+        #endregion
+    }
 }

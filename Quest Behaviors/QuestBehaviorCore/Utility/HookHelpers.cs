@@ -22,7 +22,7 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public class HookHelpers
     {
-        private static readonly Dictionary<string, bool> HookExecutionStates = new Dictionary<string, bool>();
+        private static readonly Dictionary<string, bool> s_hookExecutionStates = new Dictionary<string, bool>();
 
         /// <summary>
         ///     Executes a hook. This also sets QBCLog.BehaviorLoggingContext and logs when hook starts/stops executing, if enabled
@@ -60,7 +60,7 @@ namespace Honorbuddy.QuestBehaviorCore
                                 executed = true;
                                 break;
                             case CoroutineStatus.RanToCompletion:
-                                executed = (bool) coroutine.Result;
+                                executed = (bool)coroutine.Result;
                                 break;
                             default:
                                 throw new Exception("Unexpected Coroutine status");
@@ -69,11 +69,11 @@ namespace Honorbuddy.QuestBehaviorCore
                         if (logExecution)
                         {
                             bool executedPreviously;
-                            HookExecutionStates.TryGetValue(identifier, out executedPreviously);
+                            s_hookExecutionStates.TryGetValue(identifier, out executedPreviously);
 
                             if (executed != executedPreviously)
                             {
-                                HookExecutionStates[identifier] = executed;
+                                s_hookExecutionStates[identifier] = executed;
                                 // log execution state changes.
                                 QBCLog.Debug(executed ? "Executing {0}hook" : "Stopped executing {0}hook", name != null ? name + " " : "");
                             }

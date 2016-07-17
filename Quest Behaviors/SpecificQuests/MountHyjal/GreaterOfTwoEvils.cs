@@ -29,6 +29,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,171 +53,170 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 {
-	[CustomBehaviorFileName(@"SpecificQuests\MountHyjal\GreaterOfTwoEvils")]
-	public class GreaterOfTwoEvils : CustomForcedBehavior
-	{
-		public GreaterOfTwoEvils(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\GreaterOfTwoEvils")]
+    public class GreaterOfTwoEvils : CustomForcedBehavior
+    {
+        public GreaterOfTwoEvils(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
-				/* */
-				GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      //  (doc only - not used)
-				MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
-			}
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null) ?? 0;
+                /* */
+                GetAttributeAs<string>("QuestName", false, ConstrainAs.StringNonEmpty, null);      //  (doc only - not used)
+                MobId = GetAttributeAsNullable<int>("MobId", true, ConstrainAs.MobId, new[] { "NpcId" }) ?? 0;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		public int MobId { get; private set; }
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private static RunStatus _lastStateReturn = RunStatus.Success;
-		private static int _lineCount = 0;
-		private Composite _root;
-
-		// Private properties
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		public void Log(string format, params object[] args)
-		{
-			// following linecount hack is to stop dup suppression of Log window
-			QBCLog.Info(format + (++_lineCount % 2 == 0 ? "" : " "), args);
-		}
+        // Attributes provided by caller
+        public int MobId { get; private set; }
+        public int QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-		public void DLog(string format, params object[] args)
-		{
-			// following linecount hack is to stop dup suppression of Log window
-			QBCLog.DeveloperInfo(format + (++_lineCount % 2 == 0 ? "" : " "), args);
-		}
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private static RunStatus s_lastStateReturn = RunStatus.Success;
+        private static int s_lineCount = 0;
+        private Composite _root;
 
-		private WoWUnit Target
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>()
-									   .Where(u => u.Entry == MobId && !u.IsDead)
-									   .OrderBy(u => u.Distance).FirstOrDefault();
-			}
-		}
+        // Private properties
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
 
-		#region Overrides of CustomForcedBehavior
+        public void Log(string format, params object[] args)
+        {
+            // following linecount hack is to stop dup suppression of Log window
+            QBCLog.Info(format + (++s_lineCount % 2 == 0 ? "" : " "), args);
+        }
 
-		protected Composite CreateBehavior_QuestbotMain()
-		{
-			return _root ?? (_root =
-				new Decorator(ret => !_isBehaviorDone,
-					new PrioritySelector(
-						new Decorator(ret => Me.IsQuestComplete(QuestId),
-							new PrioritySelector(
-								new Decorator(ret => Me.HasAura("Flame Ascendancy"),
-									new Sequence( 
-										new Action( ret => DLog("Quest complete - cancelling Flame Ascendancy")),
-										new Action( ret => Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")")),
-										new SleepForLagDuration()
-										)
-									),
-								new Sequence(
-									new Action( ret => _isBehaviorDone = true ),
+        public void DLog(string format, params object[] args)
+        {
+            // following linecount hack is to stop dup suppression of Log window
+            QBCLog.DeveloperInfo(format + (++s_lineCount % 2 == 0 ? "" : " "), args);
+        }
+
+        private WoWUnit Target
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>()
+                                       .Where(u => u.Entry == MobId && !u.IsDead)
+                                       .OrderBy(u => u.Distance).FirstOrDefault();
+            }
+        }
+
+
+        #region Overrides of CustomForcedBehavior
+
+        protected Composite CreateBehavior_QuestbotMain()
+        {
+            return _root ?? (_root =
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(
+                        new Decorator(ret => Me.IsQuestComplete(QuestId),
+                            new PrioritySelector(
+                                new Decorator(ret => Me.HasAura("Flame Ascendancy"),
+                                    new Sequence(
+                                        new Action(ret => DLog("Quest complete - cancelling Flame Ascendancy")),
+                                        new Action(ret => Lua.DoString("RunMacroText(\"/cancelaura Flame Ascendancy\")")),
+                                        new SleepForLagDuration()
+                                        )
+                                    ),
+                                new Sequence(
+                                    new Action(ret => _isBehaviorDone = true),
                                     new SleepForLagDuration()
-									)
-								)
-							),
+                                    )
+                                )
+                            ),
 
-						// loop waiting for target only if no buff
-						new Decorator(ret => Target == null,
+                        // loop waiting for target only if no buff
+                        new Decorator(ret => Target == null,
                             // Using sequence since it'll return 'Success' after SleepForLagDuration ends
                             new Sequence(new SleepForLagDuration())
-						),
+                        ),
 
-						// loop waiting for CurrentTarget only if no buff
-						new Decorator(ret => Target != Me.CurrentTarget,
+                        // loop waiting for CurrentTarget only if no buff
+                        new Decorator(ret => Target != Me.CurrentTarget,
                             new Sequence(
                                 new Action(ctx => Target.Target()),
                                 new SleepForLagDuration())
-						),
+                        ),
 
-						// use item to get buff (enter vehicle)
-						new Decorator(ret => !Me.HasAura("Flame Ascendancy"),
+                        // use item to get buff (enter vehicle)
+                        new Decorator(ret => !Me.HasAura("Flame Ascendancy"),
                             new ActionRunCoroutine(ctx => UseTalismanOfFlameAscendancy())
-						),
+                        ),
 
-						new Decorator(ret => Target.Distance > 5,
-							new Action(delegate
-							{
-								DLog("Moving towards target");
-								Navigator.MoveTo(Target.Location);
-								return RunStatus.Success;
-							})
-						),
+                        new Decorator(ret => Target.Distance > 5,
+                            new Action(delegate
+                            {
+                                DLog("Moving towards target");
+                                Navigator.MoveTo(Target.Location);
+                                return RunStatus.Success;
+                            })
+                        ),
 
-						new Decorator(ret => Target.Distance <= 5 && Me.IsMoving,
-							new Action(delegate
-							{
-								DLog("At target, so stopping");
-								WoWMovement.MoveStop();
-								return RunStatus.Success;
-							})
-						),
+                        new Decorator(ret => Target.Distance <= 5 && Me.IsMoving,
+                            new Action(delegate
+                            {
+                                DLog("At target, so stopping");
+                                WoWMovement.MoveStop();
+                                return RunStatus.Success;
+                            })
+                        ),
 
                         new Decorator(ret => ActionBar.Active.Buttons[1].CanUse && !Me.Auras.ContainsKey("Flame Shield"),
-							new Action(delegate
-							{
-								Log("Cast Flame Shield");
-								ActionBar.Active.Buttons[1].Use();
-								return RunStatus.Success;
-							})
-						),
+                            new Action(delegate
+                            {
+                                Log("Cast Flame Shield");
+                                ActionBar.Active.Buttons[1].Use();
+                                return RunStatus.Success;
+                            })
+                        ),
 
-						new Decorator(ret => ActionBar.Active.Buttons[0].CanUse,
-							new Action(delegate
-							{
-								Log("Cast Attack");
-								ActionBar.Active.Buttons[0].Use();
-								return RunStatus.Success;
-							})
-						),
+                        new Decorator(ret => ActionBar.Active.Buttons[0].CanUse,
+                            new Action(delegate
+                            {
+                                Log("Cast Attack");
+                                ActionBar.Active.Buttons[0].Use();
+                                return RunStatus.Success;
+                            })
+                        ),
 
-						new Action(delegate
-						{
-							DLog("Waiting for Cooldown");
-							return _lastStateReturn;
-						})
-					)
-				)
-			);
-			
-		}
+                        new Action(delegate
+                        {
+                            DLog("Waiting for Cooldown");
+                            return s_lastStateReturn;
+                        })
+                    )
+                )
+            );
+        }
 
-	    async Task UseTalismanOfFlameAscendancy()
-	    {
+        private async Task UseTalismanOfFlameAscendancy()
+        {
             WoWItem item = ObjectManager.GetObjectsOfType<WoWItem>().FirstOrDefault(i => i != null && i.Entry == 54814);
             if (item == null)
             {
@@ -227,8 +227,8 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
 
             Log("Use: {0}", item.SafeName);
             item.Use(true);
-	        await CommonCoroutines.SleepForLagDuration();
-	    }
+            await CommonCoroutines.SleepForLagDuration();
+        }
 
         public override void OnFinished()
         {
@@ -239,42 +239,42 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.GreaterOfTwoEvils
         }
 
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-				this.UpdateGoalText(QuestId);
-			}
-		}
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
-		/// <summary>
-		/// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
-		/// </summary>
-		/// <returns></returns>
-		public static Composite CreateWaitForLagDuration()
-		{
-			return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
-		}
+        /// <summary>
+        /// This is meant to replace the 'SleepForLagDuration()' method. Should only be used in a Sequence
+        /// </summary>
+        /// <returns></returns>
+        public static Composite CreateWaitForLagDuration()
+        {
+            return new WaitContinue(TimeSpan.FromMilliseconds((StyxWoW.WoWClient.Latency * 2) + 150), ret => false, new ActionAlwaysSucceed());
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

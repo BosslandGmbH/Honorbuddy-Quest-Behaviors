@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -25,80 +26,79 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public VehicleAbilitiesType(XElement xElement)
             : base(xElement)
         {
-			try
-			{
-				// Acquire the abilities...
-				var abilityList = new List<VehicleAbilityType>();
-				if (xElement != null)
-				{
-					var abilityElementsQuery = xElement.Elements()
-						.Where(e => e.Name == "VehicleAbility");
+            try
+            {
+                // Acquire the abilities...
+                var abilityList = new List<VehicleAbilityType>();
+                if (xElement != null)
+                {
+                    var abilityElementsQuery = xElement.Elements()
+                        .Where(e => e.Name == "VehicleAbility");
 
-					foreach (XElement childElement in abilityElementsQuery)
-					{
-						var abilityType = new VehicleAbilityType(childElement);
+                    foreach (XElement childElement in abilityElementsQuery)
+                    {
+                        var abilityType = new VehicleAbilityType(childElement);
 
-						if (!abilityType.IsAttributeProblem)
-							abilityList.Add(abilityType);
+                        if (!abilityType.IsAttributeProblem)
+                            abilityList.Add(abilityType);
 
-						IsAttributeProblem |= abilityType.IsAttributeProblem;
-					}
-				}
-				VehicleAbilities = abilityList.AsReadOnly();
-				HandleAttributeProblem();
-			}
+                        IsAttributeProblem |= abilityType.IsAttributeProblem;
+                    }
+                }
+                VehicleAbilities = abilityList.AsReadOnly();
+                HandleAttributeProblem();
+            }
 
-			catch (Exception except)
-			{
-				if (Query.IsExceptionReportingNeeded(except))
-					QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString());
-				IsAttributeProblem = true;
-			}
+            catch (Exception except)
+            {
+                if (Query.IsExceptionReportingNeeded(except))
+                    QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString());
+                IsAttributeProblem = true;
+            }
         }
 
-		public VehicleAbilitiesType(IEnumerable<VehicleAbilityType> vehicleAbilities)
-		{
-			VehicleAbilities = vehicleAbilities.ToList().AsReadOnly();
-		}
+        public VehicleAbilitiesType(IEnumerable<VehicleAbilityType> vehicleAbilities)
+        {
+            VehicleAbilities = vehicleAbilities.ToList().AsReadOnly();
+        }
 
         #endregion
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "VehicleAbilities";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "VehicleAbilities";
 
-			var root = new XElement(elementName);
+            var root = new XElement(elementName);
 
-			foreach (var ability in VehicleAbilities)
-				root.Add(ability.ToXml());
+            foreach (var ability in VehicleAbilities)
+                root.Add(ability.ToXml());
 
-			return root;
-		}
+            return root;
+        }
 
-		public ReadOnlyCollection<VehicleAbilityType> VehicleAbilities { get; private set; }
+        public ReadOnlyCollection<VehicleAbilityType> VehicleAbilities { get; private set; }
 
-		#endregion
-
-
-		#region Private and Convenience variables
         #endregion
 
-		public static VehicleAbilitiesType GetOrCreate(XElement parentElement, string elementName)
-		{
-			var vehicleAbilitiesType = new VehicleAbilitiesType(parentElement
-												.Elements()
-												.DefaultIfEmpty(new XElement(elementName))
-												.FirstOrDefault(elem => (elem.Name == elementName)));
 
-			return vehicleAbilitiesType;
-		}
+        #region Private and Convenience variables
+        #endregion
 
+        public static VehicleAbilitiesType GetOrCreate(XElement parentElement, string elementName)
+        {
+            var vehicleAbilitiesType = new VehicleAbilitiesType(parentElement
+                                                .Elements()
+                                                .DefaultIfEmpty(new XElement(elementName))
+                                                .FirstOrDefault(elem => (elem.Name == elementName)));
+
+            return vehicleAbilitiesType;
+        }
     }
 }

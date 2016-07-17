@@ -139,6 +139,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -159,31 +160,31 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 {
-	[CustomBehaviorFileName(@"TargetAndMoveToMob")]
-	public class TargetAndMoveToMob : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
-		public TargetAndMoveToMob(Dictionary<string, string> args)
-			: base(args)
-		{
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+    [CustomBehaviorFileName(@"TargetAndMoveToMob")]
+    public class TargetAndMoveToMob : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
+        public TargetAndMoveToMob(Dictionary<string, string> args)
+            : base(args)
+        {
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Primary attributes...
-				MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
+                // Primary attributes...
+                MobIds = GetNumberedAttributesAsArray<int>("MobId", 1, ConstrainAs.MobId, null);
 
-				// Qualifiers
-				TargetOnlyIfHealthPercentAbove = GetAttributeAsNullable<double>("TargetOnlyIfHealthPercentAbove", false, ConstrainAs.Percent, null) ?? 0.0;
-				TargetOnlyIfHealthPercentBelow = GetAttributeAsNullable<double>("TargetOnlyIfHealthPercentBelow", false, ConstrainAs.Percent, null) ?? 100.0;
-				TargetOnlyIfMobHasAuraId = GetNumberedAttributesAsArray<int>("TargetOnlyIfMobHasAuraId", 0, ConstrainAs.AuraId, null);
-				TargetOnlyIfMobMissingAuraId = GetNumberedAttributesAsArray<int>("TargetOnlyIfMobMissingAuraId", 0, ConstrainAs.AuraId, null);
+                // Qualifiers
+                TargetOnlyIfHealthPercentAbove = GetAttributeAsNullable<double>("TargetOnlyIfHealthPercentAbove", false, ConstrainAs.Percent, null) ?? 0.0;
+                TargetOnlyIfHealthPercentBelow = GetAttributeAsNullable<double>("TargetOnlyIfHealthPercentBelow", false, ConstrainAs.Percent, null) ?? 100.0;
+                TargetOnlyIfMobHasAuraId = GetNumberedAttributesAsArray<int>("TargetOnlyIfMobHasAuraId", 0, ConstrainAs.AuraId, null);
+                TargetOnlyIfMobMissingAuraId = GetNumberedAttributesAsArray<int>("TargetOnlyIfMobMissingAuraId", 0, ConstrainAs.AuraId, null);
 
-				// Tunables...
-				HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
-				IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
-				MoveWithinMaxRangeOfMob = GetAttributeAsNullable<double>("MoveWithinMaxRangeOfMob", false, null, null) ?? 30.0;
-				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
+                // Tunables...
+                HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                IgnoreLoSToTarget = GetAttributeAsNullable<bool>("IgnoreLoSToTarget", false, null, null) ?? false;
+                MoveWithinMaxRangeOfMob = GetAttributeAsNullable<double>("MoveWithinMaxRangeOfMob", false, null, null) ?? 30.0;
+                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? true;
 
                 // Hunting ground processing...
                 HuntingGrounds =
@@ -191,258 +192,258 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
                                                    "HuntingGrounds",
                                                    new WaypointType(HuntingGroundCenter, "hunting ground center"));
                 IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Variables for Attributes provided by caller
-		private WoWPoint HuntingGroundCenter { get; set; }
-		private bool IgnoreLoSToTarget { get; set; }
-		private int[] MobIds { get; set; }
-		private double MoveWithinMaxRangeOfMob { get; set; }
-		private int[] TargetOnlyIfMobHasAuraId { get; set; }
-		private int[] TargetOnlyIfMobMissingAuraId { get; set; }
-		private double TargetOnlyIfHealthPercentAbove { get; set; }
-		private double TargetOnlyIfHealthPercentBelow { get; set; }
-		private bool WaitForNpcs { get; set; }
-
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
-		}
-
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			UsageCheck_SemanticCoherency(xElement,
-				TargetOnlyIfHealthPercentBelow < TargetOnlyIfHealthPercentAbove,
-				context => string.Format("TargetOnlyIfHealthPercentBelow({0}) must be greater than or equal to TargetOnlyIfHealthPercentAbove({1}).",
-					TargetOnlyIfHealthPercentBelow,
-					TargetOnlyIfHealthPercentAbove));
-		}
-		#endregion
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		#region Private and Convenience variables
-		private string GoalText
-		{
-			get
-			{
-				return
-					string.Format("Looking to target mobs: {0}",
-						string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct()));
-			}
-		}
-		private HuntingGroundsType HuntingGrounds { get; set; }
-		private WoWUnit SelectedTarget { get; set; }
-	    private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
+        // Variables for Attributes provided by caller
+        private WoWPoint HuntingGroundCenter { get; set; }
+        private bool IgnoreLoSToTarget { get; set; }
+        private int[] MobIds { get; set; }
+        private double MoveWithinMaxRangeOfMob { get; set; }
+        private int[] TargetOnlyIfMobHasAuraId { get; set; }
+        private int[] TargetOnlyIfMobMissingAuraId { get; set; }
+        private double TargetOnlyIfHealthPercentAbove { get; set; }
+        private double TargetOnlyIfHealthPercentBelow { get; set; }
+        private bool WaitForNpcs { get; set; }
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
-		#endregion
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
 
-
-		#region Overrides of CustomForcedBehavior
-
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
-
-
-		// Dispose provided by QuestBehaviorBase.
-
-
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
-
-
-		public override void OnStart()
-		{
-			// Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore(GoalText);
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				// Setup settings to prevent interference with your behavior --
-				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-				// by Honorbuddy, or the bot is stopped.
-				//CharacterSettings.Instance.HarvestHerbs = false;
-				//CharacterSettings.Instance.HarvestMinerals = false;
-				//CharacterSettings.Instance.LootChests = false;
-				//CharacterSettings.Instance.NinjaSkin = false;
-				//CharacterSettings.Instance.SkinMobs = false;
-				//CharacterSettings.Instance.PullDistance = 0;
-			}
-		}
-		#endregion
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            UsageCheck_SemanticCoherency(xElement,
+                TargetOnlyIfHealthPercentBelow < TargetOnlyIfHealthPercentAbove,
+                context => string.Format("TargetOnlyIfHealthPercentBelow({0}) must be greater than or equal to TargetOnlyIfHealthPercentAbove({1}).",
+                    TargetOnlyIfHealthPercentBelow,
+                    TargetOnlyIfHealthPercentAbove));
+        }
+        #endregion
 
 
-		#region Main Behaviors
-		protected override Composite CreateBehavior_CombatMain()
-		{
-			return new PrioritySelector(
-				// empty, for now
-				);
-		}
+        #region Private and Convenience variables
+        private string GoalText
+        {
+            get
+            {
+                return
+                    string.Format("Looking to target mobs: {0}",
+                        string.Join(", ", MobIds.Select(m => Utility.GetObjectNameFromId(m)).Distinct()));
+            }
+        }
+        private HuntingGroundsType HuntingGrounds { get; set; }
+        private WoWUnit SelectedTarget { get; set; }
+        private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
+
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
+        #endregion
 
 
-		protected override Composite CreateBehavior_CombatOnly()
-		{
-			return new PrioritySelector(
-				// empty, for now
-				);
-		}
+        #region Overrides of CustomForcedBehavior
+
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
 
-		protected override Composite CreateBehavior_DeathMain()
-		{
-			return new PrioritySelector(
-				// empty, for now
-				);
-		}
+        // Dispose provided by QuestBehaviorBase.
 
 
-		protected override Composite CreateMainBehavior()
-		{
-			return new PrioritySelector(
-				// If we don't have a selected target, find one...
-				new Decorator(context => !IsMobQualified(SelectedTarget),
-					new PrioritySelector(
-						new ActionFail(context => { SelectedTarget = FindQualifiedMob(); }),
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
-						// No qualifed mobs in immediate vicinity...
-						new Decorator(context => !IsMobQualified(SelectedTarget),
-							new PrioritySelector(
-								new Decorator(context => Me.GotTarget,
-									new Action(context => { Me.ClearTarget(); })),
 
-								// NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
-				// this sub-behavior will terminate the overall behavior.
-								new ActionRunCoroutine(context =>
-								        _noMobsAtCurrentWaypoint ??
-								        (_noMobsAtCurrentWaypoint =
-								            new UtilityCoroutine.NoMobsAtCurrentWaypoint(
-								                () => HuntingGrounds,
-								                () => MovementBy,
-								                () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
-								                () => TargetExclusionAnalysis.Analyze(
-								                    Element,
-								                    () => Query.FindMobsAndFactions(MobIds),
-								                    TargetExclusionChecks))))))
-					)),
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore(GoalText);
 
-				// If qualified mob was found, move within range, if needed...
-				// NB: A mob can lose its 'qualified' status for several reasons.  For instance,
-				// another player moves close to or tags the mob while we're on our way to it.
-				new Decorator(context => IsMobQualified(SelectedTarget),
-					new PrioritySelector(
-						new ActionFail(context => { Utility.Target(SelectedTarget); }),
-						new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
-						    new ActionRunCoroutine(
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                // Setup settings to prevent interference with your behavior --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
+                //CharacterSettings.Instance.HarvestHerbs = false;
+                //CharacterSettings.Instance.HarvestMinerals = false;
+                //CharacterSettings.Instance.LootChests = false;
+                //CharacterSettings.Instance.NinjaSkin = false;
+                //CharacterSettings.Instance.SkinMobs = false;
+                //CharacterSettings.Instance.PullDistance = 0;
+            }
+        }
+        #endregion
+
+
+        #region Main Behaviors
+        protected override Composite CreateBehavior_CombatMain()
+        {
+            return new PrioritySelector(
+                // empty, for now
+                );
+        }
+
+
+        protected override Composite CreateBehavior_CombatOnly()
+        {
+            return new PrioritySelector(
+                // empty, for now
+                );
+        }
+
+
+        protected override Composite CreateBehavior_DeathMain()
+        {
+            return new PrioritySelector(
+                // empty, for now
+                );
+        }
+
+
+        protected override Composite CreateMainBehavior()
+        {
+            return new PrioritySelector(
+                // If we don't have a selected target, find one...
+                new Decorator(context => !IsMobQualified(SelectedTarget),
+                    new PrioritySelector(
+                        new ActionFail(context => { SelectedTarget = FindQualifiedMob(); }),
+
+                        // No qualifed mobs in immediate vicinity...
+                        new Decorator(context => !IsMobQualified(SelectedTarget),
+                            new PrioritySelector(
+                                new Decorator(context => Me.GotTarget,
+                                    new Action(context => { Me.ClearTarget(); })),
+
+                                // NB: if the terminateBehaviorIfNoTargetsProvider argument evaluates to 'true', calling
+                                // this sub-behavior will terminate the overall behavior.
+                                new ActionRunCoroutine(context =>
+                                        _noMobsAtCurrentWaypoint ??
+                                        (_noMobsAtCurrentWaypoint =
+                                            new UtilityCoroutine.NoMobsAtCurrentWaypoint(
+                                                () => HuntingGrounds,
+                                                () => MovementBy,
+                                                () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
+                                                () => TargetExclusionAnalysis.Analyze(
+                                                    Element,
+                                                    () => Query.FindMobsAndFactions(MobIds),
+                                                    TargetExclusionChecks))))))
+                    )),
+
+                // If qualified mob was found, move within range, if needed...
+                // NB: A mob can lose its 'qualified' status for several reasons.  For instance,
+                // another player moves close to or tags the mob while we're on our way to it.
+                new Decorator(context => IsMobQualified(SelectedTarget),
+                    new PrioritySelector(
+                        new ActionFail(context => { Utility.Target(SelectedTarget); }),
+                        new Decorator(context => IsDistanceCloseNeeded(SelectedTarget),
+                            new ActionRunCoroutine(
                                 context => UtilityCoroutine.MoveTo(
-                                    SelectedTarget.Location, 
-                                    SelectedTarget.SafeName, 
+                                    SelectedTarget.Location,
+                                    SelectedTarget.SafeName,
                                     MovementBy))),
                         new ActionRunCoroutine(context => CommonCoroutines.StopMoving()),
-						new Action(context =>
-						{
-							Utility.Target(SelectedTarget, true);
-							BehaviorDone();
-						})
-					))
-			);
-		}
-		#endregion
+                        new Action(context =>
+                        {
+                            Utility.Target(SelectedTarget, true);
+                            BehaviorDone();
+                        })
+                    ))
+            );
+        }
+        #endregion
 
 
-		#region Helpers
-		private WoWUnit FindQualifiedMob()
-		{
-			return
-			   (from wowObject in Query.FindMobsAndFactions(MobIds)
-				let wowUnit = wowObject as WoWUnit
-				where
-					IsMobQualified(wowUnit)
-				orderby wowUnit.Distance
-				select wowUnit)
-				.FirstOrDefault();
-		}
+        #region Helpers
+        private WoWUnit FindQualifiedMob()
+        {
+            return
+               (from wowObject in Query.FindMobsAndFactions(MobIds)
+                let wowUnit = wowObject as WoWUnit
+                where
+                    IsMobQualified(wowUnit)
+                orderby wowUnit.Distance
+                select wowUnit)
+                .FirstOrDefault();
+        }
 
 
-		private bool IsDistanceCloseNeeded(WoWObject wowObject)
-		{
-			double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
+        private bool IsDistanceCloseNeeded(WoWObject wowObject)
+        {
+            double targetDistance = WoWMovement.ActiveMover.Location.Distance(wowObject.Location);
 
-			var isWithinRange =
-				(targetDistance <= MoveWithinMaxRangeOfMob)
-				&& (IgnoreLoSToTarget || Query.IsInLineOfSight(wowObject));
+            var isWithinRange =
+                (targetDistance <= MoveWithinMaxRangeOfMob)
+                && (IgnoreLoSToTarget || Query.IsInLineOfSight(wowObject));
 
-			return !isWithinRange;
-		}
-
-
-		private bool IsMobQualified(WoWUnit wowUnit)
-		{
-			return
-				Query.IsViable(wowUnit)
-				// Unique checks...
-					&& (wowUnit.HealthPercent >= TargetOnlyIfHealthPercentAbove)
-					&& (wowUnit.HealthPercent <= TargetOnlyIfHealthPercentBelow)
-				// 'Core' checks...
-					&& !wowUnit.IsBlacklistedForCombat()
-					&& Query.IsStateMatch_IgnoreMobsInBlackspots(wowUnit, IgnoreMobsInBlackspots)
-					&& !Query.IsInCompetition(wowUnit, NonCompeteDistance)
-					&& Query.IsStateMatch_MeshNavigable(wowUnit, MovementBy)
-				// 'Aura' checks...
-					&& Query.IsStateMatch_AurasWanted(wowUnit, TargetOnlyIfMobHasAuraId)
-					&& Query.IsStateMatch_AurasMissing(wowUnit, TargetOnlyIfMobMissingAuraId);
-		}
+            return !isWithinRange;
+        }
 
 
-		// 30May2013-08:11UTC chinajade
-		private List<string> TargetExclusionChecks(WoWObject wowObject)
-		{
-			var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, this);
+        private bool IsMobQualified(WoWUnit wowUnit)
+        {
+            return
+                Query.IsViable(wowUnit)
+                    // Unique checks...
+                    && (wowUnit.HealthPercent >= TargetOnlyIfHealthPercentAbove)
+                    && (wowUnit.HealthPercent <= TargetOnlyIfHealthPercentBelow)
+                    // 'Core' checks...
+                    && !wowUnit.IsBlacklistedForCombat()
+                    && Query.IsStateMatch_IgnoreMobsInBlackspots(wowUnit, IgnoreMobsInBlackspots)
+                    && !Query.IsInCompetition(wowUnit, NonCompeteDistance)
+                    && Query.IsStateMatch_MeshNavigable(wowUnit, MovementBy)
+                    // 'Aura' checks...
+                    && Query.IsStateMatch_AurasWanted(wowUnit, TargetOnlyIfMobHasAuraId)
+                    && Query.IsStateMatch_AurasMissing(wowUnit, TargetOnlyIfMobMissingAuraId);
+        }
 
-			TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, TargetOnlyIfMobHasAuraId, TargetOnlyIfMobMissingAuraId);
 
-			var wowUnit = wowObject as WoWUnit;
-			if (wowUnit != null)
-			{
-				if (wowUnit.HealthPercent < TargetOnlyIfHealthPercentAbove)
-				{
-					exclusionReasons.Add(string.Format("Health({0:F1}) < TargetOnlyIfHealthPercentAbove({1:F1})",
-						wowUnit.HealthPercent, TargetOnlyIfHealthPercentAbove));
-				}
+        // 30May2013-08:11UTC chinajade
+        private List<string> TargetExclusionChecks(WoWObject wowObject)
+        {
+            var exclusionReasons = TargetExclusionAnalysis.CheckCore(wowObject, this);
 
-				if (wowUnit.HealthPercent > TargetOnlyIfHealthPercentBelow)
-				{
-					exclusionReasons.Add(string.Format("Health({0:F1}) > TargetOnlyIfHealthPercentBelow({1:F1})",
-						wowUnit.HealthPercent, TargetOnlyIfHealthPercentBelow));
-				}
-			}
+            TargetExclusionAnalysis.CheckAuras(exclusionReasons, wowObject, TargetOnlyIfMobHasAuraId, TargetOnlyIfMobMissingAuraId);
 
-			return exclusionReasons;
-		}
-		#endregion
-	}
+            var wowUnit = wowObject as WoWUnit;
+            if (wowUnit != null)
+            {
+                if (wowUnit.HealthPercent < TargetOnlyIfHealthPercentAbove)
+                {
+                    exclusionReasons.Add(string.Format("Health({0:F1}) < TargetOnlyIfHealthPercentAbove({1:F1})",
+                        wowUnit.HealthPercent, TargetOnlyIfHealthPercentAbove));
+                }
+
+                if (wowUnit.HealthPercent > TargetOnlyIfHealthPercentBelow)
+                {
+                    exclusionReasons.Add(string.Format("Health({0:F1}) > TargetOnlyIfHealthPercentBelow({1:F1})",
+                        wowUnit.HealthPercent, TargetOnlyIfHealthPercentBelow));
+                }
+            }
+
+            return exclusionReasons;
+        }
+        #endregion
+    }
 }

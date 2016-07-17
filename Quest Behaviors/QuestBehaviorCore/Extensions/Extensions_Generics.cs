@@ -10,6 +10,7 @@
 
 
 #region Usings
+
 using System.Collections.Generic;
 
 using Styx.Common;
@@ -18,59 +19,59 @@ using Styx.Common;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-	public static class Extensions_Generics
-	{
-		//*****
-		// Dictionary...
-		public static void CopyFrom<T1, T2>(this Dictionary<T1,T2> destination, Dictionary<T1,T2> source)
-		{
-			destination.Clear();
-			foreach (var entry in source)
-				{ destination.Add(entry.Key, entry.Value); }
-		}
+    public static class Extensions_Generics
+    {
+        //*****
+        // Dictionary...
+        public static void CopyFrom<T1, T2>(this Dictionary<T1, T2> destination, Dictionary<T1, T2> source)
+        {
+            destination.Clear();
+            foreach (var entry in source)
+            { destination.Add(entry.Key, entry.Value); }
+        }
 
 
-		//*****
-		// DualHashSet...
-		public static DualHashSet<T1, T2> Clone<T1, T2>(this DualHashSet<T1, T2> source)
-		{
-			var result = new DualHashSet<T1, T2>();
+        //*****
+        // DualHashSet...
+        public static DualHashSet<T1, T2> Clone<T1, T2>(this DualHashSet<T1, T2> source)
+        {
+            var result = new DualHashSet<T1, T2>();
 
-			result.CopyFrom(source);
-			return (result);
-		}
-
-
-		public static void CopyFrom<T1, T2>(this DualHashSet<T1, T2> destination, DualHashSet<T1, T2> source)
-		{
-			destination.HashSet1.Clear();
-			destination.HashSet2.Clear();
-
-			// Add elements of T1 type...
-			foreach (var entry in source.HashSet1)
-				{ destination.Add(entry); }
-
-			// Add elements of T2 type...
-			foreach (var entry in source.HashSet2)
-				{ destination.Add(entry); }
-		}
+            result.CopyFrom(source);
+            return (result);
+        }
 
 
-		//*****
-		// HashSet...
-		public static void CopyFrom<T>(this HashSet<T> destination, IEnumerable<T> source)
-		{
-			destination.Clear();
-			destination.UnionWith(source);
-		}
+        public static void CopyFrom<T1, T2>(this DualHashSet<T1, T2> destination, DualHashSet<T1, T2> source)
+        {
+            destination.HashSet1.Clear();
+            destination.HashSet2.Clear();
+
+            // Add elements of T1 type...
+            foreach (var entry in source.HashSet1)
+            { destination.Add(entry); }
+
+            // Add elements of T2 type...
+            foreach (var entry in source.HashSet2)
+            { destination.Add(entry); }
+        }
 
 
-		//*****
-		// List...
-		public static void CopyFrom<T>(this List<T> destination, IEnumerable<T> source)
-		{
-			destination.Clear();
-			destination.AddRange(source);
-		}
-	}
+        //*****
+        // HashSet...
+        public static void CopyFrom<T>(this HashSet<T> destination, IEnumerable<T> source)
+        {
+            destination.Clear();
+            destination.UnionWith(source);
+        }
+
+
+        //*****
+        // List...
+        public static void CopyFrom<T>(this List<T> destination, IEnumerable<T> source)
+        {
+            destination.Clear();
+            destination.AddRange(source);
+        }
+    }
 }

@@ -10,6 +10,7 @@
 //
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -39,10 +40,10 @@ namespace Honorbuddy.QuestBehaviorCore
                 FixedMuzzleVelocity.HasValue
                 ? FixedMuzzleVelocity.Value
                 : double.NaN;   // "we don't know, yet"
-            
-            GravityInFpsSqr = 
-                gravity.HasValue 
-                ? gravity.Value 
+
+            GravityInFpsSqr =
+                gravity.HasValue
+                ? gravity.Value
                 : 32.174;
 
             MeasuredMuzzleVelocity_Average = double.NaN;
@@ -65,7 +66,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private WoWPoint? AimedLocation { get; set; }
         private double? FixedMuzzleVelocity { get; set; }
         private LocalPlayer Me { get { return QuestBehaviorBase.Me; } }
-        private readonly WaitTimer MissileWatchingTimer = new WaitTimer(TimeSpan.FromMilliseconds(1000));
+        private readonly WaitTimer _missileWatchingTimer = new WaitTimer(TimeSpan.FromMilliseconds(1000));
         private int MuzzleVelocities_Count { get; set; }
         private double MuzzleVelocities_Summation { get; set; }
         private bool NeedsTestFire { get { return double.IsNaN(MuzzleVelocityInFps); } }
@@ -78,7 +79,7 @@ namespace Honorbuddy.QuestBehaviorCore
         private double? CalculateBallisticLaunchAngle(WoWPoint targetLocation)
         {
             if (targetLocation == WoWPoint.Empty)
-                { return null; }
+            { return null; }
 
             double v0Sqr = MuzzleVelocityInFps * MuzzleVelocityInFps;
             double horizontalDistance = WoWMovement.ActiveMover.Location.Distance2D(targetLocation);
@@ -92,19 +93,19 @@ namespace Honorbuddy.QuestBehaviorCore
             // This means that the muzzleVelocity is insufficient to hit the target
             // at the target's current distance.
             if (radicalTerm < 0)
-                { return null; }
+            { return null; }
 
             radicalTerm = Math.Sqrt(radicalTerm);
 
             // Prefer the 'lower' angle, if its within the articulation range...
             double root = Math.Atan((v0Sqr - radicalTerm) / (GravityInFpsSqr * horizontalDistance));
             if (WeaponArticulation.IsWithinAzimuthLimits(root))
-                { return root; }
+            { return root; }
 
             // First root provides no solution, try second root...
             root = Math.Atan((v0Sqr + radicalTerm) / (GravityInFpsSqr * horizontalDistance));
             if (WeaponArticulation.IsWithinAzimuthLimits(root))
-                { return root; }
+            { return root; }
 
             // Both solutions are out of the vehicle's articulation capabilities, return "no solution"...
             return null;
@@ -176,7 +177,7 @@ namespace Honorbuddy.QuestBehaviorCore
             var launchAngle = CalculateBallisticLaunchAngle(wowPoint);
 
             if (!launchAngle.HasValue)
-                { return TimeSpan.Zero; }
+            { return TimeSpan.Zero; }
 
             var flightTime = TimeSpan.FromSeconds(R / (MuzzleVelocityInFps * Math.Cos(launchAngle.Value)));
 
@@ -201,7 +202,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         public bool WeaponAim(WoWObject selectedTarget)
         {
-	        AimedLocation = null;
+            AimedLocation = null;
             // If target is moving, lead it...
             var wowUnit = selectedTarget as WoWUnit;
             if (Query.IsViable(wowUnit) && wowUnit.IsMoving)
@@ -209,7 +210,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 var projectileFlightTime = CalculateTimeOfProjectileFlight(selectedTarget.Location);
                 var anticipatedLocation = selectedTarget.AnticipatedLocation(projectileFlightTime);
 
-                WoWMovement.StopFace(); 
+                WoWMovement.StopFace();
                 return WeaponAim(anticipatedLocation);
             }
 
@@ -218,26 +219,26 @@ namespace Honorbuddy.QuestBehaviorCore
                 QBCLog.Warning("No target for WeaponAim!");
                 WoWMovement.StopFace();
                 return false;
-            }           
+            }
 
             if (!UtilAimPreReqsPassed())
-                { return false; }
+            { return false; }
 
             // Show user what we're targeting...
             Utility.Target(selectedTarget);
 
-			var spell = FindVehicleAbilitySpell();
-			// Terrain is targeted when firing weapon.
-			// Commented out until repairs are made.
-			//if (spell != null && spell.CanTargetTerrain)
-			//{
-			//	// make sure target is within range of spell
-			//	if ( Me.Location.Distance(selectedTarget.Location) > spell.MaxRange)
-			//		return false;
+            var spell = FindVehicleAbilitySpell();
+            // Terrain is targeted when firing weapon.
+            // Commented out until repairs are made.
+            //if (spell != null && spell.CanTargetTerrain)
+            //{
+            //	// make sure target is within range of spell
+            //	if ( Me.Location.Distance(selectedTarget.Location) > spell.MaxRange)
+            //		return false;
 
-			//	AimedLocation = selectedTarget.Location;
-			//	return true;
-			//}
+            //	AimedLocation = selectedTarget.Location;
+            //	return true;
+            //}
 
             // Calculate the azimuth...
             // TODO: Take vehicle rotations (pitch, roll) into account
@@ -255,11 +256,11 @@ namespace Honorbuddy.QuestBehaviorCore
             //}
 
             if (!azimuth.HasValue || !WeaponArticulation.AzimuthSet(azimuth.Value))
-                { return false; }
+            { return false; }
 
             // For heading, we just face the location...
             if (!WeaponArticulation.HeadingSet(selectedTarget))
-                { return false; }
+            { return false; }
 
             AimedLocation = selectedTarget.Location;
             return true;
@@ -269,7 +270,7 @@ namespace Honorbuddy.QuestBehaviorCore
         // 11Mar2013-04:41UTC chinajade
         public bool WeaponAim(WoWPoint selectedLocation)
         {
-			AimedLocation = null;
+            AimedLocation = null;
             if (selectedLocation == WoWPoint.Empty)
             {
                 QBCLog.Warning("No target location for WeaponAim!");
@@ -278,29 +279,29 @@ namespace Honorbuddy.QuestBehaviorCore
             }
 
             if (!UtilAimPreReqsPassed())
-                { return false; }
+            { return false; }
 
-			var spell = FindVehicleAbilitySpell();
-			// No aiming is required if ability targets terrain using mouse cursor
-			//if (spell != null && spell.CanTargetTerrain)
-			//{
-			//	// make sure target is within range of spell
-			//	if (Me.Location.Distance(selectedLocation) > spell.MaxRange)
-			//		return false;
+            var spell = FindVehicleAbilitySpell();
+            // No aiming is required if ability targets terrain using mouse cursor
+            //if (spell != null && spell.CanTargetTerrain)
+            //{
+            //	// make sure target is within range of spell
+            //	if (Me.Location.Distance(selectedLocation) > spell.MaxRange)
+            //		return false;
 
-			//	AimedLocation = selectedLocation;
-			//	return true;
-			//}
+            //	AimedLocation = selectedLocation;
+            //	return true;
+            //}
 
             // Calculate the azimuth...
             // TODO: Take vehicle rotations (pitch, roll) into account
             var azimuth = CalculateBallisticLaunchAngle(selectedLocation);
             if (!azimuth.HasValue || !WeaponArticulation.AzimuthSet(azimuth.Value))
-                { return false; }
+            { return false; }
 
             // For heading, we just face the location...
             if (!WeaponArticulation.HeadingSet(selectedLocation))
-                { return false; }
+            { return false; }
 
             AimedLocation = selectedLocation;
             return true;
@@ -320,12 +321,12 @@ namespace Honorbuddy.QuestBehaviorCore
 
             if (isWeaponUsed)
             {
-				// Commented out for now. Will be revisited when issue #HB-926 is worked on.
-				//if (CanTargetTerrain)
-				//{
-				//	SpellManager.ClickRemoteLocation(AimedLocation.Value);
-				//	return true;
-				//}
+                // Commented out for now. Will be revisited when issue #HB-926 is worked on.
+                //if (CanTargetTerrain)
+                //{
+                //	SpellManager.ClickRemoteLocation(AimedLocation.Value);
+                //	return true;
+                //}
 
                 double instantaneousMuzzleVelocity = CalculateMuzzleVelocity();
 
@@ -340,10 +341,10 @@ namespace Honorbuddy.QuestBehaviorCore
                         : MeasuredMuzzleVelocity_Average;
 
                     if (double.IsNaN(MeasuredMuzzleVelocity_Min) || (instantaneousMuzzleVelocity < MeasuredMuzzleVelocity_Min))
-                        { MeasuredMuzzleVelocity_Min = instantaneousMuzzleVelocity; }
+                    { MeasuredMuzzleVelocity_Min = instantaneousMuzzleVelocity; }
 
                     if (double.IsNaN(MeasuredMuzzleVelocity_Max) || (instantaneousMuzzleVelocity > MeasuredMuzzleVelocity_Max))
-                        { MeasuredMuzzleVelocity_Max = instantaneousMuzzleVelocity; }
+                    { MeasuredMuzzleVelocity_Max = instantaneousMuzzleVelocity; }
 
                     if (LogWeaponFiringDetails)
                     {

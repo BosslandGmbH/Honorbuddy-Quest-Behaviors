@@ -35,6 +35,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -50,62 +51,63 @@ using Styx.TreeSharp;
 #endregion
 
 
-namespace Styx.Bot.Quest_Behaviors {
-	[CustomBehaviorFileName(@"Misc\InstanceTimer")]
-	public class InstanceTimer : QuestBehaviorBase
-	{
-		public InstanceTimer(Dictionary<string, string> args)
-		: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+namespace Styx.Bot.Quest_Behaviors
+{
+    [CustomBehaviorFileName(@"Misc\InstanceTimer")]
+    public class InstanceTimer : QuestBehaviorBase
+    {
+        public InstanceTimer(Dictionary<string, string> args)
+        : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
-			    Timer = GetAttributeAsNullable<TimerCommand>("Timer", true, null, null) ?? TimerCommand.Start;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Waiting for {TimeRemaining}  of  {TimeDuration}";
+                Timer = GetAttributeAsNullable<TimerCommand>("Timer", true, null, null) ?? TimerCommand.Start;
                 WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 360000;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		// Attributes provided by caller
+        // Attributes provided by caller
         private string GoalText { get; set; }
         private int WaitTime { get; set; }
-		private TimerCommand Timer { get;  set; }
+        private TimerCommand Timer { get; set; }
 
-		// Private variables for internal state
-		private Composite _root;
-		private Common.Helpers.WaitTimer _waitTimer;
-		private string _waitTimeAsString;
-	    private readonly static Stopwatch InInstanceTimer = new Stopwatch();
+        // Private variables for internal state
+        private Composite _root;
+        private Common.Helpers.WaitTimer _waitTimer;
+        private string _waitTimeAsString;
+        private readonly static Stopwatch s_inInstanceTimer = new Stopwatch();
 
-		private string UtilSubstituteInMessage(string message)
-		{
-		    message = message.Replace("{TimeRemaining}", Utility.PrettyTime(_waitTimer.TimeLeft));
-			message = message.Replace("{TimeDuration}", _waitTimeAsString);
+        private string UtilSubstituteInMessage(string message)
+        {
+            message = message.Replace("{TimeRemaining}", Utility.PrettyTime(_waitTimer.TimeLeft));
+            message = message.Replace("{TimeDuration}", _waitTimeAsString);
 
-			return (message);
-		}
+            return (message);
+        }
 
-		#region Overrides of CustomForcedBehavior
+        #region Overrides of CustomForcedBehavior
 
-		protected override Composite CreateMainBehavior() 
+        protected override Composite CreateMainBehavior()
         {
             return _root ?? (_root = new ActionRunCoroutine(ctx => MainCoroutine()));
-		}
+        }
 
         protected async Task<bool> MainCoroutine()
         {
@@ -139,50 +141,50 @@ namespace Styx.Bot.Quest_Behaviors {
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
         {
-            UsageCheck_SemanticCoherency(xElement, Timer == TimerCommand.Check && !InInstanceTimer.IsRunning,
+            UsageCheck_SemanticCoherency(xElement, Timer == TimerCommand.Check && !s_inInstanceTimer.IsRunning,
                 context => "You must start the timer (by setting Timer=\"Start\") first before checking the timer.");
         }
 
-		public override void OnStart() 
-		{
+        public override void OnStart()
+        {
             var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
             if (isBehaviorShouldRun)
-			{
-				if (Timer == TimerCommand.Start)
-				{
-				    _waitTimer = null;
-                    InInstanceTimer.Restart();
-					QBCLog.Info("Started.");
+            {
+                if (Timer == TimerCommand.Start)
+                {
+                    _waitTimer = null;
+                    s_inInstanceTimer.Restart();
+                    QBCLog.Info("Started.");
                     BehaviorDone();
-				}
+                }
                 else if (Timer == TimerCommand.Check)
-				{
-                    InInstanceTimer.Stop();
-                    QBCLog.Info("Your instance run took " + Utility.PrettyTime(InInstanceTimer.Elapsed));
-				    if (InInstanceTimer.ElapsedMilliseconds >= WaitTime)
-				    {
-				        _waitTimer = null;
+                {
+                    s_inInstanceTimer.Stop();
+                    QBCLog.Info("Your instance run took " + Utility.PrettyTime(s_inInstanceTimer.Elapsed));
+                    if (s_inInstanceTimer.ElapsedMilliseconds >= WaitTime)
+                    {
+                        _waitTimer = null;
                         BehaviorDone();
-				    }
+                    }
                     else
-					{
-					    var waitTimeSpan = TimeSpan.FromMilliseconds(WaitTime) - InInstanceTimer.Elapsed;
+                    {
+                        var waitTimeSpan = TimeSpan.FromMilliseconds(WaitTime) - s_inInstanceTimer.Elapsed;
                         _waitTimer = new Common.Helpers.WaitTimer(waitTimeSpan);
                         _waitTimeAsString = Utility.PrettyTime(_waitTimer.WaitTime);
                         _waitTimer.Reset();
                         QBCLog.Info("Waiting for " + _waitTimeAsString);
-					}                    
-				}
-			}
-		}
+                    }
+                }
+            }
+        }
 
-	    #endregion
+        #endregion
 
-	    enum TimerCommand
-	    {
-	        Start,
+        private enum TimerCommand
+        {
+            Start,
             Check
-	    }
-	}
+        }
+    }
 }

@@ -25,6 +25,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
@@ -43,49 +44,49 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.RunLua
 {
-	[CustomBehaviorFileName(@"Misc\RunLua")]
-	public class RunLua : QuestBehaviorBase
-	{
-		public RunLua(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"Misc\RunLua")]
+    public class RunLua : QuestBehaviorBase
+    {
+        public RunLua(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				LuaCommand = GetAttributeAs<string>("Lua", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
-				NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
-				WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
+            try
+            {
+                LuaCommand = GetAttributeAs<string>("Lua", true, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                NumOfTimes = GetAttributeAsNullable<int>("NumOfTimes", false, ConstrainAs.RepeatCount, null) ?? 1;
+                WaitTime = GetAttributeAsNullable<int>("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 0;
 
-				GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Running Lua";
-			}
+                GoalText = GetAttributeAs("GoalText", false, ConstrainAs.StringNonEmpty, null) ?? "Running Lua";
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		// Attributes provided by caller
-		private string LuaCommand { get; set; }
-		public string GoalText { get; set; }
-		private int NumOfTimes { get; set; }
-		private int WaitTime { get; set; }
+        // Attributes provided by caller
+        private string LuaCommand { get; set; }
+        public string GoalText { get; set; }
+        private int NumOfTimes { get; set; }
+        private int WaitTime { get; set; }
 
-		// Private variables for internal state
-		private int _counter;
-		private readonly WaitTimer _waitTimer = new WaitTimer(TimeSpan.Zero);
+        // Private variables for internal state
+        private int _counter;
+        private readonly WaitTimer _waitTimer = new WaitTimer(TimeSpan.Zero);
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of QuestBehaviorBase
 
@@ -115,28 +116,28 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
         }
 
         protected override Composite CreateMainBehavior()
-		{
-		    return new PrioritySelector(
-		        // Wait for post-LUA timer to expire...
-		        new Decorator(context => !_waitTimer.IsFinished,
-		            new ActionAlwaysSucceed()),
+        {
+            return new PrioritySelector(
+                // Wait for post-LUA timer to expire...
+                new Decorator(context => !_waitTimer.IsFinished,
+                    new ActionAlwaysSucceed()),
 
-		        // If we've met our completion count, we're done...
-		        new Decorator(context => _counter >= NumOfTimes,
-		            new Action(context => { BehaviorDone(); })),
+                // If we've met our completion count, we're done...
+                new Decorator(context => _counter >= NumOfTimes,
+                    new Action(context => { BehaviorDone(); })),
 
-		        // Run the LUA command...
-		        new Action(c =>
-		        {
-		            Lua.DoString(LuaCommand);
-		            _counter++;
-		            _waitTimer.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
-		            _waitTimer.Reset();
-		        }));
-		}
+                // Run the LUA command...
+                new Action(c =>
+                {
+                    Lua.DoString(LuaCommand);
+                    _counter++;
+                    _waitTimer.WaitTime = TimeSpan.FromMilliseconds(WaitTime);
+                    _waitTimer.Reset();
+                }));
+        }
 
-		public override void OnStart()
-		{
+        public override void OnStart()
+        {
             // Acquisition and checking of any sub-elements go here.
             // A common example:
             //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
@@ -150,15 +151,15 @@ namespace Honorbuddy.Quest_Behaviors.RunLua
             // So we don't want to falsely inform the user of things that will be skipped.
             if (isBehaviorShouldRun)
             {
-				this.UpdateGoalText(QuestId);
-				TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
-													GetType().Name, LuaCommand, NumOfTimes, WaitTime);
+                this.UpdateGoalText(QuestId);
+                TreeRoot.StatusText = string.Format("{0}: {1} {2} number of times while waiting {3} inbetween",
+                                                    GetType().Name, LuaCommand, NumOfTimes, WaitTime);
 
-				// NB: The _waitTimer is initialzed to zero, so there will be no 'initial delay'.
-				// This is what the user expects.
-			}
-		}
+                // NB: The _waitTimer is initialzed to zero, so there will be no 'initial delay'.
+                // This is what the user expects.
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

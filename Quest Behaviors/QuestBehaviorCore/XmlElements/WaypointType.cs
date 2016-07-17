@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Xml.Linq;
 
@@ -20,8 +21,8 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class WaypointType : QuestBehaviorXmlBase
     {
-		public const double DefaultAllowedVariance = 0.0;
-		public const double DefaultArrivalTolerance = 1.5;
+        public const double DefaultAllowedVariance = 0.0;
+        public const double DefaultArrivalTolerance = 1.5;
 
         public WaypointType(XElement xElement)
             : base(xElement)
@@ -29,12 +30,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             try
             {
                 DefinedLocation = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				AllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? DefaultAllowedVariance;
-				ArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, ConstrainAs.Range, null) ?? DefaultArrivalTolerance;
-				Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
+                AllowedVariance = GetAttributeAsNullable<double>("AllowedVariance", false, new ConstrainTo.Domain<double>(0.0, 50.0), null) ?? DefaultAllowedVariance;
+                ArrivalTolerance = GetAttributeAsNullable<double>("ArrivalTolerance", false, ConstrainAs.Range, null) ?? DefaultArrivalTolerance;
+                Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 
                 if (string.IsNullOrEmpty(Name))
-                    { Name = GetDefaultName(DefinedLocation); }
+                { Name = GetDefaultName(DefinedLocation); }
 
                 GenerateNewVariantLocation();
 
@@ -44,33 +45,33 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             catch (Exception except)
             {
                 if (Query.IsExceptionReportingNeeded(except))
-                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+                { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
                 IsAttributeProblem = true;
             }
         }
 
 
         public WaypointType(WoWPoint definedLocation,
-			string name = "", 
-			double allowedVariance = DefaultAllowedVariance,
-			double arrivalTolerance = DefaultArrivalTolerance)
+            string name = "",
+            double allowedVariance = DefaultAllowedVariance,
+            double arrivalTolerance = DefaultArrivalTolerance)
         {
             DefinedLocation = definedLocation;
             Name = name ?? GetDefaultName(definedLocation);
-	        AllowedVariance = allowedVariance;
+            AllowedVariance = allowedVariance;
             ArrivalTolerance = arrivalTolerance;
 
             GenerateNewVariantLocation();
         }
 
 
-		public double ArrivalTolerance { get; set; }
-		public double AllowedVariance { get; set; }
+        public double ArrivalTolerance { get; set; }
+        public double AllowedVariance { get; set; }
 
-	    public bool AtLocation(WoWPoint location)
-	    {
-		    return Query.AtLocation(location, Location, (float) ArrivalTolerance);
-	    }
+        public bool AtLocation(WoWPoint location)
+        {
+            return Query.AtLocation(location, Location, (float)ArrivalTolerance);
+        }
 
         /// <summary>
         /// This is the original location with which the <see cref="WaypointType"/> was defined.
@@ -98,31 +99,31 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "Waypoint";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "Waypoint";
 
-			var root = new XElement(elementName,
-			                        new XAttribute("Name", Name),
-			                        new XAttribute("X", DefinedLocation.X),
+            var root = new XElement(elementName,
+                                    new XAttribute("Name", Name),
+                                    new XAttribute("X", DefinedLocation.X),
                                     new XAttribute("Y", DefinedLocation.Y),
                                     new XAttribute("Z", DefinedLocation.Z));
 
-			if (AllowedVariance != DefaultAllowedVariance)
-				root.Add(new XAttribute("AllowedVariance", AllowedVariance));
+            if (AllowedVariance != DefaultAllowedVariance)
+                root.Add(new XAttribute("AllowedVariance", AllowedVariance));
 
-			if (ArrivalTolerance != DefaultArrivalTolerance)
-				root.Add(new XAttribute("ArrivalTolerance", ArrivalTolerance));
+            if (ArrivalTolerance != DefaultArrivalTolerance)
+                root.Add(new XAttribute("ArrivalTolerance", ArrivalTolerance));
 
-			return root;
-		}
-		#endregion
+            return root;
+        }
+        #endregion
 
 
         private string GetDefaultName(WoWPoint wowPoint)

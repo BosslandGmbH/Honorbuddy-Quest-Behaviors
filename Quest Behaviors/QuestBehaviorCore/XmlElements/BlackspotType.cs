@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Xml.Linq;
 
@@ -47,34 +48,34 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public BlackspotType(WoWPoint location, string name = "", double radius = 10.0, double height = 1.0)
         {
-            _blackspot = new Blackspot(location, (float) radius, (float) height, CreateBlackspotName(name, location));
+            _blackspot = new Blackspot(location, (float)radius, (float)height, CreateBlackspotName(name, location));
         }
         #endregion
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "Blackspot";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "Blackspot";
 
-			return
-				new XElement(elementName,
-				             new XAttribute("Name", _blackspot.Name),
-				             new XAttribute("X", _blackspot.Location.X),
-				             new XAttribute("Y", _blackspot.Location.Y),
-				             new XAttribute("Z", _blackspot.Location.Z),
-				             new XAttribute("Radius", _blackspot.Radius),
-				             new XAttribute("Height", _blackspot.Height));
-		}
-		#endregion
+            return
+                new XElement(elementName,
+                             new XAttribute("Name", _blackspot.Name),
+                             new XAttribute("X", _blackspot.Location.X),
+                             new XAttribute("Y", _blackspot.Location.Y),
+                             new XAttribute("Z", _blackspot.Location.Z),
+                             new XAttribute("Radius", _blackspot.Radius),
+                             new XAttribute("Height", _blackspot.Height));
+        }
+        #endregion
 
 
-		#region Private and Convenience variables
+        #region Private and Convenience variables
         private const string QbcoreNamePrefix = "QBcore: ";
 
         private readonly Blackspot _blackspot;

@@ -84,6 +84,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -111,79 +112,79 @@ using Styx.WoWInternals.WoWObjects;
 namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 {
     [CustomBehaviorFileName(@"SpecificQuests\Holiday\Brewfest-RamRidingQuests")]
-	public class Brewfest_RamRidingQuests : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
-		public Brewfest_RamRidingQuests(Dictionary<string, string> args)
-			: base(args)
-		{
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+    public class Brewfest_RamRidingQuests : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
+        public Brewfest_RamRidingQuests(Dictionary<string, string> args)
+            : base(args)
+        {
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
                 // QuestBehaviorBase will handle QuestId, but we re-acquire here because it is 'required'...
-			    GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null);
+                GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), null);
 
-			    TerminationChecksQuestProgress = false;
+                TerminationChecksQuestProgress = false;
 
                 // RidingPath processing...
                 RidingPath = HuntingGroundsType.GetOrCreate(Element, "RidingPath");
                 IsAttributeProblem |= RidingPath.IsAttributeProblem;
-			}
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-				// resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
+                // resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		// Variables for Attributes provided by caller
+        // Variables for Attributes provided by caller
         private HuntingGroundsType RidingPath { get; set; }
 
 
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
-		}
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
 
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			//// EXAMPLE:
-			//UsageCheck_SemanticCoherency(xElement,
-			//    (!MobIds.Any() && !FactionIds.Any()),
-			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-			//
-			//const double rangeEpsilon = 3.0;
-			//UsageCheck_SemanticCoherency(xElement,
-			//    ((RangeMax - RangeMin) < rangeEpsilon),
-			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-			//                  RangeMax, rangeEpsilon, RangeMin)); 
-		}
-		#endregion
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+        #endregion
 
 
-		#region Private and Convenience variables
+        #region Private and Convenience variables
 
-	    public enum RamGaitType
-	    {
+        public enum RamGaitType
+        {
             None,
-	        Trot,
-	        Canter,
-	        Gallop,
-	    };
+            Trot,
+            Canter,
+            Gallop,
+        };
 
         public static readonly int[] AuraId_RamList =
             {
@@ -265,24 +266,24 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
         // <WoWUnit Name="Neill Ramstein" Entry="23558" X="-5200.164" Y="-491.5487" Z="388.4774" />
         // <WoWUnit Name="Flynn Firebrew" Entry="24364" X="-5609.832" Y="-459.0559" Z="404.5505" />
         //
-		#endregion
+        #endregion
 
 
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id: Brewfest_RamRidingQuests.cs 1581 2014-06-27 02:34:30Z chinajade $"; } }
-		public override string SubversionRevision { get { return "$Rev: 1581 $"; } }
+        public override string SubversionRevision { get { return "$Rev: 1581 $"; } }
 
 
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
 
-		// Dispose provided by QuestBehaviorBase.
+        // Dispose provided by QuestBehaviorBase.
 
 
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
         public override void OnFinished()
         {
             // If we're still on the Ram, then dismount...
@@ -297,13 +298,13 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             // Double-condom approach, since we are no longer running as Coroutine.
             WoWMovement.MoveStop();
             WoWMovement.ClickToMove(Me.Location);
-            
+
             base.OnFinished();
         }
 
 
-		public override void OnStart()
-		{
+        public override void OnStart()
+        {
             if (RidingPath.Waypoints.Count <= 0)
             {
                 QBCLog.Fatal("<RidingPath> sub-element is not defined, or has no waypoints.");
@@ -319,8 +320,8 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             }
 
             // Locate strategies for identified quest?
-		    _ramReacquireStrategy = _ramReacquireStrategies.FirstOrDefault(s => s.QuestId == QuestId);
-		    _ridingStrategy = _ridingStrategies.FirstOrDefault(s => s.QuestId == QuestId);
+            _ramReacquireStrategy = _ramReacquireStrategies.FirstOrDefault(s => s.QuestId == QuestId);
+            _ridingStrategy = _ridingStrategies.FirstOrDefault(s => s.QuestId == QuestId);
             if (_ridingStrategy == null)
             {
                 var message = string.Format("QuestId {0} is not supported by this behavior", QuestId);
@@ -336,8 +337,8 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             // To make this work, we need to select the appropriate riding strategy (above), yet set the QuestId
             // to zero, so the 'quest complete' logic works as expected (I.e., we're not doing the behavior
             // in a context of a quest).
-		    if ((QuestId == QuestId_BrewForBrewfest_Alliance) | (QuestId == QuestId_BrewForBrewfest_Horde))
-		        QuestId = 0;
+            if ((QuestId == QuestId_BrewForBrewfest_Alliance) | (QuestId == QuestId_BrewForBrewfest_Horde))
+                QuestId = 0;
 
             // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
             // capture configuration state, install BT hooks, etc.  This will also update the goal text.
@@ -350,16 +351,16 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             }
 
             // Setup the BehaviorFlags as needed --
-			// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-			// by Honorbuddy, or the bot is stopped.
-			LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot);
+            // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+            // by Honorbuddy, or the bot is stopped.
+            LevelBot.BehaviorFlags &= ~(BehaviorFlags.Combat | BehaviorFlags.Loot);
 
             RidingPath.WaypointVisitStrategy = HuntingGroundsType.WaypointVisitStrategyType.InOrder;
         }
-		#endregion
+        #endregion
 
 
-		#region Main Behaviors
+        #region Main Behaviors
         protected override Composite CreateMainBehavior()
         {
             return new ActionRunCoroutine(ctx => MainCoroutine());
@@ -406,7 +407,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             await _ridingStrategy.Execute(RidingPath);
             return true;
         }
-		#endregion
+        #endregion
 
 
         #region Helpers
@@ -416,15 +417,15 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
 
             return (quest != null);
         }
-        
-        
+
+
         private bool IsBrewfestInProgress()
         {
             // TODO:
             return true;
         }
 
-        
+
         protected static bool IsMountedOnRam()
         {
             return Me.GetAllAuras().Any(a => AuraId_RamList.Contains(a.SpellId));
@@ -462,7 +463,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 GossipMobRoughLocation = gossipMobRoughLocation;
 
                 // Rebase gossip option indices to something we can use internally...
-                for (int i = 0;  i < GossipOptions.Length;  ++i)
+                for (int i = 0; i < GossipOptions.Length; ++i)
                     GossipOptions[i] -= 1;
             }
 
@@ -605,10 +606,10 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                     return true;
                 }
 
-	            if (!Navigator.AtLocation(questGiver.Location))
-		            return await UtilityCoroutine.MoveTo(questGiver.Location, questGiver.Name);
+                if (!Navigator.AtLocation(questGiver.Location))
+                    return await UtilityCoroutine.MoveTo(questGiver.Location, questGiver.Name);
 
-                await ScriptHelpers.PickupQuest(questGiver, (uint) QuestId);
+                await ScriptHelpers.PickupQuest(questGiver, (uint)QuestId);
                 await Coroutine.Wait(Delay.LagDuration, () => HasQuest(QuestId));
                 return false;
             }
@@ -639,9 +640,9 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 get
                 {
                     // Variable timing to simulate 'human'...
-					return (StyxWoW.Random.Next(1, 100) < 65)
-							? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1700, 2100))
-							: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1900, 2300));
+                    return (StyxWoW.Random.Next(1, 100) < 65)
+                            ? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1700, 2100))
+                            : TimeSpan.FromMilliseconds(StyxWoW.Random.Next(1900, 2300));
                 }
             }
 
@@ -650,9 +651,9 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 get
                 {
                     // Variable timing to simulate 'human'...
-					return (StyxWoW.Random.Next(1, 100) < 65)
-							? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(300, 550))
-							: TimeSpan.FromMilliseconds(StyxWoW.Random.Next(450, 750));
+                    return (StyxWoW.Random.Next(1, 100) < 65)
+                            ? TimeSpan.FromMilliseconds(StyxWoW.Random.Next(300, 550))
+                            : TimeSpan.FromMilliseconds(StyxWoW.Random.Next(450, 750));
                 }
             }
 
@@ -762,7 +763,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             {
                 AdjustRamSpeed(_speedWanted);
                 MoveToNextGoal(ridingPath);
-                return true;              
+                return true;
             }
         }
 
@@ -780,8 +781,8 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
             private readonly RamGaitType _maxSpeedWanted;
 
             // Variable stack counts to simulate 'humans'...
-			private readonly int _stackCountFatigued = StyxWoW.Random.Next(70, 77);
-			private readonly int _stackCountFatigueRecovered = StyxWoW.Random.Next(50, 60);
+            private readonly int _stackCountFatigued = StyxWoW.Random.Next(70, 77);
+            private readonly int _stackCountFatigueRecovered = StyxWoW.Random.Next(50, 60);
 
             public override async Task<bool> Execute(HuntingGroundsType ridingPath)
             {
@@ -799,7 +800,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 // Stay in "Trot" until fatigue recovered...
                 AdjustRamSpeed(_inFatigueRecovery ? RamGaitType.Trot : _maxSpeedWanted);
                 MoveToNextGoal(ridingPath);
-                return true;                              
+                return true;
             }
         }
 
@@ -842,7 +843,7 @@ namespace Honorbuddy.Quest_Behaviors.Brewfest_RamRidingQuests
                 }
 
                 return false;
-            }            
+            }
         }
         #endregion
     }

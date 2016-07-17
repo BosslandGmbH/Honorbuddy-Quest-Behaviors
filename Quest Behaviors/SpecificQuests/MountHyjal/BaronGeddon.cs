@@ -40,6 +40,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -61,111 +62,111 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
 {
-	[CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BaronGeddon")]
-	public class BaronGeddon : CustomForcedBehavior
-	{
-		public BaronGeddon(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"SpecificQuests\MountHyjal\BaronGeddon")]
+    public class BaronGeddon : CustomForcedBehavior
+    {
+        public BaronGeddon(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			QuestId = 25464;
-		}
-		public int QuestId { get; set; }
-		private bool _isBehaviorDone;
+            QuestId = 25464;
+        }
+        public int QuestId { get; set; }
+        private bool _isBehaviorDone;
 
-		private Composite _root;
-		
-		public override bool IsDone
-		{
-			get
-			{
-				return _isBehaviorDone;
-			}
-		}
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
+        private Composite _root;
 
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+        public override bool IsDone
+        {
+            get
+            {
+                return _isBehaviorDone;
+            }
+        }
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
-				this.UpdateGoalText(QuestId);
-			}
-		}
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-
-		public WoWUnit Barron
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>(true).FirstOrDefault(u => u.Entry == 40147);
-			}
-		}
-
-		public WoWItem Rod
-		{
-			get { return StyxWoW.Me.BagItems.FirstOrDefault(r => r.Entry == 54463); }
-		}
-
-		public Composite DoneYet
-		{
-			get
-			{
-				return new Decorator(ret => Me.IsQuestComplete(QuestId) && safe.Distance(Me.Location) < 3 && !Me.Combat,
-					new Action(delegate
-					{
-						TreeRoot.StatusText = "Finished!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-			}
-		}
-
-		//Safe
-		//<Vendor Name="dd" Entry="0" Type="Repair" X="" />
-		WoWPoint safe = new WoWPoint(5410.753,-2771.448,1516.072);
-		//Attack
-		//<Vendor Name="dd" Entry="0" Type="Repair" X="" />
-		WoWPoint attack = new WoWPoint(5417.539,-2792.542,1515.283);
-		public Composite DpsHim
-		{
-			get
-			{
-				return new Decorator(r => !Barron.HasAura("Inferno"), new PrioritySelector(
-					
-					new Decorator(r=>attack.Distance(Me.Location) > 3, new Action(r=>Navigator.MoveTo(attack))),
-					//new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != Barron, new Action(r=>Barron.Target())),
-					new Decorator(r=> Me.IsCasting || Me.IsChanneling, new ActionAlwaysSucceed()),
-					new Decorator(r=> Rod != null && Rod.Cooldown <= 0, new Action(r=>Rod.Use(Barron.Guid)))
-					));
-			}
-		}
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
 
-		public Composite RunAway
-		{
-			get
-			{
-				return new Decorator(r => Barron == null || Barron.HasAura("Inferno") || Me.IsQuestComplete(QuestId),
-					new Decorator(r => safe.Distance(Me.Location) > 3,
-						new Action(r => Navigator.MoveTo(safe))));
-			}
-		}
+        public WoWUnit Barron
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true).FirstOrDefault(u => u.Entry == 40147);
+            }
+        }
+
+        public WoWItem Rod
+        {
+            get { return StyxWoW.Me.BagItems.FirstOrDefault(r => r.Entry == 54463); }
+        }
+
+        public Composite DoneYet
+        {
+            get
+            {
+                return new Decorator(ret => Me.IsQuestComplete(QuestId) && _safe.Distance(Me.Location) < 3 && !Me.Combat,
+                    new Action(delegate
+                    {
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+            }
+        }
+
+        //Safe
+        //<Vendor Name="dd" Entry="0" Type="Repair" X="" />
+        private WoWPoint _safe = new WoWPoint(5410.753, -2771.448, 1516.072);
+        //Attack
+        //<Vendor Name="dd" Entry="0" Type="Repair" X="" />
+        private WoWPoint _attack = new WoWPoint(5417.539, -2792.542, 1515.283);
+        public Composite DpsHim
+        {
+            get
+            {
+                return new Decorator(r => !Barron.HasAura("Inferno"), new PrioritySelector(
+
+                    new Decorator(r => _attack.Distance(Me.Location) > 3, new Action(r => Navigator.MoveTo(_attack))),
+                    //new Decorator(r=>!Me.GotTarget || Me.CurrentTarget != Barron, new Action(r=>Barron.Target())),
+                    new Decorator(r => Me.IsCasting || Me.IsChanneling, new ActionAlwaysSucceed()),
+                    new Decorator(r => Rod != null && Rod.Cooldown <= 0, new Action(r => Rod.Use(Barron.Guid)))
+                    ));
+            }
+        }
 
 
-		protected Composite CreateBehavior_QuestbotMain()
-		{
-			return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet,RunAway,DpsHim, new ActionAlwaysSucceed())));
-		}
+        public Composite RunAway
+        {
+            get
+            {
+                return new Decorator(r => Barron == null || Barron.HasAura("Inferno") || Me.IsQuestComplete(QuestId),
+                    new Decorator(r => _safe.Distance(Me.Location) > 3,
+                        new Action(r => Navigator.MoveTo(_safe))));
+            }
+        }
 
 
-		#region Cleanup
+        protected Composite CreateBehavior_QuestbotMain()
+        {
+            return _root ?? (_root = new Decorator(ret => !_isBehaviorDone, new PrioritySelector(DoneYet, RunAway, DpsHim, new ActionAlwaysSucceed())));
+        }
+
+
+        #region Cleanup
 
         public override void OnFinished()
         {
@@ -175,7 +176,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
             base.OnFinished();
         }
 
-		#endregion
-
-	}
+        #endregion
+    }
 }

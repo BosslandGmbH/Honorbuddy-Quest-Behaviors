@@ -36,6 +36,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -59,147 +60,147 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
 {
-	[CustomBehaviorFileName(@"Vehicles\BasicVehicleBehaviour")]
-	[CustomBehaviorFileName(@"BasicVehicleBehaviour")]  // Deprecated location--do not use
-	public class BasicVehicleBehaviour : CustomForcedBehavior
-	{
-		public BasicVehicleBehaviour(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"Vehicles\BasicVehicleBehaviour")]
+    [CustomBehaviorFileName(@"BasicVehicleBehaviour")]  // Deprecated location--do not use
+    public class BasicVehicleBehaviour : CustomForcedBehavior
+    {
+        public BasicVehicleBehaviour(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				QBCLog.Warning("*****\n"
-							+ "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
-							+ "*\n"
-							+ "* BasicVehicleBehavior adds _no_ _additonal_ _value_ over the VehicleMover behavior.\n"
-							+ "* Please update the profile to use the VehicleMover behavior."
-							+ "*****");
+            try
+            {
+                QBCLog.Warning("*****\n"
+                            + "* THIS BEHAVIOR IS DEPRECATED, and will be retired on July 31th 2012.\n"
+                            + "*\n"
+                            + "* BasicVehicleBehavior adds _no_ _additonal_ _value_ over the VehicleMover behavior.\n"
+                            + "* Please update the profile to use the VehicleMover behavior."
+                            + "*****");
 
-				LocationDest = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new[] { "Dest" }) ?? WoWPoint.Empty;
-				LocationMount = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
-				QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
-				SpellCastId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
-				VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
+                LocationDest = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, new[] { "Dest" }) ?? WoWPoint.Empty;
+                LocationMount = GetAttributeAsNullable<WoWPoint>("Mount", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
+                QuestId = GetAttributeAsNullable<int>("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+                SpellCastId = GetAttributeAsNullable<int>("SpellId", false, ConstrainAs.SpellId, null) ?? 0;
+                VehicleId = GetAttributeAsNullable<int>("VehicleId", true, ConstrainAs.VehicleId, null) ?? 0;
 
-				MountedPoint = WoWPoint.Empty;
-			}
+                MountedPoint = WoWPoint.Empty;
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except); ;
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Attributes provided by caller
-		public WoWPoint LocationDest { get; private set; }
-		public WoWPoint LocationMount { get; private set; }
-		public int QuestId { get; private set; }
-		public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
-		public QuestInLogRequirement QuestRequirementInLog { get; private set; }
-		public int SpellCastId { get; private set; }
-		public int VehicleId { get; private set; }
-
-		// Private variables for internal state
-		private bool _isBehaviorDone;
-		private Composite _root;
-		private List<WoWUnit> _vehicleList;
-		private BehaviorFlags _originalBehaviorFlags;
-
-		// Private properties
-		private int Counter { get; set; }
-		public bool IsMounted { get; set; }
-		private LocalPlayer Me { get { return (StyxWoW.Me); } }
-		public WoWPoint MountedPoint { get; private set; }
-
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except); ;
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		#region Overrides of CustomForcedBehavior
+        // Attributes provided by caller
+        public WoWPoint LocationDest { get; private set; }
+        public WoWPoint LocationMount { get; private set; }
+        public int QuestId { get; private set; }
+        public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
+        public QuestInLogRequirement QuestRequirementInLog { get; private set; }
+        public int SpellCastId { get; private set; }
+        public int VehicleId { get; private set; }
 
-		/// <summary>
-		/// A Queue for npc's we need to talk to
-		/// </summary>
-		//private WoWUnit CurrentUnit { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => unit.Entry == VehicleId); } }
+        // Private variables for internal state
+        private bool _isBehaviorDone;
+        private Composite _root;
+        private List<WoWUnit> _vehicleList;
+        private BehaviorFlags _originalBehaviorFlags;
 
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root =
-				new PrioritySelector(
+        // Private properties
+        private int Counter { get; set; }
+        public bool IsMounted { get; set; }
+        private LocalPlayer Me { get { return (StyxWoW.Me); } }
+        public WoWPoint MountedPoint { get; private set; }
 
-					new Decorator(ret => (QuestId != 0 && Me.QuestLog.GetQuestById((uint)QuestId) != null &&
-						 Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
-						new Action(ret => _isBehaviorDone = true)),
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-					// Enable combat while not in a vehicle
-					new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
-						new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
 
-					// Disable combat while in a vehicle
-					new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
-						new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
+        #region Overrides of CustomForcedBehavior
 
-					new Decorator(ret => Counter >= 1,
-						new Action(ret => _isBehaviorDone = true)),
+        /// <summary>
+        /// A Queue for npc's we need to talk to
+        /// </summary>
+        //private WoWUnit CurrentUnit { get { return ObjectManager.GetObjectsOfType<WoWUnit>().FirstOrDefault(unit => unit.Entry == VehicleId); } }
 
-						new PrioritySelector(
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
 
-							new Decorator(ret => IsMounted != true && _vehicleList == null,
+                    new Decorator(ret => (QuestId != 0 && Me.QuestLog.GetQuestById((uint)QuestId) != null &&
+                         Me.QuestLog.GetQuestById((uint)QuestId).IsCompleted),
+                        new Action(ret => _isBehaviorDone = true)),
+
+                    // Enable combat while not in a vehicle
+                    new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) == 0 && !Query.IsInVehicle(),
+                        new Action(ctx => LevelBot.BehaviorFlags |= BehaviorFlags.Combat)),
+
+                    // Disable combat while in a vehicle
+                    new Decorator(ctx => (LevelBot.BehaviorFlags & BehaviorFlags.Combat) != 0 && Query.IsInVehicle(),
+                        new Action(ctx => LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat)),
+
+                    new Decorator(ret => Counter >= 1,
+                        new Action(ret => _isBehaviorDone = true)),
+
+                        new PrioritySelector(
+
+                            new Decorator(ret => IsMounted != true && _vehicleList == null,
                                 new ActionRunCoroutine(ctx => MoveToMountLocation())
-								),
+                                ),
 
-							new Decorator(ret => _vehicleList[0] != null && !_vehicleList[0].WithinInteractRange && IsMounted != true,
-								new Action(ret => Navigator.MoveTo(_vehicleList[0].Location))
-								),
+                            new Decorator(ret => _vehicleList[0] != null && !_vehicleList[0].WithinInteractRange && IsMounted != true,
+                                new Action(ret => Navigator.MoveTo(_vehicleList[0].Location))
+                                ),
 
-							new Decorator(ret => StyxWoW.Me.IsMoving,
+                            new Decorator(ret => StyxWoW.Me.IsMoving,
                                 new ActionRunCoroutine(ctx => CommonCoroutines.StopMoving())),
 
-							new Decorator(ret => IsMounted != true,
-								new Sequence(
+                            new Decorator(ret => IsMounted != true,
+                                new Sequence(
                                     new Action(ctx => MountedPoint = Me.Location),
                                     new Action(ctx => _vehicleList[0].Interact()),
                                     new SleepForLagDuration(),
                                     new Action(ctx => IsMounted = true),
                                     new Action(ctx => _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
-										  .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList()),
-									new Sleep(3000))
-								),
+                                          .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(MountedPoint)).ToList()),
+                                    new Sleep(3000))
+                                ),
 
-							new Decorator(ret => IsMounted = true,
+                            new Decorator(ret => IsMounted = true,
                                 new ActionRunCoroutine(ctx => MoveToDestination())
-								),
+                                ),
 
-							new Action(ret => QBCLog.DeveloperInfo(string.Empty))
-						)
-					));
-		}
+                            new Action(ret => QBCLog.DeveloperInfo(string.Empty))
+                        )
+                    ));
+        }
 
-	    private async Task MoveToMountLocation()
-	    {
-	        while (Me.IsAlive && Me.Location.DistanceSqr(LocationMount) > 3*3)
-	        {
-	            Navigator.MoveTo(LocationMount);
-	            await Coroutine.Yield();
-	        }
+        private async Task MoveToMountLocation()
+        {
+            while (Me.IsAlive && Me.Location.DistanceSqr(LocationMount) > 3 * 3)
+            {
+                Navigator.MoveTo(LocationMount);
+                await Coroutine.Yield();
+            }
             _vehicleList = ObjectManager.GetObjectsOfType<WoWUnit>()
               .Where(ret => (ret.Entry == VehicleId) && !ret.IsDead).OrderBy(ret => ret.Location.Distance(Me.Location)).ToList();
-	    }
+        }
 
-	    private async Task MoveToDestination()
-	    {
+        private async Task MoveToDestination()
+        {
             while (Me.IsAlive && Me.Location.DistanceSqr(LocationDest) > 3 * 3)
             {
                 Navigator.MoveTo(LocationDest);
@@ -207,44 +208,44 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
             }
             Lua.DoString("CastSpellByID(" + SpellCastId + ")");
             Counter++;
-	    }
+        }
 
         public override void OnFinished()
         {
             TreeRoot.GoalText = string.Empty;
             TreeRoot.StatusText = string.Empty;
-	        LevelBot.BehaviorFlags = _originalBehaviorFlags;
+            LevelBot.BehaviorFlags = _originalBehaviorFlags;
             base.OnFinished();
         }
 
 
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			_originalBehaviorFlags = LevelBot.BehaviorFlags;
+            _originalBehaviorFlags = LevelBot.BehaviorFlags;
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				this.UpdateGoalText(QuestId);
-			}
-		}
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }

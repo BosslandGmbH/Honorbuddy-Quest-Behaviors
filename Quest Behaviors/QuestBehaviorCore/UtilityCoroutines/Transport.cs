@@ -28,93 +28,93 @@ using Styx.WoWInternals.WoWObjects;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-	public static partial class UtilityCoroutine
-	{
-		/// <summary>
-		/// Uses the transport.
-		/// </summary>
-		/// <param name="transportId">The transport identifier.</param>
-		/// <param name="transportStartLoc">The start location.</param>
-		/// <param name="transportEndLoc">The end location.</param>
-		/// <param name="waitAtLoc">The wait at location.</param>
-		/// <param name="boardAtLoc">The stand at location.</param>
-		/// <param name="getOffLoc">The get off location.</param>
-		/// <param name="movement">The movement.</param>
-		/// <param name="destination">The destination.</param>
-		/// <param name="navigationFailedAction">
-		///     The action to take if <paramref name="waitAtLoc" /> cant be navigated to
-		/// </param>
-		/// <returns>returns <c>true</c> until done</returns>
-		/// <exception cref="Exception">A delegate callback throws an exception. </exception>
-		public static async Task<bool> UseTransport(
-			int transportId,
-			WoWPoint transportStartLoc,
-			WoWPoint transportEndLoc,
-			WoWPoint waitAtLoc,
-			WoWPoint boardAtLoc,
-			WoWPoint getOffLoc,
-			MovementByType movement = MovementByType.FlightorPreferred,
-			string destination = null,
-			Action navigationFailedAction = null)
-		{
-			if (getOffLoc != WoWPoint.Empty && Me.Location.DistanceSqr(getOffLoc) < 2 * 2)
-			{
-				return false;
-			}
+    public static partial class UtilityCoroutine
+    {
+        /// <summary>
+        /// Uses the transport.
+        /// </summary>
+        /// <param name="transportId">The transport identifier.</param>
+        /// <param name="transportStartLoc">The start location.</param>
+        /// <param name="transportEndLoc">The end location.</param>
+        /// <param name="waitAtLoc">The wait at location.</param>
+        /// <param name="boardAtLoc">The stand at location.</param>
+        /// <param name="getOffLoc">The get off location.</param>
+        /// <param name="movement">The movement.</param>
+        /// <param name="destination">The destination.</param>
+        /// <param name="navigationFailedAction">
+        ///     The action to take if <paramref name="waitAtLoc" /> cant be navigated to
+        /// </param>
+        /// <returns>returns <c>true</c> until done</returns>
+        /// <exception cref="Exception">A delegate callback throws an exception. </exception>
+        public static async Task<bool> UseTransport(
+            int transportId,
+            WoWPoint transportStartLoc,
+            WoWPoint transportEndLoc,
+            WoWPoint waitAtLoc,
+            WoWPoint boardAtLoc,
+            WoWPoint getOffLoc,
+            MovementByType movement = MovementByType.FlightorPreferred,
+            string destination = null,
+            Action navigationFailedAction = null)
+        {
+            if (getOffLoc != WoWPoint.Empty && Me.Location.DistanceSqr(getOffLoc) < 2 * 2)
+            {
+                return false;
+            }
 
-			var transportLocation = GetTransportLocation(transportId);
-			if (transportLocation != WoWPoint.Empty
-				&& transportLocation.DistanceSqr(transportStartLoc) < 1.5 * 1.5
-				&& waitAtLoc.DistanceSqr(Me.Location) < 2 * 2)
-			{
-				TreeRoot.StatusText = "Moving inside transport";
-				Navigator.PlayerMover.MoveTowards(boardAtLoc);
-				await CommonCoroutines.SleepForLagDuration();
-				// wait for bot to get on boat.
-				await Coroutine.Wait(12000, () => !Me.IsMoving || Navigator.AtLocation(boardAtLoc));
-			}
+            var transportLocation = GetTransportLocation(transportId);
+            if (transportLocation != WoWPoint.Empty
+                && transportLocation.DistanceSqr(transportStartLoc) < 1.5 * 1.5
+                && waitAtLoc.DistanceSqr(Me.Location) < 2 * 2)
+            {
+                TreeRoot.StatusText = "Moving inside transport";
+                Navigator.PlayerMover.MoveTowards(boardAtLoc);
+                await CommonCoroutines.SleepForLagDuration();
+                // wait for bot to get on boat.
+                await Coroutine.Wait(12000, () => !Me.IsMoving || Navigator.AtLocation(boardAtLoc));
+            }
 
-			// loop while on transport to prevent bot from doing anything else
-			while (Me.Transport != null && Me.Transport.Entry == transportId)
-			{
-				if (transportLocation != WoWPoint.Empty && transportLocation.DistanceSqr(transportEndLoc) < 1.5 * 1.5)
-				{
-					TreeRoot.StatusText = "Moving out of transport";
-					Navigator.PlayerMover.MoveTowards(getOffLoc);
-					await CommonCoroutines.SleepForLagDuration();
-					// Sleep until we stop moving.
-					await Coroutine.Wait(12000, () => !Me.IsMoving || Navigator.AtLocation(getOffLoc));
-					return true;
-				}
+            // loop while on transport to prevent bot from doing anything else
+            while (Me.Transport != null && Me.Transport.Entry == transportId)
+            {
+                if (transportLocation != WoWPoint.Empty && transportLocation.DistanceSqr(transportEndLoc) < 1.5 * 1.5)
+                {
+                    TreeRoot.StatusText = "Moving out of transport";
+                    Navigator.PlayerMover.MoveTowards(getOffLoc);
+                    await CommonCoroutines.SleepForLagDuration();
+                    // Sleep until we stop moving.
+                    await Coroutine.Wait(12000, () => !Me.IsMoving || Navigator.AtLocation(getOffLoc));
+                    return true;
+                }
 
-				// Exit loop if in combat or dead.
-				if (Me.Combat || !Me.IsAlive)
-					return false;
+                // Exit loop if in combat or dead.
+                if (Me.Combat || !Me.IsAlive)
+                    return false;
 
-				TreeRoot.StatusText = "Waiting for the end location";
-				await Coroutine.Yield();
-				// update transport location.
-				transportLocation = GetTransportLocation(transportId);
-			}
+                TreeRoot.StatusText = "Waiting for the end location";
+                await Coroutine.Yield();
+                // update transport location.
+                transportLocation = GetTransportLocation(transportId);
+            }
 
-			if (waitAtLoc.DistanceSqr(Me.Location) > 2 * 2)
-			{
-				if (!await MoveTo(waitAtLoc, destination ?? waitAtLoc.ToString(), movement))
-				{
-					if (navigationFailedAction != null)
-						navigationFailedAction();
-				}
-				return true;
-			}
-			await CommonCoroutines.LandAndDismount();
-			TreeRoot.StatusText = "Waiting for transport";
-			return true;
-		}
+            if (waitAtLoc.DistanceSqr(Me.Location) > 2 * 2)
+            {
+                if (!await MoveTo(waitAtLoc, destination ?? waitAtLoc.ToString(), movement))
+                {
+                    if (navigationFailedAction != null)
+                        navigationFailedAction();
+                }
+                return true;
+            }
+            await CommonCoroutines.LandAndDismount();
+            TreeRoot.StatusText = "Waiting for transport";
+            return true;
+        }
 
-		private static WoWPoint GetTransportLocation(int transportId)
-		{
-			var transport = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o.Entry == transportId);
-			return transport != null ? transport.WorldLocation : WoWPoint.Zero;
-		}
-	}
+        private static WoWPoint GetTransportLocation(int transportId)
+        {
+            var transport = ObjectManager.GetObjectsOfType<WoWGameObject>().FirstOrDefault(o => o.Entry == transportId);
+            return transport != null ? transport.WorldLocation : WoWPoint.Zero;
+        }
+    }
 }

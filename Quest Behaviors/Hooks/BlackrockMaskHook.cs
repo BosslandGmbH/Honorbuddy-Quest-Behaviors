@@ -17,6 +17,7 @@
 
 
 #region Usings
+
 using System.Collections.Generic;
 using System.Linq;
 
@@ -34,87 +35,87 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.Hooks
 {
-	[CustomBehaviorFileName(@"Hooks\BlackrockMaskHook")]
-	public class BlackrockMaskHook : CustomForcedBehavior
-	{
-		public BlackrockMaskHook(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"Hooks\BlackrockMaskHook")]
+    public class BlackrockMaskHook : CustomForcedBehavior
+    {
+        public BlackrockMaskHook(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			//True = hook running, false = hook stopped
-			_state = GetAttributeAsNullable<bool>("state", false, null, null) ?? false;
-		}
-
-
-		private bool _inserted = false;
-		private bool _state;
-
-		public override bool IsDone { get { return true; } }
-
-		public static WoWItem Disguise
-		{
-			get
-			{
-				return StyxWoW.Me.BagItems.FirstOrDefault(r => r.Entry == 63357);
-			}
-		}
-
-		public int[] Auras = new int[] { 89259, 89260, 89254, 89253, 89256, 89255, 89258, 89257 };
+            //True = hook running, false = hook stopped
+            _state = GetAttributeAsNullable<bool>("state", false, null, null) ?? false;
+        }
 
 
-		public static bool Disguised
-		{
-			get { return StyxWoW.Me.HasAura(89261); }
-		}
+        private bool _inserted = false;
+        private bool _state;
 
-		private static Composite _myHook;
-		private static Composite CreateHook()
-		{
-			return 
-				new Decorator(r => Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 && !Disguised,
-					new Action(r =>
-					{
-						Navigator.PlayerMover.MoveStop();
-						Disguise.Use();
-					}));
-		}
+        public override bool IsDone { get { return true; } }
 
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
+        public static WoWItem Disguise
+        {
+            get
+            {
+                return StyxWoW.Me.BagItems.FirstOrDefault(r => r.Entry == 63357);
+            }
+        }
 
-			if (_state == true)
-			{
-				if (_myHook == null)
-				{
-					QBCLog.Info("Inserting hook");
-					_myHook = CreateHook();
-					TreeHooks.Instance.InsertHook("Questbot_Main", 0, _myHook);
-				}
-				else
-				{
-					QBCLog.Info("Insert was requested, but was already present");
-				}
+        public int[] Auras = new int[] { 89259, 89260, 89254, 89253, 89256, 89255, 89258, 89257 };
 
-				_inserted = true;
-			}
 
-			else
-			{
-				if (_myHook != null)
-				{
-					QBCLog.Info("Removing hook");
-					TreeHooks.Instance.RemoveHook("Questbot_Main", _myHook);
-					_myHook = null;
-				}
-				else
-				{
-					QBCLog.Info("Remove was requested, but hook was not present");
-				}
+        public static bool Disguised
+        {
+            get { return StyxWoW.Me.HasAura(89261); }
+        }
 
-				_inserted = false;
-			}
-		}
-	}
+        private static Composite s_myHook;
+        private static Composite CreateHook()
+        {
+            return
+                new Decorator(r => Disguise != null && StyxWoW.Me.IsAlive && !StyxWoW.Me.Combat && StyxWoW.Me.ZoneId == 46 && !Disguised,
+                    new Action(r =>
+                    {
+                        Navigator.PlayerMover.MoveStop();
+                        Disguise.Use();
+                    }));
+        }
+
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
+
+            if (_state == true)
+            {
+                if (s_myHook == null)
+                {
+                    QBCLog.Info("Inserting hook");
+                    s_myHook = CreateHook();
+                    TreeHooks.Instance.InsertHook("Questbot_Main", 0, s_myHook);
+                }
+                else
+                {
+                    QBCLog.Info("Insert was requested, but was already present");
+                }
+
+                _inserted = true;
+            }
+
+            else
+            {
+                if (s_myHook != null)
+                {
+                    QBCLog.Info("Removing hook");
+                    TreeHooks.Instance.RemoveHook("Questbot_Main", s_myHook);
+                    s_myHook = null;
+                }
+                else
+                {
+                    QBCLog.Info("Remove was requested, but hook was not present");
+                }
+
+                _inserted = false;
+            }
+        }
+    }
 }

@@ -17,6 +17,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,133 +38,133 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DarkSkies
 {
-	[CustomBehaviorFileName(@"SpecificQuests\31216-DreadWastes-DarkSkies")]
-	public class DarkSkies : CustomForcedBehavior
-	{
-		public DarkSkies(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"SpecificQuests\31216-DreadWastes-DarkSkies")]
+    public class DarkSkies : CustomForcedBehavior
+    {
+        public DarkSkies(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				QuestId = 31216;
-			}
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-		public int QuestId { get; set; }
-		private bool _isBehaviorDone;
+            try
+            {
+                QuestId = 31216;
+            }
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
+        public int QuestId { get; set; }
+        private bool _isBehaviorDone;
 
-		public uint[] Mobs = new uint[] { 63635, 63613, 63615, 63636, 65455 };
-		public uint[] Mobs2 = new uint[] { 63625, 63637 };
+        public uint[] Mobs = new uint[] { 63635, 63613, 63615, 63636, 65455 };
+        public uint[] Mobs2 = new uint[] { 63625, 63637 };
 
-		private Composite _root;
-		
-		public override bool IsDone
-		{
-			get
-			{
-				return _isBehaviorDone;
-			}
-		}
-		private LocalPlayer Me
-		{
-			get { return (StyxWoW.Me); }
-		}
+        private Composite _root;
 
-		public override void OnStart()
-		{
-			OnStart_HandleAttributeProblem();
-			if (!IsDone)
-			{
-				TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
+        public override bool IsDone
+        {
+            get
+            {
+                return _isBehaviorDone;
+            }
+        }
+        private LocalPlayer Me
+        {
+            get { return (StyxWoW.Me); }
+        }
 
-				this.UpdateGoalText(QuestId);
-			}
-		}
+        public override void OnStart()
+        {
+            OnStart_HandleAttributeProblem();
+            if (!IsDone)
+            {
+                TreeHooks.Instance.InsertHook("Questbot_Main", 0, CreateBehavior_QuestbotMain());
 
-		public WoWUnit Mantid
-		{
-			get
-			{
-				return
-					ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(
-						u => Mobs.Contains(u.Entry) && !u.IsDead).OrderBy(u => u.Distance).
-						FirstOrDefault();
-			}
-		}
-		public WoWUnit Kunchong
-		{
-			get
-			{
-				return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(u => Mobs2.Contains(u.Entry) && !u.IsDead).OrderBy(u => u.Distance).FirstOrDefault();
-			}
-		}
+                this.UpdateGoalText(QuestId);
+            }
+        }
 
-
-		public Composite DoneYet
-		{
-			get
-			{
-				return new Decorator(ret => Me.IsQuestComplete(QuestId),
-					new Action(delegate
-					{
-						Lua.DoString("CastPetAction(6)");
-						TreeRoot.StatusText = "Finished!";
-						_isBehaviorDone = true;
-						return RunStatus.Success;
-					}));
-			}
-		}
+        public WoWUnit Mantid
+        {
+            get
+            {
+                return
+                    ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(
+                        u => Mobs.Contains(u.Entry) && !u.IsDead).OrderBy(u => u.Distance).
+                        FirstOrDefault();
+            }
+        }
+        public WoWUnit Kunchong
+        {
+            get
+            {
+                return ObjectManager.GetObjectsOfType<WoWUnit>(true).Where(u => Mobs2.Contains(u.Entry) && !u.IsDead).OrderBy(u => u.Distance).FirstOrDefault();
+            }
+        }
 
 
-		public Composite KillOne
-		{
-			get
-			{
-				return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 3) && Kunchong != null,
-					new Action(r =>
-					{
-						Lua.DoString("CastPetAction(2)");
-						SpellManager.ClickRemoteLocation(Kunchong.Location);
-						Lua.DoString("CastPetAction(1)");
-						SpellManager.ClickRemoteLocation(Kunchong.Location);
-					}));
-			}
-		}
+        public Composite DoneYet
+        {
+            get
+            {
+                return new Decorator(ret => Me.IsQuestComplete(QuestId),
+                    new Action(delegate
+                    {
+                        Lua.DoString("CastPetAction(6)");
+                        TreeRoot.StatusText = "Finished!";
+                        _isBehaviorDone = true;
+                        return RunStatus.Success;
+                    }));
+            }
+        }
 
 
-		public Composite KillTwo
-		{
-			get
-			{
-				return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2) && Mantid != null,
-					new Action(r =>
-					{
-						Lua.DoString("CastPetAction(1)");
-						SpellManager.ClickRemoteLocation(Mantid.Location);
-					}));
-			}
-		}
-
-		protected Composite CreateBehavior_QuestbotMain()
-		{
-			return _root ?? (_root = 
-				new Decorator(ret => !_isBehaviorDone,
-					new PrioritySelector(DoneYet, KillOne, KillTwo, new ActionAlwaysSucceed())));
-		}
+        public Composite KillOne
+        {
+            get
+            {
+                return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 3) && Kunchong != null,
+                    new Action(r =>
+                    {
+                        Lua.DoString("CastPetAction(2)");
+                        SpellManager.ClickRemoteLocation(Kunchong.Location);
+                        Lua.DoString("CastPetAction(1)");
+                        SpellManager.ClickRemoteLocation(Kunchong.Location);
+                    }));
+            }
+        }
 
 
-		#region Cleanup
+        public Composite KillTwo
+        {
+            get
+            {
+                return new Decorator(r => !Me.IsQuestObjectiveComplete(QuestId, 2) && Mantid != null,
+                    new Action(r =>
+                    {
+                        Lua.DoString("CastPetAction(1)");
+                        SpellManager.ClickRemoteLocation(Mantid.Location);
+                    }));
+            }
+        }
+
+        protected Composite CreateBehavior_QuestbotMain()
+        {
+            return _root ?? (_root =
+                new Decorator(ret => !_isBehaviorDone,
+                    new PrioritySelector(DoneYet, KillOne, KillTwo, new ActionAlwaysSucceed())));
+        }
+
+
+        #region Cleanup
 
         public override void OnFinished()
         {
@@ -173,6 +174,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DarkSkies
             base.OnFinished();
         }
 
-		#endregion
-	}
+        #endregion
+    }
 }

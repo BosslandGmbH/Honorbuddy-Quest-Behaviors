@@ -15,6 +15,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -50,7 +51,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 Id = GetAttributeAsNullable<int>("Id", false, ConstrainAs.MobId, null) ?? 0;
                 Priority = GetAttributeAsNullable<int>("Priority", false, new ConstrainTo.Domain<int>(-10000, 10000), null) ?? 0;
 
-                var pursueWhenExpression = GetAttributeAs<string>("PursueWhen", false, ConstrainAs.StringNonEmpty, null) ; 
+                var pursueWhenExpression = GetAttributeAs<string>("PursueWhen", false, ConstrainAs.StringNonEmpty, null);
                 var convertWhenExpression = GetAttributeAs<string>("ConvertWhen", false, ConstrainAs.StringNonEmpty, null) ?? "false";
 
                 ConvertBy = GetAttributeAsNullable<ConvertByType>("ConvertBy", false, null, null) ?? ConvertByType.Killing;
@@ -60,7 +61,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     if (Id == 0)
                     {
                         QBCLog.Error("Either Id, PursueWhen, or both must be specified.");
-                        IsAttributeProblem = true; 
+                        IsAttributeProblem = true;
                     }
                     else
                     {
@@ -68,11 +69,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     }
                 }
 
-				ConvertWhenDelayCompiledExpression = (DelayCompiledExpression)Activator.CreateInstance(expressionType, parameterName + "=>" + convertWhenExpression);
-				ConvertWhen = ConvertWhenDelayCompiledExpression.CallableExpression;
+                ConvertWhenDelayCompiledExpression = (DelayCompiledExpression)Activator.CreateInstance(expressionType, parameterName + "=>" + convertWhenExpression);
+                ConvertWhen = ConvertWhenDelayCompiledExpression.CallableExpression;
 
-				PursueWhenDelayCompiledExpression = (DelayCompiledExpression)Activator.CreateInstance(expressionType, parameterName + "=>" + pursueWhenExpression);
-				PursueWhen = PursueWhenDelayCompiledExpression.CallableExpression;
+                PursueWhenDelayCompiledExpression = (DelayCompiledExpression)Activator.CreateInstance(expressionType, parameterName + "=>" + pursueWhenExpression);
+                PursueWhen = PursueWhenDelayCompiledExpression.CallableExpression;
             }
             catch (Exception except)
             {
@@ -84,13 +85,13 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         protected PursueObjectTypeBase(
             int id,
-			Delegate pursueWhen,
-			Delegate convertWhen,
+            Delegate pursueWhen,
+            Delegate convertWhen,
             ConvertByType convertBy = ConvertByType.Killing)
         {
             Id = id;
-			PursueWhen = pursueWhen;
-			ConvertWhen = convertWhen;
+            PursueWhen = pursueWhen;
+            ConvertWhen = convertWhen;
             ConvertBy = convertBy;
         }
 
@@ -116,23 +117,23 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                              new XAttribute("PursueWhen", PursueWhenDelayCompiledExpression.ExpressionString),
                              new XAttribute("ConvertWhen", ConvertWhenDelayCompiledExpression.ExpressionString),
                              new XAttribute("ConvertBy", ConvertBy));
-         
+
             return element;
         }
 
         #endregion
 
-		// These DelayCompiledExpression are only needed when an instance of this type is constructed from an XElement,
-		// when the ConvertWhen/PursueWhen expressions are not known at compile time. 
-		[CompileExpression]
-		public DelayCompiledExpression ConvertWhenDelayCompiledExpression { get; protected set; }
+        // These DelayCompiledExpression are only needed when an instance of this type is constructed from an XElement,
+        // when the ConvertWhen/PursueWhen expressions are not known at compile time. 
+        [CompileExpression]
+        public DelayCompiledExpression ConvertWhenDelayCompiledExpression { get; protected set; }
 
-		[CompileExpression]
-		public DelayCompiledExpression PursueWhenDelayCompiledExpression { get; protected set; }
+        [CompileExpression]
+        public DelayCompiledExpression PursueWhenDelayCompiledExpression { get; protected set; }
 
-		public Delegate ConvertWhen{ get; protected set; }
+        public Delegate ConvertWhen { get; protected set; }
 
-		public Delegate PursueWhen { get; protected set; }
+        public Delegate PursueWhen { get; protected set; }
 
         public abstract bool ShouldPursue(WoWObject obj);
         public abstract bool ShouldPursue(WoWObject obj, out float priority);
@@ -144,7 +145,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #region Constructor and Argument Processing
 
         public PursueObjectType(XElement xElement)
-			: base(xElement, GetParameterName(), typeof(DelayCompiledExpression<Func<T, bool>>))
+            : base(xElement, GetParameterName(), typeof(DelayCompiledExpression<Func<T, bool>>))
         {
             try
             {
@@ -161,10 +162,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public PursueObjectType(
             int id,
-			Func<T, bool> pursueWhenExp = null,
-			Func<T, bool> convertWhenExp = null,
+            Func<T, bool> pursueWhenExp = null,
+            Func<T, bool> convertWhenExp = null,
             ConvertByType convertBy = ConvertByType.Killing)
-			: base(id, pursueWhenExp ?? (unit => true), convertWhenExp ?? (unit => false), convertBy)
+            : base(id, pursueWhenExp ?? (unit => true), convertWhenExp ?? (unit => false), convertBy)
         {
         }
 
@@ -175,17 +176,17 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             if (typeof(T) == typeof(LocalPlayer))
                 return "ME";
 
-            if (typeof (T) == typeof (WoWUnit))
+            if (typeof(T) == typeof(WoWUnit))
                 return "UNIT";
 
             if (typeof(T) == typeof(WoWGameObject))
                 return "GAMEOBJECT";
 
-			if (typeof(T) == typeof(WoWPlayer))
-				return "PLAYER";
+            if (typeof(T) == typeof(WoWPlayer))
+                return "PLAYER";
 
-			if (typeof(T) == typeof(WoWAreaTrigger))
-				return "AREATRIGGER";
+            if (typeof(T) == typeof(WoWAreaTrigger))
+                return "AREATRIGGER";
 
             return "OBJECT";
         }
@@ -197,18 +198,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public override bool ShouldPursue(WoWObject obj)
         {
-           return (Id == 0 || obj.Entry == Id) &&  obj is T && ((Func<T, bool>) PursueWhen)((T)obj) ;
+            return (Id == 0 || obj.Entry == Id) && obj is T && ((Func<T, bool>)PursueWhen)((T)obj);
         }
 
         public override bool ShouldPursue(WoWObject obj, out float priority)
         {
             priority = Priority;
-	        return (Id == 0 || obj.Entry == Id) && obj is T && ((Func<T, bool>) PursueWhen)((T) obj);
+            return (Id == 0 || obj.Entry == Id) && obj is T && ((Func<T, bool>)PursueWhen)((T)obj);
         }
         public override bool CanConvert(WoWObject obj, ConvertByType convertBy)
         {
-	        return (Id == 0 || obj.Entry == Id) && ConvertBy == convertBy && obj is T 
-				&& ((Func<T, bool>) ConvertWhen)((T) obj);
+            return (Id == 0 || obj.Entry == Id) && ConvertBy == convertBy && obj is T
+                && ((Func<T, bool>)ConvertWhen)((T)obj);
         }
 
         #endregion

@@ -28,6 +28,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,114 +50,114 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 {
-	[CustomBehaviorFileName(@"CompleteLogQuest")]
-	public class CompleteLogQuest : CustomForcedBehavior
-	{
-		public CompleteLogQuest(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"CompleteLogQuest")]
+    public class CompleteLogQuest : CustomForcedBehavior
+    {
+        public CompleteLogQuest(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new[] { "QuestID" }) ?? 0;
-
-
-				// Final initialization...
-				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
-
-				QuestName = (quest != null) ? quest.Name : string.Format("QuestId({0})", QuestId);
-			}
-
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            try
+            {
+                QuestId = GetAttributeAsNullable<int>("QuestId", true, ConstrainAs.QuestId(this), new[] { "QuestID" }) ?? 0;
 
 
-		// Attributes provided by caller
-		public static int QuestId { get; private set; }
+                // Final initialization...
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-		// Private variables for internal state
-		private Composite _root;
+                QuestName = (quest != null) ? quest.Name : string.Format("QuestId({0})", QuestId);
+            }
 
-		private bool _forcedDone;
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-		// Private properties
-		private string QuestName { get; set; }
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        // Attributes provided by caller
+        public static int QuestId { get; private set; }
 
-		#region Overrides of CustomForcedBehavior
+        // Private variables for internal state
+        private Composite _root;
 
-		protected override Composite CreateBehavior()
-		{
-			return (_root ?? (_root =
-							  new PrioritySelector(
-								  // If we don't have the quest in our logs, we have already turned it in
-								  new Decorator(ctx => !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId),
-												new ActionAlwaysSucceed()),
+        private bool _forcedDone;
 
-								  // Make sure we've the quest frame opened with the correct quest
-								  new Decorator(
-									  ctx => !QuestFrame.Instance.IsVisible || QuestFrame.Instance.CurrentShownQuestId != QuestId,
-									  new Sequence(
-										  new Action(ctx => Lua.DoString("ShowQuestComplete(GetQuestLogIndexByID({0}))", QuestId)),
-										  new Wait(3,
-												   ctx =>
-												   QuestFrame.Instance.IsVisible && QuestFrame.Instance.CurrentShownQuestId == QuestId,
-												   new ActionAlwaysSucceed()))),
+        // Private properties
+        private string QuestName { get; set; }
 
-								  // Complete the quest, and accept the next quest if there is one. This is needed to make this compatible with the CompleteQuestLog quest behavior
-								  // which automatically accepted new quests.
-								  new Sequence(
-									  new DecoratorContinue(QuestContinueButtonShown,
-										new Action(ctx => PressContinueButton(ctx))),
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-									  new DecoratorContinue(QuestHasRewards,
-										  new ActionSelectReward()),
-									  // Just wait for a bit before we turn in, so it's easier to see what's going on
-									  new Sleep(1000),
-									  new Action(ctx => QuestFrame.Instance.CompleteQuest()),
-									  new SleepForLagDuration(),
-									  new Action(ctx => QuestFrame.Instance.AcceptQuest()),
-									  new Sleep(500),
-									  new Action(ctx => Lua.DoString("CloseQuest()"))
-									  ))));
-		}
+        #region Overrides of CustomForcedBehavior
 
-		private bool QuestHasRewards(object context)
-		{
-			uint id = QuestFrame.Instance.CurrentShownQuestId;
-			Quest quest = Quest.FromId(id);
+        protected override Composite CreateBehavior()
+        {
+            return (_root ?? (_root =
+                              new PrioritySelector(
+                                  // If we don't have the quest in our logs, we have already turned it in
+                                  new Decorator(ctx => !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId),
+                                                new ActionAlwaysSucceed()),
 
-			if (quest == null)
-				return false;
+                                  // Make sure we've the quest frame opened with the correct quest
+                                  new Decorator(
+                                      ctx => !QuestFrame.Instance.IsVisible || QuestFrame.Instance.CurrentShownQuestId != QuestId,
+                                      new Sequence(
+                                          new Action(ctx => Lua.DoString("ShowQuestComplete(GetQuestLogIndexByID({0}))", QuestId)),
+                                          new Wait(3,
+                                                   ctx =>
+                                                   QuestFrame.Instance.IsVisible && QuestFrame.Instance.CurrentShownQuestId == QuestId,
+                                                   new ActionAlwaysSucceed()))),
 
-			var choices = quest.GetRewardChoices();
-			return choices.Any(choice => choice.ItemId != 0);
-		}
+                                  // Complete the quest, and accept the next quest if there is one. This is needed to make this compatible with the CompleteQuestLog quest behavior
+                                  // which automatically accepted new quests.
+                                  new Sequence(
+                                      new DecoratorContinue(QuestContinueButtonShown,
+                                        new Action(ctx => PressContinueButton(ctx))),
 
-		private static readonly Frame _questContinueButtonFrame = new Frame("QuestFrameCompleteButton");
-		private bool QuestContinueButtonShown(object context)
-		{
-			return _questContinueButtonFrame.IsVisible;
-		}
+                                      new DecoratorContinue(QuestHasRewards,
+                                          new ActionSelectReward()),
+                                      // Just wait for a bit before we turn in, so it's easier to see what's going on
+                                      new Sleep(1000),
+                                      new Action(ctx => QuestFrame.Instance.CompleteQuest()),
+                                      new SleepForLagDuration(),
+                                      new Action(ctx => QuestFrame.Instance.AcceptQuest()),
+                                      new Sleep(500),
+                                      new Action(ctx => Lua.DoString("CloseQuest()"))
+                                      ))));
+        }
 
-		private RunStatus PressContinueButton(object context)
-		{
-			QuestFrame.Instance.ClickContinue();
-			return RunStatus.Success;
-		}
+        private bool QuestHasRewards(object context)
+        {
+            uint id = QuestFrame.Instance.CurrentShownQuestId;
+            Quest quest = Quest.FromId(id);
+
+            if (quest == null)
+                return false;
+
+            var choices = quest.GetRewardChoices();
+            return choices.Any(choice => choice.ItemId != 0);
+        }
+
+        private static readonly Frame s_questContinueButtonFrame = new Frame("QuestFrameCompleteButton");
+        private bool QuestContinueButtonShown(object context)
+        {
+            return s_questContinueButtonFrame.IsVisible;
+        }
+
+        private RunStatus PressContinueButton(object context)
+        {
+            QuestFrame.Instance.ClickContinue();
+            return RunStatus.Success;
+        }
 
         public override void OnFinished()
         {
@@ -165,50 +166,50 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
             base.OnFinished();
         }
 
-		public override bool IsDone
-		{
-			get
-			{
-				var isDone = _forcedDone || !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId);
+        public override bool IsDone
+        {
+            get
+            {
+                var isDone = _forcedDone || !StyxWoW.Me.QuestLog.ContainsQuest((uint)QuestId);
 
-				return isDone;
-			}
-		}
+                return isDone;
+            }
+        }
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                PlayerQuest quest = StyxWoW.Me.QuestLog.GetQuestById((uint)QuestId);
 
-				this.UpdateGoalText(QuestId);
+                this.UpdateGoalText(QuestId);
 
-				if (quest != null)
-				{
-					if (!quest.IsCompleted)
-					{
-						QBCLog.Fatal("Quest({0}, \"{1}\") is not complete.", QuestId, QuestName);
-						_forcedDone = true;
-					}
-				}
+                if (quest != null)
+                {
+                    if (!quest.IsCompleted)
+                    {
+                        QBCLog.Fatal("Quest({0}, \"{1}\") is not complete.", QuestId, QuestName);
+                        _forcedDone = true;
+                    }
+                }
 
-				else
-				{
-					QBCLog.Warning("Quest({0}) is not in our log--skipping turn in.", QuestId);
-					_forcedDone = true;
-				}
-			}
-		}
+                else
+                {
+                    QBCLog.Warning("Quest({0}) is not in our log--skipping turn in.", QuestId);
+                    _forcedDone = true;
+                }
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }
 

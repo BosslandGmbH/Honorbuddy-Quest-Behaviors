@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -47,44 +48,44 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         public XElement Element { get; private set; }
 
 
-		public override string ToString()
-		{
-			return ToXml().ToString();
-		}
-
-
-		#region Concrete class required implementations...
-		public virtual string SubversionId { get { return "$Id$"; } }
-		public virtual string SubversionRevision { get { return "$Rev$"; } }
-
-		public abstract XElement ToXml(string elementName = null);
-		#endregion
-
-
-		public static class ConstrainAs
+        public override string ToString()
         {
-            public static readonly IConstraintChecker<int>       AuraId              = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<int>       CollectionCount     = new ConstrainTo.Domain<int>(1, 1000);
-            public static readonly IConstraintChecker<int>       FactionId           = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<int>       HotbarButton        = new ConstrainTo.Domain<int>(1, 12);
-            public static readonly IConstraintChecker<int>       ItemId              = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<int>       Milliseconds        = new ConstrainTo.Domain<int>(0, int.MaxValue);
-            public static readonly IConstraintChecker<int>       MobId               = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<int>       ObjectId            = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<double>    Percent             = new ConstrainTo.Domain<double>(0.0, 100.0);
-            public static readonly IConstraintChecker<int>       QuestId             = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<double>    Range               = new ConstrainTo.Domain<double>(1.0, 10000.0);
-            public static readonly IConstraintChecker<int>       RepeatCount         = new ConstrainTo.Domain<int>(1, 1000);
-            public static readonly IConstraintChecker<int>       SpellId             = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<string>    StringNonEmpty      = new ConstrainTo.NonEmptyString<string>();
-            public static readonly IConstraintChecker<int>       VehicleId           = new ConstrainTo.Domain<int>(1, int.MaxValue);
-            public static readonly IConstraintChecker<WoWPoint>  WoWPointNonEmpty    = new ConstrainTo.NonEmptyWoWPoint<WoWPoint>();
+            return ToXml().ToString();
         }
 
 
-        public abstract class   IConstraintChecker<T>
+        #region Concrete class required implementations...
+        public virtual string SubversionId { get { return "$Id$"; } }
+        public virtual string SubversionRevision { get { return "$Rev$"; } }
+
+        public abstract XElement ToXml(string elementName = null);
+        #endregion
+
+
+        public static class ConstrainAs
         {
-            public virtual string   Check(string attributeName,  T value)
+            public static readonly IConstraintChecker<int> AuraId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<int> CollectionCount = new ConstrainTo.Domain<int>(1, 1000);
+            public static readonly IConstraintChecker<int> FactionId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<int> HotbarButton = new ConstrainTo.Domain<int>(1, 12);
+            public static readonly IConstraintChecker<int> ItemId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<int> Milliseconds = new ConstrainTo.Domain<int>(0, int.MaxValue);
+            public static readonly IConstraintChecker<int> MobId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<int> ObjectId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<double> Percent = new ConstrainTo.Domain<double>(0.0, 100.0);
+            public static readonly IConstraintChecker<int> QuestId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<double> Range = new ConstrainTo.Domain<double>(1.0, 10000.0);
+            public static readonly IConstraintChecker<int> RepeatCount = new ConstrainTo.Domain<int>(1, 1000);
+            public static readonly IConstraintChecker<int> SpellId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<string> StringNonEmpty = new ConstrainTo.NonEmptyString<string>();
+            public static readonly IConstraintChecker<int> VehicleId = new ConstrainTo.Domain<int>(1, int.MaxValue);
+            public static readonly IConstraintChecker<WoWPoint> WoWPointNonEmpty = new ConstrainTo.NonEmptyWoWPoint<WoWPoint>();
+        }
+
+
+        public abstract class IConstraintChecker<T>
+        {
+            public virtual string Check(string attributeName, T value)
             {
                 return null;
             }
@@ -93,29 +94,29 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         public static class ConstrainTo
         {
-            public class        Anything<T>     : IConstraintChecker<T>
+            public class Anything<T> : IConstraintChecker<T>
             {
-                public override string      Check(string attributeName,  T value)
+                public override string Check(string attributeName, T value)
                 {
                     return (null);
                 }
             }
 
-            public class        Domain<T>       : IConstraintChecker<T>
+            public class Domain<T> : IConstraintChecker<T>
             {
-                public Domain(T minValue,  T maxValue)
+                public Domain(T minValue, T maxValue)
                 {
                     _maxValue = maxValue;
                     _minValue = minValue;
                 }
 
-                private readonly T  _maxValue;
-                private readonly T  _minValue;
+                private readonly T _maxValue;
+                private readonly T _minValue;
 
-                public override string      Check(string attributeName,  T value)
+                public override string Check(string attributeName, T value)
                 {
-                    bool    isOverRange     = (Comparer<T>.Default.Compare(value, _maxValue) > 0);
-                    bool    isUnderRange    = (Comparer<T>.Default.Compare(value, _minValue) < 0);
+                    bool isOverRange = (Comparer<T>.Default.Compare(value, _maxValue) > 0);
+                    bool isUnderRange = (Comparer<T>.Default.Compare(value, _minValue) < 0);
 
                     if (isUnderRange || isOverRange)
                     {
@@ -128,24 +129,24 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                 }
             }
 
-            public class        NonEmptyString<T>   : IConstraintChecker<string>
+            public class NonEmptyString<T> : IConstraintChecker<string>
             {
-                public override string      Check(string attributeName,  string value)
+                public override string Check(string attributeName, string value)
                 {
                     if (!string.IsNullOrEmpty(value))
-                        { return (null); }
+                    { return (null); }
 
                     return (string.Format("The '{0}' attribute's value may not be an empty string (\"\").",
                                             attributeName));
                 }
             }
 
-            public class        NonEmptyWoWPoint<T>  : IConstraintChecker<WoWPoint>
+            public class NonEmptyWoWPoint<T> : IConstraintChecker<WoWPoint>
             {
-                public override string      Check(string attributeName,  WoWPoint value)
+                public override string Check(string attributeName, WoWPoint value)
                 {
                     if (value != WoWPoint.Empty)
-                        { return (null); }
+                    { return (null); }
 
                     return (string.Format("The '{0}' attribute's value may not be the empty WoWPoint (e.g., {1}).",
                                             attributeName, WoWPoint.Empty));
@@ -153,23 +154,23 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             }
 
 
-            public class        SpecificValues<T>   : IConstraintChecker<T>
+            public class SpecificValues<T> : IConstraintChecker<T>
             {
                 public SpecificValues(T[] allowedValues)
                 {
                     _allowedValues = allowedValues;
                 }
 
-                private readonly T[]    _allowedValues;
+                private readonly T[] _allowedValues;
 
-                public override string      Check(string attributeName,  T value)
+                public override string Check(string attributeName, T value)
                 {
                     if (_allowedValues.Contains(value))
-                        { return (null); }
+                    { return (null); }
 
                     Array.Sort(_allowedValues);
 
-                    string[]    allowedValuesAsString   =  Array.ConvertAll(_allowedValues, t => t.ToString());
+                    string[] allowedValuesAsString = Array.ConvertAll(_allowedValues, t => t.ToString());
 
                     return (string.Format("The '{1}' attribute's value (saw '{2}') is not "
                                           + "one of the allowed values...{0}    [{3}].",
@@ -179,27 +180,27 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        public T GetAttributeAs<T>( string attributeName,  bool isAttributeRequired,  IConstraintChecker<T> constraints,  string[] attributeNameAliases)
-            where T: class
+        public T GetAttributeAs<T>(string attributeName, bool isAttributeRequired, IConstraintChecker<T> constraints, string[] attributeNameAliases)
+            where T : class
         {
             return ((T)UtilGetAttributeAs<T>(attributeName, isAttributeRequired, constraints, attributeNameAliases));
         }
 
 
-        public T[] GetAttributeAsArray<T>( string attributeName,  bool isAttributeRequired,  IConstraintChecker<T> constraints,  string[] attributeNameAliases,
+        public T[] GetAttributeAsArray<T>(string attributeName, bool isAttributeRequired, IConstraintChecker<T> constraints, string[] attributeNameAliases,
             char[] separatorCharacters)
         {
             // WoWPoint are triples, so requires special handling...
             if (typeof(T) == typeof(WoWPoint))
-                { return ((T[])UtilGetAttributeAsWoWPoints(attributeName, isAttributeRequired, attributeNameAliases)); }
+            { return ((T[])UtilGetAttributeAsWoWPoints(attributeName, isAttributeRequired, attributeNameAliases)); }
 
 
-            constraints         = constraints ?? new ConstrainTo.Anything<T>();
-            separatorCharacters = separatorCharacters ?? new [] { ' ', ',', ';' };
+            constraints = constraints ?? new ConstrainTo.Anything<T>();
+            separatorCharacters = separatorCharacters ?? new[] { ' ', ',', ';' };
 
-            bool        isError         = false;
-            string      keyName         = UtilLocateKey(isAttributeRequired, attributeName, attributeNameAliases);
-            var         resultList      = new List<T>();
+            bool isError = false;
+            string keyName = UtilLocateKey(isAttributeRequired, attributeName, attributeNameAliases);
+            var resultList = new List<T>();
 
             if ((keyName == null) || !Attributes.ContainsKey(keyName))
             {
@@ -212,10 +213,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             // nickel-and-dimed to death with error messages.
             foreach (string listEntry in Attributes[keyName].Split(separatorCharacters, StringSplitOptions.RemoveEmptyEntries))
             {
-                T           tmpResult;
+                T tmpResult;
 
                 try
-                    { tmpResult = UtilTo<T>(keyName, listEntry); }
+                { tmpResult = UtilTo<T>(keyName, listEntry); }
 
                 catch (Exception)
                 {
@@ -223,7 +224,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     continue;
                 }
 
-                string  constraintViolationMessage  = constraints.Check(keyName, tmpResult);
+                string constraintViolationMessage = constraints.Check(keyName, tmpResult);
                 if (constraintViolationMessage != null)
                 {
                     QBCLog.Error(QBCLog.BuildMessageWithContext(Element, constraintViolationMessage));
@@ -244,18 +245,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         }
 
 
-        public T? GetAttributeAsNullable<T>( string attributeName,  bool isAttributeRequired,  IConstraintChecker<T> constraints,  string[] attributeNameAliases)
-            where T: struct
+        public T? GetAttributeAsNullable<T>(string attributeName, bool isAttributeRequired, IConstraintChecker<T> constraints, string[] attributeNameAliases)
+            where T : struct
         {
             return ((T?)UtilGetAttributeAs<T>(attributeName, isAttributeRequired, constraints, attributeNameAliases));
         }
 
 
-        public T[] GetNumberedAttributesAsArray<T>( string baseName,  int countRequired,  IConstraintChecker<T> constraints,  IEnumerable<string> aliasBaseNames)
+        public T[] GetNumberedAttributesAsArray<T>(string baseName, int countRequired, IConstraintChecker<T> constraints, IEnumerable<string> aliasBaseNames)
         {
-            bool    isError         = false;
-            bool    isWoWPoint      = (typeof(T) == typeof(WoWPoint));
-            var     resultList      = new List<T>();
+            bool isError = false;
+            bool isWoWPoint = (typeof(T) == typeof(WoWPoint));
+            var resultList = new List<T>();
 
             // Search for primary names first --
             // We 'continue' even if problems are encountered.  By doing this, the profile writer can see
@@ -263,7 +264,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var primaryAttributeNames = from attributeName in Attributes.Keys
                                         where UtilIsNumberedAttribute(baseName, attributeName, isWoWPoint)
                                         select attributeName;
-            
+
             foreach (var numberedAttributeName in primaryAttributeNames)
             {
                 isError |= UtilAddToNumberedAttributeToArray<T>(numberedAttributeName, constraints, resultList);
@@ -311,42 +312,42 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         // Returns true if error, false if success
-        private bool        UtilAddToNumberedAttributeToArray<T>(string nameFound,
+        private bool UtilAddToNumberedAttributeToArray<T>(string nameFound,
                                                                  IConstraintChecker<T> constraints,
                                                                  List<T> resultList)
         {
-            string  baseName    = nameFound;
+            string baseName = nameFound;
 
             // WoWPoints require special handling because there are three attributes comprising the value...
             if (typeof(T) == typeof(WoWPoint))
             {
                 // Adjust basename to remove X/Y/Z suffix...
                 if ((nameFound.EndsWith("X") || nameFound.EndsWith("Y") || nameFound.EndsWith("Z")))
-                    { baseName = nameFound.Substring(0, nameFound.Length -1); }
+                { baseName = nameFound.Substring(0, nameFound.Length - 1); }
 
                 // If this is not the "X" key, and the "X" key exists, then skip processing...
                 // If we don't, then the WoWPoint will be placed into the list three times.
                 if (!nameFound.EndsWith("X") && Attributes.ContainsKey(baseName + "X"))
-                    { return (false); }
+                { return (false); }
             }
 
-            object  tmpResult = UtilGetAttributeAs<T>(baseName, false, constraints, null);
+            object tmpResult = UtilGetAttributeAs<T>(baseName, false, constraints, null);
 
             if (tmpResult == null)
-                { return (true); }
+            { return (true); }
 
             resultList.Add((T)tmpResult);
             return (false);
         }
 
 
-        private object UtilGetAttributeAs<T>(string attributeName,  bool isAttributeRequired,  IConstraintChecker<T> constraints,  string[] attributeNameAliases)
+        private object UtilGetAttributeAs<T>(string attributeName, bool isAttributeRequired, IConstraintChecker<T> constraints, string[] attributeNameAliases)
         {
-            Type        concreteType    = typeof(T);
+            Type concreteType = typeof(T);
 
             // WoWPoint are a triple of attributes, so requires special handling...
             if (concreteType == typeof(WoWPoint))
-                { return (UtilGetXYZAttributesAsWoWPoint(attributeName, isAttributeRequired, attributeNameAliases)); }
+            { return (UtilGetXYZAttributesAsWoWPoint(attributeName, isAttributeRequired, attributeNameAliases)); }
 
 
             constraints = constraints ?? new ConstrainTo.Anything<T>();
@@ -354,20 +355,20 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             string keyName = UtilLocateKey(isAttributeRequired, attributeName, attributeNameAliases);
 
             if ((keyName == null) || !Attributes.ContainsKey(keyName))
-                { return (null); }
+            { return (null); }
 
-            T           tmpResult;
-            string      valueAsString   = Attributes[keyName];
+            T tmpResult;
+            string valueAsString = Attributes[keyName];
 
             try
-                { tmpResult = UtilTo<T>(keyName, valueAsString); }
+            { tmpResult = UtilTo<T>(keyName, valueAsString); }
             catch (Exception)
             {
                 IsAttributeProblem = true;
                 return (null);
             }
 
-            string  constraintViolationMessage  = constraints.Check(keyName, tmpResult);
+            string constraintViolationMessage = constraints.Check(keyName, tmpResult);
             if (constraintViolationMessage != null)
             {
                 QBCLog.Error(QBCLog.BuildMessageWithContext(Element, constraintViolationMessage));
@@ -381,11 +382,11 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
         private object UtilGetAttributeAsWoWPoints(string attributeName, bool isAttributeRequired, string[] attributeNameAliases)
         {
-            bool            isError                 = false;
-            string          keyName                 = UtilLocateKey(isAttributeRequired, attributeName, attributeNameAliases);
-            List<WoWPoint>  pointList               = new List<WoWPoint>();
-            char[]          separatorCoordinate     = { ' ', ',' };
-            char[]          separatorTriplet        = { '|', ';' };
+            bool isError = false;
+            string keyName = UtilLocateKey(isAttributeRequired, attributeName, attributeNameAliases);
+            List<WoWPoint> pointList = new List<WoWPoint>();
+            char[] separatorCoordinate = { ' ', ',' };
+            char[] separatorTriplet = { '|', ';' };
 
 
             if ((keyName == null) || !Attributes.ContainsKey(keyName))
@@ -415,18 +416,18 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
                 double? tmpValueX = null;
                 try { tmpValueX = UtilTo<double>(keyName, coordinatesAsString[0]); }
-                catch(Exception) { isError = true; }
+                catch (Exception) { isError = true; }
 
-                double? tmpValueY  = null;
+                double? tmpValueY = null;
                 try { tmpValueY = UtilTo<double>(keyName, coordinatesAsString[1]); }
-		        catch(Exception) { isError = true; }
-                    
+                catch (Exception) { isError = true; }
+
                 double? tmpValueZ = null;
                 try { tmpValueZ = UtilTo<double>(keyName, coordinatesAsString[2]); }
-                catch(Exception) { isError = true; }
+                catch (Exception) { isError = true; }
 
                 if (tmpValueX.HasValue && tmpValueY.HasValue && tmpValueZ.HasValue)
-                    { pointList.Add(new WoWPoint(tmpValueX.Value, tmpValueY.Value, tmpValueZ.Value)); }
+                { pointList.Add(new WoWPoint(tmpValueX.Value, tmpValueY.Value, tmpValueZ.Value)); }
             }
 
             if (isError)
@@ -442,7 +443,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         private object UtilGetXYZAttributesAsWoWPoint(string attributeBaseName, bool isAttributeRequired, string[] attributeBaseNameAliases)
         {
             if (attributeBaseName == null)
-                { attributeBaseName = ""; }
+            { attributeBaseName = ""; }
 
             // Note, don't use the IsAttributeProblem property for any decision making in this method--
             // Recall that the property could already be set on entry to this method.
@@ -493,7 +494,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             var z = (double?)UtilGetAttributeAs<double>(keyBase + "Z", isAttributeRequired, null, null);
 
             if (x.HasValue && y.HasValue && z.HasValue)
-                { return (new WoWPoint(x.Value, y.Value, z.Value)); }
+            { return (new WoWPoint(x.Value, y.Value, z.Value)); }
 
             return (null);
         }
@@ -517,10 +518,10 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         //              Stand           Stand27Y            true
         //              Stand           StandY27n           false
         //              Stand           StandZs             false        
-        private bool UtilIsNumberedAttribute(string baseName, string attributeName, bool   allowWoWPointSuffixes)
+        private bool UtilIsNumberedAttribute(string baseName, string attributeName, bool allowWoWPointSuffixes)
         {
             if (!attributeName.StartsWith(baseName))
-                { return (false); }
+            { return (false); }
 
             string suffix = attributeName.Substring(baseName.Length);
 
@@ -528,32 +529,32 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             if (allowWoWPointSuffixes)
             {
                 if (suffix.EndsWith("X") || suffix.EndsWith("Y") || suffix.EndsWith("Z"))
-                    { suffix = suffix.Substring(0, suffix.Length -1); }
+                { suffix = suffix.Substring(0, suffix.Length - 1); }
             }
 
             // If the attributeName exactly matches the baseName, we consider it a 'match'...
             if (suffix.Length == 0)
-                { return (true); }
+            { return (true); }
 
             int tmpResult;
 
-			if (int.TryParse(suffix, NumberStyles.Integer, CultureInfo.InvariantCulture, out tmpResult))
-                { return (true); }
+            if (int.TryParse(suffix, NumberStyles.Integer, CultureInfo.InvariantCulture, out tmpResult))
+            { return (true); }
 
             return (false);
         }
 
 
-        private T UtilTo<T>(string  attributeName, string  attributeValueAsString)
+        private T UtilTo<T>(string attributeName, string attributeValueAsString)
         {
-            Type    concreteType    = typeof(T);
+            Type concreteType = typeof(T);
 
             // Booleans require special handling...
             if (concreteType == typeof(bool))
             {
                 int tmpInt;
 
-				if (int.TryParse(attributeValueAsString, NumberStyles.Integer, CultureInfo.InvariantCulture, out tmpInt))
+                if (int.TryParse(attributeValueAsString, NumberStyles.Integer, CultureInfo.InvariantCulture, out tmpInt))
                 {
                     attributeValueAsString = (tmpInt != 0) ? "true" : "false";
 
@@ -581,12 +582,12 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     tmpValue = (T)Enum.Parse(concreteType, attributeValueAsString);
 
                     if (!Enum.IsDefined(concreteType, tmpValue))
-                        { throw new ArgumentException(); }
+                    { throw new ArgumentException(); }
 
                     // If the provided value is a number instead of Enum name, ask the profile writer to fix it...
                     // This is not fatal, so we let it go without flagging IsAttributeProblem.
                     int tmpInt;
-					if (int.TryParse(attributeValueAsString, NumberStyles.Integer, CultureInfo.InvariantCulture, out tmpInt))
+                    if (int.TryParse(attributeValueAsString, NumberStyles.Integer, CultureInfo.InvariantCulture, out tmpInt))
                     {
                         QBCLog.Warning(QBCLog.BuildMessageWithContext(Element,
                             "The '{1}' attribute's value '{2}' has been implicitly converted"
@@ -616,7 +617,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
             try
-                { return ((T)Convert.ChangeType(attributeValueAsString, concreteType, CultureInfo.InvariantCulture)); }
+            { return ((T)Convert.ChangeType(attributeValueAsString, concreteType, CultureInfo.InvariantCulture)); }
             catch (Exception except)
             {
                 QBCLog.Error(QBCLog.BuildMessageWithContext(Element,
@@ -694,7 +695,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
             // Prefer the primary name...
             if (!string.IsNullOrEmpty(primaryName) && Attributes.ContainsKey(primaryName))
-                { return (primaryName); }
+            { return (primaryName); }
 
             if (aliasNames != null)
             {

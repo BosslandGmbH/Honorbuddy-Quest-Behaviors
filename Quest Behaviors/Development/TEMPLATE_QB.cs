@@ -42,6 +42,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -58,147 +59,147 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
 {
-	[CustomBehaviorFileName(@"Development\TEMPLATE_QB")]
-	public class TEMPLATE_QB : QuestBehaviorBase
-	{
-		#region Constructor and Argument Processing
-		public TEMPLATE_QB(Dictionary<string, string> args)
-			: base(args)
-		{
-			try
-			{
-				// NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
+    [CustomBehaviorFileName(@"Development\TEMPLATE_QB")]
+    public class TEMPLATE_QB : QuestBehaviorBase
+    {
+        #region Constructor and Argument Processing
+        public TEMPLATE_QB(Dictionary<string, string> args)
+            : base(args)
+        {
+            try
+            {
+                // NB: Core attributes are parsed by QuestBehaviorBase parent (e.g., QuestId, NonCompeteDistance, etc)
 
-				// Behavior-specific attributes...
-			}
+                // Behavior-specific attributes...
+            }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
-				// resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
-
-
-		// Variables for Attributes provided by caller
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it can be quickly
+                // resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
-		{
-			//// EXAMPLE: 
-			//UsageCheck_DeprecatedAttribute(xElement,
-			//    Args.Keys.Contains("Nav"),
-			//    "Nav",
-			//    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
-			//                              + "  Please update profile to use MovementBy, instead.",
-			//                              Args["Nav"], MovementBy));
-		}
-
-		protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
-		{
-			//// EXAMPLE:
-			//UsageCheck_SemanticCoherency(xElement,
-			//    (!MobIds.Any() && !FactionIds.Any()),
-			//    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
-			//
-			//const double rangeEpsilon = 3.0;
-			//UsageCheck_SemanticCoherency(xElement,
-			//    ((RangeMax - RangeMin) < rangeEpsilon),
-			//    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-			//                  RangeMax, rangeEpsilon, RangeMin)); 
-		}
-		#endregion
+        // Variables for Attributes provided by caller
 
 
-		#region Private and Convenience variables
-		// Add what you need here...
-		#endregion
+        protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
+        {
+            //// EXAMPLE: 
+            //UsageCheck_DeprecatedAttribute(xElement,
+            //    Args.Keys.Contains("Nav"),
+            //    "Nav",
+            //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
+            //                              + "  Please update profile to use MovementBy, instead.",
+            //                              Args["Nav"], MovementBy));
+        }
+
+        protected override void EvaluateUsage_SemanticCoherency(XElement xElement)
+        {
+            //// EXAMPLE:
+            //UsageCheck_SemanticCoherency(xElement,
+            //    (!MobIds.Any() && !FactionIds.Any()),
+            //    context => "You must specify one or more MobIdN, one or more FactionIdN, or both.");
+            //
+            //const double rangeEpsilon = 3.0;
+            //UsageCheck_SemanticCoherency(xElement,
+            //    ((RangeMax - RangeMin) < rangeEpsilon),
+            //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
+            //                  RangeMax, rangeEpsilon, RangeMin)); 
+        }
+        #endregion
 
 
-		#region Overrides of CustomForcedBehavior
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        #region Private and Convenience variables
+        // Add what you need here...
+        #endregion
 
 
-		// CreateBehavior supplied by QuestBehaviorBase.
-		// Instead, provide CreateMainBehavior definition.
+        #region Overrides of CustomForcedBehavior
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
 
-		// Dispose provided by QuestBehaviorBase.
+        // CreateBehavior supplied by QuestBehaviorBase.
+        // Instead, provide CreateMainBehavior definition.
 
 
-		// IsDone provided by QuestBehaviorBase.
-		// Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
+        // Dispose provided by QuestBehaviorBase.
 
 
-		public override void OnStart()
-		{
-			// Acquisition and checking of any sub-elements go here.
-			// A common example:
-			//     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
-			//     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
-			
-			// Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
-			// capture configuration state, install BT hooks, etc.  This will also update the goal text.
-			var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
-
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (isBehaviorShouldRun)
-			{
-				// Setup settings to prevent interference with your behavior --
-				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-				// by Honorbuddy, or the bot is stopped.
-				//CharacterSettings.Instance.HarvestHerbs = false;
-				//CharacterSettings.Instance.HarvestMinerals = false;
-				//CharacterSettings.Instance.LootChests = false;
-				//CharacterSettings.Instance.NinjaSkin = false;
-				//CharacterSettings.Instance.SkinMobs = false;
+        // IsDone provided by QuestBehaviorBase.
+        // Call the QuestBehaviorBase.BehaviorDone() method when you want to indicate your behavior is complete.
 
 
-				// Setup the BehaviorFlags as needed --
-				// These settings will be automatically restored by QuestBehaviorBase when Dispose is called
-				// by Honorbuddy, or the bot is stopped.
-				//LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;  // Turns off the Combat Routine, if needed
-			}
-		}
-		#endregion
+        public override void OnStart()
+        {
+            // Acquisition and checking of any sub-elements go here.
+            // A common example:
+            //     HuntingGrounds = HuntingGroundsType.GetOrCreate(Element, "HuntingGrounds", HuntingGroundCenter);
+            //     IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
+
+            // Let QuestBehaviorBase do basic initialization of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                // Setup settings to prevent interference with your behavior --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
+                //CharacterSettings.Instance.HarvestHerbs = false;
+                //CharacterSettings.Instance.HarvestMinerals = false;
+                //CharacterSettings.Instance.LootChests = false;
+                //CharacterSettings.Instance.NinjaSkin = false;
+                //CharacterSettings.Instance.SkinMobs = false;
 
 
-		#region TargetFilters
-		// HBcore runs the TargetFilter_IncludeTargets after the TargetFilter_RemoveTargets.
-		//protected override void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
-		//{
-		//    // empty--left for child to override
-		//}
+                // Setup the BehaviorFlags as needed --
+                // These settings will be automatically restored by QuestBehaviorBase when Dispose is called
+                // by Honorbuddy, or the bot is stopped.
+                //LevelBot.BehaviorFlags &= ~BehaviorFlags.Combat;  // Turns off the Combat Routine, if needed
+            }
+        }
+        #endregion
 
 
-		// HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.
-		//protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
-		//{
-		//    // empty--left for child to override
-		//}
+        #region TargetFilters
+        // HBcore runs the TargetFilter_IncludeTargets after the TargetFilter_RemoveTargets.
+        //protected override void TargetFilter_IncludeTargets(List<WoWObject> incomingWowObjects, HashSet<WoWObject> outgoingWowObjects)
+        //{
+        //    // empty--left for child to override
+        //}
 
 
-		// When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.
-		//protected override void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
-		//{
-		//    // empty--left for child to override
-		//}
-		#endregion
+        // HBcore runs the TargetFilter_RemoveTargets before the TargetFilter_IncludeTargets.
+        //protected override void TargetFilter_RemoveTargets(List<WoWObject> wowObjects)
+        //{
+        //    // empty--left for child to override
+        //}
 
 
-		#region Main Behaviors
-		protected override Composite CreateBehavior_CombatMain()
-		{
+        // When scoring targets, a higher value of TargetPriority.Score makes the target more valuable.
+        //protected override void TargetFilter_WeighTargets(List<Targeting.TargetPriority> targetPriorities)
+        //{
+        //    // empty--left for child to override
+        //}
+        #endregion
+
+
+        #region Main Behaviors
+        protected override Composite CreateBehavior_CombatMain()
+        {
             return new ActionRunCoroutine(ctx => CombatMainCoroutine());
-		}
+        }
 
         private async Task<bool> CombatMainCoroutine()
         {
@@ -207,10 +208,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-		protected override Composite CreateBehavior_CombatOnly()
-		{
+        protected override Composite CreateBehavior_CombatOnly()
+        {
             return new ActionRunCoroutine(ctx => CombatOnlyCoroutine());
-		}
+        }
 
         private async Task<bool> CombatOnlyCoroutine()
         {
@@ -219,10 +220,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-		protected override Composite CreateBehavior_DeathMain()
-		{
+        protected override Composite CreateBehavior_DeathMain()
+        {
             return new ActionRunCoroutine(ctx => DeathMainCoroutine());
-		}
+        }
 
         private async Task<bool> DeathMainCoroutine()
         {
@@ -231,10 +232,10 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-		protected override Composite CreateBehavior_QuestbotMain()
-		{
+        protected override Composite CreateBehavior_QuestbotMain()
+        {
             return new ActionRunCoroutine(ctx => QuestbotMainCoroutine());
-		}
+        }
 
         private async Task<bool> QuestbotMainCoroutine()
         {
@@ -243,16 +244,16 @@ namespace Honorbuddy.Quest_Behaviors.TEMPLATE_QB
         }
 
 
-		protected override Composite CreateMainBehavior()
-		{
+        protected override Composite CreateMainBehavior()
+        {
             return new ActionRunCoroutine(ctx => MainCoroutine());
-		}
+        }
 
         private async Task<bool> MainCoroutine()
         {
             // TODO: Populate this...
             return false;
         }
-		#endregion
-	}
+        #endregion
+    }
 }

@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Xml.Linq;
 #endregion
@@ -44,7 +45,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             catch (Exception except)
             {
                 if (Query.IsExceptionReportingNeeded(except))
-                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+                { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
                 IsAttributeProblem = true;
             }
         }
@@ -54,25 +55,25 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         #endregion
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return "$Id$"; } }
-		public override string SubversionRevision { get { return "$Rev$"; } }
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return "$Id$"; } }
+        public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "Mob";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "Mob";
 
-			return
-				new XElement(elementName,
-					new XAttribute("Name", Name),
-					new XAttribute("Id", Entry));
-		}
-		#endregion
+            return
+                new XElement(elementName,
+                    new XAttribute("Name", Name),
+                    new XAttribute("Id", Entry));
+        }
+        #endregion
 
 
-		#region Private and Convenience variables
+        #region Private and Convenience variables
         #endregion
     }
 }

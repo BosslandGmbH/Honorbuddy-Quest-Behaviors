@@ -66,6 +66,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -88,230 +89,230 @@ using Action = Styx.TreeSharp.Action;
 
 
 // ReSharper disable once CheckNamespace
+
 namespace Styx.Bot.Quest_Behaviors.TaxiRide
 {
-	[CustomBehaviorFileName(@"TaxiRide")]
-	public class TaxiRide : CustomForcedBehavior
-	{
-		#region Constructor and argument processing  
+    [CustomBehaviorFileName(@"TaxiRide")]
+    public class TaxiRide : CustomForcedBehavior
+    {
+        #region Constructor and argument processing  
 
-		private enum NpcStateType
-		{
-			Alive,
-			DontCare,
-		}
+        private enum NpcStateType
+        {
+            Alive,
+            DontCare,
+        }
 
-		public TaxiRide(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+        public TaxiRide(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// QuestRequirement* attributes are explained here...
-				//    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
-				// ...and also used for IsDone processing.
-				QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
-				QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
-				QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
+            try
+            {
+                // QuestRequirement* attributes are explained here...
+                //    http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Programming_Cookbook:_QuestId_for_Custom_Behaviors
+                // ...and also used for IsDone processing.
+                QuestId = GetAttributeAsNullable("QuestId", false, ConstrainAs.QuestId(this), null) ?? 0;
+                QuestRequirementComplete = GetAttributeAsNullable<QuestCompleteRequirement>("QuestCompleteRequirement", false, null, null) ?? QuestCompleteRequirement.NotComplete;
+                QuestRequirementInLog = GetAttributeAsNullable<QuestInLogRequirement>("QuestInLogRequirement", false, null, null) ?? QuestInLogRequirement.InLog;
 
-				DestName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "ViewNodesOnly";
-				MobId = GetAttributeAsNullable("MobId", true, ConstrainAs.MobId, null) ?? 0;
-				NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.Alive;
-				TaxiNumber = GetAttributeAs("TaxiNumber", false, ConstrainAs.StringNonEmpty, null) ?? "0";
-				WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
-				WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
-				NpcLocation = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+                DestName = GetAttributeAs("DestName", false, ConstrainAs.StringNonEmpty, null) ?? "ViewNodesOnly";
+                MobId = GetAttributeAsNullable("MobId", true, ConstrainAs.MobId, null) ?? 0;
+                NpcState = GetAttributeAsNullable<NpcStateType>("MobState", false, null, new[] { "NpcState" }) ?? NpcStateType.Alive;
+                TaxiNumber = GetAttributeAs("TaxiNumber", false, ConstrainAs.StringNonEmpty, null) ?? "0";
+                WaitForNpcs = GetAttributeAsNullable<bool>("WaitForNpcs", false, null, null) ?? false;
+                WaitTime = GetAttributeAsNullable("WaitTime", false, ConstrainAs.Milliseconds, null) ?? 1500;
+                NpcLocation = GetAttributeAsNullable("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
+            }
 
-			}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+        // Attributes provided by caller
+        private string DestName { get; set; }
+        private int MobId { get; set; }
+        private WoWPoint NpcLocation { get; set; }
+        private NpcStateType NpcState { get; set; }
+        private int QuestId { get; set; }
+        private QuestCompleteRequirement QuestRequirementComplete { get; set; }
+        private QuestInLogRequirement QuestRequirementInLog { get; set; }
+        private string TaxiNumber { get; set; }
+        private bool WaitForNpcs { get; set; }
+        private int WaitTime { get; set; }
 
-		// Attributes provided by caller
-		private string DestName { get; set; }
-		private int MobId { get; set; }
-		private WoWPoint NpcLocation { get; set; }
-		private NpcStateType NpcState { get; set; }
-		private int QuestId { get; set; }
-		private QuestCompleteRequirement QuestRequirementComplete { get; set; }
-		private QuestInLogRequirement QuestRequirementInLog { get; set; }
-		private string TaxiNumber { get; set; }
-		private bool WaitForNpcs { get; set; }
-		private int WaitTime { get; set; }
-
-		#endregion
-
-
-		#region Private and Convenience variables
-
-		private bool _isBehaviorDone;
-		private bool _isOnFinishedRun;
-		private Composite _root;
-		private static LocalPlayer Me { get { return (StyxWoW.Me); } }
-		private int _tryNumber;
-		private Stopwatch _doingQuestTimer;
-		private Composite _taxiCheckHook;
-
-		#endregion
+        #endregion
 
 
-		#region Overrides of CustomForcedBehavior
+        #region Private and Convenience variables
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        private bool _isBehaviorDone;
+        private bool _isOnFinishedRun;
+        private Composite _root;
+        private static LocalPlayer Me { get { return (StyxWoW.Me); } }
+        private int _tryNumber;
+        private Stopwatch _doingQuestTimer;
+        private Composite _taxiCheckHook;
 
-		protected override Composite CreateBehavior()
-		{
-			return _root ?? (_root =
-				new PrioritySelector(
-					new Decorator(ret => Me.OnTaxi || _tryNumber >= 5 || (_doingQuestTimer.ElapsedMilliseconds >= 180000 && !WaitForNpcs),
-						new Action(ret => _isBehaviorDone = true)),
+        #endregion
 
-					new Decorator(ret => CurrentNpc == null,
-						new PrioritySelector(
-							new Decorator(ret => NpcLocation.DistanceSqr(Me.Location) > 10 * 10,
-								new Sequence(
-									new Action(ret => QBCLog.Info("Cant find flightmaster, Moving to place provided by profile")),
-									new Action(ret => Flightor.MoveTo(NpcLocation)))),
-							new Action(ret => QBCLog.Info("Waiting for flightmaster to spawn"))
-						)
-					),
 
-					new Mount.ActionLandAndDismount("Interact flight master"),
+        #region Overrides of CustomForcedBehavior
 
-					new Decorator(ret => !CurrentNpc.WithinInteractRange,
-						new Action(ret => Navigator.MoveTo(CurrentNpc.Location))
-					),
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
-					// Getting ready to interact
-					new Decorator(ctx => !TaxiFrame.Instance.IsVisible,
-						new Sequence(
-							new DecoratorContinue(ret => WoWMovement.ActiveMover.IsMoving,
-								new Sequence(
-									new Action(ret => WoWMovement.MoveStop()),
-									new SleepForLagDuration())),
-							new DecoratorContinue(ret => Me.IsShapeshifted(),
-								new Sequence(
-									new Action(ret => Lua.DoString("CancelShapeshiftForm()")),
-									new SleepForLagDuration())),
-							new Action(ret => CurrentNpc.Interact()),
-							new Sleep(1000),
-							new SleepForLagDuration()
-							)),
-								
-					new Decorator(ret => TaxiNumber == "0" && DestName == "ViewNodesOnly",
-						new Sequence(
+        protected override Composite CreateBehavior()
+        {
+            return _root ?? (_root =
+                new PrioritySelector(
+                    new Decorator(ret => Me.OnTaxi || _tryNumber >= 5 || (_doingQuestTimer.ElapsedMilliseconds >= 180000 && !WaitForNpcs),
+                        new Action(ret => _isBehaviorDone = true)),
+
+                    new Decorator(ret => CurrentNpc == null,
+                        new PrioritySelector(
+                            new Decorator(ret => NpcLocation.DistanceSqr(Me.Location) > 10 * 10,
+                                new Sequence(
+                                    new Action(ret => QBCLog.Info("Cant find flightmaster, Moving to place provided by profile")),
+                                    new Action(ret => Flightor.MoveTo(NpcLocation)))),
+                            new Action(ret => QBCLog.Info("Waiting for flightmaster to spawn"))
+                        )
+                    ),
+
+                    new Mount.ActionLandAndDismount("Interact flight master"),
+
+                    new Decorator(ret => !CurrentNpc.WithinInteractRange,
+                        new Action(ret => Navigator.MoveTo(CurrentNpc.Location))
+                    ),
+
+                    // Getting ready to interact
+                    new Decorator(ctx => !TaxiFrame.Instance.IsVisible,
+                        new Sequence(
+                            new DecoratorContinue(ret => WoWMovement.ActiveMover.IsMoving,
+                                new Sequence(
+                                    new Action(ret => WoWMovement.MoveStop()),
+                                    new SleepForLagDuration())),
+                            new DecoratorContinue(ret => Me.IsShapeshifted(),
+                                new Sequence(
+                                    new Action(ret => Lua.DoString("CancelShapeshiftForm()")),
+                                    new SleepForLagDuration())),
+                            new Action(ret => CurrentNpc.Interact()),
+                            new Sleep(1000),
+                            new SleepForLagDuration()
+                            )),
+
+                    new Decorator(ret => TaxiNumber == "0" && DestName == "ViewNodesOnly",
+                        new Sequence(
                             new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.SafeName + " Distance: " +
-												CurrentNpc.Location.Distance(Me.Location) + " to listing known TaxiNodes")),
-							new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); print(i,a);end;"))),
-							new Sleep(WaitTime),
-							new Action(ret => _isBehaviorDone = true))),
+                                                CurrentNpc.Location.Distance(Me.Location) + " to listing known TaxiNodes")),
+                            new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); print(i,a);end;"))),
+                            new Sleep(WaitTime),
+                            new Action(ret => _isBehaviorDone = true))),
 
-					new Decorator(ret => TaxiNumber != "0",
-						new Sequence(
+                    new Decorator(ret => TaxiNumber != "0",
+                        new Sequence(
                             new Action(ret => QBCLog.Info("Targeting Flightmaster: " + CurrentNpc.SafeName + " Distance: " +
-												CurrentNpc.Location.Distance(Me.Location))),
-							new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/click TaxiButton" + TaxiNumber))),
-							new Action(ret => _tryNumber++),
-							new Sleep(WaitTime))),
+                                                CurrentNpc.Location.Distance(Me.Location))),
+                            new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/click TaxiButton" + TaxiNumber))),
+                            new Action(ret => _tryNumber++),
+                            new Sleep(WaitTime))),
 
-					new Decorator(ret => DestName != "ViewNodesOnly",
-						new Sequence(
-							new Action(ret => QBCLog.Info("Taking a ride to: " + DestName)),
-							new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); if strmatch(a,'" + DestName + "')then b=i; TakeTaxiNode(b); end end"))),
-							new Action(ret => _tryNumber++),
-							new Sleep(WaitTime)))
-			));
-		}
-
-
-		public override bool IsDone
-		{
-			get
-			{
-				return (_isBehaviorDone     // normal completion
-						|| !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
-			}
-		}
+                    new Decorator(ret => DestName != "ViewNodesOnly",
+                        new Sequence(
+                            new Action(ret => QBCLog.Info("Taking a ride to: " + DestName)),
+                            new Action(ret => Lua.DoString(string.Format("RunMacroText(\"{0}\")", "/run for i=1,NumTaxiNodes() do a=TaxiNodeName(i); if strmatch(a,'" + DestName + "')then b=i; TakeTaxiNode(b); end end"))),
+                            new Action(ret => _tryNumber++),
+                            new Sleep(WaitTime)))
+            ));
+        }
 
 
-		public override void OnFinished()
-		{
-			// Defend against being called multiple times (just in case)...
-			if (!_isOnFinishedRun)
-			{
-				// QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
-				base.OnFinished();
-
-				if (_taxiCheckHook != null)
-					TreeHooks.Instance.RemoveHook("Taxi_Check", _taxiCheckHook);
-
-				_taxiCheckHook = null;
-				_isOnFinishedRun = true;
-			}
-		}
+        public override bool IsDone
+        {
+            get
+            {
+                return (_isBehaviorDone     // normal completion
+                        || !UtilIsProgressRequirementsMet(QuestId, QuestRequirementInLog, QuestRequirementComplete));
+            }
+        }
 
 
-		public override void OnStart()
-		{
-			// This reports problems, and stops BT processing if there was a problem with attributes...
-			// We had to defer this action, as the 'profile line number' is not available during the element's
-			// constructor call.
-			OnStart_HandleAttributeProblem();
-			
-			// If the quest is complete, this behavior is already done...
-			// So we don't want to falsely inform the user of things that will be skipped.
-			if (!IsDone)
-			{
-				_taxiCheckHook = new ActionRunCoroutine(ctx => TaxiCheckHandler() );
-				TreeHooks.Instance.InsertHook("Taxi_Check", 0, _taxiCheckHook);
+        public override void OnFinished()
+        {
+            // Defend against being called multiple times (just in case)...
+            if (!_isOnFinishedRun)
+            {
+                // QuestBehaviorBase.OnFinished() will set IsOnFinishedRun...
+                base.OnFinished();
 
-				_doingQuestTimer = Stopwatch.StartNew();
-				this.UpdateGoalText(QuestId, "TaxiRide started");
-			}
-		}
+                if (_taxiCheckHook != null)
+                    TreeHooks.Instance.RemoveHook("Taxi_Check", _taxiCheckHook);
 
-		#endregion
+                _taxiCheckHook = null;
+                _isOnFinishedRun = true;
+            }
+        }
 
-		private async Task<bool> TaxiCheckHandler()
-		{
-			if (Me.OnTaxi)
-				_isBehaviorDone = true;
-			return false;
-		}
 
-		#region Helpers
+        public override void OnStart()
+        {
+            // This reports problems, and stops BT processing if there was a problem with attributes...
+            // We had to defer this action, as the 'profile line number' is not available during the element's
+            // constructor call.
+            OnStart_HandleAttributeProblem();
 
-		private WoWUnit CurrentNpc
-		{
-			get
-			{
-				var npc =
-					ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
-								 .Where(u => u.Entry == MobId && !FlightPaths.IsIgnored((uint)MobId) &&
-											(NpcState == NpcStateType.DontCare || u.IsAlive))
-								 .OrderBy(u => u.DistanceSqr)
-								 .FirstOrDefault();
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (!IsDone)
+            {
+                _taxiCheckHook = new ActionRunCoroutine(ctx => TaxiCheckHandler());
+                TreeHooks.Instance.InsertHook("Taxi_Check", 0, _taxiCheckHook);
 
-				if (npc != null)
+                _doingQuestTimer = Stopwatch.StartNew();
+                this.UpdateGoalText(QuestId, "TaxiRide started");
+            }
+        }
+
+        #endregion
+
+        private async Task<bool> TaxiCheckHandler()
+        {
+            if (Me.OnTaxi)
+                _isBehaviorDone = true;
+            return false;
+        }
+
+        #region Helpers
+
+        private WoWUnit CurrentNpc
+        {
+            get
+            {
+                var npc =
+                    ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
+                                 .Where(u => u.Entry == MobId && !FlightPaths.IsIgnored((uint)MobId) &&
+                                            (NpcState == NpcStateType.DontCare || u.IsAlive))
+                                 .OrderBy(u => u.DistanceSqr)
+                                 .FirstOrDefault();
+
+                if (npc != null)
                     QBCLog.DeveloperInfo(npc.SafeName);
 
-				return npc;
-			}
-		}
+                return npc;
+            }
+        }
 
-		#endregion
-	}
+        #endregion
+    }
 }
 

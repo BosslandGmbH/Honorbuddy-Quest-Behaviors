@@ -10,6 +10,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -20,7 +21,7 @@ using System.Xml.Linq;
 namespace Honorbuddy.QuestBehaviorCore.XmlElements
 {
     public class SwimBreathType : QuestBehaviorXmlBase
-    {        
+    {
         public SwimBreathType(XElement xElement)
             : base(xElement)
         {
@@ -32,7 +33,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     var airSource = new AirSourceType(childElement);
 
                     if (!airSource.IsAttributeProblem)
-                        { AirSources.Add(airSource); }
+                    { AirSources.Add(airSource); }
 
                     IsAttributeProblem |= airSource.IsAttributeProblem;
                 }
@@ -43,7 +44,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     var consumable = new ConsumablesType(childElement);
 
                     if (!consumable.IsAttributeProblem)
-                        { Consumables.Add(consumable); }
+                    { Consumables.Add(consumable); }
 
                     IsAttributeProblem |= consumable.IsAttributeProblem;
                 }
@@ -55,19 +56,19 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     var equipment = new EquipmentType(childElement);
 
                     if (!equipment.IsAttributeProblem)
-                        { Equipments.Add(equipment); }
+                    { Equipments.Add(equipment); }
 
                     IsAttributeProblem |= equipment.IsAttributeProblem;
                 }
-                
-                
+
+
                 HandleAttributeProblem();
             }
 
             catch (Exception except)
             {
                 if (Query.IsExceptionReportingNeeded(except))
-                    { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
+                { QBCLog.Exception(except, "PROFILE PROBLEM with \"{0}\"", xElement.ToString()); }
                 IsAttributeProblem = true;
             }
         }
@@ -79,45 +80,45 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             Equipments = new List<EquipmentType>();
         }
 
-        public List<AirSourceType>       AirSources { get; private set; }
-        public List<ConsumablesType>     Consumables { get; private set; }
-        public List<EquipmentType>       Equipments { get; private set; }
+        public List<AirSourceType> AirSources { get; private set; }
+        public List<ConsumablesType> Consumables { get; private set; }
+        public List<EquipmentType> Equipments { get; private set; }
 
 
-		#region Concrete class required implementations...
-		// DON'T EDIT THESE--they are auto-populated by Subversion
+        #region Concrete class required implementations...
+        // DON'T EDIT THESE--they are auto-populated by Subversion
         public override string SubversionId { get { return "$Id$"; } }
         public override string SubversionRevision { get { return "$Rev$"; } }
 
-		public override XElement ToXml(string elementName = null)
-		{
-			if (string.IsNullOrEmpty(elementName))
-				elementName = "SwimBreath";
+        public override XElement ToXml(string elementName = null)
+        {
+            if (string.IsNullOrEmpty(elementName))
+                elementName = "SwimBreath";
 
-			var root = new XElement(elementName);
+            var root = new XElement(elementName);
 
-			var airSourcesRoot = new XElement("AirSources");
-			foreach (var airSource in AirSources.OrderBy(a => a.Name))
-				airSourcesRoot.Add(airSource.ToXml());
-			root.Add(airSourcesRoot);
+            var airSourcesRoot = new XElement("AirSources");
+            foreach (var airSource in AirSources.OrderBy(a => a.Name))
+                airSourcesRoot.Add(airSource.ToXml());
+            root.Add(airSourcesRoot);
 
-			var consumablesRoot = new XElement("Consumables");
-			foreach (var consumable in Consumables.OrderBy(c => c.Name))
-				consumablesRoot.Add(consumable.ToXml());
-			root.Add(consumablesRoot);
+            var consumablesRoot = new XElement("Consumables");
+            foreach (var consumable in Consumables.OrderBy(c => c.Name))
+                consumablesRoot.Add(consumable.ToXml());
+            root.Add(consumablesRoot);
 
-			var equipmentsRoot = new XElement("Equipments");
-			foreach (var equipment in Equipments)
-				equipmentsRoot.Add(equipment.ToXml());
-			root.Add(equipmentsRoot);
+            var equipmentsRoot = new XElement("Equipments");
+            foreach (var equipment in Equipments)
+                equipmentsRoot.Add(equipment.ToXml());
+            root.Add(equipmentsRoot);
 
-			return root;
-		}
-		#endregion
+            return root;
+        }
+        #endregion
 
 
-		public class AirSourceType : QuestBehaviorXmlBase
-        {        
+        public class AirSourceType : QuestBehaviorXmlBase
+        {
             public AirSourceType(XElement xElement)
                 : base(xElement)
             {
@@ -127,7 +128,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 
                     if (string.IsNullOrEmpty(Name))
-                        { Name = GetDefaultName(ObjectId); }
+                    { Name = GetDefaultName(ObjectId); }
 
                     HandleAttributeProblem();
                 }
@@ -153,33 +154,33 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public int ObjectId { get; set; }
             public string Name { get; set; }
 
-			#region Concrete class required implementations...
-			// DON'T EDIT THESE--they are auto-populated by Subversion
+            #region Concrete class required implementations...
+            // DON'T EDIT THESE--they are auto-populated by Subversion
             public override string SubversionId { get { return "$Id$"; } }
             public override string SubversionRevision { get { return "$Rev$"; } }
 
-			public override XElement ToXml(string elementName = null)
-			{
-				if (string.IsNullOrEmpty(elementName))
-					elementName = "AirSource";
+            public override XElement ToXml(string elementName = null)
+            {
+                if (string.IsNullOrEmpty(elementName))
+                    elementName = "AirSource";
 
-				return
-					new XElement(elementName,
-					             new XAttribute("Name", Name),
-					             new XAttribute("ObjectId", ObjectId));
-			}
-			#endregion
+                return
+                    new XElement(elementName,
+                                 new XAttribute("Name", Name),
+                                 new XAttribute("ObjectId", ObjectId));
+            }
+            #endregion
 
 
-			private string GetDefaultName(int itemId)
+            private string GetDefaultName(int itemId)
             {
                 return string.Format("ObjectId({0})", itemId);
             }
         }
 
-    
+
         public class ConsumablesType : QuestBehaviorXmlBase
-        {        
+        {
             public ConsumablesType(XElement xElement)
                 : base(xElement)
             {
@@ -189,7 +190,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 
                     if (string.IsNullOrEmpty(Name))
-                        { Name = GetDefaultName(ItemId); }
+                    { Name = GetDefaultName(ItemId); }
 
                     HandleAttributeProblem();
                 }
@@ -216,24 +217,24 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public string Name { get; set; }
 
 
-			#region Concrete class required implementations...
-			// DON'T EDIT THESE--they are auto-populated by Subversion
+            #region Concrete class required implementations...
+            // DON'T EDIT THESE--they are auto-populated by Subversion
             public override string SubversionId { get { return "$Id$"; } }
             public override string SubversionRevision { get { return "$Rev$"; } }
 
-			public override XElement ToXml(string elementName = null)
-			{
-				if (string.IsNullOrEmpty(elementName))
-					elementName = "Consumable";
+            public override XElement ToXml(string elementName = null)
+            {
+                if (string.IsNullOrEmpty(elementName))
+                    elementName = "Consumable";
 
-				return new XElement(elementName,
-				                    new XAttribute("Name", Name),
-				                    new XAttribute("ItemId", ItemId));
-			}
-			#endregion
+                return new XElement(elementName,
+                                    new XAttribute("Name", Name),
+                                    new XAttribute("ItemId", ItemId));
+            }
+            #endregion
 
 
-			private string GetDefaultName(int itemId)
+            private string GetDefaultName(int itemId)
             {
                 return string.Format("ItemId({0})", itemId);
             }
@@ -241,7 +242,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         public class EquipmentType : QuestBehaviorXmlBase
-        {        
+        {
             public EquipmentType(XElement xElement)
                 : base(xElement)
             {
@@ -251,7 +252,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
                     Name = GetAttributeAs<string>("Name", false, ConstrainAs.StringNonEmpty, null) ?? string.Empty;
 
                     if (string.IsNullOrEmpty(Name))
-                        { Name = GetDefaultName(ItemId); }
+                    { Name = GetDefaultName(ItemId); }
 
                     HandleAttributeProblem();
                 }
@@ -278,24 +279,24 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
             public string Name { get; set; }
 
 
-			#region Concrete class required implementations...
-			// DON'T EDIT THESE--they are auto-populated by Subversion
+            #region Concrete class required implementations...
+            // DON'T EDIT THESE--they are auto-populated by Subversion
             public override string SubversionId { get { return "$Id$"; } }
             public override string SubversionRevision { get { return "$Rev$"; } }
 
-			public override XElement ToXml(string elementName = null)
-			{
-				if (string.IsNullOrEmpty(elementName))
-					elementName = "Equipment";
+            public override XElement ToXml(string elementName = null)
+            {
+                if (string.IsNullOrEmpty(elementName))
+                    elementName = "Equipment";
 
-				return new XElement(elementName,
-				                    new XAttribute("Name", Name),
-				                    new XAttribute("ItemId", ItemId));
-			}
-			#endregion
+                return new XElement(elementName,
+                                    new XAttribute("Name", Name),
+                                    new XAttribute("ItemId", ItemId));
+            }
+            #endregion
 
 
-			private string GetDefaultName(int itemId)
+            private string GetDefaultName(int itemId)
             {
                 return string.Format("ItemId({0})", itemId);
             }

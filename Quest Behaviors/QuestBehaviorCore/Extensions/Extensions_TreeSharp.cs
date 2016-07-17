@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -24,239 +25,239 @@ using Action = Styx.TreeSharp.Action;
 
 namespace Honorbuddy.QuestBehaviorCore
 {
-	// 15May2013-04:32UTC chinajade
-	class ActionFail : Composite
-	{
-		public ActionFail() { }
+    // 15May2013-04:32UTC chinajade
+    internal class ActionFail : Composite
+    {
+        public ActionFail() { }
 
-		public ActionFail(ActionDelegate action)
-		{
-			Runner = action;
-		}
+        public ActionFail(ActionDelegate action)
+        {
+            Runner = action;
+        }
 
-		public ActionFail(ActionSucceedDelegate action)
-		{
-			FailRunner = action;
-		}
+        public ActionFail(ActionSucceedDelegate action)
+        {
+            FailRunner = action;
+        }
 
-		public ActionDelegate Runner { get; private set; }
-		public ActionSucceedDelegate FailRunner { get; private set; }
+        public ActionDelegate Runner { get; private set; }
+        public ActionSucceedDelegate FailRunner { get; private set; }
 
-		protected virtual RunStatus Run(object context)
-		{
-			return RunStatus.Failure;
-		}
+        protected virtual RunStatus Run(object context)
+        {
+            return RunStatus.Failure;
+        }
 
-		protected RunStatus RunAction(object context)
-		{
-			if (Runner != null)
-				return Runner(context);
-			if (FailRunner != null)
-			{
-				FailRunner(context);
-				return RunStatus.Failure;
-			}
-			RunStatus runStatus = Run(context);
+        protected RunStatus RunAction(object context)
+        {
+            if (Runner != null)
+                return Runner(context);
+            if (FailRunner != null)
+            {
+                FailRunner(context);
+                return RunStatus.Failure;
+            }
+            RunStatus runStatus = Run(context);
 
-			return runStatus;
-		}
+            return runStatus;
+        }
 
-		protected override sealed IEnumerable<RunStatus> Execute(object context)
-		{
-			while ((LastStatus = RunAction(context)) == RunStatus.Running)
-				yield return RunStatus.Running;
+        protected override sealed IEnumerable<RunStatus> Execute(object context)
+        {
+            while ((LastStatus = RunAction(context)) == RunStatus.Running)
+                yield return RunStatus.Running;
 
-			yield return LastStatus.Value;
-		}
-	}
-
-
-	// 20Apr2013-04:32UTC chinajade
-	public class CompositeThrottle : Decorator
-	{
-		public CompositeThrottle(TimeSpan throttleTime, Composite composite)
-			: this(context => true, throttleTime, composite)
-		{
-			// empty
-		}
+            yield return LastStatus.Value;
+        }
+    }
 
 
-		public CompositeThrottle(CanRunDecoratorDelegate predicateDelegate, TimeSpan throttleTime, Composite composite)
-			: base(composite)
-		{
-			_predicateDelegate = predicateDelegate;
-			_throttleTime = throttleTime;
-		}
+    // 20Apr2013-04:32UTC chinajade
+    public class CompositeThrottle : Decorator
+    {
+        public CompositeThrottle(TimeSpan throttleTime, Composite composite)
+            : this(context => true, throttleTime, composite)
+        {
+            // empty
+        }
 
 
-		protected override bool CanRun(object context)
-		{
-			if (_predicateDelegate(context))
-			{
-				bool canRun = IsThrottleFinished;
-
-				if (IsThrottleFinished)
-					{ _throttle.Restart(); }
-
-				return canRun;
-			}
-
-			if (_throttle.IsRunning)
-				{ _throttle.Stop(); }
-
-			return false;
-		}
-
-		private bool IsThrottleFinished
-		{
-			get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
-		}
-
-		private readonly CanRunDecoratorDelegate _predicateDelegate;
-		private readonly Stopwatch _throttle = new Stopwatch();
-		private readonly TimeSpan _throttleTime;
-	}
+        public CompositeThrottle(CanRunDecoratorDelegate predicateDelegate, TimeSpan throttleTime, Composite composite)
+            : base(composite)
+        {
+            _predicateDelegate = predicateDelegate;
+            _throttleTime = throttleTime;
+        }
 
 
-	// 20Apr2013-04:32UTC chinajade
-	public class CompositeThrottleContinue : DecoratorContinue
-	{
-		public CompositeThrottleContinue(TimeSpan throttleTime, Composite composite)
-			: this(context => true, throttleTime, composite)
-		{
-			// empty
-		}
+        protected override bool CanRun(object context)
+        {
+            if (_predicateDelegate(context))
+            {
+                bool canRun = IsThrottleFinished;
 
-		
-		public CompositeThrottleContinue(CanRunDecoratorDelegate predicateDelegate, TimeSpan throttleTime, Composite composite)
-			: base(composite)
-		{
-			_predicateDelegate = predicateDelegate;
-			_throttleTime = throttleTime;
-		}
+                if (IsThrottleFinished)
+                { _throttle.Restart(); }
 
+                return canRun;
+            }
 
-		protected override bool CanRun(object context)
-		{
-			if (_predicateDelegate(context))
-			{
-				bool canRun = IsFinished;
+            if (_throttle.IsRunning)
+            { _throttle.Stop(); }
 
-				if (IsFinished)
-					{ _throttle.Restart(); }
+            return false;
+        }
 
-				return canRun;
-			}
+        private bool IsThrottleFinished
+        {
+            get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
+        }
 
-			if (_throttle.IsRunning)
-				{_throttle.Stop(); }
-
-			return false;
-		}
-
-		private bool IsFinished
-		{
-			get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
-		}
-
-		private readonly CanRunDecoratorDelegate _predicateDelegate;
-		private readonly Stopwatch _throttle = new Stopwatch();
-		private readonly TimeSpan _throttleTime;
-	}
+        private readonly CanRunDecoratorDelegate _predicateDelegate;
+        private readonly Stopwatch _throttle = new Stopwatch();
+        private readonly TimeSpan _throttleTime;
+    }
 
 
-	// 20Apr2013-04:32UTC chinajade
-	public class ExceptionCatchingWrapper : PrioritySelector
-	{
-		public ExceptionCatchingWrapper(QuestBehaviorBase questBehaviorBase, Composite unwrappedChild)
-			: base(unwrappedChild)
-		{
-			_questBehaviorBase = questBehaviorBase;
-		}
-
-		private readonly QuestBehaviorBase _questBehaviorBase;
+    // 20Apr2013-04:32UTC chinajade
+    public class CompositeThrottleContinue : DecoratorContinue
+    {
+        public CompositeThrottleContinue(TimeSpan throttleTime, Composite composite)
+            : this(context => true, throttleTime, composite)
+        {
+            // empty
+        }
 
 
-		public override RunStatus Tick(object context)
-		{
-			try
-			{
-				return base.Tick(context);
-			}
-
-			catch (Exception except)
-			{
-				if (except.GetType() != typeof(ThreadAbortException))
-				{
-					var message = QBCLog.BuildMessageWithContext(_questBehaviorBase.Element,
-						"{0} EXCEPTION CONTEXT ({1}):",
-						QBCLog.VersionedBehaviorName,
-						except.GetType().Name);
-
-					if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)
-					{
-						QBCLog.Error(message);
-						SystemSounds.Asterisk.Play();
-					}
-					else
-					{
-						QBCLog.DeveloperInfo(message);
-					}
-				}
-
-				throw;
-			}
-		}
-	}
+        public CompositeThrottleContinue(CanRunDecoratorDelegate predicateDelegate, TimeSpan throttleTime, Composite composite)
+            : base(composite)
+        {
+            _predicateDelegate = predicateDelegate;
+            _throttleTime = throttleTime;
+        }
 
 
-	//  8May2013-08:10UTC Mastahg
-	class FailLogger : Action
-	{
-		public FailLogger(object data)
-		{
-			_data = data;
-		}
+        protected override bool CanRun(object context)
+        {
+            if (_predicateDelegate(context))
+            {
+                bool canRun = IsFinished;
 
-		private readonly object _data;
+                if (IsFinished)
+                { _throttle.Restart(); }
 
+                return canRun;
+            }
 
-		protected override RunStatus Run(object context)
-		{
-			QBCLog.DeveloperInfo(_data.ToString());
-			return RunStatus.Failure;
-		}
-	}
+            if (_throttle.IsRunning)
+            { _throttle.Stop(); }
 
+            return false;
+        }
 
-	//
-	// This behavior wraps the child behaviors in a 'frame lock' which can provide
-	// a big performance improvement if the child behaviors makes multiple HB API
-	// calls that internally run off a frame in WoW in one CC pulse.
-	//
-	// 20Apr2013-04:32UTC chinajade
-	public class FrameLockSelector : PrioritySelector
-	{
-		public FrameLockSelector(params Composite[] children)
-			: base(children)
-		{
-			// empty
-		}
+        private bool IsFinished
+        {
+            get { return !_throttle.IsRunning || (_throttle.Elapsed > _throttleTime); }
+        }
+
+        private readonly CanRunDecoratorDelegate _predicateDelegate;
+        private readonly Stopwatch _throttle = new Stopwatch();
+        private readonly TimeSpan _throttleTime;
+    }
 
 
-		public FrameLockSelector(ContextChangeHandler contextChange, params Composite[] children)
-			: base(contextChange, children)
-		{
-			// empty
-		}
+    // 20Apr2013-04:32UTC chinajade
+    public class ExceptionCatchingWrapper : PrioritySelector
+    {
+        public ExceptionCatchingWrapper(QuestBehaviorBase questBehaviorBase, Composite unwrappedChild)
+            : base(unwrappedChild)
+        {
+            _questBehaviorBase = questBehaviorBase;
+        }
+
+        private readonly QuestBehaviorBase _questBehaviorBase;
 
 
-		public override RunStatus Tick(object context)
-		{
-			using (StyxWoW.Memory.AcquireFrame())
-			{
-				return base.Tick(context);
-			}
-		}
-	}
+        public override RunStatus Tick(object context)
+        {
+            try
+            {
+                return base.Tick(context);
+            }
+
+            catch (Exception except)
+            {
+                if (except.GetType() != typeof(ThreadAbortException))
+                {
+                    var message = QBCLog.BuildMessageWithContext(_questBehaviorBase.Element,
+                        "{0} EXCEPTION CONTEXT ({1}):",
+                        QBCLog.VersionedBehaviorName,
+                        except.GetType().Name);
+
+                    if (QuestBehaviorCoreSettings.Instance.LogProfileContextOnExceptions)
+                    {
+                        QBCLog.Error(message);
+                        SystemSounds.Asterisk.Play();
+                    }
+                    else
+                    {
+                        QBCLog.DeveloperInfo(message);
+                    }
+                }
+
+                throw;
+            }
+        }
+    }
+
+
+    //  8May2013-08:10UTC Mastahg
+    internal class FailLogger : Action
+    {
+        public FailLogger(object data)
+        {
+            _data = data;
+        }
+
+        private readonly object _data;
+
+
+        protected override RunStatus Run(object context)
+        {
+            QBCLog.DeveloperInfo(_data.ToString());
+            return RunStatus.Failure;
+        }
+    }
+
+
+    //
+    // This behavior wraps the child behaviors in a 'frame lock' which can provide
+    // a big performance improvement if the child behaviors makes multiple HB API
+    // calls that internally run off a frame in WoW in one CC pulse.
+    //
+    // 20Apr2013-04:32UTC chinajade
+    public class FrameLockSelector : PrioritySelector
+    {
+        public FrameLockSelector(params Composite[] children)
+            : base(children)
+        {
+            // empty
+        }
+
+
+        public FrameLockSelector(ContextChangeHandler contextChange, params Composite[] children)
+            : base(contextChange, children)
+        {
+            // empty
+        }
+
+
+        public override RunStatus Tick(object context)
+        {
+            using (StyxWoW.Memory.AcquireFrame())
+            {
+                return base.Tick(context);
+            }
+        }
+    }
 }

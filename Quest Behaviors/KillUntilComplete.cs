@@ -99,6 +99,7 @@
 
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -124,20 +125,20 @@ using WaitTimer = Styx.Common.Helpers.WaitTimer;
 
 namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 {
-	[CustomBehaviorFileName(@"KillUntilComplete")]
-	public class KillUntilComplete : QuestBehaviorBase
-	{
-		public KillUntilComplete(Dictionary<string, string> args)
-			: base(args)
-		{
-			QBCLog.BehaviorLoggingContext = this;
+    [CustomBehaviorFileName(@"KillUntilComplete")]
+    public class KillUntilComplete : QuestBehaviorBase
+    {
+        public KillUntilComplete(Dictionary<string, string> args)
+            : base(args)
+        {
+            QBCLog.BehaviorLoggingContext = this;
 
-			try
-			{
-				// Primary attributes...
-				MobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] {"NpcIds"}, null) ?? new int[0])
-					.Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
-					.ToArray();
+            try
+            {
+                // Primary attributes...
+                MobIds = (GetAttributeAsArray<int>("MobIds", false, ConstrainAs.MobId, new[] { "NpcIds" }, null) ?? new int[0])
+                    .Concat(GetNumberedAttributesAsArray<int>("MobId", 0, ConstrainAs.MobId, new[] { "NpcId" }) ?? new int[0])
+                    .ToArray();
 
                 HuntingGroundCenter = GetAttributeAsNullable<WoWPoint>("", false, ConstrainAs.WoWPointNonEmpty, null) ?? Me.Location;
 
@@ -153,38 +154,38 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
                 IsAttributeProblem |= HuntingGrounds.IsAttributeProblem;
 
-                AddMobIdsToPersueList(MobIds, PursuitList);   
+                AddMobIdsToPersueList(MobIds, PursuitList);
             }
-			catch (Exception except)
-			{
-				// Maintenance problems occur for a number of reasons.  The primary two are...
-				// * Changes were made to the behavior, and boundary conditions weren't properly tested.
-				// * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
-				// In any case, we pinpoint the source of the problem area here, and hopefully it
-				// can be quickly resolved.
-				QBCLog.Exception(except);
-				IsAttributeProblem = true;
-			}
-		}
+            catch (Exception except)
+            {
+                // Maintenance problems occur for a number of reasons.  The primary two are...
+                // * Changes were made to the behavior, and boundary conditions weren't properly tested.
+                // * The Honorbuddy core was changed, and the behavior wasn't adjusted for the new changes.
+                // In any case, we pinpoint the source of the problem area here, and hopefully it
+                // can be quickly resolved.
+                QBCLog.Exception(except);
+                IsAttributeProblem = true;
+            }
+        }
 
 
-		// Attributes provided by caller
+        // Attributes provided by caller
         private HuntingGroundsType HuntingGrounds { get; set; }
         private WoWPoint HuntingGroundCenter { get; set; }
         private int[] MobIds { get; set; }
         private bool WaitForNpcs { get; set; }
         private bool ImmediatelySwitchToHighestPriorityTarget { get; set; }
-		// Private variables for internal state
+        // Private variables for internal state
         private Composite _combatMain;
         private Composite _mainBehavior;
 
         private readonly WaitTimer _targetSwitchTimer = new WaitTimer(TimeSpan.FromSeconds(3));
-		// Private properties
+        // Private properties
         private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 
-		// DON'T EDIT THESE--they are auto-populated by Subversion
-		public override string SubversionId { get { return ("$Id$"); } }
-		public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THESE--they are auto-populated by Subversion
+        public override string SubversionId { get { return ("$Id$"); } }
+        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of QuestBehaviorBase
 
@@ -201,15 +202,15 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
         {
             UsageCheck_SemanticCoherency(Element,
                 (!PursuitList.PursueObjects.Any()),
-                context => "You must specify one or more MobId or PursueObject.");	 
+                context => "You must specify one or more MobId or PursueObject.");
         }
 
-	    protected override float WeightUnitForTargeting(WoWUnit wowUnit)
-	    {
-	        float priority;
-	        return PursuitList.ShouldPursue(wowUnit, out priority) ? priority : 0;
-	    }
-        
+        protected override float WeightUnitForTargeting(WoWUnit wowUnit)
+        {
+            float priority;
+            return PursuitList.ShouldPursue(wowUnit, out priority) ? priority : 0;
+        }
+
         protected override bool IncludeUnitInTargeting(WoWUnit wowUnit)
         {
             if (!PursuitList.ShouldPursue(wowUnit))
@@ -222,9 +223,9 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
             // Only add pursued mobs when in combat and it or its owner has threat towards player.
             if (wowUnit.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable)
                 return true;
-        
+
             // if unit is spawned by another unit then check if the owner is in combat with player.
-            var ownedBy  = wowUnit.OwnedByRoot;
+            var ownedBy = wowUnit.OwnedByRoot;
             if (ownedBy != null && ownedBy.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable)
                 return true;
 
@@ -234,23 +235,22 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
             return channelObj != null && channelObj.ThreatInfo.ThreatStatus > ThreatStatus.UnitNotInThreatTable;
         }
 
-	    public override void OnStart()
-	    {
+        public override void OnStart()
+        {
+            // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
+            // capture configuration state, install BT hooks, etc.  This will also update the goal text.
+            var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
 
-	        // Let QuestBehaviorBase do basic initializaion of the behavior, deal with bad or deprecated attributes,
-	        // capture configuration state, install BT hooks, etc.  This will also update the goal text.
-	        var isBehaviorShouldRun = OnStart_QuestBehaviorCore();
+            // If the quest is complete, this behavior is already done...
+            // So we don't want to falsely inform the user of things that will be skipped.
+            if (isBehaviorShouldRun)
+            {
+                // We need pull/combat enabled to get the job done.
+                LevelBot.BehaviorFlags |= (BehaviorFlags.Pull & BehaviorFlags.Combat);
+            }
+        }
 
-	        // If the quest is complete, this behavior is already done...
-	        // So we don't want to falsely inform the user of things that will be skipped.
-	        if (isBehaviorShouldRun)
-	        {
-				// We need pull/combat enabled to get the job done.
-		        LevelBot.BehaviorFlags |= (BehaviorFlags.Pull & BehaviorFlags.Combat);
-	        }
-	    }
-
-		protected override Composite CreateBehavior_CombatMain()
+        protected override Composite CreateBehavior_CombatMain()
         {
             return _combatMain ?? (_combatMain = new ActionRunCoroutine(ctx => Coroutine_CombatMain()));
         }
@@ -278,30 +278,30 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
             return _mainBehavior ?? (_mainBehavior = new ActionRunCoroutine(ctx => MainCoroutine()));
         }
 
-	    private async Task<bool> MainCoroutine()
-	    {
-	        if (IsDone || BotPoi.Current.Type != PoiType.None || Targeting.Instance.FirstUnit != null)
-	            return false;
+        private async Task<bool> MainCoroutine()
+        {
+            if (IsDone || BotPoi.Current.Type != PoiType.None || Targeting.Instance.FirstUnit != null)
+                return false;
 
-	        if (_noMobsAtCurrentWaypoint == null)
-	        {
-	            _noMobsAtCurrentWaypoint =
-	                new UtilityCoroutine.NoMobsAtCurrentWaypoint(
-	                    () => HuntingGrounds,
-	                    () => MovementBy,
-	                    () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
-	                    () =>
-	                        TargetExclusionAnalysis.Analyze(
-	                            Element,
-	                            () => PursuitList.GetPursuitedObjects(),
-	                            TargetExclusionChecks));
-	        }
+            if (_noMobsAtCurrentWaypoint == null)
+            {
+                _noMobsAtCurrentWaypoint =
+                    new UtilityCoroutine.NoMobsAtCurrentWaypoint(
+                        () => HuntingGrounds,
+                        () => MovementBy,
+                        () => { if (!WaitForNpcs) BehaviorDone("Terminating--\"WaitForNpcs\" is false."); },
+                        () =>
+                            TargetExclusionAnalysis.Analyze(
+                                Element,
+                                () => PursuitList.GetPursuitedObjects(),
+                                TargetExclusionChecks));
+            }
 
             // move to waypoints when there's nothing else to do.
-	        return await _noMobsAtCurrentWaypoint;
-	    }
+            return await _noMobsAtCurrentWaypoint;
+        }
 
-	    #endregion
+        #endregion
 
 
         private List<string> TargetExclusionChecks(WoWObject wowObject)
@@ -310,14 +310,14 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
             return exclusionReasons;
         }
 
-	    private void AddMobIdsToPersueList(IEnumerable<int> mobIds, PursuitListType pursuitList)
-	    {
-	        foreach (var mobId in mobIds)
-	        {
-				var pursueObject = new PursueObjectType<WoWUnit>(mobId);
+        private void AddMobIdsToPersueList(IEnumerable<int> mobIds, PursuitListType pursuitList)
+        {
+            foreach (var mobId in mobIds)
+            {
+                var pursueObject = new PursueObjectType<WoWUnit>(mobId);
                 pursuitList.PursueObjects.Add(pursueObject);
-	        }
-	    }
+            }
+        }
     }
 }
 

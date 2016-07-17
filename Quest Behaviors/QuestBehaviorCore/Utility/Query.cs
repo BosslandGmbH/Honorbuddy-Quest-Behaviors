@@ -9,6 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 
 #region Usings
+
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -35,30 +36,30 @@ namespace Honorbuddy.QuestBehaviorCore
 {
     public static class Query
     {
-	    /// <summary>Determines if toon is within a tolerable proximity of <paramref name="location" />.</summary>
-	    /// <param name="location">The location.</param>
-		/// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
-		/// <returns></returns>
-	    public static bool AtLocation(WoWPoint location, float? tolerance)
-		{
-			return AtLocation((WoWMovement.ActiveMover ?? StyxWoW.Me).Location, location, tolerance);
-		}
+        /// <summary>Determines if toon is within a tolerable proximity of <paramref name="location" />.</summary>
+        /// <param name="location">The location.</param>
+        /// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
+        /// <returns></returns>
+        public static bool AtLocation(WoWPoint location, float? tolerance)
+        {
+            return AtLocation((WoWMovement.ActiveMover ?? StyxWoW.Me).Location, location, tolerance);
+        }
 
-	    /// <summary>Determines whether <paramref name="myLoc" /> is within a tolerable proximity of <paramref name="location" />.</summary>
-	    /// <param name="myLoc">My loc.</param>
-	    /// <param name="location">The location.</param>
-	    /// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
-	    /// <returns></returns>
-	    public static bool AtLocation(WoWPoint myLoc, WoWPoint location, float? tolerance)
-	    {
-		    var tol = tolerance ?? Navigator.PathPrecision;
-			// We are checking if point is in an upright cylinder whose center is positioned at 'location', 
-			// radius set to 'tolerance' and height set to max(4.5, 'tolerance') x 2.
-			// This is the most suitable method when using mesh navigation because the mesh is often above or below the 
-			// actual ingame terrain so there's a need to clamp the tolerance along the Z axis to an amount that 
-			// is greater then the maximum terrain/mesh Z coord difference
-			return myLoc.Distance2DSqr(location) <= tol * tol && Math.Abs(myLoc.Z - location.Z) <= Math.Max(4.5f, tol);  
-	    }
+        /// <summary>Determines whether <paramref name="myLoc" /> is within a tolerable proximity of <paramref name="location" />.</summary>
+        /// <param name="myLoc">My loc.</param>
+        /// <param name="location">The location.</param>
+        /// <param name="tolerance">The tolerance. Default: <see cref="Navigator.PathPrecision"/></param>
+        /// <returns></returns>
+        public static bool AtLocation(WoWPoint myLoc, WoWPoint location, float? tolerance)
+        {
+            var tol = tolerance ?? Navigator.PathPrecision;
+            // We are checking if point is in an upright cylinder whose center is positioned at 'location', 
+            // radius set to 'tolerance' and height set to max(4.5, 'tolerance') x 2.
+            // This is the most suitable method when using mesh navigation because the mesh is often above or below the 
+            // actual ingame terrain so there's a need to clamp the tolerance along the Z axis to an amount that 
+            // is greater then the maximum terrain/mesh Z coord difference
+            return myLoc.Distance2DSqr(location) <= tol * tol && Math.Abs(myLoc.Z - location.Z) <= Math.Max(4.5f, tol);
+        }
 
         public static IEnumerable<Blackspot> FindCoveringBlackspots(WoWPoint location)
         {
@@ -69,8 +70,8 @@ namespace Honorbuddy.QuestBehaviorCore
                     && (Math.Abs(blackspot.Location.Z - location.Z) <= blackspot.Height)
                 select blackspot;
         }
-    
-    
+
+
         public static IEnumerable<WoWObject> FindMobsAndFactions(
             IEnumerable<int> mobIds,
             bool includeSelf = false,
@@ -79,7 +80,7 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return
                 from wowObject in ObjectManager.GetObjectsOfType<WoWObject>(true, true)
-				where IsMobOrFaction(wowObject, mobIds, includeSelf, factionIds, extraQualifiers)
+                where IsMobOrFaction(wowObject, mobIds, includeSelf, factionIds, extraQualifiers)
                 select wowObject;
         }
 
@@ -110,8 +111,8 @@ namespace Honorbuddy.QuestBehaviorCore
                         && !wowUnit.PlayerControlled
                         // Do not pull mobs on the AvoidMobs list
                         && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
-                        orderby wowUnit.Location.CollectionDistance()
-                        select wowUnit)
+                    orderby wowUnit.Location.CollectionDistance()
+                    select wowUnit)
                     .ToList();
             }
         }
@@ -129,7 +130,7 @@ namespace Honorbuddy.QuestBehaviorCore
             using (StyxWoW.Memory.AcquireFrame())
             {
                 return
-                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)                    
+                    (from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                      where
                         IsViableForPulling(wowUnit, ignoreMobsInBlackspots, nonCompeteDistance)
                         && wowUnit.IsHostile
@@ -138,10 +139,10 @@ namespace Honorbuddy.QuestBehaviorCore
                         // exclude any units that are candidates for interacting
                         && !excludedUnitIds.Contains((int)wowUnit.Entry)
                         // Do not pull mobs on the AvoidMobs list
-                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)                        
-					 let collectionDistance = destination.CollectionDistance(wowUnit.Location)
-					 where collectionDistance <= (wowUnit.MyAggroRange + extraRangePadding)
-					 orderby wowUnit.DistanceSqr
+                        && !ProfileManager.CurrentOuterProfile.AvoidMobs.Contains(wowUnit.Entry)
+                     let collectionDistance = destination.CollectionDistance(wowUnit.Location)
+                     where collectionDistance <= (wowUnit.MyAggroRange + extraRangePadding)
+                     orderby wowUnit.DistanceSqr
                      select wowUnit)
                     .ToList();
             }
@@ -168,7 +169,7 @@ namespace Honorbuddy.QuestBehaviorCore
             int mountId;
             IEnumerable<Mount.MountWrapper> query;
 
-			if (Int32.TryParse(mountNameOrId, NumberStyles.Integer, CultureInfo.InvariantCulture, out mountId) && (mountId != 0))
+            if (Int32.TryParse(mountNameOrId, NumberStyles.Integer, CultureInfo.InvariantCulture, out mountId) && (mountId != 0))
             {
                 query =
                     from mount in mountList
@@ -211,24 +212,24 @@ namespace Honorbuddy.QuestBehaviorCore
                 select wowPlayer;
         }
 
-	    /// <summary>Finds unocupied vehicles.</summary>
-	    /// <param name="ids">The vehicle ids.</param>
-	    /// <param name="extraQualifiers">The extra qualifiers.</param>
-	    /// <returns></returns>
-	    public static IEnumerable<WoWUnit> FindUnoccupiedVehicles(IEnumerable<int> ids, Func<WoWUnit, bool> extraQualifiers = null )
-	    {
-		    return from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
-			    where ids.Contains((int)wowUnit.Entry)
-					&& (extraQualifiers == null || extraQualifiers(wowUnit))
-					&& wowUnit.CanInteractNow
-				orderby wowUnit.Location.CollectionDistance()
-			    select wowUnit;
-	    }
+        /// <summary>Finds unocupied vehicles.</summary>
+        /// <param name="ids">The vehicle ids.</param>
+        /// <param name="extraQualifiers">The extra qualifiers.</param>
+        /// <returns></returns>
+        public static IEnumerable<WoWUnit> FindUnoccupiedVehicles(IEnumerable<int> ids, Func<WoWUnit, bool> extraQualifiers = null)
+        {
+            return from wowUnit in ObjectManager.GetObjectsOfType<WoWUnit>(false, false)
+                   where ids.Contains((int)wowUnit.Entry)
+                       && (extraQualifiers == null || extraQualifiers(wowUnit))
+                       && wowUnit.CanInteractNow
+                   orderby wowUnit.Location.CollectionDistance()
+                   select wowUnit;
+        }
 
         // 25Aug2013 chinajade
         public static void InCompetitionReset()
         {
-            _inCompetitionTimers.Clear();
+            s_inCompetitionTimers.Clear();
         }
 
 
@@ -236,12 +237,12 @@ namespace Honorbuddy.QuestBehaviorCore
         public static TimeSpan InCompetitionTimeRemaining(WoWObject wowObject)
         {
             DateTime waitStart;
-            if (_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
+            if (s_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
             {
                 var now = DateTime.Now;
 
-                if (now <= (waitStart + _inCompetitionMaxWaitTime))
-                { return waitStart + _inCompetitionMaxWaitTime - now; }
+                if (now <= (waitStart + s_inCompetitionMaxWaitTime))
+                { return waitStart + s_inCompetitionMaxWaitTime - now; }
             }
 
             return TimeSpan.Zero;
@@ -304,11 +305,11 @@ namespace Honorbuddy.QuestBehaviorCore
         public static bool IsInCompetition(WoWObject wowObject, double nonCompeteDistance)
         {
             if (!IsViable(wowObject))
-                { return false; }
+            { return false; }
 
             // Shared world resources are never in competition...
             if (IsSharedWorldResource(wowObject))
-                { return false; }
+            { return false; }
 
             // If unit is tagged by someone else and in combat, it is in competition...
             // N.B. There are some cases where NPCs are shown as tagged by - 
@@ -318,7 +319,7 @@ namespace Honorbuddy.QuestBehaviorCore
             var wowUnit = wowObject as WoWUnit;
             var isTaggedByOther = ((wowUnit != null) && !wowUnit.IsUntagged() && wowUnit.Combat);
             if (isTaggedByOther)
-                { return true; }
+            { return true; }
 
 
             ProvideBoolDelegate excludeGroupMembers = (potentialGroupMember =>
@@ -329,39 +330,39 @@ namespace Honorbuddy.QuestBehaviorCore
             });
 
             var isPlayersNearby = FindPlayersNearby(wowObject.Location, nonCompeteDistance, excludeGroupMembers).Any();
-            var isCompetitionTimerRunning = _inCompetitionTimers.ContainsKey(wowObject.Guid);
+            var isCompetitionTimerRunning = s_inCompetitionTimers.ContainsKey(wowObject.Guid);
 
             // If players are clear, and competition timer is running...
             // We no longer need the competition timer.
             if (!isPlayersNearby && isCompetitionTimerRunning)
-                { _inCompetitionTimers.Remove(wowObject.Guid); }
+            { s_inCompetitionTimers.Remove(wowObject.Guid); }
 
             // If players are nearby, and we haven't established competition timer...
             // We need to record time at which we start the wait.
             if (isPlayersNearby && !isCompetitionTimerRunning)
             {
                 // Add new entry...
-                _inCompetitionTimers.Add(wowObject.Guid, DateTime.Now);
+                s_inCompetitionTimers.Add(wowObject.Guid, DateTime.Now);
 
                 // Time to sweep away old 'in competition' entries?
-                if ((_inCompetitionSweepTimer == null) || _inCompetitionSweepTimer.IsFinished)
+                if ((s_inCompetitionSweepTimer == null) || s_inCompetitionSweepTimer.IsFinished)
                 {
                     // Remove expired 'in competition' entries...
                     var now = DateTime.Now;
                     var keysToRemove =
-                       (from kvp in _inCompetitionTimers
-                        where now > (kvp.Value + _inCompetitionSweepTime)
+                       (from kvp in s_inCompetitionTimers
+                        where now > (kvp.Value + s_inCompetitionSweepTime)
                         select kvp.Key)
                         .ToArray();
 
                     foreach (var key in keysToRemove)
-                        { _inCompetitionTimers.Remove(key); }
+                    { s_inCompetitionTimers.Remove(key); }
 
                     // Reset sweep timer (creating it, if necessary)...
-                    if (_inCompetitionSweepTimer == null)
-                        { _inCompetitionSweepTimer = new WaitTimer(_inCompetitionSweepTime); }
+                    if (s_inCompetitionSweepTimer == null)
+                    { s_inCompetitionSweepTimer = new WaitTimer(s_inCompetitionSweepTime); }
 
-                    _inCompetitionSweepTimer.Reset();
+                    s_inCompetitionSweepTimer.Reset();
                 }
             }
 
@@ -370,23 +371,23 @@ namespace Honorbuddy.QuestBehaviorCore
             // NB: Since group membership affects 'nearby players', we must make this test
             // after the competition timers have been updated due to nearby players.
             DateTime waitStart;
-            if (_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
+            if (s_inCompetitionTimers.TryGetValue(wowObject.Guid, out waitStart))
             {
-                if (DateTime.Now > (waitStart + _inCompetitionMaxWaitTime))
-                    { return false; }
+                if (DateTime.Now > (waitStart + s_inCompetitionMaxWaitTime))
+                { return false; }
 
                 // Fall through, if we haven't been waiting too long...
             }
 
             return (isPlayersNearby);
         }
-        private static readonly Dictionary<WoWGuid, DateTime> _inCompetitionTimers = new Dictionary<WoWGuid, DateTime>();
-        private static readonly TimeSpan _inCompetitionMaxWaitTime = TimeSpan.FromSeconds(90);
-        private static readonly TimeSpan _inCompetitionSweepTime = TimeSpan.FromSeconds(10/*mins*/ * 60 /*secs*/);
-        private static WaitTimer _inCompetitionSweepTimer = null;
-	    private static PerFrameCachedValue<bool> _isInVehicle;
+        private static readonly Dictionary<WoWGuid, DateTime> s_inCompetitionTimers = new Dictionary<WoWGuid, DateTime>();
+        private static readonly TimeSpan s_inCompetitionMaxWaitTime = TimeSpan.FromSeconds(90);
+        private static readonly TimeSpan s_inCompetitionSweepTime = TimeSpan.FromSeconds(10/*mins*/ * 60 /*secs*/);
+        private static WaitTimer s_inCompetitionSweepTimer = null;
+        private static PerFrameCachedValue<bool> s_isInVehicle;
 
-        
+
         // 23Mar2013-05:38UTC chinajade
         public static bool IsInLineOfSight(WoWObject wowObject)
         {
@@ -404,9 +405,9 @@ namespace Honorbuddy.QuestBehaviorCore
         // 25Nov2013-09:30UTC chinajade
         public static bool IsInVehicle()
         {
-			return _isInVehicle ?? (_isInVehicle = 
-				new PerFrameCachedValue<bool>(() => StyxWoW.Me.InVehicle
-					|| Lua.GetReturnVal<bool>("return IsPossessBarVisible()", 0)));
+            return s_isInVehicle ?? (s_isInVehicle =
+                new PerFrameCachedValue<bool>(() => StyxWoW.Me.InVehicle
+                    || Lua.GetReturnVal<bool>("return IsPossessBarVisible()", 0)));
         }
 
 
@@ -416,23 +417,23 @@ namespace Honorbuddy.QuestBehaviorCore
             return !IsRangeSpec(spec);
         }
 
-		public static bool IsMobOrFaction(
-			WoWObject wowObject,
-			IEnumerable<int> mobIds,
-			bool includeSelf = false,
-			IEnumerable<int> factionIds = null,
-			ProvideBoolDelegate extraQualifiers = null)
-		{
-			if (!IsViable(wowObject))
-				return false;
+        public static bool IsMobOrFaction(
+            WoWObject wowObject,
+            IEnumerable<int> mobIds,
+            bool includeSelf = false,
+            IEnumerable<int> factionIds = null,
+            ProvideBoolDelegate extraQualifiers = null)
+        {
+            if (!IsViable(wowObject))
+                return false;
 
-			var wowUnit = wowObject as WoWUnit;
-			var isMob = mobIds != null && mobIds.Contains((int)wowObject.Entry);
-			var isMe = includeSelf && wowObject.IsMe;
-			var isFaction = wowUnit != null && factionIds != null && factionIds.Contains((int)wowUnit.FactionId);
+            var wowUnit = wowObject as WoWUnit;
+            var isMob = mobIds != null && mobIds.Contains((int)wowObject.Entry);
+            var isMe = includeSelf && wowObject.IsMe;
+            var isFaction = wowUnit != null && factionIds != null && factionIds.Contains((int)wowUnit.FactionId);
 
-			return (isMob || isMe || isFaction) && (extraQualifiers == null || extraQualifiers(wowObject));
-		}
+            return (isMob || isMe || isFaction) && (extraQualifiers == null || extraQualifiers(wowObject));
+        }
 
 
         public static bool IsMountAquatic(string mountNameOrId)
@@ -457,8 +458,8 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             return FindMount(Mount.Mounts, mountNameOrId) != null;
         }
-        
-        
+
+
         /// <summary>
         /// Returns 'true' for items that start quests, or are quest objectives.
         /// </summary>
@@ -469,12 +470,12 @@ namespace Honorbuddy.QuestBehaviorCore
         {
             // If not valid, then not a quest item...
             if ((wowItem == null) || !wowItem.IsValid)
-                { return false; }
+            { return false; }
 
-	        ItemInfo itemInfo = wowItem.ItemInfo;
+            ItemInfo itemInfo = wowItem.ItemInfo;
 
-	        if (itemInfo == null)
-		        return false;
+            if (itemInfo == null)
+                return false;
 
             return
                 (itemInfo.BeginQuestId != 0)                    // Begins a quest?
@@ -536,11 +537,11 @@ namespace Honorbuddy.QuestBehaviorCore
         public static bool IsPoiIdle(BotPoi poi)
         {
             if (poi == null)
-                { return false; }
+            { return false; }
 
-            return _idlePoiTypes.Contains(poi.Type);
+            return s_idlePoiTypes.Contains(poi.Type);
         }
-        private static readonly PoiType[] _idlePoiTypes =
+        private static readonly PoiType[] s_idlePoiTypes =
         {
             PoiType.None,
             PoiType.Quest,
@@ -552,7 +553,7 @@ namespace Honorbuddy.QuestBehaviorCore
         public static bool IsPoiMatch(WoWObject wowObject, PoiType poiType, NavType? navType = null)
         {
             if (!IsViable(wowObject))
-                { return false; }
+            { return false; }
 
             return (BotPoi.Current != null)
                     && (BotPoi.Current.Guid == wowObject.Guid)
@@ -568,7 +569,7 @@ namespace Honorbuddy.QuestBehaviorCore
             var wowGameObject = wowObject.ToGameObject();
             var wowUnit = wowObject as WoWUnit;
 
-            isSharedResource |= (wowGameObject != null) && _sharedGameObjectTypes.Contains(wowGameObject.SubType);
+            isSharedResource |= (wowGameObject != null) && s_sharedGameObjectTypes.Contains(wowGameObject.SubType);
             isSharedResource |= (wowUnit != null) && wowUnit.TappedByAllThreatLists;
             isSharedResource |= (wowUnit != null) && !wowUnit.IsHostile
                                 && (wowUnit.IsAnyTrainer
@@ -582,10 +583,10 @@ namespace Honorbuddy.QuestBehaviorCore
                                     || wowUnit.IsStableMaster
                                     || wowUnit.CanGossip
                                    );
-            
+
             return isSharedResource;
         }
-        private static readonly WoWGameObjectType[] _sharedGameObjectTypes =
+        private static readonly WoWGameObjectType[] s_sharedGameObjectTypes =
         {
             WoWGameObjectType.Binder,           // sets hearthstone
             // NOT: WoWGameObjectType.Door,
@@ -699,8 +700,8 @@ namespace Honorbuddy.QuestBehaviorCore
                 (location, blackspot) =>
                 {
                     return
-                        (blackspot.Location.DistanceSqr(location) <= (blackspot.Radius*blackspot.Radius))
-						&& (location.Z >= (blackspot.Location.Z - blackspot.Height))
+                        (blackspot.Location.DistanceSqr(location) <= (blackspot.Radius * blackspot.Radius))
+                        && (location.Z >= (blackspot.Location.Z - blackspot.Height))
                         && (location.Z <= (blackspot.Location.Z + blackspot.Height));
                 };
             var wowObjectLocation = wowObject.Location;
@@ -716,25 +717,25 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
 
-		// 30Sep2013 chinajade
+        // 30Sep2013 chinajade
         public static bool IsVehicleActionBarShowing()
         {
-	        return ActionBar.Active.Type == ActionBarType.Vehicle;
+            return ActionBar.Active.Type == ActionBarType.Vehicle;
         }
 
-        
+
         // 24Feb2013-08:11UTC chinajade
-		[ContractAnnotation("null=>false")]
+        [ContractAnnotation("null=>false")]
         public static bool IsViable(WoWObject wowObject)
         {
             return
                 (wowObject != null)
                 && wowObject.IsValid;
         }
-        
-        
+
+
         // 24Feb2013-08:11UTC chinajade
-		[ContractAnnotation("null=>false")]
+        [ContractAnnotation("null=>false")]
         public static bool IsViableForFighting(WoWUnit wowUnit)
         {
             return
@@ -748,13 +749,13 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
         // 24Feb2013-08:11UTC chinajade
-		[ContractAnnotation("wowObject:null=>false")]
+        [ContractAnnotation("wowObject:null=>false")]
         public static bool IsViableForInteracting(WoWObject wowObject,
                                                  bool ignoreMobsInBlackspots,
                                                  double nonCompeteDistance)
         {
             if (wowObject == null)
-                { return false; }
+            { return false; }
 
             bool isViableForInteracting =
                 IsViable(wowObject)
