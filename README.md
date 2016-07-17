@@ -1,8 +1,10 @@
 # Honorbuddy Quest Behaviors
+
 This repo contains the sources for the default quest behaviors
 shipped with [Honorbuddy](http://www.honorbuddy.com/).
 
-# Using the quest behaviors
+## Using the quest behaviors
+
 When a new version of Honorbuddy is released it automatically contains
 a snapshot of the master branch of this repository at the time of the release.
 This means that a new release of HB always will have the newest available version
@@ -15,7 +17,8 @@ the Honorbuddy directory. Assuming `C:\Path\to\Honorbuddy\Honorbuddy.exe` is a v
 path, the .zip should be extracted so that `C:\Path\to\Honorbuddy\Quest Behaviors\InteractWith.cs`
 is valid.
 
-# Developing the quest behaviors
+## Developing the quest behaviors
+
 Since Honorbuddy compiles the quest behaviors by itself there is no need to set up
 a proper build environment. However, this is still beneficial if you are going to
 be making changes to the quest behaviors to make sure your changes still compile.
@@ -34,32 +37,10 @@ mklink /J Dependencies "C:\Path\to\Honorbuddy"
 ```
 The quest behaviors should now build successfully in VS2015.
 
-# Contributing
-## Issues
-Feel free to open an issue if you think you have found a bug, or if you have a request
-for an enhancement. Please include as much information as possible when opening these.
-This includes:
-* Log files
-* Screenshots. Make sure to blur out names and other uniquely identifying information.
-* Locations
-* Steps to reproduce
-See [here](https://help.github.com/articles/file-attachments-on-issues-and-pull-requests/) for how to attach files to issues.
+## Contributing
 
-## Pull requests
-Pull requests are always welcome! Please make sure to follow our guidelines when submitting one:
-* Coding style: We use the .NET foundation coding style. You can read it [here](https://github.com/dotnet/corefx/blob/master/Documentation/coding-guidelines/coding-style.md).  
-Note that we will not accept pull that do not follow this coding style appropriately.
-* Use coroutines instead of behavior trees. This rule applies if you are introducing new logic code.
-
-If the change fixes a bug it is generally advisable to open an issue with details first. Similarly,
-if the changeset is large, opening an issue first to discuss the change is a good idea to make
-sure everything goes smoothly.
-
-The repo includes a `.editorconfig` file. If you have an IDE that supports this file
-it will automatically apply our indentation settings (spaces) when you open the files.
-Otherwise you can [download a plugin](http://editorconfig.org/) for your favorite IDE.
-This is optional but is very useful if you are switching between projects with different
-indentation settings.
+See the [Contributing document](CONTRIBUTING.md) for guidelines for making contributions.
 
 ## Discuss
+
 You can discuss Honorbuddy in our Discord channel which can be found [here](https://discordapp.com/invite/0q6seK1er9pqFZkZ).
