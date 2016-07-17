@@ -115,7 +115,7 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BearsUpThere
         private int _lvlCurrent = LEVEL_UNKNOWN;
 
         private const int AURA_CLIMBING_TREE = 74920;
-		private const int AURA_CLIMBING_TREE_DAILY = 97427;
+        private const int AURA_CLIMBING_TREE_DAILY = 97427;
         private const int AURA_IN_TREE = 46598;
         private const int CLIMB_UP = 74922;
         private const int CLIMB_DOWN_AT_TOP = 75070;
