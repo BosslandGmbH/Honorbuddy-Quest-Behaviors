@@ -51,6 +51,10 @@ Pull requests are always welcome! Please make sure to follow our guidelines when
 Note that we will not accept pull that do not follow this coding style appropriately.
 * Use coroutines instead of behavior trees. This rule applies if you are introducing new logic code.
 
+If the change fixes a bug it is generally advisable to open an issue with details first. Similarly,
+if the changeset is large, opening an issue first to discuss the change is a good idea to make
+sure everything goes smoothly.
+
 The repo includes a `.editorconfig` file. If you have an IDE that supports this file
 it will automatically apply our indentation settings (spaces) when you open the files.
 Otherwise you can [download a plugin](http://editorconfig.org/) for your favorite IDE.
