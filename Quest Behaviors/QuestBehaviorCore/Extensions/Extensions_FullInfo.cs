@@ -140,23 +140,14 @@ namespace Honorbuddy.QuestBehaviorCore
                 var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
                 tmp.AppendFormat("<SpellEffect Key_TriggerSpell=\"{0}\"", spellEffect.TriggerSpell);
-                tmp.AppendFormat("{0}Amplitude=\"{1}\"", fieldSeparator, spellEffect.Amplitude);
                 tmp.AppendFormat("{0}AuraType=\"{1}\"", fieldSeparator, spellEffect.AuraType);
                 tmp.AppendFormat("{0}BasePoints=\"{1}\"", fieldSeparator, spellEffect.BasePoints);
-                tmp.AppendFormat("{0}ChainTarget=\"{1}\"", fieldSeparator, spellEffect.ChainTarget);
                 tmp.AppendFormat("{0}EffectType=\"{1}\"", fieldSeparator, spellEffect.EffectType);
                 tmp.AppendFormat("{0}ImplicitTargetA=\"{1}\"", fieldSeparator, spellEffect.ImplicitTargetA);
                 tmp.AppendFormat("{0}ImplicitTargetB=\"{1}\"", fieldSeparator, spellEffect.ImplicitTargetB);
                 tmp.AppendFormat("{0}ItemType=\"{1}\"", fieldSeparator, spellEffect.ItemType);
-                tmp.AppendFormat("{0}Mechanic=\"{1}\"", fieldSeparator, spellEffect.Mechanic);
                 tmp.AppendFormat("{0}MiscValueA=\"{1}\"", fieldSeparator, spellEffect.MiscValueA);
                 tmp.AppendFormat("{0}MiscValueB=\"{1}\"", fieldSeparator, spellEffect.MiscValueB);
-                tmp.AppendFormat("{0}MultipleValue=\"{1}\"", fieldSeparator, spellEffect.MultipleValue);
-                tmp.AppendFormat("{0}PointsPerComboPoint=\"{1}\"", fieldSeparator, spellEffect.PointsPerComboPoint);
-                tmp.AppendFormat("{0}RadiusIndex=\"{1}\"", fieldSeparator, spellEffect.RadiusIndex);
-                tmp.AppendFormat("{0}RealPointsPerLevel=\"{1}\"", fieldSeparator, spellEffect.RadiusIndex);
-                tmp.AppendFormat("{0}SpellClassMask=\"{1}\"", fieldSeparator, spellEffect.SpellClassMask);
-                tmp.AppendFormat("{0}TriggerSpell=\"{1}\"", fieldSeparator, spellEffect.TriggerSpell);
                 tmp.AppendFormat("{0}/>", fieldSeparator);
             }
 
