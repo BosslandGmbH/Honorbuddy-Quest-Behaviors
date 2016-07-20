@@ -139,7 +139,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 var indent = string.Empty.PadLeft(indentLevel);
                 var fieldSeparator = useCompactForm ? " " : string.Format("\n  {0}", indent);
 
-                tmp.AppendFormat("<SpellEffect Key_TriggerSpell=\"{0}\"", spellEffect.TriggerSpell);
+                tmp.AppendFormat("<SpellEffect Key_Id=\"{0}\"", spellEffect.Id);
                 tmp.AppendFormat("{0}AuraType=\"{1}\"", fieldSeparator, spellEffect.AuraType);
                 tmp.AppendFormat("{0}BasePoints=\"{1}\"", fieldSeparator, spellEffect.BasePoints);
                 tmp.AppendFormat("{0}EffectType=\"{1}\"", fieldSeparator, spellEffect.EffectType);
