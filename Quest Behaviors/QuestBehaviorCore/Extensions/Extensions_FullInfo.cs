@@ -234,7 +234,6 @@ namespace Honorbuddy.QuestBehaviorCore
                 tmp.AppendFormat("<WoWSpell Key_Id=\"{0}\" Key_Name=\"{1}\"", wowSpell.Id, wowSpell.Name);
                 tmp.AppendFormat("{0}BaseCooldown=\"{1}\"", fieldSeparator, wowSpell.BaseCooldown);
                 // tmp.AppendFormat("{0}BaseDuration=\"{1}\"", fieldSeparator, wowSpell.BaseDuration);
-                tmp.AppendFormat("{0}BaseLevel=\"{1}\"", fieldSeparator, wowSpell.BaseLevel);
                 tmp.AppendFormat("{0}CanCast=\"{1}\"", fieldSeparator, wowSpell.CanCast);
                 tmp.AppendFormat("{0}CastTime=\"{1}\"", fieldSeparator, wowSpell.CastTime);
                 tmp.AppendFormat("{0}Category=\"{1}\"", fieldSeparator, wowSpell.Category);
@@ -248,15 +247,12 @@ namespace Honorbuddy.QuestBehaviorCore
                 tmp.AppendFormat("{0}IsFunnel=\"{1}\"", fieldSeparator, wowSpell.IsChanneled);
                 tmp.AppendFormat("{0}IsMelee=\"{1}\"", fieldSeparator, wowSpell.IsMeleeSpell);
                 tmp.AppendFormat("{0}IsSelfOnly=\"{1}\"", fieldSeparator, wowSpell.IsSelfOnlySpell);
-                tmp.AppendFormat("{0}Level: {1}", fieldSeparator, wowSpell.Level);
                 // tmp.AppendFormat("{0}MaxDuration=\"{1}\"", fieldSeparator, wowSpell.MaxDuration);
                 tmp.AppendFormat("{0}MaxRange=\"{1}\"", fieldSeparator, wowSpell.MaxRange);
-                tmp.AppendFormat("{0}MaxStackCount=\"{1}\"", fieldSeparator, wowSpell.MaxStackCount);
                 tmp.AppendFormat("{0}MaxTargets=\"{1}\"", fieldSeparator, wowSpell.MaxTargets);
                 tmp.AppendFormat("{0}Mechanic=\"{1}\"", fieldSeparator, wowSpell.Mechanic);
                 tmp.AppendFormat("{0}MinRange=\"{1}\"", fieldSeparator, wowSpell.MinRange);
                 tmp.AppendFormat("{0}Name=\"{1}\"", fieldSeparator, wowSpell.Name);
-                tmp.AppendFormat("{0}ResearchProjectId=\"{1}\"", fieldSeparator, wowSpell.ResearchProjectId);
                 tmp.AppendFormat("{0}School=\"{1}\"", fieldSeparator, wowSpell.School);
                 tmp.AppendFormat("{0}SpellDescriptionVariableId=\"{1}\"", fieldSeparator, wowSpell.SpellDescriptionVariableId);
 
@@ -264,7 +260,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 foreach (var effect in wowSpell.SpellEffects)
                 { tmp.AppendFormat("{0}  {1}", fieldSeparator, ToString_FullInfo(effect, useCompactForm, indentLevel + 4)); }
 
-                tmp.AppendFormat("{0}SpellMissileId=\"{1}\"", fieldSeparator, wowSpell.SpellMissileId);
+                tmp.AppendFormat("{0}SpellMissileId=\"{1}\"", fieldSeparator, wowSpell.InternalInfo.SpellMissile?.Id ?? 0);
                 tmp.AppendFormat("{0}TargetType=\"0x{1:x}\"", fieldSeparator, wowSpell.TargetType);
                 tmp.AppendFormat("{0}/>", fieldSeparator);
             }

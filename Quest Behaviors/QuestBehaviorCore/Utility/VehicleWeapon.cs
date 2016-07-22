@@ -119,7 +119,7 @@ namespace Honorbuddy.QuestBehaviorCore
             double muzzleVelocity = 0.0;
             var spell = FindVehicleAbilitySpell();
 
-            if ((spell != null) && (spell.SpellMissileId > 0))
+            if ((spell != null) && (spell.InternalInfo.SpellMissile != null))
             {
                 IEnumerable<WoWMissile> firedMissileQuery =
                     from missile in WoWMissile.InFlightMissiles
@@ -130,15 +130,15 @@ namespace Honorbuddy.QuestBehaviorCore
 
 
                 WoWMissile launchedMissile = firedMissileQuery.FirstOrDefault();
-                /* N.B This has been commented out to fix momentary game 'freeze up' from framelock but has been left here for - 
+                /* N.B This has been commented out to fix momentary game 'freeze up' from framelock but has been left here for -
                    future reference in the event this logic needs to be further repaired.
 
                 // Launch missile, and wait until launch is observed;
                 MissileWatchingTimer.Reset();
-                 
+
                 while ((launchedMissile == null) && !MissileWatchingTimer.IsFinished)
                 {
-                    // WoWMissiles are read directly from the games memory and are not stored in the 'ObjectManager' 
+                    // WoWMissiles are read directly from the games memory and are not stored in the 'ObjectManager'
                     // ObjectManager.Update();
                     launchedMissile = firedMissileQuery.FirstOrDefault();
                 }
