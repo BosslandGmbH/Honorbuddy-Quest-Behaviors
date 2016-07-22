@@ -140,15 +140,15 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
         {
             int maxRepeat = int.MaxValue;
             var spellReagents = recipe.InternalInfo.SpellReagents;
-            if (spellReagents.Reagent == null)
+            if (!spellReagents.HasValue)
                 return maxRepeat;
 
-            for (int index = 0; index < spellReagents.Reagent.Length; index++)
+            for (int index = 0; index < spellReagents.Value.Reagent.Length; index++)
             {
-                var reagent = spellReagents.Reagent[index];
+                var reagent = spellReagents.Value.Reagent[index];
                 if (reagent == 0)
                     continue;
-                var required = spellReagents.ReagentCount[index];
+                var required = spellReagents.Value.ReagentCount[index];
                 if (required <= 0)
                     continue;
                 var numInBags = StyxWoW.Me.BagItems.Sum(i => i != null && i.IsValid && i.Entry == reagent ? i.StackCount : 0);
