@@ -161,12 +161,14 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
 
         private WoWSpell GetRecipeSpell(int itemOrSpellId)
         {
-            var skillLineId = TradeSkillId;
-
+            int skillLineId = TradeSkillId;
             var skillLineIds = StyxWoW.Db[ClientDb.SkillLine]
-                .Select(r => r.GetStruct<SkillLineInfo.SkillLineEntry>())
-                .Where(s => s.ID == skillLineId || s.ParentSkillLineId == skillLineId)
-                .Select(s => (SkillLine)s.ID)
+                .EnumerateIdRowPairs()
+                .Where(
+                    kvp =>
+                        kvp.Key == skillLineId ||
+                        SkillLineInfo.FromId((uint)kvp.Key).ParentSkillLineId == skillLineId)
+                .Select(kvp => (SkillLine)kvp.Key)
                 .ToList();
 
             var recipes = SkillLineAbility.GetAbilities()
