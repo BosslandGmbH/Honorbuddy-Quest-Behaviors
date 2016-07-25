@@ -1054,7 +1054,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                                          Utility.WowheadLink(Utility.WowheadSubject.Item, (int)questItem.Entry));
                     builder.AppendLine();
 
-                    if (questItem.ItemInfo.BeginQuestId == 0)
+                    if (questItem.ItemInfo.BeginQuestId <= 0)
                         continue;
 
                     var beginsQuest = Quest.FromId((uint)questItem.ItemInfo.BeginQuestId);
