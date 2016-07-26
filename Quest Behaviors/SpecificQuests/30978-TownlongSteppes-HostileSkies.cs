@@ -17,7 +17,7 @@
 //      Killing the Voress'thalik will be preferred over Korthik Swarmers
 //      anytime it is up.
 //  3) Profit!
-// 
+//
 // THINGS TO KNOW:
 // * We completely disable combat for this behavior
 //      Combat is unnecessary while in this vehicle, and it allows
@@ -380,7 +380,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
                     unit.IsValid
                     && unit.IsAlive
                     && (unit.Entry == unitId)
-                    && (unit.TaggedByMe || unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                    && unit.IsUntagged()
                 select unit;
         }
 

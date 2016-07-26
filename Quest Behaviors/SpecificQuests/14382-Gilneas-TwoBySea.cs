@@ -18,7 +18,7 @@
 //  4) Exits the boat by 'jumping down'
 //  5) Repeats the above steps for both Captain Anson and Captain Morris
 //  6) Profit!
-// 
+//
 // THINGS TO KNOW:
 // * If for any reason, we lose the Catapult, another one will be acquired
 // * If for any reason we miss boarding the boat with the Catapult,
@@ -646,7 +646,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TwoBySea
                     unit.IsValid
                     && unit.IsAlive
                     && unitIds.Contains((int)unit.Entry)
-                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                    && !unit.TaggedByOther
                 select unit;
         }
 

@@ -645,7 +645,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ThePitOfScales
                     unit.IsValid
                     && unit.IsAlive
                     && unitIds.Contains((int)unit.Entry)
-                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                    && !unit.TaggedByOther
                 select unit;
         }
 

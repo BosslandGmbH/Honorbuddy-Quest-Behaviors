@@ -53,10 +53,10 @@ namespace Honorbuddy.QuestBehaviorCore
         public static bool AtLocation(WoWPoint myLoc, WoWPoint location, float? tolerance)
         {
             var tol = tolerance ?? Navigator.PathPrecision;
-            // We are checking if point is in an upright cylinder whose center is positioned at 'location', 
+            // We are checking if point is in an upright cylinder whose center is positioned at 'location',
             // radius set to 'tolerance' and height set to max(4.5, 'tolerance') x 2.
-            // This is the most suitable method when using mesh navigation because the mesh is often above or below the 
-            // actual ingame terrain so there's a need to clamp the tolerance along the Z axis to an amount that 
+            // This is the most suitable method when using mesh navigation because the mesh is often above or below the
+            // actual ingame terrain so there's a need to clamp the tolerance along the Z axis to an amount that
             // is greater then the maximum terrain/mesh Z coord difference
             return myLoc.Distance2DSqr(location) <= tol * tol && Math.Abs(myLoc.Z - location.Z) <= Math.Max(4.5f, tol);
         }
@@ -312,9 +312,9 @@ namespace Honorbuddy.QuestBehaviorCore
             { return false; }
 
             // If unit is tagged by someone else and in combat, it is in competition...
-            // N.B. There are some cases where NPCs are shown as tagged by - 
-            // someone else yet nobody is actively engaged with said unit. 
-            // If unit is not in combat with anyone and it is tagged and nobody else is around it can not be in competition. 
+            // N.B. There are some cases where NPCs are shown as tagged by -
+            // someone else yet nobody is actively engaged with said unit.
+            // If unit is not in combat with anyone and it is tagged and nobody else is around it can not be in competition.
             // On the other hand if we choose to ignore the tagged unit and it's the only NPC that exists in the world then bot will be stuck
             var wowUnit = wowObject as WoWUnit;
             var isTaggedByOther = ((wowUnit != null) && !wowUnit.IsUntagged() && wowUnit.Combat);
@@ -570,7 +570,7 @@ namespace Honorbuddy.QuestBehaviorCore
             var wowUnit = wowObject as WoWUnit;
 
             isSharedResource |= (wowGameObject != null) && s_sharedGameObjectTypes.Contains(wowGameObject.SubType);
-            isSharedResource |= (wowUnit != null) && wowUnit.TappedByAllThreatLists;
+            isSharedResource |= (wowUnit != null) && !wowUnit.TaggedByOther;
             isSharedResource |= (wowUnit != null) && !wowUnit.IsHostile
                                 && (wowUnit.IsAnyTrainer
                                     || wowUnit.IsAnyVendor
@@ -682,7 +682,7 @@ namespace Honorbuddy.QuestBehaviorCore
 
         /// <summary>
         /// <p>Returns 'true' if WOWOBJECT is located in a blackspot; otherwise, 'false'.</p>
-        /// 
+        ///
         /// <p>Not all blackspots are created equal.  For targeting purposes, we only want to consider
         /// blackspots defined by the profile (static), or the QBcore-based behaviors (a subset of dynamic
         /// blackspots).  Other blackspots, such as those dropped by the StuckHandler (also dynamic), should not

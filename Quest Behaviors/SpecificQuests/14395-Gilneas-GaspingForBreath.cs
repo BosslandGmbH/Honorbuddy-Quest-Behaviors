@@ -618,7 +618,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.GaspingForBreath
                     unit.IsValid
                     && unit.IsAlive
                     && unitIds.Contains((int)unit.Entry)
-                    && (unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                    && !unit.TaggedByOther
                 select unit;
         }
 

@@ -21,7 +21,7 @@
 //  5) Steal Kobai's mask
 //  6) Reprioritizes kill target to Malevolent Fury when it arrives
 //  7) Profit!
-// 
+//
 // THINGS TO KNOW:
 //  * If the event fails for some reason, the event retries automatically.
 //
@@ -31,7 +31,7 @@
 //      the trap placement and mask pilfering (i.e., Shaman's "Feral Spirit").
 //      There is a safety measure if the toon's health gets below 60%
 //      while waiting to pilfer the mask, it will start defending itself.
-//      If this happens, the event is automatically retried. 
+//      If this happens, the event is automatically retried.
 //      "Not defending" also prevents failures if the class max level
 //      is ever increased above 90 by Blizzard, or the toon is uber-geared.
 //
@@ -164,7 +164,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UnmaskingTheYaungol
                 return
                     from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                     where (unit.Entry == unitId) && unit.IsAlive
-                            && (unit.TaggedByMe || unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                            && unit.IsUntagged()
                     select unit;
             }
         }
