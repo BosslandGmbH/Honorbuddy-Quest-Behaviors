@@ -17,7 +17,7 @@
 //      Some Osul Invaders will be collateral damage, and this saves us time
 //  3) Takes out the requird Osul Treelaunchers & Osul Invaders
 //  4) Profit!
-// 
+//
 // THINGS TO KNOW:
 // * Exit Vehicle doesn't work for this quest
 //      You must blow up the vehicle to exit
@@ -186,7 +186,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.DoABarrelRoll
                 return
                     from unit in ObjectManager.GetObjectsOfType<WoWUnit>(true, false)
                     where (unit.Entry == unitId) && unit.IsAlive
-                            && (unit.TaggedByMe || unit.TappedByAllThreatLists || !unit.TaggedByOther)
+                            && unit.IsUntagged()
                     select unit;
             }
         }
