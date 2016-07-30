@@ -151,10 +151,13 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
         {
             OnStart_HandleAttributeProblem();
 
-            if (_state == true)
+            if (_state)
             {
                 if (_myHook == null)
                 {
+                    BotEvents.OnBotStopped += BotEvents_OnBotStopped;
+                    BotEvents.Profile.OnNewProfileLoaded += Profile_OnNewProfileLoaded;
+
                     QBCLog.Info("Inserting hook");
                     _myHook = CreateHook();
                     TreeHooks.Instance.InsertHook("Questbot_Profile", 0, _myHook);
@@ -166,19 +169,36 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             }
             else
             {
-                if (_myHook != null)
-                {
-                    QBCLog.Info("Removing hook");
-                    TreeHooks.Instance.RemoveHook("Questbot_Profile", _myHook);
-                    _myHook = null;
-                }
-                else
+                if (!RemoveHook())
                 {
                     QBCLog.Info("Remove was requested, but hook was not present");
                 }
             }
         }
 
+        private bool RemoveHook()
+        {
+            if (_myHook == null)
+                return false;
+
+            QBCLog.Info("Removing hook");
+            TreeHooks.Instance.RemoveHook("Questbot_Profile", _myHook);
+
+            BotEvents.OnBotStopped -= BotEvents_OnBotStopped;
+            BotEvents.Profile.OnNewProfileLoaded -= Profile_OnNewProfileLoaded;
+            _myHook = null;
+            return true;
+        }
+
+        private void Profile_OnNewProfileLoaded(BotEvents.Profile.NewProfileLoadedEventArgs args)
+        {
+            RemoveHook();
+        }
+
+        private void BotEvents_OnBotStopped(EventArgs args)
+        {
+            RemoveHook();
+        }
 
         public static Composite _myHook;
         public Composite CreateHook()

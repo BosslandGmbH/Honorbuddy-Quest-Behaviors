@@ -256,13 +256,13 @@ namespace Honorbuddy.Quest_Behaviors.KillUntilComplete
 
         private async Task<bool> Coroutine_CombatMain()
         {
-	        if (!ImmediatelySwitchToHighestPriorityTarget || !_targetSwitchTimer.IsFinished || 
-				BotPoi.Current.Type != PoiType.Kill || !Me.Combat || 
-				// Let quest bot handle targeting when we don't have any targets. High priority targets will be picked first as they are weighted more in targeting.
-				// Otherwise, there is a race condition happens where we immediately pick a new target when current one dies and we are still in combat for split second. 
-				// This was causing the looting etc. to be skipped
-				Me.CurrentTarget == null || Me.CurrentTarget.IsDead)
-		        return false;
+            if (!ImmediatelySwitchToHighestPriorityTarget || !_targetSwitchTimer.IsFinished ||
+                BotPoi.Current.Type != PoiType.Kill || !Me.Combat ||
+                // Let quest bot handle targeting when we don't have any targets. High priority targets will be picked first as they are weighted more in targeting.
+                // Otherwise, there is a race condition happens where we immediately pick a new target when current one dies and we are still in combat for split second.
+                // This was causing the looting etc. to be skipped
+                Me.CurrentTarget == null || Me.CurrentTarget.IsDead)
+                return false;
 
             var firstUnit = Targeting.Instance.FirstUnit;
             if (!Query.IsViable(firstUnit))
