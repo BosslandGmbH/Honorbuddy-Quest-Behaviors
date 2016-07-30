@@ -13,7 +13,7 @@
 // 30798-BreakingTheEmporersShield is a point-solution behavior that takes care
 // of moving to the Emporer and killing him.
 // It prioritizes the spawned mobs when the shield is present.
-// 
+//
 // EXAMPLE:
 //     <CustomBehavior File="30798-BreakingTheEmporersShield" />
 #endregion
@@ -80,6 +80,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Variables for Attributes provided by caller
         private int[] AvoidTargetsWithAura { get; set; }
@@ -90,9 +93,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreakingTheEmperorsShield
         private QuestCompleteRequirement QuestRequirementComplete { get; set; }
         private QuestInLogRequirement QuestRequirementInLog { get; set; }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

@@ -72,6 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int QuestId { get; private set; }
@@ -197,7 +200,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDefenseOfNahom
                                      where unit.FactionId == 2334 && unit.IsAlive
                                      let loc = unit.Location
                                      orderby loc.DistanceSqr(_encounterLocaction)
-                                     // project WoWUnit.Location to minimize the number of injections. 
+                                     // project WoWUnit.Location to minimize the number of injections.
                                      select new { Location = loc, Unit = unit }).ToList();
 
                 var friendlyForces = (from unit in ObjectManager.GetObjectsOfTypeFast<WoWUnit>()

@@ -44,6 +44,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HordeAssaultonDreadmaulRock
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         public static LocalPlayer me = StyxWoW.Me;
         static public bool Obj1Done { get { return Lua.GetReturnVal<int>("a,b,c=GetQuestLogLeaderBoard(1,GetQuestLogIndexByID(26649));if c==1 then return 1 else return 0 end", 0) == 1; } }

@@ -17,36 +17,36 @@
 //		VehicleId: [optional; default: 0] ID of the vehicle. Profile needs to handle getting in vehicle if this is not specified
 //		MaxAngle: [optional; default: 1.5] Maximum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
 //		MinAngle: [optional; default: -1.5] Minimum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
-//		Gravity: [optional; default: 30] The amount of gravity that effects projectile/s. 
+//		Gravity: [optional; default: 30] The amount of gravity that effects projectile/s.
 //		Velecity:[optional; default: 70] The velocity of the Projectile/s
-//		Buttons: A series of numbers that represent the buttons to press in order of importance, 
-//				separated by comma, for example Buttons ="2,1" 
+//		Buttons: A series of numbers that represent the buttons to press in order of importance,
+//				separated by comma, for example Buttons ="2,1"
 //		ExitButton: [optional] Button to press to exit the cannon such as the 'Skeletal Gryphon Escape'
 //				ability that can be used on the cannon for the quest 'Massacre At Light's Point'. 1-12
 
 
 // CANNONCONTROL will get inside a stationary cannon type vehicle, aim and fire away at targets.
-// 
+//
 // BEHAVIOR ATTRIBUTES:
 // *** ALSO see the documentation in QuestBehaviorBase.cs.  All of the attributes it provides
 // *** are available here, also.  The documentation on the attributes QuestBehaviorBase provides
 // *** is _not_ repeated here, to prevent documentation inconsistencies.
 //
-//		Buttons: 
-//			A series of numbers that represent the buttons to press in order of importance, 
-//			separated by comma, for example Buttons ="2,1" 
-//		ExitButton: [optional] 
+//		Buttons:
+//			A series of numbers that represent the buttons to press in order of importance,
+//			separated by comma, for example Buttons ="2,1"
+//		ExitButton: [optional]
 //			Button to press to exit the cannon such as the 'Skeletal Gryphon Escape'
 //			ability that can be used on the cannon for the quest 'Massacre At Light's Point'. 1-12
-//		Gravity: [optional; default: 30] 
-//			The amount of gravity that effects projectile/s. 
+//		Gravity: [optional; default: 30]
+//			The amount of gravity that effects projectile/s.
 //		MinAngle: [optional; default: -1.5]
 //			Minimum Angle to aim in radians, use /dump VehicleAimGetAngle() in game to get the angle
-//		MobIdN: [optional; default: Kill everything that moves] 
+//		MobIdN: [optional; default: Kill everything that moves]
 //			Identifies the mobs to shoot at with cannon
-//		VehicleId: 
+//		VehicleId:
 //			ID of the vehicle
-//		Velecity:[optional; default: 70] 
+//		Velecity:[optional; default: 70]
 //			The velocity of the Projectile/s
 //      X/Y/Z [optional; Default: toon's current location when behavior is started]
 //          The location that bot will go to search for a vehicle
@@ -140,16 +140,8 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
         private VehicleWeapon[] Weapons { get; set; }
         private WeaponArticulation WeaponArticulation { get; set; }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId
-        {
-            get { return ("$Id$"); }
-        }
-
-        public override string SubversionRevision
-        {
-            get { return ("$Revision$"); }
-        }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         #region Overrides of QuestBehaviorBase
 
@@ -173,13 +165,13 @@ namespace Honorbuddy.Quest_Behaviors.Vehicles.CannonControl
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
             //    context => string.Format("Automatically converted Nav=\"{0}\" attribute into MovementBy=\"{1}\"."
             //                              + "  Please update profile to use MovementBy, instead.",
-            //  
+            //
         }
 
         protected override void EvaluateUsage_SemanticCoherency(XElement xElement)

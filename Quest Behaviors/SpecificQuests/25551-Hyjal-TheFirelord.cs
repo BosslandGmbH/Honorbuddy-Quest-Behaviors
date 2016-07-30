@@ -51,7 +51,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
         /// MobId, MobId2, ...MobIdN: Mob Values that it will kill.
         /// X,Y,Z: The general location where theese objects can be found
         /// </summary>
-        /// 
+        ///
         public Rag(Dictionary<string, string> args)
             : base(args)
         {
@@ -79,6 +79,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFirelord
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
 
         // Attributes provided by caller

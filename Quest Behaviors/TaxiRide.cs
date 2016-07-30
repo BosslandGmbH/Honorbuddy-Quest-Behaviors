@@ -16,7 +16,7 @@
 //
 // BEHAVIOR ATTRIBUTES:
 //
-// QuestId: (Optional) - associates a quest with this behavior. 
+// QuestId: (Optional) - associates a quest with this behavior.
 // QuestCompleteRequirement [Default:NotComplete]:
 // QuestInLogRequirement [Default:InLog]:
 //	If the quest is complete or not in the quest log, this Behavior will not be executed.
@@ -30,7 +30,7 @@
 //          with which we can interact.
 //
 // TaxiNumber: (Optional)- Specifies the Number of the Flight Path on the TaxiMap
-// DestName: (Optional) [Default: ViewNodesOnly] - Specifies the destination NAME of the node on the TaxiMap. 
+// DestName: (Optional) [Default: ViewNodesOnly] - Specifies the destination NAME of the node on the TaxiMap.
 //	If bouth TaxiNumber and DestName are omitted bot will use default ViewNodesOnly, and only give an outputlist of nodes (number name)
 //	The TaxiNumber its a number and have prio over the Destname (if bouth are give, bot will only use the TaxiNumber
 //	The DestName should be a name string in the list of your TaxiMap node names. The argument is CASE SENSITIVE!
@@ -49,7 +49,7 @@
 //
 // You must 'escape' and ampersand (&) inside DestName.  For instance, "Fizzle &amp; Pozzik".
 // You cannot use the single-quote (') inside DestName, when nodes have that like
-// "Fizzle & Pozzik's Speedbarge, Thousand Needles", you can use the part before 
+// "Fizzle & Pozzik's Speedbarge, Thousand Needles", you can use the part before
 // or after the single-quote.  For instance:
 //     DestName="Fizzle &amp; Pozzik", or
 //     DestName="s Speedbarge, Thousand Needles"
@@ -95,7 +95,7 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
     [CustomBehaviorFileName(@"TaxiRide")]
     public class TaxiRide : CustomForcedBehavior
     {
-        #region Constructor and argument processing  
+        #region Constructor and argument processing
 
         private enum NpcStateType
         {
@@ -138,6 +138,9 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         // Attributes provided by caller
         private string DestName { get; set; }
         private int MobId { get; set; }
@@ -167,10 +170,6 @@ namespace Styx.Bot.Quest_Behaviors.TaxiRide
 
 
         #region Overrides of CustomForcedBehavior
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         protected override Composite CreateBehavior()
         {

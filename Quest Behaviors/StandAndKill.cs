@@ -73,6 +73,9 @@ namespace Honorbuddy.Quest_Behaviors.StandAndKill
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int MobIds { get; private set; }

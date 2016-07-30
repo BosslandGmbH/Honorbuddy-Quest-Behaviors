@@ -127,13 +127,14 @@ namespace Honorbuddy.Quest_Behaviors.UseHearthstone
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         // Attributes provided by caller
         public bool WaitOnCd { get; private set; }
         public bool UseGarrisonHearthstone { get; private set; }
 
         private int _retries;
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-
 
         #region Overrides of CustomForcedBehavior
 

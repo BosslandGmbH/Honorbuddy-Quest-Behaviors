@@ -121,7 +121,7 @@
 //
 //          PursueSelf
 //              PursueWhen [REQUIRED, if Id is not specified; Default: none]
-//                  defines a boolean expression that indicates when 'self' should be pursued.  
+//                  defines a boolean expression that indicates when 'self' should be pursued.
 //                  If 'true' is returned, then the toon is a candidate for pursuit.
 //                  The candidate object to be considered for pursuit is made available
 //                  in a variable called "ME".  This variable is of type
@@ -304,7 +304,7 @@ namespace Honorbuddy.QuestBehaviorCore
                 // XML types
 
                 // Add temporary avoid mobs, if any were specified...
-                // NB: ConfigMemento will restore the orginal list in OnFinished 
+                // NB: ConfigMemento will restore the orginal list in OnFinished
                 _temporaryAvoidMobs = AvoidMobsType.GetOrCreate(Element, "AvoidMobs");
 
                 // Add temporary blackspots, if any were specified...
@@ -358,9 +358,19 @@ namespace Honorbuddy.QuestBehaviorCore
 
         public readonly Stopwatch _behaviorRunTimer = new Stopwatch();
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        protected abstract string GitId { get; }
+
+        public override string VersionId => GitIdToVersionId(GitId);
+
+        internal static string GitIdToVersionId(string str)
+        {
+            // Format: $Id$
+            if (str == "$Id$") // Unexpanded, probably by downloading directly or something
+                return "vUnk";
+
+            return str.Substring(4, 6);
+        }
+
         #endregion
 
 
@@ -640,7 +650,7 @@ namespace Honorbuddy.QuestBehaviorCore
         /// <param name="xElement"></param>
         protected abstract void EvaluateUsage_DeprecatedAttributes(XElement xElement);
         //{
-        //     // EXAMPLE: 
+        //     // EXAMPLE:
         //    UsageCheck_DeprecatedAttribute(xElement,
         //        Args.Keys.Contains("Nav"),
         //        "Nav",
@@ -666,14 +676,14 @@ namespace Honorbuddy.QuestBehaviorCore
         //    UsageCheck_SemanticCoherency(xElement,
         //        ((RangeMax - RangeMin) < rangeEpsilon),
         //        context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-        //                      RangeMax, rangeEpsilon, RangeMin)); 
+        //                      RangeMax, rangeEpsilon, RangeMin));
         //}
 
 
         #region TargetFilters
 
-        /// <summary> Includes object in targeting list when returns true. This should be overridden in QBs to determine if the object should be in target list or not. 
-        ///           Keep in mind that critters, guards, players and tagged mobs are now passed in include filters rather then to be removed in default remove filter. 
+        /// <summary> Includes object in targeting list when returns true. This should be overridden in QBs to determine if the object should be in target list or not.
+        ///           Keep in mind that critters, guards, players and tagged mobs are now passed in include filters rather then to be removed in default remove filter.
         ///           Have extra checks for those if you don't want them in target list.</summary>
         ///
         /// <remarks> raphus, 24/07/2013. </remarks>
@@ -687,7 +697,7 @@ namespace Honorbuddy.QuestBehaviorCore
         }
 
         /// <summary> Removes the object from targeting list when returns true. This should be overridden in QBs to determine if the object should be removed from target list or not.
-        ///           This should be used only for WoWObjects that we don't really want to be included. For example, default include filter includes all units  that are attacking us. 
+        ///           This should be used only for WoWObjects that we don't really want to be included. For example, default include filter includes all units  that are attacking us.
         ///           If we have a case where we don't want to attack to an attacker, it should be removed here. </summary>
         ///
         /// <remarks> raphus, 24/07/2013. </remarks>

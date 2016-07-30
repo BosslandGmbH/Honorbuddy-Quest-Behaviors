@@ -100,6 +100,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Variables for Attributes provided by caller
         public double CannonArticulation_AzimuthMin { get; private set; }
@@ -118,10 +121,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.HostileSkies
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
         public int VehicleId_NurongsCannon { get; private set; }
 
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

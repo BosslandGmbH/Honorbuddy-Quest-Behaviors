@@ -60,6 +60,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.ProphetKharzul
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         private LocalPlayer Me
         {
             get { return StyxWoW.Me; }

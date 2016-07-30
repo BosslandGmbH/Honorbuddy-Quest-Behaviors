@@ -69,6 +69,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.RampageAgainstTheMachine
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
         private const uint IkthikWarriorId = 67034;
         private const uint IkthikSlayerId = 67035;
         private const uint DreadBehemothId = 67039;

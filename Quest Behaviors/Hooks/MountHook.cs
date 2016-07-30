@@ -60,10 +60,8 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             _state = GetAttributeAsNullable<bool>("state", true, null, null) ?? false;
         }
 
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         private bool _state;
 
@@ -700,7 +698,7 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             if (await CommonCoroutines.StopMoving())
                 return true;
 
-            // Turnin any quests since they can interfer with training. 
+            // Turnin any quests since they can interfer with training.
             if (trainer.HasQuestTurnin())
                 return await UtilityCoroutine.TurninQuest(trainer, trainer.Location);
 

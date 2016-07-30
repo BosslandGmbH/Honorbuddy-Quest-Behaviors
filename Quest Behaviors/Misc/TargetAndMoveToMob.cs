@@ -49,11 +49,11 @@
 //          for this attribute to be considered a qualified target.
 //      TargetOnlyIfMobHasAuraIdN [optional; Default: none]
 //          This attribute qualifies a target that fullfills the MobIdN or FactionIdN selection.
-//          The target *must* possess an aura that matches one of the defined 
+//          The target *must* possess an aura that matches one of the defined
 //          TargetOnlyIfMobHasAuraIdN, in order to be considered a qualified target.
 //      TargetOnlyIfMobMissingAuraIdN [optional; Default: none]
 //          This attribute qualifies a target that fullfills the MobIdN or FactionIdN selection.
-//          The target must *not* possess an aura that matches one of the defined 
+//          The target must *not* possess an aura that matches one of the defined
 //          TargetOnlyIfMobMissingAuraIdN, in order to be considered a qualified target.
 //
 // Tunables:
@@ -220,7 +220,7 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -254,9 +254,8 @@ namespace Honorbuddy.Quest_Behaviors.TargetAndMoveToMob
         private WoWUnit SelectedTarget { get; set; }
         private UtilityCoroutine.NoMobsAtCurrentWaypoint _noMobsAtCurrentWaypoint;
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
         #endregion
 
 

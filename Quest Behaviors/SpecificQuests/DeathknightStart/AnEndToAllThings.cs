@@ -57,7 +57,7 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
     /// ItemId: Id of the item that summons the vehicle.
     /// AttackSpell: Id of the attackspell, can be enumerated using, 'GetPetActionInfo(index)'
     /// HealSpell: Id of the healspell, can be enumerated using, 'GetPetActionInfo(index)'
-    /// NpcIds: a comma separated list with id's of npc's to kill for this quest. example. NpcIds="143,2,643,1337" 
+    /// NpcIds: a comma separated list with id's of npc's to kill for this quest. example. NpcIds="143,2,643,1337"
     /// </summary>
     [CustomBehaviorFileName(@"SpecificQuests\DeathknightStart\AnEndToAllThings")]
     public class AnEndToAllThings : QuestBehaviorBase
@@ -192,9 +192,8 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.AnEndToAllThings
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.

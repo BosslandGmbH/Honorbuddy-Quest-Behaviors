@@ -81,6 +81,9 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public static int QuestId { get; private set; }
@@ -92,10 +95,6 @@ namespace Honorbuddy.Quest_Behaviors.CompleteLogQuest
 
         // Private properties
         private string QuestName { get; set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

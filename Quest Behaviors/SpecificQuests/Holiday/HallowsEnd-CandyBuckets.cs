@@ -177,9 +177,8 @@ namespace Honorbuddy.Quest_Behaviors
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: HallowsEnd_CandyBuckets.cs 1728 2014-10-13 23:25:24Z chinajade $"; } }
-        public override string SubversionRevision { get { return "$Rev: 1728 $"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         // CreateBehavior supplied by QuestBehaviorBase.
@@ -834,6 +833,9 @@ namespace Honorbuddy.Quest_Behaviors
                 }
             }
 
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
+
             public int Index { get; private set; }
             public WoWRace Race { get; private set; }
 
@@ -884,6 +886,9 @@ namespace Honorbuddy.Quest_Behaviors
                     IsAttributeProblem = true;
                 }
             }
+
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
 
             public readonly List<Achievement_CheckYourHead_SubGoal> SubGoals;
 
@@ -951,6 +956,9 @@ namespace Honorbuddy.Quest_Behaviors
                     IsAttributeProblem = true;
                 }
             }
+
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
 
 
             private CandyBucketType()
@@ -1038,6 +1046,9 @@ namespace Honorbuddy.Quest_Behaviors
                 }
             }
 
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
+
             public readonly List<CandyBucketType> CandyBuckets;
 
             private const string DefaultElementName = "CandyBuckets";
@@ -1097,6 +1108,9 @@ namespace Honorbuddy.Quest_Behaviors
                 }
             }
 
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
+
             public readonly List<NameAndIdType> Auras;
 
             private const string DefaultElementName = "DispelAuras";
@@ -1141,6 +1155,9 @@ namespace Honorbuddy.Quest_Behaviors
                     IsAttributeProblem = true;
                 }
             }
+
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
 
             private const string DefaultElementName = "Item";
 
@@ -1193,6 +1210,9 @@ namespace Honorbuddy.Quest_Behaviors
                     IsAttributeProblem = true;
                 }
             }
+
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
 
             public readonly List<NameAndIdType> NameAndIds;
 
@@ -1256,7 +1276,7 @@ local id = 5838;
 for i = 1,GetAchievementNumCriteria(id) do
     local desc = GetAchievementCriteriaInfo(id, i);
 	local msg=string.format("(%d,%d) = %s", id, i, desc);
-    print(msg); 
+    print(msg);
 end
  */
 #endregion

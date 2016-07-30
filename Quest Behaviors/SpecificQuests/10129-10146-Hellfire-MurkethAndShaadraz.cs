@@ -109,9 +109,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.MurkethAndShaadraz
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Rev$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         public override void OnFinished()

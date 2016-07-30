@@ -12,12 +12,12 @@
 #region Summary and Documentation
 // DOCUMENTATION:
 // This behavior makes mastahg cry each time it is used.
-// 
+//
 #endregion
 
 
 #region Examples
-// <CustomBehavior File="SlayTheFools" QuestId="" MobId="" CollectionDistance="" 
+// <CustomBehavior File="SlayTheFools" QuestId="" MobId="" CollectionDistance=""
 // <CustomBehavior File="SlayTheFools" QuestId="29749" MobId="55489" CollectionDistance="60" X="2930.426" Y="-1644.892" Z="252.8332" />
 #endregion
 
@@ -81,6 +81,9 @@ namespace Honorbuddy.Quest_Behaviors.SlayTheFools
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
 
         // Attributes provided by caller

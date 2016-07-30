@@ -49,12 +49,12 @@
 //      AllowUseWhileMounted [optional; Default: false]
 //          If true, then using the item or casting the spell is acceptable to try while mounted.
 //      AllowExecutionWhileNotAlive [optional; Default: false]
-//			If true, then activity is allowed to execute while not alive 
+//			If true, then activity is allowed to execute while not alive
 //      Command [optional; ONE OF: Disable, Enable, Remove, ShowActivities, Update; Default: Update]
 //          Determines the disposition of the activity that evaluates the item use, spell cast or a custom activity
 //          Please see the examples below, and the purpose will become clear.
 //      LogExecution [optional; Default: true]
-//          Logs when hook starts and stops executing. 
+//          Logs when hook starts and stops executing.
 //      StopMovingToConductActivity [optional; Default: false]
 //          Many items and spells do not require the toon to be motionless when performing the actions;
 //          however, some do.
@@ -113,17 +113,17 @@
 // Note that our predicate did not check for the existence of the Lashtail Raptor Egg in the backpack.
 // Instead, we chose the better solution of configuring the DoWhen only when the profile already knows the egg
 // must already be in our backpack.  This helps a profile writer to locate hard-to-find errors.
-// 
-// If there's a need to perform a custom tailored activity then you can do so by placing 
-// any valid quest profile elements inside the <DoWhen> element like so. 
+//
+// If there's a need to perform a custom tailored activity then you can do so by placing
+// any valid quest profile elements inside the <DoWhen> element like so.
 //		<CustomBehavior File="Hooks\DoWhen" UseWhen="HasItem(1234)" ActivityName="UseSomeItem" AllowUseWhileFlying="True" AllowUseWhileMounted="True">
 //			<If Condition="Me.Mounted">
 //				<CustomBehavior File="ForcedDismount" />
 //			</If>
 //			<If Condition="Me.Shapeshift != ShapeshiftForm.Normal">
-//				<CustomBehavior File="Misc\RunLua" Lua="CancelShapeshiftForm()" /> 
+//				<CustomBehavior File="Misc\RunLua" Lua="CancelShapeshiftForm()" />
 //			</If>
-//			<CustomBehavior File="Misc\RunLua" Lua="UseItemByName(1234)" WaitTime="1500" />          
+//			<CustomBehavior File="Misc\RunLua" Lua="UseItemByName(1234)" WaitTime="1500" />
 //		</CustomBehavior>
 //
 // At any time, to see the list of current DoWhen activities, use the "ShowActivities" Command:
@@ -347,9 +347,8 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         // CreateBehavior supplied by QuestBehaviorBase.
@@ -931,7 +930,7 @@ namespace Honorbuddy.Quest_Behaviors.DoWhen
             {
                 if (BehaviorExecutor == null)
                 {
-                    // We need to create a shadow-copy of Nodes since the executor deletes nodes from collection when done. 
+                    // We need to create a shadow-copy of Nodes since the executor deletes nodes from collection when done.
                     var questOrder = new QuestOrder(new OrderNodeCollection(Nodes));
                     questOrder.UpdateNodes();
                     BehaviorExecutor = new ForcedBehaviorExecutor(questOrder);

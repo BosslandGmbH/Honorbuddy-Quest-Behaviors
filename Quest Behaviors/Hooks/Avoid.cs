@@ -11,23 +11,23 @@
 
 #region Summary and Documentation
 // QUICK DOX:
-// AVOID will try to avoid harmful effects such as poison pools. 
+// AVOID will try to avoid harmful effects such as poison pools.
 // It will run out of such effects and also try to navigate around them
 // AVOID is a 'hook' behavior. Unlike normal quest behaviors, it runs constantly in the background.
 //
 // Basic Attributes:
 //      AvoidName [REQUIRED]
-//          Identifies an avoidance definition 
+//          Identifies an avoidance definition
 //      ObjectId#  [REQUIRED if Command is "Add" and AvoidWhen not used]
-//          Identifies the object or objects that a harmful effect belongs to. 
+//          Identifies the object or objects that a harmful effect belongs to.
 //          This can be the ID of a NPC, game object, area trigger, dynamic object or a missile spell/spellVisual ID
 //          Missile spell visual Id should only be used if the missile does not have a spell ID which is pretty rare.
 //			Acceptable formats are ObjectId="####" ObjectId1="####" ObjectId2="####" ObjectIds="####,####,####"
 //      AvoidWhen [REQUIRED if Command is "Add" and ObjectId not used]
 //          Defines a predicate that must return a boolean value.  When the predicate
-//          evaluates to 'true', the object is avoided. This should be used when 
-//          specifying ObjectId is not enough. Perhaps the object being avoided is only 
-//          harmful when it has a certain aura. The object is exposed via a variable and the 
+//          evaluates to 'true', the object is avoided. This should be used when
+//          specifying ObjectId is not enough. Perhaps the object being avoided is only
+//          harmful when it has a certain aura. The object is exposed via a variable and the
 //          variable name depends on object type. The variable name will be one of the following
 //          UNIT when a Npc, AREATRIGGER, GAMEOBJECT, DYNAMICOBJECT or MISSILE
 //      Radius [REQUIRED if Command is "Add"]
@@ -37,15 +37,15 @@
 //      Command [optional; ONE OF: Add, Remove; Default: Add]
 //          Specifies whether to add or remove an avoidance definition.
 //      ObjectType [optional; ONE OF: Npc, GameObject, AreaTrigger, DynamicObject, Missile; Default: Npc]
-//          Identifies that type of object that needs to be avoided. 
+//          Identifies that type of object that needs to be avoided.
 //      IgnoreIfBlocking [optional; Default: false]
 //          Specifies whether effect should be ignored if it blocks path
 //		IgnoreLootInAvoid [optional; Default: false]
 //			Specifies whether loot should be ignored if it's inside an avoided area.
 //      AvoidLocationProducer [optional; Default: Location of effect object]
-//          This allows the user to customize the location that needs to be avoided 
+//          This allows the user to customize the location that needs to be avoided
 //      LeashRadius [optional; Default 40]
-//          Defines the maximum distance that bot will move from X/Y/Z while avoiding something. 
+//          Defines the maximum distance that bot will move from X/Y/Z while avoiding something.
 //          Only used if a X/Y/Z is specified
 //      X/Y/Z [optional; Default: NONE]
 //          Defines a leash anchor point that is used to prevent bot from leaving an area while avoiding something
@@ -58,16 +58,16 @@
 //      will be negatively impacted by constantly checking (with a very high frequency)
 //      for conditions that will never be present.
 //
-// * The algorithm that generates path around avoided areas is pretty simple, it uses a recursive algorithm 
+// * The algorithm that generates path around avoided areas is pretty simple, it uses a recursive algorithm
 //      that picks the left or right edge of the area being avoided and traces along it until if finds a path round it
 //      or hits an obstacle. If an obstacle is found along the edge that was picked then it will try the other edge.
 //      If both edges are blocked then the algorthim will either ignore the avoided area if IgnoreIfBlocking is true
 //      or move to the edge of the avoided area and wait for effect to disapear or move out of the way.
-//      
-//      Use a blackspot for avoiding mob aggro if mob is stationary, otherwise bot could get stuck when 
+//
+//      Use a blackspot for avoiding mob aggro if mob is stationary, otherwise bot could get stuck when
 //      the avoidance system is unable to find a path around the mob.
-//      
-//      This can only avoid ciruclar areas but it's posible to cover cone areas by using the AvoidLocationProducer 
+//
+//      This can only avoid ciruclar areas but it's posible to cover cone areas by using the AvoidLocationProducer
 //      tunable to place avoid location in the center of the cone area
 //
 #endregion
@@ -75,19 +75,19 @@
 
 #region Examples
 // EXAMPLES:
-// 
+//
 //  Add an avoidance for a mob whose Id is 1234. This will try to stay at least 10 yds away from mob.
 //  <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" />
-// 
+//
 //  Avoid above mob only when it contains a certain aura
 //  <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" AvoidWhen="UNIT.HasAura(54321)" />
-// 
-//  Remove the avoidance that was added above. 
+//
+//  Remove the avoidance that was added above.
 //  <CustomBehavior="Hooks\Avoid" AvoidName="Some Mob" Command="Remove" />
 //
 // Add an avoidance for an areaTrigger whose ID is 1337. Similar to the one for a mob except ObjectType needs to be specified
 // <CustomBehavior File="Hooks\Avoid" AvoidName="Some AreaTrigger" ObjectId="1337" Radius="7" ObjectType="AreaTrigger" />
-// 
+//
 // Avoid a mob's frontal area. The location that is avoided is moved 8 yds out in front of the mob
 // <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
 //                  AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 8)" />
@@ -98,7 +98,7 @@
 //
 // Avoid a straight line out in front of a mob that starts at mob's location and ends 15 yds out in front.
 // This is useful for avoiding abilites that do damage in a line or mobs that move fast.
-// <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10" 
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Some Mob" ObjectId="1234" Radius="10"
 //                  AvoidLocationProducer="WoWMathHelper.GetNearestPointOnLineSegment(Me.Location, UNIT.Location, UNIT.Location.RayCast(UNIT.Rotation, 15))" />
 //
 // If the above example doesn't work for avoiding a straight line then you will need to add multiple avoids lined up to cover the line.
@@ -138,17 +138,17 @@
 // Avoid behaviors with the same trigger, but different placements for the "circle".  This is
 // what creates our composite avoid area.
 
-// <CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam1" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam1" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907"
 //    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 3)" />
 //
-// <CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam2" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+// <CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam2" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907"
 //    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 8)" />
 //
-//<CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam3" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
+//<CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam3" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907"
 //    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 13)" />
 //
-//<CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam4" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907" 
-//    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 18)" /> 
+//<CustomBehavior File="Hooks\Avoid" AvoidName="Earthrending Slam4" ObjectId="80167" Radius="6" AvoidWhen="UNIT.CastingSpellId == 165907"
+//    AvoidLocationProducer="UNIT.Location.RayCast(UNIT.Rotation, 18)" />
 
 
 //THINGS TO KNOW
@@ -310,9 +310,8 @@ namespace Honorbuddy.Quest_Behaviors
         private AvoidObjectType ObjectType { get; set; }
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id: DoWhen.cs 1789 2014-11-13 18:12:31Z highvoltz $"; } }
-        public override string SubversionRevision { get { return "$Rev: 1789 $"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         public override void OnStart()
         {
@@ -390,7 +389,7 @@ namespace Honorbuddy.Quest_Behaviors
         {
             var supportsCapabilities = RoutineManager.Current.SupportedCapabilities != CapabilityFlags.None;
 
-            // Prevent Combat Routine from getting called when running out of bad stuff and CR doesn't use 
+            // Prevent Combat Routine from getting called when running out of bad stuff and CR doesn't use
             // the CombatRoutine Capabilities since it might resist.
             // The AvoidanceManager will disallow the Movement capability when running out of bad stuff.
             // For more info on CombatRoutine Capabilities see http://wiki.thebuddyforum.com/index.php?title=Honorbuddy:Developer_Notebook:Combat_Routine_Capabilities

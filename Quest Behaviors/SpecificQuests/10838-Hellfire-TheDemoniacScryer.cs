@@ -64,13 +64,15 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheDemoniacScryer
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         public int QuestId { get; set; }
         public WoWPoint Location = new WoWPoint(-145.9611, 3192.408, -65.09953);
         public int ItemId = 31606;
         public int MobId = 22258;
         public Stopwatch TimeOut = new Stopwatch();
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         private ConfigMemento _configMemento;
         private bool _isBehaviorDone;

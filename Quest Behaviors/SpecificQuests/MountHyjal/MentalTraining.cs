@@ -13,13 +13,13 @@
 // Completes the quest http://www.wowhead.com/quest=25299
 // This behavior completes the quest by correctly responding to
 // 10 yes/no questions by checking the toons question aura.
-// 
+//
 // Requires you to already be in position at the quest give Instructor Mylva X="4524.021" Y="-4731.176" Z="887.9406"
-// 
+//
 // ##Syntax##
 // QuestId: Id of the quest (default is 0)
 // [Optional] QuestName: optional quest name (documentation only)
-// 
+//
 #endregion
 
 
@@ -80,6 +80,9 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int QuestId { get; private set; }
@@ -92,11 +95,6 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.MentalTraining
 
         // Private properties
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         public bool HasAura(WoWUnit unit, int auraId)
         {

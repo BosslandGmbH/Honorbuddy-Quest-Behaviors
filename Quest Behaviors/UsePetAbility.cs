@@ -22,7 +22,7 @@
 // [Optional]NumOfTimes: Number of times
 // [Optional]CollectionDistance: The distance it will use to collect objects. DefaultValue:100 yards
 // [Optional]MobHpPercentLeft: What HP % of the mob when it will use the ability
-// [Optional]WaitTime: Time to wait after using the item 
+// [Optional]WaitTime: Time to wait after using the item
 // UseType: Current (Current Location)
 //          Location  (From X,Y,Z No Target)
 //          ToObject  (from range of an object to object's location)
@@ -36,7 +36,7 @@
 // [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 20)
 // [Optional]MinRange: Will backup if too close. (default 4)
 // [Optional]IgnoreCombat: Will Ignore All Combat (default False)
-// 
+//
 #endregion
 
 
@@ -129,6 +129,9 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int AttackButton { get; private set; }
@@ -185,10 +188,6 @@ namespace Honorbuddy.Quest_Behaviors.UsePetAbility
                 return obj;
             }
         }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

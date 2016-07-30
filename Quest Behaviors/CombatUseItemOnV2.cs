@@ -197,7 +197,7 @@
 // Beat pygmies into submission (25% health), then use Sullah's Pygmy Pen (http://wowhead.com/item=67232)
 // on them to capture.  The quest is complete after doing this five times.
 //      <CustomBehavior File="CombatUseItemOnV2" QuestId="28351" ItemId="67232" ItemAppliesAuraId="94365" MobId="51217"
-//          UseWhenMobHasHealthPercent="25" MaxRangeToUseItem="10" UseItemStrategy="UseItemOncePerTargetDontDefend" 
+//          UseWhenMobHasHealthPercent="25" MaxRangeToUseItem="10" UseItemStrategy="UseItemOncePerTargetDontDefend"
 //          RecallPetAtMobPercentHealth="40" >
 //          <HuntingGrounds WaypointVisitStrategy="Random" >
 //              <Hotspot Name="NW of Temple of Uldum" X="-9223.614" Y="666.8814" Z="188.2858" />
@@ -332,10 +332,8 @@ namespace Honorbuddy.Quest_Behaviors.CombatUseItemOnV2
         private double UseWhenMobHasHealthPercent { get; set; }
         private int WaitTimeAfterItemUse { get; set; }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {

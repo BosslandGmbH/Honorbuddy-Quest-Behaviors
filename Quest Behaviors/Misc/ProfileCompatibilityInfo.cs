@@ -139,9 +139,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
 
 
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
         #endregion
 
 
@@ -623,7 +622,7 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                         addOnName = string.Format("{0}_{1}", decoratedName, sameNameIndex);
 
                     // NB: We check 'enabled' and 'loadable' for addons...
-                    // If an addon cannot be loaded because it is out-of-date, or missing 
+                    // If an addon cannot be loaded because it is out-of-date, or missing
                     // a dependency, then it is indirectly disabled.
                     var isProblem = IsKnownProblemName(addOnName);
 
@@ -1015,8 +1014,8 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     return x.Entry == y.Entry;
                 }
 
-                // If Equals() returns true for a pair of objects  
-                // then GetHashCode() must return the same value for these objects. 
+                // If Equals() returns true for a pair of objects
+                // then GetHashCode() must return the same value for these objects.
                 public int GetHashCode(WoWItem wowItem)
                 {
                     // No hash code for null object...
@@ -1483,6 +1482,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 }
             }
 
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
+
             public string Name { get; private set; }
             public string Uri { get; private set; }
 
@@ -1537,6 +1539,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 }
             }
 
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
+
             public readonly List<XmlAddOn> AddOns;
 
             private readonly string _defaultElementName;
@@ -1581,6 +1586,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     IsAttributeProblem = true;
                 }
             }
+
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
 
             public readonly string _defaultElementName;
             public string Name { get; private set; }
@@ -1633,6 +1641,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                 }
             }
 
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
+
             public readonly List<XmlPlugIn> PlugIns;
 
             private readonly string _defaultElementName;
@@ -1677,6 +1688,9 @@ namespace Honorbuddy.Quest_Behaviors.ProfileCompatibilityInfo
                     IsAttributeProblem = true;
                 }
             }
+
+            // DON'T EDIT THIS--it is auto-populated by Git
+            public override string GitId => "$Id$";
 
             public int Value { get; private set; }
 

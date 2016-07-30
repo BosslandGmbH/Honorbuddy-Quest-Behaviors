@@ -62,6 +62,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Blastranaar
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
         public int MobIdSentinel = 34494;

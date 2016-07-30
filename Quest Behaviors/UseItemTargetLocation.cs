@@ -19,15 +19,15 @@
 // [Optional] NumOfTimes: The number of times to use item. (default: [UNTIL QUEST IS DONE] if QuestId specified; 1 otherwise)
 // [Optional] MobId1, MobId2, ...MobIdN: Id of the object/npc that the item will be used on
 // ItemId: Id of the item that will be used
-// [Optional]WaitTime: Time to wait after using the item 
+// [Optional]WaitTime: Time to wait after using the item
 // UseType: PointToObject (from X,Y,Z to an object's location)
 //          PointToPoint  (from X,Y,Z to ClickToX,ClickToY,ClickToZ)
 //          ToObject      (from range of an object to object's location)
 //          Default is PointToPoint
 // [Optional]X,Y,Z: If the UseType is AtLocation, QB will move to that location before using item. Otherwise it will move towards that point to search for objects
-// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click 
+// [Optional]ClickToX,ClickToY,ClickToZ: If the UseType is PoinToPoint, this location will be used to remote click
 // [Optional]Range: If the UseType is ToObject, QB will move to that range of an object/npc before using item. (default 4)
-// 
+//
 #endregion
 
 
@@ -195,9 +195,8 @@ namespace Honorbuddy.Quest_Behaviors.UseItemTargetLocation
             }
         }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         #region Overrides of CustomForcedBehavior

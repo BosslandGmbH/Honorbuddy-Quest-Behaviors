@@ -16,7 +16,7 @@
 
 
 #region Examples
-// How to use : <CustomBehavior File="InInstance" X="123" Y="456" Z="789" /> 
+// How to use : <CustomBehavior File="InInstance" X="123" Y="456" Z="789" />
 #endregion
 
 
@@ -66,6 +66,9 @@ namespace Honorbuddy.Quest_Behaviors.InInstance
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
         #region variables
         // Attributes provided by caller

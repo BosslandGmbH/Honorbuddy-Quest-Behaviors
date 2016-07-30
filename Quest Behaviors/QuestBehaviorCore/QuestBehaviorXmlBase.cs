@@ -55,8 +55,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
 
 
         #region Concrete class required implementations...
-        public virtual string SubversionId { get { return "$Id$"; } }
-        public virtual string SubversionRevision { get { return "$Rev$"; } }
+        public abstract string GitId { get; }
 
         public abstract XElement ToXml(string elementName = null);
         #endregion
@@ -517,7 +516,7 @@ namespace Honorbuddy.QuestBehaviorCore.XmlElements
         //              Stand           StandY27            false
         //              Stand           Stand27Y            true
         //              Stand           StandY27n           false
-        //              Stand           StandZs             false        
+        //              Stand           StandZs             false
         private bool UtilIsNumberedAttribute(string baseName, string attributeName, bool allowWoWPointSuffixes)
         {
             if (!attributeName.StartsWith(baseName))

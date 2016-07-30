@@ -71,6 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.EverythingButTheKitchenSink
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
+
 
         // Private variables for internal state
         private Composite _root;

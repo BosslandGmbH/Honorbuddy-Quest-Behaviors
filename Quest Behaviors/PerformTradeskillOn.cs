@@ -76,6 +76,9 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         // Attributes provided by caller
         public int? CastOnItemId { get; private set; }  /// If set, an item ID to cast the trade skill on.
 		public int NumOfTimes { get; private set; }
@@ -90,9 +93,6 @@ namespace Honorbuddy.Quest_Behaviors.PerformTradeskillOn
         private bool _isBehaviorDone;
         private WoWSpell _recipeSpell;
         private int _numOfCasts;
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         public override void OnFinished()
         {

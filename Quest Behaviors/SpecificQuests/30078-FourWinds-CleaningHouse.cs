@@ -84,6 +84,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int QuestId { get; private set; }
@@ -97,19 +100,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
         {
             get { return (StyxWoW.Me); }
         }
-
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId
-        {
-            get { return ("$Id$"); }
-        }
-
-        public override string SubversionRevision
-        {
-            get { return ("$Revision$"); }
-        }
-
 
         #region Overrides of CustomForcedBehavior
 
@@ -175,7 +165,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
         {
             var chenOutsideLoc = new WoWPoint(-709.4158, 1266.86, 136.0237);
             WoWUnit chenOutside = null;
-            // moveto and talk to Chen when outside the dungeon. 
+            // moveto and talk to Chen when outside the dungeon.
             return new Decorator(
                 ctx => Me.IsOutdoors && Targeting.Instance.FirstUnit == null,
                 new PrioritySelector(
@@ -205,7 +195,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.CleaningHouse
                 ctx => !Me.IsOutdoors,
                 new PrioritySelector(
                     //// temp fix for a caching bug.
-                    //new Decorator(ctx => Me.CurrentTargetGuid == 0 && Lua.GetReturnVal<ulong>("return UnitGUID('target')", 0) != 0, 
+                    //new Decorator(ctx => Me.CurrentTargetGuid == 0 && Lua.GetReturnVal<ulong>("return UnitGUID('target')", 0) != 0,
                     //    new Action(ctx => Me.ClearTarget())),
                     CreateBehavior_TalkToChenInside(),
                     CreateBehavior_KillEddy(),

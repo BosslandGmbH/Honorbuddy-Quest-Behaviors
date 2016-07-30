@@ -714,15 +714,8 @@ namespace Honorbuddy.Quest_Behaviors.InteractWith
         private WoWUnit SelectedAliveTarget { get; set; }
         private WoWObject SelectedTarget { get; set; }
 
-        public override string SubversionId
-        {
-            get { return ("$Id$"); }
-        }
-
-        public override string SubversionRevision
-        {
-            get { return ("$Revision$"); }
-        }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         private enum BindingEventStateType
         {

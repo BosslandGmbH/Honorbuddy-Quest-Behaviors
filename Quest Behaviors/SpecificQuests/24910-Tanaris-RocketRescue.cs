@@ -157,9 +157,8 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Rev$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
         // CreateBehavior supplied by QuestBehaviorBase.
         // Instead, provide CreateMainBehavior definition.
@@ -291,10 +290,10 @@ namespace Honorbuddy.Quest_Behaviors.Tanaris.RocketRescue_24910
                         Throttle.UserUpdate,
                         async () => TreeRoot.StatusText = string.Format("Waiting for {0} to respawn.",
                                         Utility.GetObjectNameFromId(MobId_SteamwheedleRescueBalloon)))));
-                // Wait for vehicle to respawn...				
+                // Wait for vehicle to respawn...
                 return true;
             }
-            // Wait for vehicle to respawn...				
+            // Wait for vehicle to respawn...
             await (_updateUser_MountingVehicle_movingToVehicle ?? (_updateUser_MountingVehicle_movingToVehicle =
                 new ThrottleCoroutineTask(
                     Throttle.UserUpdate,

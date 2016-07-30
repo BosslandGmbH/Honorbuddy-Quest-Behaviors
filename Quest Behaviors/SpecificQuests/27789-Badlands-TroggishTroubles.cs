@@ -9,7 +9,7 @@
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
 
-// This behavior is tailored for the quest http://www.wowhead.com/quest=27789/troggish-troubles 
+// This behavior is tailored for the quest http://www.wowhead.com/quest=27789/troggish-troubles
 
 #region Summary and Documentation
 #endregion
@@ -55,6 +55,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         private LocalPlayer Me
         {
             get { return (StyxWoW.Me); }
@@ -93,7 +96,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TroggishTroubles
                        new Decorator(
                            ctx => !IsDone,
                            new PrioritySelector(
-                               // if not in a turret than move to one and interact with it 
+                               // if not in a turret than move to one and interact with it
                                new Decorator(ret => !Query.IsInVehicle(),
                                    new PrioritySelector(
                                        ctx => turret = GetTurret(),

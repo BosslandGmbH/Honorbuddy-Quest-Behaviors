@@ -79,6 +79,9 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int AuraId_TheMightOfMograine { get; private set; }
@@ -125,11 +128,6 @@ namespace Honorbuddy.Quest_Behaviors.DeathknightStart.TheLightOfDawn
         private Composite _behaviorTreeHook_Main = null;
         private bool _isBehaviorDone = false;
         private StateType_Behavior _state_Behavior;
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         private void AntiAfk()
         {

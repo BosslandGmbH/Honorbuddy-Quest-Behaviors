@@ -75,6 +75,9 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         private HashSet<uint> _mobIds_HordeMounts = new HashSet<uint> {33791, // Stabled Silvermoon Hawkstrider
 																		33792, // Stabled Thunder Bluff Kodo
 																		33796, // Stabled Darkspear Raptor

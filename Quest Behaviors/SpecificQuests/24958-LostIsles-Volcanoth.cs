@@ -64,6 +64,10 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.Volcanoth
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         private Composite _behaviorTreeHook_CombatMain;
         public int QuestId { get; set; }
         private bool _isBehaviorDone;

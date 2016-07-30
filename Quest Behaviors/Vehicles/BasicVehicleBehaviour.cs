@@ -101,6 +101,9 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public WoWPoint LocationDest { get; private set; }
@@ -122,11 +125,6 @@ namespace Honorbuddy.Quest_Behaviors.BasicVehicleBehaviour
         public bool IsMounted { get; set; }
         private LocalPlayer Me { get { return (StyxWoW.Me); } }
         public WoWPoint MountedPoint { get; private set; }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
-
 
         #region Overrides of CustomForcedBehavior
 

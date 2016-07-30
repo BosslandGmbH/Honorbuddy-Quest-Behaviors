@@ -61,6 +61,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FinalConfrontation
             QBCLog.BehaviorLoggingContext = this;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         public static LocalPlayer Me
         {

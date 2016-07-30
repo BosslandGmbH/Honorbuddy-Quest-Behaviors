@@ -96,7 +96,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -116,7 +116,7 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
 
         #region Private and Convenience variables
@@ -126,9 +126,8 @@ namespace Honorbuddy.Quest_Behaviors.WaitTimerBehavior // This prevents a confli
 
 
         #region Overrides of CustomForcedBehavior
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         protected override Composite CreateMainBehavior()

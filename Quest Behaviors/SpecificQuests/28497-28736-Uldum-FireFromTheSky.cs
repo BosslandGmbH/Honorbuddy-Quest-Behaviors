@@ -68,6 +68,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FireFromTheSky
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public int QuestId { get; private set; }
@@ -164,7 +167,7 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.FireFromTheSky
 										  {
 											  SpellManager.ClickRemoteLocation(Enemies[0].Location.RayCast(Enemies[0].Rotation, 11));
 										  }
-										  
+
 										  // middle left
 										  if ((Enemies[0].Z >= 219) && (Enemies[0].Z <= 228))
 										  {

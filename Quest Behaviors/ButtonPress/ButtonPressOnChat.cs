@@ -12,7 +12,7 @@
 #region Summary and Documentation
 // DOCUMENTATION:
 //      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ButtonPressOnChat
-//     
+//
 // QUICK DOX:
 //      This behavior interacts with an Item, Mob, or Object to initiate a chat query-response
 //      cycle.  The Item/Mob/Object (hereafter referred to as 'target') will ask a question or
@@ -74,7 +74,7 @@
 //              then the profile will stop on any attempt to execute this behavior.
 //      X/Y/Z [Default: toon's current location]: the general area where a target may be found
 //              to initate the query-response cycle.
-// 
+//
 #endregion
 
 
@@ -217,6 +217,9 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller...
         public string[] FeedbackPhraseFailures { get; private set; }
@@ -256,7 +259,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         private Queue<string> _messagesPending = new Queue<string>();
         private readonly string _wowClientLocale;
 
-        // Private LINQ queries...  
+        // Private LINQ queries...
         private IEnumerable<WoWObject> ViableTargets()
         {
             return (ObjectManager.GetObjectsOfType<WoWObject>(true, false)
@@ -265,10 +268,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
                                       && !target.IsLocallyBlacklisted()))
                     .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
         }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Rev$"); } }
 
         // The same phrase must no be used for multiple roles...
         // We enforce the constraint here.
@@ -690,7 +689,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnChat
         /// The created behavior was meant to be used in a PrioritySelector.
         /// It may also have uses inside other TreeSharp Composites.
         /// </summary>
-        /// 
+        ///
         /// <returns>
         /// <para>* RunStatus.Failure, if current target is viable.
         /// It will also return Failure if no targets could be located and failIfNoTargets is true</para>

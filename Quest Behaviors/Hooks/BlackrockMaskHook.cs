@@ -47,6 +47,9 @@ namespace Honorbuddy.Quest_Behaviors.Hooks
             _state = GetAttributeAsNullable<bool>("state", false, null, null) ?? false;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         private bool _inserted = false;
         private bool _state;

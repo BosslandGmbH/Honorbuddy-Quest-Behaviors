@@ -1,7 +1,7 @@
-// Behavior originally contributed by Chinajade. 
+// Behavior originally contributed by Chinajade.
 //
 // LICENSE:
-// This work is licensed under the 
+// This work is licensed under the
 //     Creative Commons Attribution-NonCommercial-ShareAlike 3.0 Unported License.
 // also known as CC-BY-NC-SA.  To view a copy of this license, visit
 //      http://creativecommons.org/licenses/by-nc-sa/3.0/
@@ -198,7 +198,7 @@
 //              <Hotspot X="-273.74"   Y="2351.56"  Z="126.98" />
 //          </SearchPath>
 //      </CustomBehavior>
-// 
+//
 // "The Burlap Trail: To Burlap Waystation" (http://wowhead.com/quest=30592)
 // A simple "assist the NPCs home" quest.  Note there are three versions of the
 // Grummle Trail Guide (the party's tank), and you don't know which version you
@@ -383,9 +383,8 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         public int[] StartNpcIds { get; private set; }
 
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
         #endregion
 
 
@@ -441,7 +440,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
         protected override void EvaluateUsage_DeprecatedAttributes(XElement xElement)
         {
-            //// EXAMPLE: 
+            //// EXAMPLE:
             //UsageCheck_DeprecatedAttribute(xElement,
             //    Args.Keys.Contains("Nav"),
             //    "Nav",
@@ -461,7 +460,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
             //UsageCheck_SemanticCoherency(xElement,
             //    ((RangeMax - RangeMin) < rangeEpsilon),
             //    context => string.Format("Range({0}) must be at least {1} greater than MinRange({2}).",
-            //                  RangeMax, rangeEpsilon, RangeMin)); 
+            //                  RangeMax, rangeEpsilon, RangeMin));
         }
 
         protected override Composite CreateMainBehavior()
@@ -944,7 +943,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
 
             var positionToEscort = centerLocation.RayCast((float)aggregateHeading, (float)EscortMaxFollowDistance);
 
-            // set the 'positionToEscort' to 'hitPoint' if 'positionToEscort' is off the mesh, on another level or obstructed. 
+            // set the 'positionToEscort' to 'hitPoint' if 'positionToEscort' is off the mesh, on another level or obstructed.
             WoWPoint hitPoint;
             var meshIsObstructed = MeshTraceline(centerLocation, positionToEscort, out hitPoint);
             if (meshIsObstructed.HasValue && meshIsObstructed.Value)
@@ -1096,7 +1095,7 @@ namespace Honorbuddy.Quest_Behaviors.EscortGroup
         /// <param name="wowPointSrc"></param>
         /// <param name="wowPointDest"></param>
         /// <param name="hitLocation">
-        /// The point where a wall (disjointed polygon edge) was encountered if any, otherwise WoWPoint.Empty. 
+        /// The point where a wall (disjointed polygon edge) was encountered if any, otherwise WoWPoint.Empty.
         /// The hit calculation is done in 2d so the Z coord will not be accurate;
         ///  It is an interpolation between <c>wowPointSrc</c>'s and <c>wowPointDest</c>'s Z coords
         /// </param>

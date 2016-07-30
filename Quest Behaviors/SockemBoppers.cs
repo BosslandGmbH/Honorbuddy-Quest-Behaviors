@@ -47,6 +47,9 @@ namespace Honorbuddy.Quest_Behaviors.SockemBoppers
             QuestId = GetAttributeAsNullable<int>("QuestId", true, null, null) ?? 0;
             MobIds = GetAttributeAsArray<uint>("MobIds", false, null, new[] { "NpcIds" }, null);
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
 

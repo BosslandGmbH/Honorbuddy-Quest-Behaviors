@@ -12,7 +12,7 @@
 #region Summary and Documentation
 // DOCUMENTATION:
 //      http://www.thebuddyforum.com/mediawiki/index.php?title=Honorbuddy_Custom_Behavior:_ButtonPressOnAura
-//     
+//
 // QUICK DOX:
 //      Collects items from mobs or objects when (right-click) 'interaction' is required.
 //      Most useful for those type of quests where you blow something up,
@@ -51,7 +51,7 @@
 //      X/Y/Z [Default: Toon's initial position]: Defines the anchor of a search area for
 //              which targets (mobs or objects) will be sought.  The hunting ground is defined by
 //              this value coupled with the CollectionDistance.
-// 
+//
 #endregion
 
 
@@ -151,6 +151,9 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller...
         public int? ButtonOnQuestComplete { get; private set; }
@@ -193,10 +196,6 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
                                       && Query.IsStateMatch_IgnoreMobsInBlackspots(target, IgnoreMobsInBlackspots)))
                     .OrderBy(target => Me.Location.SurfacePathDistance(target.Location)));
         }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Rev$"); } }
 
 
         // If player is close to a target that is interesting to us, ignore the target...
@@ -452,7 +451,7 @@ namespace Honorbuddy.Quest_Behaviors.ButtonPress.ButtonPressOnAura
         /// The created behavior was meant to be used in a PrioritySelector.
         /// It may also have uses inside other TreeSharp Composites.
         /// </summary>
-        /// 
+        ///
         /// <returns>
         /// <para>* RunStatus.Failure, if current target is viable.
         /// It will also return Failure if no targets could be located and failIfNoTargets is true</para>

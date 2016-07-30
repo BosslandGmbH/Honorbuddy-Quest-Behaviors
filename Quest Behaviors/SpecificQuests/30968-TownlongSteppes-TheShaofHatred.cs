@@ -8,7 +8,7 @@
 // or send a letter to
 //      Creative Commons // 171 Second Street, Suite 300 // San Francisco, California, 94105, USA.
 //
-// DOCUMENTATION:   
+// DOCUMENTATION:
 //	 <CustomBehavior File="StandAndKill" QuestId="25553" MobId="40974" X="3772.889" Y="-3233.83" Z="975.3411" /> // originally made for hyjal behavior
 //
 
@@ -73,6 +73,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheShaofHatred
                 IsAttributeProblem = true;
             }
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
 
 
         // Attributes provided by caller

@@ -136,9 +136,8 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TakeNoPrisoners
             }
         }
 
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
+        // DON'T EDIT THIS--it is auto-populated by Git
+        protected override string GitId => "$Id$";
 
 
         #region Overrides of CustomForcedBehavior

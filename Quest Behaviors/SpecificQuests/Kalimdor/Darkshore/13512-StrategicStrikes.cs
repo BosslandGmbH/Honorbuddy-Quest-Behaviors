@@ -71,6 +71,9 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Attributes provided by caller
         public bool KillLorenth { get; private set; }
@@ -120,10 +123,6 @@ namespace QuestBehaviors.SpecificQuests.Kalimdor.Darkshore
         }
 
         public WoWItem Item { get { return Me.CarriedItems.FirstOrDefault(i => i.Entry == 44995 && i.Cooldown == 0); } }
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return ("$Id$"); } }
-        public override string SubversionRevision { get { return ("$Revision$"); } }
 
         #region Overrides of CustomForcedBehavior
 

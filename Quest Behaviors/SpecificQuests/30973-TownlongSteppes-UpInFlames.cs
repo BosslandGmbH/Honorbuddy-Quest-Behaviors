@@ -25,7 +25,7 @@
 //  4) Profit!
 //
 //  * For toon safety, isolated mobs and isolated keg bombs are preferred as much as possible
-// 
+//
 // THINGS TO KNOW:
 // * A toon's pet will be instructed appropriately while the behavior is running.
 // * The PetActionBar UI must contain the Attack, Follow, Defensive, and Passive pet abilities.
@@ -134,6 +134,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
 
         // Variables for Attributes provided by caller
         public int AuraId_KegBomb { get; private set; }
@@ -152,10 +155,6 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.UpInFlames
         public QuestCompleteRequirement QuestRequirementComplete { get; private set; }
         public QuestInLogRequirement QuestRequirementInLog { get; private set; }
 
-
-        // DON'T EDIT THESE--they are auto-populated by Subversion
-        public override string SubversionId { get { return "$Id$"; } }
-        public override string SubversionRevision { get { return "$Rev$"; } }
         #endregion
 
 

@@ -12,18 +12,18 @@
 #region Summary and Documentation
 // Allows safely completing the http://www.wowhead.com/quest=25464 .  Can also be used
 // on similar quest if one discovered.
-// 
+//
 // Moves to XYZ
 // Locates MobId
 // If MobId has AuraId, run to XYZ
 // Otherwise run to MobId and use ItemId
 // At end, waits for Living Bomb before continuing
-// 
-// Note: to minimize damage, it will cast ItemId for a max of 5 seconds 
+//
+// Note: to minimize damage, it will cast ItemId for a max of 5 seconds
 // then run to xyz and wait even if no aura is present.  the duration betwen
 // aoe casts (aura present) varies and waiting for it to appear before
 // running out results in a very weak toon (and possible death from living bomb)
-// 
+//
 // ##Syntax##
 // QuestId: The id of the quest.
 // [Optional] MobId: The id of the object.
@@ -72,6 +72,9 @@ namespace Honorbuddy.Quest_Behaviors.MountHyjal.BaronGeddon
 
             QuestId = 25464;
         }
+
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
         public int QuestId { get; set; }
         private bool _isBehaviorDone;
 

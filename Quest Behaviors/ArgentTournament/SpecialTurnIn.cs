@@ -79,6 +79,9 @@ namespace Styx.Bot.Quest_Behaviors
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         // Attributes provided by caller
         public int TurnInId { get; private set; }
         public int QuestId { get; private set; }

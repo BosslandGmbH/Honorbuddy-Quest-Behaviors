@@ -50,6 +50,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.BreaktheUnbreakable
             _touchdown = GetAttributeAsNullable<WoWPoint>("", true, ConstrainAs.WoWPointNonEmpty, null) ?? WoWPoint.Empty;
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         public int QuestId { get; set; }
 
         private Composite _root;

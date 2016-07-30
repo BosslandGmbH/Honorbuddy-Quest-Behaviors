@@ -71,6 +71,9 @@ namespace Honorbuddy.Quest_Behaviors.SpecificQuests.TheFinalBlow
             }
         }
 
+        // DON'T EDIT THIS--it is auto-populated by Git
+        public override string VersionId => QuestBehaviorBase.GitIdToVersionId("$Id");
+
         public int QuestId { get; set; }
 
 
