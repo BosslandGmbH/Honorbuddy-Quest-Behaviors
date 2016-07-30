@@ -364,11 +364,11 @@ namespace Honorbuddy.QuestBehaviorCore
 
         internal static string GitIdToVersionId(string str)
         {
-            // Format: $Id$
-            if (str == "$Id$") // Unexpanded, probably by downloading directly or something
+            // Format is $ Id$, without the space, when unexpanded
+            if (str == "$" + "Id$") // Unexpanded, probably by downloading directly or something
                 return "vUnk";
 
-            return str.Substring(4, 6);
+            return str.Substring(5, 6);
         }
 
         #endregion
